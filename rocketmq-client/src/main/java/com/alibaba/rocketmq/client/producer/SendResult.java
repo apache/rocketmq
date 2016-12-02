@@ -137,7 +137,7 @@ public class SendResult {
 
     @Override
     public String toString() {
-        return "SendResult [sendStatus=" + sendStatus + ", msgId=" + msgId + ",offsetMsgId=" + offsetMsgId + ", messageQueue=" + messageQueue
+        return "SendResult [sendStatus=" + sendStatus + ", msgId=" + msgId + ", offsetMsgId=" + offsetMsgId + ", messageQueue=" + messageQueue
                 + ", queueOffset=" + queueOffset + "]";
     }
 }

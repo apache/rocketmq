@@ -6,18 +6,19 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.client.impl.factory;
 
 import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.admin.MQAdminExtInner;
+import com.alibaba.rocketmq.client.common.ThreadLocalIndex;
 import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.*;
@@ -93,6 +94,7 @@ public class MQClientInstance {
     private final AtomicLong storeTimesTotal = new AtomicLong(0);
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private DatagramSocket datagramSocket;
+    private Random random = new Random();
 
 
     public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId) {
@@ -546,7 +548,7 @@ public class MQClientInstance {
         heartbeatData.setClientID(this.clientId);
 
         // Consumer
-        for(Map.Entry<String,MQConsumerInner> entry: this.consumerTable.entrySet()){
+        for (Map.Entry<String, MQConsumerInner> entry : this.consumerTable.entrySet()) {
             MQConsumerInner impl = entry.getValue();
             if (impl != null) {
                 ConsumerData consumerData = new ConsumerData();
@@ -887,7 +889,7 @@ public class MQClientInstance {
             if (impl != null) {
                 try {
                     impl.doRebalance();
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     log.error("doRebalance exception", e);
                 }
             }
@@ -996,7 +998,8 @@ public class MQClientInstance {
         if (topicRouteData != null) {
             List<BrokerData> brokers = topicRouteData.getBrokerDatas();
             if (!brokers.isEmpty()) {
-                BrokerData bd = brokers.get(0);
+                int index = random.nextInt(brokers.size());
+                BrokerData bd = brokers.get(index % brokers.size());
                 return bd.selectBrokerAddr();
             }
         }
@@ -1014,35 +1017,36 @@ public class MQClientInstance {
                 log.info("[reset-offset] consumer dose not exist. group={}", group);
                 return;
             }
-
             consumer.suspend();
 
             ConcurrentHashMap<MessageQueue, ProcessQueue> processQueueTable = consumer.getRebalanceImpl().getProcessQueueTable();
-
-            for(Map.Entry<MessageQueue,ProcessQueue> entry : processQueueTable.entrySet()){
+            for (Map.Entry<MessageQueue, ProcessQueue> entry : processQueueTable.entrySet()) {
                 MessageQueue mq = entry.getKey();
-                if(topic.equals(mq.getTopic())){
+                if (topic.equals(mq.getTopic()) && offsetTable.containsKey(mq)) {
                     ProcessQueue pq = entry.getValue();
                     pq.setDropped(true);
                     pq.clear();
                 }
             }
 
-
             try {
-                TimeUnit.SECONDS.sleep(30);
+                TimeUnit.SECONDS.sleep(10);
             } catch (InterruptedException e) {
                 //
             }
 
-            processQueueTable = consumer.getRebalanceImpl().getProcessQueueTable();
-
-            for (Map.Entry<MessageQueue, ProcessQueue> entry : processQueueTable.entrySet()) {
-                MessageQueue mq = entry.getKey();
-                if (topic.equals(mq.getTopic())) {
-                    consumer.updateConsumeOffset(mq, offsetTable.get(mq));
-                    consumer.getRebalanceImpl().removeUnnecessaryMessageQueue(mq, entry.getValue());
-                    processQueueTable.remove(mq);
+            Iterator<MessageQueue> iterator = processQueueTable.keySet().iterator();
+            while (iterator.hasNext()) {
+                MessageQueue mq = iterator.next();
+                Long offset = offsetTable.get(mq);
+                if (topic.equals(mq.getTopic()) && offset != null) {
+                    try {
+                        consumer.updateConsumeOffset(mq, offset);
+                        consumer.getRebalanceImpl().removeUnnecessaryMessageQueue(mq, processQueueTable.get(mq));
+                        iterator.remove();
+                    } catch (Exception e) {
+                        log.warn("reset offset failed. group={}, {}", group, mq, e);
+                    }
                 }
             }
         } finally {

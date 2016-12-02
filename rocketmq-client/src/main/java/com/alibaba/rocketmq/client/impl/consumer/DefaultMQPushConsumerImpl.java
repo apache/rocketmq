@@ -192,7 +192,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     public void pullMessage(final PullRequest pullRequest) {
         final ProcessQueue processQueue = pullRequest.getProcessQueue();
         if (processQueue.isDropped()) {
-            log.info("the pull request[{}] is droped.", pullRequest.toString());
+            log.info("the pull request[{}] is dropped.", pullRequest.toString());
             return;
         }
 
@@ -207,7 +207,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
 
         if (this.isPause()) {
-            log.warn("consumer was paused, execute pull request later. instanceName={}", this.defaultMQPushConsumer.getInstanceName());
+            log.warn("consumer was paused, execute pull request later. instanceName={}, group={}", this.defaultMQPushConsumer.getInstanceName(), this.defaultMQPushConsumer.getConsumerGroup());
             this.executePullRequestLater(pullRequest, PullTimeDelayMillsWhenSuspend);
             return;
         }
@@ -482,7 +482,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             String brokerAddr = (null != brokerName) ? this.mQClientFactory.findBrokerAddressInPublish(brokerName)
                     : RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
             this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(brokerAddr, msg,
-                    this.defaultMQPushConsumer.getConsumerGroup(), delayLevel, 5000, this.defaultMQPushConsumer.getMaxReconsumeTimes());
+                    this.defaultMQPushConsumer.getConsumerGroup(), delayLevel, 5000, getMaxReconsumeTimes());
         } catch (Exception e) {
             log.error("sendMessageBack Exception, " + this.defaultMQPushConsumer.getConsumerGroup(), e);
 
@@ -495,10 +495,19 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             MessageAccessor.setProperties(newMsg, msg.getProperties());
             MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
             MessageAccessor.setReconsumeTime(newMsg, String.valueOf(msg.getReconsumeTimes() + 1));
-            MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(this.defaultMQPushConsumer.getMaxReconsumeTimes()));
+            MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(getMaxReconsumeTimes()));
             newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
 
             this.mQClientFactory.getDefaultMQProducer().send(newMsg);
+        }
+    }
+
+    private int getMaxReconsumeTimes() {
+        // default reconsume times: 16
+        if (this.defaultMQPushConsumer.getMaxReconsumeTimes() == -1) {
+            return 16;
+        } else {
+            return this.defaultMQPushConsumer.getMaxReconsumeTimes();
         }
     }
 

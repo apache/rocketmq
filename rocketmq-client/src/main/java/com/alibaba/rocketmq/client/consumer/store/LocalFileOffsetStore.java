@@ -16,6 +16,7 @@
  */
 package com.alibaba.rocketmq.client.consumer.store;
 
+import com.alibaba.rocketmq.client.exception.MQBrokerException;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.client.impl.factory.MQClientInstance;
 import com.alibaba.rocketmq.client.log.ClientLogger;
@@ -23,6 +24,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageQueue;
+import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -164,6 +166,12 @@ public class LocalFileOffsetStore implements OffsetStore {
 
     @Override
     public void removeOffset(MessageQueue mq) {
+
+    }
+
+    @Override
+    public void updateConsumeOffsetToBroker(final MessageQueue mq, final long offset, final boolean isOneway)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
 
     }
 

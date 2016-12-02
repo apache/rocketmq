@@ -104,7 +104,7 @@ public class ConsumerManager {
 
     public boolean registerConsumer(final String group, final ClientChannelInfo clientChannelInfo,
                                     ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere,
-                                    final Set<SubscriptionData> subList) {
+                                    final Set<SubscriptionData> subList, boolean isNotifyConsumerIdsChangedEnable) {
 
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (null == consumerGroupInfo) {
@@ -119,14 +119,16 @@ public class ConsumerManager {
         boolean r2 = consumerGroupInfo.updateSubscription(subList);
 
         if (r1 || r2) {
-            this.consumerIdsChangeListener.consumerIdsChanged(group, consumerGroupInfo.getAllChannel());
+            if (isNotifyConsumerIdsChangedEnable) {
+                this.consumerIdsChangeListener.consumerIdsChanged(group, consumerGroupInfo.getAllChannel());
+            }
         }
 
         return r1 || r2;
     }
 
 
-    public void unregisterConsumer(final String group, final ClientChannelInfo clientChannelInfo) {
+    public void unregisterConsumer(final String group, final ClientChannelInfo clientChannelInfo, boolean isNotifyConsumerIdsChangedEnable) {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (null != consumerGroupInfo) {
             consumerGroupInfo.unregisterChannel(clientChannelInfo);
@@ -136,7 +138,9 @@ public class ConsumerManager {
                     log.info("unregister consumer ok, no any connection, and remove consumer group, {}", group);
                 }
             }
-            this.consumerIdsChangeListener.consumerIdsChanged(group, consumerGroupInfo.getAllChannel());
+            if (isNotifyConsumerIdsChangedEnable) {
+                this.consumerIdsChangeListener.consumerIdsChanged(group, consumerGroupInfo.getAllChannel());
+            }
         }
     }
 

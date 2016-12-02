@@ -174,7 +174,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     public void removeOffset(MessageQueue mq) {
         if (mq != null) {
             this.offsetTable.remove(mq);
-            log.info("remove unnecessary messageQueue offset. mq={}, offsetTableSize={}", mq,
+            log.info("remove unnecessary messageQueue offset. group={}, mq={}, offsetTableSize={}", this.groupName, mq,
                     offsetTable.size());
         }
     }
@@ -193,10 +193,20 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     }
 
     /**
-     * Update the Consumer Offset, once the Master is off, updated to Slave,
+     * Update the Consumer Offset in one way, once the Master is off, updated to Slave,
      * here need to be optimized.
      */
     private void updateConsumeOffsetToBroker(MessageQueue mq, long offset) throws RemotingException,
+            MQBrokerException, InterruptedException, MQClientException {
+        updateConsumeOffsetToBroker(mq, offset, true);
+    }
+
+    /**
+     * Update the Consumer Offset synchronously, once the Master is off, updated to Slave,
+     * here need to be optimized.
+     */
+    @Override
+    public void updateConsumeOffsetToBroker(MessageQueue mq, long offset, boolean isOneway) throws RemotingException,
             MQBrokerException, InterruptedException, MQClientException {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
@@ -212,8 +222,13 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             requestHeader.setQueueId(mq.getQueueId());
             requestHeader.setCommitOffset(offset);
 
-            this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffsetOneway(
-                    findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+            if(isOneway){
+                this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffsetOneway(
+                        findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+            }else{
+                this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffset(
+                        findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+            }
         } else {
             throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
         }

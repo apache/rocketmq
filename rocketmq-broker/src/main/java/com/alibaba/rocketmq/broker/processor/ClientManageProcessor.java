@@ -87,8 +87,9 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             SubscriptionGroupConfig subscriptionGroupConfig =
                     this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
                             data.getGroupName());
+            boolean isNotifyConsumerIdsChangedEnable = true;
             if (null != subscriptionGroupConfig) {
-
+                isNotifyConsumerIdsChangedEnable = subscriptionGroupConfig.isNotifyConsumerIdsChangedEnable();
                 int topicSysFlag = 0;
                 if (data.isUnitMode()) {
                     topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
@@ -106,7 +107,8 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                     data.getConsumeType(),//
                     data.getMessageModel(),//
                     data.getConsumeFromWhere(),//
-                    data.getSubscriptionDataSet()//
+                    data.getSubscriptionDataSet(),//
+                    isNotifyConsumerIdsChangedEnable
             );
 
             if (changed) {
@@ -159,7 +161,13 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         {
             final String group = requestHeader.getConsumerGroup();
             if (group != null) {
-                this.brokerController.getConsumerManager().unregisterConsumer(group, clientChannelInfo);
+                SubscriptionGroupConfig subscriptionGroupConfig =
+                        this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
+                boolean isNotifyConsumerIdsChangedEnable = true;
+                if (null != subscriptionGroupConfig) {
+                    isNotifyConsumerIdsChangedEnable = subscriptionGroupConfig.isNotifyConsumerIdsChangedEnable();
+                }
+                this.brokerController.getConsumerManager().unregisterConsumer(group, clientChannelInfo, isNotifyConsumerIdsChangedEnable);
             }
         }
 

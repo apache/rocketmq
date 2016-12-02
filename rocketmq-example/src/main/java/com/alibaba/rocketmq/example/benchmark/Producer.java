@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.example.benchmark;
 
@@ -42,20 +42,21 @@ public class Producer {
     public static void main(String[] args) throws MQClientException, UnsupportedEncodingException {
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        CommandLine commandLine = ServerUtil.parseCmdLine("producer", args, buildCommandlineOptions(options), new PosixParser());
+        CommandLine commandLine = ServerUtil.parseCmdLine("benchmarkProducer", args, buildCommandlineOptions(options), new PosixParser());
         if (null == commandLine) {
             System.exit(-1);
         }
 
-        final int threadCount = commandLine.hasOption('t') ? Integer.parseInt(commandLine.getOptionValue('t')) : 64;
+        final String topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "BenchmarkTest";
+        final int threadCount = commandLine.hasOption('w') ? Integer.parseInt(commandLine.getOptionValue('w')) : 64;
         final int messageSize = commandLine.hasOption('s') ? Integer.parseInt(commandLine.getOptionValue('s')) : 128;
         final boolean keyEnable = commandLine.hasOption('k') ? Boolean.parseBoolean(commandLine.getOptionValue('k')) : false;
 
-        System.out.printf("threadCount %d messageSize %d keyEnable %s%n", threadCount, messageSize, keyEnable);
+        System.out.printf("topic %s threadCount %d messageSize %d keyEnable %s%n", topic, threadCount, messageSize, keyEnable);
 
         final Logger log = ClientLogger.getLog();
 
-        final Message msg = buildMessage(messageSize);
+        final Message msg = buildMessage(messageSize, topic);
 
         final ExecutorService sendThreadPool = Executors.newFixedThreadPool(threadCount);
 
@@ -172,7 +173,7 @@ public class Producer {
     }
 
     public static Options buildCommandlineOptions(final Options options) {
-        Option opt = new Option("t", "threadCount", true, "Thread count, Default: 64");
+        Option opt = new Option("w", "threadCount", true, "Thread count, Default: 64");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -184,12 +185,16 @@ public class Producer {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("t", "topic", true, "Topic name, Default: BenchmarkTest");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
-    private static Message buildMessage(final int messageSize) throws UnsupportedEncodingException {
+    private static Message buildMessage(final int messageSize, final String topic) throws UnsupportedEncodingException {
         Message msg = new Message();
-        msg.setTopic("BenchmarkTest");
+        msg.setTopic(topic);
 
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < messageSize; i += 10) {

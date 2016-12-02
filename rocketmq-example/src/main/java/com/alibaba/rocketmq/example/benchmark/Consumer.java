@@ -6,14 +6,15 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 package com.alibaba.rocketmq.example.benchmark;
 
 import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -22,6 +23,11 @@ import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import com.alibaba.rocketmq.client.exception.MQClientException;
 import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.srvutil.ServerUtil;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -32,6 +38,22 @@ import java.util.concurrent.atomic.AtomicLong;
 public class Consumer {
 
     public static void main(String[] args) throws MQClientException {
+        Options options = ServerUtil.buildCommandlineOptions(new Options());
+        CommandLine commandLine = ServerUtil.parseCmdLine("benchmarkConsumer", args, buildCommandlineOptions(options), new PosixParser());
+        if (null == commandLine) {
+            System.exit(-1);
+        }
+
+        final String topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "BenchmarkTest";
+        final String groupPrefix = commandLine.hasOption('g') ? commandLine.getOptionValue('g').trim() : "benchmark_consumer";
+        final String isPrefixEnable = commandLine.hasOption('p') ? commandLine.getOptionValue('p').trim() : "true";
+        String group = groupPrefix;
+        if (Boolean.parseBoolean(isPrefixEnable)) {
+            group = groupPrefix + "_" + Long.toString(System.currentTimeMillis() % 100);
+        }
+
+        System.out.printf("topic %s group %s prefix %s%n", topic, group, isPrefixEnable);
+
         final StatsBenchmarkConsumer statsBenchmarkConsumer = new StatsBenchmarkConsumer();
 
         final Timer timer = new Timer("BenchmarkTimerThread", true);
@@ -81,12 +103,10 @@ public class Consumer {
             }
         }, 10000, 10000);
 
-        DefaultMQPushConsumer consumer =
-                new DefaultMQPushConsumer("benchmark_consumer_"
-                        + Long.toString(System.currentTimeMillis() % 100));
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
         consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
-        consumer.subscribe("BenchmarkTest", "*");
+        consumer.subscribe(topic, "*");
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
@@ -119,6 +139,23 @@ public class Consumer {
         consumer.start();
 
         System.out.println("Consumer Started.");
+    }
+
+    public static Options buildCommandlineOptions(final Options options) {
+        Option opt = new Option("t", "topic", true, "Topic name, Default: BenchmarkTest");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("g", "group", true, "Consumer group name, Default: benchmark_consumer");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+
+        opt = new Option("p", "group prefix enable", true, "Consumer group name, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        return options;
     }
 
 

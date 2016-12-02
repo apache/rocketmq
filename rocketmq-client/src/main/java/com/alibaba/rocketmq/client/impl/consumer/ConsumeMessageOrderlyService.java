@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.alibaba.rocketmq.client.impl.consumer;
 
@@ -36,6 +36,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.zip.Inflater;
 
 
 /**
@@ -325,11 +326,20 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         return this.defaultMQPushConsumerImpl.getConsumerStatsManager();
     }
 
+    private int getMaxReconsumeTimes() {
+        // default reconsume times: Integer.MAX_VALUE
+        if (this.defaultMQPushConsumer.getMaxReconsumeTimes() == -1) {
+            return Integer.MAX_VALUE;
+        } else {
+            return this.defaultMQPushConsumer.getMaxReconsumeTimes();
+        }
+    }
+
     private boolean checkReconsumeTimes(List<MessageExt> msgs) {
         boolean suspend = false;
         if (msgs != null && !msgs.isEmpty()) {
             for (MessageExt msg : msgs) {
-                if (msg.getReconsumeTimes() >= this.defaultMQPushConsumer.getMaxReconsumeTimes()) {
+                if (msg.getReconsumeTimes() >= getMaxReconsumeTimes()) {
                     MessageAccessor.setReconsumeTime(msg, String.valueOf(msg.getReconsumeTimes()));
                     if (!sendMessageBack(msg)) {
                         suspend = true;
@@ -346,6 +356,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
     public boolean sendMessageBack(final MessageExt msg) {
         try {
+            // max reconsume times exceeded then send to dead letter queue.
             Message newMsg = new Message(MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup()), msg.getBody());
             String originMsgId = MessageAccessor.getOriginMessageId(msg);
             MessageAccessor.setOriginMessageId(newMsg, UtilAll.isBlank(originMsgId) ? msg.getMsgId() : originMsgId);
@@ -353,7 +364,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             MessageAccessor.setProperties(newMsg, msg.getProperties());
             MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
             MessageAccessor.setReconsumeTime(newMsg, String.valueOf(msg.getReconsumeTimes()));
-            MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(this.defaultMQPushConsumer.getMaxReconsumeTimes()));
+            MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(getMaxReconsumeTimes()));
             newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
 
             this.defaultMQPushConsumer.getDefaultMQPushConsumerImpl().getmQClientFactory().getDefaultMQProducer().send(newMsg);
@@ -444,8 +455,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             }
 
                             long beginTimestamp = System.currentTimeMillis();
-                            ConsumeReturnType returnType=ConsumeReturnType.SUCCESS;
-                            boolean hasException =false;
+                            ConsumeReturnType returnType = ConsumeReturnType.SUCCESS;
+                            boolean hasException = false;
                             try {
                                 this.processQueue.getLockConsume().lock();
                                 if (this.processQueue.isDropped()) {
@@ -461,7 +472,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                                         ConsumeMessageOrderlyService.this.consumerGroup, //
                                         msgs, //
                                         messageQueue);
-                                hasException=true;
+                                hasException = true;
                             } finally {
                                 this.processQueue.getLockConsume().unlock();
                             }
@@ -476,20 +487,20 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             }
 
                             long consumeRT = System.currentTimeMillis() - beginTimestamp;
-                            if(null ==status){
-                                if(hasException){
-                                    returnType=ConsumeReturnType.EXCEPTION;
-                                }else {
-                                    returnType=ConsumeReturnType.RETURNNULL;
+                            if (null == status) {
+                                if (hasException) {
+                                    returnType = ConsumeReturnType.EXCEPTION;
+                                } else {
+                                    returnType = ConsumeReturnType.RETURNNULL;
                                 }
-                            } else if(consumeRT>=defaultMQPushConsumer.getConsumeTimeout()*60*1000){
-                                returnType =ConsumeReturnType.TIME_OUT;
-                            }else if(ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT==status){
-                                returnType=ConsumeReturnType.FAILED;
-                            }else if(ConsumeOrderlyStatus.SUCCESS==status){
-                                returnType=ConsumeReturnType.SUCCESS;
+                            } else if (consumeRT >= defaultMQPushConsumer.getConsumeTimeout() * 60 * 1000) {
+                                returnType = ConsumeReturnType.TIME_OUT;
+                            } else if (ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT == status) {
+                                returnType = ConsumeReturnType.FAILED;
+                            } else if (ConsumeOrderlyStatus.SUCCESS == status) {
+                                returnType = ConsumeReturnType.SUCCESS;
                             }
-                            consumeMessageContext.getProps().put(MixAll.CONSUME_CONTEXT_TYPE,returnType.name());
+                            consumeMessageContext.getProps().put(MixAll.CONSUME_CONTEXT_TYPE, returnType.name());
                             if (null == status) {
                                 status = ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT;
                             }
