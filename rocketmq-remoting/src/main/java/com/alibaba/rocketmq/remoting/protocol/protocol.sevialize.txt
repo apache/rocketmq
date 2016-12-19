@@ -1,0 +1,6 @@
+//
+// Remoting protocol V0.1 draft
+//
+// protocol <length> <header length> <header data> <body data>
+//            1        2               3             4
+//
