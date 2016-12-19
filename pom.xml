@@ -243,10 +243,6 @@
                         <exclude>com/alibaba/rocketmq/client/consumer/loadbalance/AllocateMessageQueueAveragelyTest.java</exclude>
                         <exclude>com/alibaba/rocketmq/store/RecoverTest.java</exclude>
                         <exclude>com/alibaba/rocketmq/broker/api/SendMessageTest.java</exclude>
-                        <exclude>com/alibaba/rocketmq/test/integration/*/*.java</exclude>
-                        <exclude>com/alibaba/rocketmq/test/integration/BaseTest.java</exclude>
-                        <exclude>com/alibaba/rocketmq/test/*/*.java</exclude>
-                        <exclude>com/alibaba/rocketmq/test/BaseTest.java</exclude>
                     </excludes>
                 </configuration>
             </plugin>
