@@ -1,34 +1,37 @@
-### 操作系统调优
-在生产环境部署Broker前，必须要执行os.sh，对操作系统进行调优
+### Operating system tuning
+Before the broker deployment, you must run **os.sh**, which is optimized for your operating system.
 
-**P.S: os.sh只能执行一次，需要sudo root权限**
+## Notice
+### os.sh should be executed only once with the root permission.
+### os.sh parameter settings is just for reference. You can tune it in your target host systems.
 
-### 启动broker
-* Unix平台
 
-	`nohup sh mqbroker &`
+### Start broker
+* Unix platform
 
-* Windows平台（仅支持64位）
+  `nohup sh mqbroker &`
 
-	`mqbroker.exe`
+* Windows platform（Only support 64 bit）
 
-### 关闭broker
-	sh mqshutdown broker
+  `mqbroker.exe`
 
-### 启动Name Server
-* Unix平台
+### Shutodwn broker
+  sh mqshutdown broker
 
-	`nohup sh mqnamesrv &`
+### Start Nameserver
+* Unix platform
 
-* Windows平台（仅支持64位）
+  `nohup sh mqnamesrv &`
 
-	`mqnamesrv.exe`
+* Windows platform（Only support 64 bit）
 
-### 关闭Name Server
-	sh mqshutdown namesrv
+  `mqnamesrv.exe`
 
-### 更新或创建Topic
-	sh mqadmin updateTopic -b 127.0.0.1:10911 -t TopicA
+### Shutdown Nameserver
+    sh mqshutdown namesrv
 
-### 更新或创建订阅组
-	sh mqadmin updateSubGroup -b 127.0.0.1:10911 -g SubGroupA
+### Update or create Topic
+    sh mqadmin updateTopic -b 127.0.0.1:10911 -t TopicA
+
+### Update or create subscription group
+    sh mqadmin updateSubGroup -b 127.0.0.1:10911 -g SubGroupA
