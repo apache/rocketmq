@@ -1,9 +1,9 @@
 ### Operating system tuning
-Before the broker deployment, you must run **os.sh**, which is optimized for your operating system.
+Before deploying broker servers, it's highly recommended to run **os.sh**, which is to optimize your operating system for better performance.
 
 ## Notice
-### os.sh should be executed only once with the root permission.
-### os.sh parameter settings is just for reference. You can tune it in your target host systems.
+### os.sh should be executed only once with root permission.
+### os.sh parameter settings are for reference purpose only. You can tune them according to your target host configurations.
 
 
 ### Start broker
@@ -15,7 +15,7 @@ Before the broker deployment, you must run **os.sh**, which is optimized for you
 
   `mqbroker.exe`
 
-### Shutodwn broker
+### Shutdown broker
   sh mqshutdown broker
 
 ### Start Nameserver
