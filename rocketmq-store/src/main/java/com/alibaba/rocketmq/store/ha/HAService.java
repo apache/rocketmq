@@ -194,6 +194,16 @@ public class HAService {
             }
         }
 
+        @Override
+        public void shutdown(final boolean interrupt) {
+            super.shutdown(interrupt);
+            try {
+                serverSocketChannel.close();
+            }
+            catch (IOException e) {
+                log.error("AcceptSocketService shutdown exception", e);
+            }
+        }
 
         @Override
         public void run() {
