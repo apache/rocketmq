@@ -1,4 +1,4 @@
-## RocketMQ -- Alibaba's MQ [![Build Status](https://travis-ci.org/alibaba/RocketMQ.svg?branch=master)](https://travis-ci.org/alibaba/RocketMQ)
+## RocketMQ [![Build Status](https://travis-ci.org/alibaba/RocketMQ.svg?branch=master)](https://travis-ci.org/alibaba/RocketMQ)
 [![Maven Central](https://img.shields.io/badge/maven--center-stable--version-green.svg)](http://search.maven.org/#search%7Cga%7C1%7Ccom.alibaba.rocketmq)
 [![GitHub release](https://img.shields.io/badge/release-download-orange.svg)](https://github.com/alibaba/RocketMQ/releases)
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
@@ -11,7 +11,7 @@ It offers a variety of features as follows:
 * Reliable FIFO and strict sequential messaging in the same queue
 * Long pull queue model,also support push consumption style
 * Million message accumulation ability in single queue
-* Over a variety of messaging protocols.such as JMS,MQTT,HTTP etc.
+* Over a variety of messaging protocols.such as JMS,MQTT etc.
 * Distributed high available deploy architecture, meets at least once message delivery semantics
 * Docker images for isolated testing and cloud Isolated clusters
 * Feature-rich administrative dashboard for configuration,metrics and monitoring [![Cloud Charge](https://img.shields.io/badge/cloud-charge-red.svg)](https://www.aliyun.com/product/ons/?spm=5176.7960203.237031.135.67OdNO)
@@ -22,30 +22,22 @@ It offers a variety of features as follows:
 ----------
 
 ## Learn it & Contact us
-* Homepage: <https://github.com/alibaba/RocketMQ>
-* Mailing list: <https://groups.google.com/forum/?hl=en#!forum/rocketmq>
-* Documentation: <https://github.com/alibaba/RocketMQ/wiki>
-* Wiki: <https://github.com/alibaba/RocketMQ/wiki>
-* Issues: <https://github.com/alibaba/RocketMQ/issues>
+* Wiki: <https://cwiki.apache.org/confluence/display/ROCKETMQ/Apache+RocketMQ+Home>
+* Issues: <https://issues.apache.org/jira/browse/RocketMQ>
 * Ask: <http://stackoverflow.com/questions/tagged/rocketmq> or <https://www.quora.com/topic/RocketMQ>
 * [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/alibaba/RocketMQ?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
  
 
 ----------
 
-## How can I develop with RocketMQ?
-* [Download the latest release package](https://github.com/alibaba/RocketMQ/releases)
-* [Get the latest document & Who using RocketMQ](https://github.com/alibaba/RocketMQ/issues/1)
-* [`Using RocketMQ in Aliyun`](http://www.aliyun.com/product/ons)
+## RocketMQ Community
 * [`Docker images`](https://registry.hub.docker.com/u/vongosling/rocketmq/)
-* [Integrate with Alibaba JStorm](https://github.com/alibaba/jstorm)
-* [Integrate with Alibaba Canal](https://github.com/alibaba/canal)
 * [RocketMQ Community Projects](https://github.com/rocketmq)
 
 ----------
 
 ## Contributing
-We are always very happy to have contributions, whether for trivial cleanups,big new features or other material rewards. more details see [here](https://github.com/alibaba/RocketMQ/wiki/How-to-donate) 
+We are always very happy to have contributions, whether for trivial cleanups,big new features or other material rewards. more details see [here](CONTRIBUTING.md) 
  
 ----------
 ## License
