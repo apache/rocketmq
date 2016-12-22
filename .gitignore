@@ -9,3 +9,4 @@ devenv
 .idea/
 *.versionsBackup
 *bin
+.DS_Store
