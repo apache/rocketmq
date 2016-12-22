@@ -28,7 +28,7 @@
 
     <!-- header -->
     <module name="RegexpHeader">
-        <property name="header" value="/\*\*\nLicensed to the Apache.*"/>
+        <property name="header" value="/\*\*\nLicensed to the Apache Software Foundation*"/>
     </module>
 
     <module name="RegexpSingleline">
@@ -95,7 +95,7 @@
         <!--Validates identifiers for non-static fields-->
         <module name="MemberName"/>
         <!--Validates identifiers for class type parameters-->
-        <module name="ClassTypeParameterName">
+        <module name="ClassTypeParameter:Name">
             <property name="format" value="^[A-Z0-9]*$"/>
         </module>
         <!--Validates identifiers for method type parameters-->

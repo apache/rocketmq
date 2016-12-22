@@ -333,6 +333,18 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <version>0.12</version>
+                <configuration>
+                    <excludes>
+                        <exclude>.travis.yml</exclude>
+                        <exclude>CONTRIBUTING.md</exclude>
+                        <exclude>bin/README.md</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>3.0.2</version>
                 <configuration>
