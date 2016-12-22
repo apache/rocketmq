@@ -95,7 +95,7 @@
         <!--Validates identifiers for non-static fields-->
         <module name="MemberName"/>
         <!--Validates identifiers for class type parameters-->
-        <module name="ClassTypeParameter:Name">
+        <module name="ClassTypeParameterName">
             <property name="format" value="^[A-Z0-9]*$"/>
         </module>
         <!--Validates identifiers for method type parameters-->
