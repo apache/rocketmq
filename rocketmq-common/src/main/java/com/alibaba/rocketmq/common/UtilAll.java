@@ -16,6 +16,7 @@
  */
 package com.alibaba.rocketmq.common;
 
+import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
 
 import java.io.ByteArrayInputStream;
@@ -34,12 +35,15 @@ import java.util.*;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author shijia.wxr
  */
 public class UtilAll {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+
     public static final String YYYY_MM_DD_HH_MM_SS = "yyyy-MM-dd HH:mm:ss";
     public static final String YYYY_MM_DD_HH_MM_SS_SSS = "yyyy-MM-dd#HH:mm:ss:SSS";
     public static final String YYYY_MMDD_HHMMSS = "yyyyMMddHHmmss";
@@ -285,14 +289,17 @@ public class UtilAll {
             try {
                 byteArrayInputStream.close();
             } catch (IOException e) {
+                log.error("Failed to close the stream", e);
             }
             try {
                 inflaterInputStream.close();
             } catch (IOException e) {
+                log.error("Failed to close the stream", e);
             }
             try {
                 byteArrayOutputStream.close();
             } catch (IOException e) {
+                log.error("Failed to close the stream", e);
             }
         }
 
