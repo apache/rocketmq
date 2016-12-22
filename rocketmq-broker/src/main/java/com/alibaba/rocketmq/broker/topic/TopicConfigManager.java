@@ -46,7 +46,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author shijia.wxr
  */
 public class TopicConfigManager extends ConfigManager {
-    private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long LOCK_TIMEOUT_MILLIS = 3000;
     private transient final Lock lockTopicConfigTable = new ReentrantLock();
 
@@ -56,10 +56,8 @@ public class TopicConfigManager extends ConfigManager {
     private final Set<String> systemTopicList = new HashSet<String>();
     private transient BrokerController brokerController;
 
-
     public TopicConfigManager() {
     }
-
 
     public TopicConfigManager(BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -193,17 +191,17 @@ public class TopicConfigManager extends ConfigManager {
                             topicConfig.setTopicSysFlag(topicSysFlag);
                             topicConfig.setTopicFilterType(defaultTopicConfig.getTopicFilterType());
                         } else {
-                            LOG.warn("create new topic failed, because the default topic[" + defaultTopic
+                            log.warn("create new topic failed, because the default topic[" + defaultTopic
                                     + "] no perm, " + defaultTopicConfig.getPerm() + " producer: "
                                     + remoteAddress);
                         }
                     } else {
-                        LOG.warn("create new topic failed, because the default topic[" + defaultTopic
+                        log.warn("create new topic failed, because the default topic[" + defaultTopic
                                 + "] not exist." + " producer: " + remoteAddress);
                     }
 
                     if (topicConfig != null) {
-                        LOG.info("create new topic by default topic[" + defaultTopic + "], " + topicConfig
+                        log.info("create new topic by default topic[" + defaultTopic + "], " + topicConfig
                                 + " producer: " + remoteAddress);
 
                         this.topicConfigTable.put(topic, topicConfig);
@@ -219,7 +217,7 @@ public class TopicConfigManager extends ConfigManager {
                 }
             }
         } catch (InterruptedException e) {
-            LOG.error("createTopicInSendMessageMethod exception", e);
+            log.error("createTopicInSendMessageMethod exception", e);
         }
 
         if (createNew) {
@@ -253,7 +251,7 @@ public class TopicConfigManager extends ConfigManager {
                     topicConfig.setPerm(perm);
                     topicConfig.setTopicSysFlag(topicSysFlag);
 
-                    LOG.info("create new topic {}", topicConfig);
+                    log.info("create new topic {}", topicConfig);
                     this.topicConfigTable.put(topic, topicConfig);
                     createNew = true;
                     this.dataVersion.nextVersion();
@@ -263,7 +261,7 @@ public class TopicConfigManager extends ConfigManager {
                 }
             }
         } catch (InterruptedException e) {
-            LOG.error("createTopicInSendMessageBackMethod exception", e);
+            log.error("createTopicInSendMessageBackMethod exception", e);
         }
 
         if (createNew) {
@@ -284,7 +282,7 @@ public class TopicConfigManager extends ConfigManager {
                 topicConfig.setTopicSysFlag(TopicSysFlag.clearUnitFlag(oldTopicSysFlag));
             }
 
-            LOG.info("update topic sys flag. oldTopicSysFlag={}, newTopicSysFlag", oldTopicSysFlag,
+            log.info("update topic sys flag. oldTopicSysFlag={}, newTopicSysFlag", oldTopicSysFlag,
                     topicConfig.getTopicSysFlag());
 
             this.topicConfigTable.put(topic, topicConfig);
@@ -304,7 +302,7 @@ public class TopicConfigManager extends ConfigManager {
                 topicConfig.setTopicSysFlag(TopicSysFlag.setUnitSubFlag(oldTopicSysFlag));
             }
 
-            LOG.info("update topic sys flag. oldTopicSysFlag={}, newTopicSysFlag", oldTopicSysFlag,
+            log.info("update topic sys flag. oldTopicSysFlag={}, newTopicSysFlag", oldTopicSysFlag,
                     topicConfig.getTopicSysFlag());
 
             this.topicConfigTable.put(topic, topicConfig);
@@ -319,9 +317,9 @@ public class TopicConfigManager extends ConfigManager {
     public void updateTopicConfig(final TopicConfig topicConfig) {
         TopicConfig old = this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         if (old != null) {
-            LOG.info("update topic config, old: " + old + " new: " + topicConfig);
+            log.info("update topic config, old: " + old + " new: " + topicConfig);
         } else {
-            LOG.info("create new topic, " + topicConfig);
+            log.info("create new topic, " + topicConfig);
         }
 
         this.dataVersion.nextVersion();
@@ -340,7 +338,7 @@ public class TopicConfigManager extends ConfigManager {
                 if (topicConfig != null && !topicConfig.isOrder()) {
                     topicConfig.setOrder(true);
                     isChange = true;
-                    LOG.info("update order topic config, topic={}, order={}", topic, true);
+                    log.info("update order topic config, topic={}, order={}", topic, true);
                 }
             }
 
@@ -351,7 +349,7 @@ public class TopicConfigManager extends ConfigManager {
                     if (topicConfig.isOrder()) {
                         topicConfig.setOrder(false);
                         isChange = true;
-                        LOG.info("update order topic config, topic={}, order={}", topic, false);
+                        log.info("update order topic config, topic={}, order={}", topic, false);
                     }
                 }
             }
@@ -375,11 +373,11 @@ public class TopicConfigManager extends ConfigManager {
     public void deleteTopicConfig(final String topic) {
         TopicConfig old = this.topicConfigTable.remove(topic);
         if (old != null) {
-            LOG.info("delete topic config OK, topic: " + old);
+            log.info("delete topic config OK, topic: " + old);
             this.dataVersion.nextVersion();
             this.persist();
         } else {
-            LOG.warn("delete topic config failed, topic: " + topic + " not exist");
+            log.warn("delete topic config failed, topic: " + topic + " not exist");
         }
     }
 
@@ -426,7 +424,7 @@ public class TopicConfigManager extends ConfigManager {
         Iterator<Entry<String, TopicConfig>> it = tcs.getTopicConfigTable().entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, TopicConfig> next = it.next();
-            LOG.info("load exist local topic, {}", next.getValue().toString());
+            log.info("load exist local topic, {}", next.getValue().toString());
         }
     }
 

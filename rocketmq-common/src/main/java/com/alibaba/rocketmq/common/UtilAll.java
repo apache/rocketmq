@@ -48,7 +48,6 @@ public class UtilAll {
     public static final String YYYY_MM_DD_HH_MM_SS_SSS = "yyyy-MM-dd#HH:mm:ss:SSS";
     public static final String YYYY_MMDD_HHMMSS = "yyyyMMddHHmmss";
 
-
     public static int getPid() {
         RuntimeMXBean runtime = ManagementFactory.getRuntimeMXBean();
         String name = runtime.getName(); // format: "pid@hostname"
