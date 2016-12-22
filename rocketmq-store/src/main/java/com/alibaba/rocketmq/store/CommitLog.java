@@ -968,7 +968,7 @@ public class CommitLog {
                 this.countDownLatch.await(timeout, TimeUnit.MILLISECONDS);
                 return this.flushOK;
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                log.error("Interrupted", e);
                 return false;
             }
         }

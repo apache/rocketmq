@@ -134,7 +134,7 @@ public class AllocateMappedFileService extends ServiceThread {
         try {
             this.thread.join(this.getJointime());
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.error("Interrupted", e);
         }
 
         for (AllocateRequest req : this.requestTable.values()) {

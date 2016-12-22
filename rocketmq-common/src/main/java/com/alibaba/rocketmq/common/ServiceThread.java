@@ -78,7 +78,7 @@ public abstract class ServiceThread implements Runnable {
             STLOG.info("join thread " + this.getServiceName() + " eclipse time(ms) " + eclipseTime + " "
                     + this.getJointime());
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            STLOG.error("Interrupted", e);
         }
     }
 
@@ -126,7 +126,7 @@ public abstract class ServiceThread implements Runnable {
         try {
             waitPoint.await(interval, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            STLOG.error("Interrupted", e);
         } finally {
             hasNotified.set(false);
             this.onWaitEnd();

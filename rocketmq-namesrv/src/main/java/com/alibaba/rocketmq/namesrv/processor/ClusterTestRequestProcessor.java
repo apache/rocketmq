@@ -50,7 +50,7 @@ public class ClusterTestRequestProcessor extends DefaultRequestProcessor {
         try {
             adminExt.start();
         } catch (MQClientException e) {
-            e.printStackTrace();
+            log.error("Failed to start processor", e);
         }
     }
 

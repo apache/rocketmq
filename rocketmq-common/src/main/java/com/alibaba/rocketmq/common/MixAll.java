@@ -17,6 +17,7 @@
 package com.alibaba.rocketmq.common;
 
 import com.alibaba.rocketmq.common.annotation.ImportantField;
+import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import org.slf4j.Logger;
 
@@ -26,7 +27,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -46,12 +46,14 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-
+import org.slf4j.LoggerFactory;
 
 /**
  * @author shijia.wxr
  */
 public class MixAll {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
     public static final String ROCKETMQ_HOME_PROPERTY = "rocketmq.home.dir";
     public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
@@ -209,13 +211,13 @@ public class MixAll {
                 int len = fileReader.read(data);
                 result = len == data.length;
             } catch (IOException e) {
-                // e.printStackTrace();
+                log.error("Failed to read data", e);
             } finally {
                 if (fileReader != null) {
                     try {
                         fileReader.close();
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        log.error("Failed to close", e);
                     }
                 }
             }
@@ -256,12 +258,12 @@ public class MixAll {
     }
 
 
-    public static void printObjectProperties(final Logger log, final Object object) {
-        printObjectProperties(log, object, false);
+    public static void printObjectProperties(final Logger logger, final Object object) {
+        printObjectProperties(logger, object, false);
     }
 
 
-    public static void printObjectProperties(final Logger log, final Object object, final boolean onlyImportantField) {
+    public static void printObjectProperties(final Logger logger, final Object object, final boolean onlyImportantField) {
         Field[] fields = object.getClass().getDeclaredFields();
         for (Field field : fields) {
             if (!Modifier.isStatic(field.getModifiers())) {
@@ -274,10 +276,8 @@ public class MixAll {
                         if (null == value) {
                             value = "";
                         }
-                    } catch (IllegalArgumentException e) {
-                        e.printStackTrace();
-                    } catch (IllegalAccessException e) {
-                        e.printStackTrace();
+                    } catch (Exception e) {
+                        log.error("Failed to obtain object properties", e);
                     }
 
                     if (onlyImportantField) {
@@ -287,8 +287,8 @@ public class MixAll {
                         }
                     }
 
-                    if (log != null) {
-                        log.info(name + "=" + value);
+                    if (logger != null) {
+                        logger.info(name + "=" + value);
                     } else {
                     }
                 }
@@ -312,11 +312,8 @@ public class MixAll {
         try {
             InputStream in = new ByteArrayInputStream(str.getBytes(DEFAULT_CHARSET));
             properties.load(in);
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-            return null;
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            log.error("Failed to handle properties", e);
             return null;
         }
 
@@ -335,10 +332,8 @@ public class MixAll {
                     try {
                         field.setAccessible(true);
                         value = field.get(object);
-                    } catch (IllegalArgumentException e) {
-                        e.printStackTrace();
-                    } catch (IllegalAccessException e) {
-                        e.printStackTrace();
+                    } catch (Exception e) {
+                        log.error("Failed to handle properties", e);
                     }
 
                     if (value != null) {

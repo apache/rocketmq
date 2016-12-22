@@ -287,7 +287,7 @@ public class IndexService {
                 log.error("try to create index file, " + times + " times");
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                log.error("Interrupted", e);
             }
         }
 

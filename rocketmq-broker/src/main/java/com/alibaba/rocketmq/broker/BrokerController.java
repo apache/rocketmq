@@ -191,7 +191,7 @@ public class BrokerController {
                 this.messageStore = MessageStoreFactory.build(context, this.messageStore);
             } catch (IOException e) {
                 result = false;
-                e.printStackTrace();
+                log.error("Failed to initialize", e);
             }
         }
 

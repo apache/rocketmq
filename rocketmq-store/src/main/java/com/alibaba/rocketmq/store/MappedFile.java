@@ -516,7 +516,7 @@ public class MappedFile extends ReferenceResource {
                 try {
                     Thread.sleep(0);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    log.error("Interrupted", e);
                 }
             }
         }

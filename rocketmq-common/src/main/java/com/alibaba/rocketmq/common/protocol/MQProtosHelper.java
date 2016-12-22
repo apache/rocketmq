@@ -17,18 +17,19 @@
 
 package com.alibaba.rocketmq.common.protocol;
 
+import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import com.alibaba.rocketmq.remoting.common.RemotingHelper;
-import com.alibaba.rocketmq.remoting.exception.RemotingConnectException;
-import com.alibaba.rocketmq.remoting.exception.RemotingSendRequestException;
-import com.alibaba.rocketmq.remoting.exception.RemotingTimeoutException;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author shijia.wxr
  */
 public class MQProtosHelper {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+
     public static boolean registerBrokerToNameServer(final String nsaddr, final String brokerAddr,
                                                      final long timeoutMillis) {
         RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
@@ -42,14 +43,8 @@ public class MQProtosHelper {
             if (response != null) {
                 return ResponseCode.SUCCESS == response.getCode();
             }
-        } catch (RemotingConnectException e) {
-            e.printStackTrace();
-        } catch (RemotingSendRequestException e) {
-            e.printStackTrace();
-        } catch (RemotingTimeoutException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            log.error("Failed to register broker", e);
         }
 
         return false;

@@ -16,13 +16,16 @@
  */
 package com.alibaba.rocketmq.store.ha;
 
+import com.alibaba.rocketmq.common.constant.LoggerName;
 import java.util.HashMap;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author shijia.wxr
  */
 public class WaitNotifyObject {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     protected final HashMap<Long/* thread id */, Boolean/* notified */> waitingThreadTable =
             new HashMap<Long, Boolean>(16);
@@ -51,7 +54,7 @@ public class WaitNotifyObject {
             try {
                 this.wait(interval);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                log.error("Interrupted", e);
             } finally {
                 this.hasNotified = false;
                 this.onWaitEnd();
@@ -91,7 +94,7 @@ public class WaitNotifyObject {
             try {
                 this.wait(interval);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                log.error("Interrupted", e);
             } finally {
                 this.waitingThreadTable.put(currentThreadId, false);
                 this.onWaitEnd();
