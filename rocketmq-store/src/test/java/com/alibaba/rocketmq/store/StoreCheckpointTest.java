@@ -24,6 +24,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.IOException;
+
 import static org.junit.Assert.assertTrue;
 
 
@@ -38,24 +40,19 @@ public class StoreCheckpointTest {
     }
 
     @Test
-    public void test_write_read() {
-        try {
-            StoreCheckpoint storeCheckpoint = new StoreCheckpoint("target/checkpoint_test/0000");
-            long physicMsgTimestamp = 0xAABB;
-            long logicsMsgTimestamp = 0xCCDD;
-            storeCheckpoint.setPhysicMsgTimestamp(physicMsgTimestamp);
-            storeCheckpoint.setLogicsMsgTimestamp(logicsMsgTimestamp);
-            storeCheckpoint.flush();
-
-            long diff = physicMsgTimestamp - storeCheckpoint.getMinTimestamp();
-            assertTrue(diff == 3000);
-            storeCheckpoint.shutdown();
-            storeCheckpoint = new StoreCheckpoint("target/checkpoint_test/0000");
-            assertTrue(physicMsgTimestamp == storeCheckpoint.getPhysicMsgTimestamp());
-            assertTrue(logicsMsgTimestamp == storeCheckpoint.getLogicsMsgTimestamp());
-        } catch (Throwable e) {
-            e.printStackTrace();
-            assertTrue(false);
-        }
+    public void test_write_read() throws IOException {
+        StoreCheckpoint storeCheckpoint = new StoreCheckpoint("target/checkpoint_test/0000");
+        long physicMsgTimestamp = 0xAABB;
+        long logicsMsgTimestamp = 0xCCDD;
+        storeCheckpoint.setPhysicMsgTimestamp(physicMsgTimestamp);
+        storeCheckpoint.setLogicsMsgTimestamp(logicsMsgTimestamp);
+        storeCheckpoint.flush();
+    
+        long diff = physicMsgTimestamp - storeCheckpoint.getMinTimestamp();
+        assertTrue(diff == 3000);
+        storeCheckpoint.shutdown();
+        storeCheckpoint = new StoreCheckpoint("target/checkpoint_test/0000");
+        assertTrue(physicMsgTimestamp == storeCheckpoint.getPhysicMsgTimestamp());
+        assertTrue(logicsMsgTimestamp == storeCheckpoint.getLogicsMsgTimestamp());
     }
 }
