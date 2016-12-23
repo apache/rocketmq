@@ -63,25 +63,21 @@ public class SendMessageTest extends BrokerTestHarness{
     }
 
     @Test
-    public void testSendSingle() throws Exception {
+    public void testSendSingle() throws Exception{
         Message msg = new Message(topic, "TAG1 TAG2", "100200300", "body".getBytes());
-        try {
-            SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
-            requestHeader.setProducerGroup("abc");
-            requestHeader.setTopic(msg.getTopic());
-            requestHeader.setDefaultTopic(MixAll.DEFAULT_TOPIC);
-            requestHeader.setDefaultTopicQueueNums(4);
-            requestHeader.setQueueId(0);
-            requestHeader.setSysFlag(0);
-            requestHeader.setBornTimestamp(System.currentTimeMillis());
-            requestHeader.setFlag(msg.getFlag());
-            requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
+        SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
+        requestHeader.setProducerGroup("abc");
+        requestHeader.setTopic(msg.getTopic());
+        requestHeader.setDefaultTopic(MixAll.DEFAULT_TOPIC);
+        requestHeader.setDefaultTopicQueueNums(4);
+        requestHeader.setQueueId(0);
+        requestHeader.setSysFlag(0);
+        requestHeader.setBornTimestamp(System.currentTimeMillis());
+        requestHeader.setFlag(msg.getFlag());
+        requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
 
-            SendResult result = client.sendMessage(brokerAddr, BROKER_NAME, msg, requestHeader, 1000 * 5,
-                    CommunicationMode.SYNC, new SendMessageContext(), null);
-            assertTrue(result.getSendStatus() == SendStatus.SEND_OK);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        SendResult result = client.sendMessage(brokerAddr, BROKER_NAME, msg, requestHeader, 1000 * 5,
+                CommunicationMode.SYNC, new SendMessageContext(), null);
+        assertEquals(result.getSendStatus(), SendStatus.SEND_OK);
     }
 }
