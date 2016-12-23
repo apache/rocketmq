@@ -21,6 +21,7 @@ import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -44,7 +45,7 @@ public class BrokerControllerTest {
                 new NettyClientConfig(), //
                 new MessageStoreConfig());
             boolean initResult = brokerController.initialize();
-            System.out.println("initialize " + initResult);
+            Assert.assertTrue(initResult);
             brokerController.start();
 
             brokerController.shutdown();

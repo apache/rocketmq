@@ -40,7 +40,7 @@ import static org.junit.Assert.*;
 
 
 /**
- * @author zander
+ * @author dongeforever
  */
 public class SendMessageTest extends BrokerTestHarness{
 
