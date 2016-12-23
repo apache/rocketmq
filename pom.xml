@@ -347,12 +347,7 @@
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>3.0.2</version>
                 <configuration>
-                    <resources>
-                        <resource>
-                            <directory>src/main/resources</directory>
-                            <filtering>false</filtering>
-                        </resource>
-                    </resources>
+                    <!-- We are not suppose to setup the customer resources here-->
                     <encoding>${project.build.sourceEncoding}</encoding>
                 </configuration>
             </plugin>
