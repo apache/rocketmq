@@ -21,11 +21,14 @@
 package com.alibaba.rocketmq.store;
 
 import org.junit.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.*;
 
 
 public class MappedFileQueueTest {
+    private static final Logger logger = LoggerFactory.getLogger(MappedFileQueueTest.class);
 
     // private static final String StoreMessage =
     // "Once, there was a chance for me! but I did not treasure it. if";
@@ -49,7 +52,7 @@ public class MappedFileQueueTest {
     @Test
     public void test_getLastMapedFile() {
         final String fixedMsg = "0123456789abcdef";
-        System.out.println("================================================================");
+        logger.debug("================================================================");
         MappedFileQueue mappedFileQueue =
                 new MappedFileQueue("target/unit_test_store/a/", 1024, null);
 
@@ -58,21 +61,21 @@ public class MappedFileQueueTest {
             assertTrue(mappedFile != null);
             boolean result = mappedFile.appendMessage(fixedMsg.getBytes());
             if (!result) {
-                System.out.println("appendMessage " + i);
+                logger.debug("appendMessage " + i);
             }
             assertTrue(result);
         }
 
         mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();
-        System.out.println("MappedFileQueue.getLastMappedFile() OK");
+        logger.debug("MappedFileQueue.getLastMappedFile() OK");
     }
 
 
     @Test
     public void test_findMapedFileByOffset() {
         final String fixedMsg = "abcd";
-        System.out.println("================================================================");
+        logger.debug("================================================================");
         MappedFileQueue mappedFileQueue =
                 new MappedFileQueue("target/unit_test_store/b/", 1024, null);
 
@@ -80,40 +83,34 @@ public class MappedFileQueueTest {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
             assertTrue(mappedFile != null);
             boolean result = mappedFile.appendMessage(fixedMsg.getBytes());
-            // System.out.println("appendMessage " + bytes);
+            // logger.debug("appendMessage " + bytes);
             assertTrue(result);
         }
 
         MappedFile mappedFile = mappedFileQueue.findMappedFileByOffset(0);
         assertTrue(mappedFile != null);
         assertEquals(mappedFile.getFileFromOffset(), 0);
-        System.out.println(mappedFile.getFileFromOffset());
-
+        
         mappedFile = mappedFileQueue.findMappedFileByOffset(100);
         assertTrue(mappedFile != null);
         assertEquals(mappedFile.getFileFromOffset(), 0);
-        System.out.println(mappedFile.getFileFromOffset());
-
+        
         mappedFile = mappedFileQueue.findMappedFileByOffset(1024);
         assertTrue(mappedFile != null);
         assertEquals(mappedFile.getFileFromOffset(), 1024);
-        System.out.println(mappedFile.getFileFromOffset());
-
+        
         mappedFile = mappedFileQueue.findMappedFileByOffset(1024 + 100);
         assertTrue(mappedFile != null);
         assertEquals(mappedFile.getFileFromOffset(), 1024);
-        System.out.println(mappedFile.getFileFromOffset());
-
+        
         mappedFile = mappedFileQueue.findMappedFileByOffset(1024 * 2);
         assertTrue(mappedFile != null);
         assertEquals(mappedFile.getFileFromOffset(), 1024 * 2);
-        System.out.println(mappedFile.getFileFromOffset());
-
+        
         mappedFile = mappedFileQueue.findMappedFileByOffset(1024 * 2 + 100);
         assertTrue(mappedFile != null);
         assertEquals(mappedFile.getFileFromOffset(), 1024 * 2);
-        System.out.println(mappedFile.getFileFromOffset());
-
+        
         mappedFile = mappedFileQueue.findMappedFileByOffset(1024 * 4);
         assertTrue(mappedFile == null);
 
@@ -122,13 +119,13 @@ public class MappedFileQueueTest {
 
         mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();
-        System.out.println("MappedFileQueue.findMappedFileByOffset() OK");
+        logger.debug("MappedFileQueue.findMappedFileByOffset() OK");
     }
 
     @Test
     public void test_commit() {
         final String fixedMsg = "0123456789abcdef";
-        System.out.println("================================================================");
+        logger.debug("================================================================");
         MappedFileQueue mappedFileQueue =
                 new MappedFileQueue("target/unit_test_store/c/", 1024, null);
 
@@ -142,42 +139,36 @@ public class MappedFileQueueTest {
         boolean result = mappedFileQueue.flush(0);
         assertFalse(result);
         assertEquals(1024 * 1, mappedFileQueue.getFlushedWhere());
-        System.out.println("1 " + result + " " + mappedFileQueue.getFlushedWhere());
-
+        
         result = mappedFileQueue.flush(0);
         assertFalse(result);
         assertEquals(1024 * 2, mappedFileQueue.getFlushedWhere());
-        System.out.println("2 " + result + " " + mappedFileQueue.getFlushedWhere());
-
+        
         result = mappedFileQueue.flush(0);
         assertFalse(result);
         assertEquals(1024 * 3, mappedFileQueue.getFlushedWhere());
-        System.out.println("3 " + result + " " + mappedFileQueue.getFlushedWhere());
-
+        
         result = mappedFileQueue.flush(0);
         assertFalse(result);
         assertEquals(1024 * 4, mappedFileQueue.getFlushedWhere());
-        System.out.println("4 " + result + " " + mappedFileQueue.getFlushedWhere());
-
+        
         result = mappedFileQueue.flush(0);
         assertFalse(result);
         assertEquals(1024 * 5, mappedFileQueue.getFlushedWhere());
-        System.out.println("5 " + result + " " + mappedFileQueue.getFlushedWhere());
-
+        
         result = mappedFileQueue.flush(0);
         assertFalse(result);
         assertEquals(1024 * 6, mappedFileQueue.getFlushedWhere());
-        System.out.println("6 " + result + " " + mappedFileQueue.getFlushedWhere());
-
+        
         mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();
-        System.out.println("MappedFileQueue.flush() OK");
+        logger.debug("MappedFileQueue.flush() OK");
     }
 
     @Test
     public void test_getMapedMemorySize() {
         final String fixedMsg = "abcd";
-        System.out.println("================================================================");
+        logger.debug("================================================================");
         MappedFileQueue mappedFileQueue =
                 new MappedFileQueue("target/unit_test_store/d/", 1024, null);
 
@@ -191,7 +182,7 @@ public class MappedFileQueueTest {
         assertEquals(fixedMsg.length() * 1024, mappedFileQueue.getMappedMemorySize());
         mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();
-        System.out.println("MappedFileQueue.getMappedMemorySize() OK");
+        logger.debug("MappedFileQueue.getMappedMemorySize() OK");
     }
 
 }
