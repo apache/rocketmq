@@ -22,7 +22,7 @@ import org.junit.Test;
 import java.net.URL;
 import java.util.Properties;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 
 public class UtilAllTest {
@@ -86,6 +86,17 @@ public class UtilAllTest {
         assertTrue(pid > 0);
     }
 
+
+    @Test
+    public void test_getDiskPartitionSpaceUsedPercent() {
+        assertEquals(-1, UtilAll.getDiskPartitionSpaceUsedPercent(null), 0);
+        assertEquals(-1, UtilAll.getDiskPartitionSpaceUsedPercent(""), 0);
+
+        assertEquals(-1, UtilAll.getDiskPartitionSpaceUsedPercent("nonExistingPath"), 0);
+
+        String tmpDir = System.getProperty("java.io.tmpdir");
+        assertNotEquals(-1, UtilAll.getDiskPartitionSpaceUsedPercent(tmpDir), 0);
+    }
 
     @Test
     public void test_isBlank() {
