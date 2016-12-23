@@ -116,7 +116,7 @@ public class HAService {
     // this.groupTransferService.notifyTransferSome();
     // }
 
-    public void start() {
+    public void start() throws Exception {
         this.acceptSocketService.beginAccept();
         this.acceptSocketService.start();
         this.groupTransferService.start();
@@ -181,19 +181,25 @@ public class HAService {
         }
 
 
-        public void beginAccept() {
-            try {
-                this.serverSocketChannel = ServerSocketChannel.open();
-                this.selector = RemotingUtil.openSelector();
-                this.serverSocketChannel.socket().setReuseAddress(true);
-                this.serverSocketChannel.socket().bind(this.socketAddressListen);
-                this.serverSocketChannel.configureBlocking(false);
-                this.serverSocketChannel.register(this.selector, SelectionKey.OP_ACCEPT);
-            } catch (Exception e) {
-                log.error("beginAccept exception", e);
-            }
+        public void beginAccept() throws Exception {
+            this.serverSocketChannel = ServerSocketChannel.open();
+            this.selector = RemotingUtil.openSelector();
+            this.serverSocketChannel.socket().setReuseAddress(true);
+            this.serverSocketChannel.socket().bind(this.socketAddressListen);
+            this.serverSocketChannel.configureBlocking(false);
+            this.serverSocketChannel.register(this.selector, SelectionKey.OP_ACCEPT);
         }
 
+        @Override
+        public void shutdown(final boolean interrupt) {
+            super.shutdown(interrupt);
+            try {
+                serverSocketChannel.close();
+            }
+            catch (IOException e) {
+                log.error("AcceptSocketService shutdown exception", e);
+            }
+        }
 
         @Override
         public void run() {
