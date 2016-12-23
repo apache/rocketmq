@@ -21,6 +21,7 @@
 package com.alibaba.rocketmq.broker.topic;
 
 import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.broker.BrokerTestHarness;
 import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
@@ -33,39 +34,34 @@ import static org.junit.Assert.assertTrue;
 
 
 /**
- * @author shijia.wxr
+ * @author zander
  */
-public class TopicConfigManagerTest {
+public class TopicConfigManagerTest extends BrokerTestHarness {
     @Test
-    public void test_flushTopicConfig() throws Exception {
-        BrokerController brokerController = new BrokerController(//
-                new BrokerConfig(), //
-                new NettyServerConfig(), //
-                new NettyClientConfig(), //
-                new MessageStoreConfig());
-        boolean initResult = brokerController.initialize();
-        System.out.println("initialize " + initResult);
-        brokerController.start();
-
+    public void testFlushTopicConfig() throws Exception {
         TopicConfigManager topicConfigManager = new TopicConfigManager(brokerController);
-
-        TopicConfig topicConfig =
-                topicConfigManager.createTopicInSendMessageMethod("TestTopic_SEND", MixAll.DEFAULT_TOPIC,
-                        null, 4, 0);
-        assertTrue(topicConfig != null);
-
-        System.out.println(topicConfig);
 
         for (int i = 0; i < 10; i++) {
             String topic = "UNITTEST-" + i;
-            topicConfig =
-                    topicConfigManager
-                            .createTopicInSendMessageMethod(topic, MixAll.DEFAULT_TOPIC, null, 4, 0);
+            TopicConfig topicConfig = topicConfigManager.createTopicInSendMessageMethod(topic, MixAll.DEFAULT_TOPIC, null, 4, 0);
             assertTrue(topicConfig != null);
         }
-
         topicConfigManager.persist();
 
-        brokerController.shutdown();
+        topicConfigManager.getTopicConfigTable().clear();
+
+        for (int i = 0; i < 10; i++) {
+            String topic = "UNITTEST-" + i;
+            TopicConfig topicConfig = topicConfigManager.selectTopicConfig(topic);
+            assertTrue(topicConfig == null);
+        }
+        topicConfigManager.load();
+        for (int i = 0; i < 10; i++) {
+            String topic = "UNITTEST-" + i;
+            TopicConfig topicConfig = topicConfigManager.selectTopicConfig(topic);
+            assertTrue(topicConfig != null);
+            assertTrue(topicConfig.getTopicSysFlag() == 0);
+            assertTrue(topicConfig.getReadQueueNums() == 4);
+        }
     }
 }
