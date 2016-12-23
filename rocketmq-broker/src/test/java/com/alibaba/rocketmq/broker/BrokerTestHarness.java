@@ -25,9 +25,13 @@ import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.util.Random;
 
 /**
  * @author zander
@@ -36,6 +40,7 @@ public class BrokerTestHarness {
 
     protected BrokerController brokerController = null;
 
+    protected Random random = new Random();
     public final String BROKER_NAME = "TestBrokerName";
     protected String brokerAddr = "";
     protected Logger logger = LoggerFactory.getLogger(BrokerTestHarness.class);
@@ -48,10 +53,13 @@ public class BrokerTestHarness {
     public void startup() throws Exception {
         brokerConfig.setBrokerName(BROKER_NAME);
         brokerConfig.setBrokerIP1("127.0.0.1");
-        nettyServerConfig.setListenPort(10911);
+        storeConfig.setStorePathRootDir(System.getProperty("user.home") + File.separator + "unitteststore");
+        storeConfig.setStorePathCommitLog(System.getProperty("user.home") + File.separator + "unitteststore" + File.separator + "commitlog");
+        nettyServerConfig.setListenPort(10000 + random.nextInt(1000));
         brokerAddr = brokerConfig.getBrokerIP1() + ":" + nettyServerConfig.getListenPort();
         brokerController = new BrokerController(brokerConfig, nettyServerConfig, nettyClientConfig, storeConfig);
         boolean initResult = brokerController.initialize();
+        Assert.assertTrue(initResult);
         logger.info("Broker Start name:{} addr:{}", brokerConfig.getBrokerName(), brokerController.getBrokerAddr());
         brokerController.start();
     }
@@ -61,5 +69,6 @@ public class BrokerTestHarness {
         if (brokerController != null) {
             brokerController.shutdown();
         }
+        //maybe need to clean the file store. But we do not suggest deleting anything.
     }
 }
