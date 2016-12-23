@@ -32,6 +32,6 @@ Then, import to eclipse by specifying the root directory of the project via:
 
 (4) Building packages
 
-Execute the following command in order to build the tar.gz packages and install them to the local repository:
+Execute the following command in order to build the tar.gz packages and install JAR to the local repository:
 
 $ mvn clean package install assembly:assembly -U
