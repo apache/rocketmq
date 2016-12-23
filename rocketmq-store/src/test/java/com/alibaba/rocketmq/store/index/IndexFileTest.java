@@ -25,6 +25,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -34,47 +35,35 @@ public class IndexFileTest {
     private static final int indexNum = 400;
 
     @Test
-    public void test_put_index() {
-        try {
-            IndexFile indexFile = new IndexFile("100", hashSlotNum, indexNum, 0, 0);
-            for (long i = 0; i < (indexNum - 1); i++) {
-                boolean putResult = indexFile.putKey(Long.toString(i), i, System.currentTimeMillis());
-                assertTrue(putResult);
-            }
-
-            boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
-            assertFalse(putResult);
-
-            indexFile.destroy(0);
-        } catch (Exception e) {
-            e.printStackTrace();
-            assertTrue(false);
+    public void test_put_index() throws Exception {
+        IndexFile indexFile = new IndexFile("100", hashSlotNum, indexNum, 0, 0);
+        for (long i = 0; i < (indexNum - 1); i++) {
+            boolean putResult = indexFile.putKey(Long.toString(i), i, System.currentTimeMillis());
+            assertTrue(putResult);
         }
+    
+        boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
+        assertFalse(putResult);
+    
+        indexFile.destroy(0);
     }
 
 
     @Test
-    public void test_put_get_index() {
-        try {
-            IndexFile indexFile = new IndexFile("200", hashSlotNum, indexNum, 0, 0);
-
-            for (long i = 0; i < (indexNum - 1); i++) {
-                boolean putResult = indexFile.putKey(Long.toString(i), i, System.currentTimeMillis());
-                assertTrue(putResult);
-            }
-            boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
-            assertFalse(putResult);
-
-            final List<Long> phyOffsets = new ArrayList<Long>();
-            indexFile.selectPhyOffset(phyOffsets, "60", 10, 0, Long.MAX_VALUE, true);
-            for (Long offset : phyOffsets) {
-                System.out.println(offset);
-            }
-            assertFalse(phyOffsets.isEmpty());
-            indexFile.destroy(0);
-        } catch (Exception e) {
-            e.printStackTrace();
-            assertTrue(false);
+    public void test_put_get_index() throws Exception {
+        IndexFile indexFile = new IndexFile("200", hashSlotNum, indexNum, 0, 0);
+    
+        for (long i = 0; i < (indexNum - 1); i++) {
+            boolean putResult = indexFile.putKey(Long.toString(i), i, System.currentTimeMillis());
+            assertTrue(putResult);
         }
+        boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
+        assertFalse(putResult);
+    
+        final List<Long> phyOffsets = new ArrayList<Long>();
+        indexFile.selectPhyOffset(phyOffsets, "60", 10, 0, Long.MAX_VALUE, true);
+        assertFalse(phyOffsets.isEmpty());
+        assertEquals(1, phyOffsets.size());
+        indexFile.destroy(0);
     }
 }

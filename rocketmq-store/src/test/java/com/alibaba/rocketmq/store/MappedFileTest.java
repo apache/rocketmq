@@ -24,6 +24,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -31,7 +33,10 @@ import static org.junit.Assert.assertTrue;
 
 
 public class MappedFileTest {
-
+    
+    private static final Logger logger = LoggerFactory.getLogger(MappedFileTest.class);
+    
+    
     private static final String StoreMessage = "Once, there was a chance for me!";
 
     @BeforeClass
@@ -44,50 +49,41 @@ public class MappedFileTest {
     }
 
     @Test
-    public void test_write_read() {
-        try {
-            MappedFile mappedFile = new MappedFile("target/unit_test_store/MappedFileTest/000", 1024 * 64);
-            boolean result = mappedFile.appendMessage(StoreMessage.getBytes());
-            assertTrue(result);
-            System.out.println("write OK");
-
-            SelectMappedBufferResult selectMappedBufferResult = mappedFile.selectMappedBuffer(0);
-            byte[] data = new byte[StoreMessage.length()];
-            selectMappedBufferResult.getByteBuffer().get(data);
-            String readString = new String(data);
-
-            System.out.println("Read: " + readString);
-            assertTrue(readString.equals(StoreMessage));
-
-            mappedFile.shutdown(1000);
-            assertTrue(!mappedFile.isAvailable());
-            selectMappedBufferResult.release();
-            assertTrue(mappedFile.isCleanupOver());
-            assertTrue(mappedFile.destroy(1000));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public void test_write_read() throws IOException {
+        MappedFile mappedFile = new MappedFile("target/unit_test_store/MappedFileTest/000", 1024 * 64);
+        boolean result = mappedFile.appendMessage(StoreMessage.getBytes());
+        assertTrue(result);
+        logger.debug("write OK");
+    
+        SelectMappedBufferResult selectMappedBufferResult = mappedFile.selectMappedBuffer(0);
+        byte[] data = new byte[StoreMessage.length()];
+        selectMappedBufferResult.getByteBuffer().get(data);
+        String readString = new String(data);
+    
+        logger.debug("Read: " + readString);
+        assertTrue(readString.equals(StoreMessage));
+    
+        mappedFile.shutdown(1000);
+        assertTrue(!mappedFile.isAvailable());
+        selectMappedBufferResult.release();
+        assertTrue(mappedFile.isCleanupOver());
+        assertTrue(mappedFile.destroy(1000));
     }
 
     @Ignore
-    public void test_jvm_crashed() {
-        try {
-            MappedFile mappedFile = new MappedFile("target/unit_test_store/MappedFileTest/10086", 1024 * 64);
-            boolean result = mappedFile.appendMessage(StoreMessage.getBytes());
-            assertTrue(result);
-            System.out.println("write OK");
-
-            SelectMappedBufferResult selectMappedBufferResult = mappedFile.selectMappedBuffer(0);
-            selectMappedBufferResult.release();
-            mappedFile.shutdown(1000);
-
-            byte[] data = new byte[StoreMessage.length()];
-            selectMappedBufferResult.getByteBuffer().get(data);
-            String readString = new String(data);
-            System.out.println(readString);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+    public void test_jvm_crashed() throws IOException {
+        MappedFile mappedFile = new MappedFile("target/unit_test_store/MappedFileTest/10086", 1024 * 64);
+        boolean result = mappedFile.appendMessage(StoreMessage.getBytes());
+        assertTrue(result);
+        logger.debug("write OK");
+    
+        SelectMappedBufferResult selectMappedBufferResult = mappedFile.selectMappedBuffer(0);
+        selectMappedBufferResult.release();
+        mappedFile.shutdown(1000);
+    
+        byte[] data = new byte[StoreMessage.length()];
+        selectMappedBufferResult.getByteBuffer().get(data);
+        String readString = new String(data);
+        logger.debug(readString);
     }
 }
