@@ -173,7 +173,7 @@ public class HAService {
     class AcceptSocketService extends ServiceThread {
         private ServerSocketChannel serverSocketChannel;
         private Selector selector;
-        private SocketAddress socketAddressListen;
+        private final SocketAddress socketAddressListen;
 
 
         public AcceptSocketService(final int port) {
@@ -194,7 +194,8 @@ public class HAService {
         public void shutdown(final boolean interrupt) {
             super.shutdown(interrupt);
             try {
-                serverSocketChannel.close();
+                this.serverSocketChannel.close();
+                this.selector.close();
             }
             catch (IOException e) {
                 log.error("AcceptSocketService shutdown exception", e);
