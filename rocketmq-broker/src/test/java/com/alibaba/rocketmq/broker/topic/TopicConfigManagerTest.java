@@ -25,7 +25,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import org.junit.Test;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 
 /**
@@ -39,7 +39,7 @@ public class TopicConfigManagerTest extends BrokerTestHarness {
         for (int i = 0; i < 10; i++) {
             String topic = "UNITTEST-" + i;
             TopicConfig topicConfig = topicConfigManager.createTopicInSendMessageMethod(topic, MixAll.DEFAULT_TOPIC, null, 4, 0);
-            assertTrue(topicConfig != null);
+            assertNotNull(topicConfig);
         }
         topicConfigManager.persist();
 
@@ -48,15 +48,15 @@ public class TopicConfigManagerTest extends BrokerTestHarness {
         for (int i = 0; i < 10; i++) {
             String topic = "UNITTEST-" + i;
             TopicConfig topicConfig = topicConfigManager.selectTopicConfig(topic);
-            assertTrue(topicConfig == null);
+            assertNull(topicConfig);
         }
         topicConfigManager.load();
         for (int i = 0; i < 10; i++) {
             String topic = "UNITTEST-" + i;
             TopicConfig topicConfig = topicConfigManager.selectTopicConfig(topic);
-            assertTrue(topicConfig != null);
-            assertTrue(topicConfig.getTopicSysFlag() == 0);
-            assertTrue(topicConfig.getReadQueueNums() == 4);
+            assertNotNull(topicConfig);
+            assertEquals(topicConfig.getTopicSysFlag(), 0);
+            assertEquals(topicConfig.getReadQueueNums(), 4);
         }
     }
 }
