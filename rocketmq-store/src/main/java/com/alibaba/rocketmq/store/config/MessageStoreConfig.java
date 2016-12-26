@@ -31,6 +31,9 @@ public class MessageStoreConfig {
     @ImportantField
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
 
+    @ImportantField
+    private String staticConfigFileRootDir = storePathRootDir;
+
     //The directory in which the commitlog is kept
     @ImportantField
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
@@ -137,7 +140,7 @@ public class MessageStoreConfig {
     private boolean transientStorePoolEnable = false;
     private int transientStorePoolSize = 5;
     private boolean fastFailIfNoBufferInStorePool = false;
-    
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -636,6 +639,13 @@ public class MessageStoreConfig {
         this.storePathRootDir = storePathRootDir;
     }
 
+    public String getStaticConfigFileRootDir() {
+        return staticConfigFileRootDir;
+    }
+
+    public void setStaticConfigFileRootDir(String staticConfigFileRootDir) {
+        this.staticConfigFileRootDir = staticConfigFileRootDir;
+    }
 
     public int getFlushLeastPagesWhenWarmMapedFile() {
         return flushLeastPagesWhenWarmMapedFile;

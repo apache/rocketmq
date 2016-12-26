@@ -25,6 +25,8 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import org.junit.Test;
 
+import java.io.File;
+
 import static org.junit.Assert.*;
 
 
@@ -58,5 +60,15 @@ public class TopicConfigManagerTest extends BrokerTestHarness {
             assertEquals(topicConfig.getTopicSysFlag(), 0);
             assertEquals(topicConfig.getReadQueueNums(), 4);
         }
+    }
+
+    @Test
+    public void testConfigFilePath() throws Exception {
+        final String staticConfigFileRootDir = System.getProperty("user.home") + File.separator + "static";
+
+        brokerController.getMessageStoreConfig().setStaticConfigFileRootDir(staticConfigFileRootDir);
+        TopicConfigManager topicConfigManager = new TopicConfigManager(brokerController);
+
+        assertEquals(topicConfigManager.configFilePath(), staticConfigFileRootDir + File.separator + "config" + File.separator + "topics.json");
     }
 }
