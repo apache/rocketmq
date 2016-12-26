@@ -125,7 +125,7 @@ public class BrokerStartup {
             if (commandLine.hasOption('c'))
                 file = commandLine.getOptionValue('c');
             else
-                file = brokerConfig.getRocketmqHome() + "/conf/namesrv.conf";
+                file = brokerConfig.getRocketmqHome() + "/conf/broker.conf";
 
             if (file != null) {
                 configFile = file;
