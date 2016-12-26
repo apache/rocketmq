@@ -213,7 +213,7 @@ public class AllocateMappedFileService extends ServiceThread {
                 isSuccess = true;
             }
         } catch (InterruptedException e) {
-            log.warn(this.getServiceName() + " service has exception, maybe by shutdown");
+            log.warn(this.getServiceName() + " interrupted, possibly by shutdown.");
             this.hasException = true;
             return false;
         } catch (IOException e) {

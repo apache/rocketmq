@@ -459,27 +459,35 @@ public class MappedFileQueue {
         return result;
     }
 
-
+    /**
+     * Finds a mapped file by offset.
+     *
+     * @param offset Offset.
+     * @param returnFirstOnNotFound If the mapped file is not found, then return the first one.
+     * @return Mapped file or null (when not found and returnFirstOnNotFound is <code>false</code>).
+     */
     public MappedFile findMappedFileByOffset(final long offset, final boolean returnFirstOnNotFound) {
         try {
             MappedFile mappedFile = this.getFirstMappedFile();
             if (mappedFile != null) {
                 int index = (int) ((offset / this.mappedFileSize) - (mappedFile.getFileFromOffset() / this.mappedFileSize));
                 if (index < 0 || index >= this.mappedFiles.size()) {
-                    LOG_ERROR.warn("findMappedFileByOffset offset not matched, request Offset: {}, index: {}, mappedFileSize: {}, mappedFiles count: {}, StackTrace: {}",
-                            offset,
-                            index,
-                            this.mappedFileSize,
-                            this.mappedFiles.size(),
-                            UtilAll.currentStackTrace());
+                    LOG_ERROR.warn("Offset for {} not matched. Request offset: {}, index: {}, " +
+                        "mappedFileSize: {}, mappedFiles count: {}",
+                        mappedFile,
+                        offset,
+                        index,
+                        this.mappedFileSize,
+                        this.mappedFiles.size());
                 }
 
                 try {
                     return this.mappedFiles.get(index);
                 } catch (Exception e) {
-                    if (returnFirstOnNotFound) {
+                    if (returnFirstOnNotFound)
                         return mappedFile;
-                    }
+
+                    LOG_ERROR.warn("findMappedFileByOffset failure. {}", UtilAll.currentStackTrace());
                 }
             }
         } catch (Exception e) {

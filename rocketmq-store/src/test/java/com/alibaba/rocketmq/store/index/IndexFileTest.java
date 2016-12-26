@@ -31,17 +31,18 @@ import static org.junit.Assert.assertTrue;
 
 
 public class IndexFileTest {
-    private static final int hashSlotNum = 100;
-    private static final int indexNum = 400;
+    private static final int HASH_SLOT_NUM = 100;
+    private static final int INDEX_NUM = 400;
 
     @Test
     public void test_put_index() throws Exception {
-        IndexFile indexFile = new IndexFile("100", hashSlotNum, indexNum, 0, 0);
-        for (long i = 0; i < (indexNum - 1); i++) {
+        IndexFile indexFile = new IndexFile("100", HASH_SLOT_NUM, INDEX_NUM, 0, 0);
+        for (long i = 0; i < (INDEX_NUM - 1); i++) {
             boolean putResult = indexFile.putKey(Long.toString(i), i, System.currentTimeMillis());
             assertTrue(putResult);
         }
-    
+
+        // put over index file capacity.
         boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
         assertFalse(putResult);
     
@@ -51,12 +52,14 @@ public class IndexFileTest {
 
     @Test
     public void test_put_get_index() throws Exception {
-        IndexFile indexFile = new IndexFile("200", hashSlotNum, indexNum, 0, 0);
+        IndexFile indexFile = new IndexFile("200", HASH_SLOT_NUM, INDEX_NUM, 0, 0);
     
-        for (long i = 0; i < (indexNum - 1); i++) {
+        for (long i = 0; i < (INDEX_NUM - 1); i++) {
             boolean putResult = indexFile.putKey(Long.toString(i), i, System.currentTimeMillis());
             assertTrue(putResult);
         }
+
+        // put over index file capacity.
         boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
         assertFalse(putResult);
     
@@ -64,6 +67,7 @@ public class IndexFileTest {
         indexFile.selectPhyOffset(phyOffsets, "60", 10, 0, Long.MAX_VALUE, true);
         assertFalse(phyOffsets.isEmpty());
         assertEquals(1, phyOffsets.size());
+
         indexFile.destroy(0);
     }
 }
