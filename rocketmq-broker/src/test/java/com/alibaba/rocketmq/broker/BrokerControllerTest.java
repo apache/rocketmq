@@ -21,6 +21,7 @@ import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
+import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,8 +49,8 @@ public class BrokerControllerTest {
                 new NettyClientConfig(), //
                 new MessageStoreConfig());
             boolean initResult = brokerController.initialize();
+            Assert.assertTrue(initResult);
             logger.info("Broker is initialized " + initResult);
-
             brokerController.start();
             logger.info("Broker is started");
 
