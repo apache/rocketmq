@@ -79,8 +79,8 @@ public class NamesrvStartup {
 
             final NamesrvConfig namesrvConfig = new NamesrvConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
-            String file = null;
 
+            String file = null;
             if (commandLine.hasOption('c'))
                 file = commandLine.getOptionValue('c');
             else
@@ -98,7 +98,7 @@ public class NamesrvStartup {
                 System.out.printf("load config properties file OK, " + file + "%n");
                 in.close();
             }else{
-                System.out.print("load config properties file failed, please ensure " + file + " can read%n");
+                System.out.print("load config properties file failed, please make sure that the file: " + file + " is readable%n");
             }
             nettyServerConfig.setListenPort(namesrvConfig.getPort());
 

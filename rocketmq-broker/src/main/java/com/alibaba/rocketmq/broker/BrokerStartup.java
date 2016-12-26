@@ -142,7 +142,7 @@ public class BrokerStartup {
                 BrokerPathConfigHelper.setBrokerConfigPath(file);
                 in.close();
             }else{
-                System.out.print("load config properties file failed, please ensure " + file + " can read%n");
+                System.out.print("load config properties file failed, please make sure that the file: " + file + " is readable%n");
             }
             nettyServerConfig.setListenPort(brokerConfig.getPort());
 
