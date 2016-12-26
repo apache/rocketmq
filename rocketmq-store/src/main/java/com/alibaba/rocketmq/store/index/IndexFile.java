@@ -94,7 +94,6 @@ public class IndexFile {
         return this.indexHeader.getIndexCount() >= this.indexNum;
     }
 
-
     public boolean destroy(final long intervalForcibly) {
         return this.mappedFile.destroy(intervalForcibly);
     }
@@ -167,8 +166,8 @@ public class IndexFile {
                 }
             }
         } else {
-            log.warn("putKey index count " + this.indexHeader.getIndexCount() + " index max num "
-                    + this.indexNum);
+            log.warn("Over index file capacity: index count = " + this.indexHeader.getIndexCount()
+                + "; index max num = " + this.indexNum);
         }
 
         return false;
