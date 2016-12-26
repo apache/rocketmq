@@ -34,9 +34,12 @@ public class SubscriptionGroupManagerTest extends BrokerTestHarness {
     public void testConfigFilePath() throws Exception {
         final String staticConfigFileRootDir = System.getProperty("user.home") + File.separator + "static";
 
+        String origin = brokerController.getMessageStoreConfig().getStaticConfigFileRootDir();
         brokerController.getMessageStoreConfig().setStaticConfigFileRootDir(staticConfigFileRootDir);
         SubscriptionGroupManager subscriptionGroupManager = new SubscriptionGroupManager(brokerController);
+        String current = subscriptionGroupManager.configFilePath();
+        brokerController.getMessageStoreConfig().setStaticConfigFileRootDir(origin);
 
-        assertEquals(subscriptionGroupManager.configFilePath(), staticConfigFileRootDir + File.separator + "config" + File.separator + "subscriptionGroup.json");
+        assertEquals(current, staticConfigFileRootDir + File.separator + "config" + File.separator + "subscriptionGroup.json");
     }
 }

@@ -66,9 +66,12 @@ public class TopicConfigManagerTest extends BrokerTestHarness {
     public void testConfigFilePath() throws Exception {
         final String staticConfigFileRootDir = System.getProperty("user.home") + File.separator + "static";
 
+        String originDir = brokerController.getMessageStoreConfig().getStaticConfigFileRootDir();
         brokerController.getMessageStoreConfig().setStaticConfigFileRootDir(staticConfigFileRootDir);
         TopicConfigManager topicConfigManager = new TopicConfigManager(brokerController);
+        String current = topicConfigManager.configFilePath();
+        brokerController.getMessageStoreConfig().setStaticConfigFileRootDir(originDir);
 
-        assertEquals(topicConfigManager.configFilePath(), staticConfigFileRootDir + File.separator + "config" + File.separator + "topics.json");
+        assertEquals(current, staticConfigFileRootDir + File.separator + "config" + File.separator + "topics.json");
     }
 }

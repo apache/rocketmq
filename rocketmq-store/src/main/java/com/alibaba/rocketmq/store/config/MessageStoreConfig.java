@@ -31,6 +31,7 @@ public class MessageStoreConfig {
     @ImportantField
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
 
+    // The root directory in which static config(such as topics.json,subscriptionGroup.json) file is kept
     @ImportantField
     private String staticConfigFileRootDir = storePathRootDir;
 
