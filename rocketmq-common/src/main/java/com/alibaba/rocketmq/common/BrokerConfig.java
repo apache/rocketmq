@@ -41,6 +41,7 @@ public class BrokerConfig {
     @ImportantField
     private long brokerId = MixAll.MASTER_ID;
     private int brokerPermission = PermName.PERM_READ | PermName.PERM_WRITE;
+    private int port = 10911;
     private int defaultTopicQueueNums = 8;
     @ImportantField
     private boolean autoCreateTopicEnable = true;
@@ -263,6 +264,13 @@ public class BrokerConfig {
         this.brokerClusterName = brokerClusterName;
     }
 
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
 
     public String getBrokerIP1() {
         return brokerIP1;

@@ -100,7 +100,6 @@ public class BrokerStartup {
             final BrokerConfig brokerConfig = new BrokerConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
             final NettyClientConfig nettyClientConfig = new NettyClientConfig();
-            nettyServerConfig.setListenPort(10911);
             final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
 
             if (BrokerRole.SLAVE == messageStoreConfig.getBrokerRole()) {
@@ -122,24 +121,30 @@ public class BrokerStartup {
                 System.exit(0);
             }
 
-            if (commandLine.hasOption('c')) {
-                String file = commandLine.getOptionValue('c');
-                if (file != null) {
-                    configFile = file;
-                    InputStream in = new BufferedInputStream(new FileInputStream(file));
-                    properties = new Properties();
-                    properties.load(in);
+            String file = null;
+            if (commandLine.hasOption('c'))
+                file = commandLine.getOptionValue('c');
+            else
+                file = brokerConfig.getRocketmqHome() + "/conf/namesrv.conf";
 
-                    parsePropertie2SystemEnv(properties);
-                    MixAll.properties2Object(properties, brokerConfig);
-                    MixAll.properties2Object(properties, nettyServerConfig);
-                    MixAll.properties2Object(properties, nettyClientConfig);
-                    MixAll.properties2Object(properties, messageStoreConfig);
+            if (file != null) {
+                configFile = file;
+                InputStream in = new BufferedInputStream(new FileInputStream(file));
+                properties = new Properties();
+                properties.load(in);
 
-                    BrokerPathConfigHelper.setBrokerConfigPath(file);
-                    in.close();
-                }
+                parsePropertie2SystemEnv(properties);
+                MixAll.properties2Object(properties, brokerConfig);
+                MixAll.properties2Object(properties, nettyServerConfig);
+                MixAll.properties2Object(properties, nettyClientConfig);
+                MixAll.properties2Object(properties, messageStoreConfig);
+
+                BrokerPathConfigHelper.setBrokerConfigPath(file);
+                in.close();
+            }else{
+                System.out.print("load config properties file failed, please ensure " + file + " can read%n");
             }
+            nettyServerConfig.setListenPort(brokerConfig.getPort());
 
             MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
 
