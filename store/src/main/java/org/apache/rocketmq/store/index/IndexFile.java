@@ -30,7 +30,7 @@ import java.util.List;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class IndexFile {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);

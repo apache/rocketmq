@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class NamesrvStartup {
     public static Properties properties = null;

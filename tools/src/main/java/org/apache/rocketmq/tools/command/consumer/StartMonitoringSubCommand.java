@@ -28,7 +28,7 @@ import org.slf4j.Logger;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class StartMonitoringSubCommand implements SubCommand {
     private final Logger log = ClientLogger.getLog();

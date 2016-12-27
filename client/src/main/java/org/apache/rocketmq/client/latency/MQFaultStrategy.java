@@ -21,7 +21,7 @@ import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class MQFaultStrategy {
     private final LatencyFaultTolerance<String> latencyFaultTolerance = new LatencyFaultToleranceImpl();

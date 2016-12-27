@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class EndTransactionProcessor implements NettyRequestProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);

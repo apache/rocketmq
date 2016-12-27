@@ -17,7 +17,7 @@
 package org.apache.rocketmq.client.consumer.listener;
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public enum ConsumeOrderlyStatus {
     /**

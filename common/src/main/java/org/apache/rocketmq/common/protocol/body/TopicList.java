@@ -23,7 +23,7 @@ import java.util.Set;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class TopicList extends RemotingSerializable {
     private Set<String> topicList = new HashSet<String>();

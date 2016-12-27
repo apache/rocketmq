@@ -17,7 +17,7 @@
 package org.apache.rocketmq.common;
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class MQVersion {
 

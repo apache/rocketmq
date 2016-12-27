@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class BrokerStats {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);

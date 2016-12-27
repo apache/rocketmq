@@ -17,7 +17,7 @@
 package org.apache.rocketmq.common.help;
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class FAQUrl {
 

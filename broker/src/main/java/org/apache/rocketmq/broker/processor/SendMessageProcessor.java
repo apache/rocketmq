@@ -49,7 +49,7 @@ import java.util.List;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class SendMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
 

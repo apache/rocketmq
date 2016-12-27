@@ -17,7 +17,7 @@
 package org.apache.rocketmq.client.admin;
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public interface MQAdminExtInner {
 

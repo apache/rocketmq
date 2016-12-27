@@ -23,7 +23,7 @@ import java.util.HashSet;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class ProducerConnection extends RemotingSerializable {
     private HashSet<Connection> connectionSet = new HashSet<Connection>();

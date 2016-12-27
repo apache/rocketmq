@@ -43,7 +43,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class TopicConfigManager extends ConfigManager {
     private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);

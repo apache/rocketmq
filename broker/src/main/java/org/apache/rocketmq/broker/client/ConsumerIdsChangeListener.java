@@ -22,8 +22,8 @@ import java.util.List;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public interface ConsumerIdsChangeListener {
-    public void consumerIdsChanged(final String group, final List<Channel> channels);
+    void consumerIdsChanged(final String group, final List<Channel> channels);
 }

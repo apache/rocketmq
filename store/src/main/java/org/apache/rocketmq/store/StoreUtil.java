@@ -21,7 +21,7 @@ import java.lang.management.OperatingSystemMXBean;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  *
  */
 public class StoreUtil {

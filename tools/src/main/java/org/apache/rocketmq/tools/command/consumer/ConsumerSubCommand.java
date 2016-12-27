@@ -35,7 +35,7 @@ import java.util.TreeMap;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class ConsumerSubCommand implements SubCommand {
 

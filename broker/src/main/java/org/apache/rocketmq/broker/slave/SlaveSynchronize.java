@@ -31,7 +31,7 @@ import java.io.IOException;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  * @author manhong.yqd
  */
 public class SlaveSynchronize {

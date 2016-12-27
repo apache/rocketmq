@@ -55,7 +55,7 @@ import java.util.concurrent.*;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class DefaultMQProducerImpl implements MQProducerInner {
     private final Logger log = ClientLogger.getLog();

@@ -62,7 +62,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  * @author manhong.yqd
  */
 public class AdminBrokerProcessor implements NettyRequestProcessor {

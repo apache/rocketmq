@@ -36,7 +36,7 @@ import java.util.TreeMap;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class BrokerStatusSubCommand implements SubCommand {
 

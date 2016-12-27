@@ -21,13 +21,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 
 /**
- * Add reset feature for @see java.util.concurrent.CountDownLatch
+ * Add reset feature for @see java.util.concurrent.CountDownLatch2
  *
- * @author xinyuzhou.zxy
+ * @author yukon@apache.org
  */
-public class CountDownLatch {
+public class CountDownLatch2 {
     /**
-     * Synchronization control For CountDownLatch.
+     * Synchronization control For CountDownLatch2.
      * Uses AQS state to represent count.
      */
     private static final class Sync extends AbstractQueuedSynchronizer {
@@ -68,7 +68,7 @@ public class CountDownLatch {
     private final Sync sync;
 
     /**
-     * Constructs a {@code CountDownLatch} initialized with the given count.
+     * Constructs a {@code CountDownLatch2} initialized with the given count.
      *
      * @param count
      *         the number of times {@link #countDown} must be invoked
@@ -77,7 +77,7 @@ public class CountDownLatch {
      * @throws IllegalArgumentException
      *         if {@code count} is negative
      */
-    public CountDownLatch(int count) {
+    public CountDownLatch2(int count) {
         if (count < 0) throw new IllegalArgumentException("count < 0");
         this.sync = new Sync(count);
     }

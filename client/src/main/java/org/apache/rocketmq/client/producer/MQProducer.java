@@ -27,7 +27,7 @@ import java.util.List;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public interface MQProducer extends MQAdmin {
     void start() throws MQClientException;

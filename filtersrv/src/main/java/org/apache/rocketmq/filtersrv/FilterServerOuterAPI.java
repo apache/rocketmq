@@ -32,7 +32,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class FilterServerOuterAPI {
     private final RemotingClient remotingClient;

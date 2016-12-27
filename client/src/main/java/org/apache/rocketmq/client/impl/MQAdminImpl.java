@@ -49,7 +49,7 @@ import java.util.concurrent.TimeUnit;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class MQAdminImpl {
 

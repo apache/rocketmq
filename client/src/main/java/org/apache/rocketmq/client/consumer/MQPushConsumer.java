@@ -25,7 +25,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 /**
  * Push consumer
  *
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public interface MQPushConsumer extends MQConsumer {
     /**

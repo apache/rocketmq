@@ -21,7 +21,7 @@ import io.netty.channel.Channel;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class ClientChannelInfo {
     private final Channel channel;

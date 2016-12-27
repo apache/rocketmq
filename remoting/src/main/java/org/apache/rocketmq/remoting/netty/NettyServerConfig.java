@@ -19,7 +19,7 @@ package org.apache.rocketmq.remoting.netty;
 /**
 
  *
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  *
  */
 public class NettyServerConfig implements Cloneable {

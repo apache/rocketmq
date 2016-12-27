@@ -29,7 +29,7 @@ import org.apache.commons.cli.Options;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class QueryMsgByOffsetSubCommand implements SubCommand {
 

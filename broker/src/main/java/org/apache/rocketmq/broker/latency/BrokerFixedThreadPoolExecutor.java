@@ -20,7 +20,7 @@ package org.apache.rocketmq.broker.latency;
 import java.util.concurrent.*;
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class BrokerFixedThreadPoolExecutor extends ThreadPoolExecutor {
     public BrokerFixedThreadPoolExecutor(final int corePoolSize, final int maximumPoolSize, final long keepAliveTime, final TimeUnit unit, final BlockingQueue<Runnable> workQueue) {

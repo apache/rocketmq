@@ -19,7 +19,7 @@ package org.apache.rocketmq.client.consumer;
 /**
  * Async message pulling interface
  *
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public interface PullCallback {
     public void onSuccess(final PullResult pullResult);

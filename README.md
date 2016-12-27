@@ -31,7 +31,7 @@ It offers a variety of features as follows:
 ----------
 
 ## RocketMQ Community
-* [`Docker images`](https://registry.hub.docker.com/u/vongosling/rocketmq/)
+* [`Docker images`](https://registry.hub.docker.com/u/vongosling@apache.org/rocketmq/)
 * [RocketMQ Community Projects](https://github.com/rocketmq)
 
 ----------

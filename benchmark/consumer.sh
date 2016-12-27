@@ -15,7 +15,4 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-#
-# $Id: consumer.sh 1831 2013-05-16 01:39:51Z shijia.wxr $
-#
 sh ./runclass.sh org.apache.rocketmq.example.benchmark.Consumer $@ &

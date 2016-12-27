@@ -38,7 +38,7 @@ import java.util.Set;
 /**
  * Default pulling consumer
  *
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsumer {
     protected final transient DefaultMQPullConsumerImpl defaultMQPullConsumerImpl;

@@ -32,7 +32,7 @@ import java.util.Map.Entry;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class ConsumerConnectionSubCommand implements SubCommand {
 

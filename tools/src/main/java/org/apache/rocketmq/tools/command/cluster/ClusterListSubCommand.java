@@ -37,7 +37,7 @@ import java.util.TreeSet;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class ClusterListSubCommand implements SubCommand {
 

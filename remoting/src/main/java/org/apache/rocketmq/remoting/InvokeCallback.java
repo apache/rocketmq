@@ -20,7 +20,7 @@ import org.apache.rocketmq.remoting.netty.ResponseFuture;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  *
  */
 public interface InvokeCallback {

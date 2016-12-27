@@ -31,7 +31,7 @@ import java.nio.channels.SocketChannel;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class HAConnection {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -91,7 +91,7 @@ public class HAConnection {
     /**
 
      *
-     * @author shijia.wxr
+     * @author vintagewang@apache.org
      */
     class ReadSocketService extends ServiceThread {
         private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024;
@@ -215,7 +215,7 @@ public class HAConnection {
     /**
 
      *
-     * @author shijia.wxr
+     * @author vintagewang@apache.org
      */
     class WriteSocketService extends ServiceThread {
         private final Selector selector;

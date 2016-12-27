@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Base class for background thread
  *
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  *
  */
 public abstract class ServiceThread implements Runnable {

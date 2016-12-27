@@ -79,14 +79,14 @@
             <timezone>8</timezone>
         </developer>
         <developer>
-            <id>vongosling</id>
-            <name>vongosling</name>
+            <id>vongosling@apache.org</id>
+            <name>vongosling@apache.org</name>
             <roles>
                 <role>architect</role>
                 <role>committer</role>
             </roles>
-            <email>vongosling@apache.org</email>
-            <url>https://github.com/vongosling</url>
+            <email>vongosling@apache.org@apache.org</email>
+            <url>https://github.com/vongosling@apache.org</url>
             <timezone>+8</timezone>
         </developer>
         <developer>
@@ -180,7 +180,7 @@
                 <version>2.2</version>
             </plugin>
             <plugin>
-                <groupId>com.github.vongosling</groupId>
+                <groupId>com.github.vongosling@apache.org</groupId>
                 <artifactId>dependency-mediator-maven-plugin</artifactId>
                 <version>1.0.2</version>
             </plugin>

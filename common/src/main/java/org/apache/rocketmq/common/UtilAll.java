@@ -37,7 +37,7 @@ import java.util.zip.InflaterInputStream;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class UtilAll {
     public static final String YYYY_MM_DD_HH_MM_SS = "yyyy-MM-dd HH:mm:ss";

@@ -26,7 +26,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class MQProtosHelper {
     public static boolean registerBrokerToNameServer(final String nsaddr, final String brokerAddr,

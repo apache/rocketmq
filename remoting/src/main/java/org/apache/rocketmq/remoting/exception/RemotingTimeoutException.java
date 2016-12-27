@@ -17,7 +17,7 @@
 package org.apache.rocketmq.remoting.exception;
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class RemotingTimeoutException extends RemotingException {
 

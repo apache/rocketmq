@@ -22,7 +22,7 @@ import org.apache.commons.cli.Options;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public interface SubCommand {
     public String commandName();

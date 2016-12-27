@@ -20,7 +20,7 @@ import org.apache.rocketmq.common.message.Message;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public interface LocalTransactionExecuter {
     public LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg);

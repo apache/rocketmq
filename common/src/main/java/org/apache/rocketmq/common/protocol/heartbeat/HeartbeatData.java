@@ -16,7 +16,7 @@
  */
 
 /**
- * $Id: HeartbeatData.java 1835 2013-05-16 02:00:50Z shijia.wxr $
+ * $Id: HeartbeatData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
  */
 package org.apache.rocketmq.common.protocol.heartbeat;
 
@@ -27,7 +27,7 @@ import java.util.Set;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class HeartbeatData extends RemotingSerializable {
     private String clientID;

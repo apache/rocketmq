@@ -16,7 +16,7 @@
  */
 
 /**
- * $Id: NamesrvConfig.java 1839 2013-05-16 02:12:02Z shijia.wxr $
+ * $Id: NamesrvConfig.java 1839 2013-05-16 02:12:02Z vintagewang@apache.org $
  */
 package org.apache.rocketmq.common.namesrv;
 
@@ -30,7 +30,7 @@ import java.io.File;
 
 /**
  *
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  * @author lansheng.zj
  */
 public class NamesrvConfig {

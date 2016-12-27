@@ -23,8 +23,8 @@ import java.io.File;
 
 
 /**
- * @author vongosling
- * @author shijia.wxr
+ * @author vongosling@apache.org
+ * @author vintagewang@apache.org
  */
 public class MessageStoreConfig {
     //The root directory in which the log data is kept

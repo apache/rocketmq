@@ -17,7 +17,7 @@
 package org.apache.rocketmq.remoting.exception;
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class RemotingCommandException extends RemotingException {
     private static final long serialVersionUID = -6061365915274953096L;

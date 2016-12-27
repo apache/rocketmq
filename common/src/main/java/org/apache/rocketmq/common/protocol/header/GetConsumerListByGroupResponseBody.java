@@ -23,7 +23,7 @@ import java.util.List;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class GetConsumerListByGroupResponseBody extends RemotingSerializable {
     private List<String> consumerIdList;

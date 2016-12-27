@@ -17,7 +17,7 @@
 package org.apache.rocketmq.store.config;
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public enum FlushDiskType {
     SYNC_FLUSH,

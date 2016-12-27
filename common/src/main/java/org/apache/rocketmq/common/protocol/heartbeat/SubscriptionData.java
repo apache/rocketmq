@@ -16,7 +16,7 @@
  */
 
 /**
- * $Id: SubscriptionData.java 1835 2013-05-16 02:00:50Z shijia.wxr $
+ * $Id: SubscriptionData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
  */
 package org.apache.rocketmq.common.protocol.heartbeat;
 
@@ -27,7 +27,7 @@ import java.util.Set;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class SubscriptionData implements Comparable<SubscriptionData> {
     public final static String SUB_ALL = "*";

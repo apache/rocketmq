@@ -20,7 +20,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public interface MessageFilter {
     boolean isMessageMatched(final SubscriptionData subscriptionData, final Long tagsCode);

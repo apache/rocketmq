@@ -24,7 +24,7 @@ import java.io.IOException;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public abstract class ConfigManager {
     private static final Logger PLOG = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);

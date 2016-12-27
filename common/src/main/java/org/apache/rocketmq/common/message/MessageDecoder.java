@@ -33,7 +33,7 @@ import java.util.Map;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class MessageDecoder {
     public final static int MSG_ID_LENGTH = 8 + 8;

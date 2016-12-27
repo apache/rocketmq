@@ -66,7 +66,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     /**

@@ -20,7 +20,7 @@ import java.util.HashMap;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class WaitNotifyObject {
 

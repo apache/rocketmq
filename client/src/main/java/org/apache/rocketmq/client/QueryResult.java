@@ -22,7 +22,7 @@ import java.util.List;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class QueryResult {
     private final long indexLastUpdateTimestamp;

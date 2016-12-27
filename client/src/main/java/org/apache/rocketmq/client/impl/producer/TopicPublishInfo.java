@@ -26,7 +26,7 @@ import java.util.List;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class TopicPublishInfo {
     private boolean orderTopic = false;

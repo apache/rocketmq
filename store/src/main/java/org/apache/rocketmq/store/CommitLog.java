@@ -45,7 +45,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Store all metadata downtime for recovery, data protection reliability
  *
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class CommitLog {
     // Message's MAGIC CODE daa320a7

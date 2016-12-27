@@ -21,7 +21,7 @@ import org.apache.rocketmq.common.protocol.body.KVTable;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class RegisterBrokerResult {
     private String haServerAddr;

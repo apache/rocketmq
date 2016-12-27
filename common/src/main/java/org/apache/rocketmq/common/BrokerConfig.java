@@ -25,7 +25,7 @@ import java.net.UnknownHostException;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class BrokerConfig {
     private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));

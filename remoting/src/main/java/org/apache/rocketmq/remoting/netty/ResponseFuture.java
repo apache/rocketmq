@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class ResponseFuture {
     private final int opaque;

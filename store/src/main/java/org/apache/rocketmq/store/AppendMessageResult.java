@@ -19,7 +19,7 @@ package org.apache.rocketmq.store;
 /**
  * When write a message to the commit log, returns results
  *
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class AppendMessageResult {
     // Return code

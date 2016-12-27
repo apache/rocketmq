@@ -17,7 +17,7 @@
 package org.apache.rocketmq.common.sysflag;
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class PullSysFlag {
     private final static int FLAG_COMMIT_OFFSET = 0x1 << 0;

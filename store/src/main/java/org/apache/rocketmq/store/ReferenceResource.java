@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public abstract class ReferenceResource {
     protected final AtomicLong refCount = new AtomicLong(1);

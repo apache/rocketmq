@@ -21,7 +21,7 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class Connection {
     private String clientId;

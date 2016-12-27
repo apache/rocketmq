@@ -59,7 +59,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class MQClientInstance {
     private final static long LOCK_TIMEOUT_MILLIS = 3000;

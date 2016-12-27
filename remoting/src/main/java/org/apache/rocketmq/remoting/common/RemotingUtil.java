@@ -39,7 +39,7 @@ import java.util.Enumeration;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class RemotingUtil {
     public static final String OS_NAME = System.getProperty("os.name");

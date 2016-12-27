@@ -17,7 +17,7 @@
 package org.apache.rocketmq.store;
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class PutMessageResult {
     private PutMessageStatus putMessageStatus;

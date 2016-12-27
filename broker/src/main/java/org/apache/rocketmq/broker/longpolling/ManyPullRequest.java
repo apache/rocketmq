@@ -21,7 +21,7 @@ import java.util.List;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class ManyPullRequest {
     private final ArrayList<PullRequest> pullRequestList = new ArrayList<PullRequest>();

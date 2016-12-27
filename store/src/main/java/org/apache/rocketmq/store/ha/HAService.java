@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class HAService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);

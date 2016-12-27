@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * A MessageListenerConcurrently object is used to receive asynchronously delivered messages concurrently
  *
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public interface MessageListenerConcurrently extends MessageListener {
     /**

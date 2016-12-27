@@ -67,7 +67,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class NettyRemotingClient extends NettyRemotingAbstract implements RemotingClient {
     private static final Logger log = LoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);

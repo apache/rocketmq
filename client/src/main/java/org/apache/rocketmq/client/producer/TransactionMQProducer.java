@@ -22,7 +22,7 @@ import org.apache.rocketmq.remoting.RPCHook;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class TransactionMQProducer extends DefaultMQProducer {
     private TransactionCheckListener transactionCheckListener;

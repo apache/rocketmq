@@ -24,7 +24,7 @@ import java.util.List;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class PullResultExt extends PullResult {
     private final long suggestWhichBrokerId;

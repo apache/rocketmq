@@ -21,7 +21,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class FutureTaskExt<V> extends FutureTask<V> {
     private final Runnable runnable;

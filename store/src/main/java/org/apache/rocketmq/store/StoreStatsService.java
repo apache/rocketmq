@@ -31,7 +31,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class StoreStatsService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);

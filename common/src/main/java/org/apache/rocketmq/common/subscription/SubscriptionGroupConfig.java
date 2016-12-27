@@ -21,7 +21,7 @@ import org.apache.rocketmq.common.MixAll;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class SubscriptionGroupConfig {
 

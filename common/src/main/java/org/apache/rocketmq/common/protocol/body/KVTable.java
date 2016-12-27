@@ -22,7 +22,7 @@ import java.util.HashMap;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  *
  */
 public class KVTable extends RemotingSerializable {

@@ -45,7 +45,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class PullAPIWrapper {
     private final Logger log = ClientLogger.getLog();

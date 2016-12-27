@@ -20,7 +20,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class PullRequest {
     private String consumerGroup;

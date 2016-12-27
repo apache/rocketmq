@@ -17,7 +17,7 @@
 package org.apache.rocketmq.common.constant;
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class PermName {
     public static final int PERM_PRIORITY = 0x1 << 3;

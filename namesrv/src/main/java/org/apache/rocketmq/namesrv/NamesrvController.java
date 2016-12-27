@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class NamesrvController {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);

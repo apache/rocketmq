@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Create MappedFile in advance
  *
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class AllocateMappedFileService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);

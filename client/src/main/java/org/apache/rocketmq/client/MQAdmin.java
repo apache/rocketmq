@@ -26,7 +26,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 /**
  * Base interface for MQ management
  *
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public interface MQAdmin {
     /**

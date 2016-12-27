@@ -23,7 +23,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

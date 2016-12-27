@@ -25,7 +25,7 @@ import java.util.concurrent.*;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class PullMessageService extends ServiceThread {
     private final Logger log = ClientLogger.getLog();

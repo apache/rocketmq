@@ -44,7 +44,7 @@ import java.util.Set;
 /**
  * Wrapped push consumer.in fact,it works as remarkable as the pull consumer
  *
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsumer {
     protected final transient DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;

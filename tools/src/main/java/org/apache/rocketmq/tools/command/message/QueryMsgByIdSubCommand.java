@@ -43,7 +43,7 @@ import java.util.List;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class QueryMsgByIdSubCommand implements SubCommand {
     @Override

@@ -38,7 +38,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * Queue consumption snapshot
  *
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class ProcessQueue {
     public final static long REBALANCE_LOCK_MAX_LIVE_TIME =

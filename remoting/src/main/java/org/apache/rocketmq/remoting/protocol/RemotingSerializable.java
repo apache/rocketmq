@@ -22,7 +22,7 @@ import java.nio.charset.Charset;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  *
  */
 public abstract class RemotingSerializable {

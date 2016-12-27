@@ -24,8 +24,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * @author shijia.wxr
- * @author xinyuzhou.zxy
+ * @author vintagewang@apache.org
+ * @author yukon@apache.org
  */
 public abstract class ServiceThread implements Runnable {
     private static final Logger STLOG = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
@@ -37,7 +37,7 @@ public abstract class ServiceThread implements Runnable {
 
     protected volatile boolean stopped = false;
 
-    protected final CountDownLatch waitPoint = new CountDownLatch(1);
+    protected final CountDownLatch2 waitPoint = new CountDownLatch2(1);
 
 
     public ServiceThread() {

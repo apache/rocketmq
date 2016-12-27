@@ -17,7 +17,7 @@
 package org.apache.rocketmq.client.impl;
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class FindBrokerResult {
     private final String brokerAddr;

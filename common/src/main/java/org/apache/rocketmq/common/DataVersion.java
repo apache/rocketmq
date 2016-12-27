@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class DataVersion extends RemotingSerializable {
     private long timestatmp = System.currentTimeMillis();

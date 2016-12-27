@@ -21,7 +21,7 @@ import org.apache.rocketmq.common.help.FAQUrl;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class MQClientException extends Exception {
     private static final long serialVersionUID = -5758410930844185841L;

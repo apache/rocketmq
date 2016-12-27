@@ -22,7 +22,7 @@ import java.util.HashSet;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  *
  */
 public class ConsumeByWho extends RemotingSerializable {

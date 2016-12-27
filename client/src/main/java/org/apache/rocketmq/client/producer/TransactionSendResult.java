@@ -17,7 +17,7 @@
 package org.apache.rocketmq.client.producer;
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class TransactionSendResult extends SendResult {
     private LocalTransactionState localTransactionState;

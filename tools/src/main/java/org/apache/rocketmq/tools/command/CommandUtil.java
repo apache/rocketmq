@@ -29,7 +29,7 @@ import java.util.*;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class CommandUtil {
 

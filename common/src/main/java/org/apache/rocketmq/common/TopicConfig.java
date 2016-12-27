@@ -20,7 +20,7 @@ import org.apache.rocketmq.common.constant.PermName;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class TopicConfig {
     private static final String SEPARATOR = " ";

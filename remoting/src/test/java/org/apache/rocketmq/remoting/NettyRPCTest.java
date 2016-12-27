@@ -16,7 +16,7 @@
  */
 
 /**
- * $Id: NettyRPCTest.java 1831 2013-05-16 01:39:51Z shijia.wxr $
+ * $Id: NettyRPCTest.java 1831 2013-05-16 01:39:51Z vintagewang@apache.org $
  */
 package org.apache.rocketmq.remoting;
 
@@ -33,7 +33,7 @@ import static org.junit.Assert.assertTrue;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class NettyRPCTest {
     @Test

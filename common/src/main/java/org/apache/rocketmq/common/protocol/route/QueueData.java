@@ -16,7 +16,7 @@
  */
 
 /**
- * $Id: QueueData.java 1835 2013-05-16 02:00:50Z shijia.wxr $
+ * $Id: QueueData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
  */
 package org.apache.rocketmq.common.protocol.route;
 

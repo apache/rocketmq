@@ -20,7 +20,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public interface TransactionCheckListener {
     LocalTransactionState checkLocalTransactionState(final MessageExt msg);

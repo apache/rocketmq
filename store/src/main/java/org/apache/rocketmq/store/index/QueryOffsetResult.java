@@ -20,7 +20,7 @@ import java.util.List;
 
 
 /**
- * @author shijia.wxr
+ * @author vintagewang@apache.org
  */
 public class QueryOffsetResult {
     private final List<Long> phyOffsets;
