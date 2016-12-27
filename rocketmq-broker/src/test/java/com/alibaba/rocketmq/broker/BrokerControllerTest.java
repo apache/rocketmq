@@ -21,12 +21,24 @@ import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
+<<<<<<< HEAD
 import org.junit.Test;
+=======
+import org.junit.Assert;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+>>>>>>> b85645996a573b19159ad184007484a99742cc5f
 
 /**
  * @author shtykh_roman
  */
 public class BrokerControllerTest {
+<<<<<<< HEAD
+=======
+    protected Logger logger = LoggerFactory.getLogger(BrokerControllerTest.class);
+
+>>>>>>> b85645996a573b19159ad184007484a99742cc5f
     private static final int RESTART_NUM = 3;
 
     /**
@@ -44,10 +56,20 @@ public class BrokerControllerTest {
                 new NettyClientConfig(), //
                 new MessageStoreConfig());
             boolean initResult = brokerController.initialize();
+<<<<<<< HEAD
             System.out.println("initialize " + initResult);
             brokerController.start();
 
             brokerController.shutdown();
+=======
+            Assert.assertTrue(initResult);
+            logger.info("Broker is initialized " + initResult);
+            brokerController.start();
+            logger.info("Broker is started");
+
+            brokerController.shutdown();
+            logger.info("Broker is stopped");
+>>>>>>> b85645996a573b19159ad184007484a99742cc5f
         }
     }
 }

@@ -5,7 +5,7 @@
   this work for additional information regarding copyright ownership.
   The ASF licenses this file to You under the Apache License, Version 2.0
   (the "License"); you may not use this file except in compliance with
-  the License.  You may obtain producerGroup copy of the License at
+  the License.  You may obtain a copy of the License at
 
       http://www.apache.org/licenses/LICENSE-2.0
 
@@ -15,28 +15,19 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
+
 <configuration>
 
-  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-    <encoder>
-      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{5} - %msg%n</pattern>
-<<<<<<< HEAD
-=======
-      <charset class="java.nio.charset.Charset">UTF-8</charset>
->>>>>>> b85645996a573b19159ad184007484a99742cc5f
-    </encoder>
-  </appender>
+    <appender name="DefaultAppender" class="ch.qos.logback.core.ConsoleAppender">
+        <append>true</append>
+        <encoder>
+            <pattern>%d{yyy-MM-dd HH\:mm\:ss,GMT+8} %p %t - %m%n</pattern>
+            <charset class="java.nio.charset.Charset">UTF-8</charset>
+        </encoder>
+    </appender>
 
-  <logger name="com.alibaba.rocketmq.store" level="WARN" additivity="false">
-    <appender-ref ref="STDOUT" />
-  </logger>
-
-<<<<<<< HEAD
-  <root level="WARN">
-=======
-  <root level="ERROR">
->>>>>>> b85645996a573b19159ad184007484a99742cc5f
-    <appender-ref ref="STDOUT" />
-  </root>
-
+    <root>
+        <level value="OFF"/>
+        <appender-ref ref="DefaultAppender"/>
+    </root>
 </configuration>

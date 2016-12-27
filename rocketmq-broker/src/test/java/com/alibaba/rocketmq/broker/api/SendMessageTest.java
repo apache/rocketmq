@@ -20,68 +20,64 @@
  */
 package com.alibaba.rocketmq.broker.api;
 
-import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.broker.BrokerTestHarness;
+import com.alibaba.rocketmq.client.ClientConfig;
 import com.alibaba.rocketmq.client.hook.SendMessageContext;
 import com.alibaba.rocketmq.client.impl.CommunicationMode;
 import com.alibaba.rocketmq.client.impl.MQClientAPIImpl;
 import com.alibaba.rocketmq.client.producer.SendResult;
-import com.alibaba.rocketmq.common.BrokerConfig;
+import com.alibaba.rocketmq.client.producer.SendStatus;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageDecoder;
 import com.alibaba.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
-import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
-import com.alibaba.rocketmq.store.config.MessageStoreConfig;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 
 /**
- * @author shijia.wxr
+ * @author zander
  */
-public class SendMessageTest {
-    @Test
-    public void test_sendMessage() throws Exception {
-        BrokerController brokerController = new BrokerController(//
-                new BrokerConfig(), //
-                new NettyServerConfig(), //
-                new NettyClientConfig(), //
-                new MessageStoreConfig());
-        boolean initResult = brokerController.initialize();
-        System.out.println("initialize " + initResult);
+public class SendMessageTest extends BrokerTestHarness{
 
-        brokerController.start();
+    MQClientAPIImpl client = new MQClientAPIImpl(new NettyClientConfig(), null, null, new ClientConfig());
+    String topic = "UnitTestTopic";
 
-        MQClientAPIImpl client = new MQClientAPIImpl(new NettyClientConfig(), null, null, null);
+    @Before
+    @Override
+    public void startup() throws Exception {
+        super.startup();
         client.start();
 
-        for (int i = 0; i < 100; i++) {
-            String topic = "UnitTestTopic_" + i % 3;
-            Message msg = new Message(topic, "TAG1 TAG2", "100200300", ("Hello, Nice world\t" + i).getBytes());
-            msg.setDelayTimeLevel(i % 3 + 1);
+    }
 
-            try {
-                SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
-                requestHeader.setProducerGroup("abc");
-                requestHeader.setTopic(msg.getTopic());
-                requestHeader.setDefaultTopic(MixAll.DEFAULT_TOPIC);
-                requestHeader.setDefaultTopicQueueNums(4);
-                requestHeader.setQueueId(i % 4);
-                requestHeader.setSysFlag(0);
-                requestHeader.setBornTimestamp(System.currentTimeMillis());
-                requestHeader.setFlag(msg.getFlag());
-                requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
-
-                SendResult result = client.sendMessage("127.0.0.1:10911", "brokerName", msg, requestHeader, 1000 * 5,
-                        CommunicationMode.SYNC, new SendMessageContext(), null);
-                System.out.println(i + "\t" + result);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
+    @After
+    @Override
+    public void shutdown() throws Exception {
         client.shutdown();
+        super.shutdown();
+    }
 
-        brokerController.shutdown();
+    @Test
+    public void testSendSingle() throws Exception{
+        Message msg = new Message(topic, "TAG1 TAG2", "100200300", "body".getBytes());
+        SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
+        requestHeader.setProducerGroup("abc");
+        requestHeader.setTopic(msg.getTopic());
+        requestHeader.setDefaultTopic(MixAll.DEFAULT_TOPIC);
+        requestHeader.setDefaultTopicQueueNums(4);
+        requestHeader.setQueueId(0);
+        requestHeader.setSysFlag(0);
+        requestHeader.setBornTimestamp(System.currentTimeMillis());
+        requestHeader.setFlag(msg.getFlag());
+        requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
+
+        SendResult result = client.sendMessage(brokerAddr, BROKER_NAME, msg, requestHeader, 1000 * 5,
+                CommunicationMode.SYNC, new SendMessageContext(), null);
+        assertEquals(result.getSendStatus(), SendStatus.SEND_OK);
     }
 }

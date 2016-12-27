@@ -20,52 +20,43 @@
  */
 package com.alibaba.rocketmq.broker.topic;
 
-import com.alibaba.rocketmq.broker.BrokerController;
-import com.alibaba.rocketmq.common.BrokerConfig;
+import com.alibaba.rocketmq.broker.BrokerTestHarness;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
-import com.alibaba.rocketmq.remoting.netty.NettyClientConfig;
-import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
-import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Test;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 
 /**
- * @author shijia.wxr
+ * @author zander
  */
-public class TopicConfigManagerTest {
+public class TopicConfigManagerTest extends BrokerTestHarness {
     @Test
-    public void test_flushTopicConfig() throws Exception {
-        BrokerController brokerController = new BrokerController(//
-                new BrokerConfig(), //
-                new NettyServerConfig(), //
-                new NettyClientConfig(), //
-                new MessageStoreConfig());
-        boolean initResult = brokerController.initialize();
-        System.out.println("initialize " + initResult);
-        brokerController.start();
-
+    public void testFlushTopicConfig() throws Exception {
         TopicConfigManager topicConfigManager = new TopicConfigManager(brokerController);
-
-        TopicConfig topicConfig =
-                topicConfigManager.createTopicInSendMessageMethod("TestTopic_SEND", MixAll.DEFAULT_TOPIC,
-                        null, 4, 0);
-        assertTrue(topicConfig != null);
-
-        System.out.println(topicConfig);
 
         for (int i = 0; i < 10; i++) {
             String topic = "UNITTEST-" + i;
-            topicConfig =
-                    topicConfigManager
-                            .createTopicInSendMessageMethod(topic, MixAll.DEFAULT_TOPIC, null, 4, 0);
-            assertTrue(topicConfig != null);
+            TopicConfig topicConfig = topicConfigManager.createTopicInSendMessageMethod(topic, MixAll.DEFAULT_TOPIC, null, 4, 0);
+            assertNotNull(topicConfig);
         }
-
         topicConfigManager.persist();
 
-        brokerController.shutdown();
+        topicConfigManager.getTopicConfigTable().clear();
+
+        for (int i = 0; i < 10; i++) {
+            String topic = "UNITTEST-" + i;
+            TopicConfig topicConfig = topicConfigManager.selectTopicConfig(topic);
+            assertNull(topicConfig);
+        }
+        topicConfigManager.load();
+        for (int i = 0; i < 10; i++) {
+            String topic = "UNITTEST-" + i;
+            TopicConfig topicConfig = topicConfigManager.selectTopicConfig(topic);
+            assertNotNull(topicConfig);
+            assertEquals(topicConfig.getTopicSysFlag(), 0);
+            assertEquals(topicConfig.getReadQueueNums(), 4);
+        }
     }
 }

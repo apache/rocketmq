@@ -52,6 +52,10 @@ public class MappedFileQueueTest {
     @Test
     public void test_getLastMapedFile() {
         final String fixedMsg = "0123456789abcdef";
+<<<<<<< HEAD
+=======
+
+>>>>>>> b85645996a573b19159ad184007484a99742cc5f
         logger.debug("================================================================");
         MappedFileQueue mappedFileQueue =
                 new MappedFileQueue("target/unit_test_store/a/", 1024, null);
@@ -59,6 +63,7 @@ public class MappedFileQueueTest {
         for (int i = 0; i < 1024; i++) {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
             assertTrue(mappedFile != null);
+
             boolean result = mappedFile.appendMessage(fixedMsg.getBytes());
             if (!result) {
                 logger.debug("appendMessage " + i);
@@ -74,7 +79,12 @@ public class MappedFileQueueTest {
 
     @Test
     public void test_findMapedFileByOffset() {
+        // four-byte string.
         final String fixedMsg = "abcd";
+<<<<<<< HEAD
+=======
+
+>>>>>>> b85645996a573b19159ad184007484a99742cc5f
         logger.debug("================================================================");
         MappedFileQueue mappedFileQueue =
                 new MappedFileQueue("target/unit_test_store/b/", 1024, null);
@@ -82,10 +92,16 @@ public class MappedFileQueueTest {
         for (int i = 0; i < 1024; i++) {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
             assertTrue(mappedFile != null);
+
             boolean result = mappedFile.appendMessage(fixedMsg.getBytes());
+<<<<<<< HEAD
             // logger.debug("appendMessage " + bytes);
+=======
+>>>>>>> b85645996a573b19159ad184007484a99742cc5f
             assertTrue(result);
         }
+
+        assertEquals(fixedMsg.getBytes().length * 1024, mappedFileQueue.getMappedMemorySize());
 
         MappedFile mappedFile = mappedFileQueue.findMappedFileByOffset(0);
         assertTrue(mappedFile != null);
@@ -110,7 +126,12 @@ public class MappedFileQueueTest {
         mappedFile = mappedFileQueue.findMappedFileByOffset(1024 * 2 + 100);
         assertTrue(mappedFile != null);
         assertEquals(mappedFile.getFileFromOffset(), 1024 * 2);
+<<<<<<< HEAD
         
+=======
+
+        // over mapped memory size.
+>>>>>>> b85645996a573b19159ad184007484a99742cc5f
         mappedFile = mappedFileQueue.findMappedFileByOffset(1024 * 4);
         assertTrue(mappedFile == null);
 
@@ -125,6 +146,10 @@ public class MappedFileQueueTest {
     @Test
     public void test_commit() {
         final String fixedMsg = "0123456789abcdef";
+<<<<<<< HEAD
+=======
+
+>>>>>>> b85645996a573b19159ad184007484a99742cc5f
         logger.debug("================================================================");
         MappedFileQueue mappedFileQueue =
                 new MappedFileQueue("target/unit_test_store/c/", 1024, null);
@@ -132,6 +157,7 @@ public class MappedFileQueueTest {
         for (int i = 0; i < 1024; i++) {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
             assertTrue(mappedFile != null);
+
             boolean result = mappedFile.appendMessage(fixedMsg.getBytes());
             assertTrue(result);
         }
@@ -168,6 +194,10 @@ public class MappedFileQueueTest {
     @Test
     public void test_getMapedMemorySize() {
         final String fixedMsg = "abcd";
+<<<<<<< HEAD
+=======
+
+>>>>>>> b85645996a573b19159ad184007484a99742cc5f
         logger.debug("================================================================");
         MappedFileQueue mappedFileQueue =
                 new MappedFileQueue("target/unit_test_store/d/", 1024, null);
@@ -175,14 +205,15 @@ public class MappedFileQueueTest {
         for (int i = 0; i < 1024; i++) {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
             assertTrue(mappedFile != null);
+
             boolean result = mappedFile.appendMessage(fixedMsg.getBytes());
             assertTrue(result);
         }
 
         assertEquals(fixedMsg.length() * 1024, mappedFileQueue.getMappedMemorySize());
+
         mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();
         logger.debug("MappedFileQueue.getMappedMemorySize() OK");
     }
-
 }

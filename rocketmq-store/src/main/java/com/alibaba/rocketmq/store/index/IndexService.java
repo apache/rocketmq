@@ -49,6 +49,9 @@ public class IndexService {
     private final ArrayList<IndexFile> indexFileList = new ArrayList<IndexFile>();
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
+    /** Maximum times to attempt index file creation. */
+    private static final int MAX_TRY_IDX_CREATE = 3;
+
 
     public IndexService(final DefaultMessageStore store) {
         this.defaultMessageStore = store;
@@ -257,44 +260,44 @@ public class IndexService {
 
 
     private IndexFile putKey(IndexFile indexFile, DispatchRequest msg, String idxKey) {
-        for (boolean ok =
-             indexFile.putKey(idxKey, msg.getCommitLogOffset(),
-                     msg.getStoreTimestamp()); !ok; ) {
-            log.warn("index file full, so create another one, " + indexFile.getFileName());
+        for (boolean ok = indexFile.putKey(idxKey, msg.getCommitLogOffset(), msg.getStoreTimestamp()); !ok; ) {
+            log.warn("Index file [" + indexFile.getFileName() + "] is full, trying to create another one");
+
             indexFile = retryGetAndCreateIndexFile();
             if (null == indexFile) {
                 return null;
             }
 
-            ok =
-                    indexFile.putKey(idxKey, msg.getCommitLogOffset(),
-                            msg.getStoreTimestamp());
+            ok = indexFile.putKey(idxKey, msg.getCommitLogOffset(), msg.getStoreTimestamp());
         }
+
         return indexFile;
     }
 
-
+    /**
+     * Retries to get or create index file.
+     *
+     * @return {@link IndexFile} or null on failure.
+     */
     public IndexFile retryGetAndCreateIndexFile() {
         IndexFile indexFile = null;
 
-
-        for (int times = 0; null == indexFile && times < 3; times++) {
+        for (int times = 0; null == indexFile && times < MAX_TRY_IDX_CREATE; times++) {
             indexFile = this.getAndCreateLastIndexFile();
             if (null != indexFile)
                 break;
 
             try {
-                log.error("try to create index file, " + times + " times");
+                log.info("Tried to create index file " + times + " times");
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
 
-
         if (null == indexFile) {
             this.defaultMessageStore.getAccessRights().makeIndexFileError();
-            log.error("mark index file can not build flag");
+            log.error("Mark index file cannot build flag");
         }
 
         return indexFile;
