@@ -37,7 +37,6 @@ public class FilterServerUtil {
     }
 
     private static String[] splitShellString(final String shellString) {
-        String[] split = shellString.split(" ");
-        return split;
+        return shellString.split(" ");
     }
 }

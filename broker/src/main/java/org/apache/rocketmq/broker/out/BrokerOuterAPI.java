@@ -88,13 +88,11 @@ public class BrokerOuterAPI {
     public void updateNameServerAddressList(final String addrs) {
         List<String> lst = new ArrayList<String>();
         String[] addrArray = addrs.split(";");
-        if (addrArray != null) {
-            for (String addr : addrArray) {
-                lst.add(addr);
-            }
-
-            this.remotingClient.updateNameServerAddressList(lst);
+        for (String addr : addrArray) {
+            lst.add(addr);
         }
+
+        this.remotingClient.updateNameServerAddressList(lst);
     }
 
     public RegisterBrokerResult registerBrokerAll(
@@ -159,6 +157,7 @@ public class BrokerOuterAPI {
             try {
                 this.remotingClient.invokeOneway(namesrvAddr, request, timeoutMills);
             } catch (RemotingTooMuchRequestException e) {
+                // Ignore
             }
             return null;
         }

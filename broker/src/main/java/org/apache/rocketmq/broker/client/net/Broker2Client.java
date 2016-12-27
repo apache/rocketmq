@@ -202,7 +202,7 @@ public class Broker2Client {
                     try {
                         this.brokerController.getRemotingServer().invokeOneway(entry.getKey(), request, 5000);
                         log.info("[reset-offset] reset offset success. topic={}, group={}, clientId={}",
-                                new Object[]{topic, group, entry.getValue().getClientId()});
+                                topic, group, entry.getValue().getClientId());
                     } catch (Exception e) {
                         log.error("[reset-offset] reset offset exception. topic={}, group={}",
                                 new Object[]{topic, group}, e);
@@ -290,7 +290,7 @@ public class Broker2Client {
                                 consumerStatusTable.put(clientId, body.getMessageQueueTable());
                                 log.info(
                                         "[get-consumer-status] get consumer status success. topic={}, group={}, channelRemoteAddr={}",
-                                        new Object[]{topic, group, clientId});
+                                        topic, group, clientId);
                             }
                         }
                         default:

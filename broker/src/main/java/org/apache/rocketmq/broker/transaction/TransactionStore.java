@@ -21,26 +21,26 @@ import java.util.List;
 
 
 public interface TransactionStore {
-    public boolean open();
+    boolean open();
 
 
-    public void close();
+    void close();
 
 
-    public boolean put(final List<TransactionRecord> trs);
+    boolean put(final List<TransactionRecord> trs);
 
 
-    public void remove(final List<Long> pks);
+    void remove(final List<Long> pks);
 
 
-    public List<TransactionRecord> traverse(final long pk, final int nums);
+    List<TransactionRecord> traverse(final long pk, final int nums);
 
 
-    public long totalRecords();
+    long totalRecords();
 
 
-    public long minPK();
+    long minPK();
 
 
-    public long maxPK();
+    long maxPK();
 }

@@ -467,6 +467,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 try {
                     hook.consumeMessageAfter(context);
                 } catch (Throwable e) {
+                    // Ignore
                 }
             }
         }

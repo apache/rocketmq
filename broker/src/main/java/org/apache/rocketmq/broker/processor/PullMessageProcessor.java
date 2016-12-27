@@ -528,7 +528,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                         }
                     }
                 } catch (RemotingCommandException e1) {
-                    LOG.error("excuteRequestWhenWakeup run", e1);
+                    LOG.error("executeRequestWhenWakeup run", e1);
                 }
             }
         };

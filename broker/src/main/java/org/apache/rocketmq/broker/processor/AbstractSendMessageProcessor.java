@@ -176,8 +176,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             return response;
         }
         if (!this.brokerController.getTopicConfigManager().isTopicCanSendMessage(requestHeader.getTopic())) {
-            String errorMsg =
-                    "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
+            String errorMsg = "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
             log.warn(errorMsg);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(errorMsg);
@@ -273,8 +272,11 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                     }
 
                     hook.sendMessageBefore(context);
-                    requestHeader.setProperties(context.getMsgProps());
+                    if (requestHeader != null) {
+                        requestHeader.setProperties(context.getMsgProps());
+                    }
                 } catch (Throwable e) {
+                    // Ignore
                 }
             }
         }
@@ -319,7 +321,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                     }
                     hook.sendMessageAfter(context);
                 } catch (Throwable e) {
-
+                    // Ignore
                 }
             }
         }

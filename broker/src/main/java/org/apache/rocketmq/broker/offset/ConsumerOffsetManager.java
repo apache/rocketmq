@@ -58,7 +58,7 @@ public class ConsumerOffsetManager extends ConfigManager {
             Entry<String, ConcurrentHashMap<Integer, Long>> next = it.next();
             String topicAtGroup = next.getKey();
             String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
-            if (arrays != null && arrays.length == 2) {
+            if (arrays.length == 2) {
                 String topic = arrays[0];
                 String group = arrays[1];
 
@@ -80,11 +80,7 @@ public class ConsumerOffsetManager extends ConfigManager {
             Entry<Integer, Long> next = it.next();
             long minOffsetInStore = this.brokerController.getMessageStore().getMinOffsetInQuque(topic, next.getKey());
             long offsetInPersist = next.getValue();
-            if (offsetInPersist > minOffsetInStore) {
-                result = false;
-            } else {
-                result = true;
-            }
+            result = offsetInPersist <= minOffsetInStore;
         }
 
         return result;
@@ -99,7 +95,7 @@ public class ConsumerOffsetManager extends ConfigManager {
             Entry<String, ConcurrentHashMap<Integer, Long>> next = it.next();
             String topicAtGroup = next.getKey();
             String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
-            if (arrays != null && arrays.length == 2) {
+            if (arrays.length == 2) {
                 if (group.equals(arrays[1])) {
                     topics.add(arrays[0]);
                 }
@@ -118,7 +114,7 @@ public class ConsumerOffsetManager extends ConfigManager {
             Entry<String, ConcurrentHashMap<Integer, Long>> next = it.next();
             String topicAtGroup = next.getKey();
             String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
-            if (arrays != null && arrays.length == 2) {
+            if (arrays.length == 2) {
                 if (topic.equals(arrays[0])) {
                     groups.add(arrays[1]);
                 }

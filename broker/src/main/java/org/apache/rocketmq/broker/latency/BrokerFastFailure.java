@@ -77,7 +77,7 @@ public class BrokerFastFailure {
                         break;
                     }
                     final RequestTask rt = castRunnable(runnable);
-                    if (rt.isStopRun()) {
+                    if (rt == null || rt.isStopRun()) {
                         break;
                     }
 
