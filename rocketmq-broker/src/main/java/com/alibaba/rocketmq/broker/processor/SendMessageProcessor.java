@@ -428,8 +428,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     sendMessageContext.setQueueId(responseHeader.getQueueId());
                     sendMessageContext.setQueueOffset(responseHeader.getQueueOffset());
 
+                    int commercialBaseCount = brokerController.getBrokerConfig().getCommercialBaseCount();
                     int wroteSize = putMessageResult.getAppendMessageResult().getWroteBytes();
-                    int incValue = (int) Math.ceil(wroteSize / BrokerStatsManager.SIZE_PER_COUNT);
+                    int incValue = (int) Math.ceil(wroteSize / BrokerStatsManager.SIZE_PER_COUNT) * commercialBaseCount;
 
                     sendMessageContext.setCommercialSendStats(BrokerStatsManager.StatsType.SEND_SUCCESS);
                     sendMessageContext.setCommercialSendTimes(incValue);
