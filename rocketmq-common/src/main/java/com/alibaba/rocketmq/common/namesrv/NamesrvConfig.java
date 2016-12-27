@@ -43,6 +43,8 @@ public class NamesrvConfig {
     private boolean clusterTest = false;
     private boolean orderMessageEnable = false;
 
+    private int port = 9876;
+
     public boolean isOrderMessageEnable() {
         return orderMessageEnable;
     }
@@ -96,5 +98,13 @@ public class NamesrvConfig {
 
     public void setConfigStorePath(final String configStorePath) {
         this.configStorePath = configStorePath;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
     }
 }
