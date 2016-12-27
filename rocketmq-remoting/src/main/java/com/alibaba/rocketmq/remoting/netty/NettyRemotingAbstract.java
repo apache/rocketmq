@@ -198,41 +198,46 @@ public abstract class NettyRemotingAbstract {
             responseTable.remove(opaque);
 
             if (responseFuture.getInvokeCallback() != null) {
-                boolean runInThisThread = false;
-                ExecutorService executor = this.getCallbackExecutor();
-                if (executor != null) {
-                    try {
-                        executor.submit(new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    responseFuture.executeInvokeCallback();
-                                } catch (Throwable e) {
-                                    PLOG.warn("execute callback in executor exception, and callback throw", e);
-                                }
-                            }
-                        });
-                    } catch (Exception e) {
-                        runInThisThread = true;
-                        PLOG.warn("execute callback in executor exception, maybe executor busy", e);
-                    }
-                } else {
-                    runInThisThread = true;
-                }
-
-                if (runInThisThread) {
-                    try {
-                        responseFuture.executeInvokeCallback();
-                    } catch (Throwable e) {
-                        PLOG.warn("executeInvokeCallback Exception", e);
-                    }
-                }
+                executeInvokeCallback(responseFuture);
             } else {
                 responseFuture.putResponse(cmd);
             }
         } else {
             PLOG.warn("receive response, but not matched any request, " + RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
             PLOG.warn(cmd.toString());
+        }
+    }
+
+    //execute callback in callback executor. If callback executor is null, run directly in current thread
+    private void executeInvokeCallback(final ResponseFuture responseFuture) {
+        boolean runInThisThread = false;
+        ExecutorService executor = this.getCallbackExecutor();
+        if (executor != null) {
+            try {
+                executor.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            responseFuture.executeInvokeCallback();
+                        } catch (Throwable e) {
+                            PLOG.warn("execute callback in executor exception, and callback throw", e);
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                runInThisThread = true;
+                PLOG.warn("execute callback in executor exception, maybe executor busy", e);
+            }
+        } else {
+            runInThisThread = true;
+        }
+
+        if (runInThisThread) {
+            try {
+                responseFuture.executeInvokeCallback();
+            } catch (Throwable e) {
+                PLOG.warn("executeInvokeCallback Exception", e);
+            }
         }
     }
 
@@ -257,7 +262,7 @@ public abstract class NettyRemotingAbstract {
 
         for (ResponseFuture rf : rfList) {
             try {
-                rf.executeInvokeCallback();
+                executeInvokeCallback(rf);
             } catch (Throwable e) {
                 PLOG.warn("scanResponseTable, operationComplete Exception", e);
             }
@@ -329,7 +334,7 @@ public abstract class NettyRemotingAbstract {
                         responseFuture.putResponse(null);
                         responseTable.remove(opaque);
                         try {
-                            responseFuture.executeInvokeCallback();
+                            executeInvokeCallback(responseFuture);
                         } catch (Throwable e) {
                             PLOG.warn("excute callback in writeAndFlush addListener, and callback throw", e);
                         } finally {
