@@ -20,6 +20,7 @@
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
       <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{5} - %msg%n</pattern>
+      <charset class="java.nio.charset.Charset">UTF-8</charset>
     </encoder>
   </appender>
 
@@ -27,7 +28,7 @@
     <appender-ref ref="STDOUT" />
   </logger>
 
-  <root level="WARN">
+  <root level="ERROR">
     <appender-ref ref="STDOUT" />
   </root>
 
