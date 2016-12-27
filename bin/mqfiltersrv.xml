@@ -22,7 +22,7 @@
 
 	<jvmtype>server</jvmtype>
 
-	<mainclass>com.alibaba.rocketmq.filtersrv.FiltersrvStartup</mainclass>
+	<mainclass>org.apache.rocketmq.filtersrv.FiltersrvStartup</mainclass>
 
 	<properties>
 		<java.ext.dirs>${cpd}/../lib</java.ext.dirs>

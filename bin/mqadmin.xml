@@ -22,7 +22,7 @@
 
 	<jvmtype>server</jvmtype>
 
-	<mainclass>com.alibaba.rocketmq.tools.command.MQAdminStartup</mainclass>
+	<mainclass>org.apache.rocketmq.tools.command.MQAdminStartup</mainclass>
 
 	<properties>
 		<java.ext.dirs>${cpd}/../lib</java.ext.dirs>

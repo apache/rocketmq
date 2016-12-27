@@ -28,7 +28,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <inceptionYear>2012</inceptionYear>
-    <groupId>com.alibaba.rocketmq</groupId>
+    <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
     <version>4.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -234,14 +234,14 @@
                         <include>**/*Test.java</include>
                     </includes>
                     <excludes>
-                        <exclude>com/alibaba/rocketmq/remoting/ExceptionTest.java</exclude>
-                        <exclude>com/alibaba/rocketmq/remoting/SyncInvokeTest.java</exclude>
-                        <exclude>com/alibaba/rocketmq/remoting/NettyIdleTest.java</exclude>
-                        <exclude>com/alibaba/rocketmq/remoting/NettyConnectionTest.java</exclude>
-                        <exclude>com/alibaba/rocketmq/common/filter/PolishExprTest.java</exclude>
-                        <exclude>com/alibaba/rocketmq/common/protocol/MQProtosHelperTest.java</exclude>
-                        <exclude>com/alibaba/rocketmq/client/consumer/loadbalance/AllocateMessageQueueAveragelyTest.java</exclude>
-                        <exclude>com/alibaba/rocketmq/store/RecoverTest.java</exclude>
+                        <exclude>org/apache/rocketmq/remoting/ExceptionTest.java</exclude>
+                        <exclude>org/apache/rocketmq/remoting/SyncInvokeTest.java</exclude>
+                        <exclude>org/apache/rocketmq/remoting/NettyIdleTest.java</exclude>
+                        <exclude>org/apache/rocketmq/remoting/NettyConnectionTest.java</exclude>
+                        <exclude>org/apache/rocketmq/common/filter/PolishExprTest.java</exclude>
+                        <exclude>org/apache/rocketmq/common/protocol/MQProtosHelperTest.java</exclude>
+                        <exclude>org/apache/rocketmq/client/consumer/loadbalance/AllocateMessageQueueAveragelyTest.java</exclude>
+                        <exclude>org/apache/rocketmq/store/RecoverTest.java</exclude>
                     </excludes>
                 </configuration>
             </plugin>

@@ -15,10 +15,10 @@
  *  limitations under the License.
  */
 
-package com.alibaba.rocketmq.example.filter;
+package org.apache.rocketmq.example.filter;
 
-import com.alibaba.rocketmq.common.filter.MessageFilter;
-import com.alibaba.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.filter.MessageFilter;
+import org.apache.rocketmq.common.message.MessageExt;
 
 
 public class MessageFilterImpl implements MessageFilter {

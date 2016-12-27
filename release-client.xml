@@ -36,7 +36,7 @@
     <moduleSets>
         <moduleSet>
             <includes>
-                <include>com.alibaba.rocketmq:rocketmq-client</include>
+                <include>org.apache.rocketmq:rocketmq-client</include>
             </includes>
             <binaries>
                 <outputDirectory>./</outputDirectory>

@@ -24,7 +24,7 @@
     </encoder>
   </appender>
 
-  <logger name="com.alibaba.rocketmq.store" level="WARN" additivity="false">
+  <logger name="org.apache.rocketmq.store" level="WARN" additivity="false">
     <appender-ref ref="STDOUT" />
   </logger>
 

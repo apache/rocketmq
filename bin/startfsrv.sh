@@ -42,4 +42,4 @@ fi
 
 export ROCKETMQ_HOME
 
-nohup sh ${ROCKETMQ_HOME}/bin/runserver.sh com.alibaba.rocketmq.filtersrv.FiltersrvStartup $@ &
+nohup sh ${ROCKETMQ_HOME}/bin/runserver.sh org.apache.rocketmq.filtersrv.FiltersrvStartup $@ &

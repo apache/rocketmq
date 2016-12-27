@@ -18,7 +18,7 @@
 case $1 in
     broker)
 
-    pid=`ps ax | grep -i 'com.alibaba.rocketmq.broker.BrokerStartup' |grep java | grep -v grep | awk '{print $1}'`
+    pid=`ps ax | grep -i 'org.apache.rocketmq.broker.BrokerStartup' |grep java | grep -v grep | awk '{print $1}'`
     if [ -z "$pid" ] ; then
             echo "No mqbroker running."
             exit -1;
@@ -32,7 +32,7 @@ case $1 in
     ;;
     namesrv)
 
-    pid=`ps ax | grep -i 'com.alibaba.rocketmq.namesrv.NamesrvStartup' |grep java | grep -v grep | awk '{print $1}'`
+    pid=`ps ax | grep -i 'org.apache.rocketmq.namesrv.NamesrvStartup' |grep java | grep -v grep | awk '{print $1}'`
     if [ -z "$pid" ] ; then
             echo "No mqnamesrv running."
             exit -1;
