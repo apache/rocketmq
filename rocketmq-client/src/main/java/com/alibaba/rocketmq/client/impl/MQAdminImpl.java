@@ -295,7 +295,7 @@ public class MQAdminImpl {
 
             if (!brokerAddrs.isEmpty()) {
                 final CountDownLatch countDownLatch = new CountDownLatch(brokerAddrs.size());
-                final List<QueryResult> queryResultList = new LinkedList<QueryResult>();
+                final List<QueryResult> queryResultList = Collections.synchronizedList(new LinkedList<QueryResult>());
 
                 for (String addr : brokerAddrs) {
                     try {
