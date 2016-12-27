@@ -160,16 +160,16 @@
     </properties>
 
     <modules>
-        <module>rocketmq-client</module>
-        <module>rocketmq-common</module>
-        <module>rocketmq-broker</module>
-        <module>rocketmq-tools</module>
-        <module>rocketmq-store</module>
-        <module>rocketmq-namesrv</module>
-        <module>rocketmq-remoting</module>
-        <module>rocketmq-example</module>
-        <module>rocketmq-filtersrv</module>
-        <module>rocketmq-srvutil</module>
+        <module>client</module>
+        <module>common</module>
+        <module>broker</module>
+        <module>tools</module>
+        <module>store</module>
+        <module>namesrv</module>
+        <module>remoting</module>
+        <module>example</module>
+        <module>filtersrv</module>
+        <module>srvutil</module>
     </modules>
 
     <build>
