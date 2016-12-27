@@ -79,22 +79,28 @@ public class NamesrvStartup {
 
             final NamesrvConfig namesrvConfig = new NamesrvConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
-            nettyServerConfig.setListenPort(9876);
-            if (commandLine.hasOption('c')) {
-                String file = commandLine.getOptionValue('c');
-                if (file != null) {
-                    InputStream in = new BufferedInputStream(new FileInputStream(file));
-                    properties = new Properties();
-                    properties.load(in);
-                    MixAll.properties2Object(properties, namesrvConfig);
-                    MixAll.properties2Object(properties, nettyServerConfig);
 
-                    namesrvConfig.setConfigStorePath(file);
+            String file = null;
+            if (commandLine.hasOption('c'))
+                file = commandLine.getOptionValue('c');
+            else
+                file = namesrvConfig.getRocketmqHome() + "/conf/namesrv.conf";
 
-                    System.out.printf("load config properties file OK, " + file + "%n");
-                    in.close();
-                }
+            if (file != null) {
+                InputStream in = new BufferedInputStream(new FileInputStream(file));
+                properties = new Properties();
+                properties.load(in);
+                MixAll.properties2Object(properties, namesrvConfig);
+                MixAll.properties2Object(properties, nettyServerConfig);
+
+                namesrvConfig.setConfigStorePath(file);
+
+                System.out.printf("load config properties file OK, " + file + "%n");
+                in.close();
+            }else{
+                System.out.print("load config properties file failed, please make sure that the file: " + file + " is readable%n");
             }
+            nettyServerConfig.setListenPort(namesrvConfig.getPort());
 
 
             if (commandLine.hasOption('p')) {
