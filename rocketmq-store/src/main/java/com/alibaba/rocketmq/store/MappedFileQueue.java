@@ -484,10 +484,10 @@ public class MappedFileQueue {
                 try {
                     return this.mappedFiles.get(index);
                 } catch (Exception e) {
-                    if (returnFirstOnNotFound)
+                    if (returnFirstOnNotFound) {
                         return mappedFile;
-
-                    LOG_ERROR.warn("findMappedFileByOffset failure. {}", UtilAll.currentStackTrace());
+                    }
+                    LOG_ERROR.warn("findMappedFileByOffset failure. ", e);
                 }
             }
         } catch (Exception e) {
