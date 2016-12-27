@@ -279,7 +279,7 @@ public class IndexService {
      *
      * @return {@link IndexFile} or null on failure.
      */
-    private IndexFile retryGetAndCreateIndexFile() {
+    public IndexFile retryGetAndCreateIndexFile() {
         IndexFile indexFile = null;
 
         for (int times = 0; null == indexFile && times < MAX_TRY_IDX_CREATE; times++) {
@@ -288,7 +288,7 @@ public class IndexService {
                 break;
 
             try {
-                log.error("Tried to create index file " + times + " times");
+                log.info("Tried to create index file " + times + " times");
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
