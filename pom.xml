@@ -233,16 +233,6 @@
                     <includes>
                         <include>**/*Test.java</include>
                     </includes>
-                    <excludes>
-                        <exclude>org/apache/rocketmq/remoting/ExceptionTest.java</exclude>
-                        <exclude>org/apache/rocketmq/remoting/SyncInvokeTest.java</exclude>
-                        <exclude>org/apache/rocketmq/remoting/NettyIdleTest.java</exclude>
-                        <exclude>org/apache/rocketmq/remoting/NettyConnectionTest.java</exclude>
-                        <exclude>org/apache/rocketmq/common/filter/PolishExprTest.java</exclude>
-                        <exclude>org/apache/rocketmq/common/protocol/MQProtosHelperTest.java</exclude>
-                        <exclude>org/apache/rocketmq/client/consumer/loadbalance/AllocateMessageQueueAveragelyTest.java</exclude>
-                        <exclude>org/apache/rocketmq/store/RecoverTest.java</exclude>
-                    </excludes>
                 </configuration>
             </plugin>
             <plugin>
