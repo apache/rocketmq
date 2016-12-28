@@ -24,8 +24,8 @@ import org.apache.rocketmq.client.exception.MQClientException;
  * @author manhong.yqd
  */
 public interface CheckForbiddenHook {
-    public String hookName();
+    String hookName();
 
 
-    public void checkForbidden(final CheckForbiddenContext context) throws MQClientException;
+    void checkForbidden(final CheckForbiddenContext context) throws MQClientException;
 }

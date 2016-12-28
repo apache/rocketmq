@@ -17,9 +17,6 @@
 
 package org.apache.rocketmq.client.consumer.listener;
 
-/**
- * Created by alvin on 16-11-30.
- */
 public enum ConsumeReturnType {
     /**
      * consume return success

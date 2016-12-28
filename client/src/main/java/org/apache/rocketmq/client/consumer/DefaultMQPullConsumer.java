@@ -335,6 +335,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
             MessageDecoder.decodeMessageId(uniqKey);
             return this.viewMessage(uniqKey);
         } catch (Exception e) {
+            // Ignore
         }
         return this.defaultMQPullConsumerImpl.queryMessageByUniqKey(topic, uniqKey);
     }

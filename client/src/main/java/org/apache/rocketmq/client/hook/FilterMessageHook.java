@@ -20,8 +20,8 @@ package org.apache.rocketmq.client.hook;
  * @author manhong.yqd
  */
 public interface FilterMessageHook {
-    public String hookName();
+    String hookName();
 
 
-    public void filterMessage(final FilterMessageContext context);
+    void filterMessage(final FilterMessageContext context);
 }

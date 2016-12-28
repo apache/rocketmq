@@ -22,7 +22,7 @@ package org.apache.rocketmq.client.consumer;
  * @author vintagewang@apache.org
  */
 public interface PullCallback {
-    public void onSuccess(final PullResult pullResult);
+    void onSuccess(final PullResult pullResult);
 
-    public void onException(final Throwable e);
+    void onException(final Throwable e);
 }

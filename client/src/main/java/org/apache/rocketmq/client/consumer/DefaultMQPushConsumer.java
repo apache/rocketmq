@@ -210,6 +210,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
             MessageDecoder.decodeMessageId(msgId);
             return this.viewMessage(msgId);
         } catch (Exception e) {
+            // Ignore
         }
         return this.defaultMQPushConsumerImpl.queryMessageByUniqKey(topic, msgId);
     }
