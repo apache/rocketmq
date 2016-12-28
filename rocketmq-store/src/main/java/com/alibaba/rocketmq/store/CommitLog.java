@@ -112,7 +112,7 @@ public class CommitLog {
     public long flush() {
         this.mappedFileQueue.commit(0);
         this.mappedFileQueue.flush(0);
-        return this.mappedFileQueue.getFlushedWhere();
+        return this.mappedFileQueue.getFlushOffset();
     }
 
     public long getMaxOffset() {
@@ -207,7 +207,7 @@ public class CommitLog {
             }
 
             processOffset += mappedFileOffset;
-            this.mappedFileQueue.setFlushedWhere(processOffset);
+            this.mappedFileQueue.setFlushOffset(processOffset);
             this.mappedFileQueue.setCommittedWhere(processOffset);
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
         }
@@ -477,7 +477,7 @@ public class CommitLog {
             }
 
             processOffset += mappedFileOffset;
-            this.mappedFileQueue.setFlushedWhere(processOffset);
+            this.mappedFileQueue.setFlushOffset(processOffset);
             this.mappedFileQueue.setCommittedWhere(processOffset);
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
 
@@ -486,7 +486,7 @@ public class CommitLog {
         }
         // Commitlog case files are deleted
         else {
-            this.mappedFileQueue.setFlushedWhere(0);
+            this.mappedFileQueue.setFlushOffset(0);
             this.mappedFileQueue.setCommittedWhere(0);
             this.defaultMessageStore.destroyLogics();
         }
@@ -914,8 +914,10 @@ public class CommitLog {
             boolean result = false;
             for (int i = 0; i < RETRY_TIMES_OVER && !result; i++) {
                 result = CommitLog.this.mappedFileQueue.flush(0);
-                CommitLog.log.info(this.getServiceName() + " service shutdown, retry " + (i + 1) + " times " + (result ? "OK" : "Not OK"));
             }
+
+            CommitLog.log.info(this.getServiceName() + " service shutdown, flush retry "
+                    + (result ? "OK" : "Not OK"));
 
             this.printFlushProgress();
 
@@ -1006,7 +1008,7 @@ public class CommitLog {
                     // two times the flush
                     boolean flushOK = false;
                     for (int i = 0; i < 2 && !flushOK; i++) {
-                        flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() >= req.getNextOffset();
+                        flushOK = CommitLog.this.mappedFileQueue.getFlushOffset() >= req.getNextOffset();
 
                         if (!flushOK) {
                             CommitLog.this.mappedFileQueue.flush(0);
