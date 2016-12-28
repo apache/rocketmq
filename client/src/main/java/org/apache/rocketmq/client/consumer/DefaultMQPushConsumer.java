@@ -56,7 +56,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Consumption offset
      */
-    private ConsumeFromWhere consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET;
+    private ConsumeFromWhere consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET;
     /**
      * Backtracking consumption time with second precision.time format is
      * 20131223171201<br>
