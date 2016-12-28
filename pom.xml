@@ -85,7 +85,7 @@
                 <role>architect</role>
                 <role>committer</role>
             </roles>
-            <email>vongosling@apache.org@apache.org</email>
+            <email>vongosling@apache.org</email>
             <url>https://github.com/vongosling@apache.org</url>
             <timezone>+8</timezone>
         </developer>
@@ -180,7 +180,7 @@
                 <version>2.2</version>
             </plugin>
             <plugin>
-                <groupId>com.github.vongosling@apache.org</groupId>
+                <groupId>com.github.vongosling</groupId>
                 <artifactId>dependency-mediator-maven-plugin</artifactId>
                 <version>1.0.2</version>
             </plugin>
