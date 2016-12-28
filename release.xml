@@ -39,12 +39,12 @@
     <moduleSets>
         <moduleSet>
             <includes>
-                <include>com.alibaba.rocketmq:rocketmq-broker</include>
-                <include>com.alibaba.rocketmq:rocketmq-tools</include>
-                <include>com.alibaba.rocketmq:rocketmq-client</include>
-                <include>com.alibaba.rocketmq:rocketmq-namesrv</include>
-                <include>com.alibaba.rocketmq:rocketmq-filtersrv</include>
-                <include>com.alibaba.rocketmq:rocketmq-example</include>
+                <include>org.apache.rocketmq:rocketmq-broker</include>
+                <include>org.apache.rocketmq:rocketmq-tools</include>
+                <include>org.apache.rocketmq:rocketmq-client</include>
+                <include>org.apache.rocketmq:rocketmq-namesrv</include>
+                <include>org.apache.rocketmq:rocketmq-filtersrv</include>
+                <include>org.apache.rocketmq:rocketmq-example</include>
             </includes>
             <binaries>
                 <outputDirectory>lib/</outputDirectory>
