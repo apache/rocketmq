@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.client;
 
@@ -21,7 +21,6 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-
 
 /**
  * Base interface for MQ management
@@ -41,8 +40,7 @@ public interface MQAdmin {
      * @throws MQClientException
      */
     void createTopic(final String key, final String newTopic, final int queueNum)
-            throws MQClientException;
-
+        throws MQClientException;
 
     /**
      * Creates an topic
@@ -59,8 +57,7 @@ public interface MQAdmin {
      * @throws MQClientException
      */
     void createTopic(String key, String newTopic, int queueNum, int topicSysFlag)
-            throws MQClientException;
-
+        throws MQClientException;
 
     /**
      * Gets the message queue offset according to some time in milliseconds<br>
@@ -77,7 +74,6 @@ public interface MQAdmin {
      */
     long searchOffset(final MessageQueue mq, final long timestamp) throws MQClientException;
 
-
     /**
      * Gets the max offset
      *
@@ -89,7 +85,6 @@ public interface MQAdmin {
      * @throws MQClientException
      */
     long maxOffset(final MessageQueue mq) throws MQClientException;
-
 
     /**
      * Gets the minimum offset
@@ -103,7 +98,6 @@ public interface MQAdmin {
      */
     long minOffset(final MessageQueue mq) throws MQClientException;
 
-
     /**
      * Gets the earliest stored message time
      *
@@ -115,7 +109,6 @@ public interface MQAdmin {
      * @throws MQClientException
      */
     long earliestMsgStoreTime(final MessageQueue mq) throws MQClientException;
-
 
     /**
      * Query message according tto message id
@@ -131,8 +124,7 @@ public interface MQAdmin {
      * @throws MQClientException
      */
     MessageExt viewMessage(final String offsetMsgId) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException;
-
+        InterruptedException, MQClientException;
 
     /**
      * Query messages
@@ -154,8 +146,8 @@ public interface MQAdmin {
      * @throws InterruptedException
      */
     QueryResult queryMessage(final String topic, final String key, final int maxNum, final long begin,
-                             final long end) throws MQClientException, InterruptedException;
-    
+        final long end) throws MQClientException, InterruptedException;
+
     /**
 
      * @param topic
@@ -166,7 +158,6 @@ public interface MQAdmin {
      * @throws InterruptedException
      * @throws MQClientException
      */
-    MessageExt viewMessage(String topic, String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException;        
+    MessageExt viewMessage(String topic, String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
 
-    
 }

@@ -6,16 +6,20 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.broker.processor;
 
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.FileRegion;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.pagecache.OneMessageTransfer;
 import org.apache.rocketmq.broker.pagecache.QueryMessageTransfer;
@@ -31,28 +35,21 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.FileRegion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 public class QueryMessageProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     private final BrokerController brokerController;
 
-
     public QueryMessageProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
     }
 
-
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
+        throws RemotingCommandException {
         switch (request.getCode()) {
             case RequestCode.QUERY_MESSAGE:
                 return this.queryMessage(ctx, request);
@@ -70,20 +67,17 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         return false;
     }
 
-
     public RemotingCommand queryMessage(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
+        throws RemotingCommandException {
         final RemotingCommand response =
-                RemotingCommand.createResponseCommand(QueryMessageResponseHeader.class);
+            RemotingCommand.createResponseCommand(QueryMessageResponseHeader.class);
         final QueryMessageResponseHeader responseHeader =
-                (QueryMessageResponseHeader) response.readCustomHeader();
+            (QueryMessageResponseHeader)response.readCustomHeader();
         final QueryMessageRequestHeader requestHeader =
-                (QueryMessageRequestHeader) request
-                        .decodeCommandCustomHeader(QueryMessageRequestHeader.class);
-
+            (QueryMessageRequestHeader)request
+                .decodeCommandCustomHeader(QueryMessageRequestHeader.class);
 
         response.setOpaque(request.getOpaque());
-
 
         String isUniqueKey = request.getExtFields().get(MixAll.UNIQUE_MSG_QUERY_FLAG);
         if (isUniqueKey != null && isUniqueKey.equals("true")) {
@@ -91,14 +85,13 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         }
 
         final QueryMessageResult queryMessageResult =
-                this.brokerController.getMessageStore().queryMessage(requestHeader.getTopic(),
-                        requestHeader.getKey(), requestHeader.getMaxNum(), requestHeader.getBeginTimestamp(),
-                        requestHeader.getEndTimestamp());
+            this.brokerController.getMessageStore().queryMessage(requestHeader.getTopic(),
+                requestHeader.getKey(), requestHeader.getMaxNum(), requestHeader.getBeginTimestamp(),
+                requestHeader.getEndTimestamp());
         assert queryMessageResult != null;
 
         responseHeader.setIndexLastUpdatePhyoffset(queryMessageResult.getIndexLastUpdatePhyoffset());
         responseHeader.setIndexLastUpdateTimestamp(queryMessageResult.getIndexLastUpdateTimestamp());
-
 
         if (queryMessageResult.getBufferTotalSize() > 0) {
             response.setCode(ResponseCode.SUCCESS);
@@ -106,8 +99,8 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
 
             try {
                 FileRegion fileRegion =
-                        new QueryMessageTransfer(response.encodeHeader(queryMessageResult
-                                .getBufferTotalSize()), queryMessageResult);
+                    new QueryMessageTransfer(response.encodeHeader(queryMessageResult
+                        .getBufferTotalSize()), queryMessageResult);
                 ctx.channel().writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
@@ -130,26 +123,24 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         return response;
     }
 
-
     public RemotingCommand viewMessageById(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
+        throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final ViewMessageRequestHeader requestHeader =
-                (ViewMessageRequestHeader) request.decodeCommandCustomHeader(ViewMessageRequestHeader.class);
-
+            (ViewMessageRequestHeader)request.decodeCommandCustomHeader(ViewMessageRequestHeader.class);
 
         response.setOpaque(request.getOpaque());
 
         final SelectMappedBufferResult selectMappedBufferResult =
-                this.brokerController.getMessageStore().selectOneMessageByOffset(requestHeader.getOffset());
+            this.brokerController.getMessageStore().selectOneMessageByOffset(requestHeader.getOffset());
         if (selectMappedBufferResult != null) {
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
 
             try {
                 FileRegion fileRegion =
-                        new OneMessageTransfer(response.encodeHeader(selectMappedBufferResult.getSize()),
-                                selectMappedBufferResult);
+                    new OneMessageTransfer(response.encodeHeader(selectMappedBufferResult.getSize()),
+                        selectMappedBufferResult);
                 ctx.channel().writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {

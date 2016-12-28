@@ -17,9 +17,8 @@
 
 package org.apache.rocketmq.tools.monitor;
 
-import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
-
 import java.util.TreeMap;
+import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 
 public interface MonitorListener {
     void beginRound();

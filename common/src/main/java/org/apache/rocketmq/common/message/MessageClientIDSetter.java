@@ -16,12 +16,11 @@
  */
 package org.apache.rocketmq.common.message;
 
-import org.apache.rocketmq.common.UtilAll;
-
 import java.nio.ByteBuffer;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.common.UtilAll;
 
 public class MessageClientIDSetter {
     private static final String TOPIC_KEY_SPLITTER = "#";
@@ -65,10 +64,10 @@ public class MessageClientIDSetter {
     public static Date getNearlyTimeFromID(String msgID) {
         ByteBuffer buf = ByteBuffer.allocate(8);
         byte[] bytes = UtilAll.string2bytes(msgID);
-        buf.put((byte) 0);
-        buf.put((byte) 0);
-        buf.put((byte) 0);
-        buf.put((byte) 0);
+        buf.put((byte)0);
+        buf.put((byte)0);
+        buf.put((byte)0);
+        buf.put((byte)0);
         buf.put(bytes, 10, 4);
         buf.position(0);
         long spanMS = buf.getLong();
@@ -107,7 +106,6 @@ public class MessageClientIDSetter {
         return sb.toString();
     }
 
-
     private static byte[] createUniqIDBuffer() {
         ByteBuffer buffer = ByteBuffer.allocate(4 + 2);
         long current = System.currentTimeMillis();
@@ -115,8 +113,8 @@ public class MessageClientIDSetter {
             setStartTime(current);
         }
         buffer.position(0);
-        buffer.putInt((int) (System.currentTimeMillis() - startTime));
-        buffer.putShort((short) COUNTER.getAndIncrement());
+        buffer.putInt((int)(System.currentTimeMillis() - startTime));
+        buffer.putShort((short)COUNTER.getAndIncrement());
         return buffer.array();
     }
 

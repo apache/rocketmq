@@ -18,7 +18,6 @@ package org.apache.rocketmq.common.message;
 
 import java.util.HashSet;
 
-
 public class MessageConst {
     public static final String PROPERTY_KEYS = "KEYS";
     public static final String PROPERTY_TAGS = "TAGS";
@@ -46,7 +45,6 @@ public class MessageConst {
     public static final String KEY_SEPARATOR = " ";
 
     public static final HashSet<String> STRING_HASH_SET = new HashSet<String>();
-
 
     static {
         STRING_HASH_SET.add(PROPERTY_TRACE_SWITCH);

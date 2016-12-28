@@ -6,13 +6,15 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * $Id: NettyRPCTest.java 1831 2013-05-16 01:39:51Z vintagewang@apache.org $
  */
 
 /**
@@ -20,46 +22,31 @@
  */
 package org.apache.rocketmq.remoting;
 
-import org.apache.rocketmq.remoting.annotation.CFNullable;
-import org.apache.rocketmq.remoting.exception.*;
-import org.apache.rocketmq.remoting.netty.*;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import io.netty.channel.ChannelHandlerContext;
-import org.junit.Test;
-
 import java.util.concurrent.Executors;
+import org.apache.rocketmq.remoting.annotation.CFNullable;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
+import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
+import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
+import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.netty.ResponseFuture;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
 
-
 public class NettyRPCTest {
-    @Test
-    public void test_RPC_Sync() throws InterruptedException, RemotingConnectException,
-            RemotingSendRequestException, RemotingTimeoutException {
-        RemotingServer server = createRemotingServer();
-        RemotingClient client = createRemotingClient();
-
-        for (int i = 0; i < 100; i++) {
-            TestRequestHeader requestHeader = new TestRequestHeader();
-            requestHeader.setCount(i);
-            requestHeader.setMessageTitle("HelloMessageTitle");
-            RemotingCommand request = RemotingCommand.createRequestCommand(0, requestHeader);
-            RemotingCommand response = client.invokeSync("localhost:8888", request, 1000 * 3000);
-            System.out.println("invoke result = " + response);
-            assertTrue(response != null);
-        }
-
-        client.shutdown();
-        server.shutdown();
-        System.out.println("-----------------------------------------------------------------");
-    }
-
     public static RemotingServer createRemotingServer() throws InterruptedException {
         NettyServerConfig config = new NettyServerConfig();
         RemotingServer remotingServer = new NettyRemotingServer(config);
         remotingServer.registerProcessor(0, new NettyRequestProcessor() {
             private int i = 0;
-
 
             @Override
             public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
@@ -85,8 +72,29 @@ public class NettyRPCTest {
     }
 
     @Test
+    public void test_RPC_Sync() throws InterruptedException, RemotingConnectException,
+        RemotingSendRequestException, RemotingTimeoutException {
+        RemotingServer server = createRemotingServer();
+        RemotingClient client = createRemotingClient();
+
+        for (int i = 0; i < 100; i++) {
+            TestRequestHeader requestHeader = new TestRequestHeader();
+            requestHeader.setCount(i);
+            requestHeader.setMessageTitle("HelloMessageTitle");
+            RemotingCommand request = RemotingCommand.createRequestCommand(0, requestHeader);
+            RemotingCommand response = client.invokeSync("localhost:8888", request, 1000 * 3000);
+            System.out.println("invoke result = " + response);
+            assertTrue(response != null);
+        }
+
+        client.shutdown();
+        server.shutdown();
+        System.out.println("-----------------------------------------------------------------");
+    }
+
+    @Test
     public void test_RPC_Oneway() throws InterruptedException, RemotingConnectException,
-            RemotingTimeoutException, RemotingTooMuchRequestException, RemotingSendRequestException {
+        RemotingTimeoutException, RemotingTooMuchRequestException, RemotingSendRequestException {
         RemotingServer server = createRemotingServer();
         RemotingClient client = createRemotingClient();
 
@@ -101,10 +109,9 @@ public class NettyRPCTest {
         System.out.println("-----------------------------------------------------------------");
     }
 
-
     @Test
     public void test_RPC_Async() throws InterruptedException, RemotingConnectException,
-            RemotingTimeoutException, RemotingTooMuchRequestException, RemotingSendRequestException {
+        RemotingTimeoutException, RemotingTooMuchRequestException, RemotingSendRequestException {
         RemotingServer server = createRemotingServer();
         RemotingClient client = createRemotingClient();
 
@@ -126,10 +133,9 @@ public class NettyRPCTest {
         System.out.println("-----------------------------------------------------------------");
     }
 
-
     @Test
     public void test_server_call_client() throws InterruptedException, RemotingConnectException,
-            RemotingSendRequestException, RemotingTimeoutException {
+        RemotingSendRequestException, RemotingTimeoutException {
         final RemotingServer server = createRemotingServer();
         final RemotingClient client = createRemotingClient();
 
@@ -183,7 +189,6 @@ public class NettyRPCTest {
 
 }
 
-
 class TestRequestHeader implements CommandCustomHeader {
     @CFNullable
     private Integer count;
@@ -191,32 +196,26 @@ class TestRequestHeader implements CommandCustomHeader {
     @CFNullable
     private String messageTitle;
 
-
     @Override
     public void checkFields() throws RemotingCommandException {
     }
-
 
     public Integer getCount() {
         return count;
     }
 
-
     public void setCount(Integer count) {
         this.count = count;
     }
-
 
     public String getMessageTitle() {
         return messageTitle;
     }
 
-
     public void setMessageTitle(String messageTitle) {
         this.messageTitle = messageTitle;
     }
 }
-
 
 class TestResponseHeader implements CommandCustomHeader {
     @CFNullable
@@ -245,6 +244,5 @@ class TestResponseHeader implements CommandCustomHeader {
     public void setMessageTitle(String messageTitle) {
         this.messageTitle = messageTitle;
     }
-
 
 }

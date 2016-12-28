@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.rocketmq.common.protocol;
@@ -87,7 +87,6 @@ public class RequestCode {
     public static final int GET_PRODUCER_CONNECTION_LIST = 204;
     public static final int WIPE_WRITE_PERM_OF_BROKER = 205;
 
-
     public static final int GET_ALL_TOPIC_LIST_FROM_NAMESERVER = 206;
 
     public static final int DELETE_SUBSCRIPTIONGROUP = 207;
@@ -103,12 +102,10 @@ public class RequestCode {
 
     public static final int WHO_CONSUME_THE_MESSAGE = 214;
 
-
     public static final int DELETE_TOPIC_IN_BROKER = 215;
 
     public static final int DELETE_TOPIC_IN_NAMESRV = 216;
     public static final int GET_KVLIST_BY_NAMESPACE = 219;
-
 
     public static final int RESET_CONSUMER_CLIENT_OFFSET = 220;
 
@@ -117,7 +114,6 @@ public class RequestCode {
     public static final int INVOKE_BROKER_TO_RESET_OFFSET = 222;
 
     public static final int INVOKE_BROKER_TO_GET_CONSUMER_STATUS = 223;
-
 
     public static final int QUERY_TOPIC_CONSUME_BY_WHO = 300;
 

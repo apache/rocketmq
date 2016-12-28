@@ -6,20 +6,19 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.client;
 
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
-
 
 /**
  * Client Common configuration
@@ -123,78 +122,64 @@ public class ClientConfig {
         return clientCallbackExecutorThreads;
     }
 
-
     public void setClientCallbackExecutorThreads(int clientCallbackExecutorThreads) {
         this.clientCallbackExecutorThreads = clientCallbackExecutorThreads;
     }
-
 
     public int getPollNameServerInteval() {
         return pollNameServerInteval;
     }
 
-
     public void setPollNameServerInteval(int pollNameServerInteval) {
         this.pollNameServerInteval = pollNameServerInteval;
     }
-
 
     public int getHeartbeatBrokerInterval() {
         return heartbeatBrokerInterval;
     }
 
-
     public void setHeartbeatBrokerInterval(int heartbeatBrokerInterval) {
         this.heartbeatBrokerInterval = heartbeatBrokerInterval;
     }
-
 
     public int getPersistConsumerOffsetInterval() {
         return persistConsumerOffsetInterval;
     }
 
-
     public void setPersistConsumerOffsetInterval(int persistConsumerOffsetInterval) {
         this.persistConsumerOffsetInterval = persistConsumerOffsetInterval;
     }
-
 
     public String getUnitName() {
         return unitName;
     }
 
-
     public void setUnitName(String unitName) {
         this.unitName = unitName;
     }
-
 
     public boolean isUnitMode() {
         return unitMode;
     }
 
-
     public void setUnitMode(boolean unitMode) {
         this.unitMode = unitMode;
     }
-
 
     public boolean isVipChannelEnabled() {
         return vipChannelEnabled;
     }
 
-
     public void setVipChannelEnabled(final boolean vipChannelEnabled) {
         this.vipChannelEnabled = vipChannelEnabled;
     }
 
-
     @Override
     public String toString() {
         return "ClientConfig [namesrvAddr=" + namesrvAddr + ", clientIP=" + clientIP + ", instanceName=" + instanceName
-                + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInteval=" + pollNameServerInteval
-                + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval + ", persistConsumerOffsetInterval="
-                + persistConsumerOffsetInterval + ", unitMode=" + unitMode + ", unitName=" + unitName + ", vipChannelEnabled="
-                + vipChannelEnabled + "]";
+            + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInteval=" + pollNameServerInteval
+            + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval + ", persistConsumerOffsetInterval="
+            + persistConsumerOffsetInterval + ", unitMode=" + unitMode + ", unitName=" + unitName + ", vipChannelEnabled="
+            + vipChannelEnabled + "]";
     }
 }

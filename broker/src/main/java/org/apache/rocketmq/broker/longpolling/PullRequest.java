@@ -6,20 +6,19 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.broker.longpolling;
 
+import io.netty.channel.Channel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import io.netty.channel.Channel;
-
 
 public class PullRequest {
     private final RemotingCommand requestCommand;
@@ -29,9 +28,8 @@ public class PullRequest {
     private final long pullFromThisOffset;
     private final SubscriptionData subscriptionData;
 
-
     public PullRequest(RemotingCommand requestCommand, Channel clientChannel, long timeoutMillis, long suspendTimestamp,
-                       long pullFromThisOffset, SubscriptionData subscriptionData) {
+        long pullFromThisOffset, SubscriptionData subscriptionData) {
         this.requestCommand = requestCommand;
         this.clientChannel = clientChannel;
         this.timeoutMillis = timeoutMillis;
@@ -40,26 +38,21 @@ public class PullRequest {
         this.subscriptionData = subscriptionData;
     }
 
-
     public RemotingCommand getRequestCommand() {
         return requestCommand;
     }
-
 
     public Channel getClientChannel() {
         return clientChannel;
     }
 
-
     public long getTimeoutMillis() {
         return timeoutMillis;
     }
 
-
     public long getSuspendTimestamp() {
         return suspendTimestamp;
     }
-
 
     public long getPullFromThisOffset() {
         return pullFromThisOffset;

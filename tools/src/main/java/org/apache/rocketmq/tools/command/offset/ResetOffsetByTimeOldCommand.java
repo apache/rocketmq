@@ -6,17 +6,22 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.rocketmq.tools.command.offset;
 
+import java.util.Date;
+import java.util.List;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.UtilAll;
@@ -25,19 +30,40 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-
-import java.util.Date;
-import java.util.List;
-
 
 /**
  *
  *
  */
 public class ResetOffsetByTimeOldCommand implements SubCommand {
+    public static void resetOffset(DefaultMQAdminExt defaultMQAdminExt, String consumerGroup, String topic, long timestamp, boolean force,
+        String timeStampStr) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        List<RollbackStats> rollbackStatsList = defaultMQAdminExt.resetOffsetByTimestampOld(consumerGroup, topic, timestamp, force);
+        System.out.printf(
+            "rollback consumer offset by specified consumerGroup[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]%n",
+            consumerGroup, topic, force, timeStampStr, timestamp);
+
+        System.out.printf("%-20s  %-20s  %-20s  %-20s  %-20s  %-20s%n",
+            "#brokerName",
+            "#queueId",
+            "#brokerOffset",
+            "#consumerOffset",
+            "#timestampOffset",
+            "#rollbackOffset"
+        );
+
+        for (RollbackStats rollbackStats : rollbackStatsList) {
+            System.out.printf("%-20s  %-20d  %-20d  %-20d  %-20d  %-20d%n",
+                UtilAll.frontStringAtLeast(rollbackStats.getBrokerName(), 32),
+                rollbackStats.getQueueId(),
+                rollbackStats.getBrokerOffset(),
+                rollbackStats.getConsumerOffset(),
+                rollbackStats.getTimestampOffset(),
+                rollbackStats.getRollbackOffset()
+            );
+        }
+    }
+
     @Override
     public String commandName() {
         return "resetOffsetByTimeOld";
@@ -102,34 +128,6 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
             e.printStackTrace();
         } finally {
             defaultMQAdminExt.shutdown();
-        }
-    }
-
-    public static void resetOffset(DefaultMQAdminExt defaultMQAdminExt, String consumerGroup, String topic, long timestamp, boolean force,
-                                   String timeStampStr) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        List<RollbackStats> rollbackStatsList = defaultMQAdminExt.resetOffsetByTimestampOld(consumerGroup, topic, timestamp, force);
-        System.out.printf(
-                "rollback consumer offset by specified consumerGroup[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]%n",
-                consumerGroup, topic, force, timeStampStr, timestamp);
-
-        System.out.printf("%-20s  %-20s  %-20s  %-20s  %-20s  %-20s%n",
-                "#brokerName",
-                "#queueId",
-                "#brokerOffset",
-                "#consumerOffset",
-                "#timestampOffset",
-                "#rollbackOffset"
-        );
-
-        for (RollbackStats rollbackStats : rollbackStatsList) {
-            System.out.printf("%-20s  %-20d  %-20d  %-20d  %-20d  %-20d%n",
-                    UtilAll.frontStringAtLeast(rollbackStats.getBrokerName(), 32),
-                    rollbackStats.getQueueId(),
-                    rollbackStats.getBrokerOffset(),
-                    rollbackStats.getConsumerOffset(),
-                    rollbackStats.getTimestampOffset(),
-                    rollbackStats.getRollbackOffset()
-            );
         }
     }
 }

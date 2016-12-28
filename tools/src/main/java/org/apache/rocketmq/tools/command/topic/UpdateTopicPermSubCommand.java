@@ -16,6 +16,11 @@
  */
 package org.apache.rocketmq.tools.command.topic;
 
+import java.util.List;
+import java.util.Set;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
@@ -24,13 +29,6 @@ import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-
-import java.util.List;
-import java.util.Set;
-
 
 public class UpdateTopicPermSubCommand implements SubCommand {
 
@@ -39,12 +37,10 @@ public class UpdateTopicPermSubCommand implements SubCommand {
         return "updateTopicPerm";
     }
 
-
     @Override
     public String commandDesc() {
         return "Update topic perm";
     }
-
 
     @Override
     public Options buildCommandlineOptions(Options options) {
@@ -66,7 +62,6 @@ public class UpdateTopicPermSubCommand implements SubCommand {
 
         return options;
     }
-
 
     @Override
     public void execute(final CommandLine commandLine, final Options options, RPCHook rpcHook) {
@@ -106,7 +101,7 @@ public class UpdateTopicPermSubCommand implements SubCommand {
             } else if (commandLine.hasOption('c')) {
                 String clusterName = commandLine.getOptionValue('c').trim();
                 Set<String> masterSet =
-                        CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
+                    CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
                 for (String addr : masterSet) {
                     defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
                     System.out.printf("update topic perm from %s to %s in %s success.%n", oldPerm, perm, addr);

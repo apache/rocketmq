@@ -16,6 +16,13 @@
  */
 package org.apache.rocketmq.store.index;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -26,38 +33,24 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-
 public class IndexService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    /** Maximum times to attempt index file creation. */
+    private static final int MAX_TRY_IDX_CREATE = 3;
     private final DefaultMessageStore defaultMessageStore;
-
     private final int hashSlotNum;
     private final int indexNum;
     private final String storePath;
-
     private final ArrayList<IndexFile> indexFileList = new ArrayList<IndexFile>();
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-
-    /** Maximum times to attempt index file creation. */
-    private static final int MAX_TRY_IDX_CREATE = 3;
-
 
     public IndexService(final DefaultMessageStore store) {
         this.defaultMessageStore = store;
         this.hashSlotNum = store.getMessageStoreConfig().getMaxHashSlotNum();
         this.indexNum = store.getMessageStoreConfig().getMaxIndexNum();
         this.storePath =
-                StorePathConfigHelper.getStorePathIndex(store.getMessageStoreConfig().getStorePathRootDir());
+            StorePathConfigHelper.getStorePathIndex(store.getMessageStoreConfig().getStorePathRootDir());
     }
-
 
     public boolean load(final boolean lastExitOK) {
         File dir = new File(this.storePath);
@@ -72,7 +65,7 @@ public class IndexService {
 
                     if (!lastExitOK) {
                         if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint()
-                                .getIndexMsgTimestamp()) {
+                            .getIndexMsgTimestamp()) {
                             f.destroy(0);
                             continue;
                         }
@@ -113,7 +106,7 @@ public class IndexService {
         if (files != null) {
             List<IndexFile> fileList = new ArrayList<IndexFile>();
             for (int i = 0; i < (files.length - 1); i++) {
-                IndexFile f = (IndexFile) files[i];
+                IndexFile f = (IndexFile)files[i];
                 if (f.getEndPhyOffset() < offset) {
                     fileList.add(f);
                 } else {
@@ -145,7 +138,6 @@ public class IndexService {
         }
     }
 
-
     public void destroy() {
         try {
             this.readWriteLock.readLock().lock();
@@ -159,7 +151,6 @@ public class IndexService {
             this.readWriteLock.readLock().unlock();
         }
     }
-
 
     public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
         List<Long> phyOffsets = new ArrayList<Long>(maxNum);
@@ -183,7 +174,6 @@ public class IndexService {
                         f.selectPhyOffset(phyOffsets, buildKey(topic, key), maxNum, begin, end, lastFile);
                     }
 
-
                     if (f.getBeginTimestamp() < begin) {
                         break;
                     }
@@ -202,11 +192,9 @@ public class IndexService {
         return new QueryOffsetResult(phyOffsets, indexLastUpdateTimestamp, indexLastUpdatePhyoffset);
     }
 
-
     private String buildKey(final String topic, final String key) {
         return topic + "#" + key;
     }
-
 
     public void buildIndex(DispatchRequest req) {
         IndexFile indexFile = retryGetAndCreateIndexFile();
@@ -255,7 +243,6 @@ public class IndexService {
         }
     }
 
-
     private IndexFile putKey(IndexFile indexFile, DispatchRequest msg, String idxKey) {
         for (boolean ok = indexFile.putKey(idxKey, msg.getCommitLogOffset(), msg.getStoreTimestamp()); !ok; ) {
             log.warn("Index file [" + indexFile.getFileName() + "] is full, trying to create another one");
@@ -300,7 +287,6 @@ public class IndexService {
         return indexFile;
     }
 
-
     public IndexFile getAndCreateLastIndexFile() {
         IndexFile indexFile = null;
         IndexFile prevIndexFile = null;
@@ -323,15 +309,14 @@ public class IndexService {
             this.readWriteLock.readLock().unlock();
         }
 
-
         if (indexFile == null) {
             try {
                 String fileName =
-                        this.storePath + File.separator
-                                + UtilAll.timeMillisToHumanString(System.currentTimeMillis());
+                    this.storePath + File.separator
+                        + UtilAll.timeMillisToHumanString(System.currentTimeMillis());
                 indexFile =
-                        new IndexFile(fileName, this.hashSlotNum, this.indexNum, lastUpdateEndPhyOffset,
-                                lastUpdateIndexTimestamp);
+                    new IndexFile(fileName, this.hashSlotNum, this.indexNum, lastUpdateEndPhyOffset,
+                        lastUpdateIndexTimestamp);
                 this.readWriteLock.writeLock().lock();
                 this.indexFileList.add(indexFile);
             } catch (Exception e) {
@@ -339,7 +324,6 @@ public class IndexService {
             } finally {
                 this.readWriteLock.writeLock().unlock();
             }
-
 
             if (indexFile != null) {
                 final IndexFile flushThisFile = prevIndexFile;
@@ -357,7 +341,6 @@ public class IndexService {
 
         return indexFile;
     }
-
 
     public void flush(final IndexFile f) {
         if (null == f)
@@ -377,11 +360,9 @@ public class IndexService {
         }
     }
 
-
     public void start() {
 
     }
-
 
     public void shutdown() {
 

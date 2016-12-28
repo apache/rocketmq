@@ -16,6 +16,15 @@
  */
 package org.apache.rocketmq.store;
 
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -31,20 +40,8 @@ import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantLock;
-
-
 /**
  * Store all metadata downtime for recovery, data protection reliability
- *
  */
 public class CommitLog {
     // Message's MAGIC CODE daa320a7
@@ -72,7 +69,7 @@ public class CommitLog {
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
         this.mappedFileQueue = new MappedFileQueue(defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog(),
-                defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog(), defaultMessageStore.getAllocateMappedFileService());
+            defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog(), defaultMessageStore.getAllocateMappedFileService());
         this.defaultMessageStore = defaultMessageStore;
 
         if (FlushDiskType.SYNC_FLUSH == defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
@@ -126,16 +123,14 @@ public class CommitLog {
         return this.mappedFileQueue.remainHowManyDataToFlush();
     }
 
-
     public int deleteExpiredFile(//
-                                 final long expiredTime, //
-                                 final int deleteFilesInterval, //
-                                 final long intervalForcibly, //
-                                 final boolean cleanImmediately//
+        final long expiredTime, //
+        final int deleteFilesInterval, //
+        final long intervalForcibly, //
+        final boolean cleanImmediately//
     ) {
         return this.mappedFileQueue.deleteExpiredFileByTime(expiredTime, deleteFilesInterval, intervalForcibly, cleanImmediately);
     }
-
 
     /**
      * Read CommitLog data, use data replication
@@ -144,19 +139,17 @@ public class CommitLog {
         return this.getData(offset, offset == 0);
     }
 
-
     public SelectMappedBufferResult getData(final long offset, final boolean returnFirstOnNotFound) {
         int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
         MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, returnFirstOnNotFound);
         if (mappedFile != null) {
-            int pos = (int) (offset % mappedFileSize);
+            int pos = (int)(offset % mappedFileSize);
             SelectMappedBufferResult result = mappedFile.selectMappedBuffer(pos);
             return result;
         }
 
         return null;
     }
-
 
     /**
      * When the normal exit, data recovery, all memory data have been flush
@@ -227,8 +220,7 @@ public class CommitLog {
     /**
      * check the message and returns the message size
      *
-     * @return 0 Come the end of the file // >0 Normal messages // -1 Message
-     * checksum failure
+     * @return 0 Come the end of the file // >0 Normal messages // -1 Message checksum failure
      */
     public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC, final boolean readBody) {
         try {
@@ -340,7 +332,7 @@ public class CommitLog {
 
                         if (delayLevel > 0) {
                             tagsCode = this.defaultMessageStore.getScheduleMessageService().computeDeliverTimestamp(delayLevel,
-                                    storeTimestamp);
+                                storeTimestamp);
                         }
                     }
                 }
@@ -354,23 +346,23 @@ public class CommitLog {
                 doNothingForDeadCode(byteBuffer1);
                 doNothingForDeadCode(byteBuffer2);
                 log.error(
-                        "[BUG]read total count not equals msg total size. totalSize={}, readTotalCount={}, bodyLen={}, topicLen={}, propertiesLength={}",
-                        totalSize, readLength, bodyLen, topicLen, propertiesLength);
+                    "[BUG]read total count not equals msg total size. totalSize={}, readTotalCount={}, bodyLen={}, topicLen={}, propertiesLength={}",
+                    totalSize, readLength, bodyLen, topicLen, propertiesLength);
                 return new DispatchRequest(totalSize, false/* success */);
             }
 
             return new DispatchRequest(//
-                    topic, // 1
-                    queueId, // 2
-                    physicOffset, // 3
-                    totalSize, // 4
-                    tagsCode, // 5
-                    storeTimestamp, // 6
-                    queueOffset, // 7
-                    keys, // 8
-                    uniqKey, //9
-                    sysFlag, // 9
-                    preparedTransactionOffset// 10
+                topic, // 1
+                queueId, // 2
+                physicOffset, // 3
+                totalSize, // 4
+                tagsCode, // 5
+                storeTimestamp, // 6
+                queueOffset, // 7
+                keys, // 8
+                uniqKey, //9
+                sysFlag, // 9
+                preparedTransactionOffset// 10
             );
         } catch (Exception e) {
         }
@@ -380,24 +372,24 @@ public class CommitLog {
 
     private int calMsgLength(int bodyLength, int topicLength, int propertiesLength) {
         final int msgLen = 4 // 1 TOTALSIZE
-                + 4 // 2 MAGICCODE
-                + 4 // 3 BODYCRC
-                + 4 // 4 QUEUEID
-                + 4 // 5 FLAG
-                + 8 // 6 QUEUEOFFSET
-                + 8 // 7 PHYSICALOFFSET
-                + 4 // 8 SYSFLAG
-                + 8 // 9 BORNTIMESTAMP
-                + 8 // 10 BORNHOST
-                + 8 // 11 STORETIMESTAMP
-                + 8 // 12 STOREHOSTADDRESS
-                + 4 // 13 RECONSUMETIMES
-                + 8 // 14 Prepared Transaction Offset
-                + 4 + (bodyLength > 0 ? bodyLength : 0) // 14 BODY
-                + 1 + topicLength // 15 TOPIC
-                + 2 + (propertiesLength > 0 ? propertiesLength : 0) // 16
-                // propertiesLength
-                + 0;
+            + 4 // 2 MAGICCODE
+            + 4 // 3 BODYCRC
+            + 4 // 4 QUEUEID
+            + 4 // 5 FLAG
+            + 8 // 6 QUEUEOFFSET
+            + 8 // 7 PHYSICALOFFSET
+            + 4 // 8 SYSFLAG
+            + 8 // 9 BORNTIMESTAMP
+            + 8 // 10 BORNHOST
+            + 8 // 11 STORETIMESTAMP
+            + 8 // 12 STOREHOSTADDRESS
+            + 4 // 13 RECONSUMETIMES
+            + 8 // 14 Prepared Transaction Offset
+            + 4 + (bodyLength > 0 ? bodyLength : 0) // 14 BODY
+            + 1 + topicLength // 15 TOPIC
+            + 2 + (propertiesLength > 0 ? propertiesLength : 0) // 16
+            // propertiesLength
+            + 0;
         return msgLen;
     }
 
@@ -440,7 +432,6 @@ public class CommitLog {
                 // Normal data
                 if (size > 0) {
                     mappedFileOffset += size;
-
 
                     if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
                         if (dispatchRequest.getCommitLogOffset() < this.defaultMessageStore.getConfirmOffset()) {
@@ -505,18 +496,18 @@ public class CommitLog {
         }
 
         if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()//
-                && this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
+            && this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
             if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestampIndex()) {
                 log.info("find check timestamp, {} {}", //
-                        storeTimestamp, //
-                        UtilAll.timeMillisToHumanString(storeTimestamp));
+                    storeTimestamp, //
+                    UtilAll.timeMillisToHumanString(storeTimestamp));
                 return true;
             }
         } else {
             if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestamp()) {
                 log.info("find check timestamp, {} {}", //
-                        storeTimestamp, //
-                        UtilAll.timeMillisToHumanString(storeTimestamp));
+                    storeTimestamp, //
+                    UtilAll.timeMillisToHumanString(storeTimestamp));
                 return true;
             }
         }
@@ -552,7 +543,7 @@ public class CommitLog {
 
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE//
-                || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+            || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             // Delay Delivery
             if (msg.getDelayTimeLevel() > 0) {
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
@@ -636,7 +627,6 @@ public class CommitLog {
             this.defaultMessageStore.unlockMappedFile(unlockMappedFile);
         }
 
-
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
 
         // Statistics
@@ -647,14 +637,14 @@ public class CommitLog {
 
         // Synchronization flush
         if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
-            final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
+            final GroupCommitService service = (GroupCommitService)this.flushCommitLogService;
             if (msg.isWaitStoreMsgOK()) {
                 request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
                 service.putRequest(request);
                 boolean flushOK = request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
                 if (!flushOK) {
                     log.error("do groupcommit, wait for flush failed, topic: " + msg.getTopic() + " tags: " + msg.getTags()
-                            + " client address: " + msg.getBornHostString());
+                        + " client address: " + msg.getBornHostString());
                     putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_DISK_TIMEOUT);
                 }
             } else {
@@ -684,11 +674,11 @@ public class CommitLog {
                     service.getWaitNotifyObject().wakeupAll();
 
                     boolean flushOK =
-                            // TODO
-                            request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
+                        // TODO
+                        request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
                     if (!flushOK) {
                         log.error("do sync transfer other node, wait return, but failed, topic: " + msg.getTopic() + " tags: "
-                                + msg.getTags() + " client address: " + msg.getBornHostString());
+                            + msg.getTags() + " client address: " + msg.getBornHostString());
                         putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
                     }
                 }
@@ -739,7 +729,7 @@ public class CommitLog {
         int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
         MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, offset == 0);
         if (mappedFile != null) {
-            int pos = (int) (offset % mappedFileSize);
+            int pos = (int)(offset % mappedFileSize);
             return mappedFile.selectMappedBuffer(pos, size);
         }
         return null;
@@ -754,16 +744,13 @@ public class CommitLog {
         return topicQueueTable;
     }
 
-
     public void setTopicQueueTable(HashMap<String, Long> topicQueueTable) {
         this.topicQueueTable = topicQueueTable;
     }
 
-
     public void destroy() {
         this.mappedFileQueue.destroy();
     }
-
 
     public boolean appendData(long startOffset, byte[] data) {
         lockForPutMessage(); //spin...
@@ -780,7 +767,6 @@ public class CommitLog {
         }
     }
 
-
     public boolean retryDeleteFirstFile(final long intervalForcibly) {
         return this.mappedFileQueue.retryDeleteFirstFile(intervalForcibly);
     }
@@ -796,6 +782,72 @@ public class CommitLog {
 
     public void checkSelf() {
         mappedFileQueue.checkSelf();
+    }
+
+    public long lockTimeMills() {
+        long diff = 0;
+        long begin = this.beginTimeInLock;
+        if (begin > 0) {
+            diff = this.defaultMessageStore.now() - begin;
+        }
+
+        if (diff < 0) {
+            diff = 0;
+        }
+
+        return diff;
+    }
+
+    /**
+     * Spin util acquired the lock.
+     */
+    private void lockForPutMessage() {
+        if (this.defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage()) {
+            putMessageNormalLock.lock();
+        } else {
+            boolean flag;
+            do {
+                flag = this.putMessageSpinLock.compareAndSet(true, false);
+            }
+            while (!flag);
+        }
+    }
+
+    private void releasePutMessageLock() {
+        if (this.defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage()) {
+            putMessageNormalLock.unlock();
+        } else {
+            this.putMessageSpinLock.compareAndSet(false, true);
+        }
+    }
+
+    public static class GroupCommitRequest {
+        private final long nextOffset;
+        private final CountDownLatch countDownLatch = new CountDownLatch(1);
+        private volatile boolean flushOK = false;
+
+        public GroupCommitRequest(long nextOffset) {
+            this.nextOffset = nextOffset;
+        }
+
+        public long getNextOffset() {
+            return nextOffset;
+        }
+
+        public void wakeupCustomer(final boolean flushOK) {
+            this.flushOK = flushOK;
+            this.countDownLatch.countDown();
+        }
+
+        public boolean waitForFlush(long timeout) {
+            try {
+                this.countDownLatch.await(timeout, TimeUnit.MILLISECONDS);
+                return this.flushOK;
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
     }
 
     abstract class FlushCommitLogService extends ServiceThread {
@@ -820,7 +872,7 @@ public class CommitLog {
                 int commitDataLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogLeastPages();
 
                 int commitDataThoroughInterval =
-                        CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogThoroughInterval();
+                    CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogThoroughInterval();
 
                 long begin = System.currentTimeMillis();
                 if (begin >= (this.lastCommitTimestamp + commitDataThoroughInterval)) {
@@ -859,7 +911,6 @@ public class CommitLog {
         private long lastFlushTimestamp = 0;
         private long printTimes = 0;
 
-
         public void run() {
             CommitLog.log.info(this.getServiceName() + " service started");
 
@@ -870,7 +921,7 @@ public class CommitLog {
                 int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
 
                 int flushPhysicQueueThoroughInterval =
-                        CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
+                    CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
 
                 boolean printFlushProgress = false;
 
@@ -921,55 +972,19 @@ public class CommitLog {
             CommitLog.log.info(this.getServiceName() + " service end");
         }
 
-
         @Override
         public String getServiceName() {
             return FlushRealTimeService.class.getSimpleName();
         }
-
 
         private void printFlushProgress() {
             // CommitLog.log.info("how much disk fall behind memory, "
             // + CommitLog.this.mappedFileQueue.howMuchFallBehind());
         }
 
-
         @Override
         public long getJointime() {
             return 1000 * 60 * 5;
-        }
-    }
-
-    public static class GroupCommitRequest {
-        private final long nextOffset;
-        private final CountDownLatch countDownLatch = new CountDownLatch(1);
-        private volatile boolean flushOK = false;
-
-
-        public GroupCommitRequest(long nextOffset) {
-            this.nextOffset = nextOffset;
-        }
-
-
-        public long getNextOffset() {
-            return nextOffset;
-        }
-
-
-        public void wakeupCustomer(final boolean flushOK) {
-            this.flushOK = flushOK;
-            this.countDownLatch.countDown();
-        }
-
-
-        public boolean waitForFlush(long timeout) {
-            try {
-                this.countDownLatch.await(timeout, TimeUnit.MILLISECONDS);
-                return this.flushOK;
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                return false;
-            }
         }
     }
 
@@ -980,7 +995,6 @@ public class CommitLog {
         private volatile List<GroupCommitRequest> requestsWrite = new ArrayList<GroupCommitRequest>();
         private volatile List<GroupCommitRequest> requestsRead = new ArrayList<GroupCommitRequest>();
 
-
         public void putRequest(final GroupCommitRequest request) {
             synchronized (this) {
                 this.requestsWrite.add(request);
@@ -990,13 +1004,11 @@ public class CommitLog {
             }
         }
 
-
         private void swapRequests() {
             List<GroupCommitRequest> tmp = this.requestsWrite;
             this.requestsWrite = this.requestsRead;
             this.requestsRead = tmp;
         }
-
 
         private void doCommit() {
             if (!this.requestsRead.isEmpty()) {
@@ -1028,7 +1040,6 @@ public class CommitLog {
             }
         }
 
-
         public void run() {
             CommitLog.log.info(this.getServiceName() + " service started");
 
@@ -1058,18 +1069,15 @@ public class CommitLog {
             CommitLog.log.info(this.getServiceName() + " service end");
         }
 
-
         @Override
         protected void onWaitEnd() {
             this.swapRequests();
         }
 
-
         @Override
         public String getServiceName() {
             return GroupCommitService.class.getSimpleName();
         }
-
 
         @Override
         public long getJointime() {
@@ -1090,18 +1098,15 @@ public class CommitLog {
 
         private final ByteBuffer hostHolder = ByteBuffer.allocate(8);
 
-
         DefaultAppendMessageCallback(final int size) {
             this.msgIdMemory = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);
             this.msgStoreItemMemory = ByteBuffer.allocate(size + END_FILE_MIN_BLANK_LENGTH);
             this.maxMessageSize = size;
         }
 
-
         public ByteBuffer getMsgStoreItemMemory() {
             return msgStoreItemMemory;
         }
-
 
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank, final MessageExtBrokerInner msgInner) {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
@@ -1143,9 +1148,9 @@ public class CommitLog {
              * Serialize message
              */
             final byte[] propertiesData =
-                    msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
+                msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
 
-            final short propertiesLength = propertiesData == null ? 0 : (short) propertiesData.length;
+            final short propertiesLength = propertiesData == null ? 0 : (short)propertiesData.length;
 
             if (propertiesLength > Short.MAX_VALUE) {
                 log.warn("putMessage message properties length too long. length={}", propertiesData.length);
@@ -1162,7 +1167,7 @@ public class CommitLog {
             // Exceeds the maximum message
             if (msgLen > this.maxMessageSize) {
                 CommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLength
-                        + ", maxMessageSize: " + this.maxMessageSize);
+                    + ", maxMessageSize: " + this.maxMessageSize);
                 return new AppendMessageResult(AppendMessageStatus.MESSAGE_SIZE_EXCEEDED);
             }
 
@@ -1180,7 +1185,7 @@ public class CommitLog {
                 final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
                 byteBuffer.put(this.msgStoreItemMemory.array(), 0, maxBlank);
                 return new AppendMessageResult(AppendMessageStatus.END_OF_FILE, wroteOffset, maxBlank, msgId, msgInner.getStoreTimestamp(),
-                        queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
+                    queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
             }
 
             // Initialization of storage space
@@ -1221,7 +1226,7 @@ public class CommitLog {
             if (bodyLength > 0)
                 this.msgStoreItemMemory.put(msgInner.getBody());
             // 16 TOPIC
-            this.msgStoreItemMemory.put((byte) topicLength);
+            this.msgStoreItemMemory.put((byte)topicLength);
             this.msgStoreItemMemory.put(topicData);
             // 17 PROPERTIES
             this.msgStoreItemMemory.putShort(propertiesLength);
@@ -1233,7 +1238,7 @@ public class CommitLog {
             byteBuffer.put(this.msgStoreItemMemory.array(), 0, msgLen);
 
             AppendMessageResult result = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgId,
-                    msgInner.getStoreTimestamp(), queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
+                msgInner.getStoreTimestamp(), queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
 
             switch (tranType) {
                 case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
@@ -1250,46 +1255,9 @@ public class CommitLog {
             return result;
         }
 
-
         private void resetByteBuffer(final ByteBuffer byteBuffer, final int limit) {
             byteBuffer.flip();
             byteBuffer.limit(limit);
-        }
-    }
-
-    public long lockTimeMills() {
-        long diff = 0;
-        long begin = this.beginTimeInLock;
-        if (begin > 0) {
-            diff = this.defaultMessageStore.now() - begin;
-        }
-
-        if (diff < 0) {
-            diff = 0;
-        }
-
-        return diff;
-    }
-
-    /**
-     * Spin util acquired the lock.
-     */
-    private void lockForPutMessage() {
-        if (this.defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage()) {
-            putMessageNormalLock.lock();
-        } else {
-            boolean flag;
-            do {
-                flag = this.putMessageSpinLock.compareAndSet(true, false);
-            } while (!flag);
-        }
-    }
-
-    private void releasePutMessageLock() {
-        if (this.defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage()) {
-            putMessageNormalLock.unlock();
-        } else {
-            this.putMessageSpinLock.compareAndSet(false, true);
         }
     }
 }

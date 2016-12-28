@@ -6,23 +6,15 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.client.impl.consumer;
-
-import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.common.message.MessageAccessor;
-import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.body.ProcessQueueInfo;
-import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +25,13 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
+import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.protocol.body.ProcessQueueInfo;
+import org.slf4j.Logger;
 
 /**
  * Queue consumption snapshot
@@ -41,7 +39,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class ProcessQueue {
     public final static long REBALANCE_LOCK_MAX_LIVE_TIME =
-            Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockMaxLiveTime", "30000"));
+        Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockMaxLiveTime", "30000"));
     public final static long REBALANCE_LOCK_INTERVAL = Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockInterval", "20000"));
     private final static long PULL_MAX_IDLE_TIME = Long.parseLong(System.getProperty("rocketmq.client.pull.pullMaxIdleTime", "120000"));
     private final Logger log = ClientLogger.getLog();
@@ -65,7 +63,6 @@ public class ProcessQueue {
         return result;
     }
 
-
     public boolean isPullExpired() {
         boolean result = (System.currentTimeMillis() - this.lastPullTimestamp) > PULL_MAX_IDLE_TIME;
         return result;
@@ -80,7 +77,7 @@ public class ProcessQueue {
         if (pushConsumer.getDefaultMQPushConsumerImpl().isConsumeOrderly()) {
             return;
         }
-        
+
         int loop = msgTreeMap.size() < 16 ? msgTreeMap.size() : 16;
         for (int i = 0; i < loop; i++) {
             MessageExt msg = null;
@@ -126,7 +123,6 @@ public class ProcessQueue {
         }
     }
 
-
     public boolean putMessage(final List<MessageExt> msgs) {
         boolean dispatchToConsume = false;
         try {
@@ -167,7 +163,6 @@ public class ProcessQueue {
         return dispatchToConsume;
     }
 
-
     public long getMaxSpan() {
         try {
             this.lockTreeMap.readLock().lockInterruptibly();
@@ -184,7 +179,6 @@ public class ProcessQueue {
 
         return 0;
     }
-
 
     public long removeMessage(final List<MessageExt> msgs) {
         long result = -1;
@@ -218,21 +212,17 @@ public class ProcessQueue {
         return result;
     }
 
-
     public TreeMap<Long, MessageExt> getMsgTreeMap() {
         return msgTreeMap;
     }
-
 
     public AtomicLong getMsgCount() {
         return msgCount;
     }
 
-
     public boolean isDropped() {
         return dropped;
     }
-
 
     public void setDropped(boolean dropped) {
         this.dropped = dropped;
@@ -260,7 +250,6 @@ public class ProcessQueue {
         }
     }
 
-
     public long commit() {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
@@ -281,7 +270,6 @@ public class ProcessQueue {
         return -1;
     }
 
-
     public void makeMessageToCosumeAgain(List<MessageExt> msgs) {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
@@ -297,7 +285,6 @@ public class ProcessQueue {
             log.error("makeMessageToCosumeAgain exception", e);
         }
     }
-
 
     public List<MessageExt> takeMessags(final int batchSize) {
         List<MessageExt> result = new ArrayList<MessageExt>(batchSize);
@@ -331,7 +318,6 @@ public class ProcessQueue {
         return result;
     }
 
-
     public boolean hasTempMessage() {
         try {
             this.lockTreeMap.readLock().lockInterruptibly();
@@ -345,7 +331,6 @@ public class ProcessQueue {
 
         return true;
     }
-
 
     public void clear() {
         try {
@@ -363,51 +348,41 @@ public class ProcessQueue {
         }
     }
 
-
     public long getLastLockTimestamp() {
         return lastLockTimestamp;
     }
-
 
     public void setLastLockTimestamp(long lastLockTimestamp) {
         this.lastLockTimestamp = lastLockTimestamp;
     }
 
-
     public Lock getLockConsume() {
         return lockConsume;
     }
-
 
     public long getLastPullTimestamp() {
         return lastPullTimestamp;
     }
 
-
     public void setLastPullTimestamp(long lastPullTimestamp) {
         this.lastPullTimestamp = lastPullTimestamp;
     }
-
 
     public long getMsgAccCnt() {
         return msgAccCnt;
     }
 
-
     public void setMsgAccCnt(long msgAccCnt) {
         this.msgAccCnt = msgAccCnt;
     }
-
 
     public long getTryUnlockTimes() {
         return this.tryUnlockTimes.get();
     }
 
-
     public void incTryUnlockTimes() {
         this.tryUnlockTimes.incrementAndGet();
     }
-
 
     public void fillProcessQueueInfo(final ProcessQueueInfo info) {
         try {
@@ -438,11 +413,9 @@ public class ProcessQueue {
         }
     }
 
-
     public long getLastConsumeTimestamp() {
         return lastConsumeTimestamp;
     }
-
 
     public void setLastConsumeTimestamp(long lastConsumeTimestamp) {
         this.lastConsumeTimestamp = lastConsumeTimestamp;

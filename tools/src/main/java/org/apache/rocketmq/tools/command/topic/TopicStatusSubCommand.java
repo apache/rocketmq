@@ -6,16 +6,22 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.tools.command.topic;
 
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
@@ -23,14 +29,6 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-
 
 /**
  *
@@ -43,12 +41,10 @@ public class TopicStatusSubCommand implements SubCommand {
         return "topicStatus";
     }
 
-
     @Override
     public String commandDesc() {
         return "Examine topic Status info";
     }
-
 
     @Override
     public Options buildCommandlineOptions(Options options) {
@@ -57,7 +53,6 @@ public class TopicStatusSubCommand implements SubCommand {
         options.addOption(opt);
         return options;
     }
-
 
     @Override
     public void execute(final CommandLine commandLine, final Options options, RPCHook rpcHook) {
@@ -75,11 +70,11 @@ public class TopicStatusSubCommand implements SubCommand {
             Collections.sort(mqList);
 
             System.out.printf("%-32s  %-4s  %-20s  %-20s    %s%n",
-                    "#Broker Name",
-                    "#QID",
-                    "#Min Offset",
-                    "#Max Offset",
-                    "#Last Updated"
+                "#Broker Name",
+                "#QID",
+                "#Min Offset",
+                "#Max Offset",
+                "#Last Updated"
             );
 
             for (MessageQueue mq : mqList) {
@@ -91,11 +86,11 @@ public class TopicStatusSubCommand implements SubCommand {
                 }
 
                 System.out.printf("%-32s  %-4d  %-20d  %-20d    %s%n",
-                        UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),
-                        mq.getQueueId(),
-                        topicOffset.getMinOffset(),
-                        topicOffset.getMaxOffset(),
-                        humanTimestamp
+                    UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),
+                    mq.getQueueId(),
+                    topicOffset.getMinOffset(),
+                    topicOffset.getMaxOffset(),
+                    humanTimestamp
                 );
             }
         } catch (Exception e) {

@@ -6,44 +6,70 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.tools.command;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
+import org.apache.rocketmq.tools.command.broker.BrokerConsumeStatsSubCommad;
+import org.apache.rocketmq.tools.command.broker.BrokerStatusSubCommand;
+import org.apache.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
+import org.apache.rocketmq.tools.command.broker.CleanUnusedTopicCommand;
+import org.apache.rocketmq.tools.command.broker.GetBrokerConfigCommand;
+import org.apache.rocketmq.tools.command.broker.SendMsgStatusCommand;
+import org.apache.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
 import org.apache.rocketmq.tools.command.cluster.CLusterSendMsgRTCommand;
 import org.apache.rocketmq.tools.command.cluster.ClusterListSubCommand;
 import org.apache.rocketmq.tools.command.connection.ConsumerConnectionSubCommand;
 import org.apache.rocketmq.tools.command.connection.ProducerConnectionSubCommand;
-import org.apache.rocketmq.tools.command.consumer.*;
-import org.apache.rocketmq.tools.command.namesrv.*;
+import org.apache.rocketmq.tools.command.consumer.ConsumerProgressSubCommand;
+import org.apache.rocketmq.tools.command.consumer.ConsumerStatusSubCommand;
+import org.apache.rocketmq.tools.command.consumer.DeleteSubscriptionGroupCommand;
+import org.apache.rocketmq.tools.command.consumer.StartMonitoringSubCommand;
+import org.apache.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
+import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
+import org.apache.rocketmq.tools.command.message.PrintMessageByQueueCommand;
+import org.apache.rocketmq.tools.command.message.PrintMessageSubCommand;
+import org.apache.rocketmq.tools.command.message.QueryMsgByIdSubCommand;
+import org.apache.rocketmq.tools.command.message.QueryMsgByKeySubCommand;
+import org.apache.rocketmq.tools.command.message.QueryMsgByOffsetSubCommand;
+import org.apache.rocketmq.tools.command.message.QueryMsgByUniqueKeySubCommand;
+import org.apache.rocketmq.tools.command.namesrv.DeleteKvConfigCommand;
+import org.apache.rocketmq.tools.command.namesrv.GetNamesrvConfigCommand;
+import org.apache.rocketmq.tools.command.namesrv.UpdateKvConfigCommand;
+import org.apache.rocketmq.tools.command.namesrv.UpdateNamesrvConfigCommand;
+import org.apache.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
 import org.apache.rocketmq.tools.command.offset.CloneGroupOffsetCommand;
 import org.apache.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
 import org.apache.rocketmq.tools.command.stats.StatsAllSubCommand;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
-import org.apache.rocketmq.tools.command.broker.*;
-import org.apache.rocketmq.tools.command.message.*;
-import org.apache.rocketmq.tools.command.topic.*;
+import org.apache.rocketmq.tools.command.topic.AllocateMQSubCommand;
+import org.apache.rocketmq.tools.command.topic.DeleteTopicSubCommand;
+import org.apache.rocketmq.tools.command.topic.TopicClusterSubCommand;
+import org.apache.rocketmq.tools.command.topic.TopicListSubCommand;
+import org.apache.rocketmq.tools.command.topic.TopicRouteSubCommand;
+import org.apache.rocketmq.tools.command.topic.TopicStatusSubCommand;
+import org.apache.rocketmq.tools.command.topic.UpdateOrderConfCommand;
+import org.apache.rocketmq.tools.command.topic.UpdateTopicPermSubCommand;
+import org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-
 
 public class MQAdminStartup {
     protected static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
@@ -54,7 +80,6 @@ public class MQAdminStartup {
 
     public static void main0(String[] args, RPCHook rpcHook) {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
-
 
         //PackageConflictDetect.detectFastjson();
 
@@ -86,11 +111,10 @@ public class MQAdminStartup {
                     if (cmd != null) {
                         String[] subargs = parseSubArgs(args);
 
-
                         Options options = ServerUtil.buildCommandlineOptions(new Options());
                         final CommandLine commandLine =
-                                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options),
-                                        new PosixParser());
+                            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options),
+                                new PosixParser());
                         if (null == commandLine) {
                             System.exit(-1);
                             return;
@@ -124,7 +148,6 @@ public class MQAdminStartup {
         initCommand(new TopicStatusSubCommand());
         initCommand(new TopicClusterSubCommand());
 
-
         initCommand(new BrokerStatusSubCommand());
         initCommand(new QueryMsgByIdSubCommand());
         initCommand(new QueryMsgByKeySubCommand());
@@ -135,7 +158,6 @@ public class MQAdminStartup {
         initCommand(new PrintMessageByQueueCommand());
         initCommand(new SendMsgStatusCommand());
         initCommand(new BrokerConsumeStatsSubCommad());
-
 
         initCommand(new ProducerConnectionSubCommand());
         initCommand(new ConsumerConnectionSubCommand());
@@ -172,7 +194,7 @@ public class MQAdminStartup {
     private static void initLogback() throws JoranException {
         String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
-        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+        LoggerContext lc = (LoggerContext)LoggerFactory.getILoggerFactory();
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(lc);
         lc.reset();

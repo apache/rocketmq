@@ -17,13 +17,12 @@
 
 package org.apache.rocketmq.client.latency;
 
-import org.apache.rocketmq.client.common.ThreadLocalIndex;
-
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.client.common.ThreadLocalIndex;
 
 public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> {
     private final ConcurrentHashMap<String, FaultItem> faultItemTable = new ConcurrentHashMap<String, FaultItem>(16);
@@ -89,6 +88,14 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         return null;
     }
 
+    @Override
+    public String toString() {
+        return "LatencyFaultToleranceImpl{" +
+            "faultItemTable=" + faultItemTable +
+            ", whichItemWorst=" + whichItemWorst +
+            '}';
+    }
+
     class FaultItem implements Comparable<FaultItem> {
         private final String name;
         private volatile long currentLatency;
@@ -101,9 +108,11 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         @Override
         public int compareTo(final FaultItem other) {
             if (this.isAvailable() != other.isAvailable()) {
-                if (this.isAvailable()) return -1;
+                if (this.isAvailable())
+                    return -1;
 
-                if (other.isAvailable()) return 1;
+                if (other.isAvailable())
+                    return 1;
             }
 
             if (this.currentLatency < other.currentLatency)
@@ -128,20 +137,24 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         @Override
         public int hashCode() {
             int result = getName() != null ? getName().hashCode() : 0;
-            result = 31 * result + (int) (getCurrentLatency() ^ (getCurrentLatency() >>> 32));
-            result = 31 * result + (int) (getStartTimestamp() ^ (getStartTimestamp() >>> 32));
+            result = 31 * result + (int)(getCurrentLatency() ^ (getCurrentLatency() >>> 32));
+            result = 31 * result + (int)(getStartTimestamp() ^ (getStartTimestamp() >>> 32));
             return result;
         }
 
         @Override
         public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (!(o instanceof FaultItem)) return false;
+            if (this == o)
+                return true;
+            if (!(o instanceof FaultItem))
+                return false;
 
-            final FaultItem faultItem = (FaultItem) o;
+            final FaultItem faultItem = (FaultItem)o;
 
-            if (getCurrentLatency() != faultItem.getCurrentLatency()) return false;
-            if (getStartTimestamp() != faultItem.getStartTimestamp()) return false;
+            if (getCurrentLatency() != faultItem.getCurrentLatency())
+                return false;
+            if (getStartTimestamp() != faultItem.getStartTimestamp())
+                return false;
             return getName() != null ? getName().equals(faultItem.getName()) : faultItem.getName() == null;
 
         }
@@ -149,10 +162,10 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         @Override
         public String toString() {
             return "FaultItem{" +
-                    "name='" + name + '\'' +
-                    ", currentLatency=" + currentLatency +
-                    ", startTimestamp=" + startTimestamp +
-                    '}';
+                "name='" + name + '\'' +
+                ", currentLatency=" + currentLatency +
+                ", startTimestamp=" + startTimestamp +
+                '}';
         }
 
         public String getName() {
@@ -175,14 +188,5 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             this.startTimestamp = startTimestamp;
         }
 
-
-    }
-
-    @Override
-    public String toString() {
-        return "LatencyFaultToleranceImpl{" +
-                "faultItemTable=" + faultItemTable +
-                ", whichItemWorst=" + whichItemWorst +
-                '}';
     }
 }

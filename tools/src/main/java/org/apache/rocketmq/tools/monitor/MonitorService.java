@@ -6,17 +6,26 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.rocketmq.tools.monitor;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Random;
+import java.util.TreeMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
@@ -43,17 +52,10 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.slf4j.Logger;
 
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-
 public class MonitorService {
     private final Logger log = ClientLogger.getLog();
     private final ScheduledExecutorService scheduledExecutorService = Executors
-            .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("MonitorService"));
+        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("MonitorService"));
 
     private final MonitorConfig monitorConfig;
 
@@ -61,10 +63,9 @@ public class MonitorService {
 
     private final DefaultMQAdminExt defaultMQAdminExt;
     private final DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer(
-            MixAll.TOOLS_CONSUMER_GROUP);
+        MixAll.TOOLS_CONSUMER_GROUP);
     private final DefaultMQPushConsumer defaultMQPushConsumer = new DefaultMQPushConsumer(
-            MixAll.MONITOR_CONSUMER_GROUP);
-
+        MixAll.MONITOR_CONSUMER_GROUP);
 
     public MonitorService(MonitorConfig monitorConfig, MonitorListener monitorListener, RPCHook rpcHook) {
         this.monitorConfig = monitorConfig;
@@ -87,10 +88,10 @@ public class MonitorService {
 
                 @Override
                 public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                                                                ConsumeConcurrentlyContext context) {
+                    ConsumeConcurrentlyContext context) {
                     try {
                         OffsetMovedEvent ome =
-                                OffsetMovedEvent.decode(msgs.get(0).getBody(), OffsetMovedEvent.class);
+                            OffsetMovedEvent.decode(msgs.get(0).getBody(), OffsetMovedEvent.class);
 
                         DeleteMsgsEvent deleteMsgsEvent = new DeleteMsgsEvent();
                         deleteMsgsEvent.setOffsetMovedEvent(ome);
@@ -107,26 +108,17 @@ public class MonitorService {
         }
     }
 
-
-    private String instanceName() {
-        String name =
-                System.currentTimeMillis() + new Random().nextInt() + this.monitorConfig.getNamesrvAddr();
-
-        return "MonitorService_" + name.hashCode();
-    }
-
     public static void main(String[] args) throws MQClientException {
         main0(args, null);
     }
 
     public static void main0(String[] args, RPCHook rpcHook) throws MQClientException {
         final MonitorService monitorService =
-                new MonitorService(new MonitorConfig(), new DefaultMonitorListener(), rpcHook);
+            new MonitorService(new MonitorConfig(), new DefaultMonitorListener(), rpcHook);
         monitorService.start();
 
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             private volatile boolean hasShutdown = false;
-
 
             @Override
             public void run() {
@@ -138,6 +130,13 @@ public class MonitorService {
                 }
             }
         }, "ShutdownHook"));
+    }
+
+    private String instanceName() {
+        String name =
+            System.currentTimeMillis() + new Random().nextInt() + this.monitorConfig.getNamesrvAddr();
+
+        return "MonitorService_" + name.hashCode();
     }
 
     public void start() throws MQClientException {
@@ -180,7 +179,6 @@ public class MonitorService {
                 } catch (Exception e) {
                     // log.error("reportUndoneMsgs Exception", e);
                 }
-
 
                 try {
                     this.reportConsumerRunningInfo(consumerGroup);
@@ -228,7 +226,6 @@ public class MonitorService {
                 }
             }
 
-
             {
                 Iterator<Entry<String, ConsumeStats>> it = csByTopic.entrySet().iterator();
                 while (it.hasNext()) {
@@ -245,7 +242,7 @@ public class MonitorService {
     }
 
     public void reportConsumerRunningInfo(final String consumerGroup) throws InterruptedException,
-            MQBrokerException, RemotingException, MQClientException {
+        MQBrokerException, RemotingException, MQClientException {
         ConsumerConnection cc = defaultMQAdminExt.examineConsumerConnectionInfo(consumerGroup);
         TreeMap<String, ConsumerRunningInfo> infoMap = new TreeMap<String, ConsumerRunningInfo>();
         for (Connection c : cc.getConnectionSet()) {
@@ -257,7 +254,7 @@ public class MonitorService {
 
             try {
                 ConsumerRunningInfo info =
-                        defaultMQAdminExt.getConsumerRunningInfo(consumerGroup, clientId, false);
+                    defaultMQAdminExt.getConsumerRunningInfo(consumerGroup, clientId, false);
                 infoMap.put(clientId, info);
             } catch (Exception e) {
             }
@@ -296,7 +293,7 @@ public class MonitorService {
                         switch (pull.getPullStatus()) {
                             case FOUND:
                                 long delay =
-                                        pull.getMsgFoundList().get(0).getStoreTimestamp() - ow.getLastTimestamp();
+                                    pull.getMsgFoundList().get(0).getStoreTimestamp() - ow.getLastTimestamp();
                                 if (delay > delayMax) {
                                     delayMax = delay;
                                 }

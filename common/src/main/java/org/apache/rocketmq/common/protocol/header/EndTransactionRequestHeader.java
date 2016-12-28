@@ -6,13 +6,15 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * $Id: EndTransactionRequestHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
  */
 
 /**
@@ -25,7 +27,6 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-
 
 public class EndTransactionRequestHeader implements CommandCustomHeader {
     @CFNotNull
@@ -64,61 +65,49 @@ public class EndTransactionRequestHeader implements CommandCustomHeader {
         throw new RemotingCommandException("commitOrRollback field wrong");
     }
 
-
     public String getProducerGroup() {
         return producerGroup;
     }
-
 
     public void setProducerGroup(String producerGroup) {
         this.producerGroup = producerGroup;
     }
 
-
     public Long getTranStateTableOffset() {
         return tranStateTableOffset;
     }
-
 
     public void setTranStateTableOffset(Long tranStateTableOffset) {
         this.tranStateTableOffset = tranStateTableOffset;
     }
 
-
     public Long getCommitLogOffset() {
         return commitLogOffset;
     }
-
 
     public void setCommitLogOffset(Long commitLogOffset) {
         this.commitLogOffset = commitLogOffset;
     }
 
-
     public Integer getCommitOrRollback() {
         return commitOrRollback;
     }
-
 
     public void setCommitOrRollback(Integer commitOrRollback) {
         this.commitOrRollback = commitOrRollback;
     }
 
-
     public Boolean getFromTransactionCheck() {
         return fromTransactionCheck;
     }
-
 
     public void setFromTransactionCheck(Boolean fromTransactionCheck) {
         this.fromTransactionCheck = fromTransactionCheck;
     }
 
-
     public String getMsgId() {
         return msgId;
     }
-
 
     public void setMsgId(String msgId) {
         this.msgId = msgId;
@@ -135,8 +124,8 @@ public class EndTransactionRequestHeader implements CommandCustomHeader {
     @Override
     public String toString() {
         return "EndTransactionRequestHeader [producerGroup=" + producerGroup + ", tranStateTableOffset="
-                + tranStateTableOffset + ", commitLogOffset=" + commitLogOffset + ", commitOrRollback="
-                + commitOrRollback + ", fromTransactionCheck=" + fromTransactionCheck + ", msgId=" + msgId
-                + "]";
+            + tranStateTableOffset + ", commitLogOffset=" + commitLogOffset + ", commitOrRollback="
+            + commitOrRollback + ", fromTransactionCheck=" + fromTransactionCheck + ", msgId=" + msgId
+            + "]";
     }
 }

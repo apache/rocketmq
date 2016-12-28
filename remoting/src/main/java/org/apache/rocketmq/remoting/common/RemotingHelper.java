@@ -6,28 +6,26 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.remoting.common;
 
-import org.apache.rocketmq.remoting.exception.RemotingConnectException;
-import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
-import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import io.netty.channel.Channel;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class RemotingHelper {
     public static final String ROCKETMQ_REMOTING = "RocketmqRemoting";
@@ -56,8 +54,8 @@ public class RemotingHelper {
     }
 
     public static RemotingCommand invokeSync(final String addr, final RemotingCommand request,
-                                             final long timeoutMillis) throws InterruptedException, RemotingConnectException,
-            RemotingSendRequestException, RemotingTimeoutException {
+        final long timeoutMillis) throws InterruptedException, RemotingConnectException,
+        RemotingSendRequestException, RemotingTimeoutException {
         long beginTime = System.currentTimeMillis();
         SocketAddress socketAddress = RemotingUtil.string2SocketAddress(addr);
         SocketChannel socketChannel = RemotingUtil.connect(socketAddress);
@@ -69,8 +67,7 @@ public class RemotingHelper {
                 socketChannel.configureBlocking(true);
 
                 //bugfix  http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4614802
-                socketChannel.socket().setSoTimeout((int) timeoutMillis);
-
+                socketChannel.socket().setSoTimeout((int)timeoutMillis);
 
                 ByteBuffer byteBufferRequest = request.encode();
                 while (byteBufferRequest.hasRemaining()) {
@@ -85,7 +82,6 @@ public class RemotingHelper {
                     } else {
                         throw new RemotingSendRequestException(addr);
                     }
-
 
                     Thread.sleep(1);
                 }
@@ -106,7 +102,6 @@ public class RemotingHelper {
                         throw new RemotingTimeoutException(addr, timeoutMillis);
                     }
 
-
                     Thread.sleep(1);
                 }
 
@@ -125,10 +120,8 @@ public class RemotingHelper {
                         throw new RemotingTimeoutException(addr, timeoutMillis);
                     }
 
-
                     Thread.sleep(1);
                 }
-
 
                 byteBufferBody.flip();
                 return RemotingCommand.decode(byteBufferBody);
@@ -152,7 +145,6 @@ public class RemotingHelper {
         }
     }
 
-
     public static String parseChannelRemoteAddr(final Channel channel) {
         if (null == channel) {
             return "";
@@ -172,18 +164,16 @@ public class RemotingHelper {
         return "";
     }
 
-
     public static String parseChannelRemoteName(final Channel channel) {
         if (null == channel) {
             return "";
         }
-        final InetSocketAddress remote = (InetSocketAddress) channel.remoteAddress();
+        final InetSocketAddress remote = (InetSocketAddress)channel.remoteAddress();
         if (remote != null) {
             return remote.getAddress().getHostName();
         }
         return "";
     }
-
 
     public static String parseSocketAddressAddr(SocketAddress socketAddress) {
         if (socketAddress != null) {
@@ -196,10 +186,9 @@ public class RemotingHelper {
         return "";
     }
 
-
     public static String parseSocketAddressName(SocketAddress socketAddress) {
 
-        final InetSocketAddress addrs = (InetSocketAddress) socketAddress;
+        final InetSocketAddress addrs = (InetSocketAddress)socketAddress;
         if (addrs != null) {
             return addrs.getAddress().getHostName();
         }

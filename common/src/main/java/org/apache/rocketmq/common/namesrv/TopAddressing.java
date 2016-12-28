@@ -6,13 +6,15 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * $Id: TopAddressing.java 1831 2013-05-16 01:39:51Z vintagewang@apache.org $
  */
 
 /**
@@ -20,6 +22,7 @@
  */
 package org.apache.rocketmq.common.namesrv;
 
+import java.io.IOException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -28,24 +31,34 @@ import org.apache.rocketmq.common.utils.HttpTinyClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-
-
 public class TopAddressing {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
     private String nsAddr;
     private String wsAddr;
     private String unitName;
 
-
     public TopAddressing(final String wsAddr) {
         this(wsAddr, null);
     }
 
-
     public TopAddressing(final String wsAddr, final String unitName) {
         this.wsAddr = wsAddr;
         this.unitName = unitName;
+    }
+
+    private static String clearNewLine(final String str) {
+        String newString = str.trim();
+        int index = newString.indexOf("\r");
+        if (index != -1) {
+            return newString.substring(0, index);
+        }
+
+        index = newString.indexOf("\n");
+        if (index != -1) {
+            return newString.substring(0, index);
+        }
+
+        return newString;
     }
 
     public final String fetchNSAddr() {
@@ -77,7 +90,7 @@ public class TopAddressing {
 
         if (verbose) {
             String errorMsg =
-                    "connect to " + url + " failed, maybe the domain name " + MixAll.WS_DOMAIN_NAME + " not bind in /etc/hosts";
+                "connect to " + url + " failed, maybe the domain name " + MixAll.WS_DOMAIN_NAME + " not bind in /etc/hosts";
             errorMsg += FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL);
 
             log.warn(errorMsg);
@@ -85,25 +98,9 @@ public class TopAddressing {
         return null;
     }
 
-    private static String clearNewLine(final String str) {
-        String newString = str.trim();
-        int index = newString.indexOf("\r");
-        if (index != -1) {
-            return newString.substring(0, index);
-        }
-
-        index = newString.indexOf("\n");
-        if (index != -1) {
-            return newString.substring(0, index);
-        }
-
-        return newString;
-    }
-
     public String getNsAddr() {
         return nsAddr;
     }
-
 
     public void setNsAddr(String nsAddr) {
         this.nsAddr = nsAddr;

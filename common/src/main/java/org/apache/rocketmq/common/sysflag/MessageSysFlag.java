@@ -24,16 +24,13 @@ public class MessageSysFlag {
     public final static int TRANSACTION_COMMIT_TYPE = 0x2 << 2;
     public final static int TRANSACTION_ROLLBACK_TYPE = 0x3 << 2;
 
-
     public static int getTransactionValue(final int flag) {
         return flag & TRANSACTION_ROLLBACK_TYPE;
     }
 
-
     public static int resetTransactionValue(final int flag, final int type) {
         return (flag & (~TRANSACTION_ROLLBACK_TYPE)) | type;
     }
-
 
     public static int clearCompressedFlag(final int flag) {
         return flag & (~COMPRESSED_FLAG);

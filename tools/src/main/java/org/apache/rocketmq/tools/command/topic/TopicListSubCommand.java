@@ -16,6 +16,12 @@
  */
 package org.apache.rocketmq.tools.command.topic;
 
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.Set;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
@@ -28,14 +34,6 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.Set;
-
 
 /**
  *
@@ -72,15 +70,15 @@ public class TopicListSubCommand implements SubCommand {
                 ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
 
                 System.out.printf("%-20s  %-48s  %-48s%n",
-                        "#Cluster Name",
-                        "#Topic",
-                        "#Consumer Group"
+                    "#Cluster Name",
+                    "#Topic",
+                    "#Consumer Group"
                 );
 
                 TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
                 for (String topic : topicList.getTopicList()) {
                     if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
-                            || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
+                        || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
                         continue;
                     }
 
@@ -89,7 +87,7 @@ public class TopicListSubCommand implements SubCommand {
 
                     try {
                         clusterName =
-                                this.findTopicBelongToWhichCluster(topic, clusterInfo, defaultMQAdminExt);
+                            this.findTopicBelongToWhichCluster(topic, clusterInfo, defaultMQAdminExt);
                         groupList = defaultMQAdminExt.queryTopicConsumeByWho(topic);
                     } catch (Exception e) {
                     }
@@ -101,9 +99,9 @@ public class TopicListSubCommand implements SubCommand {
 
                     for (String group : groupList.getGroupList()) {
                         System.out.printf("%-20s  %-48s  %-48s%n",
-                                UtilAll.frontStringAtLeast(clusterName, 20),
-                                UtilAll.frontStringAtLeast(topic, 48),
-                                UtilAll.frontStringAtLeast(group, 48)
+                            UtilAll.frontStringAtLeast(clusterName, 20),
+                            UtilAll.frontStringAtLeast(topic, 48),
+                            UtilAll.frontStringAtLeast(group, 48)
                         );
                     }
                 }
@@ -121,8 +119,8 @@ public class TopicListSubCommand implements SubCommand {
     }
 
     private String findTopicBelongToWhichCluster(final String topic, final ClusterInfo clusterInfo,
-                                                 final DefaultMQAdminExt defaultMQAdminExt) throws RemotingException, MQClientException,
-            InterruptedException {
+        final DefaultMQAdminExt defaultMQAdminExt) throws RemotingException, MQClientException,
+        InterruptedException {
         TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
 
         BrokerData brokerData = topicRouteData.getBrokerDatas().get(0);

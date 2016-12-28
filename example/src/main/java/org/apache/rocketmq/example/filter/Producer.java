@@ -30,9 +30,9 @@ public class Producer {
         try {
             for (int i = 0; i < 6000000; i++) {
                 Message msg = new Message("TopicFilter7",
-                        "TagA",
-                        "OrderID001",
-                        "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
+                    "TagA",
+                    "OrderID001",
+                    "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
 
                 msg.putUserProperty("SequenceId", String.valueOf(i));
                 SendResult sendResult = producer.send(msg);

@@ -6,16 +6,19 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.client.impl.consumer;
 
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
@@ -28,23 +31,16 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-
 public class RebalancePushImpl extends RebalanceImpl {
     private final static long UNLOCK_DELAY_TIME_MILLS = Long.parseLong(System.getProperty("rocketmq.client.unlockDelayTimeMills", "20000"));
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
-
 
     public RebalancePushImpl(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl) {
         this(null, null, null, null, defaultMQPushConsumerImpl);
     }
 
-
     public RebalancePushImpl(String consumerGroup, MessageModel messageModel, AllocateMessageQueueStrategy allocateMessageQueueStrategy,
-                             MQClientInstance mQClientFactory, DefaultMQPushConsumerImpl defaultMQPushConsumerImpl) {
+        MQClientInstance mQClientFactory, DefaultMQPushConsumerImpl defaultMQPushConsumerImpl) {
         super(consumerGroup, messageModel, allocateMessageQueueStrategy, mQClientFactory);
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
     }
@@ -58,7 +54,7 @@ public class RebalancePushImpl extends RebalanceImpl {
         this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
         this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
         if (this.defaultMQPushConsumerImpl.isConsumeOrderly()
-                && MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) {
+            && MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) {
             try {
                 if (pq.getLockConsume().tryLock(1000, TimeUnit.MILLISECONDS)) {
                     try {
@@ -68,8 +64,8 @@ public class RebalancePushImpl extends RebalanceImpl {
                     }
                 } else {
                     log.warn("[WRONG]mq is consuming, so can not unlock it, {}. maybe hanged for a while, {}", //
-                            mq, //
-                            pq.getTryUnlockTimes());
+                        mq, //
+                        pq.getTryUnlockTimes());
 
                     pq.incTryUnlockTimes();
                 }
@@ -164,7 +160,7 @@ public class RebalancePushImpl extends RebalanceImpl {
                     } else {
                         try {
                             long timestamp = UtilAll.parseDate(this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeTimestamp(),
-                                    UtilAll.YYYY_MMDD_HHMMSS).getTime();
+                                UtilAll.YYYY_MMDD_HHMMSS).getTime();
                             result = this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
                         } catch (MQClientException e) {
                             result = -1;

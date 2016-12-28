@@ -6,18 +6,17 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.client.impl.consumer;
 
 import org.apache.rocketmq.common.message.MessageQueue;
-
 
 public class PullRequest {
     private String consumerGroup;
@@ -38,26 +37,21 @@ public class PullRequest {
         return consumerGroup;
     }
 
-
     public void setConsumerGroup(String consumerGroup) {
         this.consumerGroup = consumerGroup;
     }
-
 
     public MessageQueue getMessageQueue() {
         return messageQueue;
     }
 
-
     public void setMessageQueue(MessageQueue messageQueue) {
         this.messageQueue = messageQueue;
     }
 
-
     public long getNextOffset() {
         return nextOffset;
     }
-
 
     public void setNextOffset(long nextOffset) {
         this.nextOffset = nextOffset;
@@ -80,7 +74,7 @@ public class PullRequest {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        PullRequest other = (PullRequest) obj;
+        PullRequest other = (PullRequest)obj;
         if (consumerGroup == null) {
             if (other.consumerGroup != null)
                 return false;
@@ -97,13 +91,12 @@ public class PullRequest {
     @Override
     public String toString() {
         return "PullRequest [consumerGroup=" + consumerGroup + ", messageQueue=" + messageQueue
-                + ", nextOffset=" + nextOffset + "]";
+            + ", nextOffset=" + nextOffset + "]";
     }
 
     public ProcessQueue getProcessQueue() {
         return processQueue;
     }
-
 
     public void setProcessQueue(ProcessQueue processQueue) {
         this.processQueue = processQueue;

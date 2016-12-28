@@ -16,25 +16,22 @@
  */
 package org.apache.rocketmq.client.consumer.rebalance;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
-import java.util.List;
-
-
 /**
  * Average Hashing queue algorithm
- *
  */
 public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrategy {
     private final Logger log = ClientLogger.getLog();
 
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
-                                       List<String> cidAll) {
+        List<String> cidAll) {
         if (currentCID == null || currentCID.length() < 1) {
             throw new IllegalArgumentException("currentCID is empty");
         }
@@ -48,17 +45,17 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
         List<MessageQueue> result = new ArrayList<MessageQueue>();
         if (!cidAll.contains(currentCID)) {
             log.info("[BUG] ConsumerGroup: {} The consumerId: {} not in cidAll: {}",
-                    consumerGroup,
-                    currentCID,
-                    cidAll);
+                consumerGroup,
+                currentCID,
+                cidAll);
             return result;
         }
 
         int index = cidAll.indexOf(currentCID);
         int mod = mqAll.size() % cidAll.size();
         int averageSize =
-                mqAll.size() <= cidAll.size() ? 1 : (mod > 0 && index < mod ? mqAll.size() / cidAll.size()
-                        + 1 : mqAll.size() / cidAll.size());
+            mqAll.size() <= cidAll.size() ? 1 : (mod > 0 && index < mod ? mqAll.size() / cidAll.size()
+                + 1 : mqAll.size() / cidAll.size());
         int startIndex = (mod > 0 && index < mod) ? index * averageSize : index * averageSize + mod;
         int range = Math.min(averageSize, mqAll.size() - startIndex);
         for (int i = 0; i < range; i++) {

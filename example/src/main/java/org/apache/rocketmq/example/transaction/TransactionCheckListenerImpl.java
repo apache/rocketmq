@@ -16,16 +16,13 @@
  */
 package org.apache.rocketmq.example.transaction;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.TransactionCheckListener;
 import org.apache.rocketmq.common.message.MessageExt;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
-
 public class TransactionCheckListenerImpl implements TransactionCheckListener {
     private AtomicInteger transactionIndex = new AtomicInteger(0);
-
 
     @Override
     public LocalTransactionState checkLocalTransactionState(MessageExt msg) {

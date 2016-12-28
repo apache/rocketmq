@@ -16,6 +16,13 @@
  */
 package org.apache.rocketmq.tools.command.topic;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -24,15 +31,6 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-
 
 public class AllocateMQSubCommand implements SubCommand {
     @Override
@@ -40,12 +38,10 @@ public class AllocateMQSubCommand implements SubCommand {
         return "allocateMQ";
     }
 
-
     @Override
     public String commandDesc() {
         return "Allocate MQ";
     }
-
 
     @Override
     public Options buildCommandlineOptions(Options options) {
@@ -59,7 +55,6 @@ public class AllocateMQSubCommand implements SubCommand {
 
         return options;
     }
-
 
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
@@ -80,7 +75,6 @@ public class AllocateMQSubCommand implements SubCommand {
             final Set<MessageQueue> mqs = MQClientInstance.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
 
             final AllocateMessageQueueAveragely averagely = new AllocateMessageQueueAveragely();
-
 
             RebalanceResult rr = new RebalanceResult();
 

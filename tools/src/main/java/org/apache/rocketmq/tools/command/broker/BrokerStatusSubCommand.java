@@ -16,6 +16,13 @@
  */
 package org.apache.rocketmq.tools.command.broker;
 
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -25,15 +32,6 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-
 
 public class BrokerStatusSubCommand implements SubCommand {
 
@@ -42,12 +40,10 @@ public class BrokerStatusSubCommand implements SubCommand {
         return "brokerStatus";
     }
 
-
     @Override
     public String commandDesc() {
         return "Fetch broker runtime status data";
     }
-
 
     @Override
     public Options buildCommandlineOptions(Options options) {
@@ -77,7 +73,7 @@ public class BrokerStatusSubCommand implements SubCommand {
                 printBrokerRuntimeStats(defaultMQAdminExt, brokerAddr, false);
             } else if (clusterName != null) {
                 Set<String> masterSet =
-                        CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
+                    CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
                 for (String ba : masterSet) {
                     try {
                         printBrokerRuntimeStats(defaultMQAdminExt, ba, true);
@@ -87,7 +83,6 @@ public class BrokerStatusSubCommand implements SubCommand {
                 }
             }
 
-
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -95,7 +90,8 @@ public class BrokerStatusSubCommand implements SubCommand {
         }
     }
 
-    public void printBrokerRuntimeStats(final DefaultMQAdminExt defaultMQAdminExt, final String brokerAddr, final boolean printBroker) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+    public void printBrokerRuntimeStats(final DefaultMQAdminExt defaultMQAdminExt, final String brokerAddr,
+        final boolean printBroker) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(brokerAddr);
 
         TreeMap<String, String> tmp = new TreeMap<String, String>();

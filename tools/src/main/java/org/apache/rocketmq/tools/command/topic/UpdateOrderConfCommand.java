@@ -6,26 +6,25 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.tools.command.topic;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.namesrv.NamesrvUtil;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-
 
 /**
  *
@@ -38,12 +37,10 @@ public class UpdateOrderConfCommand implements SubCommand {
         return "updateOrderConf";
     }
 
-
     @Override
     public String commandDesc() {
         return "Create or update or delete order conf";
     }
-
 
     @Override
     public Options buildCommandlineOptions(Options options) {
@@ -62,7 +59,6 @@ public class UpdateOrderConfCommand implements SubCommand {
         return options;
     }
 
-
     @Override
     public void execute(final CommandLine commandLine, final Options options, RPCHook rpcHook) {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
@@ -76,7 +72,7 @@ public class UpdateOrderConfCommand implements SubCommand {
 
                 defaultMQAdminExt.start();
                 String orderConf =
-                        defaultMQAdminExt.getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, topic);
+                    defaultMQAdminExt.getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, topic);
                 System.out.printf("get orderConf success. topic=[%s], orderConf=[%s] ", topic, orderConf);
 
                 return;
@@ -93,7 +89,7 @@ public class UpdateOrderConfCommand implements SubCommand {
 
                 defaultMQAdminExt.createOrUpdateOrderConf(topic, orderConf, true);
                 System.out.printf("update orderConf success. topic=[%s], orderConf=[%s]", topic,
-                        orderConf.toString());
+                    orderConf.toString());
                 return;
             } else if ("delete".equals(type)) {
 

@@ -16,6 +16,10 @@
  */
 package org.apache.rocketmq.broker.subscription;
 
+import java.io.File;
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
@@ -27,22 +31,20 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-
-
 public class SubscriptionGroupManager extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     private final ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
-            new ConcurrentHashMap<String, SubscriptionGroupConfig>(1024);
+        new ConcurrentHashMap<String, SubscriptionGroupConfig>(1024);
     private final DataVersion dataVersion = new DataVersion();
     private transient BrokerController brokerController;
 
-
     public SubscriptionGroupManager() {
+        this.init();
+    }
+
+    public SubscriptionGroupManager(BrokerController brokerController) {
+        this.brokerController = brokerController;
         this.init();
     }
 
@@ -94,13 +96,6 @@ public class SubscriptionGroupManager extends ConfigManager {
         }
     }
 
-
-    public SubscriptionGroupManager(BrokerController brokerController) {
-        this.brokerController = brokerController;
-        this.init();
-    }
-
-
     public void updateSubscriptionGroupConfig(final SubscriptionGroupConfig config) {
         SubscriptionGroupConfig old = this.subscriptionGroupTable.put(config.getGroupName(), config);
         if (old != null) {
@@ -122,7 +117,6 @@ public class SubscriptionGroupManager extends ConfigManager {
         }
     }
 
-
     public SubscriptionGroupConfig findSubscriptionGroupConfig(final String group) {
         SubscriptionGroupConfig subscriptionGroupConfig = this.subscriptionGroupTable.get(group);
         if (null == subscriptionGroupConfig) {
@@ -140,7 +134,6 @@ public class SubscriptionGroupManager extends ConfigManager {
 
         return subscriptionGroupConfig;
     }
-
 
     @Override
     public String encode() {
@@ -181,11 +174,9 @@ public class SubscriptionGroupManager extends ConfigManager {
         return subscriptionGroupTable;
     }
 
-
     public DataVersion getDataVersion() {
         return dataVersion;
     }
-
 
     public void deleteSubscriptionGroupConfig(final String groupName) {
         SubscriptionGroupConfig old = this.subscriptionGroupTable.remove(groupName);

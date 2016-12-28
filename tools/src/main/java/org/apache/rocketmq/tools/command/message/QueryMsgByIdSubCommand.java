@@ -16,6 +16,15 @@
  */
 package org.apache.rocketmq.tools.command.message;
 
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.List;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -30,19 +39,140 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
 import org.apache.rocketmq.tools.command.SubCommand;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.lang3.StringUtils;
-
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.List;
-
 
 public class QueryMsgByIdSubCommand implements SubCommand {
+    public static void queryById(final DefaultMQAdminExt admin, final String msgId) throws MQClientException,
+        RemotingException, MQBrokerException, InterruptedException, IOException {
+        MessageExt msg = admin.viewMessage(msgId);
+
+        printMsg(admin, msg);
+    }
+
+    public static void printMsg(final DefaultMQAdminExt admin, final MessageExt msg) throws IOException {
+        if (msg == null) {
+            System.out.printf("%nMessage not found!");
+            return;
+        }
+
+        String bodyTmpFilePath = createBodyFile(msg);
+        String msgId = msg.getMsgId();
+        if (msg instanceof MessageClientExt) {
+            msgId = ((MessageClientExt)msg).getOffsetMsgId();
+        }
+
+        System.out.printf("%-20s %s%n",
+            "OffsetID:",
+            msgId
+        );
+
+        System.out.printf("%-20s %s%n",
+            "OffsetID:",
+            msgId
+        );
+
+        System.out.printf("%-20s %s%n",
+            "Topic:",
+            msg.getTopic()
+        );
+
+        System.out.printf("%-20s %s%n",
+            "Tags:",
+            "[" + msg.getTags() + "]"
+        );
+
+        System.out.printf("%-20s %s%n",
+            "Keys:",
+            "[" + msg.getKeys() + "]"
+        );
+
+        System.out.printf("%-20s %d%n",
+            "Queue ID:",
+            msg.getQueueId()
+        );
+
+        System.out.printf("%-20s %d%n",
+            "Queue Offset:",
+            msg.getQueueOffset()
+        );
+
+        System.out.printf("%-20s %d%n",
+            "CommitLog Offset:",
+            msg.getCommitLogOffset()
+        );
+
+        System.out.printf("%-20s %d%n",
+            "Reconsume Times:",
+            msg.getReconsumeTimes()
+        );
+
+        System.out.printf("%-20s %s%n",
+            "Born Timestamp:",
+            UtilAll.timeMillisToHumanString2(msg.getBornTimestamp())
+        );
+
+        System.out.printf("%-20s %s%n",
+            "Store Timestamp:",
+            UtilAll.timeMillisToHumanString2(msg.getStoreTimestamp())
+        );
+
+        System.out.printf("%-20s %s%n",
+            "Born Host:",
+            RemotingHelper.parseSocketAddressAddr(msg.getBornHost())
+        );
+
+        System.out.printf("%-20s %s%n",
+            "Store Host:",
+            RemotingHelper.parseSocketAddressAddr(msg.getStoreHost())
+        );
+
+        System.out.printf("%-20s %d%n",
+            "System Flag:",
+            msg.getSysFlag()
+        );
+
+        System.out.printf("%-20s %s%n",
+            "Properties:",
+            msg.getProperties() != null ? msg.getProperties().toString() : ""
+        );
+
+        System.out.printf("%-20s %s%n",
+            "Message Body Path:",
+            bodyTmpFilePath
+        );
+
+        try {
+            List<MessageTrack> mtdList = admin.messageTrackDetail(msg);
+            if (mtdList.isEmpty()) {
+                System.out.printf("%n%nWARN: No Consumer");
+            } else {
+                System.out.printf("%n%n");
+                for (MessageTrack mt : mtdList) {
+                    System.out.printf("%s", mt);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static String createBodyFile(MessageExt msg) throws IOException {
+        DataOutputStream dos = null;
+        try {
+            String bodyTmpFilePath = "/tmp/rocketmq/msgbodys";
+            File file = new File(bodyTmpFilePath);
+            if (!file.exists()) {
+                file.mkdirs();
+            }
+            bodyTmpFilePath = bodyTmpFilePath + "/" + msg.getMsgId();
+            dos = new DataOutputStream(new FileOutputStream(bodyTmpFilePath));
+            dos.write(msg.getBody());
+            return bodyTmpFilePath;
+        } finally {
+            if (dos != null)
+                dos.close();
+        }
+    }
+
     @Override
     public String commandName() {
         return "queryMsgById";
@@ -134,14 +264,15 @@ public class QueryMsgByIdSubCommand implements SubCommand {
     private void pushMsg(final DefaultMQAdminExt defaultMQAdminExt, final String consumerGroup, final String clientId, final String msgId) {
         try {
             ConsumeMessageDirectlyResult result =
-                    defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, msgId);
+                defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, msgId);
             System.out.printf("%s", result);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void sendMsg(final DefaultMQAdminExt defaultMQAdminExt, final DefaultMQProducer defaultMQProducer, final String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+    private void sendMsg(final DefaultMQAdminExt defaultMQAdminExt, final DefaultMQProducer defaultMQProducer,
+        final String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
             MessageExt msg = defaultMQAdminExt.viewMessage(msgId);
             if (msg != null) {
@@ -154,138 +285,6 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             }
         } catch (Exception e) {
             e.printStackTrace();
-        }
-    }
-
-    public static void queryById(final DefaultMQAdminExt admin, final String msgId) throws MQClientException,
-            RemotingException, MQBrokerException, InterruptedException, IOException {
-        MessageExt msg = admin.viewMessage(msgId);
-
-        printMsg(admin, msg);
-    }
-
-    public static void printMsg(final DefaultMQAdminExt admin, final MessageExt msg) throws IOException {
-        if (msg == null) {
-            System.out.printf("%nMessage not found!");
-            return;
-        }
-
-        String bodyTmpFilePath = createBodyFile(msg);
-        String msgId = msg.getMsgId();
-        if (msg instanceof MessageClientExt) {
-            msgId = ((MessageClientExt) msg).getOffsetMsgId();
-        }
-
-        System.out.printf("%-20s %s%n",
-                "OffsetID:",
-                msgId
-        );
-
-        System.out.printf("%-20s %s%n",
-                "OffsetID:",
-                msgId
-        );
-
-        System.out.printf("%-20s %s%n",
-                "Topic:",
-                msg.getTopic()
-        );
-
-        System.out.printf("%-20s %s%n",
-                "Tags:",
-                "[" + msg.getTags() + "]"
-        );
-
-        System.out.printf("%-20s %s%n",
-                "Keys:",
-                "[" + msg.getKeys() + "]"
-        );
-
-        System.out.printf("%-20s %d%n",
-                "Queue ID:",
-                msg.getQueueId()
-        );
-
-        System.out.printf("%-20s %d%n",
-                "Queue Offset:",
-                msg.getQueueOffset()
-        );
-
-        System.out.printf("%-20s %d%n",
-                "CommitLog Offset:",
-                msg.getCommitLogOffset()
-        );
-
-        System.out.printf("%-20s %d%n",
-                "Reconsume Times:",
-                msg.getReconsumeTimes()
-        );
-
-        System.out.printf("%-20s %s%n",
-                "Born Timestamp:",
-                UtilAll.timeMillisToHumanString2(msg.getBornTimestamp())
-        );
-
-        System.out.printf("%-20s %s%n",
-                "Store Timestamp:",
-                UtilAll.timeMillisToHumanString2(msg.getStoreTimestamp())
-        );
-
-        System.out.printf("%-20s %s%n",
-                "Born Host:",
-                RemotingHelper.parseSocketAddressAddr(msg.getBornHost())
-        );
-
-        System.out.printf("%-20s %s%n",
-                "Store Host:",
-                RemotingHelper.parseSocketAddressAddr(msg.getStoreHost())
-        );
-
-        System.out.printf("%-20s %d%n",
-                "System Flag:",
-                msg.getSysFlag()
-        );
-
-        System.out.printf("%-20s %s%n",
-                "Properties:",
-                msg.getProperties() != null ? msg.getProperties().toString() : ""
-        );
-
-        System.out.printf("%-20s %s%n",
-                "Message Body Path:",
-                bodyTmpFilePath
-        );
-
-        try {
-            List<MessageTrack> mtdList = admin.messageTrackDetail(msg);
-            if (mtdList.isEmpty()) {
-                System.out.printf("%n%nWARN: No Consumer");
-            } else {
-                System.out.printf("%n%n");
-                for (MessageTrack mt : mtdList) {
-                    System.out.printf("%s", mt);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static String createBodyFile(MessageExt msg) throws IOException {
-        DataOutputStream dos = null;
-        try {
-            String bodyTmpFilePath = "/tmp/rocketmq/msgbodys";
-            File file = new File(bodyTmpFilePath);
-            if (!file.exists()) {
-                file.mkdirs();
-            }
-            bodyTmpFilePath = bodyTmpFilePath + "/" + msg.getMsgId();
-            dos = new DataOutputStream(new FileOutputStream(bodyTmpFilePath));
-            dos.write(msg.getBody());
-            return bodyTmpFilePath;
-        } finally {
-            if (dos != null)
-                dos.close();
         }
     }
 }

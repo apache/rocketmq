@@ -17,12 +17,6 @@
 
 package org.apache.rocketmq.example.benchmark;
 
-import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.client.producer.*;
-
 import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.Timer;
@@ -30,13 +24,21 @@ import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.producer.LocalTransactionExecuter;
+import org.apache.rocketmq.client.producer.LocalTransactionState;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.client.producer.TransactionCheckListener;
+import org.apache.rocketmq.client.producer.TransactionMQProducer;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class TransactionProducer {
     private static int threadCount;
     private static int messageSize;
     private static boolean ischeck;
     private static boolean ischeckffalse;
-
 
     public static void main(String[] args) throws MQClientException, UnsupportedEncodingException {
         threadCount = args.length >= 1 ? Integer.parseInt(args[0]) : 32;
@@ -71,15 +73,14 @@ public class TransactionProducer {
                     Long[] end = snapshotList.getLast();
 
                     final long sendTps =
-                            (long) (((end[3] - begin[3]) / (double) (end[0] - begin[0])) * 1000L);
-                    final double averageRT = (end[5] - begin[5]) / (double) (end[3] - begin[3]);
+                        (long)(((end[3] - begin[3]) / (double)(end[0] - begin[0])) * 1000L);
+                    final double averageRT = (end[5] - begin[5]) / (double)(end[3] - begin[3]);
 
                     System.out.printf(
-                            "Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d transaction checkCount: %d %n",
-                            sendTps, statsBenchmark.getSendMessageMaxRT().get(), averageRT, end[2], end[4], end[6]);
+                        "Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d transaction checkCount: %d %n",
+                        sendTps, statsBenchmark.getSendMessageMaxRT().get(), averageRT, end[2], end[4], end[6]);
                 }
             }
-
 
             @Override
             public void run() {
@@ -92,7 +93,7 @@ public class TransactionProducer {
         }, 10000, 10000);
 
         final TransactionCheckListener transactionCheckListener =
-                new TransactionCheckListenerBImpl(ischeckffalse, statsBenchmark);
+            new TransactionCheckListenerBImpl(ischeckffalse, statsBenchmark);
         final TransactionMQProducer producer = new TransactionMQProducer("benchmark_transaction_producer");
         producer.setInstanceName(Long.toString(System.currentTimeMillis()));
         producer.setTransactionCheckListener(transactionCheckListener);
@@ -110,7 +111,7 @@ public class TransactionProducer {
                             // Thread.sleep(1000);
                             final long beginTimestamp = System.currentTimeMillis();
                             SendResult sendResult =
-                                    producer.sendMessageInTransaction(msg, tranExecuter, null);
+                                producer.sendMessageInTransaction(msg, tranExecuter, null);
                             if (sendResult != null) {
                                 statsBenchmark.getSendRequestSuccessCount().incrementAndGet();
                                 statsBenchmark.getReceiveResponseSuccessCount().incrementAndGet();
@@ -121,8 +122,8 @@ public class TransactionProducer {
                             long prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
                             while (currentRT > prevMaxRT) {
                                 boolean updated =
-                                        statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT,
-                                                currentRT);
+                                    statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT,
+                                        currentRT);
                                 if (updated)
                                     break;
 
@@ -136,7 +137,6 @@ public class TransactionProducer {
             });
         }
     }
-
 
     private static Message buildMessage(final int messageSize) throws UnsupportedEncodingException {
         Message msg = new Message();
@@ -153,16 +153,13 @@ public class TransactionProducer {
     }
 }
 
-
 class TransactionExecuterBImpl implements LocalTransactionExecuter {
 
     private boolean ischeck;
 
-
     public TransactionExecuterBImpl(boolean ischeck) {
         this.ischeck = ischeck;
     }
-
 
     @Override
     public LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg) {
@@ -173,18 +170,15 @@ class TransactionExecuterBImpl implements LocalTransactionExecuter {
     }
 }
 
-
 class TransactionCheckListenerBImpl implements TransactionCheckListener {
     private boolean ischeckffalse;
     private StatsBenchmarkTProducer statsBenchmarkTProducer;
 
-
     public TransactionCheckListenerBImpl(boolean ischeckffalse,
-                                         StatsBenchmarkTProducer statsBenchmarkTProducer) {
+        StatsBenchmarkTProducer statsBenchmarkTProducer) {
         this.ischeckffalse = ischeckffalse;
         this.statsBenchmarkTProducer = statsBenchmarkTProducer;
     }
-
 
     @Override
     public LocalTransactionState checkLocalTransactionState(MessageExt msg) {
@@ -197,7 +191,6 @@ class TransactionCheckListenerBImpl implements TransactionCheckListener {
         return LocalTransactionState.COMMIT_MESSAGE;
     }
 }
-
 
 class StatsBenchmarkTProducer {
     private final AtomicLong sendRequestSuccessCount = new AtomicLong(0L);
@@ -214,50 +207,42 @@ class StatsBenchmarkTProducer {
 
     private final AtomicLong checkRequestSuccessCount = new AtomicLong(0L);
 
-
     public Long[] createSnapshot() {
-        Long[] snap = new Long[]{
-                System.currentTimeMillis(),
-                this.sendRequestSuccessCount.get(),
-                this.sendRequestFailedCount.get(),
-                this.receiveResponseSuccessCount.get(),
-                this.receiveResponseFailedCount.get(),
-                this.sendMessageSuccessTimeTotal.get(),
-                this.checkRequestSuccessCount.get()};
+        Long[] snap = new Long[] {
+            System.currentTimeMillis(),
+            this.sendRequestSuccessCount.get(),
+            this.sendRequestFailedCount.get(),
+            this.receiveResponseSuccessCount.get(),
+            this.receiveResponseFailedCount.get(),
+            this.sendMessageSuccessTimeTotal.get(),
+            this.checkRequestSuccessCount.get()};
 
         return snap;
     }
-
 
     public AtomicLong getSendRequestSuccessCount() {
         return sendRequestSuccessCount;
     }
 
-
     public AtomicLong getSendRequestFailedCount() {
         return sendRequestFailedCount;
     }
-
 
     public AtomicLong getReceiveResponseSuccessCount() {
         return receiveResponseSuccessCount;
     }
 
-
     public AtomicLong getReceiveResponseFailedCount() {
         return receiveResponseFailedCount;
     }
-
 
     public AtomicLong getSendMessageSuccessTimeTotal() {
         return sendMessageSuccessTimeTotal;
     }
 
-
     public AtomicLong getSendMessageMaxRT() {
         return sendMessageMaxRT;
     }
-
 
     public AtomicLong getCheckRequestSuccessCount() {
         return checkRequestSuccessCount;

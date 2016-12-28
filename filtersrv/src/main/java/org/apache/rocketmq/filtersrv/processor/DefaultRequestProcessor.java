@@ -16,6 +16,13 @@
  */
 package org.apache.rocketmq.filtersrv.processor;
 
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
@@ -39,36 +46,25 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.CommitLog;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-
 
 public class DefaultRequestProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.FILTERSRV_LOGGER_NAME);
 
     private final FiltersrvController filtersrvController;
 
-
     public DefaultRequestProcessor(FiltersrvController filtersrvController) {
         this.filtersrvController = filtersrvController;
     }
-
 
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
         if (log.isDebugEnabled()) {
             log.debug("receive request, {} {} {}",
-                    request.getCode(),
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
-                    request);
+                request.getCode(),
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
+                request);
         }
 
         switch (request.getCode()) {
@@ -89,14 +85,14 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     private RemotingCommand registerMessageFilterClass(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final RegisterMessageFilterClassRequestHeader requestHeader =
-                (RegisterMessageFilterClassRequestHeader) request.decodeCommandCustomHeader(RegisterMessageFilterClassRequestHeader.class);
+            (RegisterMessageFilterClassRequestHeader)request.decodeCommandCustomHeader(RegisterMessageFilterClassRequestHeader.class);
 
         try {
             boolean ok = this.filtersrvController.getFilterClassManager().registerFilterClass(requestHeader.getConsumerGroup(),
-                    requestHeader.getTopic(),
-                    requestHeader.getClassName(),
-                    requestHeader.getClassCRC(),
-                    request.getBody());
+                requestHeader.getTopic(),
+                requestHeader.getClassName(),
+                requestHeader.getClassCRC(),
+                request.getBody());
             if (!ok) {
                 throw new Exception("registerFilterClass error");
             }
@@ -113,20 +109,19 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
     private RemotingCommand pullMessageForward(final ChannelHandlerContext ctx, final RemotingCommand request) throws Exception {
         final RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
-        final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();
+        final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader)response.readCustomHeader();
         final PullMessageRequestHeader requestHeader =
-                (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
+            (PullMessageRequestHeader)request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
 
         final FilterContext filterContext = new FilterContext();
         filterContext.setConsumerGroup(requestHeader.getConsumerGroup());
-
 
         response.setOpaque(request.getOpaque());
 
         DefaultMQPullConsumer pullConsumer = this.filtersrvController.getDefaultMQPullConsumer();
         final FilterClassInfo findFilterClass =
-                this.filtersrvController.getFilterClassManager()
-                        .findFilterClass(requestHeader.getConsumerGroup(), requestHeader.getTopic());
+            this.filtersrvController.getFilterClassManager()
+                .findFilterClass(requestHeader.getConsumerGroup(), requestHeader.getTopic());
         if (null == findFilterClass) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("Find Filter class failed, not registered");
@@ -140,7 +135,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         }
 
         responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
-
 
         MessageQueue mq = new MessageQueue();
         mq.setTopic(requestHeader.getTopic());
@@ -171,7 +165,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                                 }
                             }
 
-
                             if (!msgListOK.isEmpty()) {
                                 returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx, response, msgListOK);
                                 return;
@@ -180,8 +173,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                             }
                         } catch (Throwable e) {
                             final String error =
-                                    String.format("do Message Filter Exception, ConsumerGroup: %s Topic: %s ",
-                                            requestHeader.getConsumerGroup(), requestHeader.getTopic());
+                                String.format("do Message Filter Exception, ConsumerGroup: %s Topic: %s ",
+                                    requestHeader.getConsumerGroup(), requestHeader.getTopic());
                             log.error(error, e);
 
                             response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -207,7 +200,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx, response, null);
             }
 
-
             @Override
             public void onException(Throwable e) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -223,7 +215,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
     private void returnResponse(final String group, final String topic, ChannelHandlerContext ctx, final RemotingCommand response,
-                                final List<MessageExt> msgList) {
+        final List<MessageExt> msgList) {
         if (null != msgList) {
             ByteBuffer[] msgBufferList = new ByteBuffer[msgList.size()];
             int bodyTotalSize = 0;
@@ -243,7 +235,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             }
 
             response.setBody(body.array());
-
 
             this.filtersrvController.getFilterServerStatsManager().incGroupGetNums(group, topic, msgList.size());
 
@@ -285,23 +276,23 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         byte[] propertiesData = properties.getBytes(MixAll.DEFAULT_CHARSET);
         final int propertiesLength = propertiesData.length;
         final int msgLen = 4 // 1 TOTALSIZE
-                + 4 // 2 MAGICCODE
-                + 4 // 3 BODYCRC
-                + 4 // 4 QUEUEID
-                + 4 // 5 FLAG
-                + 8 // 6 QUEUEOFFSET
-                + 8 // 7 PHYSICALOFFSET
-                + 4 // 8 SYSFLAG
-                + 8 // 9 BORNTIMESTAMP
-                + 8 // 10 BORNHOST
-                + 8 // 11 STORETIMESTAMP
-                + 8 // 12 STOREHOSTADDRESS
-                + 4 // 13 RECONSUMETIMES
-                + 8 // 14 Prepared Transaction Offset
-                + 4 + bodyLength // 14 BODY
-                + 1 + topicLength // 15 TOPIC
-                + 2 + propertiesLength // 16 propertiesLength
-                + 0;
+            + 4 // 2 MAGICCODE
+            + 4 // 3 BODYCRC
+            + 4 // 4 QUEUEID
+            + 4 // 5 FLAG
+            + 8 // 6 QUEUEOFFSET
+            + 8 // 7 PHYSICALOFFSET
+            + 4 // 8 SYSFLAG
+            + 8 // 9 BORNTIMESTAMP
+            + 8 // 10 BORNHOST
+            + 8 // 11 STORETIMESTAMP
+            + 8 // 12 STOREHOSTADDRESS
+            + 4 // 13 RECONSUMETIMES
+            + 8 // 14 Prepared Transaction Offset
+            + 4 + bodyLength // 14 BODY
+            + 1 + topicLength // 15 TOPIC
+            + 2 + propertiesLength // 16 propertiesLength
+            + 0;
 
         ByteBuffer msgStoreItemMemory = ByteBuffer.allocate(msgLen);
 
@@ -340,10 +331,10 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         if (bodyLength > 0)
             msgStoreItemMemory.put(msgInner.getBody());
         // 16 TOPIC
-        msgStoreItemMemory.put((byte) topicLength);
+        msgStoreItemMemory.put((byte)topicLength);
         msgStoreItemMemory.put(topicData);
         // 17 PROPERTIES
-        msgStoreItemMemory.putShort((short) propertiesLength);
+        msgStoreItemMemory.putShort((short)propertiesLength);
         if (propertiesLength > 0)
             msgStoreItemMemory.put(propertiesData);
 

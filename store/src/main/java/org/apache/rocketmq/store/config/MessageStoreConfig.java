@@ -6,21 +6,19 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.store.config;
 
+import java.io.File;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
-
-import java.io.File;
-
 
 public class MessageStoreConfig {
     //The root directory in which the log data is kept
@@ -30,7 +28,7 @@ public class MessageStoreConfig {
     //The directory in which the commitlog is kept
     @ImportantField
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
-            + File.separator + "commitlog";
+        + File.separator + "commitlog";
 
     // CommitLog file size,default is 1G
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
@@ -133,7 +131,7 @@ public class MessageStoreConfig {
     private boolean transientStorePoolEnable = false;
     private int transientStorePoolSize = 5;
     private boolean fastFailIfNoBufferInStorePool = false;
-    
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -170,118 +168,95 @@ public class MessageStoreConfig {
         return warmMapedFileEnable;
     }
 
-
     public void setWarmMapedFileEnable(boolean warmMapedFileEnable) {
         this.warmMapedFileEnable = warmMapedFileEnable;
     }
-
 
     public int getMapedFileSizeCommitLog() {
         return mapedFileSizeCommitLog;
     }
 
-
     public void setMapedFileSizeCommitLog(int mapedFileSizeCommitLog) {
         this.mapedFileSizeCommitLog = mapedFileSizeCommitLog;
     }
 
-
     public int getMapedFileSizeConsumeQueue() {
 
-        int factor = (int) Math.ceil(this.mapedFileSizeConsumeQueue / (ConsumeQueue.CQ_STORE_UNIT_SIZE * 1.0));
-        return (int) (factor * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        int factor = (int)Math.ceil(this.mapedFileSizeConsumeQueue / (ConsumeQueue.CQ_STORE_UNIT_SIZE * 1.0));
+        return (int)(factor * ConsumeQueue.CQ_STORE_UNIT_SIZE);
     }
-
 
     public void setMapedFileSizeConsumeQueue(int mapedFileSizeConsumeQueue) {
         this.mapedFileSizeConsumeQueue = mapedFileSizeConsumeQueue;
     }
 
-
     public int getFlushIntervalCommitLog() {
         return flushIntervalCommitLog;
     }
-
 
     public void setFlushIntervalCommitLog(int flushIntervalCommitLog) {
         this.flushIntervalCommitLog = flushIntervalCommitLog;
     }
 
-
     public int getFlushIntervalConsumeQueue() {
         return flushIntervalConsumeQueue;
     }
-
 
     public void setFlushIntervalConsumeQueue(int flushIntervalConsumeQueue) {
         this.flushIntervalConsumeQueue = flushIntervalConsumeQueue;
     }
 
-
     public int getPutMsgIndexHightWater() {
         return putMsgIndexHightWater;
     }
-
 
     public void setPutMsgIndexHightWater(int putMsgIndexHightWater) {
         this.putMsgIndexHightWater = putMsgIndexHightWater;
     }
 
-
     public int getCleanResourceInterval() {
         return cleanResourceInterval;
     }
-
 
     public void setCleanResourceInterval(int cleanResourceInterval) {
         this.cleanResourceInterval = cleanResourceInterval;
     }
 
-
     public int getMaxMessageSize() {
         return maxMessageSize;
     }
-
 
     public void setMaxMessageSize(int maxMessageSize) {
         this.maxMessageSize = maxMessageSize;
     }
 
-
     public boolean isCheckCRCOnRecover() {
         return checkCRCOnRecover;
     }
-
 
     public boolean getCheckCRCOnRecover() {
         return checkCRCOnRecover;
     }
 
-
     public void setCheckCRCOnRecover(boolean checkCRCOnRecover) {
         this.checkCRCOnRecover = checkCRCOnRecover;
     }
-
 
     public String getStorePathCommitLog() {
         return storePathCommitLog;
     }
 
-
     public void setStorePathCommitLog(String storePathCommitLog) {
         this.storePathCommitLog = storePathCommitLog;
     }
-
 
     public String getDeleteWhen() {
         return deleteWhen;
     }
 
-
     public void setDeleteWhen(String deleteWhen) {
         this.deleteWhen = deleteWhen;
     }
-
 
     public int getDiskMaxUsedSpaceRatio() {
         if (this.diskMaxUsedSpaceRatio < 10)
@@ -293,360 +268,293 @@ public class MessageStoreConfig {
         return diskMaxUsedSpaceRatio;
     }
 
-
     public void setDiskMaxUsedSpaceRatio(int diskMaxUsedSpaceRatio) {
         this.diskMaxUsedSpaceRatio = diskMaxUsedSpaceRatio;
     }
-
 
     public int getDeleteCommitLogFilesInterval() {
         return deleteCommitLogFilesInterval;
     }
 
-
     public void setDeleteCommitLogFilesInterval(int deleteCommitLogFilesInterval) {
         this.deleteCommitLogFilesInterval = deleteCommitLogFilesInterval;
     }
-
 
     public int getDeleteConsumeQueueFilesInterval() {
         return deleteConsumeQueueFilesInterval;
     }
 
-
     public void setDeleteConsumeQueueFilesInterval(int deleteConsumeQueueFilesInterval) {
         this.deleteConsumeQueueFilesInterval = deleteConsumeQueueFilesInterval;
     }
-
 
     public int getMaxTransferBytesOnMessageInMemory() {
         return maxTransferBytesOnMessageInMemory;
     }
 
-
     public void setMaxTransferBytesOnMessageInMemory(int maxTransferBytesOnMessageInMemory) {
         this.maxTransferBytesOnMessageInMemory = maxTransferBytesOnMessageInMemory;
     }
-
 
     public int getMaxTransferCountOnMessageInMemory() {
         return maxTransferCountOnMessageInMemory;
     }
 
-
     public void setMaxTransferCountOnMessageInMemory(int maxTransferCountOnMessageInMemory) {
         this.maxTransferCountOnMessageInMemory = maxTransferCountOnMessageInMemory;
     }
-
 
     public int getMaxTransferBytesOnMessageInDisk() {
         return maxTransferBytesOnMessageInDisk;
     }
 
-
     public void setMaxTransferBytesOnMessageInDisk(int maxTransferBytesOnMessageInDisk) {
         this.maxTransferBytesOnMessageInDisk = maxTransferBytesOnMessageInDisk;
     }
-
 
     public int getMaxTransferCountOnMessageInDisk() {
         return maxTransferCountOnMessageInDisk;
     }
 
-
     public void setMaxTransferCountOnMessageInDisk(int maxTransferCountOnMessageInDisk) {
         this.maxTransferCountOnMessageInDisk = maxTransferCountOnMessageInDisk;
     }
-
 
     public int getFlushCommitLogLeastPages() {
         return flushCommitLogLeastPages;
     }
 
-
     public void setFlushCommitLogLeastPages(int flushCommitLogLeastPages) {
         this.flushCommitLogLeastPages = flushCommitLogLeastPages;
     }
-
 
     public int getFlushConsumeQueueLeastPages() {
         return flushConsumeQueueLeastPages;
     }
 
-
     public void setFlushConsumeQueueLeastPages(int flushConsumeQueueLeastPages) {
         this.flushConsumeQueueLeastPages = flushConsumeQueueLeastPages;
     }
-
 
     public int getFlushCommitLogThoroughInterval() {
         return flushCommitLogThoroughInterval;
     }
 
-
     public void setFlushCommitLogThoroughInterval(int flushCommitLogThoroughInterval) {
         this.flushCommitLogThoroughInterval = flushCommitLogThoroughInterval;
     }
-
 
     public int getFlushConsumeQueueThoroughInterval() {
         return flushConsumeQueueThoroughInterval;
     }
 
-
     public void setFlushConsumeQueueThoroughInterval(int flushConsumeQueueThoroughInterval) {
         this.flushConsumeQueueThoroughInterval = flushConsumeQueueThoroughInterval;
     }
-
 
     public int getDestroyMapedFileIntervalForcibly() {
         return destroyMapedFileIntervalForcibly;
     }
 
-
     public void setDestroyMapedFileIntervalForcibly(int destroyMapedFileIntervalForcibly) {
         this.destroyMapedFileIntervalForcibly = destroyMapedFileIntervalForcibly;
     }
-
 
     public int getFileReservedTime() {
         return fileReservedTime;
     }
 
-
     public void setFileReservedTime(int fileReservedTime) {
         this.fileReservedTime = fileReservedTime;
     }
-
 
     public int getRedeleteHangedFileInterval() {
         return redeleteHangedFileInterval;
     }
 
-
     public void setRedeleteHangedFileInterval(int redeleteHangedFileInterval) {
         this.redeleteHangedFileInterval = redeleteHangedFileInterval;
     }
-
 
     public int getAccessMessageInMemoryMaxRatio() {
         return accessMessageInMemoryMaxRatio;
     }
 
-
     public void setAccessMessageInMemoryMaxRatio(int accessMessageInMemoryMaxRatio) {
         this.accessMessageInMemoryMaxRatio = accessMessageInMemoryMaxRatio;
     }
-
 
     public boolean isMessageIndexEnable() {
         return messageIndexEnable;
     }
 
-
     public void setMessageIndexEnable(boolean messageIndexEnable) {
         this.messageIndexEnable = messageIndexEnable;
     }
-
 
     public int getMaxHashSlotNum() {
         return maxHashSlotNum;
     }
 
-
     public void setMaxHashSlotNum(int maxHashSlotNum) {
         this.maxHashSlotNum = maxHashSlotNum;
     }
-
 
     public int getMaxIndexNum() {
         return maxIndexNum;
     }
 
-
     public void setMaxIndexNum(int maxIndexNum) {
         this.maxIndexNum = maxIndexNum;
     }
-
 
     public int getMaxMsgsNumBatch() {
         return maxMsgsNumBatch;
     }
 
-
     public void setMaxMsgsNumBatch(int maxMsgsNumBatch) {
         this.maxMsgsNumBatch = maxMsgsNumBatch;
     }
-
 
     public int getHaListenPort() {
         return haListenPort;
     }
 
-
     public void setHaListenPort(int haListenPort) {
         this.haListenPort = haListenPort;
     }
-
 
     public int getHaSendHeartbeatInterval() {
         return haSendHeartbeatInterval;
     }
 
-
     public void setHaSendHeartbeatInterval(int haSendHeartbeatInterval) {
         this.haSendHeartbeatInterval = haSendHeartbeatInterval;
     }
-
 
     public int getHaHousekeepingInterval() {
         return haHousekeepingInterval;
     }
 
-
     public void setHaHousekeepingInterval(int haHousekeepingInterval) {
         this.haHousekeepingInterval = haHousekeepingInterval;
     }
 
-
     public BrokerRole getBrokerRole() {
         return brokerRole;
-    }
-
-    public void setBrokerRole(BrokerRole brokerRole) {
-        this.brokerRole = brokerRole;
     }
 
     public void setBrokerRole(String brokerRole) {
         this.brokerRole = BrokerRole.valueOf(brokerRole);
     }
 
+    public void setBrokerRole(BrokerRole brokerRole) {
+        this.brokerRole = brokerRole;
+    }
+
     public int getHaTransferBatchSize() {
         return haTransferBatchSize;
     }
-
 
     public void setHaTransferBatchSize(int haTransferBatchSize) {
         this.haTransferBatchSize = haTransferBatchSize;
     }
 
-
     public int getHaSlaveFallbehindMax() {
         return haSlaveFallbehindMax;
     }
-
 
     public void setHaSlaveFallbehindMax(int haSlaveFallbehindMax) {
         this.haSlaveFallbehindMax = haSlaveFallbehindMax;
     }
 
-
     public FlushDiskType getFlushDiskType() {
         return flushDiskType;
-    }
-
-    public void setFlushDiskType(FlushDiskType flushDiskType) {
-        this.flushDiskType = flushDiskType;
     }
 
     public void setFlushDiskType(String type) {
         this.flushDiskType = FlushDiskType.valueOf(type);
     }
 
+    public void setFlushDiskType(FlushDiskType flushDiskType) {
+        this.flushDiskType = flushDiskType;
+    }
+
     public int getSyncFlushTimeout() {
         return syncFlushTimeout;
     }
-
 
     public void setSyncFlushTimeout(int syncFlushTimeout) {
         this.syncFlushTimeout = syncFlushTimeout;
     }
 
-
     public String getHaMasterAddress() {
         return haMasterAddress;
     }
-
 
     public void setHaMasterAddress(String haMasterAddress) {
         this.haMasterAddress = haMasterAddress;
     }
 
-
     public String getMessageDelayLevel() {
         return messageDelayLevel;
     }
-
 
     public void setMessageDelayLevel(String messageDelayLevel) {
         this.messageDelayLevel = messageDelayLevel;
     }
 
-
     public long getFlushDelayOffsetInterval() {
         return flushDelayOffsetInterval;
     }
-
 
     public void setFlushDelayOffsetInterval(long flushDelayOffsetInterval) {
         this.flushDelayOffsetInterval = flushDelayOffsetInterval;
     }
 
-
     public boolean isCleanFileForciblyEnable() {
         return cleanFileForciblyEnable;
     }
-
 
     public void setCleanFileForciblyEnable(boolean cleanFileForciblyEnable) {
         this.cleanFileForciblyEnable = cleanFileForciblyEnable;
     }
 
-
     public boolean isMessageIndexSafe() {
         return messageIndexSafe;
     }
-
 
     public void setMessageIndexSafe(boolean messageIndexSafe) {
         this.messageIndexSafe = messageIndexSafe;
     }
 
-
     public boolean isFlushCommitLogTimed() {
         return flushCommitLogTimed;
     }
-
 
     public void setFlushCommitLogTimed(boolean flushCommitLogTimed) {
         this.flushCommitLogTimed = flushCommitLogTimed;
     }
 
-
     public String getStorePathRootDir() {
         return storePathRootDir;
     }
-
 
     public void setStorePathRootDir(String storePathRootDir) {
         this.storePathRootDir = storePathRootDir;
     }
 
-
     public int getFlushLeastPagesWhenWarmMapedFile() {
         return flushLeastPagesWhenWarmMapedFile;
     }
-
 
     public void setFlushLeastPagesWhenWarmMapedFile(int flushLeastPagesWhenWarmMapedFile) {
         this.flushLeastPagesWhenWarmMapedFile = flushLeastPagesWhenWarmMapedFile;
     }
 
-
     public boolean isOffsetCheckInSlave() {
         return offsetCheckInSlave;
     }
-
 
     public void setOffsetCheckInSlave(boolean offsetCheckInSlave) {
         this.offsetCheckInSlave = offsetCheckInSlave;
@@ -666,7 +574,7 @@ public class MessageStoreConfig {
      */
     public boolean isTransientStorePoolEnable() {
         return transientStorePoolEnable && FlushDiskType.ASYNC_FLUSH == getFlushDiskType()
-                && BrokerRole.SLAVE != getBrokerRole();
+            && BrokerRole.SLAVE != getBrokerRole();
     }
 
     public void setTransientStorePoolEnable(final boolean transientStorePoolEnable) {

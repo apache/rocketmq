@@ -6,24 +6,17 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.remoting.protocol;
 
 import com.alibaba.fastjson.annotation.JSONField;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -31,22 +24,26 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.annotation.CFNotNull;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RemotingCommand {
     public static final String SERIALIZE_TYPE_PROPERTY = "rocketmq.serialize.type";
     public static final String SERIALIZE_TYPE_ENV = "ROCKETMQ_SERIALIZE_TYPE";
+    public static final String REMOTING_VERSION_KEY = "rocketmq.remoting.version";
     private static final Logger log = LoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
     private static final int RPC_TYPE = 0; // 0, REQUEST_COMMAND
     private static final int RPC_ONEWAY = 1; // 0, RPC
-
     private static final Map<Class<? extends CommandCustomHeader>, Field[]> CLASS_HASH_MAP =
-            new HashMap<Class<? extends CommandCustomHeader>, Field[]>();
+        new HashMap<Class<? extends CommandCustomHeader>, Field[]>();
     private static final Map<Class, String> CANONICAL_NAME_CACHE = new HashMap<Class, String>();
+    // 1, Oneway
     // 1, RESPONSE_COMMAND
     private static final Map<Field, Annotation> NOT_NULL_ANNOTATION_CACHE = new HashMap<Field, Annotation>();
-    // 1, Oneway
-
     private static final String STRING_CANONICAL_NAME = String.class.getCanonicalName();
     private static final String DOUBLE_CANONICAL_NAME_1 = Double.class.getCanonicalName();
     private static final String DOUBLE_CANONICAL_NAME_2 = double.class.getCanonicalName();
@@ -56,7 +53,6 @@ public class RemotingCommand {
     private static final String LONG_CANONICAL_NAME_2 = long.class.getCanonicalName();
     private static final String BOOLEAN_CANONICAL_NAME_1 = Boolean.class.getCanonicalName();
     private static final String BOOLEAN_CANONICAL_NAME_2 = boolean.class.getCanonicalName();
-    public static final String REMOTING_VERSION_KEY = "rocketmq.remoting.version";
     private static volatile int configVersion = -1;
     private static AtomicInteger requestId = new AtomicInteger(0);
 
@@ -92,7 +88,6 @@ public class RemotingCommand {
 
      */
     private transient byte[] body;
-
 
     protected RemotingCommand() {
     }
@@ -148,11 +143,6 @@ public class RemotingCommand {
         return cmd;
     }
 
-    public void markResponseType() {
-        int bits = 1 << RPC_TYPE;
-        this.flag |= bits;
-    }
-
     public static RemotingCommand createResponseCommand(int code, String remark) {
         return createResponseCommand(code, remark, null);
     }
@@ -205,7 +195,7 @@ public class RemotingCommand {
     }
 
     public static SerializeType getProtocolType(int source) {
-        return SerializeType.valueOf((byte) ((source >> 24) & 0xFF));
+        return SerializeType.valueOf((byte)((source >> 24) & 0xFF));
     }
 
     public static int createNewRequestId() {
@@ -227,6 +217,21 @@ public class RemotingCommand {
             }
         }
         return true;
+    }
+
+    public static byte[] markProtocolType(int source, SerializeType type) {
+        byte[] result = new byte[4];
+
+        result[0] = type.getCode();
+        result[1] = (byte)((source >> 16) & 0xFF);
+        result[2] = (byte)((source >> 8) & 0xFF);
+        result[3] = (byte)(source & 0xFF);
+        return result;
+    }
+
+    public void markResponseType() {
+        int bits = 1 << RPC_TYPE;
+        this.flag |= bits;
     }
 
     public CommandCustomHeader readCustomHeader() {
@@ -374,16 +379,6 @@ public class RemotingCommand {
         } else {
             return RemotingSerializable.encode(this);
         }
-    }
-
-    public static byte[] markProtocolType(int source, SerializeType type) {
-        byte[] result = new byte[4];
-
-        result[0] = type.getCode();
-        result[1] = (byte) ((source >> 16) & 0xFF);
-        result[2] = (byte) ((source >> 8) & 0xFF);
-        result[3] = (byte) (source & 0xFF);
-        return result;
     }
 
     public void makeCustomHeaderToNet() {
@@ -550,15 +545,13 @@ public class RemotingCommand {
     @Override
     public String toString() {
         return "RemotingCommand [code=" + code + ", language=" + language + ", version=" + version + ", opaque=" + opaque + ", flag(B)="
-                + Integer.toBinaryString(flag) + ", remark=" + remark + ", extFields=" + extFields + ", serializeTypeCurrentRPC="
-                + serializeTypeCurrentRPC + "]";
+            + Integer.toBinaryString(flag) + ", remark=" + remark + ", extFields=" + extFields + ", serializeTypeCurrentRPC="
+            + serializeTypeCurrentRPC + "]";
     }
-
 
     public SerializeType getSerializeTypeCurrentRPC() {
         return serializeTypeCurrentRPC;
     }
-
 
     public void setSerializeTypeCurrentRPC(SerializeType serializeTypeCurrentRPC) {
         this.serializeTypeCurrentRPC = serializeTypeCurrentRPC;

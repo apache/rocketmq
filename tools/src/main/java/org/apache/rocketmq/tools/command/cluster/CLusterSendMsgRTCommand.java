@@ -17,6 +17,16 @@
 
 package org.apache.rocketmq.tools.command.cluster;
 
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.TreeSet;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
@@ -24,13 +34,6 @@ import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-
-import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
-import java.util.*;
 
 public class CLusterSendMsgRTCommand implements SubCommand {
 
@@ -90,24 +93,24 @@ public class CLusterSendMsgRTCommand implements SubCommand {
 
             ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
             HashMap<String, Set<String>> clusterAddr = clusterInfoSerializeWrapper
-                    .getClusterAddrTable();
+                .getClusterAddrTable();
 
             Set<String> clusterNames = null;
 
             long amount = !commandLine.hasOption('a') ? 50 : Long.parseLong(commandLine
-                    .getOptionValue('a').trim());
+                .getOptionValue('a').trim());
 
             long size = !commandLine.hasOption('s') ? 128 : Long.parseLong(commandLine
-                    .getOptionValue('s').trim());
+                .getOptionValue('s').trim());
 
             long interval = !commandLine.hasOption('i') ? 10 : Long.parseLong(commandLine
-                    .getOptionValue('i').trim());
+                .getOptionValue('i').trim());
 
             boolean printAsTlog = !commandLine.hasOption('p') ? false : Boolean
-                    .parseBoolean(commandLine.getOptionValue('p').trim());
+                .parseBoolean(commandLine.getOptionValue('p').trim());
 
             String machineRoom = !commandLine.hasOption('m') ? "noname" : commandLine
-                    .getOptionValue('m').trim();
+                .getOptionValue('m').trim();
 
             if (commandLine.hasOption('c')) {
                 clusterNames = new TreeSet<String>();
@@ -118,11 +121,11 @@ public class CLusterSendMsgRTCommand implements SubCommand {
 
             if (!printAsTlog) {
                 System.out.printf("%-24s  %-24s  %-4s  %-8s  %-8s%n",
-                        "#Cluster Name",
-                        "#Broker Name",
-                        "#RT",
-                        "#successCount",
-                        "#failCount"
+                    "#Cluster Name",
+                    "#Broker Name",
+                    "#RT",
+                    "#successCount",
+                    "#failCount"
                 );
             }
 
@@ -158,19 +161,19 @@ public class CLusterSendMsgRTCommand implements SubCommand {
                             }
                         }
 
-                        double rt = (double) elapsed / (amount - 1);
+                        double rt = (double)elapsed / (amount - 1);
                         if (!printAsTlog) {
                             System.out.printf("%-24s  %-24s  %-8s  %-16s  %-16s%n",
-                                    clusterName,
-                                    brokerName,
-                                    String.format("%.2f", rt),
-                                    successCount,
-                                    failCount
+                                clusterName,
+                                brokerName,
+                                String.format("%.2f", rt),
+                                successCount,
+                                failCount
                             );
                         } else {
                             System.out.printf(String.format("%s|%s|%s|%s|%s%n", getCurTime(),
-                                    machineRoom, clusterName, brokerName,
-                                    new BigDecimal(rt).setScale(0, BigDecimal.ROUND_HALF_UP)));
+                                machineRoom, clusterName, brokerName,
+                                new BigDecimal(rt).setScale(0, BigDecimal.ROUND_HALF_UP)));
                         }
 
                     }

@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.rocketmq.common.filter.impl;
@@ -49,7 +49,7 @@ public class PolishExpr {
                 segments.add(token);
             } else if (isLeftParenthesis(token)) {
 
-                operatorStack.push((Operator) token);
+                operatorStack.push((Operator)token);
             } else if (isRightParenthesis(token)) {
 
                 Operator opNew = null;
@@ -60,7 +60,7 @@ public class PolishExpr {
                     throw new IllegalArgumentException("mismatched parentheses");
             } else if (isOperator(token)) {
 
-                Operator opNew = (Operator) token;
+                Operator opNew = (Operator)token;
                 if (!operatorStack.empty()) {
                     Operator opOld = operatorStack.peek();
                     if (opOld.isCompareable() && opNew.compare(opOld) != 1) {
@@ -99,17 +99,16 @@ public class PolishExpr {
         Type preType = Type.NULL;
 
         for (int i = 0; i < size; i++) {
-            int chValue = (int) expression.charAt(i);
+            int chValue = (int)expression.charAt(i);
 
             if ((97 <= chValue && chValue <= 122) || (65 <= chValue && chValue <= 90)
-                    || (49 <= chValue && chValue <= 57) || 95 == chValue) {
-
+                || (49 <= chValue && chValue <= 57) || 95 == chValue) {
 
                 if (Type.OPERATOR == preType || Type.SEPAERATOR == preType || Type.NULL == preType
-                        || Type.PARENTHESIS == preType) {
+                    || Type.PARENTHESIS == preType) {
                     if (Type.OPERATOR == preType) {
                         segments.add(createOperator(expression.substring(wordStartIndex, wordStartIndex
-                                + wordLen)));
+                            + wordLen)));
                     }
                     wordStartIndex = i;
                     wordLen = 0;
@@ -118,10 +117,9 @@ public class PolishExpr {
                 wordLen++;
             } else if (40 == chValue || 41 == chValue) {
 
-
                 if (Type.OPERATOR == preType) {
                     segments.add(createOperator(expression
-                            .substring(wordStartIndex, wordStartIndex + wordLen)));
+                        .substring(wordStartIndex, wordStartIndex + wordLen)));
                     wordStartIndex = -1;
                     wordLen = 0;
                 } else if (Type.OPERAND == preType) {
@@ -131,13 +129,13 @@ public class PolishExpr {
                 }
 
                 preType = Type.PARENTHESIS;
-                segments.add(createOperator((char) chValue + ""));
+                segments.add(createOperator((char)chValue + ""));
             } else if (38 == chValue || 124 == chValue) {
 
                 if (Type.OPERAND == preType || Type.SEPAERATOR == preType || Type.PARENTHESIS == preType) {
                     if (Type.OPERAND == preType) {
                         segments.add(new Operand(expression.substring(wordStartIndex, wordStartIndex
-                                + wordLen)));
+                            + wordLen)));
                     }
                     wordStartIndex = i;
                     wordLen = 0;
@@ -146,10 +144,9 @@ public class PolishExpr {
                 wordLen++;
             } else if (32 == chValue || 9 == chValue) {
 
-
                 if (Type.OPERATOR == preType) {
                     segments.add(createOperator(expression
-                            .substring(wordStartIndex, wordStartIndex + wordLen)));
+                        .substring(wordStartIndex, wordStartIndex + wordLen)));
                     wordStartIndex = -1;
                     wordLen = 0;
                 } else if (Type.OPERAND == preType) {
@@ -160,7 +157,7 @@ public class PolishExpr {
                 preType = Type.SEPAERATOR;
             } else {
 
-                throw new IllegalArgumentException("illegal expression, at index " + i + " " + (char) chValue);
+                throw new IllegalArgumentException("illegal expression, at index " + i + " " + (char)chValue);
             }
 
         }
@@ -176,11 +173,11 @@ public class PolishExpr {
     }
 
     public static boolean isLeftParenthesis(Op token) {
-        return token instanceof Operator && LEFTPARENTHESIS == (Operator) token;
+        return token instanceof Operator && LEFTPARENTHESIS == (Operator)token;
     }
 
     public static boolean isRightParenthesis(Op token) {
-        return token instanceof Operator && RIGHTPARENTHESIS == (Operator) token;
+        return token instanceof Operator && RIGHTPARENTHESIS == (Operator)token;
     }
 
     public static boolean isOperator(Op token) {

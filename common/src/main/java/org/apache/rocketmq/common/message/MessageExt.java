@@ -6,23 +6,21 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.common.message;
-
-import org.apache.rocketmq.common.TopicFilterType;
-import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-
+import org.apache.rocketmq.common.TopicFilterType;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 
 public class MessageExt extends Message {
     private static final long serialVersionUID = 5720810158625748049L;
@@ -45,13 +43,11 @@ public class MessageExt extends Message {
 
     private long preparedTransactionOffset;
 
-
     public MessageExt() {
     }
 
-
     public MessageExt(int queueId, long bornTimestamp, SocketAddress bornHost, long storeTimestamp,
-                      SocketAddress storeHost, String msgId) {
+        SocketAddress storeHost, String msgId) {
         this.queueId = queueId;
         this.bornTimestamp = bornTimestamp;
         this.bornHost = bornHost;
@@ -68,16 +64,8 @@ public class MessageExt extends Message {
         return TopicFilterType.SINGLE_TAG;
     }
 
-    public ByteBuffer getBornHostBytes() {
-        return socketAddress2ByteBuffer(this.bornHost);
-    }
-
-    public ByteBuffer getBornHostBytes(ByteBuffer byteBuffer) {
-        return socketAddress2ByteBuffer(this.bornHost, byteBuffer);
-    }
-
     private static ByteBuffer socketAddress2ByteBuffer(final SocketAddress socketAddress, final ByteBuffer byteBuffer) {
-        InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
+        InetSocketAddress inetSocketAddress = (InetSocketAddress)socketAddress;
         byteBuffer.put(inetSocketAddress.getAddress().getAddress(), 0, 4);
         byteBuffer.putInt(inetSocketAddress.getPort());
         byteBuffer.flip();
@@ -87,6 +75,14 @@ public class MessageExt extends Message {
     public static ByteBuffer socketAddress2ByteBuffer(SocketAddress socketAddress) {
         ByteBuffer byteBuffer = ByteBuffer.allocate(8);
         return socketAddress2ByteBuffer(socketAddress, byteBuffer);
+    }
+
+    public ByteBuffer getBornHostBytes() {
+        return socketAddress2ByteBuffer(this.bornHost);
+    }
+
+    public ByteBuffer getBornHostBytes(ByteBuffer byteBuffer) {
+        return socketAddress2ByteBuffer(this.bornHost, byteBuffer);
     }
 
     public ByteBuffer getStoreHostBytes() {
@@ -123,7 +119,7 @@ public class MessageExt extends Message {
 
     public String getBornHostString() {
         if (this.bornHost != null) {
-            InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;
+            InetSocketAddress inetSocketAddress = (InetSocketAddress)this.bornHost;
             return inetSocketAddress.getAddress().getHostAddress();
         }
 
@@ -132,7 +128,7 @@ public class MessageExt extends Message {
 
     public String getBornHostNameString() {
         if (this.bornHost != null) {
-            InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;
+            InetSocketAddress inetSocketAddress = (InetSocketAddress)this.bornHost;
             return inetSocketAddress.getAddress().getHostName();
         }
 
@@ -207,29 +203,25 @@ public class MessageExt extends Message {
         return reconsumeTimes;
     }
 
-
     public void setReconsumeTimes(int reconsumeTimes) {
         this.reconsumeTimes = reconsumeTimes;
     }
-
 
     public long getPreparedTransactionOffset() {
         return preparedTransactionOffset;
     }
 
-
     public void setPreparedTransactionOffset(long preparedTransactionOffset) {
         this.preparedTransactionOffset = preparedTransactionOffset;
     }
 
-
     @Override
     public String toString() {
         return "MessageExt [queueId=" + queueId + ", storeSize=" + storeSize + ", queueOffset=" + queueOffset
-                + ", sysFlag=" + sysFlag + ", bornTimestamp=" + bornTimestamp + ", bornHost=" + bornHost
-                + ", storeTimestamp=" + storeTimestamp + ", storeHost=" + storeHost + ", msgId=" + msgId
-                + ", commitLogOffset=" + commitLogOffset + ", bodyCRC=" + bodyCRC + ", reconsumeTimes="
-                + reconsumeTimes + ", preparedTransactionOffset=" + preparedTransactionOffset
-                + ", toString()=" + super.toString() + "]";
+            + ", sysFlag=" + sysFlag + ", bornTimestamp=" + bornTimestamp + ", bornHost=" + bornHost
+            + ", storeTimestamp=" + storeTimestamp + ", storeHost=" + storeHost + ", msgId=" + msgId
+            + ", commitLogOffset=" + commitLogOffset + ", bodyCRC=" + bodyCRC + ", reconsumeTimes="
+            + reconsumeTimes + ", preparedTransactionOffset=" + preparedTransactionOffset
+            + ", toString()=" + super.toString() + "]";
     }
 }

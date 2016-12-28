@@ -16,6 +16,13 @@
  */
 package org.apache.rocketmq.tools.command.consumer;
 
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -30,16 +37,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
-
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-
 
 public class ConsumerProgressSubCommand implements SubCommand {
     private final Logger log = ClientLogger.getLog();
@@ -78,13 +76,13 @@ public class ConsumerProgressSubCommand implements SubCommand {
                 Collections.sort(mqList);
 
                 System.out.printf("%-32s  %-32s  %-4s  %-20s  %-20s  %-20s  %s%n",
-                        "#Topic",
-                        "#Broker Name",
-                        "#QID",
-                        "#Broker Offset",
-                        "#Consumer Offset",
-                        "#Diff",
-                        "#LastTime");
+                    "#Topic",
+                    "#Broker Name",
+                    "#QID",
+                    "#Broker Offset",
+                    "#Consumer Offset",
+                    "#Diff",
+                    "#LastTime");
 
                 long diffTotal = 0L;
                 for (MessageQueue mq : mqList) {
@@ -97,13 +95,13 @@ public class ConsumerProgressSubCommand implements SubCommand {
                     } catch (Exception e) {
                     }
                     System.out.printf("%-32s  %-32s  %-4d  %-20d  %-20d  %-20d  %s%n",
-                            UtilAll.frontStringAtLeast(mq.getTopic(), 32),
-                            UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),
-                            mq.getQueueId(),
-                            offsetWrapper.getBrokerOffset(),
-                            offsetWrapper.getConsumerOffset(),
-                            diff,
-                            lastTime
+                        UtilAll.frontStringAtLeast(mq.getTopic(), 32),
+                        UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),
+                        mq.getQueueId(),
+                        offsetWrapper.getBrokerOffset(),
+                        offsetWrapper.getConsumerOffset(),
+                        diff,
+                        lastTime
                     );
                 }
 
@@ -112,13 +110,13 @@ public class ConsumerProgressSubCommand implements SubCommand {
                 System.out.printf("Diff Total: %d%n", diffTotal);
             } else {
                 System.out.printf("%-32s  %-6s  %-24s %-5s  %-14s  %-7s  %s%n",
-                        "#Group",
-                        "#Count",
-                        "#Version",
-                        "#Type",
-                        "#Model",
-                        "#TPS",
-                        "#Diff Total"
+                    "#Group",
+                    "#Count",
+                    "#Version",
+                    "#Type",
+                    "#Model",
+                    "#TPS",
+                    "#Diff Total"
                 );
                 TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
                 for (String topic : topicList.getTopicList()) {
@@ -143,7 +141,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
                             groupConsumeInfo.setGroup(consumerGroup);
 
                             if (consumeStats != null) {
-                                groupConsumeInfo.setConsumeTps((int) consumeStats.getConsumeTps());
+                                groupConsumeInfo.setConsumeTps((int)consumeStats.getConsumeTps());
                                 groupConsumeInfo.setDiffTotal(consumeStats.computeTotalDiff());
                             }
 
@@ -155,13 +153,13 @@ public class ConsumerProgressSubCommand implements SubCommand {
                             }
 
                             System.out.printf("%-32s  %-6d  %-24s %-5s  %-14s  %-7d  %d%n",
-                                    UtilAll.frontStringAtLeast(groupConsumeInfo.getGroup(), 32),
-                                    groupConsumeInfo.getCount(),
-                                    groupConsumeInfo.getCount() > 0 ? groupConsumeInfo.versionDesc() : "OFFLINE",
-                                    groupConsumeInfo.consumeTypeDesc(),
-                                    groupConsumeInfo.messageModelDesc(),
-                                    groupConsumeInfo.getConsumeTps(),
-                                    groupConsumeInfo.getDiffTotal()
+                                UtilAll.frontStringAtLeast(groupConsumeInfo.getGroup(), 32),
+                                groupConsumeInfo.getCount(),
+                                groupConsumeInfo.getCount() > 0 ? groupConsumeInfo.versionDesc() : "OFFLINE",
+                                groupConsumeInfo.consumeTypeDesc(),
+                                groupConsumeInfo.messageModelDesc(),
+                                groupConsumeInfo.getConsumeTps(),
+                                groupConsumeInfo.getDiffTotal()
                             );
                         } catch (Exception e) {
                             log.warn("examineConsumeStats or examineConsumerConnectionInfo exception, " + consumerGroup, e);
@@ -177,7 +175,6 @@ public class ConsumerProgressSubCommand implements SubCommand {
     }
 }
 
-
 class GroupConsumeInfo implements Comparable<GroupConsumeInfo> {
     private String group;
     private int version;
@@ -186,7 +183,6 @@ class GroupConsumeInfo implements Comparable<GroupConsumeInfo> {
     private MessageModel messageModel;
     private int consumeTps;
     private long diffTotal;
-
 
     public String getGroup() {
         return group;
@@ -245,11 +241,9 @@ class GroupConsumeInfo implements Comparable<GroupConsumeInfo> {
         return diffTotal;
     }
 
-
     public void setDiffTotal(long diffTotal) {
         this.diffTotal = diffTotal;
     }
-
 
     @Override
     public int compareTo(GroupConsumeInfo o) {
@@ -257,24 +251,20 @@ class GroupConsumeInfo implements Comparable<GroupConsumeInfo> {
             return o.count - this.count;
         }
 
-        return (int) (o.diffTotal - diffTotal);
+        return (int)(o.diffTotal - diffTotal);
     }
-
 
     public int getConsumeTps() {
         return consumeTps;
     }
 
-
     public void setConsumeTps(int consumeTps) {
         this.consumeTps = consumeTps;
     }
 
-
     public int getVersion() {
         return version;
     }
-
 
     public void setVersion(int version) {
         this.version = version;

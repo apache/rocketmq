@@ -16,6 +16,10 @@
  */
 package org.apache.rocketmq.filtersrv;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -31,12 +35,6 @@ import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-
 public class FiltersrvController {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.FILTERSRV_LOGGER_NAME);
 
@@ -47,10 +45,10 @@ public class FiltersrvController {
 
     private final FilterServerOuterAPI filterServerOuterAPI = new FilterServerOuterAPI();
     private final DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer(
-            MixAll.FILTERSRV_CONSUMER_GROUP);
+        MixAll.FILTERSRV_CONSUMER_GROUP);
 
     private final ScheduledExecutorService scheduledExecutorService = Executors
-            .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("FSScheduledThread"));
+        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("FSScheduledThread"));
     private final FilterServerStatsManager filterServerStatsManager = new FilterServerStatsManager();
 
     private RemotingServer remotingServer;
@@ -58,28 +56,23 @@ public class FiltersrvController {
     private ExecutorService remotingExecutor;
     private volatile String brokerName = null;
 
-
     public FiltersrvController(FiltersrvConfig filtersrvConfig, NettyServerConfig nettyServerConfig) {
         this.filtersrvConfig = filtersrvConfig;
         this.nettyServerConfig = nettyServerConfig;
         this.filterClassManager = new FilterClassManager(this);
     }
 
-
     public boolean initialize() {
 
         MixAll.printObjectProperties(log, this.filtersrvConfig);
 
-
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig);
 
-
         this.remotingExecutor =
-                Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(),
-                        new ThreadFactoryImpl("RemotingExecutorThread_"));
+            Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(),
+                new ThreadFactoryImpl("RemotingExecutorThread_"));
 
         this.registerProcessor();
-
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -90,9 +83,9 @@ public class FiltersrvController {
         }, 3, 10, TimeUnit.SECONDS);
 
         this.defaultMQPullConsumer.setBrokerSuspendMaxTimeMillis(this.defaultMQPullConsumer
-                .getBrokerSuspendMaxTimeMillis() - 1000);
+            .getBrokerSuspendMaxTimeMillis() - 1000);
         this.defaultMQPullConsumer.setConsumerTimeoutMillisWhenSuspend(this.defaultMQPullConsumer
-                .getConsumerTimeoutMillisWhenSuspend() - 1000);
+            .getConsumerTimeoutMillisWhenSuspend() - 1000);
 
         this.defaultMQPullConsumer.setNamesrvAddr(this.filtersrvConfig.getNamesrvAddr());
         this.defaultMQPullConsumer.setInstanceName(String.valueOf(UtilAll.getPid()));
@@ -102,26 +95,26 @@ public class FiltersrvController {
 
     private void registerProcessor() {
         this.remotingServer
-                .registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
+            .registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
     }
 
     public void registerFilterServerToBroker() {
         try {
             RegisterFilterServerResponseHeader responseHeader =
-                    this.filterServerOuterAPI.registerFilterServerToBroker(
-                            this.filtersrvConfig.getConnectWhichBroker(), this.localAddr());
+                this.filterServerOuterAPI.registerFilterServerToBroker(
+                    this.filtersrvConfig.getConnectWhichBroker(), this.localAddr());
             this.defaultMQPullConsumer.getDefaultMQPullConsumerImpl().getPullAPIWrapper()
-                    .setDefaultBrokerId(responseHeader.getBrokerId());
+                .setDefaultBrokerId(responseHeader.getBrokerId());
 
             if (null == this.brokerName) {
                 this.brokerName = responseHeader.getBrokerName();
             }
 
             log.info("register filter server<{}> to broker<{}> OK, Return: {} {}",
-                    this.localAddr(),
-                    this.filtersrvConfig.getConnectWhichBroker(),
-                    responseHeader.getBrokerName(),
-                    responseHeader.getBrokerId());
+                this.localAddr(),
+                this.filtersrvConfig.getConnectWhichBroker(),
+                responseHeader.getBrokerName(),
+                responseHeader.getBrokerId());
         } catch (Exception e) {
             log.warn("register filter server Exception", e);
 
@@ -132,7 +125,7 @@ public class FiltersrvController {
 
     public String localAddr() {
         return String.format("%s:%d", this.filtersrvConfig.getFilterServerIP(),
-                this.remotingServer.localListenPort());
+            this.remotingServer.localListenPort());
     }
 
     public void start() throws Exception {
@@ -140,11 +133,10 @@ public class FiltersrvController {
         this.remotingServer.start();
         this.filterServerOuterAPI.start();
         this.defaultMQPullConsumer.getDefaultMQPullConsumerImpl().getPullAPIWrapper()
-                .setConnectBrokerByUser(true);
+            .setConnectBrokerByUser(true);
         this.filterClassManager.start();
         this.filterServerStatsManager.start();
     }
-
 
     public void shutdown() {
         this.remotingServer.shutdown();
@@ -156,66 +148,53 @@ public class FiltersrvController {
         this.filterServerStatsManager.shutdown();
     }
 
-
     public RemotingServer getRemotingServer() {
         return remotingServer;
     }
-
 
     public void setRemotingServer(RemotingServer remotingServer) {
         this.remotingServer = remotingServer;
     }
 
-
     public ExecutorService getRemotingExecutor() {
         return remotingExecutor;
     }
-
 
     public void setRemotingExecutor(ExecutorService remotingExecutor) {
         this.remotingExecutor = remotingExecutor;
     }
 
-
     public FiltersrvConfig getFiltersrvConfig() {
         return filtersrvConfig;
     }
-
 
     public NettyServerConfig getNettyServerConfig() {
         return nettyServerConfig;
     }
 
-
     public ScheduledExecutorService getScheduledExecutorService() {
         return scheduledExecutorService;
     }
-
 
     public FilterServerOuterAPI getFilterServerOuterAPI() {
         return filterServerOuterAPI;
     }
 
-
     public FilterClassManager getFilterClassManager() {
         return filterClassManager;
     }
-
 
     public DefaultMQPullConsumer getDefaultMQPullConsumer() {
         return defaultMQPullConsumer;
     }
 
-
     public String getBrokerName() {
         return brokerName;
     }
 
-
     public void setBrokerName(String brokerName) {
         this.brokerName = brokerName;
     }
-
 
     public FilterServerStatsManager getFilterServerStatsManager() {
         return filterServerStatsManager;

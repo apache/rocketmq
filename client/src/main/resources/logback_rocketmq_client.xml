@@ -28,7 +28,7 @@
             <maxIndex>${client.logFileMaxIndex}</maxIndex>
         </rollingPolicy>
         <triggeringPolicy
-                class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>

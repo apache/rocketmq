@@ -16,14 +16,12 @@
  */
 package org.apache.rocketmq.store;
 
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.List;
-
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConsumeQueue {
 
@@ -43,13 +41,12 @@ public class ConsumeQueue {
     private long maxPhysicOffset = -1;
     private volatile long minLogicOffset = 0;
 
-
     public ConsumeQueue(
-            final String topic,
-            final int queueId,
-            final String storePath,
-            final int mappedFileSize,
-            final DefaultMessageStore defaultMessageStore) {
+        final String topic,
+        final int queueId,
+        final String storePath,
+        final int mappedFileSize,
+        final DefaultMessageStore defaultMessageStore) {
         this.storePath = storePath;
         this.mappedFileSize = mappedFileSize;
         this.defaultMessageStore = defaultMessageStore;
@@ -58,21 +55,19 @@ public class ConsumeQueue {
         this.queueId = queueId;
 
         String queueDir = this.storePath
-                + File.separator + topic
-                + File.separator + queueId;
+            + File.separator + topic
+            + File.separator + queueId;
 
         this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
 
         this.byteBufferIndex = ByteBuffer.allocate(CQ_STORE_UNIT_SIZE);
     }
 
-
     public boolean load() {
         boolean result = this.mappedFileQueue.load();
         log.info("load consume queue " + this.topic + "-" + this.queueId + " " + (result ? "OK" : "Failed"));
         return result;
     }
-
 
     public void recover() {
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
@@ -98,18 +93,17 @@ public class ConsumeQueue {
                         this.maxPhysicOffset = offset;
                     } else {
                         log.info("recover current consume queue file over,  " + mappedFile.getFileName() + " "
-                                + offset + " " + size + " " + tagsCode);
+                            + offset + " " + size + " " + tagsCode);
                         break;
                     }
                 }
-
 
                 if (mapedFileOffset == mapedFileSizeLogics) {
                     index++;
                     if (index >= mappedFiles.size()) {
 
                         log.info("recover last consume queue file over, last maped file "
-                                + mappedFile.getFileName());
+                            + mappedFile.getFileName());
                         break;
                     } else {
                         mappedFile = mappedFiles.get(index);
@@ -120,7 +114,7 @@ public class ConsumeQueue {
                     }
                 } else {
                     log.info("recover current consume queue queue over " + mappedFile.getFileName() + " "
-                            + (processOffset + mapedFileOffset));
+                        + (processOffset + mapedFileOffset));
                     break;
                 }
             }
@@ -137,8 +131,8 @@ public class ConsumeQueue {
         if (mappedFile != null) {
             long offset = 0;
             int low =
-                    minLogicOffset > mappedFile.getFileFromOffset() ? (int) (minLogicOffset - mappedFile
-                            .getFileFromOffset()) : 0;
+                minLogicOffset > mappedFile.getFileFromOffset() ? (int)(minLogicOffset - mappedFile
+                    .getFileFromOffset()) : 0;
             int high = 0;
             int midOffset = -1, targetOffset = -1, leftOffset = -1, rightOffset = -1;
             long leftIndexValue = -1L, rightIndexValue = -1L;
@@ -160,7 +154,7 @@ public class ConsumeQueue {
                         }
 
                         long storeTime =
-                                this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
+                            this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
                         if (storeTime < 0) {
                             return 0;
                         } else if (storeTime == timestamp) {
@@ -189,8 +183,8 @@ public class ConsumeQueue {
                             offset = leftOffset;
                         } else {
                             offset =
-                                    Math.abs(timestamp - leftIndexValue) > Math.abs(timestamp
-                                            - rightIndexValue) ? rightOffset : leftOffset;
+                                Math.abs(timestamp - leftIndexValue) > Math.abs(timestamp
+                                    - rightIndexValue) ? rightOffset : leftOffset;
                         }
                     }
 
@@ -223,7 +217,6 @@ public class ConsumeQueue {
                     int size = byteBuffer.getInt();
                     byteBuffer.getLong();
 
-
                     if (0 == i) {
                         if (offset >= phyOffet) {
                             this.mappedFileQueue.deleteLastMappedFile();
@@ -248,7 +241,6 @@ public class ConsumeQueue {
                             mappedFile.setCommittedPosition(pos);
                             mappedFile.setFlushedPosition(pos);
                             this.maxPhysicOffset = offset;
-
 
                             if (pos == logicFileSize) {
                                 return;
@@ -283,7 +275,6 @@ public class ConsumeQueue {
                 int size = byteBuffer.getInt();
                 byteBuffer.getLong();
 
-
                 if (offset >= 0 && size > 0) {
                     lastOffset = offset + size;
                 } else {
@@ -295,11 +286,9 @@ public class ConsumeQueue {
         return lastOffset;
     }
 
-
     public boolean flush(final int flushLeastPages) {
         return this.mappedFileQueue.flush(flushLeastPages);
     }
-
 
     public int deleteExpiredFile(long offset) {
         int cnt = this.mappedFileQueue.deleteExpiredFileByOffset(offset, CQ_STORE_UNIT_SIZE);
@@ -322,7 +311,7 @@ public class ConsumeQueue {
                         if (offsetPy >= phyMinOffset) {
                             this.minLogicOffset = result.getMappedFile().getFileFromOffset() + i;
                             log.info("compute logics min offset: " + this.getMinOffsetInQuque() + ", topic: "
-                                    + this.topic + ", queueId: " + this.queueId);
+                                + this.topic + ", queueId: " + this.queueId);
                             break;
                         }
                     }
@@ -335,14 +324,12 @@ public class ConsumeQueue {
         }
     }
 
-
     public long getMinOffsetInQuque() {
         return this.minLogicOffset / CQ_STORE_UNIT_SIZE;
     }
 
-
     public void putMessagePositionInfoWrapper(long offset, int size, long tagsCode, long storeTimestamp,
-                                              long logicOffset) {
+        long logicOffset) {
         final int maxRetries = 30;
         boolean canWrite = this.defaultMessageStore.getRunningFlags().isWriteable();
         for (int i = 0; i < maxRetries && canWrite; i++) {
@@ -353,7 +340,7 @@ public class ConsumeQueue {
             } else {
                 // XXX: warn and notify me
                 log.warn("[BUG]put commit log position info to " + topic + ":" + queueId + " " + offset
-                        + " failed, retry " + i + " times");
+                    + " failed, retry " + i + " times");
 
                 try {
                     Thread.sleep(1000);
@@ -369,7 +356,7 @@ public class ConsumeQueue {
     }
 
     private boolean putMessagePositionInfo(final long offset, final int size, final long tagsCode,
-                                           final long cqOffset) {
+        final long cqOffset) {
 
         if (offset <= this.maxPhysicOffset) {
             return true;
@@ -392,19 +379,19 @@ public class ConsumeQueue {
                 this.mappedFileQueue.setCommittedWhere(expectLogicOffset);
                 this.fillPreBlank(mappedFile, expectLogicOffset);
                 log.info("fill pre blank space " + mappedFile.getFileName() + " " + expectLogicOffset + " "
-                        + mappedFile.getWrotePosition());
+                    + mappedFile.getWrotePosition());
             }
 
             if (cqOffset != 0) {
                 long currentLogicOffset = mappedFile.getWrotePosition() + mappedFile.getFileFromOffset();
                 if (expectLogicOffset != currentLogicOffset) {
                     LOG_ERROR.warn(
-                            "[BUG]logic queue order maybe wrong, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
-                            expectLogicOffset,
-                            currentLogicOffset,
-                            this.topic,
-                            this.queueId,
-                            expectLogicOffset - currentLogicOffset
+                        "[BUG]logic queue order maybe wrong, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
+                        expectLogicOffset,
+                        currentLogicOffset,
+                        this.topic,
+                        this.queueId,
+                        expectLogicOffset - currentLogicOffset
                     );
                 }
             }
@@ -414,14 +401,13 @@ public class ConsumeQueue {
         return false;
     }
 
-
     private void fillPreBlank(final MappedFile mappedFile, final long untilWhere) {
         ByteBuffer byteBuffer = ByteBuffer.allocate(CQ_STORE_UNIT_SIZE);
         byteBuffer.putLong(0L);
         byteBuffer.putInt(Integer.MAX_VALUE);
         byteBuffer.putLong(0L);
 
-        int until = (int) (untilWhere % this.mappedFileQueue.getMappedFileSize());
+        int until = (int)(untilWhere % this.mappedFileQueue.getMappedFileSize());
         for (int i = 0; i < until; i += CQ_STORE_UNIT_SIZE) {
             mappedFile.appendMessage(byteBuffer.array());
         }
@@ -433,7 +419,7 @@ public class ConsumeQueue {
         if (offset >= this.getMinLogicOffset()) {
             MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset);
             if (mappedFile != null) {
-                SelectMappedBufferResult result = mappedFile.selectMappedBuffer((int) (offset % mappedFileSize));
+                SelectMappedBufferResult result = mappedFile.selectMappedBuffer((int)(offset % mappedFileSize));
                 return result;
             }
         }
@@ -480,11 +466,9 @@ public class ConsumeQueue {
         return this.getMaxOffsetInQuque() - this.getMinOffsetInQuque();
     }
 
-
     public long getMaxOffsetInQuque() {
         return this.mappedFileQueue.getMaxOffset() / CQ_STORE_UNIT_SIZE;
     }
-
 
     public void checkSelf() {
         mappedFileQueue.checkSelf();

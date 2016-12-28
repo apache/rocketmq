@@ -6,13 +6,15 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * $Id: ScheduleMessageTest.java 1831 2013-05-16 01:39:51Z vintagewang@apache.org $
  */
 
 /**
@@ -20,18 +22,20 @@
  */
 package org.apache.rocketmq.store.schedule;
 
-import org.apache.rocketmq.store.*;
-import org.apache.rocketmq.store.*;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.GetMessageResult;
+import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertTrue;
 
@@ -65,7 +69,6 @@ public class ScheduleMessageTest {
         long totalMsgs = 10000;
         QUEUE_TOTAL = 32;
 
-
         MessageBody = StoreMessage.getBytes();
 
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
@@ -79,7 +82,6 @@ public class ScheduleMessageTest {
         boolean load = master.load();
         assertTrue(load);
 
-
         master.start();
         for (int i = 0; i < totalMsgs; i++) {
             MessageExtBrokerInner msg = buildMessage();
@@ -91,7 +93,6 @@ public class ScheduleMessageTest {
 
         System.out.println("write message over, wait time up");
         Thread.sleep(1000 * 20);
-
 
         for (long i = 0; i < totalMsgs; i++) {
             try {
@@ -110,9 +111,7 @@ public class ScheduleMessageTest {
 
         Thread.sleep(1000 * 15);
 
-
         master.shutdown();
-
 
         master.destroy();
         System.out.println("================================================================");

@@ -17,6 +17,12 @@
 
 package org.apache.rocketmq.tools.command.offset;
 
+import java.util.Iterator;
+import java.util.Map;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -25,22 +31,14 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
-
-import java.util.Iterator;
-import java.util.Map;
-
 
 public class ResetOffsetByTimeCommand implements SubCommand {
     public static void main(String[] args) {
         ResetOffsetByTimeCommand cmd = new ResetOffsetByTimeCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[]{"-t Jodie_rest_test", "-g CID_Jodie_rest_test", "-s -1", "-f true"};
+        String[] subargs = new String[] {"-t Jodie_rest_test", "-g CID_Jodie_rest_test", "-s -1", "-f true"};
         final CommandLine commandLine =
-                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
+            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
     }
 
@@ -120,20 +118,20 @@ public class ResetOffsetByTimeCommand implements SubCommand {
             }
 
             System.out.printf("rollback consumer offset by specified group[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]%n",
-                    group, topic, force, timeStampStr, timestamp);
+                group, topic, force, timeStampStr, timestamp);
 
             System.out.printf("%-40s  %-40s  %-40s%n",
-                    "#brokerName",
-                    "#queueId",
-                    "#offset");
+                "#brokerName",
+                "#queueId",
+                "#offset");
 
             Iterator<Map.Entry<MessageQueue, Long>> iterator = offsetTable.entrySet().iterator();
             while (iterator.hasNext()) {
                 Map.Entry<MessageQueue, Long> entry = iterator.next();
                 System.out.printf("%-40s  %-40d  %-40d%n",
-                        UtilAll.frontStringAtLeast(entry.getKey().getBrokerName(), 32),
-                        entry.getKey().getQueueId(),
-                        entry.getValue());
+                    UtilAll.frontStringAtLeast(entry.getKey().getBrokerName(), 32),
+                    entry.getKey().getQueueId(),
+                    entry.getValue());
             }
         } catch (Exception e) {
             e.printStackTrace();

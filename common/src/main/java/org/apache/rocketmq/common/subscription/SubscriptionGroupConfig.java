@@ -19,7 +19,6 @@ package org.apache.rocketmq.common.subscription;
 
 import org.apache.rocketmq.common.MixAll;
 
-
 public class SubscriptionGroupConfig {
 
     private String groupName;
@@ -39,81 +38,65 @@ public class SubscriptionGroupConfig {
 
     private boolean notifyConsumerIdsChangedEnable = true;
 
-
     public String getGroupName() {
         return groupName;
     }
-
 
     public void setGroupName(String groupName) {
         this.groupName = groupName;
     }
 
-
     public boolean isConsumeEnable() {
         return consumeEnable;
     }
-
 
     public void setConsumeEnable(boolean consumeEnable) {
         this.consumeEnable = consumeEnable;
     }
 
-
     public boolean isConsumeFromMinEnable() {
         return consumeFromMinEnable;
     }
-
 
     public void setConsumeFromMinEnable(boolean consumeFromMinEnable) {
         this.consumeFromMinEnable = consumeFromMinEnable;
     }
 
-
     public boolean isConsumeBroadcastEnable() {
         return consumeBroadcastEnable;
     }
-
 
     public void setConsumeBroadcastEnable(boolean consumeBroadcastEnable) {
         this.consumeBroadcastEnable = consumeBroadcastEnable;
     }
 
-
     public int getRetryQueueNums() {
         return retryQueueNums;
     }
-
 
     public void setRetryQueueNums(int retryQueueNums) {
         this.retryQueueNums = retryQueueNums;
     }
 
-
     public int getRetryMaxTimes() {
         return retryMaxTimes;
     }
-
 
     public void setRetryMaxTimes(int retryMaxTimes) {
         this.retryMaxTimes = retryMaxTimes;
     }
 
-
     public long getBrokerId() {
         return brokerId;
     }
-
 
     public void setBrokerId(long brokerId) {
         this.brokerId = brokerId;
     }
 
-
     public long getWhichBrokerWhenConsumeSlowly() {
         return whichBrokerWhenConsumeSlowly;
     }
-
 
     public void setWhichBrokerWhenConsumeSlowly(long whichBrokerWhenConsumeSlowly) {
         this.whichBrokerWhenConsumeSlowly = whichBrokerWhenConsumeSlowly;
@@ -131,7 +114,7 @@ public class SubscriptionGroupConfig {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + (int) (brokerId ^ (brokerId >>> 32));
+        result = prime * result + (int)(brokerId ^ (brokerId >>> 32));
         result = prime * result + (consumeBroadcastEnable ? 1231 : 1237);
         result = prime * result + (consumeEnable ? 1231 : 1237);
         result = prime * result + (consumeFromMinEnable ? 1231 : 1237);
@@ -140,10 +123,9 @@ public class SubscriptionGroupConfig {
         result = prime * result + retryMaxTimes;
         result = prime * result + retryQueueNums;
         result =
-                prime * result + (int) (whichBrokerWhenConsumeSlowly ^ (whichBrokerWhenConsumeSlowly >>> 32));
+            prime * result + (int)(whichBrokerWhenConsumeSlowly ^ (whichBrokerWhenConsumeSlowly >>> 32));
         return result;
     }
-
 
     @Override
     public boolean equals(Object obj) {
@@ -153,7 +135,7 @@ public class SubscriptionGroupConfig {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        SubscriptionGroupConfig other = (SubscriptionGroupConfig) obj;
+        SubscriptionGroupConfig other = (SubscriptionGroupConfig)obj;
         if (brokerId != other.brokerId)
             return false;
         if (consumeBroadcastEnable != other.consumeBroadcastEnable)
@@ -178,14 +160,13 @@ public class SubscriptionGroupConfig {
         return true;
     }
 
-
     @Override
     public String toString() {
         return "SubscriptionGroupConfig [groupName=" + groupName + ", consumeEnable=" + consumeEnable
-                + ", consumeFromMinEnable=" + consumeFromMinEnable + ", consumeBroadcastEnable="
-                + consumeBroadcastEnable + ", retryQueueNums=" + retryQueueNums + ", retryMaxTimes="
-                + retryMaxTimes + ", brokerId=" + brokerId + ", whichBrokerWhenConsumeSlowly="
-                + whichBrokerWhenConsumeSlowly + ", notifyConsumerIdsChangedEnable="
-                + notifyConsumerIdsChangedEnable + "]";
+            + ", consumeFromMinEnable=" + consumeFromMinEnable + ", consumeBroadcastEnable="
+            + consumeBroadcastEnable + ", retryQueueNums=" + retryQueueNums + ", retryMaxTimes="
+            + retryMaxTimes + ", brokerId=" + brokerId + ", whichBrokerWhenConsumeSlowly="
+            + whichBrokerWhenConsumeSlowly + ", notifyConsumerIdsChangedEnable="
+            + notifyConsumerIdsChangedEnable + "]";
     }
 }

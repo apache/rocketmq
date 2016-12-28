@@ -17,19 +17,18 @@
 
 package org.apache.rocketmq.tools.command.message;
 
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.store.ConsumeQueue;
-import org.apache.rocketmq.store.MappedFile;
-import org.apache.rocketmq.store.MappedFileQueue;
-import org.apache.rocketmq.store.SelectMappedBufferResult;
-import org.apache.rocketmq.store.config.StorePathConfigHelper;
-
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.store.ConsumeQueue;
+import org.apache.rocketmq.store.MappedFile;
+import org.apache.rocketmq.store.MappedFileQueue;
+import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
 public class Store {
     public final static int MESSAGE_MAGIC_CODE = 0xAABBCCDD ^ 1880681586 + 8;
@@ -49,7 +48,7 @@ public class Store {
         this.lSize = lSize;
         mapedFileQueue = new MappedFileQueue(cStorePath, cSize, null);
         consumeQueueTable =
-                new ConcurrentHashMap<String/* topic */, ConcurrentHashMap<Integer/* queueId */, ConsumeQueue>>();
+            new ConcurrentHashMap<String/* topic */, ConcurrentHashMap<Integer/* queueId */, ConsumeQueue>>();
     }
 
     public boolean load() {
@@ -75,11 +74,11 @@ public class Store {
                     for (File fileQueueId : fileQueueIdList) {
                         int queueId = Integer.parseInt(fileQueueId.getName());
                         ConsumeQueue logic = new ConsumeQueue(
-                                topic,
-                                queueId,
-                                StorePathConfigHelper.getStorePathConsumeQueue(lStorePath),
-                                lSize,
-                                null);
+                            topic,
+                            queueId,
+                            StorePathConfigHelper.getStorePathConsumeQueue(lStorePath),
+                            lSize,
+                            null);
                         this.putConsumeQueue(topic, queueId, logic);
                         if (!logic.load()) {
                             return false;
@@ -91,7 +90,6 @@ public class Store {
         System.out.printf("load logics queue all over, OK");
         return true;
     }
-
 
     private void putConsumeQueue(final String topic, final int queueId, final ConsumeQueue consumeQueue) {
         ConcurrentHashMap<Integer/* queueId */, ConsumeQueue> map = this.consumeQueueTable.get(topic);
@@ -181,16 +179,14 @@ public class Store {
                     e.printStackTrace();
                 }
 
-
                 Date storeTime = new Date(storeTimestamp);
-
 
                 long currentPhyOffset = startOffset + position;
                 if (physicOffset != currentPhyOffset) {
                     System.out.printf(storeTime
-                            + " [fetal error] physicOffset != currentPhyOffset. position=" + position
-                            + ", msgCount=" + msgCount + ", physicOffset=" + physicOffset
-                            + ", currentPhyOffset=" + currentPhyOffset);
+                        + " [fetal error] physicOffset != currentPhyOffset. position=" + position
+                        + ", msgCount=" + msgCount + ", physicOffset=" + physicOffset
+                        + ", currentPhyOffset=" + currentPhyOffset);
                     errorCount++;
                     if (!openAll) {
                         success = false;
@@ -205,8 +201,8 @@ public class Store {
                     int sizePy = smb.getByteBuffer().getInt();
                     if (physicOffset != offsetPy) {
                         System.out.printf(storeTime + " [fetal error] physicOffset != offsetPy. position="
-                                + position + ", msgCount=" + msgCount + ", physicOffset=" + physicOffset
-                                + ", offsetPy=" + offsetPy);
+                            + position + ", msgCount=" + msgCount + ", physicOffset=" + physicOffset
+                            + ", offsetPy=" + offsetPy);
                         errorCount++;
                         if (!openAll) {
                             success = false;
@@ -215,8 +211,8 @@ public class Store {
                     }
                     if (totalSize != sizePy) {
                         System.out.printf(storeTime + " [fetal error] totalSize != sizePy. position="
-                                + position + ", msgCount=" + msgCount + ", totalSize=" + totalSize
-                                + ", sizePy=" + sizePy);
+                            + position + ", msgCount=" + msgCount + ", totalSize=" + totalSize
+                            + ", sizePy=" + sizePy);
                         errorCount++;
                         if (!openAll) {
                             success = false;
@@ -233,7 +229,7 @@ public class Store {
             }
 
             System.out.printf("end travel " + mapedFile.getFileName() + ", total msg=" + msgCount
-                    + ", error count=" + errorCount + ", cost:" + (System.currentTimeMillis() - startTime));
+                + ", error count=" + errorCount + ", cost:" + (System.currentTimeMillis() - startTime));
         }
 
         System.out.printf("travel " + (success ? "ok" : "fail"));
@@ -243,7 +239,7 @@ public class Store {
         ConcurrentHashMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
         if (null == map) {
             ConcurrentHashMap<Integer, ConsumeQueue> newMap =
-                    new ConcurrentHashMap<Integer, ConsumeQueue>(128);
+                new ConcurrentHashMap<Integer, ConsumeQueue>(128);
             ConcurrentHashMap<Integer, ConsumeQueue> oldMap = consumeQueueTable.putIfAbsent(topic, newMap);
             if (oldMap != null) {
                 map = oldMap;
@@ -254,11 +250,11 @@ public class Store {
         ConsumeQueue logic = map.get(queueId);
         if (null == logic) {
             ConsumeQueue newLogic = new ConsumeQueue(
-                    topic,
-                    queueId,
-                    StorePathConfigHelper.getStorePathConsumeQueue(lStorePath),
-                    lSize,
-                    null);
+                topic,
+                queueId,
+                StorePathConfigHelper.getStorePathConsumeQueue(lStorePath),
+                lSize,
+                null);
             ConsumeQueue oldLogic = map.putIfAbsent(queueId, newLogic);
             if (oldLogic != null) {
                 logic = oldLogic;

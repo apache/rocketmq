@@ -16,14 +16,13 @@
  */
 package org.apache.rocketmq.tools.command.topic;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-
 
 /**
  *
@@ -36,12 +35,10 @@ public class TopicRouteSubCommand implements SubCommand {
         return "topicRoute";
     }
 
-
     @Override
     public String commandDesc() {
         return "Examine topic route info";
     }
-
 
     @Override
     public Options buildCommandlineOptions(Options options) {
@@ -51,7 +48,6 @@ public class TopicRouteSubCommand implements SubCommand {
 
         return options;
     }
-
 
     @Override
     public void execute(final CommandLine commandLine, final Options options, RPCHook rpcHook) {

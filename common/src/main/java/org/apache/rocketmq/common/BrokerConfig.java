@@ -16,13 +16,11 @@
  */
 package org.apache.rocketmq.common;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
 
 public class BrokerConfig {
     private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
@@ -87,7 +85,6 @@ public class BrokerConfig {
     private boolean transferMsgByHeap = true;
     private int maxDelayTime = 40;
 
-
     private String regionId = MixAll.DEFAULT_TRACE_REGION_ID;
     private int registerBrokerTimeoutMills = 6000;
 
@@ -101,6 +98,16 @@ public class BrokerConfig {
     private long startAcceptSendRequestTimeStamp = 0L;
 
     private boolean traceOn = true;
+
+    public static String localHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+
+        return "DEFAULT_BROKER";
+    }
 
     public boolean isTraceOn() {
         return traceOn;
@@ -150,16 +157,6 @@ public class BrokerConfig {
         this.slaveReadEnable = slaveReadEnable;
     }
 
-    public static String localHostName() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
-
-        return "DEFAULT_BROKER";
-    }
-
     public int getRegisterBrokerTimeoutMills() {
         return registerBrokerTimeoutMills;
     }
@@ -196,86 +193,69 @@ public class BrokerConfig {
         return highSpeedMode;
     }
 
-
     public void setHighSpeedMode(final boolean highSpeedMode) {
         this.highSpeedMode = highSpeedMode;
     }
-
 
     public String getRocketmqHome() {
         return rocketmqHome;
     }
 
-
     public void setRocketmqHome(String rocketmqHome) {
         this.rocketmqHome = rocketmqHome;
     }
-
 
     public String getBrokerName() {
         return brokerName;
     }
 
-
     public void setBrokerName(String brokerName) {
         this.brokerName = brokerName;
     }
-
 
     public int getBrokerPermission() {
         return brokerPermission;
     }
 
-
     public void setBrokerPermission(int brokerPermission) {
         this.brokerPermission = brokerPermission;
     }
-
 
     public int getDefaultTopicQueueNums() {
         return defaultTopicQueueNums;
     }
 
-
     public void setDefaultTopicQueueNums(int defaultTopicQueueNums) {
         this.defaultTopicQueueNums = defaultTopicQueueNums;
     }
-
 
     public boolean isAutoCreateTopicEnable() {
         return autoCreateTopicEnable;
     }
 
-
     public void setAutoCreateTopicEnable(boolean autoCreateTopic) {
         this.autoCreateTopicEnable = autoCreateTopic;
     }
-
 
     public String getBrokerClusterName() {
         return brokerClusterName;
     }
 
-
     public void setBrokerClusterName(String brokerClusterName) {
         this.brokerClusterName = brokerClusterName;
     }
-
 
     public String getBrokerIP1() {
         return brokerIP1;
     }
 
-
     public void setBrokerIP1(String brokerIP1) {
         this.brokerIP1 = brokerIP1;
     }
 
-
     public String getBrokerIP2() {
         return brokerIP2;
     }
-
 
     public void setBrokerIP2(String brokerIP2) {
         this.brokerIP2 = brokerIP2;
@@ -289,191 +269,153 @@ public class BrokerConfig {
         this.sendMessageThreadPoolNums = sendMessageThreadPoolNums;
     }
 
-
     public int getPullMessageThreadPoolNums() {
         return pullMessageThreadPoolNums;
     }
-
 
     public void setPullMessageThreadPoolNums(int pullMessageThreadPoolNums) {
         this.pullMessageThreadPoolNums = pullMessageThreadPoolNums;
     }
 
-
     public int getAdminBrokerThreadPoolNums() {
         return adminBrokerThreadPoolNums;
     }
-
 
     public void setAdminBrokerThreadPoolNums(int adminBrokerThreadPoolNums) {
         this.adminBrokerThreadPoolNums = adminBrokerThreadPoolNums;
     }
 
-
     public int getFlushConsumerOffsetInterval() {
         return flushConsumerOffsetInterval;
     }
-
 
     public void setFlushConsumerOffsetInterval(int flushConsumerOffsetInterval) {
         this.flushConsumerOffsetInterval = flushConsumerOffsetInterval;
     }
 
-
     public int getFlushConsumerOffsetHistoryInterval() {
         return flushConsumerOffsetHistoryInterval;
     }
-
 
     public void setFlushConsumerOffsetHistoryInterval(int flushConsumerOffsetHistoryInterval) {
         this.flushConsumerOffsetHistoryInterval = flushConsumerOffsetHistoryInterval;
     }
 
-
     public boolean isClusterTopicEnable() {
         return clusterTopicEnable;
     }
-
 
     public void setClusterTopicEnable(boolean clusterTopicEnable) {
         this.clusterTopicEnable = clusterTopicEnable;
     }
 
-
     public String getNamesrvAddr() {
         return namesrvAddr;
     }
-
 
     public void setNamesrvAddr(String namesrvAddr) {
         this.namesrvAddr = namesrvAddr;
     }
 
-
     public long getBrokerId() {
         return brokerId;
     }
-
 
     public void setBrokerId(long brokerId) {
         this.brokerId = brokerId;
     }
 
-
     public boolean isAutoCreateSubscriptionGroup() {
         return autoCreateSubscriptionGroup;
     }
-
 
     public void setAutoCreateSubscriptionGroup(boolean autoCreateSubscriptionGroup) {
         this.autoCreateSubscriptionGroup = autoCreateSubscriptionGroup;
     }
 
-
     public boolean isRejectTransactionMessage() {
         return rejectTransactionMessage;
     }
-
 
     public void setRejectTransactionMessage(boolean rejectTransactionMessage) {
         this.rejectTransactionMessage = rejectTransactionMessage;
     }
 
-
     public boolean isFetchNamesrvAddrByAddressServer() {
         return fetchNamesrvAddrByAddressServer;
     }
-
 
     public void setFetchNamesrvAddrByAddressServer(boolean fetchNamesrvAddrByAddressServer) {
         this.fetchNamesrvAddrByAddressServer = fetchNamesrvAddrByAddressServer;
     }
 
-
     public int getSendThreadPoolQueueCapacity() {
         return sendThreadPoolQueueCapacity;
     }
-
 
     public void setSendThreadPoolQueueCapacity(int sendThreadPoolQueueCapacity) {
         this.sendThreadPoolQueueCapacity = sendThreadPoolQueueCapacity;
     }
 
-
     public int getPullThreadPoolQueueCapacity() {
         return pullThreadPoolQueueCapacity;
     }
-
 
     public void setPullThreadPoolQueueCapacity(int pullThreadPoolQueueCapacity) {
         this.pullThreadPoolQueueCapacity = pullThreadPoolQueueCapacity;
     }
 
-
     public boolean isBrokerTopicEnable() {
         return brokerTopicEnable;
     }
-
 
     public void setBrokerTopicEnable(boolean brokerTopicEnable) {
         this.brokerTopicEnable = brokerTopicEnable;
     }
 
-
     public int getFilterServerNums() {
         return filterServerNums;
     }
-
 
     public void setFilterServerNums(int filterServerNums) {
         this.filterServerNums = filterServerNums;
     }
 
-
     public boolean isLongPollingEnable() {
         return longPollingEnable;
     }
-
 
     public void setLongPollingEnable(boolean longPollingEnable) {
         this.longPollingEnable = longPollingEnable;
     }
 
-
     public boolean isNotifyConsumerIdsChangedEnable() {
         return notifyConsumerIdsChangedEnable;
     }
-
 
     public void setNotifyConsumerIdsChangedEnable(boolean notifyConsumerIdsChangedEnable) {
         this.notifyConsumerIdsChangedEnable = notifyConsumerIdsChangedEnable;
     }
 
-
     public long getShortPollingTimeMills() {
         return shortPollingTimeMills;
     }
-
 
     public void setShortPollingTimeMills(long shortPollingTimeMills) {
         this.shortPollingTimeMills = shortPollingTimeMills;
     }
 
-
     public int getClientManageThreadPoolNums() {
         return clientManageThreadPoolNums;
     }
-
 
     public void setClientManageThreadPoolNums(int clientManageThreadPoolNums) {
         this.clientManageThreadPoolNums = clientManageThreadPoolNums;
     }
 
-
     public boolean isCommercialEnable() {
         return commercialEnable;
     }
-
 
     public void setCommercialEnable(final boolean commercialEnable) {
         this.commercialEnable = commercialEnable;
@@ -506,7 +448,6 @@ public class BrokerConfig {
     public int getMaxDelayTime() {
         return maxDelayTime;
     }
-
 
     public void setMaxDelayTime(final int maxDelayTime) {
         this.maxDelayTime = maxDelayTime;

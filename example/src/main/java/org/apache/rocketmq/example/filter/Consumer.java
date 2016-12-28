@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.example.filter;
 
+import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -24,9 +25,6 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageExt;
 
-import java.util.List;
-
-
 public class Consumer {
 
     public static void main(String[] args) throws InterruptedException, MQClientException {
@@ -34,13 +32,13 @@ public class Consumer {
 
         String filterCode = MixAll.file2String("/home/admin/MessageFilterImpl.java");
         consumer.subscribe("TopicFilter7", "org.apache.rocketmq.example.filter.MessageFilterImpl",
-                filterCode);
+            filterCode);
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
 
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                                                            ConsumeConcurrentlyContext context) {
+                ConsumeConcurrentlyContext context) {
                 System.out.printf(Thread.currentThread().getName() + " Receive New Messages: " + msgs + "%n");
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }

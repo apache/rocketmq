@@ -6,16 +6,19 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.broker.latency;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -24,19 +27,25 @@ import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-
 public class BrokerFastFailure {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-            "BrokerFastFailureScheduledThread"));
+        "BrokerFastFailureScheduledThread"));
     private final BrokerController brokerController;
 
     public BrokerFastFailure(final BrokerController brokerController) {
         this.brokerController = brokerController;
+    }
+
+    public static RequestTask castRunnable(final Runnable runnable) {
+        try {
+            FutureTaskExt object = (FutureTaskExt)runnable;
+            return (RequestTask)object.getRunnable();
+        } catch (Throwable e) {
+            log.error(String.format("castRunnable exception, %s", runnable.getClass().getName()), e);
+        }
+
+        return null;
     }
 
     public void start() {
@@ -93,17 +102,6 @@ public class BrokerFastFailure {
             } catch (Throwable e) {
             }
         }
-    }
-
-    public static RequestTask castRunnable(final Runnable runnable) {
-        try {
-            FutureTaskExt object = (FutureTaskExt) runnable;
-            return (RequestTask) object.getRunnable();
-        } catch (Throwable e) {
-            log.error(String.format("castRunnable exception, %s", runnable.getClass().getName()), e);
-        }
-
-        return null;
     }
 
     public void shutdown() {

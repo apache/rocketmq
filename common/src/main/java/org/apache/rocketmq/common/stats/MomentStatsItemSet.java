@@ -17,23 +17,20 @@
 
 package org.apache.rocketmq.common.stats;
 
-import org.apache.rocketmq.common.UtilAll;
-import org.slf4j.Logger;
-
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
+import org.apache.rocketmq.common.UtilAll;
+import org.slf4j.Logger;
 
 public class MomentStatsItemSet {
     private final ConcurrentHashMap<String/* key */, MomentStatsItem> statsItemTable =
-            new ConcurrentHashMap<String, MomentStatsItem>(128);
+        new ConcurrentHashMap<String, MomentStatsItem>(128);
     private final String statsName;
     private final ScheduledExecutorService scheduledExecutorService;
     private final Logger log;
-
 
     public MomentStatsItemSet(String statsName, ScheduledExecutorService scheduledExecutorService, Logger log) {
         this.statsName = statsName;
@@ -80,7 +77,7 @@ public class MomentStatsItemSet {
         MomentStatsItem statsItem = this.statsItemTable.get(statsKey);
         if (null == statsItem) {
             statsItem =
-                    new MomentStatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);
+                new MomentStatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);
             MomentStatsItem prev = this.statsItemTable.put(statsKey, statsItem);
 
             if (null == prev) {

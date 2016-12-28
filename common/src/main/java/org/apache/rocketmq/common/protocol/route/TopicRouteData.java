@@ -6,13 +6,15 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * $Id: TopicRouteData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
  */
 
 /**
@@ -20,19 +22,16 @@
  */
 package org.apache.rocketmq.common.protocol.route;
 
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class TopicRouteData extends RemotingSerializable {
     private String orderTopicConf;
     private List<QueueData> queueDatas;
     private List<BrokerData> brokerDatas;
     private HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
-
 
     public TopicRouteData cloneTopicRouteData() {
         TopicRouteData topicRouteData = new TopicRouteData();
@@ -56,21 +55,17 @@ public class TopicRouteData extends RemotingSerializable {
         return topicRouteData;
     }
 
-
     public List<QueueData> getQueueDatas() {
         return queueDatas;
     }
-
 
     public void setQueueDatas(List<QueueData> queueDatas) {
         this.queueDatas = queueDatas;
     }
 
-
     public List<BrokerData> getBrokerDatas() {
         return brokerDatas;
     }
-
 
     public void setBrokerDatas(List<BrokerData> brokerDatas) {
         this.brokerDatas = brokerDatas;
@@ -111,7 +106,7 @@ public class TopicRouteData extends RemotingSerializable {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        TopicRouteData other = (TopicRouteData) obj;
+        TopicRouteData other = (TopicRouteData)obj;
         if (brokerDatas == null) {
             if (other.brokerDatas != null)
                 return false;
@@ -138,6 +133,6 @@ public class TopicRouteData extends RemotingSerializable {
     @Override
     public String toString() {
         return "TopicRouteData [orderTopicConf=" + orderTopicConf + ", queueDatas=" + queueDatas
-                + ", brokerDatas=" + brokerDatas + ", filterServerTable=" + filterServerTable + "]";
+            + ", brokerDatas=" + brokerDatas + ", filterServerTable=" + filterServerTable + "]";
     }
 }

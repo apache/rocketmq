@@ -16,10 +16,6 @@
  */
 package org.apache.rocketmq.common;
 
-import org.apache.rocketmq.common.annotation.ImportantField;
-import org.apache.rocketmq.common.help.FAQUrl;
-import org.slf4j.Logger;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
@@ -46,7 +42,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-
+import org.apache.rocketmq.common.annotation.ImportantField;
+import org.apache.rocketmq.common.help.FAQUrl;
+import org.slf4j.Logger;
 
 public class MixAll {
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
@@ -94,7 +92,6 @@ public class MixAll {
         return RETRY_GROUP_TOPIC_PREFIX + consumerGroup;
     }
 
-
     public static boolean isSysConsumerGroup(final String consumerGroup) {
         return consumerGroup.startsWith(CID_RMQ_SYS_PREFIX);
     }
@@ -107,7 +104,6 @@ public class MixAll {
         return DLQ_GROUP_TOPIC_PREFIX + consumerGroup;
     }
 
-
     public static String brokerVIPChannel(final boolean isChange, final String brokerAddr) {
         if (isChange) {
             String[] ipAndPort = brokerAddr.split(":");
@@ -117,7 +113,6 @@ public class MixAll {
             return brokerAddr;
         }
     }
-
 
     public static long getPID() {
         String processName = java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
@@ -131,7 +126,6 @@ public class MixAll {
 
         return 0;
     }
-
 
     public static long createBrokerId(final String ip, final int port) {
         InetSocketAddress isa = new InetSocketAddress(ip, port);
@@ -148,22 +142,18 @@ public class MixAll {
         String tmpFile = fileName + ".tmp";
         string2FileNotSafe(str, tmpFile);
 
-
         String bakFile = fileName + ".bak";
         String prevContent = file2String(fileName);
         if (prevContent != null) {
             string2FileNotSafe(prevContent, bakFile);
         }
 
-
         File file = new File(fileName);
         file.delete();
-
 
         file = new File(tmpFile);
         file.renameTo(new File(fileName));
     }
-
 
     public static final void string2FileNotSafe(final String str, final String fileName) throws IOException {
         File file = new File(fileName);
@@ -189,7 +179,6 @@ public class MixAll {
         }
     }
 
-
     public static final String file2String(final String fileName) {
         File file = new File(fileName);
         return file2String(file);
@@ -197,7 +186,7 @@ public class MixAll {
 
     public static final String file2String(final File file) {
         if (file.exists()) {
-            char[] data = new char[(int) file.length()];
+            char[] data = new char[(int)file.length()];
             boolean result = false;
 
             FileReader fileReader = null;
@@ -252,11 +241,9 @@ public class MixAll {
         return url.getPath();
     }
 
-
     public static void printObjectProperties(final Logger log, final Object object) {
         printObjectProperties(log, object, false);
     }
-
 
     public static void printObjectProperties(final Logger log, final Object object, final boolean onlyImportantField) {
         Field[] fields = object.getClass().getDeclaredFields();
@@ -292,7 +279,6 @@ public class MixAll {
             }
         }
     }
-
 
     public static String properties2String(final Properties properties) {
         StringBuilder sb = new StringBuilder();
@@ -379,7 +365,7 @@ public class MixAll {
                             } else {
                                 continue;
                             }
-                            method.invoke(object, new Object[]{arg});
+                            method.invoke(object, new Object[] {arg});
                         }
                     }
                 } catch (Throwable e) {
@@ -388,11 +374,9 @@ public class MixAll {
         }
     }
 
-
     public static boolean isPropertiesEqual(final Properties p1, final Properties p2) {
         return p1.equals(p2);
     }
-
 
     public static List<String> getLocalInetAddress() {
         List<String> inetAddressList = new ArrayList<String>();
@@ -412,7 +396,6 @@ public class MixAll {
         return inetAddressList;
     }
 
-
     public static boolean isLocalAddr(String address) {
         for (String addr : LOCAL_INET_ADDRESS) {
             if (address.contains(addr))
@@ -421,18 +404,16 @@ public class MixAll {
         return false;
     }
 
-
     private static String localhost() {
         try {
             InetAddress addr = InetAddress.getLocalHost();
             return addr.getHostAddress();
         } catch (Throwable e) {
             throw new RuntimeException("InetAddress java.net.InetAddress.getLocalHost() throws UnknownHostException"
-                    + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION),
-                    e);
+                + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION),
+                e);
         }
     }
-
 
     public static boolean compareAndIncreaseOnly(final AtomicLong target, final long value) {
         long prev = target.get();
@@ -452,9 +433,18 @@ public class MixAll {
             return InetAddress.getLocalHost().getHostName();
         } catch (Throwable e) {
             throw new RuntimeException("InetAddress java.net.InetAddress.getLocalHost() throws UnknownHostException"
-                    + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION),
-                    e);
+                + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION),
+                e);
         }
+    }
+
+    public static String humanReadableByteCount(long bytes, boolean si) {
+        int unit = si ? 1000 : 1024;
+        if (bytes < unit)
+            return bytes + " B";
+        int exp = (int)(Math.log(bytes) / Math.log(unit));
+        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
+        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 
     public Set<String> list2Set(List<String> values) {
@@ -471,13 +461,5 @@ public class MixAll {
             result.add(v);
         }
         return result;
-    }
-
-    public static String humanReadableByteCount(long bytes, boolean si) {
-        int unit = si ? 1000 : 1024;
-        if (bytes < unit) return bytes + " B";
-        int exp = (int) (Math.log(bytes) / Math.log(unit));
-        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
-        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 }

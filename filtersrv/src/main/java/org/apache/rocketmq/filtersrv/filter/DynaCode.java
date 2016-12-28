@@ -6,34 +6,42 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.rocketmq.filtersrv.filter;
 
-import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.filter.FilterAPI;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.tools.JavaCompiler;
-import javax.tools.ToolProvider;
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import javax.tools.JavaCompiler;
+import javax.tools.ToolProvider;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.filter.FilterAPI;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DynaCode {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.FILTERSRV_LOGGER_NAME);
@@ -43,45 +51,34 @@ public class DynaCode {
     private static final String LINE_SP = System.getProperty("line.separator");
 
     private String sourcePath = System.getProperty("user.home") + FILE_SP + "rocketmq_filter_class" + FILE_SP
-            + UtilAll.getPid();
+        + UtilAll.getPid();
 
     private String outPutClassPath = sourcePath;
 
-
     private ClassLoader parentClassLoader;
-
 
     private List<String> codeStrs;
 
-
     private Map<String/* fullClassName */, Class<?>/* class */> loadClass;
-
 
     private String classpath;
 
-
     private String bootclasspath;
-
 
     private String extdirs;
 
-
     private String encoding = "UTF-8";
 
-
     private String target;
-
 
     @SuppressWarnings("unchecked")
     public DynaCode(String code) {
         this(Thread.currentThread().getContextClassLoader(), Arrays.asList(code));
     }
 
-
     public DynaCode(ClassLoader parentClassLoader, List<String> codeStrs) {
         this(extractClasspath(parentClassLoader), parentClassLoader, codeStrs);
     }
-
 
     public DynaCode(String classpath, ClassLoader parentClassLoader, List<String> codeStrs) {
         this.classpath = classpath;
@@ -90,12 +87,15 @@ public class DynaCode {
         this.loadClass = new HashMap<String, Class<?>>(codeStrs.size());
     }
 
+    public DynaCode(List<String> codeStrs) {
+        this(Thread.currentThread().getContextClassLoader(), codeStrs);
+    }
 
     private static String extractClasspath(ClassLoader cl) {
         StringBuffer buf = new StringBuffer();
         while (cl != null) {
             if (cl instanceof URLClassLoader) {
-                URL urls[] = ((URLClassLoader) cl).getURLs();
+                URL urls[] = ((URLClassLoader)cl).getURLs();
                 for (int i = 0; i < urls.length; i++) {
                     if (buf.length() > 0) {
                         buf.append(File.pathSeparatorChar);
@@ -115,13 +115,8 @@ public class DynaCode {
         return buf.toString();
     }
 
-
-    public DynaCode(List<String> codeStrs) {
-        this(Thread.currentThread().getContextClassLoader(), codeStrs);
-    }
-
     public static Class<?> compileAndLoadClass(final String className, final String javaSource)
-            throws Exception {
+        throws Exception {
         String classSimpleName = FilterAPI.simpleClassName(className);
         String javaCode = javaSource;
 
@@ -138,16 +133,6 @@ public class DynaCode {
         return clazz;
     }
 
-    public void compileAndLoadClass() throws Exception {
-        String[] sourceFiles = this.uploadSrcFile();
-        this.compile(sourceFiles);
-        this.loadClass(this.loadClass.keySet());
-    }
-
-    public Map<String, Class<?>> getLoadClass() {
-        return loadClass;
-    }
-
     public static String getQualifiedName(String code) {
         StringBuilder sb = new StringBuilder();
         String className = getClassName(code);
@@ -160,6 +145,57 @@ public class DynaCode {
             sb.append(className);
         }
         return sb.toString();
+    }
+
+    public static String getClassName(String code) {
+        String className = StringUtils.substringBefore(code, "{");
+        if (StringUtils.isBlank(className)) {
+            return className;
+        }
+        if (StringUtils.contains(code, " class ")) {
+            className = StringUtils.substringAfter(className, " class ");
+            if (StringUtils.contains(className, " extends ")) {
+                className = StringUtils.substringBefore(className, " extends ").trim();
+            } else if (StringUtils.contains(className, " implements ")) {
+                className = StringUtils.trim(StringUtils.substringBefore(className, " implements "));
+            } else {
+                className = StringUtils.trim(className);
+            }
+        } else if (StringUtils.contains(code, " interface ")) {
+            className = StringUtils.substringAfter(className, " interface ");
+            if (StringUtils.contains(className, " extends ")) {
+                className = StringUtils.substringBefore(className, " extends ").trim();
+            } else {
+                className = StringUtils.trim(className);
+            }
+        } else if (StringUtils.contains(code, " enum ")) {
+            className = StringUtils.trim(StringUtils.substringAfter(className, " enum "));
+        } else {
+            return StringUtils.EMPTY;
+        }
+        return className;
+    }
+
+    public static String getPackageName(String code) {
+        String packageName =
+            StringUtils.substringBefore(StringUtils.substringAfter(code, "package "), ";").trim();
+        return packageName;
+    }
+
+    public static String getFullClassName(String code) {
+        String packageName = getPackageName(code);
+        String className = getClassName(code);
+        return StringUtils.isBlank(packageName) ? className : packageName + "." + className;
+    }
+
+    public void compileAndLoadClass() throws Exception {
+        String[] sourceFiles = this.uploadSrcFile();
+        this.compile(sourceFiles);
+        this.loadClass(this.loadClass.keySet());
+    }
+
+    public Map<String, Class<?>> getLoadClass() {
+        return loadClass;
     }
 
     private String[] uploadSrcFile() throws Exception {
@@ -201,7 +237,7 @@ public class DynaCode {
                             srcFile.deleteOnExit();
                         }
                         OutputStreamWriter outputStreamWriter =
-                                new OutputStreamWriter(new FileOutputStream(srcFile), encoding);
+                            new OutputStreamWriter(new FileOutputStream(srcFile), encoding);
                         bufferWriter = new BufferedWriter(outputStreamWriter);
                         for (String lineCode : code.split(LINE_SP)) {
                             bufferWriter.write(lineCode);
@@ -225,7 +261,7 @@ public class DynaCode {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         if (compiler == null) {
             throw new NullPointerException(
-                    "ToolProvider.getSystemJavaCompiler() return null,please use JDK replace JRE!");
+                "ToolProvider.getSystemJavaCompiler() return null,please use JDK replace JRE!");
         }
         int resultCode = compiler.run(null, null, err, args);
         if (resultCode != 0) {
@@ -236,8 +272,8 @@ public class DynaCode {
     private void loadClass(Set<String> classFullNames) throws ClassNotFoundException, MalformedURLException {
         synchronized (loadClass) {
             ClassLoader classLoader =
-                    new URLClassLoader(new URL[]{new File(outPutClassPath).toURI().toURL()},
-                            parentClassLoader);
+                new URLClassLoader(new URL[] {new File(outPutClassPath).toURI().toURL()},
+                    parentClassLoader);
             for (String key : classFullNames) {
                 Class<?> classz = classLoader.loadClass(key);
                 if (null != classz) {
@@ -248,47 +284,6 @@ public class DynaCode {
                 }
             }
         }
-    }
-
-    public static String getClassName(String code) {
-        String className = StringUtils.substringBefore(code, "{");
-        if (StringUtils.isBlank(className)) {
-            return className;
-        }
-        if (StringUtils.contains(code, " class ")) {
-            className = StringUtils.substringAfter(className, " class ");
-            if (StringUtils.contains(className, " extends ")) {
-                className = StringUtils.substringBefore(className, " extends ").trim();
-            } else if (StringUtils.contains(className, " implements ")) {
-                className = StringUtils.trim(StringUtils.substringBefore(className, " implements "));
-            } else {
-                className = StringUtils.trim(className);
-            }
-        } else if (StringUtils.contains(code, " interface ")) {
-            className = StringUtils.substringAfter(className, " interface ");
-            if (StringUtils.contains(className, " extends ")) {
-                className = StringUtils.substringBefore(className, " extends ").trim();
-            } else {
-                className = StringUtils.trim(className);
-            }
-        } else if (StringUtils.contains(code, " enum ")) {
-            className = StringUtils.trim(StringUtils.substringAfter(className, " enum "));
-        } else {
-            return StringUtils.EMPTY;
-        }
-        return className;
-    }
-
-    public static String getPackageName(String code) {
-        String packageName =
-                StringUtils.substringBefore(StringUtils.substringAfter(code, "package "), ";").trim();
-        return packageName;
-    }
-
-    public static String getFullClassName(String code) {
-        String packageName = getPackageName(code);
-        String className = getClassName(code);
-        return StringUtils.isBlank(packageName) ? className : packageName + "." + className;
     }
 
     private String[] buildCompileJavacArgs(String srcFiles[]) {

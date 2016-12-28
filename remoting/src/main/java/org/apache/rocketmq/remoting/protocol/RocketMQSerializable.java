@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.remoting.protocol;
 
@@ -21,7 +21,6 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
 
 /**
  *
@@ -52,11 +51,11 @@ public class RocketMQSerializable {
         // ################### content
         ByteBuffer headerBuffer = ByteBuffer.allocate(totalLen);
         // int code(~32767)
-        headerBuffer.putShort((short) cmd.getCode());
+        headerBuffer.putShort((short)cmd.getCode());
         // LanguageCode language
         headerBuffer.put(cmd.getLanguage().getCode());
         // int version(~32767)
-        headerBuffer.putShort((short) cmd.getVersion());
+        headerBuffer.putShort((short)cmd.getVersion());
         // int opaque
         headerBuffer.putInt(cmd.getOpaque());
         // int flag
@@ -92,10 +91,10 @@ public class RocketMQSerializable {
             Map.Entry<String, String> entry = it.next();
             if (entry.getKey() != null && entry.getValue() != null) {
                 kvLength =
-                        // keySize + Key
-                        2 + entry.getKey().getBytes(RemotingSerializable.CHARSET_UTF8).length
-                                // valSize + val
-                                + 4 + entry.getValue().getBytes(RemotingSerializable.CHARSET_UTF8).length;
+                    // keySize + Key
+                    2 + entry.getKey().getBytes(RemotingSerializable.CHARSET_UTF8).length
+                        // valSize + val
+                        + 4 + entry.getValue().getBytes(RemotingSerializable.CHARSET_UTF8).length;
                 totalLength += kvLength;
             }
         }
@@ -110,7 +109,7 @@ public class RocketMQSerializable {
                 key = entry.getKey().getBytes(RemotingSerializable.CHARSET_UTF8);
                 val = entry.getValue().getBytes(RemotingSerializable.CHARSET_UTF8);
 
-                content.putShort((short) key.length);
+                content.putShort((short)key.length);
                 content.put(key);
 
                 content.putInt(val.length);
@@ -124,18 +123,18 @@ public class RocketMQSerializable {
     private static int calTotalLen(int remark, int ext) {
         // int code(~32767)
         int length = 2
-                // LanguageCode language
-                + 1
-                // int version(~32767)
-                + 2
-                // int opaque
-                + 4
-                // int flag
-                + 4
-                // String remark
-                + 4 + remark
-                // HashMap<String, String> extFields
-                + 4 + ext;
+            // LanguageCode language
+            + 1
+            // int version(~32767)
+            + 2
+            // int opaque
+            + 4
+            // int flag
+            + 4
+            // String remark
+            + 4 + remark
+            // HashMap<String, String> extFields
+            + 4 + ext;
 
         return length;
     }
@@ -192,11 +191,10 @@ public class RocketMQSerializable {
             byteBuffer.get(valContent);
 
             map.put(new String(keyContent, RemotingSerializable.CHARSET_UTF8), new String(valContent,
-                    RemotingSerializable.CHARSET_UTF8));
+                RemotingSerializable.CHARSET_UTF8));
         }
         return map;
     }
-
 
     public static boolean isBlank(String str) {
         int strLen;

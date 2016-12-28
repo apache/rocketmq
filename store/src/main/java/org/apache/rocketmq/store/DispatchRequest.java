@@ -31,19 +31,18 @@ public class DispatchRequest {
     private final int sysFlag;
     private final long preparedTransactionOffset;
 
-
     public DispatchRequest(
-            final String topic,
-            final int queueId,
-            final long commitLogOffset,
-            final int msgSize,
-            final long tagsCode,
-            final long storeTimestamp,
-            final long consumeQueueOffset,
-            final String keys,
-            final String uniqKey,
-            final int sysFlag,
-            final long preparedTransactionOffset
+        final String topic,
+        final int queueId,
+        final long commitLogOffset,
+        final int msgSize,
+        final long tagsCode,
+        final long storeTimestamp,
+        final long consumeQueueOffset,
+        final String keys,
+        final String uniqKey,
+        final int sysFlag,
+        final long preparedTransactionOffset
     ) {
         this.topic = topic;
         this.queueId = queueId;
@@ -108,56 +107,45 @@ public class DispatchRequest {
         this.success = success;
     }
 
-
     public String getTopic() {
         return topic;
     }
-
 
     public int getQueueId() {
         return queueId;
     }
 
-
     public long getCommitLogOffset() {
         return commitLogOffset;
     }
-
 
     public int getMsgSize() {
         return msgSize;
     }
 
-
     public long getStoreTimestamp() {
         return storeTimestamp;
     }
-
 
     public long getConsumeQueueOffset() {
         return consumeQueueOffset;
     }
 
-
     public String getKeys() {
         return keys;
     }
-
 
     public long getTagsCode() {
         return tagsCode;
     }
 
-
     public int getSysFlag() {
         return sysFlag;
     }
 
-
     public long getPreparedTransactionOffset() {
         return preparedTransactionOffset;
     }
-
 
     public boolean isSuccess() {
         return success;
@@ -166,6 +154,5 @@ public class DispatchRequest {
     public String getUniqKey() {
         return uniqKey;
     }
-
 
 }

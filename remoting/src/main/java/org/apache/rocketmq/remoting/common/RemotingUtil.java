@@ -6,22 +6,19 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.remoting.common;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.Inet6Address;
@@ -36,7 +33,8 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.ArrayList;
 import java.util.Enumeration;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RemotingUtil {
     public static final String OS_NAME = System.getProperty("os.name");
@@ -69,7 +67,7 @@ public class RemotingUtil {
                     try {
                         final Method method = providerClazz.getMethod("provider");
                         if (method != null) {
-                            final SelectorProvider selectorProvider = (SelectorProvider) method.invoke(null);
+                            final SelectorProvider selectorProvider = (SelectorProvider)method.invoke(null);
                             if (selectorProvider != null) {
                                 result = selectorProvider.openSelector();
                             }
@@ -141,7 +139,6 @@ public class RemotingUtil {
         return null;
     }
 
-
     public static String normalizeHostAddress(final InetAddress localHost) {
         if (localHost instanceof Inet6Address) {
             return "[" + localHost.getHostAddress() + "]";
@@ -156,21 +153,18 @@ public class RemotingUtil {
         return isa;
     }
 
-
     public static String socketAddress2String(final SocketAddress addr) {
         StringBuilder sb = new StringBuilder();
-        InetSocketAddress inetSocketAddress = (InetSocketAddress) addr;
+        InetSocketAddress inetSocketAddress = (InetSocketAddress)addr;
         sb.append(inetSocketAddress.getAddress().getHostAddress());
         sb.append(":");
         sb.append(inetSocketAddress.getPort());
         return sb.toString();
     }
 
-
     public static SocketChannel connect(SocketAddress remote) {
         return connect(remote, 1000 * 5);
     }
-
 
     public static SocketChannel connect(SocketAddress remote, final int timeoutMillis) {
         SocketChannel sc = null;
@@ -197,14 +191,13 @@ public class RemotingUtil {
         return null;
     }
 
-
     public static void closeChannel(Channel channel) {
         final String addrRemote = RemotingHelper.parseChannelRemoteAddr(channel);
         channel.close().addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
                 log.info("closeChannel: close the connection to remote address[{}] result: {}", addrRemote,
-                        future.isSuccess());
+                    future.isSuccess());
             }
         });
     }

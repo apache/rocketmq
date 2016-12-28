@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /**
@@ -20,12 +20,16 @@
  */
 package org.apache.rocketmq.broker.plugin;
 
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.store.*;
-
 import java.util.HashMap;
 import java.util.Set;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.store.GetMessageResult;
+import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.QueryMessageResult;
+import org.apache.rocketmq.store.SelectMappedBufferResult;
 
 public abstract class AbstractPluginMessageStore implements MessageStore {
     protected MessageStore next = null;
@@ -83,7 +87,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
 
     @Override
     public GetMessageResult getMessage(String group, String topic, int queueId, long offset,
-                                       int maxMsgNums, SubscriptionData subscriptionData) {
+        int maxMsgNums, SubscriptionData subscriptionData) {
         return next.getMessage(group, topic, queueId, offset, maxMsgNums, subscriptionData);
     }
 
@@ -174,7 +178,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
 
     @Override
     public QueryMessageResult queryMessage(String topic, String key, int maxNum, long begin,
-                                           long end) {
+        long end) {
         return next.queryMessage(topic, key, maxNum, begin, end);
     }
 

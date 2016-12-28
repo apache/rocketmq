@@ -16,6 +16,10 @@
  */
 package org.apache.rocketmq.tools.command.message;
 
+import java.util.List;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.common.MixAll;
@@ -23,11 +27,6 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.command.SubCommand;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-
-import java.util.List;
 
 public class CheckMsgSendRTCommand implements SubCommand {
     private static String brokerName = "";
@@ -72,16 +71,16 @@ public class CheckMsgSendRTCommand implements SubCommand {
             boolean sendSuccess = false;
             String topic = commandLine.getOptionValue('t').trim();
             long amount = !commandLine.hasOption('a') ? 100 : Long.parseLong(commandLine
-                    .getOptionValue('a').trim());
+                .getOptionValue('a').trim());
             long msgSize = !commandLine.hasOption('s') ? 128 : Long.parseLong(commandLine
-                    .getOptionValue('s').trim());
+                .getOptionValue('s').trim());
             Message msg = new Message(topic, getStringBySize(msgSize).getBytes(MixAll.DEFAULT_CHARSET));
 
             System.out.printf("%-32s  %-4s  %-20s    %s%n",
-                    "#Broker Name",
-                    "#QID",
-                    "#Send Result",
-                    "#RT"
+                "#Broker Name",
+                "#QID",
+                "#Send Result",
+                "#RT"
             );
             for (int i = 0; i < amount; i++) {
                 start = System.currentTimeMillis();
@@ -89,7 +88,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
                     producer.send(msg, new MessageQueueSelector() {
                         @Override
                         public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
-                            int queueIndex = (Integer) arg % mqs.size();
+                            int queueIndex = (Integer)arg % mqs.size();
                             MessageQueue queue = mqs.get(queueIndex);
                             brokerName = queue.getBrokerName();
                             queueId = queue.getQueueId();
@@ -103,20 +102,19 @@ public class CheckMsgSendRTCommand implements SubCommand {
                     end = System.currentTimeMillis();
                 }
 
-
                 if (i != 0) {
                     timeElapsed += end - start;
                 }
 
                 System.out.printf("%-32s  %-4s  %-20s    %s%n",
-                        brokerName,
-                        queueId,
-                        sendSuccess,
-                        end - start
+                    brokerName,
+                    queueId,
+                    sendSuccess,
+                    end - start
                 );
             }
 
-            double rt = (double) timeElapsed / (amount - 1);
+            double rt = (double)timeElapsed / (amount - 1);
             System.out.printf("Avg RT: %s%n", String.format("%.2f", rt));
         } catch (Exception e) {
             e.printStackTrace();

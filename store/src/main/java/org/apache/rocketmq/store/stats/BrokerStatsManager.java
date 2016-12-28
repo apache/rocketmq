@@ -6,16 +6,19 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.store.stats;
 
+import java.util.HashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.stats.MomentStatsItemSet;
@@ -23,11 +26,6 @@ import org.apache.rocketmq.common.stats.StatsItem;
 import org.apache.rocketmq.common.stats.StatsItemSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-
 
 public class BrokerStatsManager {
 
@@ -65,9 +63,9 @@ public class BrokerStatsManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_STATS_LOGGER_NAME);
     private static final Logger COMMERCIAL_LOG = LoggerFactory.getLogger(LoggerName.COMMERCIAL_LOGGER_NAME);
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-            "BrokerStatsThread"));
+        "BrokerStatsThread"));
     private final ScheduledExecutorService commercialExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-            "CommercialStatsThread"));
+        "CommercialStatsThread"));
     private final HashMap<String, StatsItemSet> statsTable = new HashMap<String, StatsItemSet>();
     private final String clusterName;
     private final MomentStatsItemSet momentStatsItemSetFallSize = new MomentStatsItemSet(GROUP_GET_FALL_SIZE, scheduledExecutorService, log);
@@ -88,7 +86,6 @@ public class BrokerStatsManager {
         this.statsTable.put(GROUP_GET_FROM_DISK_SIZE, new StatsItemSet(GROUP_GET_FROM_DISK_SIZE, this.scheduledExecutorService, log));
         this.statsTable.put(BROKER_GET_FROM_DISK_NUMS, new StatsItemSet(BROKER_GET_FROM_DISK_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(BROKER_GET_FROM_DISK_SIZE, new StatsItemSet(BROKER_GET_FROM_DISK_SIZE, this.scheduledExecutorService, log));
-
 
         this.statsTable.put(COMMERCIAL_SEND_TIMES, new StatsItemSet(COMMERCIAL_SEND_TIMES, this.commercialExecutor, COMMERCIAL_LOG));
         this.statsTable.put(COMMERCIAL_RCV_TIMES, new StatsItemSet(COMMERCIAL_RCV_TIMES, this.commercialExecutor, COMMERCIAL_LOG));
@@ -154,34 +151,28 @@ public class BrokerStatsManager {
         this.statsTable.get(GROUP_GET_LATENCY).addValue(statsKey, incValue, 1);
     }
 
-
     public void incBrokerPutNums() {
         this.statsTable.get(BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().incrementAndGet();
     }
 
-
     public void incBrokerGetNums(final int incValue) {
         this.statsTable.get(BROKER_GET_NUMS).getAndCreateStatsItem(this.clusterName).getValue().addAndGet(incValue);
     }
-
 
     public void incSendBackNums(final String group, final String topic) {
         final String statsKey = buildStatsKey(topic, group);
         this.statsTable.get(SNDBCK_PUT_NUMS).addValue(statsKey, 1, 1);
     }
 
-
     public double tpsGroupGetNums(final String group, final String topic) {
         final String statsKey = buildStatsKey(topic, group);
         return this.statsTable.get(GROUP_GET_NUMS).getStatsDataInMinute(statsKey).getTps();
     }
 
-
     public void recordDiskFallBehindTime(final String group, final String topic, final int queueId, final long fallBehind) {
         final String statsKey = String.format("%d@%s@%s", queueId, topic, group);
         this.momentStatsItemSetFallTime.getAndCreateStatsItem(statsKey).getValue().set(fallBehind);
     }
-
 
     public void recordDiskFallBehindSize(final String group, final String topic, final int queueId, final long fallBehind) {
         final String statsKey = String.format("%d@%s@%s", queueId, topic, group);
@@ -189,7 +180,7 @@ public class BrokerStatsManager {
     }
 
     public void incCommercialValue(final String key, final String owner, final String group,
-                                   final String topic, final String type, final int incValue) {
+        final String topic, final String type, final int incValue) {
         final String statsKey = buildCommercialStatsKey(owner, topic, group, type);
         this.statsTable.get(key).addValue(statsKey, incValue, 1);
     }
@@ -205,7 +196,6 @@ public class BrokerStatsManager {
         strBuilder.append(type);
         return strBuilder.toString();
     }
-
 
     public enum StatsType {
         SEND_SUCCESS,

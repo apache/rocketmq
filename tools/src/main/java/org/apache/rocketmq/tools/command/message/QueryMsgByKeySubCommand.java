@@ -6,26 +6,25 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.tools.command.message;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-
 
 /**
  *
@@ -75,14 +74,14 @@ public class QueryMsgByKeySubCommand implements SubCommand {
     }
 
     void queryByKey(final DefaultMQAdminExt admin, final String topic, final String key)
-            throws MQClientException, InterruptedException {
+        throws MQClientException, InterruptedException {
         admin.start();
 
         QueryResult queryResult = admin.queryMessage(topic, key, 64, 0, Long.MAX_VALUE);
         System.out.printf("%-50s %4s %40s%n",
-                "#Message ID",
-                "#QID",
-                "#Offset");
+            "#Message ID",
+            "#QID",
+            "#Offset");
         for (MessageExt msg : queryResult.getMessageList()) {
             System.out.printf("%-50s %4d %40d%n", msg.getMsgId(), msg.getQueueId(), msg.getQueueOffset());
         }

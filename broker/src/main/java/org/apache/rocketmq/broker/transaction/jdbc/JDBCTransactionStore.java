@@ -6,30 +6,33 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.rocketmq.broker.transaction.jdbc;
 
+import java.net.URL;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.broker.transaction.TransactionRecord;
 import org.apache.rocketmq.broker.transaction.TransactionStore;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.net.URL;
-import java.sql.*;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicLong;
-
 
 public class JDBCTransactionStore implements TransactionStore {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
@@ -50,10 +53,9 @@ public class JDBCTransactionStore implements TransactionStore {
 
             try {
                 this.connection =
-                        DriverManager.getConnection(this.jdbcTransactionStoreConfig.getJdbcURL(), props);
+                    DriverManager.getConnection(this.jdbcTransactionStoreConfig.getJdbcURL(), props);
 
                 this.connection.setAutoCommit(false);
-
 
                 if (!this.computeTotalRecords()) {
                     return this.createDB();
@@ -72,7 +74,7 @@ public class JDBCTransactionStore implements TransactionStore {
         try {
             Class.forName(this.jdbcTransactionStoreConfig.getJdbcDriverClass()).newInstance();
             log.info("Loaded the appropriate driver, {}",
-                    this.jdbcTransactionStoreConfig.getJdbcDriverClass());
+                this.jdbcTransactionStoreConfig.getJdbcDriverClass());
             return true;
         } catch (Exception e) {
             log.info("Loaded the appropriate driver Exception", e);

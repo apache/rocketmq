@@ -6,29 +6,27 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.store.ha;
-
-import org.apache.rocketmq.common.ServiceThread;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
-import org.apache.rocketmq.store.SelectMappedBufferResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-
+import org.apache.rocketmq.common.ServiceThread;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HAConnection {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -40,7 +38,6 @@ public class HAConnection {
 
     private volatile long slaveRequestOffset = -1;
     private volatile long slaveAckOffset = -1;
-
 
     public HAConnection(final HAService haService, final SocketChannel socketChannel) throws IOException {
         this.haService = haService;
@@ -56,19 +53,16 @@ public class HAConnection {
         this.haService.getConnectionCount().incrementAndGet();
     }
 
-
     public void start() {
         this.readSocketService.start();
         this.writeSocketService.start();
     }
-
 
     public void shutdown() {
         this.writeSocketService.shutdown(true);
         this.readSocketService.shutdown(true);
         this.close();
     }
-
 
     public void close() {
         if (this.socketChannel != null) {
@@ -79,7 +73,6 @@ public class HAConnection {
             }
         }
     }
-
 
     public SocketChannel getSocketChannel() {
         return socketChannel;
@@ -97,14 +90,12 @@ public class HAConnection {
         private int processPostion = 0;
         private volatile long lastReadTimestamp = System.currentTimeMillis();
 
-
         public ReadSocketService(final SocketChannel socketChannel) throws IOException {
             this.selector = RemotingUtil.openSelector();
             this.socketChannel = socketChannel;
             this.socketChannel.register(this.selector, SelectionKey.OP_READ);
             this.thread.setDaemon(true);
         }
-
 
         @Override
         public void run() {
@@ -118,7 +109,6 @@ public class HAConnection {
                         HAConnection.log.error("processReadEvent error");
                         break;
                     }
-
 
                     long interval = HAConnection.this.haService.getDefaultMessageStore().getSystemClock().now() - this.lastReadTimestamp;
                     if (interval > HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig().getHaHousekeepingInterval()) {
@@ -135,9 +125,7 @@ public class HAConnection {
 
             writeSocketService.makeStop();
 
-
             haService.removeConnection(HAConnection.this);
-
 
             HAConnection.this.haService.getConnectionCount().decrementAndGet();
 
@@ -180,13 +168,11 @@ public class HAConnection {
                             long readOffset = this.byteBufferRead.getLong(pos - 8);
                             this.processPostion = pos;
 
-
                             HAConnection.this.slaveAckOffset = readOffset;
                             if (HAConnection.this.slaveRequestOffset < 0) {
                                 HAConnection.this.slaveRequestOffset = readOffset;
                                 log.info("slave[" + HAConnection.this.clientAddr + "] request offset " + readOffset);
                             }
-
 
                             HAConnection.this.haService.notifyTransferSome(HAConnection.this.slaveAckOffset);
                         }
@@ -223,14 +209,12 @@ public class HAConnection {
         private boolean lastWriteOver = true;
         private long lastWriteTimestamp = System.currentTimeMillis();
 
-
         public WriteSocketService(final SocketChannel socketChannel) throws IOException {
             this.selector = RemotingUtil.openSelector();
             this.socketChannel = socketChannel;
             this.socketChannel.register(this.selector, SelectionKey.OP_WRITE);
             this.thread.setDaemon(true);
         }
-
 
         @Override
         public void run() {
@@ -245,15 +229,13 @@ public class HAConnection {
                         continue;
                     }
 
-
-
                     if (-1 == this.nextTransferFromWhere) {
                         if (0 == HAConnection.this.slaveRequestOffset) {
                             long masterOffset = HAConnection.this.haService.getDefaultMessageStore().getCommitLog().getMaxOffset();
                             masterOffset =
-                                    masterOffset
-                                            - (masterOffset % HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig()
-                                            .getMapedFileSizeCommitLog());
+                                masterOffset
+                                    - (masterOffset % HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig()
+                                    .getMapedFileSizeCommitLog());
 
                             if (masterOffset < 0) {
                                 masterOffset = 0;
@@ -265,16 +247,16 @@ public class HAConnection {
                         }
 
                         log.info("master transfer data from " + this.nextTransferFromWhere + " to slave[" + HAConnection.this.clientAddr
-                                + "], and slave request " + HAConnection.this.slaveRequestOffset);
+                            + "], and slave request " + HAConnection.this.slaveRequestOffset);
                     }
 
                     if (this.lastWriteOver) {
 
                         long interval =
-                                HAConnection.this.haService.getDefaultMessageStore().getSystemClock().now() - this.lastWriteTimestamp;
+                            HAConnection.this.haService.getDefaultMessageStore().getSystemClock().now() - this.lastWriteTimestamp;
 
                         if (interval > HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig()
-                                .getHaSendHeartbeatInterval()) {
+                            .getHaSendHeartbeatInterval()) {
 
                             // Build Header
                             this.byteBufferHeader.position(0);
@@ -287,16 +269,14 @@ public class HAConnection {
                             if (!this.lastWriteOver)
                                 continue;
                         }
-                    }
-
-                    else {
+                    } else {
                         this.lastWriteOver = this.transferData();
                         if (!this.lastWriteOver)
                             continue;
                     }
 
                     SelectMappedBufferResult selectResult =
-                            HAConnection.this.haService.getDefaultMessageStore().getCommitLogData(this.nextTransferFromWhere);
+                        HAConnection.this.haService.getDefaultMessageStore().getCommitLogData(this.nextTransferFromWhere);
                     if (selectResult != null) {
                         int size = selectResult.getSize();
                         if (size > HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig().getHaTransferBatchSize()) {
@@ -328,7 +308,6 @@ public class HAConnection {
                 }
             }
 
-
             if (this.selectMappedBufferResult != null) {
                 this.selectMappedBufferResult.release();
             }
@@ -336,7 +315,6 @@ public class HAConnection {
             this.makeStop();
 
             readSocketService.makeStop();
-
 
             haService.removeConnection(HAConnection.this);
 
@@ -354,7 +332,6 @@ public class HAConnection {
 
             HAConnection.log.info(this.getServiceName() + " service end");
         }
-
 
         /**
 
@@ -409,12 +386,10 @@ public class HAConnection {
             return result;
         }
 
-
         @Override
         public String getServiceName() {
             return WriteSocketService.class.getSimpleName();
         }
-
 
         @Override
         public void shutdown() {

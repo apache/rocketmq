@@ -30,43 +30,38 @@ import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-
 public class FilterServerOuterAPI {
     private final RemotingClient remotingClient;
-
 
     public FilterServerOuterAPI() {
         this.remotingClient = new NettyRemotingClient(new NettyClientConfig());
     }
 
-
     public void start() {
         this.remotingClient.start();
     }
-
 
     public void shutdown() {
         this.remotingClient.shutdown();
     }
 
-
     public RegisterFilterServerResponseHeader registerFilterServerToBroker(
-            final String brokerAddr,
-            final String filterServerAddr
+        final String brokerAddr,
+        final String filterServerAddr
     ) throws RemotingCommandException, RemotingConnectException, RemotingSendRequestException,
-            RemotingTimeoutException, InterruptedException, MQBrokerException {
+        RemotingTimeoutException, InterruptedException, MQBrokerException {
         RegisterFilterServerRequestHeader requestHeader = new RegisterFilterServerRequestHeader();
         requestHeader.setFilterServerAddr(filterServerAddr);
         RemotingCommand request =
-                RemotingCommand.createRequestCommand(RequestCode.REGISTER_FILTER_SERVER, requestHeader);
+            RemotingCommand.createRequestCommand(RequestCode.REGISTER_FILTER_SERVER, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, 3000);
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 RegisterFilterServerResponseHeader responseHeader =
-                        (RegisterFilterServerResponseHeader) response
-                                .decodeCommandCustomHeader(RegisterFilterServerResponseHeader.class);
+                    (RegisterFilterServerResponseHeader)response
+                        .decodeCommandCustomHeader(RegisterFilterServerResponseHeader.class);
 
                 return responseHeader;
             }

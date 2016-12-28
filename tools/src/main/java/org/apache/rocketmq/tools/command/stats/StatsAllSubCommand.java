@@ -17,6 +17,9 @@
 
 package org.apache.rocketmq.tools.command.stats;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
@@ -32,82 +35,10 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-
 
 public class StatsAllSubCommand implements SubCommand {
-    @Override
-    public String commandName() {
-        return "statsAll";
-    }
-
-    @Override
-    public String commandDesc() {
-        return "Topic and Consumer tps stats";
-    }
-
-    @Override
-    public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("a", "activeTopic", false, "print active topic only");
-        opt.setRequired(false);
-        options.addOption(opt);
-
-        opt = new Option("t", "topic", true, "print select topic only");
-        opt.setRequired(false);
-        options.addOption(opt);
-
-        return options;
-    }
-
-    @Override
-    public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
-
-        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
-
-        try {
-            defaultMQAdminExt.start();
-
-            TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
-
-            System.out.printf("%-32s  %-32s %12s %11s %11s %14s %14s%n",
-                    "#Topic",
-                    "#Consumer Group",
-                    "#Accumulation",
-                    "#InTPS",
-                    "#OutTPS",
-                    "#InMsg24Hour",
-                    "#OutMsg24Hour"
-            );
-
-            boolean activeTopic = commandLine.hasOption('a');
-            String selectTopic = commandLine.getOptionValue('t');
-
-            for (String topic : topicList.getTopicList()) {
-                if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
-                    continue;
-                }
-
-                if (selectTopic != null && selectTopic != "" && !topic.equals(selectTopic)) {
-                    continue;
-                }
-
-                try {
-                    printTopicDetail(defaultMQAdminExt, topic, activeTopic);
-                } catch (Exception e) {
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            defaultMQAdminExt.shutdown();
-        }
-    }
-
     public static void printTopicDetail(final DefaultMQAdminExt admin, final String topic, final boolean activeTopic)
-            throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         TopicRouteData topicRouteData = admin.examineTopicRouteInfo(topic);
 
         GroupList groupList = admin.queryTopicConsumeByWho(topic);
@@ -115,7 +46,6 @@ public class StatsAllSubCommand implements SubCommand {
         double inTPS = 0;
 
         long inMsgCntToday = 0;
-
 
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             String masterAddr = bd.getBrokerAddrs().get(MixAll.MASTER_ID);
@@ -161,16 +91,16 @@ public class StatsAllSubCommand implements SubCommand {
                 }
 
                 if (!activeTopic || (inMsgCntToday > 0) ||
-                        (outMsgCntToday > 0)) {
+                    (outMsgCntToday > 0)) {
 
                     System.out.printf("%-32s  %-32s %12d %11.2f %11.2f %14d %14d%n",
-                            UtilAll.frontStringAtLeast(topic, 32),
-                            UtilAll.frontStringAtLeast(group, 32),
-                            accumulate,
-                            inTPS,
-                            outTPS,
-                            inMsgCntToday,
-                            outMsgCntToday
+                        UtilAll.frontStringAtLeast(topic, 32),
+                        UtilAll.frontStringAtLeast(group, 32),
+                        accumulate,
+                        inTPS,
+                        outTPS,
+                        inMsgCntToday,
+                        outMsgCntToday
                     );
                 }
             }
@@ -178,13 +108,13 @@ public class StatsAllSubCommand implements SubCommand {
             if (!activeTopic || (inMsgCntToday > 0)) {
 
                 System.out.printf("%-32s  %-32s %12d %11.2f %11s %14d %14s%n",
-                        UtilAll.frontStringAtLeast(topic, 32),
-                        "",
-                        0,
-                        inTPS,
-                        "",
-                        inMsgCntToday,
-                        "NO_CONSUMER"
+                    UtilAll.frontStringAtLeast(topic, 32),
+                    "",
+                    0,
+                    inTPS,
+                    "",
+                    inMsgCntToday,
+                    "NO_CONSUMER"
                 );
             }
         }
@@ -204,5 +134,73 @@ public class StatsAllSubCommand implements SubCommand {
         }
 
         return 0;
+    }
+
+    @Override
+    public String commandName() {
+        return "statsAll";
+    }
+
+    @Override
+    public String commandDesc() {
+        return "Topic and Consumer tps stats";
+    }
+
+    @Override
+    public Options buildCommandlineOptions(Options options) {
+        Option opt = new Option("a", "activeTopic", false, "print active topic only");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("t", "topic", true, "print select topic only");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        return options;
+    }
+
+    @Override
+    public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
+        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+
+        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+
+        try {
+            defaultMQAdminExt.start();
+
+            TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
+
+            System.out.printf("%-32s  %-32s %12s %11s %11s %14s %14s%n",
+                "#Topic",
+                "#Consumer Group",
+                "#Accumulation",
+                "#InTPS",
+                "#OutTPS",
+                "#InMsg24Hour",
+                "#OutMsg24Hour"
+            );
+
+            boolean activeTopic = commandLine.hasOption('a');
+            String selectTopic = commandLine.getOptionValue('t');
+
+            for (String topic : topicList.getTopicList()) {
+                if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
+                    continue;
+                }
+
+                if (selectTopic != null && selectTopic != "" && !topic.equals(selectTopic)) {
+                    continue;
+                }
+
+                try {
+                    printTopicDetail(defaultMQAdminExt, topic, activeTopic);
+                } catch (Exception e) {
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            defaultMQAdminExt.shutdown();
+        }
     }
 }

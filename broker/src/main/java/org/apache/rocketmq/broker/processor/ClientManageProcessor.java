@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.processor;
 
+import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.common.MixAll;
@@ -34,10 +35,8 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 public class ClientManageProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -49,7 +48,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
+        throws RemotingCommandException {
         switch (request.getCode()) {
             case RequestCode.HEART_BEAT:
                 return this.heartBeat(ctx, request);
@@ -70,16 +69,16 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
-                ctx.channel(),
-                heartbeatData.getClientID(),
-                request.getLanguage(),
-                request.getVersion()
+            ctx.channel(),
+            heartbeatData.getClientID(),
+            request.getLanguage(),
+            request.getVersion()
         );
 
         for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
             SubscriptionGroupConfig subscriptionGroupConfig =
-                    this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
-                            data.getGroupName());
+                this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
+                    data.getGroupName());
             boolean isNotifyConsumerIdsChangedEnable = true;
             if (null != subscriptionGroupConfig) {
                 isNotifyConsumerIdsChangedEnable = subscriptionGroupConfig.isNotifyConsumerIdsChangedEnable();
@@ -89,32 +88,32 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 }
                 String newTopic = MixAll.getRetryTopic(data.getGroupName());
                 this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
-                        newTopic,
-                        subscriptionGroupConfig.getRetryQueueNums(),
-                        PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
+                    newTopic,
+                    subscriptionGroupConfig.getRetryQueueNums(),
+                    PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
             }
 
             boolean changed = this.brokerController.getConsumerManager().registerConsumer(
-                    data.getGroupName(),
-                    clientChannelInfo,
-                    data.getConsumeType(),
-                    data.getMessageModel(),
-                    data.getConsumeFromWhere(),
-                    data.getSubscriptionDataSet(),
-                    isNotifyConsumerIdsChangedEnable
+                data.getGroupName(),
+                clientChannelInfo,
+                data.getConsumeType(),
+                data.getMessageModel(),
+                data.getConsumeFromWhere(),
+                data.getSubscriptionDataSet(),
+                isNotifyConsumerIdsChangedEnable
             );
 
             if (changed) {
                 log.info("registerConsumer info changed {} {}",
-                        data.toString(),
-                        RemotingHelper.parseChannelRemoteAddr(ctx.channel())
+                    data.toString(),
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel())
                 );
             }
         }
 
         for (ProducerData data : heartbeatData.getProducerDataSet()) {
             this.brokerController.getProducerManager().registerProducer(data.getGroupName(),
-                    clientChannelInfo);
+                clientChannelInfo);
         }
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
@@ -122,18 +121,18 @@ public class ClientManageProcessor implements NettyRequestProcessor {
     }
 
     public RemotingCommand unregisterClient(ChannelHandlerContext ctx, RemotingCommand request)
-            throws RemotingCommandException {
+        throws RemotingCommandException {
         final RemotingCommand response =
-                RemotingCommand.createResponseCommand(UnregisterClientResponseHeader.class);
+            RemotingCommand.createResponseCommand(UnregisterClientResponseHeader.class);
         final UnregisterClientRequestHeader requestHeader =
-                (UnregisterClientRequestHeader) request
-                        .decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
+            (UnregisterClientRequestHeader)request
+                .decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
 
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
-                ctx.channel(),
-                requestHeader.getClientID(),
-                request.getLanguage(),
-                request.getVersion());
+            ctx.channel(),
+            requestHeader.getClientID(),
+            request.getLanguage(),
+            request.getVersion());
         {
             final String group = requestHeader.getProducerGroup();
             if (group != null) {
@@ -145,7 +144,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             final String group = requestHeader.getConsumerGroup();
             if (group != null) {
                 SubscriptionGroupConfig subscriptionGroupConfig =
-                        this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
+                    this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
                 boolean isNotifyConsumerIdsChangedEnable = true;
                 if (null != subscriptionGroupConfig) {
                     isNotifyConsumerIdsChangedEnable = subscriptionGroupConfig.isNotifyConsumerIdsChangedEnable();

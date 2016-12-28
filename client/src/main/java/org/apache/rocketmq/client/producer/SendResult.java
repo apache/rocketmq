@@ -19,7 +19,6 @@ package org.apache.rocketmq.client.producer;
 import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.common.message.MessageQueue;
 
-
 public class SendResult {
     private SendStatus sendStatus;
     private String msgId;
@@ -41,7 +40,8 @@ public class SendResult {
         this.queueOffset = queueOffset;
     }
 
-    public SendResult(final SendStatus sendStatus, final String msgId, final MessageQueue messageQueue, final long queueOffset, final String transactionId, final String offsetMsgId, final String regionId) {
+    public SendResult(final SendStatus sendStatus, final String msgId, final MessageQueue messageQueue, final long queueOffset, final String transactionId,
+        final String offsetMsgId, final String regionId) {
         this.sendStatus = sendStatus;
         this.msgId = msgId;
         this.messageQueue = messageQueue;
@@ -49,6 +49,14 @@ public class SendResult {
         this.transactionId = transactionId;
         this.offsetMsgId = offsetMsgId;
         this.regionId = regionId;
+    }
+
+    public static String encoderSendResultToJson(final Object obj) {
+        return JSON.toJSONString(obj);
+    }
+
+    public static SendResult decoderSendResultFromJson(String json) {
+        return JSON.parseObject(json, SendResult.class);
     }
 
     public boolean isTraceOn() {
@@ -67,58 +75,41 @@ public class SendResult {
         this.regionId = regionId;
     }
 
-    public static String encoderSendResultToJson(final Object obj) {
-        return JSON.toJSONString(obj);
-    }
-
-    public static SendResult decoderSendResultFromJson(String json) {
-        return JSON.parseObject(json, SendResult.class);
-    }
-
     public String getMsgId() {
         return msgId;
     }
-
 
     public void setMsgId(String msgId) {
         this.msgId = msgId;
     }
 
-
     public SendStatus getSendStatus() {
         return sendStatus;
     }
-
 
     public void setSendStatus(SendStatus sendStatus) {
         this.sendStatus = sendStatus;
     }
 
-
     public MessageQueue getMessageQueue() {
         return messageQueue;
     }
-
 
     public void setMessageQueue(MessageQueue messageQueue) {
         this.messageQueue = messageQueue;
     }
 
-
     public long getQueueOffset() {
         return queueOffset;
     }
-
 
     public void setQueueOffset(long queueOffset) {
         this.queueOffset = queueOffset;
     }
 
-
     public String getTransactionId() {
         return transactionId;
     }
-
 
     public void setTransactionId(String transactionId) {
         this.transactionId = transactionId;
@@ -135,6 +126,6 @@ public class SendResult {
     @Override
     public String toString() {
         return "SendResult [sendStatus=" + sendStatus + ", msgId=" + msgId + ", offsetMsgId=" + offsetMsgId + ", messageQueue=" + messageQueue
-                + ", queueOffset=" + queueOffset + "]";
+            + ", queueOffset=" + queueOffset + "]";
     }
 }

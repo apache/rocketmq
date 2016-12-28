@@ -6,13 +6,15 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * $Id: QueueData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
  */
 
 /**
@@ -79,7 +81,7 @@ public class QueueData implements Comparable<QueueData> {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        QueueData other = (QueueData) obj;
+        QueueData other = (QueueData)obj;
         if (brokerName == null) {
             if (other.brokerName != null)
                 return false;
@@ -99,8 +101,8 @@ public class QueueData implements Comparable<QueueData> {
     @Override
     public String toString() {
         return "QueueData [brokerName=" + brokerName + ", readQueueNums=" + readQueueNums
-                + ", writeQueueNums=" + writeQueueNums + ", perm=" + perm + ", topicSynFlag=" + topicSynFlag
-                + "]";
+            + ", writeQueueNums=" + writeQueueNums + ", perm=" + perm + ", topicSynFlag=" + topicSynFlag
+            + "]";
     }
 
     @Override

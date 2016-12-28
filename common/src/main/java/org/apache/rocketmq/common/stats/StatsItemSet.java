@@ -17,24 +17,21 @@
 
 package org.apache.rocketmq.common.stats;
 
-import org.apache.rocketmq.common.UtilAll;
-import org.slf4j.Logger;
-
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
+import org.apache.rocketmq.common.UtilAll;
+import org.slf4j.Logger;
 
 public class StatsItemSet {
     private final ConcurrentHashMap<String/* key */, StatsItem> statsItemTable =
-            new ConcurrentHashMap<String, StatsItem>(128);
+        new ConcurrentHashMap<String, StatsItem>(128);
 
     private final String statsName;
     private final ScheduledExecutorService scheduledExecutorService;
     private final Logger log;
-
 
     public StatsItemSet(String statsName, ScheduledExecutorService scheduledExecutorService, Logger log) {
         this.statsName = statsName;
@@ -55,7 +52,6 @@ public class StatsItemSet {
             }
         }, 0, 10, TimeUnit.SECONDS);
 
-
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -65,7 +61,6 @@ public class StatsItemSet {
                 }
             }
         }, 0, 10, TimeUnit.MINUTES);
-
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -77,7 +72,6 @@ public class StatsItemSet {
             }
         }, 0, 1, TimeUnit.HOURS);
 
-
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -88,7 +82,6 @@ public class StatsItemSet {
             }
         }, Math.abs(UtilAll.computNextMinutesTimeMillis() - System.currentTimeMillis()), 1000 * 60, TimeUnit.MILLISECONDS);
 
-
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -98,7 +91,6 @@ public class StatsItemSet {
                 }
             }
         }, Math.abs(UtilAll.computNextHourTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 60, TimeUnit.MILLISECONDS);
-
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override

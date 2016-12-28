@@ -6,50 +6,43 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.rocketmq.common.protocol.body;
-
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
-
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class ClusterInfo extends RemotingSerializable {
     private HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
     private HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
 
-
     public HashMap<String, BrokerData> getBrokerAddrTable() {
         return brokerAddrTable;
     }
-
 
     public void setBrokerAddrTable(HashMap<String, BrokerData> brokerAddrTable) {
         this.brokerAddrTable = brokerAddrTable;
     }
 
-
     public HashMap<String, Set<String>> getClusterAddrTable() {
         return clusterAddrTable;
     }
 
-
     public void setClusterAddrTable(HashMap<String, Set<String>> clusterAddrTable) {
         this.clusterAddrTable = clusterAddrTable;
     }
-
 
     public String[] retrieveAllAddrByCluster(String cluster) {
         List<String> addrs = new ArrayList<String>();
@@ -63,11 +56,10 @@ public class ClusterInfo extends RemotingSerializable {
             }
         }
 
-        return addrs.toArray(new String[]{});
+        return addrs.toArray(new String[] {});
     }
 
-
     public String[] retrieveAllClusterNames() {
-        return clusterAddrTable.keySet().toArray(new String[]{});
+        return clusterAddrTable.keySet().toArray(new String[] {});
     }
 }

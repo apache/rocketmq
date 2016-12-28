@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.broker.longpolling;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.SystemClock;
@@ -25,11 +28,6 @@ import org.apache.rocketmq.store.MessageFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-
-
 public class PullRequestHoldService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final String TOPIC_QUEUEID_SEPARATOR = "@";
@@ -37,8 +35,7 @@ public class PullRequestHoldService extends ServiceThread {
     private final SystemClock systemClock = new SystemClock();
     private final MessageFilter messageFilter = new DefaultMessageFilter();
     private ConcurrentHashMap<String/* topic@queueId */, ManyPullRequest> pullRequestTable =
-            new ConcurrentHashMap<String, ManyPullRequest>(1024);
-
+        new ConcurrentHashMap<String, ManyPullRequest>(1024);
 
     public PullRequestHoldService(final BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -135,7 +132,7 @@ public class PullRequestHoldService extends ServiceThread {
                         if (this.messageFilter.isMessageMatched(request.getSubscriptionData(), tmp)) {
                             try {
                                 this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(request.getClientChannel(),
-                                        request.getRequestCommand());
+                                    request.getRequestCommand());
                             } catch (Throwable e) {
                                 log.error("execute request when wakeup failed.", e);
                             }
@@ -146,13 +143,12 @@ public class PullRequestHoldService extends ServiceThread {
                     if (System.currentTimeMillis() >= (request.getSuspendTimestamp() + request.getTimeoutMillis())) {
                         try {
                             this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(request.getClientChannel(),
-                                    request.getRequestCommand());
+                                request.getRequestCommand());
                         } catch (Throwable e) {
                             log.error("execute request when wakeup failed.", e);
                         }
                         continue;
                     }
-
 
                     replayList.add(request);
                 }

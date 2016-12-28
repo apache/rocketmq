@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.common;
 
-import org.apache.rocketmq.remoting.common.RemotingHelper;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -30,17 +28,21 @@ import java.net.NetworkInterface;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
-
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class UtilAll {
     public static final String YYYY_MM_DD_HH_MM_SS = "yyyy-MM-dd HH:mm:ss";
     public static final String YYYY_MM_DD_HH_MM_SS_SSS = "yyyy-MM-dd#HH:mm:ss:SSS";
     public static final String YYYY_MMDD_HHMMSS = "yyyyMMddHHmmss";
-
+    final static char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
     public static int getPid() {
         RuntimeMXBean runtime = ManagementFactory.getRuntimeMXBean();
@@ -75,7 +77,6 @@ public class UtilAll {
         return System.currentTimeMillis() - beginTime;
     }
 
-
     public static boolean isItTimeToDo(final String when) {
         String[] whiles = when.split(";");
         if (whiles != null && whiles.length > 0) {
@@ -91,20 +92,17 @@ public class UtilAll {
         return false;
     }
 
-
     public static String timeMillisToHumanString() {
         return timeMillisToHumanString(System.currentTimeMillis());
     }
-
 
     public static String timeMillisToHumanString(final long t) {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(t);
         return String.format("%04d%02d%02d%02d%02d%02d%03d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1,
-                cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND),
-                cal.get(Calendar.MILLISECOND));
+            cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND),
+            cal.get(Calendar.MILLISECOND));
     }
-
 
     public static long computNextMorningTimeMillis() {
         Calendar cal = Calendar.getInstance();
@@ -118,7 +116,6 @@ public class UtilAll {
         return cal.getTimeInMillis();
     }
 
-
     public static long computNextMinutesTimeMillis() {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(System.currentTimeMillis());
@@ -130,7 +127,6 @@ public class UtilAll {
 
         return cal.getTimeInMillis();
     }
-
 
     public static long computNextHourTimeMillis() {
         Calendar cal = Calendar.getInstance();
@@ -144,7 +140,6 @@ public class UtilAll {
         return cal.getTimeInMillis();
     }
 
-
     public static long computNextHalfHourTimeMillis() {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(System.currentTimeMillis());
@@ -157,33 +152,30 @@ public class UtilAll {
         return cal.getTimeInMillis();
     }
 
-
     public static String timeMillisToHumanString2(final long t) {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(t);
         return String.format("%04d-%02d-%02d %02d:%02d:%02d,%03d",
-                cal.get(Calendar.YEAR),
-                cal.get(Calendar.MONTH) + 1,
-                cal.get(Calendar.DAY_OF_MONTH),
-                cal.get(Calendar.HOUR_OF_DAY),
-                cal.get(Calendar.MINUTE),
-                cal.get(Calendar.SECOND),
-                cal.get(Calendar.MILLISECOND));
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH) + 1,
+            cal.get(Calendar.DAY_OF_MONTH),
+            cal.get(Calendar.HOUR_OF_DAY),
+            cal.get(Calendar.MINUTE),
+            cal.get(Calendar.SECOND),
+            cal.get(Calendar.MILLISECOND));
     }
-
 
     public static String timeMillisToHumanString3(final long t) {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(t);
         return String.format("%04d%02d%02d%02d%02d%02d",
-                cal.get(Calendar.YEAR),
-                cal.get(Calendar.MONTH) + 1,
-                cal.get(Calendar.DAY_OF_MONTH),
-                cal.get(Calendar.HOUR_OF_DAY),
-                cal.get(Calendar.MINUTE),
-                cal.get(Calendar.SECOND));
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH) + 1,
+            cal.get(Calendar.DAY_OF_MONTH),
+            cal.get(Calendar.HOUR_OF_DAY),
+            cal.get(Calendar.MINUTE),
+            cal.get(Calendar.SECOND));
     }
-
 
     public static double getDiskPartitionSpaceUsedPercent(final String path) {
         if (null == path || path.isEmpty())
@@ -201,7 +193,7 @@ public class UtilAll {
             long freeSpace = file.getFreeSpace();
             long usedSpace = totalSpace - freeSpace;
             if (totalSpace > 0) {
-                return usedSpace / (double) totalSpace;
+                return usedSpace / (double)totalSpace;
             }
         } catch (Exception e) {
             return -1;
@@ -209,7 +201,6 @@ public class UtilAll {
 
         return -1;
     }
-
 
     public static final int crc32(byte[] array) {
         if (array != null) {
@@ -219,14 +210,11 @@ public class UtilAll {
         return 0;
     }
 
-
     public static final int crc32(byte[] array, int offset, int length) {
         CRC32 crc32 = new CRC32();
         crc32.update(array, offset, length);
-        return (int) (crc32.getValue() & 0x7FFFFFFF);
+        return (int)(crc32.getValue() & 0x7FFFFFFF);
     }
-
-    final static char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
     public static String bytes2string(byte[] src) {
         char[] hexChars = new char[src.length * 2];
@@ -248,16 +236,14 @@ public class UtilAll {
         byte[] d = new byte[length];
         for (int i = 0; i < length; i++) {
             int pos = i * 2;
-            d[i] = (byte) (charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));
+            d[i] = (byte)(charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));
         }
         return d;
     }
 
-
     private static byte charToByte(char c) {
-        return (byte) "0123456789ABCDEF".indexOf(c);
+        return (byte)"0123456789ABCDEF".indexOf(c);
     }
-
 
     public static byte[] uncompress(final byte[] src) throws IOException {
         byte[] result = src;
@@ -296,7 +282,6 @@ public class UtilAll {
         return result;
     }
 
-
     public static byte[] compress(final byte[] src, final int level) throws IOException {
         byte[] result = src;
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(src.length);
@@ -322,7 +307,6 @@ public class UtilAll {
         return result;
     }
 
-
     public static int asInt(String str, int defaultValue) {
         try {
             return Integer.parseInt(str);
@@ -330,7 +314,6 @@ public class UtilAll {
             return defaultValue;
         }
     }
-
 
     public static long asLong(String str, long defaultValue) {
         try {
@@ -340,12 +323,10 @@ public class UtilAll {
         }
     }
 
-
     public static String formatDate(Date date, String pattern) {
         SimpleDateFormat df = new SimpleDateFormat(pattern);
         return df.format(date);
     }
-
 
     public static Date parseDate(String date, String pattern) {
         SimpleDateFormat df = new SimpleDateFormat(pattern);
@@ -356,11 +337,9 @@ public class UtilAll {
         }
     }
 
-
     public static String responseCode2String(final int code) {
         return Integer.toString(code);
     }
-
 
     public static String frontStringAtLeast(final String str, final int size) {
         if (str != null) {
@@ -371,7 +350,6 @@ public class UtilAll {
 
         return str;
     }
-
 
     public static boolean isBlank(String str) {
         int strLen;
@@ -386,11 +364,9 @@ public class UtilAll {
         return true;
     }
 
-
     public static String jstack() {
         return jstack(Thread.getAllStackTraces());
     }
-
 
     public static String jstack(Map<Thread, StackTraceElement[]> map) {
         StringBuilder result = new StringBuilder();
@@ -421,19 +397,18 @@ public class UtilAll {
             throw new RuntimeException("illegal ipv4 bytes");
         }
 
-
         //10.0.0.0~10.255.255.255
         //172.16.0.0~172.31.255.255
         //192.168.0.0~192.168.255.255
-        if (ip[0] == (byte) 10) {
+        if (ip[0] == (byte)10) {
 
             return true;
-        } else if (ip[0] == (byte) 172) {
-            if (ip[1] >= (byte) 16 && ip[1] <= (byte) 31) {
+        } else if (ip[0] == (byte)172) {
+            if (ip[1] >= (byte)16 && ip[1] <= (byte)31) {
                 return true;
             }
-        } else if (ip[0] == (byte) 192) {
-            if (ip[1] == (byte) 168) {
+        } else if (ip[0] == (byte)192) {
+            if (ip[1] == (byte)168) {
                 return true;
             }
         }
@@ -448,28 +423,27 @@ public class UtilAll {
 //        if (ip[0] == (byte)30 && ip[1] == (byte)10 && ip[2] == (byte)163 && ip[3] == (byte)120) {
 //        }
 
-
-        if (ip[0] >= (byte) 1 && ip[0] <= (byte) 126) {
-            if (ip[1] == (byte) 1 && ip[2] == (byte) 1 && ip[3] == (byte) 1) {
+        if (ip[0] >= (byte)1 && ip[0] <= (byte)126) {
+            if (ip[1] == (byte)1 && ip[2] == (byte)1 && ip[3] == (byte)1) {
                 return false;
             }
-            if (ip[1] == (byte) 0 && ip[2] == (byte) 0 && ip[3] == (byte) 0) {
-                return false;
-            }
-            return true;
-        } else if (ip[0] >= (byte) 128 && ip[0] <= (byte) 191) {
-            if (ip[2] == (byte) 1 && ip[3] == (byte) 1) {
-                return false;
-            }
-            if (ip[2] == (byte) 0 && ip[3] == (byte) 0) {
+            if (ip[1] == (byte)0 && ip[2] == (byte)0 && ip[3] == (byte)0) {
                 return false;
             }
             return true;
-        } else if (ip[0] >= (byte) 192 && ip[0] <= (byte) 223) {
-            if (ip[3] == (byte) 1) {
+        } else if (ip[0] >= (byte)128 && ip[0] <= (byte)191) {
+            if (ip[2] == (byte)1 && ip[3] == (byte)1) {
                 return false;
             }
-            if (ip[3] == (byte) 0) {
+            if (ip[2] == (byte)0 && ip[3] == (byte)0) {
+                return false;
+            }
+            return true;
+        } else if (ip[0] >= (byte)192 && ip[0] <= (byte)223) {
+            if (ip[3] == (byte)1) {
+                return false;
+            }
+            if (ip[3] == (byte)0) {
                 return false;
             }
             return true;
@@ -482,8 +456,8 @@ public class UtilAll {
             return null;
         }
         return new StringBuilder().append(ip[0] & 0xFF).append(".").append(
-                ip[1] & 0xFF).append(".").append(ip[2] & 0xFF)
-                .append(".").append(ip[3] & 0xFF).toString();
+            ip[1] & 0xFF).append(".").append(ip[2] & 0xFF)
+            .append(".").append(ip[3] & 0xFF).toString();
     }
 
     public static byte[] getIP() {
@@ -492,10 +466,10 @@ public class UtilAll {
             InetAddress ip = null;
             byte[] internalIP = null;
             while (allNetInterfaces.hasMoreElements()) {
-                NetworkInterface netInterface = (NetworkInterface) allNetInterfaces.nextElement();
+                NetworkInterface netInterface = (NetworkInterface)allNetInterfaces.nextElement();
                 Enumeration addresses = netInterface.getInetAddresses();
                 while (addresses.hasMoreElements()) {
-                    ip = (InetAddress) addresses.nextElement();
+                    ip = (InetAddress)addresses.nextElement();
                     if (ip != null && ip instanceof Inet4Address) {
                         byte[] ipByte = ip.getAddress();
                         if (ipByte.length == 4) {

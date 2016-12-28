@@ -16,14 +16,12 @@
  */
 package org.apache.rocketmq.client.impl.producer;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-
-import java.util.ArrayList;
-import java.util.List;
-
 
 public class TopicPublishInfo {
     private boolean orderTopic = false;
@@ -31,7 +29,6 @@ public class TopicPublishInfo {
     private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex(0);
     private TopicRouteData topicRouteData;
-
 
     public boolean isOrderTopic() {
         return orderTopic;
@@ -49,31 +46,25 @@ public class TopicPublishInfo {
         return messageQueueList;
     }
 
-
     public void setMessageQueueList(List<MessageQueue> messageQueueList) {
         this.messageQueueList = messageQueueList;
     }
-
 
     public ThreadLocalIndex getSendWhichQueue() {
         return sendWhichQueue;
     }
 
-
     public void setSendWhichQueue(ThreadLocalIndex sendWhichQueue) {
         this.sendWhichQueue = sendWhichQueue;
     }
-
 
     public boolean isHaveTopicRouterInfo() {
         return haveTopicRouterInfo;
     }
 
-
     public void setHaveTopicRouterInfo(boolean haveTopicRouterInfo) {
         this.haveTopicRouterInfo = haveTopicRouterInfo;
     }
-
 
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
         if (lastBrokerName == null) {
@@ -92,7 +83,6 @@ public class TopicPublishInfo {
             return selectOneMessageQueue();
         }
     }
-
 
     public MessageQueue selectOneMessageQueue() {
         int index = this.sendWhichQueue.getAndIncrement();
@@ -113,11 +103,10 @@ public class TopicPublishInfo {
         return -1;
     }
 
-
     @Override
     public String toString() {
         return "TopicPublishInfo [orderTopic=" + orderTopic + ", messageQueueList=" + messageQueueList
-                + ", sendWhichQueue=" + sendWhichQueue + ", haveTopicRouterInfo=" + haveTopicRouterInfo + "]";
+            + ", sendWhichQueue=" + sendWhichQueue + ", haveTopicRouterInfo=" + haveTopicRouterInfo + "]";
     }
 
     public TopicRouteData getTopicRouteData() {

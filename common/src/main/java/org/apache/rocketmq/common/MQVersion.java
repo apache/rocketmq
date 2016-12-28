@@ -20,7 +20,6 @@ public class MQVersion {
 
     public static final int CURRENT_VERSION = Version.V4_0_0_SNAPSHOT.ordinal();
 
-
     public static String getVersionDesc(int value) {
         try {
             Version v = Version.values()[value];
@@ -30,7 +29,6 @@ public class MQVersion {
 
         return "HigherVersion";
     }
-
 
     public static Version value2Version(int value) {
         return Version.values()[value];

@@ -6,13 +6,13 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.rocketmq.store;
 
@@ -40,7 +40,7 @@ public class AppendMessageResult {
     }
 
     public AppendMessageResult(AppendMessageStatus status, long wroteOffset, int wroteBytes, String msgId,
-                               long storeTimestamp, long logicsOffset, long pagecacheRT) {
+        long storeTimestamp, long logicsOffset, long pagecacheRT) {
         this.status = status;
         this.wroteOffset = wroteOffset;
         this.wroteBytes = wroteBytes;
@@ -62,61 +62,49 @@ public class AppendMessageResult {
         return this.status == AppendMessageStatus.PUT_OK;
     }
 
-
     public AppendMessageStatus getStatus() {
         return status;
     }
-
 
     public void setStatus(AppendMessageStatus status) {
         this.status = status;
     }
 
-
     public long getWroteOffset() {
         return wroteOffset;
     }
-
 
     public void setWroteOffset(long wroteOffset) {
         this.wroteOffset = wroteOffset;
     }
 
-
     public int getWroteBytes() {
         return wroteBytes;
     }
-
 
     public void setWroteBytes(int wroteBytes) {
         this.wroteBytes = wroteBytes;
     }
 
-
     public String getMsgId() {
         return msgId;
     }
-
 
     public void setMsgId(String msgId) {
         this.msgId = msgId;
     }
 
-
     public long getStoreTimestamp() {
         return storeTimestamp;
     }
-
 
     public void setStoreTimestamp(long storeTimestamp) {
         this.storeTimestamp = storeTimestamp;
     }
 
-
     public long getLogicsOffset() {
         return logicsOffset;
     }
-
 
     public void setLogicsOffset(long logicsOffset) {
         this.logicsOffset = logicsOffset;
@@ -125,13 +113,13 @@ public class AppendMessageResult {
     @Override
     public String toString() {
         return "AppendMessageResult{" +
-                "status=" + status +
-                ", wroteOffset=" + wroteOffset +
-                ", wroteBytes=" + wroteBytes +
-                ", msgId='" + msgId + '\'' +
-                ", storeTimestamp=" + storeTimestamp +
-                ", logicsOffset=" + logicsOffset +
-                ", pagecacheRT=" + pagecacheRT +
-                '}';
+            "status=" + status +
+            ", wroteOffset=" + wroteOffset +
+            ", wroteBytes=" + wroteBytes +
+            ", msgId='" + msgId + '\'' +
+            ", storeTimestamp=" + storeTimestamp +
+            ", logicsOffset=" + logicsOffset +
+            ", pagecacheRT=" + pagecacheRT +
+            '}';
     }
 }

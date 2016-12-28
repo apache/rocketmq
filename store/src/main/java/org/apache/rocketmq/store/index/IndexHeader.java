@@ -20,7 +20,6 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-
 /**
 
  *
@@ -43,11 +42,9 @@ public class IndexHeader {
 
     private AtomicInteger indexCount = new AtomicInteger(1);
 
-
     public IndexHeader(final ByteBuffer byteBuffer) {
         this.byteBuffer = byteBuffer;
     }
-
 
     public void load() {
         this.beginTimestamp.set(byteBuffer.getLong(beginTimestampIndex));
@@ -72,66 +69,54 @@ public class IndexHeader {
         this.byteBuffer.putInt(indexCountIndex, this.indexCount.get());
     }
 
-
     public long getBeginTimestamp() {
         return beginTimestamp.get();
     }
-
 
     public void setBeginTimestamp(long beginTimestamp) {
         this.beginTimestamp.set(beginTimestamp);
         this.byteBuffer.putLong(beginTimestampIndex, beginTimestamp);
     }
 
-
     public long getEndTimestamp() {
         return endTimestamp.get();
     }
-
 
     public void setEndTimestamp(long endTimestamp) {
         this.endTimestamp.set(endTimestamp);
         this.byteBuffer.putLong(endTimestampIndex, endTimestamp);
     }
 
-
     public long getBeginPhyOffset() {
         return beginPhyOffset.get();
     }
-
 
     public void setBeginPhyOffset(long beginPhyOffset) {
         this.beginPhyOffset.set(beginPhyOffset);
         this.byteBuffer.putLong(beginPhyoffsetIndex, beginPhyOffset);
     }
 
-
     public long getEndPhyOffset() {
         return endPhyOffset.get();
     }
-
 
     public void setEndPhyOffset(long endPhyOffset) {
         this.endPhyOffset.set(endPhyOffset);
         this.byteBuffer.putLong(endPhyoffsetIndex, endPhyOffset);
     }
 
-
     public AtomicInteger getHashSlotCount() {
         return hashSlotCount;
     }
-
 
     public void incHashSlotCount() {
         int value = this.hashSlotCount.incrementAndGet();
         this.byteBuffer.putInt(hashSlotcountIndex, value);
     }
 
-
     public int getIndexCount() {
         return indexCount.get();
     }
-
 
     public void incIndexCount() {
         int value = this.indexCount.incrementAndGet();

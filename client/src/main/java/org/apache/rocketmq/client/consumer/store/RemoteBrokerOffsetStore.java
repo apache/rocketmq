@@ -16,6 +16,12 @@
  */
 package org.apache.rocketmq.client.consumer.store;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
@@ -29,36 +35,24 @@ import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHea
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-
-
 /**
  * Remote storage implementation
- *
  */
 public class RemoteBrokerOffsetStore implements OffsetStore {
     private final static Logger log = ClientLogger.getLog();
     private final MQClientInstance mQClientFactory;
     private final String groupName;
     private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable =
-            new ConcurrentHashMap<MessageQueue, AtomicLong>();
-
+        new ConcurrentHashMap<MessageQueue, AtomicLong>();
 
     public RemoteBrokerOffsetStore(MQClientInstance mQClientFactory, String groupName) {
         this.mQClientFactory = mQClientFactory;
         this.groupName = groupName;
     }
 
-
     @Override
     public void load() {
     }
-
 
     @Override
     public void updateOffset(MessageQueue mq, long offset, boolean increaseOnly) {
@@ -77,7 +71,6 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             }
         }
     }
-
 
     @Override
     public long readOffset(final MessageQueue mq, final ReadOffsetType type) {
@@ -117,7 +110,6 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         return -1;
     }
 
-
     @Override
     public void persistAll(Set<MessageQueue> mqs) {
         if (null == mqs || mqs.isEmpty())
@@ -133,10 +125,10 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                         try {
                             this.updateConsumeOffsetToBroker(mq, offset.get());
                             log.info("[persistAll] Group: {} ClientId: {} updateConsumeOffsetToBroker {} {}",
-                                    this.groupName,
-                                    this.mQClientFactory.getClientId(),
-                                    mq,
-                                    offset.get());
+                                this.groupName,
+                                this.mQClientFactory.getClientId(),
+                                mq,
+                                offset.get());
                         } catch (Exception e) {
                             log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
                         }
@@ -155,7 +147,6 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         }
     }
 
-
     @Override
     public void persist(MessageQueue mq) {
         AtomicLong offset = this.offsetTable.get(mq);
@@ -163,10 +154,10 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             try {
                 this.updateConsumeOffsetToBroker(mq, offset.get());
                 log.info("[persist] Group: {} ClientId: {} updateConsumeOffsetToBroker {} {}",
-                        this.groupName,
-                        this.mQClientFactory.getClientId(),
-                        mq,
-                        offset.get());
+                    this.groupName,
+                    this.mQClientFactory.getClientId(),
+                    mq,
+                    offset.get());
             } catch (Exception e) {
                 log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
             }
@@ -177,7 +168,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         if (mq != null) {
             this.offsetTable.remove(mq);
             log.info("remove unnecessary messageQueue offset. group={}, mq={}, offsetTableSize={}", this.groupName, mq,
-                    offsetTable.size());
+                offsetTable.size());
         }
     }
 
@@ -199,7 +190,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
      * here need to be optimized.
      */
     private void updateConsumeOffsetToBroker(MessageQueue mq, long offset) throws RemotingException,
-            MQBrokerException, InterruptedException, MQClientException {
+        MQBrokerException, InterruptedException, MQClientException {
         updateConsumeOffsetToBroker(mq, offset, true);
     }
 
@@ -209,7 +200,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
      */
     @Override
     public void updateConsumeOffsetToBroker(MessageQueue mq, long offset, boolean isOneway) throws RemotingException,
-            MQBrokerException, InterruptedException, MQClientException {
+        MQBrokerException, InterruptedException, MQClientException {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
             // TODO Here may be heavily overhead for Name Server,need tuning
@@ -226,10 +217,10 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
             if (isOneway) {
                 this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffsetOneway(
-                        findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+                    findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
             } else {
                 this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffset(
-                        findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+                    findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
             }
         } else {
             throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
@@ -237,7 +228,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     }
 
     private long fetchConsumeOffsetFromBroker(MessageQueue mq) throws RemotingException, MQBrokerException,
-            InterruptedException, MQClientException {
+        InterruptedException, MQClientException {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
             // TODO Here may be heavily overhead for Name Server,need tuning
@@ -252,7 +243,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             requestHeader.setQueueId(mq.getQueueId());
 
             return this.mQClientFactory.getMQClientAPIImpl().queryConsumerOffset(
-                    findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+                findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
         } else {
             throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
         }

@@ -16,6 +16,14 @@
  */
 package org.apache.rocketmq.tools.command.broker;
 
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
@@ -24,12 +32,6 @@ import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-
-import java.util.*;
-
 
 public class BrokerConsumeStatsSubCommad implements SubCommand {
 
@@ -86,14 +88,14 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
 
             ConsumeStatsList consumeStatsList = defaultMQAdminExt.fetchConsumeStatsInBroker(brokerAddr, isOrder, timeoutMillis);
             System.out.printf("%-32s  %-32s  %-32s  %-4s  %-20s  %-20s  %-20s  %s%n",
-                    "#Topic",
-                    "#Group",
-                    "#Broker Name",
-                    "#QID",
-                    "#Broker Offset",
-                    "#Consumer Offset",
-                    "#Diff",
-                    "#LastTime");
+                "#Topic",
+                "#Group",
+                "#Broker Name",
+                "#QID",
+                "#Broker Offset",
+                "#Consumer Offset",
+                "#Diff",
+                "#LastTime");
             for (Map<String, List<ConsumeStats>> map : consumeStatsList.getConsumeStatsList()) {
                 for (Map.Entry<String, List<ConsumeStats>> entry : map.entrySet()) {
                     String group = entry.getKey();
@@ -117,14 +119,14 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
                             }
                             if (offsetWrapper.getLastTimestamp() > 0)
                                 System.out.printf("%-32s  %-32s  %-32s  %-4d  %-20d  %-20d  %-20d  %s%n",
-                                        UtilAll.frontStringAtLeast(mq.getTopic(), 32),
-                                        group,
-                                        UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),
-                                        mq.getQueueId(),
-                                        offsetWrapper.getBrokerOffset(),
-                                        offsetWrapper.getConsumerOffset(),
-                                        diff,
-                                        lastTime
+                                    UtilAll.frontStringAtLeast(mq.getTopic(), 32),
+                                    group,
+                                    UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),
+                                    mq.getQueueId(),
+                                    offsetWrapper.getBrokerOffset(),
+                                    offsetWrapper.getConsumerOffset(),
+                                    diff,
+                                    lastTime
                                 );
                         }
                     }

@@ -6,13 +6,15 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * $Id: SubscriptionData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
  */
 
 /**
@@ -21,10 +23,8 @@
 package org.apache.rocketmq.common.protocol.heartbeat;
 
 import com.alibaba.fastjson.annotation.JSONField;
-
 import java.util.HashSet;
 import java.util.Set;
-
 
 public class SubscriptionData implements Comparable<SubscriptionData> {
     public final static String SUB_ALL = "*";
@@ -38,11 +38,9 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
     @JSONField(serialize = false)
     private String filterClassSource;
 
-
     public SubscriptionData() {
 
     }
-
 
     public SubscriptionData(String topic, String subString) {
         super();
@@ -62,61 +60,49 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
         return topic;
     }
 
-
     public void setTopic(String topic) {
         this.topic = topic;
     }
-
 
     public String getSubString() {
         return subString;
     }
 
-
     public void setSubString(String subString) {
         this.subString = subString;
     }
-
 
     public Set<String> getTagsSet() {
         return tagsSet;
     }
 
-
     public void setTagsSet(Set<String> tagsSet) {
         this.tagsSet = tagsSet;
     }
-
 
     public long getSubVersion() {
         return subVersion;
     }
 
-
     public void setSubVersion(long subVersion) {
         this.subVersion = subVersion;
     }
-
 
     public Set<Integer> getCodeSet() {
         return codeSet;
     }
 
-
     public void setCodeSet(Set<Integer> codeSet) {
         this.codeSet = codeSet;
     }
-
 
     public boolean isClassFilterMode() {
         return classFilterMode;
     }
 
-
     public void setClassFilterMode(boolean classFilterMode) {
         this.classFilterMode = classFilterMode;
     }
-
 
     @Override
     public int hashCode() {
@@ -130,7 +116,6 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
         return result;
     }
 
-
     @Override
     public boolean equals(Object obj) {
         if (this == obj)
@@ -139,7 +124,7 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        SubscriptionData other = (SubscriptionData) obj;
+        SubscriptionData other = (SubscriptionData)obj;
         if (classFilterMode != other.classFilterMode)
             return false;
         if (codeSet == null) {
@@ -167,14 +152,12 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
         return true;
     }
 
-
     @Override
     public String toString() {
         return "SubscriptionData [classFilterMode=" + classFilterMode + ", topic=" + topic + ", subString="
-                + subString + ", tagsSet=" + tagsSet + ", codeSet=" + codeSet + ", subVersion=" + subVersion
-                + "]";
+            + subString + ", tagsSet=" + tagsSet + ", codeSet=" + codeSet + ", subVersion=" + subVersion
+            + "]";
     }
-
 
     @Override
     public int compareTo(SubscriptionData other) {
