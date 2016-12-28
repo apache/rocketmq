@@ -26,10 +26,6 @@ import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 
-/**
- *
- *
- */
 public class UpdateOrderConfCommand implements SubCommand {
 
     @Override

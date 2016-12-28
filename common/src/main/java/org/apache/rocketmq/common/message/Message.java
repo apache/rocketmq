@@ -21,10 +21,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- *
- *
- */
 public class Message implements Serializable {
     private static final long serialVersionUID = 8445773977080406428L;
 

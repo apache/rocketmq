@@ -31,10 +31,6 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 
-/**
- *
- *
- */
 public class DeleteTopicSubCommand implements SubCommand {
     public static void deleteTopic(final DefaultMQAdminExt adminExt,
         final String clusterName,

@@ -24,10 +24,6 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 
-/**
- *
- *
- */
 public class TopicRouteSubCommand implements SubCommand {
 
     @Override

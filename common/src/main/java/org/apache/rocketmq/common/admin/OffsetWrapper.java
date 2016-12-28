@@ -16,10 +16,6 @@
  */
 package org.apache.rocketmq.common.admin;
 
-/**
- *
- *
- */
 public class OffsetWrapper {
     private long brokerOffset;
     private long consumerOffset;

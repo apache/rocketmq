@@ -180,9 +180,7 @@ public class IndexFile {
     }
 
     public boolean isTimeMatched(final long begin, final long end) {
-        boolean result =
-            begin < this.indexHeader.getBeginTimestamp() && end > this.indexHeader.getEndTimestamp();
-
+        boolean result = begin < this.indexHeader.getBeginTimestamp() && end > this.indexHeader.getEndTimestamp();
         result = result || (begin >= this.indexHeader.getBeginTimestamp() && begin <= this.indexHeader.getEndTimestamp());
         result = result || (end >= this.indexHeader.getBeginTimestamp() && end <= this.indexHeader.getEndTimestamp());
         return result;
