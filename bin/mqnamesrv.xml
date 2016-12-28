@@ -22,7 +22,7 @@
 
 	<jvmtype>server</jvmtype>
 
-	<mainclass>com.alibaba.rocketmq.namesrv.NamesrvStartup</mainclass>
+	<mainclass>org.apache.rocketmq.namesrv.NamesrvStartup</mainclass>
 
 	<properties>
 		<java.ext.dirs>${cpd}/../lib</java.ext.dirs>
