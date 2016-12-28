@@ -29,9 +29,6 @@ import org.apache.rocketmq.common.message.*;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class DefaultMQProducer extends ClientConfig implements MQProducer {
     protected final transient DefaultMQProducerImpl defaultMQProducerImpl;
     private String producerGroup;

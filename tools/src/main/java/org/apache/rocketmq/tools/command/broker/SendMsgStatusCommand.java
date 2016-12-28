@@ -29,9 +29,6 @@ import org.apache.commons.cli.Options;
 import java.io.UnsupportedEncodingException;
 
 
-/**
- * @author lansheng.zj
- */
 public class SendMsgStatusCommand implements SubCommand {
 
     @Override

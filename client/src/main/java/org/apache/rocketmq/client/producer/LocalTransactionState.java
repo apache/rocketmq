@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.client.producer;
 
-/**
- * @author vintagewang@apache.org
- */
 public enum LocalTransactionState {
     COMMIT_MESSAGE,
     ROLLBACK_MESSAGE,

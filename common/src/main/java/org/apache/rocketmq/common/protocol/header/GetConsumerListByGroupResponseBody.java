@@ -22,9 +22,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class GetConsumerListByGroupResponseBody extends RemotingSerializable {
     private List<String> consumerIdList;
 

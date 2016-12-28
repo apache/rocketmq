@@ -24,9 +24,6 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class MessageExt extends Message {
     private static final long serialVersionUID = 5720810158625748049L;
 

@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.common.sysflag;
 
-/**
- * @author manhong.yqd
- */
 public class SubscriptionSysFlag {
 
     private final static int FLAG_UNIT = 0x1 << 0;

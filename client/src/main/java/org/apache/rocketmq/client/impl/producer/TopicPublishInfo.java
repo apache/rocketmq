@@ -25,9 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class TopicPublishInfo {
     private boolean orderTopic = false;
     private boolean haveTopicRouterInfo = false;

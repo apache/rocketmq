@@ -43,9 +43,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class ClientRemotingProcessor implements NettyRequestProcessor {
     private final Logger log = ClientLogger.getLog();
     private final MQClientInstance mqClientFactory;

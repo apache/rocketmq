@@ -53,9 +53,6 @@ import java.util.*;
 import java.util.Map.Entry;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     private final Logger log = ClientLogger.getLog();
     private final DefaultMQAdminExt defaultMQAdminExt;

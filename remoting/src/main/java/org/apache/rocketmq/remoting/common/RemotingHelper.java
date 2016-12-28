@@ -29,9 +29,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class RemotingHelper {
     public static final String ROCKETMQ_REMOTING = "RocketmqRemoting";
     public static final String DEFAULT_CHARSET = "UTF-8";

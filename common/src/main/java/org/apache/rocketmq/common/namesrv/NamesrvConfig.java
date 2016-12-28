@@ -30,8 +30,6 @@ import java.io.File;
 
 /**
  *
- * @author vintagewang@apache.org
- * @author lansheng.zj
  */
 public class NamesrvConfig {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);

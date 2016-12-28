@@ -22,9 +22,6 @@ import io.netty.channel.Channel;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListener {
     private final BrokerController brokerController;
 

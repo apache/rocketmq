@@ -23,7 +23,6 @@ import io.netty.channel.ChannelHandlerContext;
 /**
  * Common remoting command processor
  *
- * @author vintagewang@apache.org
  *
  */
 public interface NettyRequestProcessor {

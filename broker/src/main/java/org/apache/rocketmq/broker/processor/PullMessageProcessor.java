@@ -57,9 +57,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class PullMessageProcessor implements NettyRequestProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;

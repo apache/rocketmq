@@ -27,9 +27,6 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class MappedFileQueue {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final Logger LOG_ERROR = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);

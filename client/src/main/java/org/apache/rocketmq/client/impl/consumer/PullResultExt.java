@@ -23,9 +23,6 @@ import org.apache.rocketmq.common.message.MessageExt;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class PullResultExt extends PullResult {
     private final long suggestWhichBrokerId;
     private byte[] messageBinary;

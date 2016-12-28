@@ -22,7 +22,6 @@ import java.util.HashSet;
 
 
 /**
- * @author vintagewang@apache.org
  *
  */
 public class GroupList extends RemotingSerializable {

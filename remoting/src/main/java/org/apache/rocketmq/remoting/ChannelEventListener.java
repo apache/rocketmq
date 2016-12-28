@@ -20,7 +20,6 @@ import io.netty.channel.Channel;
 
 
 /**
- * @author vintagewang@apache.org
  *
  */
 public interface ChannelEventListener {

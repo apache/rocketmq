@@ -24,9 +24,6 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class UnregisterClientResponseHeader implements CommandCustomHeader {
 
     @Override

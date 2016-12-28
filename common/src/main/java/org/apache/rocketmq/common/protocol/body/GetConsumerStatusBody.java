@@ -24,9 +24,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-/**
- * @author manhong.yqd
- */
 @Deprecated
 public class GetConsumerStatusBody extends RemotingSerializable {
     private Map<MessageQueue, Long> messageQueueTable = new HashMap<MessageQueue, Long>();

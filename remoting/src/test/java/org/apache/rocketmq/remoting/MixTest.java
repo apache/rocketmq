@@ -23,9 +23,6 @@ package org.apache.rocketmq.remoting;
 import org.junit.Test;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class MixTest {
     @Test
     public void test_extFieldsValue() {

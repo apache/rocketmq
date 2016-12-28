@@ -24,9 +24,6 @@ import org.slf4j.Logger;
 import java.util.concurrent.*;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class PullMessageService extends ServiceThread {
     private final Logger log = ClientLogger.getLog();
     private final LinkedBlockingQueue<PullRequest> pullRequestQueue = new LinkedBlockingQueue<PullRequest>();

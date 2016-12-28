@@ -40,7 +40,6 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Remote storage implementation
  *
- * @author vintagewang@apache.org
  */
 public class RemoteBrokerOffsetStore implements OffsetStore {
     private final static Logger log = ClientLogger.getLog();

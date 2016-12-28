@@ -26,9 +26,6 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public interface MQProducer extends MQAdmin {
     void start() throws MQClientException;
 

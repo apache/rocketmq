@@ -24,9 +24,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class UnlockBatchRequestBody extends RemotingSerializable {
     private String consumerGroup;
     private String clientId;

@@ -22,7 +22,6 @@ import org.apache.rocketmq.common.message.MessageQueue;
 /**
  * Consumer Orderly consumption context
  *
- * @author vintagewang@apache.org
  */
 public class ConsumeOrderlyContext {
     private final MessageQueue messageQueue;

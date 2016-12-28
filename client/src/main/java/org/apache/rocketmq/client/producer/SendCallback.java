@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.client.producer;
 
-/**
- * @author vintagewang@apache.org
- */
 public interface SendCallback {
     public void onSuccess(final SendResult sendResult);
 

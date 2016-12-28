@@ -49,9 +49,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public abstract class NettyRemotingAbstract {
     private static final Logger PLOG = LoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 

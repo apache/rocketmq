@@ -24,9 +24,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class BrokerConfig {
     private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
     @ImportantField

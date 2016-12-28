@@ -38,9 +38,6 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class RemotingUtil {
     public static final String OS_NAME = System.getProperty("os.name");
 

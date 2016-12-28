@@ -29,9 +29,6 @@ import java.util.Properties;
 import java.util.Set;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class UpdateBrokerConfigSubCommand implements SubCommand {
 
     @Override

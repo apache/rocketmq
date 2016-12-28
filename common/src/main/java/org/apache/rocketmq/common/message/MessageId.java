@@ -19,9 +19,6 @@ package org.apache.rocketmq.common.message;
 import java.net.SocketAddress;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class MessageId {
     private SocketAddress address;
     private long offset;

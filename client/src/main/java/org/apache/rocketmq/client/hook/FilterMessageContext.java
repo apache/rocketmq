@@ -22,9 +22,6 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import java.util.List;
 
 
-/**
- * @author manhong.yqd
- */
 public class FilterMessageContext {
     private String consumerGroup;
     private List<MessageExt> msgList;

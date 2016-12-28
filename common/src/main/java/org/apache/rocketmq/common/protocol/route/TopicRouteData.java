@@ -27,9 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class TopicRouteData extends RemotingSerializable {
     private String orderTopicConf;
     private List<QueueData> queueDatas;

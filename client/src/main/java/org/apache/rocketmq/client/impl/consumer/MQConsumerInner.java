@@ -29,7 +29,6 @@ import java.util.Set;
 /**
  * Consumer inner interface
  *
- * @author vintagewang@apache.org
  */
 public interface MQConsumerInner {
     String groupName();

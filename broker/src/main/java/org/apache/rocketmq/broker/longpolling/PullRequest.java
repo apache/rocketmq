@@ -21,9 +21,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import io.netty.channel.Channel;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class PullRequest {
     private final RemotingCommand requestCommand;
     private final Channel clientChannel;

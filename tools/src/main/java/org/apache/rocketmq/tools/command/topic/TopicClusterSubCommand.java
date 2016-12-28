@@ -28,7 +28,6 @@ import java.util.Set;
 
 /**
  *
- * @author zhouli
  *
  */
 public class TopicClusterSubCommand implements SubCommand {

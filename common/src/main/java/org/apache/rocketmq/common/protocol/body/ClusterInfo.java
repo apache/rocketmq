@@ -26,9 +26,6 @@ import java.util.List;
 import java.util.Set;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class ClusterInfo extends RemotingSerializable {
     private HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
     private HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;

@@ -21,9 +21,6 @@ import io.netty.channel.Channel;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public interface ConsumerIdsChangeListener {
     void consumerIdsChanged(final String group, final List<Channel> channels);
 }

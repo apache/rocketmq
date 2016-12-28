@@ -19,9 +19,6 @@ package org.apache.rocketmq.store;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public interface MessageFilter {
     boolean isMessageMatched(final SubscriptionData subscriptionData, final Long tagsCode);
 }

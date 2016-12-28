@@ -29,7 +29,6 @@ import java.nio.ByteBuffer;
 
 
 /**
- * @author vintagewang@apache.org
  *
  */
 public class NettyEncoder extends MessageToByteEncoder<RemotingCommand> {

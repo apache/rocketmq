@@ -26,9 +26,6 @@ import java.nio.channels.WritableByteChannel;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class ManyMessageTransfer extends AbstractReferenceCounted implements FileRegion {
     private final ByteBuffer byteBufferHeader;
     private final GetMessageResult getMessageResult;

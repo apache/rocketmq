@@ -21,9 +21,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import java.util.concurrent.atomic.AtomicLong;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class DataVersion extends RemotingSerializable {
     private long timestatmp = System.currentTimeMillis();
     private AtomicLong counter = new AtomicLong(0);

@@ -28,9 +28,6 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 
-/**
- * @author zander
- */
 public class TopicConfigManagerTest extends BrokerTestHarness {
     @Test
     public void testFlushTopicConfig() throws Exception {

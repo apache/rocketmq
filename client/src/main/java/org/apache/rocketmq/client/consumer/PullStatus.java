@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.client.consumer;
 
-/**
- * @author vintagewang@apache.org
- */
 public enum PullStatus {
     /**
      * Founded

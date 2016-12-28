@@ -26,7 +26,6 @@ import java.util.Map.Entry;
 
 /**
  *
- * @author vintagewang@apache.org
  *
  */
 public class ConsumeStats extends RemotingSerializable {

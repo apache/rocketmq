@@ -35,7 +35,6 @@ import java.util.List;
 
 /**
  *
- * @author manhong.yqd
  *
  */
 public class ResetOffsetByTimeOldCommand implements SubCommand {

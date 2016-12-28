@@ -25,9 +25,6 @@ import java.lang.reflect.Method;
 import java.net.URL;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class ClientLogger {
     private static Logger log;
     public static final String CLIENT_LOG_ROOT = "rocketmq.client.logRoot";

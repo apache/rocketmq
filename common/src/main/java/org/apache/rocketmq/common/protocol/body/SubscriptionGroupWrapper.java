@@ -24,9 +24,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import java.util.concurrent.ConcurrentHashMap;
 
 
-/**
- * @author manhong.yqd
- */
 public class SubscriptionGroupWrapper extends RemotingSerializable {
     private ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
             new ConcurrentHashMap<String, SubscriptionGroupConfig>(1024);

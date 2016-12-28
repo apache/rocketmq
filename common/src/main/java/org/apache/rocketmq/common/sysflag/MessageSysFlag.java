@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.common.sysflag;
 
-/**
- * @author vintagewang@apache.org
- */
 public class MessageSysFlag {
     public final static int COMPRESSED_FLAG = 0x1;
     public final static int MULTI_TAGS_FLAG = 0x1 << 1;

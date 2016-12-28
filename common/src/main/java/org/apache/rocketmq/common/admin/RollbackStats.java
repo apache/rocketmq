@@ -19,7 +19,6 @@ package org.apache.rocketmq.common.admin;
 
 /**
  *
- * @author manhong.yqd
  */
 public class RollbackStats {
     private String brokerName;

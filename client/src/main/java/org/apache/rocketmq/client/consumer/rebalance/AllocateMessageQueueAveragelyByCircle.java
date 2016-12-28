@@ -28,7 +28,6 @@ import java.util.List;
 /**
  * Cycle average Hashing queue algorithm
  *
- * @author manhong.yqd
  */
 public class AllocateMessageQueueAveragelyByCircle implements AllocateMessageQueueStrategy {
     private final Logger log = ClientLogger.getLog();

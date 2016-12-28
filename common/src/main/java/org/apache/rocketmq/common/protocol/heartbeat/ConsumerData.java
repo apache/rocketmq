@@ -26,9 +26,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class ConsumerData {
     private String groupName;
     private ConsumeType consumeType;

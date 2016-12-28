@@ -25,9 +25,6 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 
-/**
- * @author manhong.yqd
- */
 public class CloneGroupOffsetRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String srcGroup;

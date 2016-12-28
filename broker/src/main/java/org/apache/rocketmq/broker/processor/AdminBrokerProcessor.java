@@ -61,10 +61,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 
-/**
- * @author vintagewang@apache.org
- * @author manhong.yqd
- */
 public class AdminBrokerProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;

@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.store;
 
-/**
- * @author vintagewang@apache.org
- */
 public enum GetMessageStatus {
 
     FOUND,

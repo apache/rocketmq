@@ -22,9 +22,6 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 
-/**
- * @author manhong.yqd
- */
 public class CheckForbiddenContext {
     private String nameSrvAddr;
     private String group;

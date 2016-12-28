@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 
 /**
  *
- * @author manhong.yqd
  *
  */
 public interface FilterCheckHook {

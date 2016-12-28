@@ -22,9 +22,6 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public interface MessageQueueSelector {
     MessageQueue select(final List<MessageQueue> mqs, final Message msg, final Object arg);
 }

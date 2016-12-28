@@ -24,7 +24,6 @@ import java.util.Map;
 
 
 /**
- * @author manhong.yqd
  *
  */
 public class ResetOffsetBody extends RemotingSerializable {

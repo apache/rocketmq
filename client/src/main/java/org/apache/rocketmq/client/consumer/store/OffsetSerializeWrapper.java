@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Wrapper class for offset serialization
  *
- * @author vintagewang@apache.org
  */
 public class OffsetSerializeWrapper extends RemotingSerializable {
     private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable =

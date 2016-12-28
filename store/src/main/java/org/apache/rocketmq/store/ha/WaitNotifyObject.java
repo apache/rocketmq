@@ -19,9 +19,6 @@ package org.apache.rocketmq.store.ha;
 import java.util.HashMap;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class WaitNotifyObject {
 
     protected final HashMap<Long/* thread id */, Boolean/* notified */> waitingThreadTable =

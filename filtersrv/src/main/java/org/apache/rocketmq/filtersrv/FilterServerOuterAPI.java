@@ -31,9 +31,6 @@ import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class FilterServerOuterAPI {
     private final RemotingClient remotingClient;
 

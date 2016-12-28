@@ -39,9 +39,6 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class FiltersrvStartup {
     public static Logger log;
 

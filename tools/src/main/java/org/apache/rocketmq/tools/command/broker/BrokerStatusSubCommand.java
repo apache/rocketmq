@@ -35,9 +35,6 @@ import java.util.Set;
 import java.util.TreeMap;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class BrokerStatusSubCommand implements SubCommand {
 
     @Override

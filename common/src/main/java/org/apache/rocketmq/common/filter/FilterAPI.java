@@ -22,7 +22,6 @@ import java.net.URL;
 
 
 /**
- * @author vintagewang@apache.org
  *
  */
 public class FilterAPI {

@@ -29,7 +29,6 @@ import org.apache.commons.cli.Options;
 
 /**
  *
- * @author manhong.yqd
  *
  */
 public class UpdateOrderConfCommand implements SubCommand {

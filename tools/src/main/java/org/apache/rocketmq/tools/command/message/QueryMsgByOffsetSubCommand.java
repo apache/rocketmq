@@ -28,9 +28,6 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class QueryMsgByOffsetSubCommand implements SubCommand {
 
     @Override

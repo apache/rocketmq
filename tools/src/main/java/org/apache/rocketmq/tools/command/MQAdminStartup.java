@@ -45,9 +45,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class MQAdminStartup {
     protected static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
 

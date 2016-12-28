@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.client.consumer.listener;
 
-/**
- * @author vintagewang@apache.org
- */
 public enum ConsumeOrderlyStatus {
     /**
      * Success consumption

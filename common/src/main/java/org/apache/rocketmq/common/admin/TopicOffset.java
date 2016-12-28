@@ -18,7 +18,6 @@ package org.apache.rocketmq.common.admin;
 
 /**
  *
- * @author vintagewang@apache.org
  *
  */
 public class TopicOffset {

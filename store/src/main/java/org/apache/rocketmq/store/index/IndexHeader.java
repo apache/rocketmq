@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
 
  *
- * @author vintagewang@apache.org
  *
  */
 public class IndexHeader {

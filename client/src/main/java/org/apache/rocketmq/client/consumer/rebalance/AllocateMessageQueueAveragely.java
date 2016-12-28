@@ -28,7 +28,6 @@ import java.util.List;
 /**
  * Average Hashing queue algorithm
  *
- * @author manhong.yqd
  */
 public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrategy {
     private final Logger log = ClientLogger.getLog();

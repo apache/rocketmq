@@ -26,9 +26,6 @@ import java.util.Set;
 import java.util.TreeSet;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class MQHelper {
     public static void resetOffsetByTimestamp(
             final MessageModel messageModel,

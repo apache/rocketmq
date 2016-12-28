@@ -21,9 +21,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import java.util.HashMap;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class KVConfigSerializeWrapper extends RemotingSerializable {
     private HashMap<String/* Namespace */, HashMap<String/* Key */, String/* Value */>> configTable;
 

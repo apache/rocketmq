@@ -29,7 +29,6 @@ import java.util.Set;
 /**
  * Message queue consumer interface
  *
- * @author vintagewang@apache.org
  */
 public interface MQConsumer extends MQAdmin {
     /**

@@ -28,7 +28,6 @@ import java.util.Set;
 /**
  * Pulling consumer interface
  *
- * @author vintagewang@apache.org
  */
 public interface MQPullConsumer extends MQConsumer {
     /**

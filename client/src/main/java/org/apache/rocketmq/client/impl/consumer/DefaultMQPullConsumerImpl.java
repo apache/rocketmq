@@ -56,9 +56,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     private final Logger log = ClientLogger.getLog();
     private final DefaultMQPullConsumer defaultMQPullConsumer;

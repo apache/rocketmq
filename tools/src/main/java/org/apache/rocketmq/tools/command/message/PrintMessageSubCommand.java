@@ -33,9 +33,6 @@ import java.util.List;
 import java.util.Set;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class PrintMessageSubCommand implements SubCommand {
 
     @Override

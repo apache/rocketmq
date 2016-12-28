@@ -21,9 +21,6 @@ import org.apache.rocketmq.common.message.MessageExt;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class PullResult {
     private final PullStatus pullStatus;
     private final long nextBeginOffset;

@@ -23,9 +23,6 @@ import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class GetConsumerRunningInfoRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String consumerGroup;

@@ -30,7 +30,6 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * thread safe
  *
- * @author lansheng.zj
  */
 public class ConcurrentTreeMap<K, V> {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);

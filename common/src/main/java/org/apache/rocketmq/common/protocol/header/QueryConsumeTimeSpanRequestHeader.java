@@ -23,7 +23,6 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
- * @author manhong.yqd
  *
  */
 public class QueryConsumeTimeSpanRequestHeader implements CommandCustomHeader {

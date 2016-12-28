@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.common.constant;
 
-/**
- * @author vintagewang@apache.org
- */
 public class LoggerName {
     public static final String FILTERSRV_LOGGER_NAME = "RocketmqFiltersrv";
     public static final String NAMESRV_LOGGER_NAME = "RocketmqNamesrv";

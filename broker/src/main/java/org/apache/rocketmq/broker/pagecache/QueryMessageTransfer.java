@@ -26,9 +26,6 @@ import java.nio.channels.WritableByteChannel;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class QueryMessageTransfer extends AbstractReferenceCounted implements FileRegion {
     private final ByteBuffer byteBufferHeader;
     private final QueryMessageResult queryMessageResult;

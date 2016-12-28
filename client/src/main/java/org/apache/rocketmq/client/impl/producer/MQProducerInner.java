@@ -23,9 +23,6 @@ import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHe
 import java.util.Set;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public interface MQProducerInner {
     Set<String> getPublishTopicList();
 

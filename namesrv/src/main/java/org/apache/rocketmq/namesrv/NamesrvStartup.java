@@ -40,9 +40,6 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class NamesrvStartup {
     public static Properties properties = null;
     public static CommandLine commandLine = null;

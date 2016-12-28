@@ -33,9 +33,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class RebalancePushImpl extends RebalanceImpl {
     private final static long UNLOCK_DELAY_TIME_MILLS = Long.parseLong(System.getProperty("rocketmq.client.unlockDelayTimeMills", "20000"));
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;

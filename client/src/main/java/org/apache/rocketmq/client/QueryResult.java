@@ -21,9 +21,6 @@ import org.apache.rocketmq.common.message.MessageExt;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class QueryResult {
     private final long indexLastUpdateTimestamp;
     private final List<MessageExt> messageList;

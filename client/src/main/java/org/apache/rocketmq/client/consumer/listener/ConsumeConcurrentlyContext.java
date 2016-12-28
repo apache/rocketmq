@@ -22,7 +22,6 @@ import org.apache.rocketmq.common.message.MessageQueue;
 /**
  * Consumer concurrent consumption context
  *
- * @author vintagewang@apache.org
  */
 public class ConsumeConcurrentlyContext {
     private final MessageQueue messageQueue;

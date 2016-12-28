@@ -25,9 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-/**
- * @author manhong.yqd
- */
 public class IOTinyUtils {
 
     static public String toString(InputStream input, String encoding) throws IOException {

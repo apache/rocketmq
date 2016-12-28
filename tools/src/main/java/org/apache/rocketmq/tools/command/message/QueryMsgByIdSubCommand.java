@@ -42,9 +42,6 @@ import java.io.IOException;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class QueryMsgByIdSubCommand implements SubCommand {
     @Override
     public String commandName() {

@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 /**
  * Write messages callback interface
  *
- * @author vintagewang@apache.org
  *
  */
 public interface AppendMessageCallback {

@@ -25,9 +25,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class OneMessageTransfer extends AbstractReferenceCounted implements FileRegion {
     private final ByteBuffer byteBufferHeader;
     private final SelectMappedBufferResult selectMappedBufferResult;

@@ -28,9 +28,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
-/**
- * @author xigu.lx
- */
 public class UpdateNamesrvConfigCommand implements SubCommand {
     @Override
     public String commandName() {

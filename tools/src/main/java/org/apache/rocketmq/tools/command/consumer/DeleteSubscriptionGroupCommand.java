@@ -30,9 +30,6 @@ import org.apache.commons.cli.Options;
 import java.util.Set;
 
 
-/**
- * @author lansheng.zj
- */
 public class DeleteSubscriptionGroupCommand implements SubCommand {
     @Override
     public String commandName() {

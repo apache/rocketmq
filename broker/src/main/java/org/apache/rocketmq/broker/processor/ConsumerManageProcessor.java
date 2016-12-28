@@ -33,9 +33,6 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class ConsumerManageProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 

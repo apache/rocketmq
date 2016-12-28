@@ -22,9 +22,6 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class AllocateMessageQueueByConfig implements AllocateMessageQueueStrategy {
     private List<MessageQueue> messageQueueList;
 

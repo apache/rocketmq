@@ -21,9 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class QueryMessageResult {
 
     private final List<SelectMappedBufferResult> messageMapedList =

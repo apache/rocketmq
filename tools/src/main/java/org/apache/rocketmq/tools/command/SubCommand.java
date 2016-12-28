@@ -21,9 +21,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public interface SubCommand {
     public String commandName();
 

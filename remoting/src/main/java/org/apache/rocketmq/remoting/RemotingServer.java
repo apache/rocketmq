@@ -28,7 +28,6 @@ import java.util.concurrent.ExecutorService;
 
 
 /**
- * @author vintagewang@apache.org
  *
  */
 public interface RemotingServer extends RemotingService {

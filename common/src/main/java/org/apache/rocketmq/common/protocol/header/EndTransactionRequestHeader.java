@@ -27,9 +27,6 @@ import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class EndTransactionRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String producerGroup;

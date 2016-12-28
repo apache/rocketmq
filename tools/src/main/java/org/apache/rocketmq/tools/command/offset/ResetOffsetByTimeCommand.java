@@ -34,9 +34,6 @@ import java.util.Iterator;
 import java.util.Map;
 
 
-/**
- * @author manhong.yqd
- */
 public class ResetOffsetByTimeCommand implements SubCommand {
     public static void main(String[] args) {
         ResetOffsetByTimeCommand cmd = new ResetOffsetByTimeCommand();

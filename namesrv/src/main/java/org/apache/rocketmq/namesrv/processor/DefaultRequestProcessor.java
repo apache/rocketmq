@@ -44,9 +44,6 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class DefaultRequestProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 

@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.common;
 
-/**
- * @author vintagewang@apache.org
- */
 public class MQVersion {
 
     public static final int CURRENT_VERSION = Version.V4_0_0_SNAPSHOT.ordinal();

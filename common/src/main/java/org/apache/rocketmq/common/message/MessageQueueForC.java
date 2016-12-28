@@ -20,9 +20,6 @@ package org.apache.rocketmq.common.message;
 import java.io.Serializable;
 
 
-/**
- * @author lansheng.zj
- */
 public class MessageQueueForC implements Comparable<MessageQueueForC>, Serializable {
 
     private static final long serialVersionUID = 5320967846569962104L;

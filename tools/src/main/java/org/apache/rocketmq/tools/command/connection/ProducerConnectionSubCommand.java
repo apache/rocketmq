@@ -27,9 +27,6 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class ProducerConnectionSubCommand implements SubCommand {
 
     @Override

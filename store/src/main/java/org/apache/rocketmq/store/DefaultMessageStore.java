@@ -49,9 +49,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.apache.rocketmq.store.config.BrokerRole.SLAVE;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class DefaultMessageStore implements MessageStore {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 

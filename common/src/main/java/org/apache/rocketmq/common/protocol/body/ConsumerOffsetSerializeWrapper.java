@@ -22,9 +22,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import java.util.concurrent.ConcurrentHashMap;
 
 
-/**
- * @author manhong.yqd
- */
 public class ConsumerOffsetSerializeWrapper extends RemotingSerializable {
     private ConcurrentHashMap<String/* topic@group */, ConcurrentHashMap<Integer, Long>> offsetTable =
             new ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>>(512);

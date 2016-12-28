@@ -24,9 +24,6 @@ import java.util.List;
 import java.util.Set;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class SelectMessageQueueByMachineRoom implements MessageQueueSelector {
     private Set<String> consumeridcs;
 

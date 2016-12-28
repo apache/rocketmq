@@ -41,9 +41,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class ConsumerProgressSubCommand implements SubCommand {
     private final Logger log = ClientLogger.getLog();
 

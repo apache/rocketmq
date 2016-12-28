@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.client.producer;
 
-/**
- * @author vintagewang@apache.org
- */
 public enum SendStatus {
     SEND_OK,
     FLUSH_DISK_TIMEOUT,

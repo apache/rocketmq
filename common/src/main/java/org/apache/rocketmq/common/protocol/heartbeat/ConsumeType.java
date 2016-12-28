@@ -20,9 +20,6 @@
  */
 package org.apache.rocketmq.common.protocol.heartbeat;
 
-/**
- * @author vintagewang@apache.org
- */
 public enum ConsumeType {
 
     CONSUME_ACTIVELY("PULL"),

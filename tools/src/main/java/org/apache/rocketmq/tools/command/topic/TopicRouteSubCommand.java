@@ -27,7 +27,6 @@ import org.apache.commons.cli.Options;
 
 /**
  *
- * @author vintagewang@apache.org
  *
  */
 public class TopicRouteSubCommand implements SubCommand {

@@ -26,9 +26,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class HeartbeatData extends RemotingSerializable {
     private String clientID;
     private Set<ProducerData> producerDataSet = new HashSet<ProducerData>();

@@ -35,9 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-/**
- * @author xigu.lx
- */
 public class GetBrokerConfigCommand implements SubCommand {
     @Override
     public String commandName() {

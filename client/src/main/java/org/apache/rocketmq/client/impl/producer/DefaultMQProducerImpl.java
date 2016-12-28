@@ -54,9 +54,6 @@ import java.util.*;
 import java.util.concurrent.*;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class DefaultMQProducerImpl implements MQProducerInner {
     private final Logger log = ClientLogger.getLog();
     private final Random random = new Random();

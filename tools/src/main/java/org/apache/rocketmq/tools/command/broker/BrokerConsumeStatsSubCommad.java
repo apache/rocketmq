@@ -31,9 +31,6 @@ import org.apache.commons.cli.Options;
 import java.util.*;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class BrokerConsumeStatsSubCommad implements SubCommand {
 
     @Override

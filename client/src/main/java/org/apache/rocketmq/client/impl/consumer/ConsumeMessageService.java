@@ -23,9 +23,6 @@ import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public interface ConsumeMessageService {
     void start();
 

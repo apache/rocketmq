@@ -31,9 +31,6 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class ConsumerConnectionSubCommand implements SubCommand {
 
     @Override

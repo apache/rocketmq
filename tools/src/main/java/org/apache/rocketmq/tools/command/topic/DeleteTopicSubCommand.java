@@ -35,7 +35,6 @@ import java.util.Set;
 
 /**
  *
- * @author lansheng.zj
  *
  */
 public class DeleteTopicSubCommand implements SubCommand {

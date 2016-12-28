@@ -22,9 +22,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class TopicList extends RemotingSerializable {
     private Set<String> topicList = new HashSet<String>();
     private String brokerAddr;

@@ -20,9 +20,6 @@ package org.apache.rocketmq.common.protocol.body;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class Connection {
     private String clientId;
     private String clientAddr;

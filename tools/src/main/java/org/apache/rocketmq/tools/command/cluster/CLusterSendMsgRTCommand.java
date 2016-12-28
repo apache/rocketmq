@@ -32,9 +32,6 @@ import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-/**
- * @author fengliang.hfl
- */
 public class CLusterSendMsgRTCommand implements SubCommand {
 
     public static void main(String args[]) {

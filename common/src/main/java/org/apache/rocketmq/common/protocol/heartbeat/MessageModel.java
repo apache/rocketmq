@@ -23,7 +23,6 @@ package org.apache.rocketmq.common.protocol.heartbeat;
 /**
  * Message model
  *
- * @author vintagewang@apache.org
  */
 public enum MessageModel {
     /**

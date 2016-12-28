@@ -39,9 +39,6 @@ import java.util.*;
 import java.util.concurrent.*;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class ConsumeMessageConcurrentlyService implements ConsumeMessageService {
     private static final Logger log = ClientLogger.getLog();
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;

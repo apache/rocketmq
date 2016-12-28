@@ -28,7 +28,6 @@ import java.util.Set;
 /**
  * Offset store interface
  *
- * @author vintagewang@apache.org
  */
 public interface OffsetStore {
     /**

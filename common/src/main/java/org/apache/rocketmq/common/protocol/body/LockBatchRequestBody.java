@@ -25,7 +25,6 @@ import java.util.Set;
 
 
 /**
- * @author vintagewang@apache.org
  *
  */
 public class LockBatchRequestBody extends RemotingSerializable {

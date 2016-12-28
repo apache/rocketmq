@@ -24,7 +24,6 @@ import java.util.HashMap;
 
 /**
  *
- * @author vintagewang@apache.org
  *
  */
 public class TopicStatsTable extends RemotingSerializable {

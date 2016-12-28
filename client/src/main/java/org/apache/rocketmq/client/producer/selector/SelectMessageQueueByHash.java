@@ -23,9 +23,6 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class SelectMessageQueueByHash implements MessageQueueSelector {
 
     @Override

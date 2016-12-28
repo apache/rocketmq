@@ -27,9 +27,6 @@ import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class ConsumerConnection extends RemotingSerializable {
     private HashSet<Connection> connectionSet = new HashSet<Connection>();
     private ConcurrentHashMap<String/* Topic */, SubscriptionData> subscriptionTable =

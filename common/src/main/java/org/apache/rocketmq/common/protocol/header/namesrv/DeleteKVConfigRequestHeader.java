@@ -23,7 +23,6 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
- * @author vintagewang@apache.org
  *
  */
 public class DeleteKVConfigRequestHeader implements CommandCustomHeader {

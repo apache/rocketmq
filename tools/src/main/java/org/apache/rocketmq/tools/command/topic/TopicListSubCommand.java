@@ -39,7 +39,6 @@ import java.util.Set;
 
 /**
  *
- * @author vintagewang@apache.org
  *
  */
 public class TopicListSubCommand implements SubCommand {

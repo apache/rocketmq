@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.client.impl;
 
-/**
- * @author vintagewang@apache.org
- */
 public enum CommunicationMode {
     SYNC,
     ASYNC,

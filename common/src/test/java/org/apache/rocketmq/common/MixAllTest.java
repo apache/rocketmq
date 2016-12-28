@@ -24,9 +24,6 @@ import java.net.InetAddress;
 import java.util.List;
 
 
-/**
- * @author lansheng.zj
- */
 public class MixAllTest {
 
     @Test

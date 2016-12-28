@@ -33,9 +33,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class RemotingCommand {
     public static final String SERIALIZE_TYPE_PROPERTY = "rocketmq.serialize.type";
     public static final String SERIALIZE_TYPE_ENV = "ROCKETMQ_SERIALIZE_TYPE";

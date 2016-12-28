@@ -34,9 +34,6 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class ConsumerStatusSubCommand implements SubCommand {
 
     public static void main(String[] args) {

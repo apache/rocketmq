@@ -24,9 +24,6 @@ import java.util.List;
 import java.util.Map;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class ConsumeStatsList extends RemotingSerializable {
     private List<Map<String/*subscriptionGroupName*/, List<ConsumeStats>>> consumeStatsList = new ArrayList<Map<String/*subscriptionGroupName*/, List<ConsumeStats>>>();
     private String brokerAddr;

@@ -41,9 +41,6 @@ import java.util.Properties;
 import java.util.Set;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     private final DefaultMQAdminExtImpl defaultMQAdminExtImpl;
     private String adminExtGroup = "admin_ext_group";

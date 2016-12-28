@@ -39,9 +39,6 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 
-/**
- * @author zander
- */
 public class SendMessageTest extends BrokerTestHarness{
 
     MQClientAPIImpl client = new MQClientAPIImpl(new NettyClientConfig(), null, null, new ClientConfig());

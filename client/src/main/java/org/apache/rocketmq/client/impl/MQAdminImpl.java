@@ -48,9 +48,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class MQAdminImpl {
 
     private final Logger log = ClientLogger.getLog();

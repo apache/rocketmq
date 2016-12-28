@@ -24,7 +24,6 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 
 /**
- * @author manhong.yqd
  *
  */
 public class GetConsumerStatusRequestHeader implements CommandCustomHeader {

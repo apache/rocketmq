@@ -20,9 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class ManyPullRequest {
     private final ArrayList<PullRequest> pullRequestList = new ArrayList<PullRequest>();
 

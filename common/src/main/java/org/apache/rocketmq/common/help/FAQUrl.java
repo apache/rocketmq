@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.common.help;
 
-/**
- * @author vintagewang@apache.org
- */
 public class FAQUrl {
 
     public static final String APPLY_TOPIC_URL = //

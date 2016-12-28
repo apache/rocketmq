@@ -51,9 +51,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class DefaultRequestProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.FILTERSRV_LOGGER_NAME);
 

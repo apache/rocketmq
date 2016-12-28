@@ -28,9 +28,6 @@ import java.util.Properties;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-/**
- * @author xigu.lx
- */
 public class Configuration {
 
     private final Logger log;

@@ -28,9 +28,6 @@ import org.apache.rocketmq.tools.admin.MQAdminExt;
 import java.util.*;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class CommandUtil {
 
     public static Map<String/*master addr*/, List<String>/*slave addr*/> fetchMasterAndSlaveDistinguish(

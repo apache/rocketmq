@@ -53,9 +53,6 @@ import java.util.Map;
 import java.util.Random;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public abstract class AbstractSendMessageProcessor implements NettyRequestProcessor {
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 

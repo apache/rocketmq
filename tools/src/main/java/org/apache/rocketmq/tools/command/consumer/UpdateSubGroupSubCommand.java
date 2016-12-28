@@ -29,9 +29,6 @@ import org.apache.commons.cli.Options;
 import java.util.Set;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class UpdateSubGroupSubCommand implements SubCommand {
 
     @Override

@@ -28,9 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-/**
- * @author xigu.lx
- */
 public class GetNamesrvConfigCommand implements SubCommand {
 
     @Override

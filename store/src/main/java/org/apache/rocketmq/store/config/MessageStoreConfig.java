@@ -22,10 +22,6 @@ import org.apache.rocketmq.store.ConsumeQueue;
 import java.io.File;
 
 
-/**
- * @author vongosling@apache.org
- * @author vintagewang@apache.org
- */
 public class MessageStoreConfig {
     //The root directory in which the log data is kept
     @ImportantField

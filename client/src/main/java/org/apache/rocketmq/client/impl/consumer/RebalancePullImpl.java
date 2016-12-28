@@ -27,9 +27,6 @@ import java.util.List;
 import java.util.Set;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class RebalancePullImpl extends RebalanceImpl {
     private final DefaultMQPullConsumerImpl defaultMQPullConsumerImpl;
 

@@ -44,9 +44,6 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class BrokerStartup {
     public static Properties properties = null;
     public static CommandLine commandLine = null;

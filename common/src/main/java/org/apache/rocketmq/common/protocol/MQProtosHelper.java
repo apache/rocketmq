@@ -25,9 +25,6 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class MQProtosHelper {
     public static boolean registerBrokerToNameServer(final String nsaddr, final String brokerAddr,
                                                      final long timeoutMillis) {

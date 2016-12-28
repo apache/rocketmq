@@ -19,7 +19,6 @@ package org.apache.rocketmq.common.sysflag;
 /**
 
  *
- * @author manhong.yqd
  *
  */
 public class TopicSysFlag {

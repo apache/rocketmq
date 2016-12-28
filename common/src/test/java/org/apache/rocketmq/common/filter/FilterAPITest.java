@@ -23,7 +23,6 @@ import org.junit.Test;
 
 
 /**
- * @author vintagewang@apache.org
  *
  */
 public class FilterAPITest {

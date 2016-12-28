@@ -31,10 +31,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 
-/**
- * @author vintagewang@apache.org
- * @author manhong.yqd
- */
 public class TopAddressing {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
     private String nsAddr;

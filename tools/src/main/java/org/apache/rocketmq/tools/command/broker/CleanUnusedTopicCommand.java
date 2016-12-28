@@ -25,9 +25,6 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 
-/**
- * @author lansheng.zj
- */
 public class CleanUnusedTopicCommand implements SubCommand {
 
     @Override

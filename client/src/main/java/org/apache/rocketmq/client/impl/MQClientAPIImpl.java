@@ -66,9 +66,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class MQClientAPIImpl {
 
     private final static Logger log = ClientLogger.getLog();

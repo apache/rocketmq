@@ -23,9 +23,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public abstract class ConfigManager {
     private static final Logger PLOG = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 

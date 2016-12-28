@@ -22,7 +22,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * @author vintagewang@apache.org
  *
  */
 public class DelayOffsetSerializeWrapper extends RemotingSerializable {

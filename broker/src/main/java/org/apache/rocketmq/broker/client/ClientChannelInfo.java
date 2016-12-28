@@ -20,9 +20,6 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import io.netty.channel.Channel;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class ClientChannelInfo {
     private final Channel channel;
     private final String clientId;

@@ -24,7 +24,6 @@ import java.util.Map;
 
 /**
  *
- * @author vintagewang@apache.org
  *
  */
 public class Message implements Serializable {

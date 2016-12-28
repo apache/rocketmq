@@ -34,7 +34,6 @@ import java.util.List;
 
 /**
  *
- * @author vintagewang@apache.org
  *
  */
 public class TopicStatusSubCommand implements SubCommand {

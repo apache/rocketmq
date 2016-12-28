@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.store;
 
-/**
- * @author vintagewang@apache.org
- */
 public class DispatchRequest {
     private final String topic;
     private final int queueId;

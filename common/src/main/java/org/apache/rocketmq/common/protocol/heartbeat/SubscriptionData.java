@@ -26,9 +26,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class SubscriptionData implements Comparable<SubscriptionData> {
     public final static String SUB_ALL = "*";
     private boolean classFilterMode = false;

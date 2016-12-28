@@ -48,9 +48,6 @@ import java.net.SocketAddress;
 import java.util.List;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class SendMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
 
     private List<ConsumeMessageHook> consumeMessageHookList;

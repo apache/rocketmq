@@ -63,9 +63,6 @@ import java.util.Map;
 import java.util.concurrent.*;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class BrokerController {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final Logger LOG_PROTECTION = LoggerFactory.getLogger(LoggerName.PROTECTION_LOGGER_NAME);

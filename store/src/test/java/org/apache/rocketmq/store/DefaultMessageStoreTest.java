@@ -34,9 +34,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.Assert.assertTrue;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class DefaultMessageStoreTest {
     private static final Logger logger = LoggerFactory.getLogger(DefaultMessageStoreTest.class);
     

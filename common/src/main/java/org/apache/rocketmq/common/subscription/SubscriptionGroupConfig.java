@@ -20,9 +20,6 @@ package org.apache.rocketmq.common.subscription;
 import org.apache.rocketmq.common.MixAll;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class SubscriptionGroupConfig {
 
     private String groupName;

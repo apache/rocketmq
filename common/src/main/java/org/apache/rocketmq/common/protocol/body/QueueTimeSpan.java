@@ -23,9 +23,6 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import java.util.Date;
 
 
-/**
- * @author manhong.yqd
- */
 public class QueueTimeSpan {
     private MessageQueue messageQueue;
     private long minTimeStamp;

@@ -24,7 +24,6 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Message lock,strictly ensure the single queue only one thread at a time consuming
  *
- * @author vintagewang@apache.org
  */
 public class MessageQueueLock {
     private ConcurrentHashMap<MessageQueue, Object> mqLockTable =

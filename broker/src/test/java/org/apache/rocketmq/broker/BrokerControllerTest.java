@@ -26,9 +26,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * @author shtykh_roman
- */
 public class BrokerControllerTest {
     protected Logger logger = LoggerFactory.getLogger(BrokerControllerTest.class);
 

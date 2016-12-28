@@ -17,7 +17,6 @@
 package org.apache.rocketmq.remoting.protocol;
 
 /**
- * @author vintagewang@apache.org
  *
  */
 public enum RemotingCommandType {

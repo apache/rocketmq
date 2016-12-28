@@ -22,9 +22,6 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 
-/**
- * @author manhong.yqd
- */
 public class DeleteSubscriptionGroupRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String groupName;

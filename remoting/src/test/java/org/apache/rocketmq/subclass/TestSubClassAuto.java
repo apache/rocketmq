@@ -23,9 +23,6 @@ package org.apache.rocketmq.subclass;
 import org.junit.Test;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public class TestSubClassAuto {
     @Test
     public void test_sub() {

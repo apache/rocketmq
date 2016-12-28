@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.client.hook;
 
-/**
- * @author manhong.yqd
- */
 public interface FilterMessageHook {
     String hookName();
 

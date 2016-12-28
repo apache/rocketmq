@@ -26,7 +26,6 @@ import org.apache.commons.cli.Options;
 
 /**
  *
- * @author manhong.yqd
  *
  */
 public class UpdateKvConfigCommand implements SubCommand {

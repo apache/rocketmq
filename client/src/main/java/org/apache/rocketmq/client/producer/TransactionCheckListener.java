@@ -19,9 +19,6 @@ package org.apache.rocketmq.client.producer;
 import org.apache.rocketmq.common.message.MessageExt;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public interface TransactionCheckListener {
     LocalTransactionState checkLocalTransactionState(final MessageExt msg);
 }

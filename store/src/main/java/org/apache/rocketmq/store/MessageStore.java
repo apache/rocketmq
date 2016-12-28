@@ -23,9 +23,6 @@ import java.util.HashMap;
 import java.util.Set;
 
 
-/**
- * @author vintagewang@apache.org
- */
 public interface MessageStore {
 
     boolean load();
