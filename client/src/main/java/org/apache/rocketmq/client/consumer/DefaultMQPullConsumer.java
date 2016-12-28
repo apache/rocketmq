@@ -35,7 +35,6 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
  * Default pulling consumer
- *
  */
 public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsumer {
     protected final transient DefaultMQPullConsumerImpl defaultMQPullConsumerImpl;

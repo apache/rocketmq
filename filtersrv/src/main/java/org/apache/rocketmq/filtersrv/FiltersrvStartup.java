@@ -120,7 +120,7 @@ public class FiltersrvStartup {
                 System.exit(-2);
             }
 
-            LoggerContext lc = (LoggerContext)LoggerFactory.getILoggerFactory();
+            LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
             lc.reset();

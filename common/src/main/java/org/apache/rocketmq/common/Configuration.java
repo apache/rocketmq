@@ -119,7 +119,6 @@ public class Configuration {
      *
      * @param object
      * @param fieldName
-     *
      * @throws java.lang.RuntimeException if the field of object is not exist.
      */
     public void setStorePathFromConfig(Object object, String fieldName) {
@@ -156,7 +155,7 @@ public class Configuration {
 
                 if (this.storePathFromConfig) {
                     try {
-                        realStorePath = (String)storePathField.get(this.storePathObject);
+                        realStorePath = (String) storePathField.get(this.storePathObject);
                     } catch (IllegalAccessException e) {
                         log.error("getStorePath error, ", e);
                     }

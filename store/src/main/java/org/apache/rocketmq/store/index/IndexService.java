@@ -106,7 +106,7 @@ public class IndexService {
         if (files != null) {
             List<IndexFile> fileList = new ArrayList<IndexFile>();
             for (int i = 0; i < (files.length - 1); i++) {
-                IndexFile f = (IndexFile)files[i];
+                IndexFile f = (IndexFile) files[i];
                 if (f.getEndPhyOffset() < offset) {
                     fileList.add(f);
                 } else {

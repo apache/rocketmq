@@ -581,11 +581,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 if (this.getMessageListenerInner() instanceof MessageListenerOrderly) {
                     this.consumeOrderly = true;
                     this.consumeMessageService =
-                        new ConsumeMessageOrderlyService(this, (MessageListenerOrderly)this.getMessageListenerInner());
+                        new ConsumeMessageOrderlyService(this, (MessageListenerOrderly) this.getMessageListenerInner());
                 } else if (this.getMessageListenerInner() instanceof MessageListenerConcurrently) {
                     this.consumeOrderly = false;
                     this.consumeMessageService =
-                        new ConsumeMessageConcurrentlyService(this, (MessageListenerConcurrently)this.getMessageListenerInner());
+                        new ConsumeMessageConcurrentlyService(this, (MessageListenerConcurrently) this.getMessageListenerInner());
                 }
 
                 this.consumeMessageService.start();
@@ -1024,9 +1024,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         long computeAccTotal = this.computeAccumulationTotal();
         long adjustThreadPoolNumsThreshold = this.defaultMQPushConsumer.getAdjustThreadPoolNumsThreshold();
 
-        long incThreshold = (long)(adjustThreadPoolNumsThreshold * 1.0);
+        long incThreshold = (long) (adjustThreadPoolNumsThreshold * 1.0);
 
-        long decThreshold = (long)(adjustThreadPoolNumsThreshold * 0.8);
+        long decThreshold = (long) (adjustThreadPoolNumsThreshold * 0.8);
 
         if (computeAccTotal >= incThreshold) {
             this.consumeMessageService.incCorePoolSize();

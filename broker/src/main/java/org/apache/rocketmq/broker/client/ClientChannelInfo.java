@@ -68,7 +68,7 @@ public class ClientChannelInfo {
         result = prime * result + ((channel == null) ? 0 : channel.hashCode());
         result = prime * result + ((clientId == null) ? 0 : clientId.hashCode());
         result = prime * result + ((language == null) ? 0 : language.hashCode());
-        result = prime * result + (int)(lastUpdateTimestamp ^ (lastUpdateTimestamp >>> 32));
+        result = prime * result + (int) (lastUpdateTimestamp ^ (lastUpdateTimestamp >>> 32));
         result = prime * result + version;
         return result;
     }
@@ -81,7 +81,7 @@ public class ClientChannelInfo {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        ClientChannelInfo other = (ClientChannelInfo)obj;
+        ClientChannelInfo other = (ClientChannelInfo) obj;
         if (channel == null) {
             if (other.channel != null)
                 return false;

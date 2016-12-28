@@ -246,7 +246,7 @@ public class PrintMessageByQueueCommand implements SubCommand {
 
         @Override
         public int compareTo(final TagCountBean o) {
-            return (int)(o.getCount().get() - this.count.get());
+            return (int) (o.getCount().get() - this.count.get());
         }
     }
 }

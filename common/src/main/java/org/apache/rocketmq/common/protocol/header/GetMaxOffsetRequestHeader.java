@@ -15,6 +15,8 @@
  * limitations under the License.
  *
  * $Id: GetMaxOffsetRequestHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
+ *
+ * $Id: GetMaxOffsetRequestHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
  */
 
 /**

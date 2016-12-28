@@ -44,7 +44,7 @@ public class Producer {
                 SendResult sendResult = producer.send(msg, new MessageQueueSelector() {
                     @Override
                     public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
-                        Integer id = (Integer)arg;
+                        Integer id = (Integer) arg;
                         int index = id % mqs.size();
                         return mqs.get(index);
                     }

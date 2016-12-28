@@ -125,7 +125,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
             RemotingCommand.createResponseCommand(UnregisterClientResponseHeader.class);
         final UnregisterClientRequestHeader requestHeader =
-            (UnregisterClientRequestHeader)request
+            (UnregisterClientRequestHeader) request
                 .decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
 
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(

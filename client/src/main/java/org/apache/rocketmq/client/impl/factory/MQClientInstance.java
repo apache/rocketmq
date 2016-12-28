@@ -436,7 +436,7 @@ public class MQClientInstance {
             if (impl != null) {
                 try {
                     if (impl instanceof DefaultMQPushConsumerImpl) {
-                        DefaultMQPushConsumerImpl dmq = (DefaultMQPushConsumerImpl)impl;
+                        DefaultMQPushConsumerImpl dmq = (DefaultMQPushConsumerImpl) impl;
                         dmq.adjustThreadPool();
                     }
                 } catch (Exception e) {
@@ -1026,7 +1026,7 @@ public class MQClientInstance {
         try {
             MQConsumerInner impl = this.consumerTable.get(group);
             if (impl != null && impl instanceof DefaultMQPushConsumerImpl) {
-                consumer = (DefaultMQPushConsumerImpl)impl;
+                consumer = (DefaultMQPushConsumerImpl) impl;
             } else {
                 log.info("[reset-offset] consumer dose not exist. group={}", group);
                 return;
@@ -1071,10 +1071,10 @@ public class MQClientInstance {
     public Map<MessageQueue, Long> getConsumerStatus(String topic, String group) {
         MQConsumerInner impl = this.consumerTable.get(group);
         if (impl != null && impl instanceof DefaultMQPushConsumerImpl) {
-            DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl)impl;
+            DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl) impl;
             return consumer.getOffsetStore().cloneOffsetTable(topic);
         } else if (impl != null && impl instanceof DefaultMQPullConsumerImpl) {
-            DefaultMQPullConsumerImpl consumer = (DefaultMQPullConsumerImpl)impl;
+            DefaultMQPullConsumerImpl consumer = (DefaultMQPullConsumerImpl) impl;
             return consumer.getOffsetStore().cloneOffsetTable(topic);
         } else {
             return Collections.EMPTY_MAP;
@@ -1118,7 +1118,7 @@ public class MQClientInstance {
         final String brokerName) {
         MQConsumerInner mqConsumerInner = this.consumerTable.get(consumerGroup);
         if (null != mqConsumerInner) {
-            DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl)mqConsumerInner;
+            DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl) mqConsumerInner;
 
             ConsumeMessageDirectlyResult result = consumer.getConsumeMessageService().consumeMessageDirectly(msg, brokerName);
             return result;

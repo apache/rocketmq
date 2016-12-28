@@ -137,8 +137,8 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         @Override
         public int hashCode() {
             int result = getName() != null ? getName().hashCode() : 0;
-            result = 31 * result + (int)(getCurrentLatency() ^ (getCurrentLatency() >>> 32));
-            result = 31 * result + (int)(getStartTimestamp() ^ (getStartTimestamp() >>> 32));
+            result = 31 * result + (int) (getCurrentLatency() ^ (getCurrentLatency() >>> 32));
+            result = 31 * result + (int) (getStartTimestamp() ^ (getStartTimestamp() >>> 32));
             return result;
         }
 
@@ -149,7 +149,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             if (!(o instanceof FaultItem))
                 return false;
 
-            final FaultItem faultItem = (FaultItem)o;
+            final FaultItem faultItem = (FaultItem) o;
 
             if (getCurrentLatency() != faultItem.getCurrentLatency())
                 return false;

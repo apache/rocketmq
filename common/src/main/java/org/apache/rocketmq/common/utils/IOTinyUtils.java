@@ -56,14 +56,11 @@ public class IOTinyUtils {
         return count;
     }
 
-    /**
-
-     */
     static public List<String> readLines(Reader input) throws IOException {
         BufferedReader reader = toBufferedReader(input);
         List<String> list = new ArrayList<String>();
-        String line = null;
-        for (; ; ) {
+        String line;
+        for (;;) {
             line = reader.readLine();
             if (null != line) {
                 list.add(line);
@@ -75,7 +72,7 @@ public class IOTinyUtils {
     }
 
     static private BufferedReader toBufferedReader(Reader reader) {
-        return reader instanceof BufferedReader ? (BufferedReader)reader : new BufferedReader(reader);
+        return reader instanceof BufferedReader ? (BufferedReader) reader : new BufferedReader(reader);
     }
 
     static public void copyFile(String source, String target) throws IOException {

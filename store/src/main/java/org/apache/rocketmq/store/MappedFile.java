@@ -125,7 +125,7 @@ public class MappedFile extends ReferenceResource {
             }
         }
 
-        ByteBuffer viewedBuffer = (ByteBuffer)invoke(buffer, methodName);
+        ByteBuffer viewedBuffer = (ByteBuffer) invoke(buffer, methodName);
         if (viewedBuffer == null)
             return buffer;
         else
@@ -463,7 +463,7 @@ public class MappedFile extends ReferenceResource {
         int flush = 0;
         long time = System.currentTimeMillis();
         for (int i = 0, j = 0; i < this.fileSize; i += MappedFile.OS_PAGE_SIZE, j++) {
-            byteBuffer.put(i, (byte)0);
+            byteBuffer.put(i, (byte) 0);
             // force flush when flush disk type is sync
             if (type == FlushDiskType.SYNC_FLUSH) {
                 if ((i / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE) >= pages) {
@@ -522,7 +522,7 @@ public class MappedFile extends ReferenceResource {
 
     public void mlock() {
         final long beginTime = System.currentTimeMillis();
-        final long address = ((DirectBuffer)(this.mappedByteBuffer)).address();
+        final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
         Pointer pointer = new Pointer(address);
         {
             int ret = LibC.INSTANCE.mlock(pointer, new NativeLong(this.fileSize));
@@ -537,7 +537,7 @@ public class MappedFile extends ReferenceResource {
 
     public void munlock() {
         final long beginTime = System.currentTimeMillis();
-        final long address = ((DirectBuffer)(this.mappedByteBuffer)).address();
+        final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
         Pointer pointer = new Pointer(address);
         int ret = LibC.INSTANCE.munlock(pointer, new NativeLong(this.fileSize));
         log.info("munlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);

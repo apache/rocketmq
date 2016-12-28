@@ -15,6 +15,8 @@
  * limitations under the License.
  *
  * $Id: GetMinOffsetRequestHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
+ *
+ * $Id: GetMinOffsetRequestHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
  */
 
 /**

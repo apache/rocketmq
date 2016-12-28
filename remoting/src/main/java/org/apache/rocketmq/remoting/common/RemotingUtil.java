@@ -67,7 +67,7 @@ public class RemotingUtil {
                     try {
                         final Method method = providerClazz.getMethod("provider");
                         if (method != null) {
-                            final SelectorProvider selectorProvider = (SelectorProvider)method.invoke(null);
+                            final SelectorProvider selectorProvider = (SelectorProvider) method.invoke(null);
                             if (selectorProvider != null) {
                                 result = selectorProvider.openSelector();
                             }
@@ -155,7 +155,7 @@ public class RemotingUtil {
 
     public static String socketAddress2String(final SocketAddress addr) {
         StringBuilder sb = new StringBuilder();
-        InetSocketAddress inetSocketAddress = (InetSocketAddress)addr;
+        InetSocketAddress inetSocketAddress = (InetSocketAddress) addr;
         sb.append(inetSocketAddress.getAddress().getHostAddress());
         sb.append(":");
         sb.append(inetSocketAddress.getPort());

@@ -143,7 +143,7 @@ public class CommitLog {
         int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
         MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, returnFirstOnNotFound);
         if (mappedFile != null) {
-            int pos = (int)(offset % mappedFileSize);
+            int pos = (int) (offset % mappedFileSize);
             SelectMappedBufferResult result = mappedFile.selectMappedBuffer(pos);
             return result;
         }
@@ -637,7 +637,7 @@ public class CommitLog {
 
         // Synchronization flush
         if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
-            final GroupCommitService service = (GroupCommitService)this.flushCommitLogService;
+            final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
             if (msg.isWaitStoreMsgOK()) {
                 request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
                 service.putRequest(request);
@@ -729,7 +729,7 @@ public class CommitLog {
         int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
         MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, offset == 0);
         if (mappedFile != null) {
-            int pos = (int)(offset % mappedFileSize);
+            int pos = (int) (offset % mappedFileSize);
             return mappedFile.selectMappedBuffer(pos, size);
         }
         return null;
@@ -1150,7 +1150,7 @@ public class CommitLog {
             final byte[] propertiesData =
                 msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
 
-            final short propertiesLength = propertiesData == null ? 0 : (short)propertiesData.length;
+            final short propertiesLength = propertiesData == null ? 0 : (short) propertiesData.length;
 
             if (propertiesLength > Short.MAX_VALUE) {
                 log.warn("putMessage message properties length too long. length={}", propertiesData.length);
@@ -1226,7 +1226,7 @@ public class CommitLog {
             if (bodyLength > 0)
                 this.msgStoreItemMemory.put(msgInner.getBody());
             // 16 TOPIC
-            this.msgStoreItemMemory.put((byte)topicLength);
+            this.msgStoreItemMemory.put((byte) topicLength);
             this.msgStoreItemMemory.put(topicData);
             // 17 PROPERTIES
             this.msgStoreItemMemory.putShort(propertiesLength);

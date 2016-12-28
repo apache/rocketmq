@@ -95,7 +95,7 @@ public class DynaCode {
         StringBuffer buf = new StringBuffer();
         while (cl != null) {
             if (cl instanceof URLClassLoader) {
-                URL urls[] = ((URLClassLoader)cl).getURLs();
+                URL urls[] = ((URLClassLoader) cl).getURLs();
                 for (int i = 0; i < urls.length; i++) {
                     if (buf.length() > 0) {
                         buf.append(File.pathSeparatorChar);

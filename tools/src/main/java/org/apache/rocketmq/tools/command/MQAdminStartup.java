@@ -194,7 +194,7 @@ public class MQAdminStartup {
     private static void initLogback() throws JoranException {
         String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
-        LoggerContext lc = (LoggerContext)LoggerFactory.getILoggerFactory();
+        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(lc);
         lc.reset();

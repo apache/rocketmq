@@ -25,7 +25,6 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
  * Offset store interface
- *
  */
 public interface OffsetStore {
     /**
@@ -49,7 +48,6 @@ public interface OffsetStore {
      *
      * @param mq
      * @param type
-     *
      * @return The fetched offset
      */
     long readOffset(final MessageQueue mq, final ReadOffsetType type);
@@ -77,13 +75,11 @@ public interface OffsetStore {
 
     /**
      * @param topic
-     *
      * @return The cloned offset table of given topic
      */
     Map<MessageQueue, Long> cloneOffsetTable(String topic);
 
     /**
-     *
      * @param mq
      * @param offset
      * @param isOneway

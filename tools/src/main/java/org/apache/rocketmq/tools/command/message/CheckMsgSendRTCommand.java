@@ -88,7 +88,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
                     producer.send(msg, new MessageQueueSelector() {
                         @Override
                         public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
-                            int queueIndex = (Integer)arg % mqs.size();
+                            int queueIndex = (Integer) arg % mqs.size();
                             MessageQueue queue = mqs.get(queueIndex);
                             brokerName = queue.getBrokerName();
                             queueId = queue.getQueueId();
@@ -114,7 +114,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
                 );
             }
 
-            double rt = (double)timeElapsed / (amount - 1);
+            double rt = (double) timeElapsed / (amount - 1);
             System.out.printf("Avg RT: %s%n", String.format("%.2f", rt));
         } catch (Exception e) {
             e.printStackTrace();

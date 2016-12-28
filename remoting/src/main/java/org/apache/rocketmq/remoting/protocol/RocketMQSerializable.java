@@ -51,11 +51,11 @@ public class RocketMQSerializable {
         // ################### content
         ByteBuffer headerBuffer = ByteBuffer.allocate(totalLen);
         // int code(~32767)
-        headerBuffer.putShort((short)cmd.getCode());
+        headerBuffer.putShort((short) cmd.getCode());
         // LanguageCode language
         headerBuffer.put(cmd.getLanguage().getCode());
         // int version(~32767)
-        headerBuffer.putShort((short)cmd.getVersion());
+        headerBuffer.putShort((short) cmd.getVersion());
         // int opaque
         headerBuffer.putInt(cmd.getOpaque());
         // int flag
@@ -109,7 +109,7 @@ public class RocketMQSerializable {
                 key = entry.getKey().getBytes(RemotingSerializable.CHARSET_UTF8);
                 val = entry.getValue().getBytes(RemotingSerializable.CHARSET_UTF8);
 
-                content.putShort((short)key.length);
+                content.putShort((short) key.length);
                 content.put(key);
 
                 content.putInt(val.length);

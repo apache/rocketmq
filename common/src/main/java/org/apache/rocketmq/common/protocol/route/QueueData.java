@@ -15,6 +15,8 @@
  * limitations under the License.
  *
  * $Id: QueueData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
+ *
+ * $Id: QueueData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
  */
 
 /**
@@ -81,7 +83,7 @@ public class QueueData implements Comparable<QueueData> {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        QueueData other = (QueueData)obj;
+        QueueData other = (QueueData) obj;
         if (brokerName == null) {
             if (other.brokerName != null)
                 return false;

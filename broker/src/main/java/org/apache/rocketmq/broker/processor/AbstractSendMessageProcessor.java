@@ -283,12 +283,12 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         switch (request.getCode()) {
             case RequestCode.SEND_MESSAGE_V2:
                 requestHeaderV2 =
-                    (SendMessageRequestHeaderV2)request
+                    (SendMessageRequestHeaderV2) request
                         .decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
             case RequestCode.SEND_MESSAGE:
                 if (null == requestHeaderV2) {
                     requestHeader =
-                        (SendMessageRequestHeader)request
+                        (SendMessageRequestHeader) request
                             .decodeCommandCustomHeader(SendMessageRequestHeader.class);
                 } else {
                     requestHeader = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV1(requestHeaderV2);
@@ -305,7 +305,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 try {
                     if (response != null) {
                         final SendMessageResponseHeader responseHeader =
-                            (SendMessageResponseHeader)response.readCustomHeader();
+                            (SendMessageResponseHeader) response.readCustomHeader();
                         context.setMsgId(responseHeader.getMsgId());
                         context.setQueueId(responseHeader.getQueueId());
                         context.setQueueOffset(responseHeader.getQueueOffset());

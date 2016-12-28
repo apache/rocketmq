@@ -72,7 +72,7 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
             RemotingCommand.createResponseCommand(GetConsumerListByGroupResponseHeader.class);
         final GetConsumerListByGroupRequestHeader requestHeader =
-            (GetConsumerListByGroupRequestHeader)request
+            (GetConsumerListByGroupRequestHeader) request
                 .decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
 
         ConsumerGroupInfo consumerGroupInfo =
@@ -106,7 +106,7 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
             RemotingCommand.createResponseCommand(UpdateConsumerOffsetResponseHeader.class);
         final UpdateConsumerOffsetRequestHeader requestHeader =
-            (UpdateConsumerOffsetRequestHeader)request
+            (UpdateConsumerOffsetRequestHeader) request
                 .decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
         this.brokerController.getConsumerOffsetManager().commitOffset(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getConsumerGroup(),
             requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
@@ -120,9 +120,9 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
             RemotingCommand.createResponseCommand(QueryConsumerOffsetResponseHeader.class);
         final QueryConsumerOffsetResponseHeader responseHeader =
-            (QueryConsumerOffsetResponseHeader)response.readCustomHeader();
+            (QueryConsumerOffsetResponseHeader) response.readCustomHeader();
         final QueryConsumerOffsetRequestHeader requestHeader =
-            (QueryConsumerOffsetRequestHeader)request
+            (QueryConsumerOffsetRequestHeader) request
                 .decodeCommandCustomHeader(QueryConsumerOffsetRequestHeader.class);
 
         long offset =

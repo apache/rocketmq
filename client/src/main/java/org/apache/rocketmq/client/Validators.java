@@ -28,7 +28,6 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 
 /**
  * Common Validator
- *
  */
 public class Validators {
     public static final String VALID_PATTERN_STR = "^[%|a-zA-Z0-9_-]+$";
@@ -38,7 +37,6 @@ public class Validators {
     /**
      * @param origin
      * @param patternStr
-     *
      * @return The resulting {@code String}
      */
     public static String getGroupWithRegularExpression(String origin, String patternStr) {
@@ -54,7 +52,6 @@ public class Validators {
      * Validate group
      *
      * @param group
-     *
      * @throws MQClientException
      */
     public static void checkGroup(String group) throws MQClientException {
@@ -74,9 +71,7 @@ public class Validators {
     /**
      * @param origin
      * @param pattern
-     *
-     * @return <tt>true</tt> if, and only if, the entire origin sequence
-     *          matches this matcher's pattern
+     * @return <tt>true</tt> if, and only if, the entire origin sequence matches this matcher's pattern
      */
     public static boolean regularExpressionMatcher(String origin, Pattern pattern) {
         if (pattern == null) {
@@ -91,7 +86,6 @@ public class Validators {
      *
      * @param msg
      * @param defaultMQProducer
-     *
      * @throws MQClientException
      */
     public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer)
@@ -120,7 +114,6 @@ public class Validators {
      * Validate topic
      *
      * @param topic
-     *
      * @throws MQClientException
      */
     public static void checkTopic(String topic) throws MQClientException {

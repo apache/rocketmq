@@ -15,6 +15,8 @@
  * limitations under the License.
  *
  * $Id: SearchOffsetRequestHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
+ *
+ * $Id: SearchOffsetRequestHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
  */
 
 /**

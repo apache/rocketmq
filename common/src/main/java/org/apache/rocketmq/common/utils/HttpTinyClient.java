@@ -36,10 +36,10 @@ public class HttpTinyClient {
 
         HttpURLConnection conn = null;
         try {
-            conn = (HttpURLConnection)new URL(url).openConnection();
+            conn = (HttpURLConnection) new URL(url).openConnection();
             conn.setRequestMethod("GET");
-            conn.setConnectTimeout((int)readTimeoutMs);
-            conn.setReadTimeout((int)readTimeoutMs);
+            conn.setConnectTimeout((int) readTimeoutMs);
+            conn.setReadTimeout((int) readTimeoutMs);
             setHeaders(conn, headers, encoding);
 
             conn.connect();
@@ -90,20 +90,12 @@ public class HttpTinyClient {
     }
 
     /**
-
-     *
      * @param url
      * @param headers
-
      * @param paramValues
-
      * @param encoding
-
      * @param readTimeoutMs
-
-     *
      * @return the http response of given http post request
-     *
      * @throws java.io.IOException
      */
     static public HttpResult httpPost(String url, List<String> headers, List<String> paramValues,
@@ -112,10 +104,10 @@ public class HttpTinyClient {
 
         HttpURLConnection conn = null;
         try {
-            conn = (HttpURLConnection)new URL(url).openConnection();
+            conn = (HttpURLConnection) new URL(url).openConnection();
             conn.setRequestMethod("POST");
             conn.setConnectTimeout(3000);
-            conn.setReadTimeout((int)readTimeoutMs);
+            conn.setReadTimeout((int) readTimeoutMs);
             conn.setDoOutput(true);
             conn.setDoInput(true);
             setHeaders(conn, headers, encoding);

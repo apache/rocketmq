@@ -151,7 +151,7 @@ public class TopicConfig {
         if (o == null || getClass() != o.getClass())
             return false;
 
-        final TopicConfig that = (TopicConfig)o;
+        final TopicConfig that = (TopicConfig) o;
 
         if (readQueueNums != that.readQueueNums)
             return false;

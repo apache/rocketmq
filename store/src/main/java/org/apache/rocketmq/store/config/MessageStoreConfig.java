@@ -182,8 +182,8 @@ public class MessageStoreConfig {
 
     public int getMapedFileSizeConsumeQueue() {
 
-        int factor = (int)Math.ceil(this.mapedFileSizeConsumeQueue / (ConsumeQueue.CQ_STORE_UNIT_SIZE * 1.0));
-        return (int)(factor * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        int factor = (int) Math.ceil(this.mapedFileSizeConsumeQueue / (ConsumeQueue.CQ_STORE_UNIT_SIZE * 1.0));
+        return (int) (factor * ConsumeQueue.CQ_STORE_UNIT_SIZE);
     }
 
     public void setMapedFileSizeConsumeQueue(int mapedFileSizeConsumeQueue) {
@@ -444,12 +444,12 @@ public class MessageStoreConfig {
         return brokerRole;
     }
 
-    public void setBrokerRole(String brokerRole) {
-        this.brokerRole = BrokerRole.valueOf(brokerRole);
-    }
-
     public void setBrokerRole(BrokerRole brokerRole) {
         this.brokerRole = brokerRole;
+    }
+
+    public void setBrokerRole(String brokerRole) {
+        this.brokerRole = BrokerRole.valueOf(brokerRole);
     }
 
     public int getHaTransferBatchSize() {
@@ -472,12 +472,12 @@ public class MessageStoreConfig {
         return flushDiskType;
     }
 
-    public void setFlushDiskType(String type) {
-        this.flushDiskType = FlushDiskType.valueOf(type);
-    }
-
     public void setFlushDiskType(FlushDiskType flushDiskType) {
         this.flushDiskType = flushDiskType;
+    }
+
+    public void setFlushDiskType(String type) {
+        this.flushDiskType = FlushDiskType.valueOf(type);
     }
 
     public int getSyncFlushTimeout() {
@@ -570,6 +570,7 @@ public class MessageStoreConfig {
 
     /**
      * Enable transient commitLog store poll only if transientStorePoolEnable is true and the FlushDiskType is ASYNC_FLUSH
+     *
      * @return <tt>true</tt> or <tt>false</tt>
      */
     public boolean isTransientStorePoolEnable() {

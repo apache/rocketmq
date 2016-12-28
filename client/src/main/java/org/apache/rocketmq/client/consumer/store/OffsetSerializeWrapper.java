@@ -23,7 +23,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 /**
  * Wrapper class for offset serialization
- *
  */
 public class OffsetSerializeWrapper extends RemotingSerializable {
     private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable =

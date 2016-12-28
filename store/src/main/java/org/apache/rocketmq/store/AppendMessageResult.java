@@ -18,7 +18,6 @@ package org.apache.rocketmq.store;
 
 /**
  * When write a message to the commit log, returns results
- *
  */
 public class AppendMessageResult {
     // Return code

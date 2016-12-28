@@ -207,7 +207,7 @@ public class HAService {
                     if (selected != null) {
                         for (SelectionKey k : selected) {
                             if ((k.readyOps() & SelectionKey.OP_ACCEPT) != 0) {
-                                SocketChannel sc = ((ServerSocketChannel)k.channel()).accept();
+                                SocketChannel sc = ((ServerSocketChannel) k.channel()).accept();
 
                                 if (sc != null) {
                                     HAService.log.info("HAService receive new connection, "

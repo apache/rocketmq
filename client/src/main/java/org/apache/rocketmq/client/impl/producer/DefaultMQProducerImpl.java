@@ -112,7 +112,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public void initTransactionEnv() {
-        TransactionMQProducer producer = (TransactionMQProducer)this.defaultMQProducer;
+        TransactionMQProducer producer = (TransactionMQProducer) this.defaultMQProducer;
         this.checkRequestQueue = new LinkedBlockingQueue<Runnable>(producer.getCheckRequestHoldMax());
         this.checkExecutor = new ThreadPoolExecutor(//
             producer.getCheckThreadPoolMinSize(), //
@@ -238,7 +238,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     @Override
     public TransactionCheckListener checkListener() {
         if (this.defaultMQProducer instanceof TransactionMQProducer) {
-            TransactionMQProducer producer = (TransactionMQProducer)defaultMQProducer;
+            TransactionMQProducer producer = (TransactionMQProducer) defaultMQProducer;
             return producer.getTransactionCheckListener();
         }
 
@@ -538,7 +538,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             MQClientException mqClientException = new MQClientException(info, exception);
             if (exception instanceof MQBrokerException) {
-                mqClientException.setResponseCode(((MQBrokerException)exception).getResponseCode());
+                mqClientException.setResponseCode(((MQBrokerException) exception).getResponseCode());
             } else if (exception instanceof RemotingConnectException) {
                 mqClientException.setResponseCode(ClientErrorCode.CONNECT_BROKER_EXCEPTION);
             } else if (exception instanceof RemotingTimeoutException) {

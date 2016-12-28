@@ -25,7 +25,6 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
  * Pulling consumer interface
- *
  */
 public interface MQPullConsumer extends MQConsumer {
     /**
@@ -51,18 +50,12 @@ public interface MQPullConsumer extends MQConsumer {
     /**
      * Pulling the messages,not blocking
      *
-     * @param mq
-     *         from which message queue
-     * @param subExpression
-     *         subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br>
-     *         if null or * expression,meaning subscribe all
-     * @param offset
-     *         from where to pull
-     * @param maxNums
-     *         max pulling numbers
-     *
+     * @param mq from which message queue
+     * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if null or * expression,meaning subscribe
+     * all
+     * @param offset from where to pull
+     * @param maxNums max pulling numbers
      * @return The resulting {@code PullRequest}
-     *
      * @throws MQClientException
      * @throws InterruptedException
      * @throws MQBrokerException
@@ -80,9 +73,7 @@ public interface MQPullConsumer extends MQConsumer {
      * @param offset
      * @param maxNums
      * @param timeout
-     *
      * @return The resulting {@code PullRequest}
-     *
      * @throws MQClientException
      * @throws RemotingException
      * @throws MQBrokerException
@@ -100,7 +91,6 @@ public interface MQPullConsumer extends MQConsumer {
      * @param offset
      * @param maxNums
      * @param pullCallback
-     *
      * @throws MQClientException
      * @throws RemotingException
      * @throws InterruptedException
@@ -118,7 +108,6 @@ public interface MQPullConsumer extends MQConsumer {
      * @param maxNums
      * @param pullCallback
      * @param timeout
-     *
      * @throws MQClientException
      * @throws RemotingException
      * @throws InterruptedException
@@ -134,9 +123,7 @@ public interface MQPullConsumer extends MQConsumer {
      * @param subExpression
      * @param offset
      * @param maxNums
-     *
      * @return The resulting {@code PullRequest}
-     *
      * @throws MQClientException
      * @throws RemotingException
      * @throws MQBrokerException
@@ -154,7 +141,6 @@ public interface MQPullConsumer extends MQConsumer {
      * @param offset
      * @param maxNums
      * @param pullCallback
-     *
      * @throws MQClientException
      * @throws RemotingException
      * @throws InterruptedException
@@ -168,7 +154,6 @@ public interface MQPullConsumer extends MQConsumer {
      *
      * @param mq
      * @param offset
-     *
      * @throws MQClientException
      */
     void updateConsumeOffset(final MessageQueue mq, final long offset) throws MQClientException;
@@ -178,9 +163,7 @@ public interface MQPullConsumer extends MQConsumer {
      *
      * @param mq
      * @param fromStore
-     *
      * @return The fetched offset of given queue
-     *
      * @throws MQClientException
      */
     long fetchConsumeOffset(final MessageQueue mq, final boolean fromStore) throws MQClientException;
@@ -188,11 +171,8 @@ public interface MQPullConsumer extends MQConsumer {
     /**
      * Fetch the message queues according to the topic
      *
-     * @param topic
-     *         message topic
-     *
+     * @param topic message topic
      * @return message queue set
-     *
      * @throws MQClientException
      */
     Set<MessageQueue> fetchMessageQueuesInBalance(final String topic) throws MQClientException;
@@ -205,7 +185,6 @@ public interface MQPullConsumer extends MQConsumer {
      * @param delayLevel
      * @param brokerName
      * @param consumerGroup
-     *
      * @throws RemotingException
      * @throws MQBrokerException
      * @throws InterruptedException

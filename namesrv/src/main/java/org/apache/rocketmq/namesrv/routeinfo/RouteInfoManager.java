@@ -385,7 +385,7 @@ public class RouteInfoManager {
                         if (null != brokerData) {
                             BrokerData brokerDataClone = new BrokerData();
                             brokerDataClone.setBrokerName(brokerData.getBrokerName());
-                            brokerDataClone.setBrokerAddrs((HashMap<Long, String>)brokerData
+                            brokerDataClone.setBrokerAddrs((HashMap<Long, String>) brokerData
                                 .getBrokerAddrs().clone());
                             brokerDataList.add(brokerDataClone);
                             foundBrokerData = true;

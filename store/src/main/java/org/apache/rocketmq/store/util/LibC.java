@@ -23,7 +23,7 @@ import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
 
 public interface LibC extends Library {
-    LibC INSTANCE = (LibC)Native.loadLibrary(Platform.isWindows() ? "msvcrt" : "c", LibC.class);
+    LibC INSTANCE = (LibC) Native.loadLibrary(Platform.isWindows() ? "msvcrt" : "c", LibC.class);
 
     int MADV_WILLNEED = 3;
     int MADV_DONTNEED = 4;

@@ -20,8 +20,6 @@ import java.nio.ByteBuffer;
 
 /**
  * Write messages callback interface
- *
- *
  */
 public interface AppendMessageCallback {
 
@@ -31,7 +29,6 @@ public interface AppendMessageCallback {
      * @param byteBuffer
      * @param maxBlank
      * @param msg
-     *
      * @return How many bytes to write
      */
     AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer,

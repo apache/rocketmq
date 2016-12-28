@@ -195,7 +195,7 @@ public class RemotingCommand {
     }
 
     public static SerializeType getProtocolType(int source) {
-        return SerializeType.valueOf((byte)((source >> 24) & 0xFF));
+        return SerializeType.valueOf((byte) ((source >> 24) & 0xFF));
     }
 
     public static int createNewRequestId() {
@@ -223,9 +223,9 @@ public class RemotingCommand {
         byte[] result = new byte[4];
 
         result[0] = type.getCode();
-        result[1] = (byte)((source >> 16) & 0xFF);
-        result[2] = (byte)((source >> 8) & 0xFF);
-        result[3] = (byte)(source & 0xFF);
+        result[1] = (byte) ((source >> 16) & 0xFF);
+        result[2] = (byte) ((source >> 8) & 0xFF);
+        result[3] = (byte) (source & 0xFF);
         return result;
     }
 

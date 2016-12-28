@@ -74,7 +74,7 @@ public class PullRequest {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        PullRequest other = (PullRequest)obj;
+        PullRequest other = (PullRequest) obj;
         if (consumerGroup == null) {
             if (other.consumerGroup != null)
                 return false;

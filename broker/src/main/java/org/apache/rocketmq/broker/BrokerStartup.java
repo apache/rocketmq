@@ -178,7 +178,7 @@ public class BrokerStartup {
             }
 
             messageStoreConfig.setHaListenPort(nettyServerConfig.getListenPort() + 1);
-            LoggerContext lc = (LoggerContext)LoggerFactory.getILoggerFactory();
+            LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
             lc.reset();

@@ -193,7 +193,7 @@ public class UtilAll {
             long freeSpace = file.getFreeSpace();
             long usedSpace = totalSpace - freeSpace;
             if (totalSpace > 0) {
-                return usedSpace / (double)totalSpace;
+                return usedSpace / (double) totalSpace;
             }
         } catch (Exception e) {
             return -1;
@@ -213,7 +213,7 @@ public class UtilAll {
     public static final int crc32(byte[] array, int offset, int length) {
         CRC32 crc32 = new CRC32();
         crc32.update(array, offset, length);
-        return (int)(crc32.getValue() & 0x7FFFFFFF);
+        return (int) (crc32.getValue() & 0x7FFFFFFF);
     }
 
     public static String bytes2string(byte[] src) {
@@ -236,13 +236,13 @@ public class UtilAll {
         byte[] d = new byte[length];
         for (int i = 0; i < length; i++) {
             int pos = i * 2;
-            d[i] = (byte)(charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));
+            d[i] = (byte) (charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));
         }
         return d;
     }
 
     private static byte charToByte(char c) {
-        return (byte)"0123456789ABCDEF".indexOf(c);
+        return (byte) "0123456789ABCDEF".indexOf(c);
     }
 
     public static byte[] uncompress(final byte[] src) throws IOException {
@@ -400,15 +400,15 @@ public class UtilAll {
         //10.0.0.0~10.255.255.255
         //172.16.0.0~172.31.255.255
         //192.168.0.0~192.168.255.255
-        if (ip[0] == (byte)10) {
+        if (ip[0] == (byte) 10) {
 
             return true;
-        } else if (ip[0] == (byte)172) {
-            if (ip[1] >= (byte)16 && ip[1] <= (byte)31) {
+        } else if (ip[0] == (byte) 172) {
+            if (ip[1] >= (byte) 16 && ip[1] <= (byte) 31) {
                 return true;
             }
-        } else if (ip[0] == (byte)192) {
-            if (ip[1] == (byte)168) {
+        } else if (ip[0] == (byte) 192) {
+            if (ip[1] == (byte) 168) {
                 return true;
             }
         }
@@ -423,27 +423,27 @@ public class UtilAll {
 //        if (ip[0] == (byte)30 && ip[1] == (byte)10 && ip[2] == (byte)163 && ip[3] == (byte)120) {
 //        }
 
-        if (ip[0] >= (byte)1 && ip[0] <= (byte)126) {
-            if (ip[1] == (byte)1 && ip[2] == (byte)1 && ip[3] == (byte)1) {
+        if (ip[0] >= (byte) 1 && ip[0] <= (byte) 126) {
+            if (ip[1] == (byte) 1 && ip[2] == (byte) 1 && ip[3] == (byte) 1) {
                 return false;
             }
-            if (ip[1] == (byte)0 && ip[2] == (byte)0 && ip[3] == (byte)0) {
-                return false;
-            }
-            return true;
-        } else if (ip[0] >= (byte)128 && ip[0] <= (byte)191) {
-            if (ip[2] == (byte)1 && ip[3] == (byte)1) {
-                return false;
-            }
-            if (ip[2] == (byte)0 && ip[3] == (byte)0) {
+            if (ip[1] == (byte) 0 && ip[2] == (byte) 0 && ip[3] == (byte) 0) {
                 return false;
             }
             return true;
-        } else if (ip[0] >= (byte)192 && ip[0] <= (byte)223) {
-            if (ip[3] == (byte)1) {
+        } else if (ip[0] >= (byte) 128 && ip[0] <= (byte) 191) {
+            if (ip[2] == (byte) 1 && ip[3] == (byte) 1) {
                 return false;
             }
-            if (ip[3] == (byte)0) {
+            if (ip[2] == (byte) 0 && ip[3] == (byte) 0) {
+                return false;
+            }
+            return true;
+        } else if (ip[0] >= (byte) 192 && ip[0] <= (byte) 223) {
+            if (ip[3] == (byte) 1) {
+                return false;
+            }
+            if (ip[3] == (byte) 0) {
                 return false;
             }
             return true;
@@ -466,10 +466,10 @@ public class UtilAll {
             InetAddress ip = null;
             byte[] internalIP = null;
             while (allNetInterfaces.hasMoreElements()) {
-                NetworkInterface netInterface = (NetworkInterface)allNetInterfaces.nextElement();
+                NetworkInterface netInterface = (NetworkInterface) allNetInterfaces.nextElement();
                 Enumeration addresses = netInterface.getInetAddresses();
                 while (addresses.hasMoreElements()) {
-                    ip = (InetAddress)addresses.nextElement();
+                    ip = (InetAddress) addresses.nextElement();
                     if (ip != null && ip instanceof Inet4Address) {
                         byte[] ipByte = ip.getAddress();
                         if (ipByte.length == 4) {

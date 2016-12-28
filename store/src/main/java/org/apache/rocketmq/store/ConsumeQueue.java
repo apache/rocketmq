@@ -131,7 +131,7 @@ public class ConsumeQueue {
         if (mappedFile != null) {
             long offset = 0;
             int low =
-                minLogicOffset > mappedFile.getFileFromOffset() ? (int)(minLogicOffset - mappedFile
+                minLogicOffset > mappedFile.getFileFromOffset() ? (int) (minLogicOffset - mappedFile
                     .getFileFromOffset()) : 0;
             int high = 0;
             int midOffset = -1, targetOffset = -1, leftOffset = -1, rightOffset = -1;
@@ -407,7 +407,7 @@ public class ConsumeQueue {
         byteBuffer.putInt(Integer.MAX_VALUE);
         byteBuffer.putLong(0L);
 
-        int until = (int)(untilWhere % this.mappedFileQueue.getMappedFileSize());
+        int until = (int) (untilWhere % this.mappedFileQueue.getMappedFileSize());
         for (int i = 0; i < until; i += CQ_STORE_UNIT_SIZE) {
             mappedFile.appendMessage(byteBuffer.array());
         }
@@ -419,7 +419,7 @@ public class ConsumeQueue {
         if (offset >= this.getMinLogicOffset()) {
             MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset);
             if (mappedFile != null) {
-                SelectMappedBufferResult result = mappedFile.selectMappedBuffer((int)(offset % mappedFileSize));
+                SelectMappedBufferResult result = mappedFile.selectMappedBuffer((int) (offset % mappedFileSize));
                 return result;
             }
         }

@@ -81,9 +81,9 @@ public class PullMessageProcessor implements NettyRequestProcessor {
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend)
         throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
-        final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader)response.readCustomHeader();
+        final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();
         final PullMessageRequestHeader requestHeader =
-            (PullMessageRequestHeader)request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
+            (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
 
         response.setOpaque(request.getOpaque());
 
@@ -335,7 +335,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                         final byte[] r = this.readGetMessageResult(getMessageResult, requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
                         this.brokerController.getBrokerStatsManager().incGroupGetLatency(requestHeader.getConsumerGroup(),
                             requestHeader.getTopic(), requestHeader.getQueueId(),
-                            (int)(this.brokerController.getMessageStore().now() - beginTimeMills));
+                            (int) (this.brokerController.getMessageStore().now() - beginTimeMills));
                         response.setBody(r);
                     } else {
                         try {

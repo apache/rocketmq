@@ -67,7 +67,7 @@ public class RemotingHelper {
                 socketChannel.configureBlocking(true);
 
                 //bugfix  http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4614802
-                socketChannel.socket().setSoTimeout((int)timeoutMillis);
+                socketChannel.socket().setSoTimeout((int) timeoutMillis);
 
                 ByteBuffer byteBufferRequest = request.encode();
                 while (byteBufferRequest.hasRemaining()) {
@@ -168,7 +168,7 @@ public class RemotingHelper {
         if (null == channel) {
             return "";
         }
-        final InetSocketAddress remote = (InetSocketAddress)channel.remoteAddress();
+        final InetSocketAddress remote = (InetSocketAddress) channel.remoteAddress();
         if (remote != null) {
             return remote.getAddress().getHostName();
         }
@@ -188,7 +188,7 @@ public class RemotingHelper {
 
     public static String parseSocketAddressName(SocketAddress socketAddress) {
 
-        final InetSocketAddress addrs = (InetSocketAddress)socketAddress;
+        final InetSocketAddress addrs = (InetSocketAddress) socketAddress;
         if (addrs != null) {
             return addrs.getAddress().getHostName();
         }

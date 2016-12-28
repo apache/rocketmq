@@ -505,7 +505,7 @@ public class MQClientAPIImpl {
                 }
 
                 SendMessageResponseHeader responseHeader =
-                    (SendMessageResponseHeader)response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
+                    (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
 
                 MessageQueue messageQueue = new MessageQueue(msg.getTopic(), brokerName, responseHeader.getQueueId());
 
@@ -622,7 +622,7 @@ public class MQClientAPIImpl {
         }
 
         PullMessageResponseHeader responseHeader =
-            (PullMessageResponseHeader)response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
+            (PullMessageResponseHeader) response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
 
         return new PullResultExt(pullStatus, responseHeader.getNextBeginOffset(), responseHeader.getMinOffset(),
             responseHeader.getMaxOffset(), null, responseHeader.getSuggestWhichBrokerId(), response.getBody());
@@ -664,7 +664,7 @@ public class MQClientAPIImpl {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 SearchOffsetResponseHeader responseHeader =
-                    (SearchOffsetResponseHeader)response.decodeCommandCustomHeader(SearchOffsetResponseHeader.class);
+                    (SearchOffsetResponseHeader) response.decodeCommandCustomHeader(SearchOffsetResponseHeader.class);
                 return responseHeader.getOffset();
             }
             default:
@@ -687,7 +687,7 @@ public class MQClientAPIImpl {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 GetMaxOffsetResponseHeader responseHeader =
-                    (GetMaxOffsetResponseHeader)response.decodeCommandCustomHeader(GetMaxOffsetResponseHeader.class);
+                    (GetMaxOffsetResponseHeader) response.decodeCommandCustomHeader(GetMaxOffsetResponseHeader.class);
 
                 return responseHeader.getOffset();
             }
@@ -738,7 +738,7 @@ public class MQClientAPIImpl {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 GetMinOffsetResponseHeader responseHeader =
-                    (GetMinOffsetResponseHeader)response.decodeCommandCustomHeader(GetMinOffsetResponseHeader.class);
+                    (GetMinOffsetResponseHeader) response.decodeCommandCustomHeader(GetMinOffsetResponseHeader.class);
 
                 return responseHeader.getOffset();
             }
@@ -762,7 +762,7 @@ public class MQClientAPIImpl {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 GetEarliestMsgStoretimeResponseHeader responseHeader =
-                    (GetEarliestMsgStoretimeResponseHeader)response.decodeCommandCustomHeader(GetEarliestMsgStoretimeResponseHeader.class);
+                    (GetEarliestMsgStoretimeResponseHeader) response.decodeCommandCustomHeader(GetEarliestMsgStoretimeResponseHeader.class);
 
                 return responseHeader.getTimestamp();
             }
@@ -786,7 +786,7 @@ public class MQClientAPIImpl {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 QueryConsumerOffsetResponseHeader responseHeader =
-                    (QueryConsumerOffsetResponseHeader)response.decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
+                    (QueryConsumerOffsetResponseHeader) response.decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
 
                 return responseHeader.getOffset();
             }
@@ -1249,7 +1249,7 @@ public class MQClientAPIImpl {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 WipeWritePermOfBrokerResponseHeader responseHeader =
-                    (WipeWritePermOfBrokerResponseHeader)response.decodeCommandCustomHeader(WipeWritePermOfBrokerResponseHeader.class);
+                    (WipeWritePermOfBrokerResponseHeader) response.decodeCommandCustomHeader(WipeWritePermOfBrokerResponseHeader.class);
                 return responseHeader.getWipeTopicCount();
             }
             default:
@@ -1331,7 +1331,7 @@ public class MQClientAPIImpl {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 GetKVConfigResponseHeader responseHeader =
-                    (GetKVConfigResponseHeader)response.decodeCommandCustomHeader(GetKVConfigResponseHeader.class);
+                    (GetKVConfigResponseHeader) response.decodeCommandCustomHeader(GetKVConfigResponseHeader.class);
                 return responseHeader.getValue();
             }
             default:

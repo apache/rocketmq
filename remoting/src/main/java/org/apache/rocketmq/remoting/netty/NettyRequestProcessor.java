@@ -21,8 +21,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 /**
  * Common remoting command processor
- *
- *
  */
 public interface NettyRequestProcessor {
     RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)

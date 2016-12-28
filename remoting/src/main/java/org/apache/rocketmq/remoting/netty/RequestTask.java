@@ -36,7 +36,7 @@ public class RequestTask implements Runnable {
     @Override
     public int hashCode() {
         int result = runnable != null ? runnable.hashCode() : 0;
-        result = 31 * result + (int)(getCreateTimestamp() ^ (getCreateTimestamp() >>> 32));
+        result = 31 * result + (int) (getCreateTimestamp() ^ (getCreateTimestamp() >>> 32));
         result = 31 * result + (channel != null ? channel.hashCode() : 0);
         result = 31 * result + (request != null ? request.hashCode() : 0);
         result = 31 * result + (isStopRun() ? 1 : 0);
@@ -50,7 +50,7 @@ public class RequestTask implements Runnable {
         if (!(o instanceof RequestTask))
             return false;
 
-        final RequestTask that = (RequestTask)o;
+        final RequestTask that = (RequestTask) o;
 
         if (getCreateTimestamp() != that.getCreateTimestamp())
             return false;

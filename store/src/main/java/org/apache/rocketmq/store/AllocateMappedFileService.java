@@ -306,7 +306,7 @@ public class AllocateMappedFileService extends ServiceThread {
                 return false;
             if (getClass() != obj.getClass())
                 return false;
-            AllocateRequest other = (AllocateRequest)obj;
+            AllocateRequest other = (AllocateRequest) obj;
             if (filePath == null) {
                 if (other.filePath != null)
                     return false;

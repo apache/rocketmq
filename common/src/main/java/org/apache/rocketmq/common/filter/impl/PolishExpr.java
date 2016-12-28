@@ -49,7 +49,7 @@ public class PolishExpr {
                 segments.add(token);
             } else if (isLeftParenthesis(token)) {
 
-                operatorStack.push((Operator)token);
+                operatorStack.push((Operator) token);
             } else if (isRightParenthesis(token)) {
 
                 Operator opNew = null;
@@ -60,7 +60,7 @@ public class PolishExpr {
                     throw new IllegalArgumentException("mismatched parentheses");
             } else if (isOperator(token)) {
 
-                Operator opNew = (Operator)token;
+                Operator opNew = (Operator) token;
                 if (!operatorStack.empty()) {
                     Operator opOld = operatorStack.peek();
                     if (opOld.isCompareable() && opNew.compare(opOld) != 1) {
@@ -83,11 +83,8 @@ public class PolishExpr {
     }
 
     /**
-     *
      * @param expression
-     *
      * @return
-     *
      * @throws Exception
      */
     private static List<Op> participle(String expression) {
@@ -99,7 +96,7 @@ public class PolishExpr {
         Type preType = Type.NULL;
 
         for (int i = 0; i < size; i++) {
-            int chValue = (int)expression.charAt(i);
+            int chValue = (int) expression.charAt(i);
 
             if ((97 <= chValue && chValue <= 122) || (65 <= chValue && chValue <= 90)
                 || (49 <= chValue && chValue <= 57) || 95 == chValue) {
@@ -129,7 +126,7 @@ public class PolishExpr {
                 }
 
                 preType = Type.PARENTHESIS;
-                segments.add(createOperator((char)chValue + ""));
+                segments.add(createOperator((char) chValue + ""));
             } else if (38 == chValue || 124 == chValue) {
 
                 if (Type.OPERAND == preType || Type.SEPAERATOR == preType || Type.PARENTHESIS == preType) {
@@ -157,7 +154,7 @@ public class PolishExpr {
                 preType = Type.SEPAERATOR;
             } else {
 
-                throw new IllegalArgumentException("illegal expression, at index " + i + " " + (char)chValue);
+                throw new IllegalArgumentException("illegal expression, at index " + i + " " + (char) chValue);
             }
 
         }
@@ -173,11 +170,11 @@ public class PolishExpr {
     }
 
     public static boolean isLeftParenthesis(Op token) {
-        return token instanceof Operator && LEFTPARENTHESIS == (Operator)token;
+        return token instanceof Operator && LEFTPARENTHESIS == (Operator) token;
     }
 
     public static boolean isRightParenthesis(Op token) {
-        return token instanceof Operator && RIGHTPARENTHESIS == (Operator)token;
+        return token instanceof Operator && RIGHTPARENTHESIS == (Operator) token;
     }
 
     public static boolean isOperator(Op token) {

@@ -76,9 +76,9 @@ public class Consumer {
                     Long[] end = snapshotList.getLast();
 
                     final long consumeTps =
-                        (long)(((end[1] - begin[1]) / (double)(end[0] - begin[0])) * 1000L);
-                    final double averageB2CRT = (end[2] - begin[2]) / (double)(end[1] - begin[1]);
-                    final double averageS2CRT = (end[3] - begin[3]) / (double)(end[1] - begin[1]);
+                        (long) (((end[1] - begin[1]) / (double) (end[0] - begin[0])) * 1000L);
+                    final double averageB2CRT = (end[2] - begin[2]) / (double) (end[1] - begin[1]);
+                    final double averageS2CRT = (end[3] - begin[3]) / (double) (end[1] - begin[1]);
 
                     System.out.printf("Consume TPS: %d Average(B2C) RT: %7.3f Average(S2C) RT: %7.3f MAX(B2C) RT: %d MAX(S2C) RT: %d%n",
                         consumeTps, averageB2CRT, averageS2CRT, end[4], end[5]

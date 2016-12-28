@@ -15,6 +15,8 @@
  * limitations under the License.
  *
  * $Id: BrokerData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
+ *
+ * $Id: BrokerData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
  */
 
 /**
@@ -78,7 +80,7 @@ public class BrokerData implements Comparable<BrokerData> {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        BrokerData other = (BrokerData)obj;
+        BrokerData other = (BrokerData) obj;
         if (brokerAddrs == null) {
             if (other.brokerAddrs != null)
                 return false;

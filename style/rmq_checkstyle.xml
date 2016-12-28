@@ -58,7 +58,7 @@
     </module>
 
     <module name="FileLength">
-        <property name="max" value="2000"/>
+        <property name="max" value="3000"/>
     </module>
 
     <module name="TreeWalker">
@@ -107,9 +107,7 @@
         <module name="StaticVariableName"/>
         <module name="TypeName"/>
         <!--Checks that there are no import statements that use the * notation-->
-        <!--
         <module name="AvoidStarImport"/>
-        -->
 
         <!--whitespace-->
         <module name="GenericWhitespace"/>

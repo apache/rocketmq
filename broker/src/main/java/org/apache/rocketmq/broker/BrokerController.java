@@ -205,7 +205,7 @@ public class BrokerController {
                 this.messageStore =
                     new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener,
                         this.brokerConfig);
-                this.brokerStats = new BrokerStats((DefaultMessageStore)this.messageStore);
+                this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
                 //load plugin
                 MessageStorePluginContext context = new MessageStorePluginContext(messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig);
                 this.messageStore = MessageStoreFactory.build(context, this.messageStore);
@@ -219,7 +219,7 @@ public class BrokerController {
 
         if (result) {
             this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
-            NettyServerConfig fastConfig = (NettyServerConfig)this.nettyServerConfig.clone();
+            NettyServerConfig fastConfig = (NettyServerConfig) this.nettyServerConfig.clone();
             fastConfig.setListenPort(nettyServerConfig.getListenPort() - 2);
             this.fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
             this.sendMessageExecutor = new BrokerFixedThreadPoolExecutor(

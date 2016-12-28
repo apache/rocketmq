@@ -84,7 +84,7 @@ public class FilterClassManager {
                     Class<?> newClass =
                         DynaCode.compileAndLoadClass(filterClassInfo.getClassName(), javaSource);
                     Object newInstance = newClass.newInstance();
-                    filterClassInfo.setMessageFilter((MessageFilter)newInstance);
+                    filterClassInfo.setMessageFilter((MessageFilter) newInstance);
                     filterClassInfo.setClassCRC(classCRC);
 
                     log.info("fetch Remote class File OK, {} {}", next.getKey(),
@@ -134,7 +134,7 @@ public class FilterClassManager {
                         String javaSource = new String(filterSourceBinary, MixAll.DEFAULT_CHARSET);
                         Class<?> newClass = DynaCode.compileAndLoadClass(className, javaSource);
                         Object newInstance = newClass.newInstance();
-                        filterClassInfoNew.setMessageFilter((MessageFilter)newInstance);
+                        filterClassInfoNew.setMessageFilter((MessageFilter) newInstance);
                         filterClassInfoNew.setClassCRC(classCRC);
                     }
 

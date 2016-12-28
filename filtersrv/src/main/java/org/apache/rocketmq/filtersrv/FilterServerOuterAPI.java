@@ -60,7 +60,7 @@ public class FilterServerOuterAPI {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 RegisterFilterServerResponseHeader responseHeader =
-                    (RegisterFilterServerResponseHeader)response
+                    (RegisterFilterServerResponseHeader) response
                         .decodeCommandCustomHeader(RegisterFilterServerResponseHeader.class);
 
                 return responseHeader;

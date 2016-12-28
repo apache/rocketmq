@@ -64,10 +64,10 @@ public class MessageClientIDSetter {
     public static Date getNearlyTimeFromID(String msgID) {
         ByteBuffer buf = ByteBuffer.allocate(8);
         byte[] bytes = UtilAll.string2bytes(msgID);
-        buf.put((byte)0);
-        buf.put((byte)0);
-        buf.put((byte)0);
-        buf.put((byte)0);
+        buf.put((byte) 0);
+        buf.put((byte) 0);
+        buf.put((byte) 0);
+        buf.put((byte) 0);
         buf.put(bytes, 10, 4);
         buf.position(0);
         long spanMS = buf.getLong();
@@ -113,8 +113,8 @@ public class MessageClientIDSetter {
             setStartTime(current);
         }
         buffer.position(0);
-        buffer.putInt((int)(System.currentTimeMillis() - startTime));
-        buffer.putShort((short)COUNTER.getAndIncrement());
+        buffer.putInt((int) (System.currentTimeMillis() - startTime));
+        buffer.putShort((short) COUNTER.getAndIncrement());
         return buffer.array();
     }
 

@@ -49,7 +49,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final EndTransactionRequestHeader requestHeader =
-            (EndTransactionRequestHeader)request.decodeCommandCustomHeader(EndTransactionRequestHeader.class);
+            (EndTransactionRequestHeader) request.decodeCommandCustomHeader(EndTransactionRequestHeader.class);
 
         if (requestHeader.getFromTransactionCheck()) {
             switch (requestHeader.getCommitOrRollback()) {

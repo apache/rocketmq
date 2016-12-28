@@ -54,7 +54,7 @@ public class MessageDecoder {
 
     public static String createMessageId(SocketAddress socketAddress, long transactionIdhashCode) {
         ByteBuffer byteBuffer = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);
-        InetSocketAddress inetSocketAddress = (InetSocketAddress)socketAddress;
+        InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
         byteBuffer.put(inetSocketAddress.getAddress().getAddress());
         byteBuffer.putInt(inetSocketAddress.getPort());
         byteBuffer.putLong(transactionIdhashCode);
@@ -95,10 +95,10 @@ public class MessageDecoder {
     public static byte[] encode(MessageExt messageExt, boolean needCompress) throws Exception {
         byte[] body = messageExt.getBody();
         byte[] topics = messageExt.getTopic().getBytes(CHARSET_UTF8);
-        byte topicLen = (byte)topics.length;
+        byte topicLen = (byte) topics.length;
         String properties = messageProperties2String(messageExt.getProperties());
         byte[] propertiesBytes = properties.getBytes(CHARSET_UTF8);
-        short propertiesLength = (short)propertiesBytes.length;
+        short propertiesLength = (short) propertiesBytes.length;
         int sysFlag = messageExt.getSysFlag();
         byte[] newBody = messageExt.getBody();
         if (needCompress && (sysFlag & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG) {
@@ -164,7 +164,7 @@ public class MessageDecoder {
         byteBuffer.putLong(bornTimeStamp);
 
         // 10 BORNHOST
-        InetSocketAddress bornHost = (InetSocketAddress)messageExt.getBornHost();
+        InetSocketAddress bornHost = (InetSocketAddress) messageExt.getBornHost();
         byteBuffer.put(bornHost.getAddress().getAddress());
         byteBuffer.putInt(bornHost.getPort());
 
@@ -173,7 +173,7 @@ public class MessageDecoder {
         byteBuffer.putLong(storeTimestamp);
 
         // 12 STOREHOST
-        InetSocketAddress serverHost = (InetSocketAddress)messageExt.getStoreHost();
+        InetSocketAddress serverHost = (InetSocketAddress) messageExt.getStoreHost();
         byteBuffer.put(serverHost.getAddress().getAddress());
         byteBuffer.putInt(serverHost.getPort());
 
@@ -295,7 +295,7 @@ public class MessageDecoder {
 
             // 16 TOPIC
             byte topicLen = byteBuffer.get();
-            byte[] topic = new byte[(int)topicLen];
+            byte[] topic = new byte[(int) topicLen];
             byteBuffer.get(topic);
             msgExt.setTopic(new String(topic, CHARSET_UTF8));
 
@@ -314,7 +314,7 @@ public class MessageDecoder {
             msgExt.setMsgId(msgId);
 
             if (isClient) {
-                ((MessageClientExt)msgExt).setOffsetMsgId(msgId);
+                ((MessageClientExt) msgExt).setOffsetMsgId(msgId);
             }
 
             return msgExt;

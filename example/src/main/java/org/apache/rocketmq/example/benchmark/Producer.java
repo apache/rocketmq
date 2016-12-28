@@ -81,8 +81,8 @@ public class Producer {
                     Long[] begin = snapshotList.getFirst();
                     Long[] end = snapshotList.getLast();
 
-                    final long sendTps = (long)(((end[3] - begin[3]) / (double)(end[0] - begin[0])) * 1000L);
-                    final double averageRT = (end[5] - begin[5]) / (double)(end[3] - begin[3]);
+                    final long sendTps = (long) (((end[3] - begin[3]) / (double) (end[0] - begin[0])) * 1000L);
+                    final double averageRT = (end[5] - begin[5]) / (double) (end[3] - begin[3]);
 
                     System.out.printf("Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d%n",
                         sendTps, statsBenchmark.getSendMessageMaxRT().get(), averageRT, end[2], end[4]);

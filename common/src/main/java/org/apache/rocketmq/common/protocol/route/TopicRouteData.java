@@ -15,6 +15,8 @@
  * limitations under the License.
  *
  * $Id: TopicRouteData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
+ *
+ * $Id: TopicRouteData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
  */
 
 /**
@@ -106,7 +108,7 @@ public class TopicRouteData extends RemotingSerializable {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        TopicRouteData other = (TopicRouteData)obj;
+        TopicRouteData other = (TopicRouteData) obj;
         if (brokerDatas == null) {
             if (other.brokerDatas != null)
                 return false;

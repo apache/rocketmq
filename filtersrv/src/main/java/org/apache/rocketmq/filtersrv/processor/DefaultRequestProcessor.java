@@ -85,7 +85,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     private RemotingCommand registerMessageFilterClass(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final RegisterMessageFilterClassRequestHeader requestHeader =
-            (RegisterMessageFilterClassRequestHeader)request.decodeCommandCustomHeader(RegisterMessageFilterClassRequestHeader.class);
+            (RegisterMessageFilterClassRequestHeader) request.decodeCommandCustomHeader(RegisterMessageFilterClassRequestHeader.class);
 
         try {
             boolean ok = this.filtersrvController.getFilterClassManager().registerFilterClass(requestHeader.getConsumerGroup(),
@@ -109,9 +109,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
     private RemotingCommand pullMessageForward(final ChannelHandlerContext ctx, final RemotingCommand request) throws Exception {
         final RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
-        final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader)response.readCustomHeader();
+        final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();
         final PullMessageRequestHeader requestHeader =
-            (PullMessageRequestHeader)request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
+            (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
 
         final FilterContext filterContext = new FilterContext();
         filterContext.setConsumerGroup(requestHeader.getConsumerGroup());
@@ -331,10 +331,10 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         if (bodyLength > 0)
             msgStoreItemMemory.put(msgInner.getBody());
         // 16 TOPIC
-        msgStoreItemMemory.put((byte)topicLength);
+        msgStoreItemMemory.put((byte) topicLength);
         msgStoreItemMemory.put(topicData);
         // 17 PROPERTIES
-        msgStoreItemMemory.putShort((short)propertiesLength);
+        msgStoreItemMemory.putShort((short) propertiesLength);
         if (propertiesLength > 0)
             msgStoreItemMemory.put(propertiesData);
 

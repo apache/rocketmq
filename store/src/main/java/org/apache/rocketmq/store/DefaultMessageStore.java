@@ -459,7 +459,7 @@ public class DefaultMessageStore implements MessageStore {
                         nextBeginOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
 
                         long diff = maxOffsetPy - maxPhyOffsetPulling;
-                        long memory = (long)(StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE
+                        long memory = (long) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE
                             * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));
                         getResult.setSuggestPullingFromSlave(diff > memory);
                     } finally {
@@ -1016,7 +1016,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private boolean checkInDiskByCommitOffset(long offsetPy, long maxOffsetPy) {
-        long memory = (long)(StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));
+        long memory = (long) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));
         return (maxOffsetPy - offsetPy) > memory;
     }
 
@@ -1286,6 +1286,24 @@ public class DefaultMessageStore implements MessageStore {
 
     public BrokerStatsManager getBrokerStatsManager() {
         return brokerStatsManager;
+    }
+
+    public int remainTransientStoreBufferNumbs() {
+        return this.transientStorePool.remainBufferNumbs();
+    }
+
+    @Override
+    public boolean isTransientStorePoolDeficient() {
+        return remainTransientStoreBufferNumbs() == 0;
+    }
+
+    public void unlockMappedFile(final MappedFile mappedFile) {
+        this.scheduledExecutorService.schedule(new Runnable() {
+            @Override
+            public void run() {
+                mappedFile.munlock();
+            }
+        }, 6, TimeUnit.SECONDS);
     }
 
     class CleanCommitLogService {
@@ -1565,6 +1583,10 @@ public class DefaultMessageStore implements MessageStore {
             return reputFromOffset;
         }
 
+        public void setReputFromOffset(long reputFromOffset) {
+            this.reputFromOffset = reputFromOffset;
+        }
+
         @Override
         public void shutdown() {
             for (int i = 0; i < 50 && this.isCommitLogAvailable(); i++) {
@@ -1580,10 +1602,6 @@ public class DefaultMessageStore implements MessageStore {
             }
 
             super.shutdown();
-        }
-
-        public void setReputFromOffset(long reputFromOffset) {
-            this.reputFromOffset = reputFromOffset;
         }
 
         public long behind() {
@@ -1682,23 +1700,5 @@ public class DefaultMessageStore implements MessageStore {
             return ReputMessageService.class.getSimpleName();
         }
 
-    }
-
-    public int remainTransientStoreBufferNumbs() {
-        return this.transientStorePool.remainBufferNumbs();
-    }
-
-    @Override
-    public boolean isTransientStorePoolDeficient() {
-        return remainTransientStoreBufferNumbs() == 0;
-    }
-
-    public void unlockMappedFile(final MappedFile mappedFile) {
-        this.scheduledExecutorService.schedule(new Runnable() {
-            @Override
-            public void run() {
-                mappedFile.munlock();
-            }
-        }, 6, TimeUnit.SECONDS);
     }
 }

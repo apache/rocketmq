@@ -708,7 +708,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             return this.mqClientInstance.getMQClientAPIImpl().consumeMessageDirectly(RemotingUtil.socketAddress2String(msg.getStoreHost()),
                 consumerGroup, clientId, msgId, timeoutMillis * 3);
         } else {
-            MessageClientExt msgClient = (MessageClientExt)msg;
+            MessageClientExt msgClient = (MessageClientExt) msg;
             return this.mqClientInstance.getMQClientAPIImpl().consumeMessageDirectly(RemotingUtil.socketAddress2String(msg.getStoreHost()),
                 consumerGroup, clientId, msgClient.getOffsetMsgId(), timeoutMillis * 3);
         }

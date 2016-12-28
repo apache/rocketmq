@@ -66,7 +66,7 @@ public class PullAPIWrapper {
 
     public PullResult processPullResult(final MessageQueue mq, final PullResult pullResult,
         final SubscriptionData subscriptionData) {
-        PullResultExt pullResultExt = (PullResultExt)pullResult;
+        PullResultExt pullResultExt = (PullResultExt) pullResult;
 
         this.updatePullFromWhichNode(mq, pullResultExt.getSuggestWhichBrokerId());
         if (PullStatus.FOUND == pullResult.getPullStatus()) {

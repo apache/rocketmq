@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * thread safe
- *
  */
 public class ConcurrentTreeMap<K, V> {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);

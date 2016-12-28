@@ -81,13 +81,13 @@ public class MappedFileQueue {
             return null;
 
         for (int i = 0; i < mfs.length; i++) {
-            MappedFile mappedFile = (MappedFile)mfs[i];
+            MappedFile mappedFile = (MappedFile) mfs[i];
             if (mappedFile.getLastModifiedTimestamp() >= timestamp) {
                 return mappedFile;
             }
         }
 
-        return (MappedFile)mfs[mfs.length - 1];
+        return (MappedFile) mfs[mfs.length - 1];
     }
 
     private Object[] copyMappedFiles(final int reservedMappedFiles) {
@@ -108,9 +108,9 @@ public class MappedFileQueue {
             long fileTailOffset = file.getFileFromOffset() + this.mappedFileSize;
             if (fileTailOffset > offset) {
                 if (offset >= file.getFileFromOffset()) {
-                    file.setWrotePosition((int)(offset % this.mappedFileSize));
-                    file.setCommittedPosition((int)(offset % this.mappedFileSize));
-                    file.setFlushedPosition((int)(offset % this.mappedFileSize));
+                    file.setWrotePosition((int) (offset % this.mappedFileSize));
+                    file.setCommittedPosition((int) (offset % this.mappedFileSize));
+                    file.setFlushedPosition((int) (offset % this.mappedFileSize));
                 } else {
                     file.destroy(1000);
                     willRemoveFiles.add(file);
@@ -273,7 +273,7 @@ public class MappedFileQueue {
         while (iterator.hasPrevious()) {
             mappedFileLast = iterator.previous();
             if (offset >= mappedFileLast.getFileFromOffset()) {
-                int where = (int)(offset % mappedFileLast.getFileSize());
+                int where = (int) (offset % mappedFileLast.getFileSize());
                 mappedFileLast.setFlushedPosition(where);
                 mappedFileLast.setWrotePosition(where);
                 mappedFileLast.setCommittedPosition(where);
@@ -347,7 +347,7 @@ public class MappedFileQueue {
         List<MappedFile> files = new ArrayList<MappedFile>();
         if (null != mfs) {
             for (int i = 0; i < mfsLength; i++) {
-                MappedFile mappedFile = (MappedFile)mfs[i];
+                MappedFile mappedFile = (MappedFile) mfs[i];
                 long liveMaxTimestamp = mappedFile.getLastModifiedTimestamp() + expiredTime;
                 if (System.currentTimeMillis() >= liveMaxTimestamp || cleanImmediately) {
                     if (mappedFile.destroy(intervalForcibly)) {
@@ -387,7 +387,7 @@ public class MappedFileQueue {
 
             for (int i = 0; i < mfsLength; i++) {
                 boolean destroy;
-                MappedFile mappedFile = (MappedFile)mfs[i];
+                MappedFile mappedFile = (MappedFile) mfs[i];
                 SelectMappedBufferResult result = mappedFile.selectMappedBuffer(this.mappedFileSize - unitSize);
                 if (result != null) {
                     long maxOffsetInLogicQueue = result.getByteBuffer().getLong();
@@ -457,7 +457,7 @@ public class MappedFileQueue {
         try {
             MappedFile mappedFile = this.getFirstMappedFile();
             if (mappedFile != null) {
-                int index = (int)((offset / this.mappedFileSize) - (mappedFile.getFileFromOffset() / this.mappedFileSize));
+                int index = (int) ((offset / this.mappedFileSize) - (mappedFile.getFileFromOffset() / this.mappedFileSize));
                 if (index < 0 || index >= this.mappedFiles.size()) {
                     LOG_ERROR.warn("Offset for {} not matched. Request offset: {}, index: {}, " +
                             "mappedFileSize: {}, mappedFiles count: {}",
@@ -510,7 +510,7 @@ public class MappedFileQueue {
         Object[] mfs = this.copyMappedFiles(0);
         if (mfs != null) {
             for (Object mf : mfs) {
-                if (((ReferenceResource)mf).isAvailable()) {
+                if (((ReferenceResource) mf).isAvailable()) {
                     size += this.mappedFileSize;
                 }
             }

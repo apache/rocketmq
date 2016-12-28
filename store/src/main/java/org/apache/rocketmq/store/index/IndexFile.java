@@ -124,7 +124,7 @@ public class IndexFile {
 
                 this.mappedByteBuffer.putInt(absIndexPos, keyHash);
                 this.mappedByteBuffer.putLong(absIndexPos + 4, phyOffset);
-                this.mappedByteBuffer.putInt(absIndexPos + 4 + 8, (int)timeDiff);
+                this.mappedByteBuffer.putInt(absIndexPos + 4 + 8, (int) timeDiff);
                 this.mappedByteBuffer.putInt(absIndexPos + 4 + 8 + 4, slotValue);
 
                 this.mappedByteBuffer.putInt(absSlotPos, this.indexHeader.getIndexCount());
@@ -183,15 +183,8 @@ public class IndexFile {
         boolean result =
             begin < this.indexHeader.getBeginTimestamp() && end > this.indexHeader.getEndTimestamp();
 
-        result =
-            result
-                || (begin >= this.indexHeader.getBeginTimestamp() && begin <= this.indexHeader
-                .getEndTimestamp());
-
-        result =
-            result
-                || (end >= this.indexHeader.getBeginTimestamp() && end <= this.indexHeader
-                .getEndTimestamp());
+        result = result || (begin >= this.indexHeader.getBeginTimestamp() && begin <= this.indexHeader.getEndTimestamp());
+        result = result || (end >= this.indexHeader.getBeginTimestamp() && end <= this.indexHeader.getEndTimestamp());
         return result;
     }
 
@@ -219,7 +212,7 @@ public class IndexFile {
                     || this.indexHeader.getIndexCount() <= 1) {
                     // TODO NOTFOUND
                 } else {
-                    for (int nextIndexToRead = slotValue; ; ) {
+                    for (int nextIndexToRead = slotValue;;) {
                         if (phyOffsets.size() >= maxNum) {
                             break;
                         }
@@ -231,7 +224,7 @@ public class IndexFile {
                         int keyHashRead = this.mappedByteBuffer.getInt(absIndexPos);
                         long phyOffsetRead = this.mappedByteBuffer.getLong(absIndexPos + 4);
 
-                        long timeDiff = (long)this.mappedByteBuffer.getInt(absIndexPos + 4 + 8);
+                        long timeDiff = (long) this.mappedByteBuffer.getInt(absIndexPos + 4 + 8);
                         int prevIndexRead = this.mappedByteBuffer.getInt(absIndexPos + 4 + 8 + 4);
 
                         if (timeDiff < 0) {

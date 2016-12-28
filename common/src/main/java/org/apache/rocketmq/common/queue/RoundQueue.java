@@ -22,7 +22,6 @@ import java.util.Queue;
 
 /**
  * not thread safe
- *
  */
 public class RoundQueue<E> {
 

@@ -637,7 +637,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         @Override
         public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
             if (evt instanceof IdleStateEvent) {
-                IdleStateEvent evnet = (IdleStateEvent)evt;
+                IdleStateEvent evnet = (IdleStateEvent) evt;
                 if (evnet.state().equals(IdleState.ALL_IDLE)) {
                     final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
                     log.warn("NETTY CLIENT PIPELINE: IDLE exception [{}]", remoteAddress);

@@ -62,23 +62,23 @@ public class ConsumerStatsManager {
     }
 
     public void incPullRT(final String group, final String topic, final long rt) {
-        this.topicAndGroupPullRT.addValue(topic + "@" + group, (int)rt, 1);
+        this.topicAndGroupPullRT.addValue(topic + "@" + group, (int) rt, 1);
     }
 
     public void incPullTPS(final String group, final String topic, final long msgs) {
-        this.topicAndGroupPullTPS.addValue(topic + "@" + group, (int)msgs, 1);
+        this.topicAndGroupPullTPS.addValue(topic + "@" + group, (int) msgs, 1);
     }
 
     public void incConsumeRT(final String group, final String topic, final long rt) {
-        this.topicAndGroupConsumeRT.addValue(topic + "@" + group, (int)rt, 1);
+        this.topicAndGroupConsumeRT.addValue(topic + "@" + group, (int) rt, 1);
     }
 
     public void incConsumeOKTPS(final String group, final String topic, final long msgs) {
-        this.topicAndGroupConsumeOKTPS.addValue(topic + "@" + group, (int)msgs, 1);
+        this.topicAndGroupConsumeOKTPS.addValue(topic + "@" + group, (int) msgs, 1);
     }
 
     public void incConsumeFailedTPS(final String group, final String topic, final long msgs) {
-        this.topicAndGroupConsumeFailedTPS.addValue(topic + "@" + group, (int)msgs, 1);
+        this.topicAndGroupConsumeFailedTPS.addValue(topic + "@" + group, (int) msgs, 1);
     }
 
     public ConsumeStatus consumeStatus(final String group, final String topic) {

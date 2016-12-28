@@ -171,7 +171,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
         try {
             ChannelFuture sync = this.serverBootstrap.bind().sync();
-            InetSocketAddress addr = (InetSocketAddress)sync.channel().localAddress();
+            InetSocketAddress addr = (InetSocketAddress) sync.channel().localAddress();
             this.port = addr.getPort();
         } catch (InterruptedException e1) {
             throw new RuntimeException("this.serverBootstrap.bind().sync() InterruptedException", e1);
@@ -337,7 +337,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         @Override
         public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
             if (evt instanceof IdleStateEvent) {
-                IdleStateEvent evnet = (IdleStateEvent)evt;
+                IdleStateEvent evnet = (IdleStateEvent) evt;
                 if (evnet.state().equals(IdleState.ALL_IDLE)) {
                     final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
                     log.warn("NETTY SERVER PIPELINE: IDLE exception [{}]", remoteAddress);

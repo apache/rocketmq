@@ -15,6 +15,8 @@
  * limitations under the License.
  *
  * $Id: SubscriptionData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
+ *
+ * $Id: SubscriptionData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
  */
 
 /**
@@ -124,7 +126,7 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        SubscriptionData other = (SubscriptionData)obj;
+        SubscriptionData other = (SubscriptionData) obj;
         if (classFilterMode != other.classFilterMode)
             return false;
         if (codeSet == null) {

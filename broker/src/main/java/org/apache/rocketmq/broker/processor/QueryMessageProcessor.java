@@ -72,9 +72,9 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         final RemotingCommand response =
             RemotingCommand.createResponseCommand(QueryMessageResponseHeader.class);
         final QueryMessageResponseHeader responseHeader =
-            (QueryMessageResponseHeader)response.readCustomHeader();
+            (QueryMessageResponseHeader) response.readCustomHeader();
         final QueryMessageRequestHeader requestHeader =
-            (QueryMessageRequestHeader)request
+            (QueryMessageRequestHeader) request
                 .decodeCommandCustomHeader(QueryMessageRequestHeader.class);
 
         response.setOpaque(request.getOpaque());
@@ -127,7 +127,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final ViewMessageRequestHeader requestHeader =
-            (ViewMessageRequestHeader)request.decodeCommandCustomHeader(ViewMessageRequestHeader.class);
+            (ViewMessageRequestHeader) request.decodeCommandCustomHeader(ViewMessageRequestHeader.class);
 
         response.setOpaque(request.getOpaque());
 

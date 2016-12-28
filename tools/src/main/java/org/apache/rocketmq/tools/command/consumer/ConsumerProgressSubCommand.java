@@ -141,7 +141,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
                             groupConsumeInfo.setGroup(consumerGroup);
 
                             if (consumeStats != null) {
-                                groupConsumeInfo.setConsumeTps((int)consumeStats.getConsumeTps());
+                                groupConsumeInfo.setConsumeTps((int) consumeStats.getConsumeTps());
                                 groupConsumeInfo.setDiffTotal(consumeStats.computeTotalDiff());
                             }
 
@@ -251,7 +251,7 @@ class GroupConsumeInfo implements Comparable<GroupConsumeInfo> {
             return o.count - this.count;
         }
 
-        return (int)(o.diffTotal - diffTotal);
+        return (int) (o.diffTotal - diffTotal);
     }
 
     public int getConsumeTps() {

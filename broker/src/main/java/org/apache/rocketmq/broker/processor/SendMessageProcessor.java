@@ -89,7 +89,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final ConsumerSendMsgBackRequestHeader requestHeader =
-            (ConsumerSendMsgBackRequestHeader)request.decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
+            (ConsumerSendMsgBackRequestHeader) request.decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
 
         if (this.hasConsumeMessageHook() && !UtilAll.isBlank(requestHeader.getOriginMsgId())) {
 
@@ -244,7 +244,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
-        final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader)response.readCustomHeader();
+        final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader) response.readCustomHeader();
 
         response.setOpaque(request.getOpaque());
 
@@ -415,7 +415,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
                     int commercialBaseCount = brokerController.getBrokerConfig().getCommercialBaseCount();
                     int wroteSize = putMessageResult.getAppendMessageResult().getWroteBytes();
-                    int incValue = (int)Math.ceil(wroteSize / BrokerStatsManager.SIZE_PER_COUNT) * commercialBaseCount;
+                    int incValue = (int) Math.ceil(wroteSize / BrokerStatsManager.SIZE_PER_COUNT) * commercialBaseCount;
 
                     sendMessageContext.setCommercialSendStats(BrokerStatsManager.StatsType.SEND_SUCCESS);
                     sendMessageContext.setCommercialSendTimes(incValue);
@@ -426,7 +426,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             } else {
                 if (hasSendMessageHook()) {
                     int wroteSize = request.getBody().length;
-                    int incValue = (int)Math.ceil(wroteSize / BrokerStatsManager.SIZE_PER_COUNT);
+                    int incValue = (int) Math.ceil(wroteSize / BrokerStatsManager.SIZE_PER_COUNT);
 
                     sendMessageContext.setCommercialSendStats(BrokerStatsManager.StatsType.SEND_FAILURE);
                     sendMessageContext.setCommercialSendTimes(incValue);

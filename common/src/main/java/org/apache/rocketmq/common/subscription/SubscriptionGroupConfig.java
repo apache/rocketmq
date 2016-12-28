@@ -114,7 +114,7 @@ public class SubscriptionGroupConfig {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + (int)(brokerId ^ (brokerId >>> 32));
+        result = prime * result + (int) (brokerId ^ (brokerId >>> 32));
         result = prime * result + (consumeBroadcastEnable ? 1231 : 1237);
         result = prime * result + (consumeEnable ? 1231 : 1237);
         result = prime * result + (consumeFromMinEnable ? 1231 : 1237);
@@ -123,7 +123,7 @@ public class SubscriptionGroupConfig {
         result = prime * result + retryMaxTimes;
         result = prime * result + retryQueueNums;
         result =
-            prime * result + (int)(whichBrokerWhenConsumeSlowly ^ (whichBrokerWhenConsumeSlowly >>> 32));
+            prime * result + (int) (whichBrokerWhenConsumeSlowly ^ (whichBrokerWhenConsumeSlowly >>> 32));
         return result;
     }
 
@@ -135,7 +135,7 @@ public class SubscriptionGroupConfig {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        SubscriptionGroupConfig other = (SubscriptionGroupConfig)obj;
+        SubscriptionGroupConfig other = (SubscriptionGroupConfig) obj;
         if (brokerId != other.brokerId)
             return false;
         if (consumeBroadcastEnable != other.consumeBroadcastEnable)

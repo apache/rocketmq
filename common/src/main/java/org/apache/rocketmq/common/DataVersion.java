@@ -56,7 +56,7 @@ public class DataVersion extends RemotingSerializable {
         if (o == null || getClass() != o.getClass())
             return false;
 
-        final DataVersion that = (DataVersion)o;
+        final DataVersion that = (DataVersion) o;
 
         if (timestatmp != that.timestatmp)
             return false;
@@ -66,7 +66,7 @@ public class DataVersion extends RemotingSerializable {
 
     @Override
     public int hashCode() {
-        int result = (int)(timestatmp ^ (timestatmp >>> 32));
+        int result = (int) (timestatmp ^ (timestatmp >>> 32));
         result = 31 * result + (counter != null ? counter.hashCode() : 0);
         return result;
     }

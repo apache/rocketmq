@@ -307,7 +307,7 @@ public class MQAdminImpl {
                                                     QueryMessageResponseHeader responseHeader = null;
                                                     try {
                                                         responseHeader =
-                                                            (QueryMessageResponseHeader)response
+                                                            (QueryMessageResponseHeader) response
                                                                 .decodeCommandCustomHeader(QueryMessageResponseHeader.class);
                                                     } catch (RemotingCommandException e) {
                                                         log.error("decodeCommandCustomHeader exception", e);

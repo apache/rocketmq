@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 
 /**
  * Rebalance Service
- *
  */
 public class RebalanceService extends ServiceThread {
     private static long waitInterval =

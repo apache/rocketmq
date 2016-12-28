@@ -22,7 +22,6 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 /**
  * Client Common configuration
- *
  */
 public class ClientConfig {
     public static final String SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY = "com.rocketmq.sendMessageWithVIPChannel";

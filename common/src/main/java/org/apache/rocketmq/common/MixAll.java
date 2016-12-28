@@ -186,7 +186,7 @@ public class MixAll {
 
     public static final String file2String(final File file) {
         if (file.exists()) {
-            char[] data = new char[(int)file.length()];
+            char[] data = new char[(int) file.length()];
             boolean result = false;
 
             FileReader fileReader = null;
@@ -442,7 +442,7 @@ public class MixAll {
         int unit = si ? 1000 : 1024;
         if (bytes < unit)
             return bytes + " B";
-        int exp = (int)(Math.log(bytes) / Math.log(unit));
+        int exp = (int) (Math.log(bytes) / Math.log(unit));
         String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }

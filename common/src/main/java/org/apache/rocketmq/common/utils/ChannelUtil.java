@@ -23,7 +23,7 @@ import java.net.InetSocketAddress;
 
 public class ChannelUtil {
     public static String getRemoteIp(Channel channel) {
-        InetSocketAddress inetSocketAddress = (InetSocketAddress)channel.remoteAddress();
+        InetSocketAddress inetSocketAddress = (InetSocketAddress) channel.remoteAddress();
         if (inetSocketAddress == null) {
             return "";
         }

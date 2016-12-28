@@ -35,7 +35,6 @@ import org.slf4j.Logger;
 
 /**
  * Queue consumption snapshot
- *
  */
 public class ProcessQueue {
     public final static long REBALANCE_LOCK_MAX_LIVE_TIME =
@@ -69,8 +68,6 @@ public class ProcessQueue {
     }
 
     /**
-
-     *
      * @param pushConsumer
      */
     public void cleanExpiredMsg(DefaultMQPushConsumer pushConsumer) {

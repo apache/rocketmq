@@ -65,7 +65,7 @@ public class MessageExt extends Message {
     }
 
     private static ByteBuffer socketAddress2ByteBuffer(final SocketAddress socketAddress, final ByteBuffer byteBuffer) {
-        InetSocketAddress inetSocketAddress = (InetSocketAddress)socketAddress;
+        InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
         byteBuffer.put(inetSocketAddress.getAddress().getAddress(), 0, 4);
         byteBuffer.putInt(inetSocketAddress.getPort());
         byteBuffer.flip();
@@ -119,7 +119,7 @@ public class MessageExt extends Message {
 
     public String getBornHostString() {
         if (this.bornHost != null) {
-            InetSocketAddress inetSocketAddress = (InetSocketAddress)this.bornHost;
+            InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;
             return inetSocketAddress.getAddress().getHostAddress();
         }
 
@@ -128,7 +128,7 @@ public class MessageExt extends Message {
 
     public String getBornHostNameString() {
         if (this.bornHost != null) {
-            InetSocketAddress inetSocketAddress = (InetSocketAddress)this.bornHost;
+            InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;
             return inetSocketAddress.getAddress().getHostName();
         }
 

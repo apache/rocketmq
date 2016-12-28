@@ -224,8 +224,6 @@ public class ScheduleMessageService extends ConfigManager {
         }
 
         /**
-
-         *
          * @return
          */
         private long correctDeliverTimestamp(final long now, final long deliverTimestamp) {

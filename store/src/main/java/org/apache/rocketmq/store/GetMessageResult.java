@@ -86,7 +86,7 @@ public class GetMessageResult {
         this.messageMapedList.add(mapedBuffer);
         this.messageBufferList.add(mapedBuffer.getByteBuffer());
         this.bufferTotalSize += mapedBuffer.getSize();
-        this.msgCount4Commercial += (int)Math.ceil(
+        this.msgCount4Commercial += (int) Math.ceil(
             mapedBuffer.getSize() / BrokerStatsManager.SIZE_PER_COUNT);
     }
 

@@ -50,7 +50,7 @@ public class TransientStorePool {
         for (int i = 0; i < poolSize; i++) {
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(fileSize);
 
-            final long address = ((DirectBuffer)byteBuffer).address();
+            final long address = ((DirectBuffer) byteBuffer).address();
             Pointer pointer = new Pointer(address);
             LibC.INSTANCE.mlock(pointer, new NativeLong(fileSize));
 
@@ -60,7 +60,7 @@ public class TransientStorePool {
 
     public void destroy() {
         for (ByteBuffer byteBuffer : availableBuffers) {
-            final long address = ((DirectBuffer)byteBuffer).address();
+            final long address = ((DirectBuffer) byteBuffer).address();
             Pointer pointer = new Pointer(address);
             LibC.INSTANCE.munlock(pointer, new NativeLong(fileSize));
         }

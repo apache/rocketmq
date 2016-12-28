@@ -75,7 +75,7 @@ public class MessageQueueForC implements Comparable<MessageQueueForC>, Serializa
             return false;
         if (getClass() != obj.getClass())
             return false;
-        MessageQueueForC other = (MessageQueueForC)obj;
+        MessageQueueForC other = (MessageQueueForC) obj;
         if (brokerName == null) {
             if (other.brokerName != null)
                 return false;

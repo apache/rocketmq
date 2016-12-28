@@ -57,7 +57,7 @@ public class QueryMsgByIdSubCommand implements SubCommand {
         String bodyTmpFilePath = createBodyFile(msg);
         String msgId = msg.getMsgId();
         if (msg instanceof MessageClientExt) {
-            msgId = ((MessageClientExt)msg).getOffsetMsgId();
+            msgId = ((MessageClientExt) msg).getOffsetMsgId();
         }
 
         System.out.printf("%-20s %s%n",

@@ -15,6 +15,8 @@
  * limitations under the License.
  *
  * $Id: ConsumerOffsetManagerTest.java 1831 2013-05-16 01:39:51Z vintagewang@apache.org $
+ *
+ * $Id: ConsumerOffsetManagerTest.java 1831 2013-05-16 01:39:51Z vintagewang@apache.org $
  */
 
 /**

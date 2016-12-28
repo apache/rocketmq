@@ -76,7 +76,7 @@ public class MessageQueue implements Comparable<MessageQueue>, Serializable {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        MessageQueue other = (MessageQueue)obj;
+        MessageQueue other = (MessageQueue) obj;
         if (brokerName == null) {
             if (other.brokerName != null)
                 return false;

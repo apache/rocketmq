@@ -15,6 +15,8 @@
  * limitations under the License.
  *
  * $Id: UnRegisterBrokerRequestHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
+ *
+ * $Id: UnRegisterBrokerRequestHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
  */
 
 /**

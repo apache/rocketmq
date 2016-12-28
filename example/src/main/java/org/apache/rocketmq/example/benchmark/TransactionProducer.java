@@ -73,8 +73,8 @@ public class TransactionProducer {
                     Long[] end = snapshotList.getLast();
 
                     final long sendTps =
-                        (long)(((end[3] - begin[3]) / (double)(end[0] - begin[0])) * 1000L);
-                    final double averageRT = (end[5] - begin[5]) / (double)(end[3] - begin[3]);
+                        (long) (((end[3] - begin[3]) / (double) (end[0] - begin[0])) * 1000L);
+                    final double averageRT = (end[5] - begin[5]) / (double) (end[3] - begin[3]);
 
                     System.out.printf(
                         "Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d transaction checkCount: %d %n",
