@@ -15,6 +15,6 @@
 #  limitations under the License.
 
 #
-# $Id: producer.sh 1831 2013-05-16 01:39:51Z shijia.wxr $
+# $Id: producer.sh 1831 2013-05-16 01:39:51Z vintagewang@apache.org $
 #
-sh ./runclass.sh -Dcom.alibaba.rocketmq.client.sendSmartMsg=true com.alibaba.rocketmq.example.benchmark.Producer $@ &
+sh ./runclass.sh -Dorg.apache.rocketmq.client.sendSmartMsg=true org.apache.rocketmq.example.benchmark.Producer $@ &
