@@ -49,7 +49,7 @@ public class Producer {
         final String topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "BenchmarkTest";
         final int threadCount = commandLine.hasOption('w') ? Integer.parseInt(commandLine.getOptionValue('w')) : 64;
         final int messageSize = commandLine.hasOption('s') ? Integer.parseInt(commandLine.getOptionValue('s')) : 128;
-        final boolean keyEnable = commandLine.hasOption('k') ? Boolean.parseBoolean(commandLine.getOptionValue('k')) : false;
+        final boolean keyEnable = commandLine.hasOption('k') && Boolean.parseBoolean(commandLine.getOptionValue('k'));
 
         System.out.printf("topic %s threadCount %d messageSize %d keyEnable %s%n", topic, threadCount, messageSize, keyEnable);
 
@@ -140,7 +140,7 @@ public class Producer {
 
                             try {
                                 Thread.sleep(3000);
-                            } catch (InterruptedException e1) {
+                            } catch (InterruptedException ignored) {
                             }
                         } catch (InterruptedException e) {
                             statsBenchmark.getSendRequestFailedCount().incrementAndGet();
@@ -156,7 +156,7 @@ public class Producer {
                             log.error("[BENCHMARK_PRODUCER] Send Exception", e);
                             try {
                                 Thread.sleep(3000);
-                            } catch (InterruptedException e1) {
+                            } catch (InterruptedException ignored) {
                             }
                         }
                     }

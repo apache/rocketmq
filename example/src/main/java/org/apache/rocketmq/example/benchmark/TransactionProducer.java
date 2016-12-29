@@ -43,8 +43,8 @@ public class TransactionProducer {
     public static void main(String[] args) throws MQClientException, UnsupportedEncodingException {
         threadCount = args.length >= 1 ? Integer.parseInt(args[0]) : 32;
         messageSize = args.length >= 2 ? Integer.parseInt(args[1]) : 1024 * 2;
-        ischeck = args.length >= 3 ? Boolean.parseBoolean(args[2]) : false;
-        ischeckffalse = args.length >= 4 ? Boolean.parseBoolean(args[3]) : false;
+        ischeck = args.length >= 3 && Boolean.parseBoolean(args[2]);
+        ischeckffalse = args.length >= 4 && Boolean.parseBoolean(args[3]);
 
         final Message msg = buildMessage(messageSize);
 

@@ -279,12 +279,10 @@ public class RouteInfoManager {
             try {
                 this.lock.writeLock().lockInterruptibly();
                 BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.remove(brokerAddr);
-                if (brokerLiveInfo != null) {
-                    log.info("unregisterBroker, remove from brokerLiveTable {}, {}",
+                log.info("unregisterBroker, remove from brokerLiveTable {}, {}",
                         brokerLiveInfo != null ? "OK" : "Failed",
                         brokerAddr
-                    );
-                }
+                );
 
                 this.filterServerTable.remove(brokerAddr);
 

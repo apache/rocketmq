@@ -49,7 +49,7 @@ public class FilterAPI {
             subscriptionData.setSubString(SubscriptionData.SUB_ALL);
         } else {
             String[] tags = subString.split("\\|\\|");
-            if (tags != null && tags.length > 0) {
+            if (tags.length > 0) {
                 for (String tag : tags) {
                     if (tag.length() > 0) {
                         String trimString = tag.trim();

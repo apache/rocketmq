@@ -146,7 +146,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
                     public void operationComplete(ChannelFuture future) throws Exception {
                         selectMappedBufferResult.release();
                         if (!future.isSuccess()) {
-                            log.error("transfer one message by page cache failed, ", future.cause());
+                            log.error("Transfer one message from page cache failed, ", future.cause());
                         }
                     }
                 });

@@ -44,11 +44,11 @@ public class RemotingUtil {
     private static boolean isWindowsPlatform = false;
 
     static {
-        if (OS_NAME != null && OS_NAME.toLowerCase().indexOf("linux") >= 0) {
+        if (OS_NAME != null && OS_NAME.toLowerCase().contains("linux")) {
             isLinuxPlatform = true;
         }
 
-        if (OS_NAME != null && OS_NAME.toLowerCase().indexOf("windows") >= 0) {
+        if (OS_NAME != null && OS_NAME.toLowerCase().contains("windows")) {
             isWindowsPlatform = true;
         }
     }

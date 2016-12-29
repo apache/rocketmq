@@ -20,9 +20,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
+import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.slf4j.Logger;
 
 public class MQClientManager {
+    private final static Logger log = ClientLogger.getLog();
     private static MQClientManager instance = new MQClientManager();
     private AtomicInteger factoryIndexGenerator = new AtomicInteger();
     private ConcurrentHashMap<String/* clientId */, MQClientInstance> factoryTable =
@@ -51,7 +54,7 @@ public class MQClientManager {
             if (prev != null) {
                 instance = prev;
             } else {
-                // TODO log
+                log.warn("Previous MQClientInstance has created for clientId:[{}]", clientId);
             }
         }
 

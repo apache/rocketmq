@@ -68,10 +68,10 @@ public class SlaveSynchronize {
                         .putAll(topicWrapper.getTopicConfigTable());
                     this.brokerController.getTopicConfigManager().persist();
 
-                    log.info("update slave topic config from master, {}", masterAddrBak);
+                    log.info("Update slave topic config from master, {}", masterAddrBak);
                 }
             } catch (Exception e) {
-                log.error("syncTopicConfig Exception, " + masterAddrBak, e);
+                log.error("SyncTopicConfig Exception, {}", masterAddrBak, e);
             }
         }
     }
@@ -85,9 +85,9 @@ public class SlaveSynchronize {
                 this.brokerController.getConsumerOffsetManager().getOffsetTable()
                     .putAll(offsetWrapper.getOffsetTable());
                 this.brokerController.getConsumerOffsetManager().persist();
-                log.info("update slave consumer offset from master, {}", masterAddrBak);
+                log.info("Update slave consumer offset from master, {}", masterAddrBak);
             } catch (Exception e) {
-                log.error("syncConsumerOffset Exception, " + masterAddrBak, e);
+                log.error("SyncConsumerOffset Exception, {}", masterAddrBak, e);
             }
         }
     }
@@ -106,12 +106,12 @@ public class SlaveSynchronize {
                     try {
                         MixAll.string2File(delayOffset, fileName);
                     } catch (IOException e) {
-                        log.error("persist file Exception, " + fileName, e);
+                        log.error("Persist file Exception, {}", fileName, e);
                     }
                 }
-                log.info("update slave delay offset from master, {}", masterAddrBak);
+                log.info("Update slave delay offset from master, {}", masterAddrBak);
             } catch (Exception e) {
-                log.error("syncDelayOffset Exception, " + masterAddrBak, e);
+                log.error("SyncDelayOffset Exception, {}", masterAddrBak, e);
             }
         }
     }
@@ -134,10 +134,10 @@ public class SlaveSynchronize {
                     subscriptionGroupManager.getSubscriptionGroupTable().putAll(
                         subscriptionWrapper.getSubscriptionGroupTable());
                     subscriptionGroupManager.persist();
-                    log.info("update slave Subscription Group from master, {}", masterAddrBak);
+                    log.info("Update slave Subscription Group from master, {}", masterAddrBak);
                 }
             } catch (Exception e) {
-                log.error("syncSubscriptionGroup Exception, " + masterAddrBak, e);
+                log.error("SyncSubscriptionGroup Exception, {}", masterAddrBak, e);
             }
         }
     }

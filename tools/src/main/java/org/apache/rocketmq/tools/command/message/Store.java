@@ -133,7 +133,6 @@ public class Store {
 
                 // 5 FLAG
                 int flag = byteBuffer.getInt();
-                flag = flag + 0;
 
                 // 6 QUEUEOFFSET
                 long queueOffset = byteBuffer.getLong();
@@ -146,7 +145,6 @@ public class Store {
 
                 // 9 BORNTIMESTAMP
                 long bornTimeStamp = byteBuffer.getLong();
-                bornTimeStamp = bornTimeStamp + 0;
 
                 // 10 BORNHOST(IP+PORT)
                 byteBuffer.position(byteBuffer.position() + 8);

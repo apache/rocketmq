@@ -91,6 +91,7 @@ public class DeleteSubscriptionGroupCommand implements SubCommand {
                     DeleteTopicSubCommand.deleteTopic(adminExt, clusterName, MixAll.DLQ_GROUP_TOPIC_PREFIX
                         + groupName);
                 } catch (Exception e) {
+                    e.printStackTrace();
                 }
                 return;
             }

@@ -106,8 +106,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
             long interval = !commandLine.hasOption('i') ? 10 : Long.parseLong(commandLine
                 .getOptionValue('i').trim());
 
-            boolean printAsTlog = !commandLine.hasOption('p') ? false : Boolean
-                .parseBoolean(commandLine.getOptionValue('p').trim());
+            boolean printAsTlog = commandLine.hasOption('p') && Boolean.parseBoolean(commandLine.getOptionValue('p').trim());
 
             String machineRoom = !commandLine.hasOption('m') ? "noname" : commandLine
                 .getOptionValue('m').trim();

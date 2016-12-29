@@ -133,7 +133,7 @@ public class ProducerManager {
                 try {
                     HashMap<Channel, ClientChannelInfo> channelTable = this.groupChannelTable.get(group);
                     if (null == channelTable) {
-                        channelTable = new HashMap<Channel, ClientChannelInfo>();
+                        channelTable = new HashMap<>();
                         this.groupChannelTable.put(group, channelTable);
                     }
 

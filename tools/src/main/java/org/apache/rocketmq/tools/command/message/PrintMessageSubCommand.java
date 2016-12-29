@@ -113,8 +113,7 @@ public class PrintMessageSubCommand implements SubCommand {
             String subExpression = //
                 !commandLine.hasOption('s') ? "*" : commandLine.getOptionValue('s').trim();
 
-            boolean printBody = //
-                !commandLine.hasOption('d') ? true : Boolean.parseBoolean(commandLine.getOptionValue('d').trim());
+            boolean printBody = !commandLine.hasOption('d') || Boolean.parseBoolean(commandLine.getOptionValue('d').trim());
 
             consumer.start();
 

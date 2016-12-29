@@ -74,10 +74,10 @@ public class IndexService {
                     log.info("load index file OK, " + f.getFileName());
                     this.indexFileList.add(f);
                 } catch (IOException e) {
-                    log.error("load file " + file + " error", e);
+                    log.error("load file {} error", file, e);
                     return false;
                 } catch (NumberFormatException e) {
-                    continue;
+                    log.error("load file {} error", file, e);
                 }
             }
         }

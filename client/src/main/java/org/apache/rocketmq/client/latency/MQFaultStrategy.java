@@ -18,9 +18,12 @@
 package org.apache.rocketmq.client.latency;
 
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
+import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.slf4j.Logger;
 
 public class MQFaultStrategy {
+    private final static Logger log = ClientLogger.getLog();
     private final LatencyFaultTolerance<String> latencyFaultTolerance = new LatencyFaultToleranceImpl();
 
     private boolean sendLatencyFaultEnable = false;
@@ -80,6 +83,7 @@ public class MQFaultStrategy {
                     latencyFaultTolerance.remove(notBestBroker);
                 }
             } catch (Exception e) {
+                log.error("Error occurred when selecting message queue", e);
             }
 
             return tpInfo.selectOneMessageQueue();

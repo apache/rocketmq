@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ManyPullRequest {
-    private final ArrayList<PullRequest> pullRequestList = new ArrayList<PullRequest>();
+    private final ArrayList<PullRequest> pullRequestList = new ArrayList<>();
 
     public synchronized void addPullRequest(final PullRequest pullRequest) {
         this.pullRequestList.add(pullRequest);

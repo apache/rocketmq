@@ -53,7 +53,6 @@ public class StartMonitoringSubCommand implements SubCommand {
             monitorService.start();
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
         }
     }
 }

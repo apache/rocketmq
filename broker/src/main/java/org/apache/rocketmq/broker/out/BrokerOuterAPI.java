@@ -75,7 +75,7 @@ public class BrokerOuterAPI {
             String addrs = this.topAddressing.fetchNSAddr();
             if (addrs != null) {
                 if (!addrs.equals(this.nameSrvAddr)) {
-                    log.info("name server address changed, old: " + this.nameSrvAddr + " new: " + addrs);
+                    log.info("name server address changed, old: {} new: {}", this.nameSrvAddr, addrs);
                     this.updateNameServerAddressList(addrs);
                     this.nameSrvAddr = addrs;
                     return nameSrvAddr;
@@ -121,7 +121,7 @@ public class BrokerOuterAPI {
 
                     log.info("register broker to name server {} OK", namesrvAddr);
                 } catch (Exception e) {
-                    log.warn("registerBroker Exception, " + namesrvAddr, e);
+                    log.warn("registerBroker Exception, {}", namesrvAddr, e);
                 }
             }
         }
@@ -199,7 +199,7 @@ public class BrokerOuterAPI {
                     this.unregisterBroker(namesrvAddr, clusterName, brokerAddr, brokerName, brokerId);
                     log.info("unregisterBroker OK, NamesrvAddr: {}", namesrvAddr);
                 } catch (Exception e) {
-                    log.warn("unregisterBroker Exception, " + namesrvAddr, e);
+                    log.warn("unregisterBroker Exception, {}", namesrvAddr, e);
                 }
             }
         }

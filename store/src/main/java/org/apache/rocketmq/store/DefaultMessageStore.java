@@ -666,7 +666,7 @@ public class DefaultMessageStore implements MessageStore {
                     final int size = result.getByteBuffer().getInt();
                     long storeTime = this.getCommitLog().pickupStoreTimestamp(phyOffset, size);
                     return storeTime;
-                } catch (Exception e) {
+                } catch (Exception ignored) {
                 } finally {
                     result.release();
                 }
@@ -1491,7 +1491,7 @@ public class DefaultMessageStore implements MessageStore {
                         if (deleteCount > 0 && deleteLogicsFilesInterval > 0) {
                             try {
                                 Thread.sleep(deleteLogicsFilesInterval);
-                            } catch (InterruptedException e) {
+                            } catch (InterruptedException ignored) {
                             }
                         }
                     }
@@ -1592,7 +1592,7 @@ public class DefaultMessageStore implements MessageStore {
             for (int i = 0; i < 50 && this.isCommitLogAvailable(); i++) {
                 try {
                     Thread.sleep(100);
-                } catch (InterruptedException e) {
+                } catch (InterruptedException ignored) {
                 }
             }
 

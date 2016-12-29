@@ -72,7 +72,7 @@ public class ConsumerGroupInfo {
     }
 
     public List<Channel> getAllChannel() {
-        List<Channel> result = new ArrayList<Channel>();
+        List<Channel> result = new ArrayList<>();
 
         result.addAll(this.channelInfoTable.keySet());
 
@@ -80,7 +80,7 @@ public class ConsumerGroupInfo {
     }
 
     public List<String> getAllClientId() {
-        List<String> result = new ArrayList<String>();
+        List<String> result = new ArrayList<>();
 
         Iterator<Entry<Channel, ClientChannelInfo>> it = this.channelInfoTable.entrySet().iterator();
 

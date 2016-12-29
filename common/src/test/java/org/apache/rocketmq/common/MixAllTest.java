@@ -17,10 +17,11 @@
 
 package org.apache.rocketmq.common;
 
+import org.junit.Test;
+import org.junit.Assert;
+
 import java.net.InetAddress;
 import java.util.List;
-import junit.framework.Assert;
-import org.junit.Test;
 
 public class MixAllTest {
 
