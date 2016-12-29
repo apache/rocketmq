@@ -108,7 +108,7 @@ public class CommitLog {
     public long flush() {
         this.mappedFileQueue.commit(0);
         this.mappedFileQueue.flush(0);
-        return this.mappedFileQueue.getFlushOffset();
+        return this.mappedFileQueue.getFlushedPosition();
     }
 
     public long getMaxOffset() {
@@ -199,8 +199,8 @@ public class CommitLog {
             }
 
             processOffset += mappedFileOffset;
-            this.mappedFileQueue.setFlushOffset(processOffset);
-            this.mappedFileQueue.setCommittedWhere(processOffset);
+            this.mappedFileQueue.setFlushedPosition(processOffset);
+            this.mappedFileQueue.setCommittedPosition(processOffset);
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
         }
     }
@@ -467,8 +467,8 @@ public class CommitLog {
             }
 
             processOffset += mappedFileOffset;
-            this.mappedFileQueue.setFlushOffset(processOffset);
-            this.mappedFileQueue.setCommittedWhere(processOffset);
+            this.mappedFileQueue.setFlushedPosition(processOffset);
+            this.mappedFileQueue.setCommittedPosition(processOffset);
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
 
             // Clear ConsumeQueue redundant data
@@ -476,8 +476,8 @@ public class CommitLog {
         }
         // Commitlog case files are deleted
         else {
-            this.mappedFileQueue.setFlushOffset(0);
-            this.mappedFileQueue.setCommittedWhere(0);
+            this.mappedFileQueue.setFlushedPosition(0);
+            this.mappedFileQueue.setCommittedPosition(0);
             this.defaultMessageStore.destroyLogics();
         }
     }
@@ -851,7 +851,8 @@ public class CommitLog {
     }
 
     abstract class FlushCommitLogService extends ServiceThread {
-        protected static final int RETRY_TIMES_OVER = 10;
+        /** Max number of times to attempt data commit or flush. */
+        protected static final int MAX_FLUSH_COMMIT_NUM = 10;
     }
 
     class CommitRealTimeService extends FlushCommitLogService {
@@ -899,7 +900,7 @@ public class CommitLog {
             }
 
             boolean result = false;
-            for (int i = 0; i < RETRY_TIMES_OVER && !result; i++) {
+            for (int i = 0; i < MAX_FLUSH_COMMIT_NUM && !result; i++) {
                 result = CommitLog.this.mappedFileQueue.commit(0);
                 CommitLog.log.info(this.getServiceName() + " service shutdown, retry " + (i + 1) + " times " + (result ? "OK" : "Not OK"));
             }
@@ -961,13 +962,14 @@ public class CommitLog {
             }
 
             // Normal shutdown, to ensure that all the flush before exit
-            boolean result = false;
-            for (int i = 0; i < RETRY_TIMES_OVER && !result; i++) {
-                result = CommitLog.this.mappedFileQueue.flush(0);
-            }
+            int flushNum = 0;
+            while (flushNum < MAX_FLUSH_COMMIT_NUM && remainHowManyDataToFlush() > 0) {
+                flushNum++;
 
-            CommitLog.log.info(this.getServiceName() + " service shutdown, flush retry "
-                    + (result ? "OK" : "Not OK"));
+                if (!CommitLog.this.mappedFileQueue.flush(0))
+                    CommitLog.log.warn(this.getServiceName() + " service shutdown, failed " + flushNum + "th flush");
+            }
+            CommitLog.log.info(this.getServiceName() + " service shutdown, flushed " + flushNum + "times");
 
             this.printFlushProgress();
 
@@ -1019,7 +1021,7 @@ public class CommitLog {
                     // two times the flush
                     boolean flushOK = false;
                     for (int i = 0; i < 2 && !flushOK; i++) {
-                        flushOK = CommitLog.this.mappedFileQueue.getFlushOffset() >= req.getNextOffset();
+                        flushOK = CommitLog.this.mappedFileQueue.getFlushedPosition() >= req.getNextOffset();
 
                         if (!flushOK) {
                             CommitLog.this.mappedFileQueue.flush(0);

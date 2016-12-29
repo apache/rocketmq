@@ -109,27 +109,36 @@ public class MappedFileQueueTest {
     }
 
     @Test
-    public void test_commit() {
+    public void test_flush() {
         populateQueue();
 
-        boolean result = mappedFileQueue.flush(0);
-        assertTrue(result);
-        assertEquals(1024 * 1, mappedFileQueue.getFlushOffset());
+        for (int i = 1; i <= 4; i++) {
+            assertTrue(mappedFileQueue.flush(0));
+            assertEquals(1024 * i, mappedFileQueue.getFlushedPosition());
+        }
 
-        result = mappedFileQueue.flush(0);
-        assertTrue(result);
-        assertEquals(1024 * 2, mappedFileQueue.getFlushOffset());
+        assertFalse(mappedFileQueue.flush(0));
+        assertEquals(1024 * 4, mappedFileQueue.getFlushedPosition());
 
-        result = mappedFileQueue.flush(0);
-        assertTrue(result);
-        assertEquals(1024 * 3, mappedFileQueue.getFlushOffset());
+        // add extra data
+        MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
+        assertTrue(mappedFile != null);
 
-        result = mappedFileQueue.flush(0);
-        assertTrue(result);
-        assertEquals(1024 * 4, mappedFileQueue.getFlushOffset());
+        assertTrue(mappedFile.appendMessage(FIXED_MSG.getBytes()));
 
-        result = mappedFileQueue.flush(0);
-        assertFalse(result);
-        assertEquals(1024 * 4, mappedFileQueue.getFlushOffset());
+        assertTrue(mappedFileQueue.flush(0));
+        assertEquals(1024 * 4 + FIXED_MSG.getBytes().length, mappedFileQueue.getFlushedPosition());
+    }
+
+    @Test
+    public void test_remainHowManyDataToFlush() {
+        populateQueue();
+
+        assertEquals(1024 * 4, mappedFileQueue.remainHowManyDataToFlush());
+
+        for (int i = 3; i >= 0; i--) {
+            assertTrue(mappedFileQueue.flush(0));
+            assertEquals(1024 * i, mappedFileQueue.remainHowManyDataToFlush());
+        }
     }
 }
