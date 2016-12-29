@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -99,9 +99,9 @@ public class SubscriptionGroupManager extends ConfigManager {
     public void updateSubscriptionGroupConfig(final SubscriptionGroupConfig config) {
         SubscriptionGroupConfig old = this.subscriptionGroupTable.put(config.getGroupName(), config);
         if (old != null) {
-            log.info("update subscription group config, old: " + old + " new: " + config);
+            log.info("update subscription group config, old: {} new: {}", old, config);
         } else {
-            log.info("create new subscription group, " + config);
+            log.info("create new subscription group, {}", config);
         }
 
         this.dataVersion.nextVersion();
@@ -181,11 +181,11 @@ public class SubscriptionGroupManager extends ConfigManager {
     public void deleteSubscriptionGroupConfig(final String groupName) {
         SubscriptionGroupConfig old = this.subscriptionGroupTable.remove(groupName);
         if (old != null) {
-            log.info("delete subscription group OK, subscription group: " + old);
+            log.info("delete subscription group OK, subscription group:{}", old);
             this.dataVersion.nextVersion();
             this.persist();
         } else {
-            log.warn("delete subscription group failed, subscription group: " + old + " not exist");
+            log.warn("delete subscription group failed, subscription group: {} not exist", old);
         }
     }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,19 +16,19 @@
  */
 package org.apache.rocketmq.common.message;
 
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
-import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 
 public class MessageDecoder {
     public final static int MSG_ID_LENGTH = 8 + 8;
@@ -318,10 +318,6 @@ public class MessageDecoder {
             }
 
             return msgExt;
-        } catch (UnknownHostException e) {
-            byteBuffer.position(byteBuffer.limit());
-        } catch (BufferUnderflowException e) {
-            byteBuffer.position(byteBuffer.limit());
         } catch (Exception e) {
             byteBuffer.position(byteBuffer.limit());
         }
@@ -366,12 +362,10 @@ public class MessageDecoder {
         Map<String, String> map = new HashMap<String, String>();
         if (properties != null) {
             String[] items = properties.split(String.valueOf(PROPERTY_SEPARATOR));
-            if (items != null) {
-                for (String i : items) {
-                    String[] nv = i.split(String.valueOf(NAME_VALUE_SEPARATOR));
-                    if (nv != null && 2 == nv.length) {
-                        map.put(nv[0], nv[1]);
-                    }
+            for (String i : items) {
+                String[] nv = i.split(String.valueOf(NAME_VALUE_SEPARATOR));
+                if (2 == nv.length) {
+                    map.put(nv[0], nv[1]);
                 }
             }
         }

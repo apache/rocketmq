@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -86,7 +86,7 @@ public class UtilAll {
 
     public static boolean isItTimeToDo(final String when) {
         String[] whiles = when.split(";");
-        if (whiles != null && whiles.length > 0) {
+        if (whiles.length > 0) {
             Calendar now = Calendar.getInstance();
             for (String w : whiles) {
                 int nowHour = Integer.parseInt(w);
@@ -193,6 +193,7 @@ public class UtilAll {
             if (!file.exists()) {
                 boolean result = file.mkdirs();
                 if (!result) {
+                    //TO DO
                 }
             }
 
@@ -209,7 +210,8 @@ public class UtilAll {
         return -1;
     }
 
-    public static final int crc32(byte[] array) {
+
+    public static int crc32(byte[] array) {
         if (array != null) {
             return crc32(array, 0, array.length);
         }
@@ -217,7 +219,8 @@ public class UtilAll {
         return 0;
     }
 
-    public static final int crc32(byte[] array, int offset, int length) {
+
+    public static int crc32(byte[] array, int offset, int length) {
         CRC32 crc32 = new CRC32();
         crc32.update(array, offset, length);
         return (int) (crc32.getValue() & 0x7FFFFFFF);

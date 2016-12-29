@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -212,13 +212,11 @@ public class MQClientAPIImpl {
     public void updateNameServerAddressList(final String addrs) {
         List<String> lst = new ArrayList<String>();
         String[] addrArray = addrs.split(";");
-        if (addrArray != null) {
-            for (String addr : addrArray) {
-                lst.add(addr);
-            }
-
-            this.remotingClient.updateNameServerAddressList(lst);
+        for (String addr : addrArray) {
+            lst.add(addr);
         }
+
+        this.remotingClient.updateNameServerAddressList(lst);
     }
 
     public void start() {
@@ -468,7 +466,7 @@ public class MQClientAPIImpl {
             }
             try {
                 sendCallback.onException(e);
-            } catch (Exception e2) {
+            } catch (Exception ignored) {
             }
         }
     }
@@ -1074,8 +1072,7 @@ public class MQClientAPIImpl {
             request, timeoutMillis);
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
-                ConsumerConnection consumerConnection = ConsumerConnection.decode(response.getBody(), ConsumerConnection.class);
-                return consumerConnection;
+                return ConsumerConnection.decode(response.getBody(), ConsumerConnection.class);
             }
             default:
                 break;
@@ -1151,8 +1148,7 @@ public class MQClientAPIImpl {
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
-                ClusterInfo responseBody = ClusterInfo.decode(response.getBody(), ClusterInfo.class);
-                return responseBody;
+                return ClusterInfo.decode(response.getBody(), ClusterInfo.class);
             }
             default:
                 break;
@@ -1226,8 +1222,7 @@ public class MQClientAPIImpl {
             case ResponseCode.SUCCESS: {
                 byte[] body = response.getBody();
                 if (body != null) {
-                    TopicList topicList = TopicList.decode(body, TopicList.class);
-                    return topicList;
+                    return TopicList.decode(body, TopicList.class);
                 }
             }
             default:

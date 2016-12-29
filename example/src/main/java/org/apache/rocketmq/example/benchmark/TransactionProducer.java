@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -43,8 +43,8 @@ public class TransactionProducer {
     public static void main(String[] args) throws MQClientException, UnsupportedEncodingException {
         threadCount = args.length >= 1 ? Integer.parseInt(args[0]) : 32;
         messageSize = args.length >= 2 ? Integer.parseInt(args[1]) : 1024 * 2;
-        ischeck = args.length >= 3 ? Boolean.parseBoolean(args[2]) : false;
-        ischeckffalse = args.length >= 4 ? Boolean.parseBoolean(args[3]) : false;
+        ischeck = args.length >= 3 && Boolean.parseBoolean(args[2]);
+        ischeckffalse = args.length >= 4 && Boolean.parseBoolean(args[3]);
 
         final Message msg = buildMessage(messageSize);
 

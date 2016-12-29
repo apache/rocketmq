@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,9 +19,6 @@ package org.apache.rocketmq.common.filter;
 import java.net.URL;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
-/**
- *
- */
 public class FilterAPI {
     public static URL classFile(final String className) {
         final String javaSource = simpleClassName(className) + ".java";
@@ -49,7 +46,7 @@ public class FilterAPI {
             subscriptionData.setSubString(SubscriptionData.SUB_ALL);
         } else {
             String[] tags = subString.split("\\|\\|");
-            if (tags != null && tags.length > 0) {
+            if (tags.length > 0) {
                 for (String tag : tags) {
                     if (tag.length() > 0) {
                         String trimString = tag.trim();

@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -140,7 +140,7 @@ public class MixAll {
         return Math.abs(value);
     }
 
-    public static final void string2File(final String str, final String fileName) throws IOException {
+    public static void string2File(final String str, final String fileName) throws IOException {
 
         String tmpFile = fileName + ".tmp";
         string2FileNotSafe(str, tmpFile);
@@ -158,7 +158,8 @@ public class MixAll {
         file.renameTo(new File(fileName));
     }
 
-    public static final void string2FileNotSafe(final String str, final String fileName) throws IOException {
+
+    public static void string2FileNotSafe(final String str, final String fileName) throws IOException {
         File file = new File(fileName);
         File fileParent = file.getParentFile();
         if (fileParent != null) {
@@ -173,21 +174,17 @@ public class MixAll {
             throw e;
         } finally {
             if (fileWriter != null) {
-                try {
-                    fileWriter.close();
-                } catch (IOException e) {
-                    throw e;
-                }
+                fileWriter.close();
             }
         }
     }
 
-    public static final String file2String(final String fileName) {
+    public static String file2String(final String fileName) {
         File file = new File(fileName);
         return file2String(file);
     }
 
-    public static final String file2String(final File file) {
+    public static String file2String(final File file) {
         if (file.exists()) {
             char[] data = new char[(int) file.length()];
             boolean result = false;
@@ -216,7 +213,7 @@ public class MixAll {
         return null;
     }
 
-    public static final String file2String(final URL url) {
+    public static String file2String(final URL url) {
         InputStream in = null;
         try {
             URLConnection urlConnection = url.openConnection();
@@ -226,12 +223,12 @@ public class MixAll {
             byte[] data = new byte[len];
             in.read(data, 0, len);
             return new String(data, "UTF-8");
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         } finally {
             if (null != in) {
                 try {
                     in.close();
-                } catch (IOException e) {
+                } catch (IOException ignored) {
                 }
             }
         }
@@ -361,10 +358,10 @@ public class MixAll {
                             } else {
                                 continue;
                             }
-                            method.invoke(object, new Object[] {arg});
+                            method.invoke(object, arg);
                         }
                     }
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
                 }
             }
         }

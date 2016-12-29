@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -93,6 +93,7 @@ public class PrintMessageByQueueCommand implements SubCommand {
                 System.out.printf("MSGID: %s %s BODY: %s%n", msg.getMsgId(), msg.toString(),
                     printBody ? new String(msg.getBody(), charsetName) : "NOT PRINT BODY");
             } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -160,11 +161,11 @@ public class PrintMessageByQueueCommand implements SubCommand {
             String charsetName =
                 !commandLine.hasOption('c') ? "UTF-8" : commandLine.getOptionValue('c').trim();
             boolean printMsg =
-                !commandLine.hasOption('p') ? false : Boolean.parseBoolean(commandLine.getOptionValue('p').trim());
+                    commandLine.hasOption('p') && Boolean.parseBoolean(commandLine.getOptionValue('p').trim());
             boolean printBody =
-                !commandLine.hasOption('d') ? false : Boolean.parseBoolean(commandLine.getOptionValue('d').trim());
+                    commandLine.hasOption('d') && Boolean.parseBoolean(commandLine.getOptionValue('d').trim());
             boolean calByTag =
-                !commandLine.hasOption('f') ? false : Boolean.parseBoolean(commandLine.getOptionValue('f').trim());
+                    commandLine.hasOption('f') && Boolean.parseBoolean(commandLine.getOptionValue('f').trim());
             String subExpression =
                 !commandLine.hasOption('s') ? "*" : commandLine.getOptionValue('s').trim();
 

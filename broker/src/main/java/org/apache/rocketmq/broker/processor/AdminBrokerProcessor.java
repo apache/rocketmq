@@ -1,13 +1,13 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -267,7 +267,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return response;
             }
         } else {
-            log.error("No topic in this broker, client: " + ctx.channel().remoteAddress());
+            log.error("No topic in this broker, client: {}", ctx.channel().remoteAddress());
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("No topic in this broker");
             return response;
@@ -290,7 +290,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 String bodyStr = new String(body, MixAll.DEFAULT_CHARSET);
                 Properties properties = MixAll.string2Properties(bodyStr);
                 if (properties != null) {
-                    log.info("updateBrokerConfig, new config: " + properties + " client: " + ctx.channel().remoteAddress());
+                    log.info("updateBrokerConfig, new config: [{}] client: {} ", properties, ctx.channel().remoteAddress());
                     this.brokerController.getConfiguration().update(properties);
                     if (properties.containsKey("brokerPermission")) {
                         this.brokerController.registerBrokerAll(false, false);
@@ -476,7 +476,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return response;
             }
         } else {
-            log.error("No subscription group in this broker, client: " + ctx.channel().remoteAddress());
+            log.error("No subscription group in this broker, client:{} ", ctx.channel().remoteAddress());
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("No subscription group in this broker");
             return response;
@@ -718,7 +718,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return response;
             }
         } else {
-            log.error("No consumer offset in this broker, client: " + ctx.channel().remoteAddress());
+            log.error("No consumer offset in this broker, client: {} ", ctx.channel().remoteAddress());
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("No consumer offset in this broker");
             return response;
@@ -745,7 +745,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return response;
             }
         } else {
-            log.error("No delay offset in this broker, client: " + ctx.channel().remoteAddress());
+            log.error("No delay offset in this broker, client: {} ", ctx.channel().remoteAddress());
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("No delay offset in this broker");
             return response;

@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -472,7 +472,7 @@ public class MQClientInstance {
         final boolean producerEmpty = heartbeatData.getProducerDataSet().isEmpty();
         final boolean consumerEmpty = heartbeatData.getConsumerDataSet().isEmpty();
         if (producerEmpty && consumerEmpty) {
-            log.warn("sending hearbeat, but no consumer and no producer");
+            log.warn("sending heartbeat, but no consumer and no producer");
             return;
         }
 
@@ -841,13 +841,8 @@ public class MQClientInstance {
                     if (addr != null) {
                         try {
                             this.mQClientAPIImpl.unregisterClient(addr, this.clientId, producerGroup, consumerGroup, 3000);
-                            log.info("unregister client[Producer: {} Consumer: {}] from broker[{} {} {}] success", producerGroup,
-                                consumerGroup, brokerName, entry1.getKey(), addr);
-                        } catch (RemotingException e) {
-                            log.error("unregister client exception from broker: " + addr, e);
-                        } catch (MQBrokerException e) {
-                            log.error("unregister client exception from broker: " + addr, e);
-                        } catch (InterruptedException e) {
+                            log.info("unregister client[Producer: {} Consumer: {}] from broker[{} {} {}] success", producerGroup, consumerGroup, brokerName, entry1.getKey(), addr);
+                        } catch (RemotingException | InterruptedException | MQBrokerException e) {
                             log.error("unregister client exception from broker: " + addr, e);
                         }
                     }
@@ -1064,7 +1059,9 @@ public class MQClientInstance {
                 }
             }
         } finally {
-            consumer.resume();
+            if (consumer != null) {
+                consumer.resume();
+            }
         }
     }
 
@@ -1134,14 +1131,14 @@ public class MQClientInstance {
 
         List<String> nsList = this.mQClientAPIImpl.getRemotingClient().getNameServerAddressList();
 
-        StringBuffer strBuffer = new StringBuffer();
+        StringBuilder strBuilder = new StringBuilder();
         if (nsList != null) {
             for (String addr : nsList) {
-                strBuffer.append(addr + ";");
+                strBuilder.append(addr).append(";");
             }
         }
 
-        String nsAddr = strBuffer.toString();
+        String nsAddr = strBuilder.toString();
         consumerRunningInfo.getProperties().put(ConsumerRunningInfo.PROP_NAMESERVER_ADDR, nsAddr);
         consumerRunningInfo.getProperties().put(ConsumerRunningInfo.PROP_CONSUME_TYPE, mqConsumerInner.consumeType().name());
         consumerRunningInfo.getProperties().put(ConsumerRunningInfo.PROP_CLIENT_VERSION,

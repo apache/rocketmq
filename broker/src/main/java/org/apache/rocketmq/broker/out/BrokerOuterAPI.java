@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -75,7 +75,7 @@ public class BrokerOuterAPI {
             String addrs = this.topAddressing.fetchNSAddr();
             if (addrs != null) {
                 if (!addrs.equals(this.nameSrvAddr)) {
-                    log.info("name server address changed, old: " + this.nameSrvAddr + " new: " + addrs);
+                    log.info("name server address changed, old: {} new: {}", this.nameSrvAddr, addrs);
                     this.updateNameServerAddressList(addrs);
                     this.nameSrvAddr = addrs;
                     return nameSrvAddr;
@@ -121,7 +121,7 @@ public class BrokerOuterAPI {
 
                     log.info("register broker to name server {} OK", namesrvAddr);
                 } catch (Exception e) {
-                    log.warn("registerBroker Exception, " + namesrvAddr, e);
+                    log.warn("registerBroker Exception, {}", namesrvAddr, e);
                 }
             }
         }
@@ -199,7 +199,7 @@ public class BrokerOuterAPI {
                     this.unregisterBroker(namesrvAddr, clusterName, brokerAddr, brokerName, brokerId);
                     log.info("unregisterBroker OK, NamesrvAddr: {}", namesrvAddr);
                 } catch (Exception e) {
-                    log.warn("unregisterBroker Exception, " + namesrvAddr, e);
+                    log.warn("unregisterBroker Exception, {}", namesrvAddr, e);
                 }
             }
         }

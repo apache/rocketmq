@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -47,7 +47,7 @@ public class StatsItemSet {
             public void run() {
                 try {
                     samplingInSeconds();
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
                 }
             }
         }, 0, 10, TimeUnit.SECONDS);
@@ -57,7 +57,7 @@ public class StatsItemSet {
             public void run() {
                 try {
                     samplingInMinutes();
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
                 }
             }
         }, 0, 10, TimeUnit.MINUTES);
@@ -67,7 +67,7 @@ public class StatsItemSet {
             public void run() {
                 try {
                     samplingInHour();
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
                 }
             }
         }, 0, 1, TimeUnit.HOURS);
@@ -77,7 +77,7 @@ public class StatsItemSet {
             public void run() {
                 try {
                     printAtMinutes();
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
                 }
             }
         }, Math.abs(UtilAll.computNextMinutesTimeMillis() - System.currentTimeMillis()), 1000 * 60, TimeUnit.MILLISECONDS);
@@ -87,7 +87,7 @@ public class StatsItemSet {
             public void run() {
                 try {
                     printAtHour();
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
                 }
             }
         }, Math.abs(UtilAll.computNextHourTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 60, TimeUnit.MILLISECONDS);
@@ -97,7 +97,7 @@ public class StatsItemSet {
             public void run() {
                 try {
                     printAtDay();
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
                 }
             }
         }, Math.abs(UtilAll.computNextMorningTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 60 * 24, TimeUnit.MILLISECONDS);

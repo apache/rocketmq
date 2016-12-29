@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -148,10 +148,8 @@ public class BrokerStartup {
             if (null != namesrvAddr) {
                 try {
                     String[] addrArray = namesrvAddr.split(";");
-                    if (addrArray != null) {
-                        for (String addr : addrArray) {
-                            RemotingUtil.string2SocketAddress(addr);
-                        }
+                    for (String addr : addrArray) {
+                        RemotingUtil.string2SocketAddress(addr);
                     }
                 } catch (Exception e) {
                     System.out.printf(
@@ -211,13 +209,13 @@ public class BrokerStartup {
                 @Override
                 public void run() {
                     synchronized (this) {
-                        log.info("shutdown hook was invoked, " + this.shutdownTimes.incrementAndGet());
+                        log.info("Shutdown hook was invoked, {}", this.shutdownTimes.incrementAndGet());
                         if (!this.hasShutdown) {
                             this.hasShutdown = true;
                             long begineTime = System.currentTimeMillis();
                             controller.shutdown();
                             long consumingTimeTotal = System.currentTimeMillis() - begineTime;
-                            log.info("shutdown hook over, consuming time total(ms): " + consumingTimeTotal);
+                            log.info("Shutdown hook over, consuming total time(ms): {}", consumingTimeTotal);
                         }
                     }
                 }

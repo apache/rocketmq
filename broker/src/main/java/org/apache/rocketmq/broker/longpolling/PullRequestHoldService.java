@@ -1,13 +1,13 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -65,7 +65,7 @@ public class PullRequestHoldService extends ServiceThread {
 
     @Override
     public void run() {
-        log.info(this.getServiceName() + " service started");
+        log.info("{} service started", this.getServiceName());
         while (!this.isStopped()) {
             try {
                 if (this.brokerController.getBrokerConfig().isLongPollingEnable()) {
@@ -85,7 +85,7 @@ public class PullRequestHoldService extends ServiceThread {
             }
         }
 
-        log.info(this.getServiceName() + " service end");
+        log.info("{} service end", this.getServiceName());
     }
 
     @Override
@@ -96,7 +96,7 @@ public class PullRequestHoldService extends ServiceThread {
     private void checkHoldRequest() {
         for (String key : this.pullRequestTable.keySet()) {
             String[] kArray = key.split(TOPIC_QUEUEID_SEPARATOR);
-            if (kArray != null && 2 == kArray.length) {
+            if (2 == kArray.length) {
                 String topic = kArray[0];
                 int queueId = Integer.parseInt(kArray[1]);
                 final long offset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
@@ -127,9 +127,8 @@ public class PullRequestHoldService extends ServiceThread {
                         newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
                     }
 
-                    Long tmp = tagsCode;
                     if (newestOffset > request.getPullFromThisOffset()) {
-                        if (this.messageFilter.isMessageMatched(request.getSubscriptionData(), tmp)) {
+                        if (this.messageFilter.isMessageMatched(request.getSubscriptionData(), tagsCode)) {
                             try {
                                 this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(request.getClientChannel(),
                                     request.getRequestCommand());

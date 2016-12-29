@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -94,7 +94,7 @@ public class StatsItem {
             public void run() {
                 try {
                     samplingInSeconds();
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
                 }
             }
         }, 0, 10, TimeUnit.SECONDS);
@@ -104,7 +104,7 @@ public class StatsItem {
             public void run() {
                 try {
                     samplingInMinutes();
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
                 }
             }
         }, 0, 10, TimeUnit.MINUTES);
@@ -114,7 +114,7 @@ public class StatsItem {
             public void run() {
                 try {
                     samplingInHour();
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
                 }
             }
         }, 0, 1, TimeUnit.HOURS);
