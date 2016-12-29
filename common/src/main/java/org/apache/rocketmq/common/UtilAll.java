@@ -183,16 +183,16 @@ public class UtilAll {
 
         try {
             File file = new File(path);
-            if (!file.exists()) {
-                boolean result = file.mkdirs();
-                if (!result) {
-                }
-            }
+
+            if (!file.exists())
+                return -1;
 
             long totalSpace = file.getTotalSpace();
-            long freeSpace = file.getFreeSpace();
-            long usedSpace = totalSpace - freeSpace;
+
             if (totalSpace > 0) {
+                long freeSpace = file.getFreeSpace();
+                long usedSpace = totalSpace - freeSpace;
+
                 return usedSpace / (double) totalSpace;
             }
         } catch (Exception e) {
