@@ -167,7 +167,7 @@ public class ConsumerManager {
     }
 
     public HashSet<String> queryTopicConsumeByWho(final String topic) {
-        HashSet<String> groups = new HashSet<String>();
+        HashSet<String> groups = new HashSet<>();
         Iterator<Entry<String, ConsumerGroupInfo>> it = this.consumerTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, ConsumerGroupInfo> entry = it.next();

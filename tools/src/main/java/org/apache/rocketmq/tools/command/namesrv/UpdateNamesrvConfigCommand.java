@@ -69,7 +69,7 @@ public class UpdateNamesrvConfigCommand implements SubCommand {
             if (servers != null && servers.length() > 0) {
                 String[] serverArray = servers.trim().split(";");
 
-                if (serverArray != null && serverArray.length > 0) {
+                if (serverArray.length > 0) {
                     serverList = Arrays.asList(serverArray);
                 }
             }
@@ -80,7 +80,6 @@ public class UpdateNamesrvConfigCommand implements SubCommand {
 
             System.out.printf("update name server config success!%s\n%s : %s\n",
                 serverList == null ? "" : serverList, key, value);
-            return;
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

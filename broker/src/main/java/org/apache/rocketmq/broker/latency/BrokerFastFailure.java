@@ -103,7 +103,6 @@ public class BrokerFastFailure {
             }
         }
     }
-
     public void shutdown() {
         this.scheduledExecutorService.shutdown();
     }

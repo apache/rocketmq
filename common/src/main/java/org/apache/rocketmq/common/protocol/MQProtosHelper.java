@@ -19,9 +19,6 @@ package org.apache.rocketmq.common.protocol;
 
 import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.exception.RemotingConnectException;
-import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
-import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class MQProtosHelper {
@@ -38,13 +35,7 @@ public class MQProtosHelper {
             if (response != null) {
                 return ResponseCode.SUCCESS == response.getCode();
             }
-        } catch (RemotingConnectException e) {
-            e.printStackTrace();
-        } catch (RemotingSendRequestException e) {
-            e.printStackTrace();
-        } catch (RemotingTimeoutException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 

@@ -65,7 +65,7 @@ public class PullRequestHoldService extends ServiceThread {
 
     @Override
     public void run() {
-        log.info(this.getServiceName() + " service started");
+        log.info("{} service started", this.getServiceName());
         while (!this.isStopped()) {
             try {
                 if (this.brokerController.getBrokerConfig().isLongPollingEnable()) {
@@ -85,7 +85,7 @@ public class PullRequestHoldService extends ServiceThread {
             }
         }
 
-        log.info(this.getServiceName() + " service end");
+        log.info("{} service end", this.getServiceName());
     }
 
     @Override
@@ -96,7 +96,7 @@ public class PullRequestHoldService extends ServiceThread {
     private void checkHoldRequest() {
         for (String key : this.pullRequestTable.keySet()) {
             String[] kArray = key.split(TOPIC_QUEUEID_SEPARATOR);
-            if (kArray != null && 2 == kArray.length) {
+            if (2 == kArray.length) {
                 String topic = kArray[0];
                 int queueId = Integer.parseInt(kArray[1]);
                 final long offset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
@@ -127,9 +127,8 @@ public class PullRequestHoldService extends ServiceThread {
                         newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
                     }
 
-                    Long tmp = tagsCode;
                     if (newestOffset > request.getPullFromThisOffset()) {
-                        if (this.messageFilter.isMessageMatched(request.getSubscriptionData(), tmp)) {
+                        if (this.messageFilter.isMessageMatched(request.getSubscriptionData(), tagsCode)) {
                             try {
                                 this.brokerController.getPullMessageProcessor().excuteRequestWhenWakeup(request.getClientChannel(),
                                     request.getRequestCommand());

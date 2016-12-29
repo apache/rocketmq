@@ -76,7 +76,7 @@ public class CloneGroupOffsetCommand implements SubCommand {
             defaultMQAdminExt.start();
             ConsumeStats consumeStats = defaultMQAdminExt.examineConsumeStats(srcGroup);
             Set<MessageQueue> mqs = consumeStats.getOffsetTable().keySet();
-            if (mqs != null && !mqs.isEmpty()) {
+            if (!mqs.isEmpty()) {
                 TopicRouteData topicRoute = defaultMQAdminExt.examineTopicRouteInfo(topic);
                 for (MessageQueue mq : mqs) {
                     String addr = null;

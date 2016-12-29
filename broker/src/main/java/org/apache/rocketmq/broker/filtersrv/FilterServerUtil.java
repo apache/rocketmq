@@ -26,9 +26,9 @@ public class FilterServerUtil {
             String[] cmdArray = splitShellString(shellString);
             process = Runtime.getRuntime().exec(cmdArray);
             process.waitFor();
-            log.info("callShell: <{}> OK", shellString);
+            log.info("CallShell: <{}> OK", shellString);
         } catch (Throwable e) {
-            log.error("callShell: readLine IOException, " + shellString, e);
+            log.error("CallShell: readLine IOException, {}", shellString, e);
         } finally {
             if (null != process)
                 process.destroy();

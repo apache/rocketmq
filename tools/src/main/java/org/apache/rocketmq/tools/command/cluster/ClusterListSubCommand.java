@@ -224,18 +224,19 @@ public class ClusterListSubCommand implements SubCommand {
                             version = kvTable.getTable().get("brokerVersionDesc");
                             {
                                 String[] tpss = putTps.split(" ");
-                                if (tpss != null && tpss.length > 0) {
+                                if (tpss.length > 0) {
                                     in = Double.parseDouble(tpss[0]);
                                 }
                             }
 
                             {
                                 String[] tpss = getTransferedTps.split(" ");
-                                if (tpss != null && tpss.length > 0) {
+                                if (tpss.length > 0) {
                                     out = Double.parseDouble(tpss[0]);
                                 }
                             }
                         } catch (Exception e) {
+                            e.printStackTrace();
                         }
 
                         double hour = 0.0;
@@ -251,16 +252,16 @@ public class ClusterListSubCommand implements SubCommand {
                         }
 
                         System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s%n",
-                            clusterName,
-                            brokerName,
-                            next1.getKey().longValue(),
-                            next1.getValue(),
-                            version,
-                            String.format("%9.2f(%s,%sms)", in, sendThreadPoolQueueSize, sendThreadPoolQueueHeadWaitTimeMills),
-                            String.format("%9.2f(%s,%sms)", out, pullThreadPoolQueueSize, pullThreadPoolQueueHeadWaitTimeMills),
-                            pageCacheLockTimeMills,
-                            String.format("%2.2f", hour),
-                            String.format("%.4f", space)
+                                clusterName,
+                                brokerName,
+                                next1.getKey(),
+                                next1.getValue(),
+                                version,
+                                String.format("%9.2f(%s,%sms)", in, sendThreadPoolQueueSize, sendThreadPoolQueueHeadWaitTimeMills),
+                                String.format("%9.2f(%s,%sms)", out, pullThreadPoolQueueSize, pullThreadPoolQueueHeadWaitTimeMills),
+                                pageCacheLockTimeMills,
+                                String.format("%2.2f", hour),
+                                String.format("%.4f", space)
                         );
                     }
                 }

@@ -79,7 +79,7 @@ public class UtilAll {
 
     public static boolean isItTimeToDo(final String when) {
         String[] whiles = when.split(";");
-        if (whiles != null && whiles.length > 0) {
+        if (whiles.length > 0) {
             Calendar now = Calendar.getInstance();
             for (String w : whiles) {
                 int nowHour = Integer.parseInt(w);
@@ -186,6 +186,7 @@ public class UtilAll {
             if (!file.exists()) {
                 boolean result = file.mkdirs();
                 if (!result) {
+                    //TO DO
                 }
             }
 
@@ -202,7 +203,8 @@ public class UtilAll {
         return -1;
     }
 
-    public static final int crc32(byte[] array) {
+
+    public static int crc32(byte[] array) {
         if (array != null) {
             return crc32(array, 0, array.length);
         }
@@ -210,7 +212,8 @@ public class UtilAll {
         return 0;
     }
 
-    public static final int crc32(byte[] array, int offset, int length) {
+
+    public static int crc32(byte[] array, int offset, int length) {
         CRC32 crc32 = new CRC32();
         crc32.update(array, offset, length);
         return (int) (crc32.getValue() & 0x7FFFFFFF);
@@ -267,15 +270,15 @@ public class UtilAll {
         } finally {
             try {
                 byteArrayInputStream.close();
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
             try {
                 inflaterInputStream.close();
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
             try {
                 byteArrayOutputStream.close();
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
         }
 

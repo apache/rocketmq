@@ -45,9 +45,7 @@ public class TransactionProducer {
                 System.out.printf("%s%n", sendResult);
 
                 Thread.sleep(10);
-            } catch (MQClientException e) {
-                e.printStackTrace();
-            } catch (UnsupportedEncodingException e) {
+            } catch (MQClientException | UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
         }

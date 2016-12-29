@@ -230,7 +230,7 @@ public class Broker2Client {
     }
 
     private List<MessageQueueForC> convertOffsetTable2OffsetList(Map<MessageQueue, Long> table) {
-        List<MessageQueueForC> list = new ArrayList<MessageQueueForC>();
+        List<MessageQueueForC> list = new ArrayList<>();
         for (Entry<MessageQueue, Long> entry : table.entrySet()) {
             MessageQueue mq = entry.getKey();
             MessageQueueForC tmp =

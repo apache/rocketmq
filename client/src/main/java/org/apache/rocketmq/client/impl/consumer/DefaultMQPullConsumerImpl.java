@@ -227,7 +227,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                 SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPullConsumer.getConsumerGroup(), //
                     topic, SubscriptionData.SUB_ALL);
                 this.rebalanceImpl.subscriptionInner.putIfAbsent(topic, subscriptionData);
-            } catch (Exception e) {
+            } catch (Exception ignore) {
             }
         }
     }
@@ -246,7 +246,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             for (ConsumeMessageHook hook : this.consumeMessageHookList) {
                 try {
                     hook.consumeMessageBefore(context);
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
                 }
             }
         }
@@ -257,7 +257,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             for (ConsumeMessageHook hook : this.consumeMessageHookList) {
                 try {
                     hook.consumeMessageAfter(context);
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
                 }
             }
         }
@@ -314,9 +314,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             this.makeSureStateOK();
             Set<MessageQueue> mqs = new HashSet<MessageQueue>();
             Set<MessageQueue> allocateMq = this.rebalanceImpl.getProcessQueueTable().keySet();
-            if (allocateMq != null) {
-                mqs.addAll(allocateMq);
-            }
+            mqs.addAll(allocateMq);
             this.offsetStore.persistAll(mqs);
         } catch (Exception e) {
             log.error("group: " + this.defaultMQPullConsumer.getConsumerGroup() + " persistConsumerOffset exception", e);

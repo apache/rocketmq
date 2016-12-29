@@ -54,7 +54,7 @@ public class MomentStatsItemSet {
             public void run() {
                 try {
                     printAtMinutes();
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
                 }
             }
         }, Math.abs(UtilAll.computNextMinutesTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 5, TimeUnit.MILLISECONDS);

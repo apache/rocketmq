@@ -114,7 +114,7 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
                             String lastTime = "-";
                             try {
                                 lastTime = UtilAll.formatDate(new Date(offsetWrapper.getLastTimestamp()), UtilAll.YYYY_MM_DD_HH_MM_SS);
-                            } catch (Exception e) {
+                            } catch (Exception ignored) {
 
                             }
                             if (offsetWrapper.getLastTimestamp() > 0)

@@ -125,9 +125,8 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         final ResetOffsetRequestHeader requestHeader =
             (ResetOffsetRequestHeader) request.decodeCommandCustomHeader(ResetOffsetRequestHeader.class);
         log.info("invoke reset offset operation from broker. brokerAddr={}, topic={}, group={}, timestamp={}",
-            new Object[] {
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getTopic(), requestHeader.getGroup(),
-                requestHeader.getTimestamp()});
+                requestHeader.getTimestamp());
         Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>();
         if (request.getBody() != null) {
             ResetOffsetBody body = ResetOffsetBody.decode(request.getBody(), ResetOffsetBody.class);

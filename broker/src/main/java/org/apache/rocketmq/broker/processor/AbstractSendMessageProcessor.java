@@ -139,13 +139,12 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         final SendMessageRequestHeader requestHeader, RemotingCommand request,
         final RemotingCommand response) {
         if (requestHeader.getTopic().length() > Byte.MAX_VALUE) {
-            log.warn("putMessage message topic length too long " + requestHeader.getTopic().length());
+            log.warn("putMessage message topic length too long {}", requestHeader.getTopic().length());
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             return response;
         }
         if (requestHeader.getProperties() != null && requestHeader.getProperties().length() > Short.MAX_VALUE) {
-            log.warn("putMessage message properties length too long "
-                + requestHeader.getProperties().length());
+            log.warn("putMessage message properties length too long {}", requestHeader.getProperties().length());
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             return response;
         }
@@ -188,8 +187,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 }
             }
 
-            log.warn("the topic " + requestHeader.getTopic() + " not exist, producer: "
-                + ctx.channel().remoteAddress());
+            log.warn("the topic {} not exist, producer: {}", requestHeader.getTopic(), ctx.channel().remoteAddress());
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(//
                 requestHeader.getTopic(), //
                 requestHeader.getDefaultTopic(), //

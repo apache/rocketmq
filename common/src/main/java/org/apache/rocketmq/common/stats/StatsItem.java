@@ -94,7 +94,7 @@ public class StatsItem {
             public void run() {
                 try {
                     samplingInSeconds();
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
                 }
             }
         }, 0, 10, TimeUnit.SECONDS);
@@ -104,7 +104,7 @@ public class StatsItem {
             public void run() {
                 try {
                     samplingInMinutes();
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
                 }
             }
         }, 0, 10, TimeUnit.MINUTES);
@@ -114,7 +114,7 @@ public class StatsItem {
             public void run() {
                 try {
                     samplingInHour();
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
                 }
             }
         }, 0, 1, TimeUnit.HOURS);

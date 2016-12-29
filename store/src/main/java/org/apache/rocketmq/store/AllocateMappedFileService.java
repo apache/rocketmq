@@ -213,7 +213,7 @@ public class AllocateMappedFileService extends ServiceThread {
                 requestQueue.offer(req);
                 try {
                     Thread.sleep(1);
-                } catch (InterruptedException e1) {
+                } catch (InterruptedException ignored) {
                 }
             }
         } finally {

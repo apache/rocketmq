@@ -137,7 +137,7 @@ public class FilterServerManager {
     }
 
     public List<String> buildNewFilterServerList() {
-        List<String> addr = new ArrayList<String>();
+        List<String> addr = new ArrayList<>();
         Iterator<Entry<Channel, FilterServerInfo>> it = this.filterServerTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<Channel, FilterServerInfo> next = it.next();

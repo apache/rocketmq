@@ -42,7 +42,7 @@ public class RebalanceLockManager {
                 try {
                     ConcurrentHashMap<MessageQueue, LockEntry> groupValue = this.mqLockTable.get(group);
                     if (null == groupValue) {
-                        groupValue = new ConcurrentHashMap<MessageQueue, LockEntry>(32);
+                        groupValue = new ConcurrentHashMap<>(32);
                         this.mqLockTable.put(group, groupValue);
                     }
 
@@ -132,7 +132,7 @@ public class RebalanceLockManager {
                 try {
                     ConcurrentHashMap<MessageQueue, LockEntry> groupValue = this.mqLockTable.get(group);
                     if (null == groupValue) {
-                        groupValue = new ConcurrentHashMap<MessageQueue, LockEntry>(32);
+                        groupValue = new ConcurrentHashMap<>(32);
                         this.mqLockTable.put(group, groupValue);
                     }
 

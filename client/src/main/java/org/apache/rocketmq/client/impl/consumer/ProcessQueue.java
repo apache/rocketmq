@@ -58,13 +58,11 @@ public class ProcessQueue {
     private volatile long msgAccCnt = 0;
 
     public boolean isLockExpired() {
-        boolean result = (System.currentTimeMillis() - this.lastLockTimestamp) > REBALANCE_LOCK_MAX_LIVE_TIME;
-        return result;
+        return (System.currentTimeMillis() - this.lastLockTimestamp) > REBALANCE_LOCK_MAX_LIVE_TIME;
     }
 
     public boolean isPullExpired() {
-        boolean result = (System.currentTimeMillis() - this.lastPullTimestamp) > PULL_MAX_IDLE_TIME;
-        return result;
+        return (System.currentTimeMillis() - this.lastPullTimestamp) > PULL_MAX_IDLE_TIME;
     }
 
     /**

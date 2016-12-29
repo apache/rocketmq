@@ -137,7 +137,7 @@ public class MixAll {
         return Math.abs(value);
     }
 
-    public static final void string2File(final String str, final String fileName) throws IOException {
+    public static void string2File(final String str, final String fileName) throws IOException {
 
         String tmpFile = fileName + ".tmp";
         string2FileNotSafe(str, tmpFile);
@@ -155,7 +155,8 @@ public class MixAll {
         file.renameTo(new File(fileName));
     }
 
-    public static final void string2FileNotSafe(final String str, final String fileName) throws IOException {
+
+    public static void string2FileNotSafe(final String str, final String fileName) throws IOException {
         File file = new File(fileName);
         File fileParent = file.getParentFile();
         if (fileParent != null) {
@@ -170,21 +171,17 @@ public class MixAll {
             throw e;
         } finally {
             if (fileWriter != null) {
-                try {
-                    fileWriter.close();
-                } catch (IOException e) {
-                    throw e;
-                }
+                fileWriter.close();
             }
         }
     }
 
-    public static final String file2String(final String fileName) {
+    public static String file2String(final String fileName) {
         File file = new File(fileName);
         return file2String(file);
     }
 
-    public static final String file2String(final File file) {
+    public static String file2String(final File file) {
         if (file.exists()) {
             char[] data = new char[(int) file.length()];
             boolean result = false;
@@ -213,7 +210,7 @@ public class MixAll {
         return null;
     }
 
-    public static final String file2String(final URL url) {
+    public static String file2String(final URL url) {
         InputStream in = null;
         try {
             URLConnection urlConnection = url.openConnection();
@@ -223,12 +220,12 @@ public class MixAll {
             byte[] data = new byte[len];
             in.read(data, 0, len);
             return new String(data, "UTF-8");
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         } finally {
             if (null != in) {
                 try {
                     in.close();
-                } catch (IOException e) {
+                } catch (IOException ignored) {
                 }
             }
         }
@@ -258,9 +255,7 @@ public class MixAll {
                         if (null == value) {
                             value = "";
                         }
-                    } catch (IllegalArgumentException e) {
-                        e.printStackTrace();
-                    } catch (IllegalAccessException e) {
+                    } catch (IllegalArgumentException | IllegalAccessException e) {
                         e.printStackTrace();
                     }
 
@@ -273,7 +268,6 @@ public class MixAll {
 
                     if (log != null) {
                         log.info(name + "=" + value);
-                    } else {
                     }
                 }
             }
@@ -318,9 +312,7 @@ public class MixAll {
                     try {
                         field.setAccessible(true);
                         value = field.get(object);
-                    } catch (IllegalArgumentException e) {
-                        e.printStackTrace();
-                    } catch (IllegalAccessException e) {
+                    } catch (IllegalArgumentException | IllegalAccessException e) {
                         e.printStackTrace();
                     }
 
@@ -365,10 +357,10 @@ public class MixAll {
                             } else {
                                 continue;
                             }
-                            method.invoke(object, new Object[] {arg});
+                            method.invoke(object, arg);
                         }
                     }
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
                 }
             }
         }

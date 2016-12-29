@@ -55,7 +55,7 @@ public class GetNamesrvConfigCommand implements SubCommand {
             if (servers != null && servers.length() > 0) {
                 String[] serverArray = servers.trim().split(";");
 
-                if (serverArray != null && serverArray.length > 0) {
+                if (serverArray.length > 0) {
                     serverList = Arrays.asList(serverArray);
                 }
             }
@@ -71,7 +71,6 @@ public class GetNamesrvConfigCommand implements SubCommand {
                     System.out.printf("%-50s=  %s\n", key, nameServerConfigs.get(server).get(key));
                 }
             }
-            return;
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
