@@ -23,6 +23,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -284,6 +287,7 @@ public class MQAdminImpl {
 
             if (!brokerAddrs.isEmpty()) {
                 final CountDownLatch countDownLatch = new CountDownLatch(brokerAddrs.size());
+                final ReadWriteLock lock = new ReentrantReadWriteLock();
                 final List<QueryResult> queryResultList = new LinkedList<QueryResult>();
 
                 for (String addr : brokerAddrs) {
@@ -318,7 +322,12 @@ public class MQAdminImpl {
                                                         MessageDecoder.decodes(ByteBuffer.wrap(response.getBody()), true);
 
                                                     QueryResult qr = new QueryResult(responseHeader.getIndexLastUpdateTimestamp(), wrappers);
-                                                    queryResultList.add(qr);
+                                                    try {
+                                                        lock.writeLock().lock();
+                                                        queryResultList.add(qr);
+                                                    } finally {
+                                                        lock.writeLock().unlock();
+                                                    }
                                                     break;
                                                 }
                                                 default:
