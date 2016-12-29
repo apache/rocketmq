@@ -57,7 +57,7 @@
     </module>
     <module name="RegexpSingleline">
         <property name="format" value="@author"/>
-        <property name="message" value="Recommended remove @author keyword!"/>
+        <property name="message" value="Recommended remove @author tag in javadoc!"/>
     </module>
 
     <module name="RegexpSingleline">
