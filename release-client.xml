@@ -18,7 +18,7 @@
 
 <assembly>
     <id>client</id>
-    <baseDirectory>alibaba-rocketmq-client-java</baseDirectory>
+    <baseDirectory>apache-rocketmq-client-java</baseDirectory>
     <formats>
         <format>dir</format>
         <format>tar.gz</format>

@@ -239,7 +239,7 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>2.6</version>
                 <configuration>
-                    <finalName>alibaba-rocketmq</finalName>
+                    <finalName>apache-rocketmq</finalName>
                     <descriptors>
                         <descriptor>release.xml</descriptor>
                     </descriptors>
@@ -250,7 +250,7 @@
                         <plugin>
                             <artifactId>maven-assembly-plugin</artifactId>
                             <configuration>
-                                <finalName>alibaba-rocketmq-client-java-${project.version}</finalName>
+                                <finalName>apache-rocketmq-client-java-${project.version}</finalName>
                                 <descriptors>
                                     <descriptor>release-client.xml</descriptor>
                                 </descriptors>
