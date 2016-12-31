@@ -18,7 +18,7 @@
 
 <assembly>
     <id>broker</id>
-    <baseDirectory>alibaba-rocketmq</baseDirectory>
+    <baseDirectory>apache-rocketmq</baseDirectory>
     <formats>
         <format>dir</format>
         <format>tar.gz</format>
