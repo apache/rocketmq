@@ -31,9 +31,6 @@ import org.slf4j.Logger;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by stone
- */
 public class DefaultSendPromise extends CountDownLatch implements SendPromise {
 
     private final Logger logger = ClientLogger.getLog();

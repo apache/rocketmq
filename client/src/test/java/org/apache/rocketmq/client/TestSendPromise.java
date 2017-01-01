@@ -30,6 +30,51 @@ import java.util.concurrent.TimeUnit;
 public class TestSendPromise {
 
     @Test
+    public void testAddAndRemoveCallbacks() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+
+        DefaultSendPromise promise = new DefaultSendPromise(executor);
+        final CountDownLatch latch = new CountDownLatch(1);
+        SendCallback callback = new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                latch.countDown();
+            }
+
+            @Override
+            public void onException(Throwable e) {
+                latch.countDown();
+            }
+        };
+        SendCallback callback1 = new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                Assert.fail();
+            }
+
+            @Override
+            public void onException(Throwable e) {
+                Assert.fail();
+            }
+        };
+
+        promise.addCallback(callback);
+        promise.removeCallback(callback);
+        promise.complete(new SendResult());
+        Assert.assertEquals(latch.getCount(), 1);
+
+        promise = new DefaultSendPromise(executor);
+        promise.addCallback(callback);
+        promise.addCallback(callback1);
+        promise.removeCallback(callback1);
+        promise.complete(new SendResult());
+        Assert.assertTrue(latch.await(1000, TimeUnit.SECONDS));
+        Assert.assertTrue(promise.isDone());
+
+        executor.shutdown();
+    }
+
+    @Test
     public void testBasicOperations() throws Exception {
         ExecutorService executor = Executors.newSingleThreadExecutor();
 
