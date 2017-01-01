@@ -17,6 +17,8 @@
 package org.apache.rocketmq.client.producer;
 
 import java.util.List;
+import java.util.concurrent.Executor;
+
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -98,6 +100,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public void send(Message msg, SendCallback sendCallback, long timeout)
         throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQProducerImpl.send(msg, sendCallback, timeout);
+    }
+
+    @Override
+    public SendFuture send(Message message, Executor executor, long timeout) throws MQClientException, RemotingException {
+        return defaultMQProducerImpl.send(message, executor, timeout);
     }
 
     @Override

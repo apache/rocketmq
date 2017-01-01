@@ -17,6 +17,8 @@
 package org.apache.rocketmq.client.producer;
 
 import java.util.List;
+import java.util.concurrent.Executor;
+
 import org.apache.rocketmq.client.MQAdmin;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -42,6 +44,8 @@ public interface MQProducer extends MQAdmin {
 
     void send(final Message msg, final SendCallback sendCallback, final long timeout)
         throws MQClientException, RemotingException, InterruptedException;
+
+    SendFuture send(Message message, Executor executor, long timeout) throws MQClientException, RemotingException, InterruptedException;
 
     void sendOneway(final Message msg) throws MQClientException, RemotingException,
         InterruptedException;
