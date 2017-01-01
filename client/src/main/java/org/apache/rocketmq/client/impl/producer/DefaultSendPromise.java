@@ -24,8 +24,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.SendCallback;
-import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendFuture;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -172,7 +172,7 @@ public class DefaultSendPromise extends CountDownLatch implements SendPromise {
     @SuppressWarnings("unchecked")
     public void invokeCallbacks() {
         if (callbacks == null) {
-            return ;
+            return;
         }
 
         if (callbacks instanceof List) {
