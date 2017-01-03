@@ -26,7 +26,6 @@ import org.apache.rocketmq.client.producer.SendFuture;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class AsyncProducer {
     public static void main(String[] args) throws MQClientException, InterruptedException, UnsupportedEncodingException {
@@ -87,7 +86,8 @@ public class AsyncProducer {
                 public void onException(Throwable e) {
                     // do sth
                 }
-            }).addCallback(new SendCallback() {
+            });
+            future.addCallback(new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
                     // do sth
@@ -98,8 +98,8 @@ public class AsyncProducer {
                     // do sth
                 }
             });
-        } catch (RemotingException e) {
-            // something wrong
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         executor.shutdown();
