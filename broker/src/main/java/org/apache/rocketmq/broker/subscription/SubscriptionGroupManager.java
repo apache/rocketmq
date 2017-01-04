@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.broker.subscription;
 
-import java.io.File;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
