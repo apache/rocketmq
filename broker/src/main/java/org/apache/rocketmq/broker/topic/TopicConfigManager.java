@@ -381,9 +381,8 @@ public class TopicConfigManager extends ConfigManager {
 
     @Override
     public String configFilePath() {
-//        return BrokerPathConfigHelper.getTopicConfigPath(this.brokerController.getMessageStoreConfig()
-//                .getStorePathRootDir());
-        return BrokerPathConfigHelper.getTopicConfigPath(System.getProperty("user.home") + File.separator + "store");
+        return BrokerPathConfigHelper.getTopicConfigPath(this.brokerController.getMessageStoreConfig()
+                .getStorePathRootDir());
     }
 
     @Override
