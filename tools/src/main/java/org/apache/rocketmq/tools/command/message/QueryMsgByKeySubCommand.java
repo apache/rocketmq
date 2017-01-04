@@ -69,7 +69,7 @@ public class QueryMsgByKeySubCommand implements SubCommand {
         }
     }
 
-    void queryByKey(final DefaultMQAdminExt admin, final String topic, final String key)
+    private void queryByKey(final DefaultMQAdminExt admin, final String topic, final String key)
         throws MQClientException, InterruptedException {
         admin.start();
 
