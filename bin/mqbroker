@@ -42,6 +42,4 @@ fi
 
 export ROCKETMQ_HOME
 
-rm -f $HOME/rmq_bk_gc.log.bac
-cp $HOME/rmq_bk_gc.log $HOME/rmq_bk_gc.log.bac
 sh ${ROCKETMQ_HOME}/bin/runbroker.sh org.apache.rocketmq.broker.BrokerStartup $@
