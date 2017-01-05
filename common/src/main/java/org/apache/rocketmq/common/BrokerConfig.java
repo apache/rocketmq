@@ -91,7 +91,7 @@ public class BrokerConfig {
     private boolean slaveReadEnable = false;
 
     private boolean disableConsumeIfConsumerReadSlowly = false;
-    private long consumerFallbehindThreshold = 1024 * 1024 * 1024 * 16;
+    private long consumerFallbehindThreshold = 1024L * 1024 * 1024 * 16;
 
     private long waitTimeMillsInSendQueue = 200;
 
