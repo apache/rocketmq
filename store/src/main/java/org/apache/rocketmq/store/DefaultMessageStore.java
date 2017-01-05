@@ -1306,6 +1306,10 @@ public class DefaultMessageStore implements MessageStore {
         }, 6, TimeUnit.SECONDS);
     }
 
+    public void updateCommitLogStorePath() {
+        this.commitLog.updateCommitLogStorePath();
+    }
+
     class CleanCommitLogService {
 
         private final static int MAX_MANUAL_DELETE_FILE_TIMES = 20;

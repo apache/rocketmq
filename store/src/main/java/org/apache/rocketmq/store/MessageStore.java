@@ -102,4 +102,6 @@ public interface MessageStore {
     long lockTimeMills();
 
     boolean isTransientStorePoolDeficient();
+
+    void updateCommitLogStorePath();
 }

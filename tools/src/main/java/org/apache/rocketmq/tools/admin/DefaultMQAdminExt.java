@@ -469,4 +469,18 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         UnsupportedEncodingException {
         return this.defaultMQAdminExtImpl.getNameServerConfig(nameServers);
     }
+
+    /**
+     * Add a new commit log store path.
+     * @param brokerAddress Broker address with port specified.
+     * @param storePathCommitLog new commit log path.
+     * @throws RemotingException if there is any error in remoting communication.
+     * @throws InterruptedException if the execution is interrupted.
+     * @throws MQBrokerException if broker encounters any error
+     */
+    @Override
+    public void addCommitLogStorePath(String brokerAddress, String storePathCommitLog)
+            throws RemotingException, InterruptedException, MQBrokerException {
+        this.defaultMQAdminExtImpl.addCommitLogStorePath(brokerAddress, storePathCommitLog);
+    }
 }

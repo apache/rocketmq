@@ -67,6 +67,7 @@ import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
+import org.apache.rocketmq.common.protocol.header.AddCommitLogStorePathRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
@@ -955,4 +956,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         return this.mqClientInstance.getMQClientAPIImpl().getNameServerConfig(nameServers, timeoutMillis);
     }
 
+    @Override
+    public void addCommitLogStorePath(String brokerAddress, String storePathCommitLog)
+            throws RemotingException, InterruptedException, MQBrokerException {
+        AddCommitLogStorePathRequestHeader requestHeader = new AddCommitLogStorePathRequestHeader();
+        requestHeader.setCommitLogPath(storePathCommitLog);
+        this.mqClientInstance.getMQAdminImpl().addCommitLogStorePath(brokerAddress, requestHeader);
+
+    }
 }

@@ -18,6 +18,8 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+
+import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -61,33 +63,7 @@ import org.apache.rocketmq.common.protocol.body.QueryCorrectionOffsetBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
-import org.apache.rocketmq.common.protocol.header.CloneGroupOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
-import org.apache.rocketmq.common.protocol.header.CreateTopicRequestHeader;
-import org.apache.rocketmq.common.protocol.header.DeleteSubscriptionGroupRequestHeader;
-import org.apache.rocketmq.common.protocol.header.DeleteTopicRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetAllTopicConfigResponseHeader;
-import org.apache.rocketmq.common.protocol.header.GetBrokerConfigResponseHeader;
-import org.apache.rocketmq.common.protocol.header.GetConsumeStatsInBrokerHeader;
-import org.apache.rocketmq.common.protocol.header.GetConsumeStatsRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetConsumerConnectionListRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetConsumerStatusRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetEarliestMsgStoretimeRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetEarliestMsgStoretimeResponseHeader;
-import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
-import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
-import org.apache.rocketmq.common.protocol.header.GetProducerConnectionListRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
-import org.apache.rocketmq.common.protocol.header.QueryConsumeTimeSpanRequestHeader;
-import org.apache.rocketmq.common.protocol.header.QueryCorrectionOffsetHeader;
-import org.apache.rocketmq.common.protocol.header.QueryTopicConsumeByWhoRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
-import org.apache.rocketmq.common.protocol.header.ViewBrokerStatsDataRequestHeader;
+import org.apache.rocketmq.common.protocol.header.*;
 import org.apache.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerResponseHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
@@ -187,6 +163,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return ViewBrokerStatsData(ctx, request);
             case RequestCode.GET_BROKER_CONSUME_STATS:
                 return fetchAllConsumeStatsInBroker(ctx, request);
+            case RequestCode.ADD_COMMIT_LOG_STORE_PATH:
+                return addCommitLogStorePath(ctx, request);
             default:
                 break;
         }
@@ -1240,6 +1218,49 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 String.format("invoke consumer <%s> <%s> Exception: %s", consumerGroup, clientId, RemotingHelper.exceptionSimpleDesc(e)));
             return response;
         }
+    }
+
+    private RemotingCommand addCommitLogStorePath(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final AddCommitLogStorePathRequestHeader requestHeader = (AddCommitLogStorePathRequestHeader)
+                request.decodeCommandCustomHeader(AddCommitLogStorePathRequestHeader.class);
+        log.info("updateAndCreateTopic called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+        String existingCommitLogPath = brokerController.getMessageStoreConfig().getStorePathCommitLog();
+        if (existingCommitLogPath.contains(requestHeader.getCommitLogPath())) {
+            String errorMessage = "Store path being added is in use";
+            log.warn(errorMessage);
+
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(errorMessage);
+            return response;
+        }
+
+        File dir = new File(requestHeader.getCommitLogPath());
+        boolean ok = true;
+        if (dir.exists()) {
+            ok = ok && dir.isDirectory();
+            ok = ok && dir.canWrite();
+            ok = ok && dir.canRead();
+        } else {
+            ok = ok && dir.mkdirs();
+        }
+
+        if (!ok) {
+            String errorMessage = "Directory denoted by specified commit log path is not OK, check permission please";
+            log.warn(errorMessage);
+
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(errorMessage);
+            return response;
+        }
+
+        brokerController.getMessageStoreConfig().setStorePathCommitLog(existingCommitLogPath + ","
+                + requestHeader.getCommitLogPath());
+        brokerController.getMessageStore().updateCommitLogStorePath();
+        brokerController.flushAllConfig();
+
+        response.setCode(ResponseCode.SUCCESS);
+        return response;
     }
 
 }
