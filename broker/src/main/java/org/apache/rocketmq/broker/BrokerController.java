@@ -448,7 +448,7 @@ public class BrokerController {
             while (it.hasNext()) {
                 final Map.Entry<String, MomentStatsItem> next = it.next();
                 final long fallBehindBytes = next.getValue().getValue().get();
-                if (fallBehindBytes > this.brokerConfig.getConsumerFallBehindThreshold()) {
+                if (fallBehindBytes > this.brokerConfig.getConsumerFallbehindThreshold()) {
                     final String[] split = next.getValue().getStatsKey().split("@");
                     final String group = split[2];
                     LOG_PROTECTION.info("[PROTECT_BROKER] the consumer[{}] consume slowly, {} bytes, disable it", group, fallBehindBytes);
