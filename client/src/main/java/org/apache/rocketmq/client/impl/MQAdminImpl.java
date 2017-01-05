@@ -49,7 +49,11 @@ import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
-import org.apache.rocketmq.remoting.exception.*;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
+import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
@@ -416,7 +420,7 @@ public class MQAdminImpl {
 
     public void addCommitLogStorePath(String brokerAddress, AddCommitLogStorePathRequestHeader requestHeader)
             throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException,
-            RemotingConnectException {
+        RemotingConnectException {
         this.mQClientFactory.getMQClientAPIImpl().addCommitLogStorePath(brokerAddress, requestHeader);
     }
 }
