@@ -155,7 +155,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         new NettyEncoder(),
                         new NettyDecoder(),
                         new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),
-                        new NettyConnetManageHandler(),
+                        new NettyConnectManageHandler(),
                         new NettyClientHandler());
                 }
             });
@@ -596,11 +596,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
-    class NettyConnetManageHandler extends ChannelDuplexHandler {
+    class NettyConnectManageHandler extends ChannelDuplexHandler {
         @Override
         public void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress, SocketAddress localAddress,
-            ChannelPromise promise)
-            throws Exception {
+            ChannelPromise promise) throws Exception {
             final String local = localAddress == null ? "UNKNOW" : localAddress.toString();
             final String remote = remoteAddress == null ? "UNKNOW" : remoteAddress.toString();
             log.info("NETTY CLIENT PIPELINE: CONNECT  {} => {}", local, remote);
