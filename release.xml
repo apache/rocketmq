@@ -27,7 +27,7 @@
         <fileSet>
             <includes>
                 <include>bin/*</include>
-                <include>conf/*</include>
+                <include>conf/**</include>
                 <include>benchmark/*</include>
                 <include>LICENSE</include>
                 <include>NOTICE</include>
