@@ -501,7 +501,11 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             } else if (ConsumeOrderlyStatus.SUCCESS == status) {
                                 returnType = ConsumeReturnType.SUCCESS;
                             }
-                            consumeMessageContext.getProps().put(MixAll.CONSUME_CONTEXT_TYPE, returnType.name());
+
+                            if (ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl.hasHook()) {
+                                consumeMessageContext.getProps().put(MixAll.CONSUME_CONTEXT_TYPE, returnType.name());
+                            }
+
                             if (null == status) {
                                 status = ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT;
                             }
