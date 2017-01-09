@@ -71,7 +71,7 @@ public class BrokerFastFailure {
                 } else {
                     break;
                 }
-            } catch (Throwable e) {
+            } catch (Throwable ignored) {
             }
         }
 
@@ -99,7 +99,7 @@ public class BrokerFastFailure {
                 } else {
                     break;
                 }
-            } catch (Throwable e) {
+            } catch (Throwable ignored) {
             }
         }
     }

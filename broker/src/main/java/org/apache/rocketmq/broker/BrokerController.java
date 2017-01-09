@@ -463,7 +463,7 @@ public class BrokerController {
         final Runnable peek = q.peek();
         if (peek != null) {
             RequestTask rt = BrokerFastFailure.castRunnable(peek);
-            slowTimeMills = this.messageStore.now() - rt.getCreateTimestamp();
+            slowTimeMills = rt == null ? 0 : this.messageStore.now() - rt.getCreateTimestamp();
         }
 
         if (slowTimeMills < 0)

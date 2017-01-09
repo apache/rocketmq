@@ -50,6 +50,7 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
@@ -481,7 +482,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
     }
 
-    public void excuteRequestWhenWakeup(final Channel channel, final RemotingCommand request) throws RemotingCommandException {
+    public void executeRequestWhenWakeup(final Channel channel, final RemotingCommand request) throws RemotingCommandException {
         Runnable run = new Runnable() {
             @Override
             public void run() {
@@ -513,8 +514,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 }
             }
         };
-
-        this.brokerController.getPullMessageExecutor().submit(run);
+        this.brokerController.getPullMessageExecutor().submit(new RequestTask(run, channel, request));
     }
 
     public void registerConsumeMessageHook(List<ConsumeMessageHook> sendMessageHookList) {
