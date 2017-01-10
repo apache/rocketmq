@@ -88,7 +88,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         response.setOpaque(request.getOpaque());
 
         if (log.isDebugEnabled()) {
-            log.debug("receive PullMessage request command, " + request);
+            log.debug("receive PullMessage request command, {}", request);
         }
 
         if (!PermName.isReadable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
@@ -119,7 +119,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
-            log.error("the topic " + requestHeader.getTopic() + " not exist, consumer: " + RemotingHelper.parseChannelRemoteAddr(channel));
+            log.error("the topic {} not exist, consumer: {}", requestHeader.getTopic(), RemotingHelper.parseChannelRemoteAddr(channel));
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark(String.format("topic[%s] not exist, apply first please! %s", requestHeader.getTopic(), FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL)));
             return response;
@@ -132,7 +132,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
 
         if (requestHeader.getQueueId() < 0 || requestHeader.getQueueId() >= topicConfig.getReadQueueNums()) {
-            String errorInfo = "queueId[" + requestHeader.getQueueId() + "] is illagal,Topic :" + requestHeader.getTopic()
+            String errorInfo = "queueId[" + requestHeader.getQueueId() + "] is illegal,Topic :" + requestHeader.getTopic()
                     + " topicConfig.readQueueNums: " + topicConfig.getReadQueueNums() + " consumer: " + channel.remoteAddress();
             log.warn(errorInfo);
             response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -259,8 +259,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 case OFFSET_OVERFLOW_BADLY:
                     response.setCode(ResponseCode.PULL_OFFSET_MOVED);
                     // XXX: warn and notify me
-                    log.info("the request offset: " + requestHeader.getQueueOffset() + " over flow badly, broker max offset: "
-                            + getMessageResult.getMaxOffset() + ", consumer: " + channel.remoteAddress());
+                    log.info("the request offset: {} over flow badly, broker max offset: {}, consumer: {}",
+                        requestHeader.getQueueOffset(), getMessageResult.getMaxOffset(), channel.remoteAddress());
                     break;
                 case OFFSET_OVERFLOW_ONE:
                     response.setCode(ResponseCode.PULL_NOT_FOUND);
@@ -344,7 +344,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                                 public void operationComplete(ChannelFuture future) throws Exception {
                                     getMessageResult.release();
                                     if (!future.isSuccess()) {
-                                        log.error("transfer many message by pagecache failed, " + channel.remoteAddress(), future.cause());
+                                        log.error("transfer many message by pagecache failed, {}", channel.remoteAddress(), future.cause());
                                     }
                                 }
                             });
@@ -497,8 +497,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                                 @Override
                                 public void operationComplete(ChannelFuture future) throws Exception {
                                     if (!future.isSuccess()) {
-                                        log.error("processRequestWrapper response to " + future.channel().remoteAddress() + " failed",
-                                                future.cause());
+                                        log.error("processRequestWrapper response to {} failed",
+                                            future.channel().remoteAddress(), future.cause());
                                         log.error(request.toString());
                                         log.error(response.toString());
                                     }

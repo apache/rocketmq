@@ -181,18 +181,17 @@ public class TopicConfigManager extends ConfigManager {
                             topicConfig.setTopicSysFlag(topicSysFlag);
                             topicConfig.setTopicFilterType(defaultTopicConfig.getTopicFilterType());
                         } else {
-                            log.warn("create new topic failed, because the default topic[" + defaultTopic
-                                    + "] no perm, " + defaultTopicConfig.getPerm() + " producer: "
-                                    + remoteAddress);
+                            log.warn("Create new topic failed, because the default topic[{}] has no perm [{}] producer:[{}]",
+                                defaultTopic, defaultTopicConfig.getPerm(), remoteAddress);
                         }
                     } else {
-                        log.warn("create new topic failed, because the default topic[" + defaultTopic
-                                + "] not exist." + " producer: " + remoteAddress);
+                        log.warn("Create new topic failed, because the default topic[{}] not exist. producer:[{}]",
+                            defaultTopic, remoteAddress);
                     }
 
                     if (topicConfig != null) {
-                        log.info("create new topic by default topic[" + defaultTopic + "], " + topicConfig
-                                + " producer: " + remoteAddress);
+                        log.info("Create new topic by default topic:[{}] config:[{}] producer:[{}]",
+                            defaultTopic, topicConfig, remoteAddress);
 
                         this.topicConfigTable.put(topic, topicConfig);
 
@@ -307,9 +306,9 @@ public class TopicConfigManager extends ConfigManager {
     public void updateTopicConfig(final TopicConfig topicConfig) {
         TopicConfig old = this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         if (old != null) {
-            log.info("update topic config, old: " + old + " new: " + topicConfig);
+            log.info("update topic config, old:[{}] new:[{}]", old, topicConfig);
         } else {
-            log.info("create new topic, " + topicConfig);
+            log.info("create new topic [{}]", topicConfig);
         }
 
         this.dataVersion.nextVersion();
@@ -362,11 +361,11 @@ public class TopicConfigManager extends ConfigManager {
     public void deleteTopicConfig(final String topic) {
         TopicConfig old = this.topicConfigTable.remove(topic);
         if (old != null) {
-            log.info("delete topic config OK, topic: " + old);
+            log.info("delete topic config OK, topic: {}", old);
             this.dataVersion.nextVersion();
             this.persist();
         } else {
-            log.warn("delete topic config failed, topic: " + topic + " not exist");
+            log.warn("delete topic config failed, topic: {} not exists", topic);
         }
     }
 

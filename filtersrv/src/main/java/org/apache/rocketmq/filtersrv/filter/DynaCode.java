@@ -232,7 +232,7 @@ public class DynaCode {
                             loadClass.put(getFullClassName(code), null);
                         }
                         if (null != srcFile) {
-                            log.warn("Dyna Create Java Source File:---->" + srcFile.getAbsolutePath());
+                            log.warn("Dyna Create Java Source File:----> {}", srcFile.getAbsolutePath());
                             srcFileAbsolutePaths.add(srcFile.getAbsolutePath());
                             srcFile.deleteOnExit();
                         }
@@ -278,9 +278,9 @@ public class DynaCode {
                 Class<?> classz = classLoader.loadClass(key);
                 if (null != classz) {
                     loadClass.put(key, classz);
-                    log.info("Dyna Load Java Class File OK:----> className: " + key);
+                    log.info("Dyna Load Java Class File OK:----> className: {}", key);
                 } else {
-                    log.error("Dyna Load Java Class File Fail:----> className: " + key);
+                    log.error("Dyna Load Java Class File Fail:----> className: {}", key);
                 }
             }
         }

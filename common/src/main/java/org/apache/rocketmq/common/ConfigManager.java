@@ -40,7 +40,7 @@ public abstract class ConfigManager {
                 return true;
             }
         } catch (Exception e) {
-            log.error("load " + fileName + " Failed, and try to load backup file", e);
+            log.error("load [{}] failed, and try to load backup file", fileName, e);
             return this.loadBak();
         }
     }
@@ -54,11 +54,11 @@ public abstract class ConfigManager {
             String jsonString = MixAll.file2String(fileName + ".bak");
             if (jsonString != null && jsonString.length() > 0) {
                 this.decode(jsonString);
-                log.info("load " + fileName + " OK");
+                log.info("load [{}] OK", fileName);
                 return true;
             }
         } catch (Exception e) {
-            log.error("load " + fileName + " Failed", e);
+            log.error("load [{}] Failed", fileName, e);
             return false;
         }
 
@@ -74,7 +74,7 @@ public abstract class ConfigManager {
             try {
                 MixAll.string2File(jsonString, fileName);
             } catch (IOException e) {
-                log.error("persist file Exception, " + fileName, e);
+                log.error("persist file [{}] exception", fileName, e);
             }
         }
     }
