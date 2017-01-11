@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.remoting.protocol;
 
+import java.nio.ByteBuffer;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.junit.Assert;
 import org.junit.Test;
@@ -97,11 +99,129 @@ public class RemotingCommandTest {
         Assert.assertArrayEquals(new byte[]{1, -1, -1, -1}, result);
     }
 
+    @Test
+    public void testEncodeAndDecodeWithEmptyBody() {
+        System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
+
+        int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
+        CommandCustomHeader header = new SampleCommandCustomHeader();
+        RemotingCommand cmd = RemotingCommand.createRequestCommand(code, header);
+
+        ByteBuffer buffer = cmd.encode();
+
+        //Simulate buffer being read in NettyDecoder
+        buffer.getInt();
+        byte[] bytes = new byte[buffer.limit() - 4];
+        buffer.get(bytes, 0, buffer.limit() - 4);
+        buffer = ByteBuffer.wrap(bytes);
+
+        RemotingCommand decodedCommand = RemotingCommand.decode(buffer);
+
+        Assert.assertEquals(SerializeType.JSON, decodedCommand.getSerializeTypeCurrentRPC());
+        Assert.assertNull(decodedCommand.getBody());
+    }
+
+    @Test
+    public void testEncodeAndDecode() {
+        System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
+
+        int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
+        CommandCustomHeader header = new SampleCommandCustomHeader();
+        RemotingCommand cmd = RemotingCommand.createRequestCommand(code, header);
+        cmd.setBody(new byte[] { 0, 1, 2, 3, 4});
+
+        ByteBuffer buffer = cmd.encode();
+
+        //Simulate buffer being read in NettyDecoder
+        buffer.getInt();
+        byte[] bytes = new byte[buffer.limit() - 4];
+        buffer.get(bytes, 0, buffer.limit() - 4);
+        buffer = ByteBuffer.wrap(bytes);
+
+        RemotingCommand decodedCommand = RemotingCommand.decode(buffer);
+
+        Assert.assertEquals(SerializeType.JSON, decodedCommand.getSerializeTypeCurrentRPC());
+        Assert.assertArrayEquals(new byte[]{ 0, 1, 2, 3, 4}, decodedCommand.getBody());
+    }
+
+    @Test
+    public void testEncodeAndDecodeWithExtFields() {
+        System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
+
+        int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
+        CommandCustomHeader header = new ExtFieldsHeader();
+        RemotingCommand cmd = RemotingCommand.createRequestCommand(code, header);
+
+        cmd.addExtField("key", "value");
+
+        ByteBuffer buffer = cmd.encode();
+
+        //Simulate buffer being read in NettyDecoder
+        buffer.getInt();
+        byte[] bytes = new byte[buffer.limit() - 4];
+        buffer.get(bytes, 0, buffer.limit() - 4);
+        buffer = ByteBuffer.wrap(bytes);
+
+        RemotingCommand decodedCommand = RemotingCommand.decode(buffer);
+
+        Assert.assertEquals("bilibili", decodedCommand.getExtFields().get("stringValue"));
+        Assert.assertEquals("2333", decodedCommand.getExtFields().get("intValue"));
+        Assert.assertEquals("23333333", decodedCommand.getExtFields().get("longValue"));
+        Assert.assertEquals("true", decodedCommand.getExtFields().get("booleanValue"));
+        Assert.assertEquals("0.618", decodedCommand.getExtFields().get("doubleValue"));
+
+        Assert.assertEquals("value", decodedCommand.getExtFields().get("key"));
+
+        try {
+            CommandCustomHeader decodedHeader = decodedCommand.decodeCommandCustomHeader(ExtFieldsHeader.class);
+            Assert.assertEquals("bilibili", ((ExtFieldsHeader)decodedHeader).getStringValue());
+            Assert.assertEquals(2333, ((ExtFieldsHeader)decodedHeader).getIntValue());
+            Assert.assertEquals(23333333l, ((ExtFieldsHeader)decodedHeader).getLongValue());
+            Assert.assertEquals(true, ((ExtFieldsHeader)decodedHeader).isBooleanValue());
+            Assert.assertEquals(true, ((ExtFieldsHeader)decodedHeader).getDoubleValue() - 0.618 < 0.01);
+
+        } catch (RemotingCommandException ex) {
+            Assert.fail();
+        }
+    }
 }
 
 class SampleCommandCustomHeader implements CommandCustomHeader {
     @Override
     public void checkFields() throws RemotingCommandException {
         return;
+    }
+}
+
+class ExtFieldsHeader implements CommandCustomHeader {
+    private String stringValue = "bilibili";
+    private int intValue = 2333;
+    private long longValue = 23333333l;
+    private boolean booleanValue = true;
+    private double doubleValue = 0.618;
+
+    @Override
+    public void checkFields() throws RemotingCommandException {
+        return;
+    }
+
+    public String getStringValue() {
+        return stringValue;
+    }
+
+    public int getIntValue() {
+        return intValue;
+    }
+
+    public long getLongValue() {
+        return longValue;
+    }
+
+    public boolean isBooleanValue() {
+        return booleanValue;
+    }
+
+    public double getDoubleValue() {
+        return doubleValue;
     }
 }
