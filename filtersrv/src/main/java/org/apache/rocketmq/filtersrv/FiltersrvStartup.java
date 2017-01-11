@@ -22,6 +22,7 @@ import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -34,6 +35,7 @@ import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.NettySystemConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
+import org.apache.rocketmq.srvutil.ShutdownHookThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -135,24 +137,13 @@ public class FiltersrvStartup {
                 System.exit(-3);
             }
 
-            Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-                private volatile boolean hasShutdown = false;
-                private AtomicInteger shutdownTimes = new AtomicInteger(0);
-
+            Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, new Callable() {
                 @Override
-                public void run() {
-                    synchronized (this) {
-                        log.info("shutdown hook was invoked, " + this.shutdownTimes.incrementAndGet());
-                        if (!this.hasShutdown) {
-                            this.hasShutdown = true;
-                            long begineTime = System.currentTimeMillis();
-                            controller.shutdown();
-                            long consumingTimeTotal = System.currentTimeMillis() - begineTime;
-                            log.info("shutdown hook over, consuming time total(ms): " + consumingTimeTotal);
-                        }
-                    }
+                public Object call() throws Exception {
+                    controller.shutdown();
+                    return null;
                 }
-            }, "ShutdownHook"));
+            }));
 
             return controller;
         } catch (Throwable e) {

@@ -18,11 +18,14 @@ package org.apache.rocketmq.namesrv;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
+
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -35,11 +38,12 @@ import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.NettySystemConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
+import org.apache.rocketmq.srvutil.ShutdownHookThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class NamesrvStartup {
-    public static Properties properties = null;
+    public static Properties  properties  = null;
     public static CommandLine commandLine = null;
 
     public static void main(String[] args) {
@@ -61,9 +65,7 @@ public class NamesrvStartup {
             //PackageConflictDetect.detectFastjson();
 
             Options options = ServerUtil.buildCommandlineOptions(new Options());
-            commandLine =
-                ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options),
-                    new PosixParser());
+            commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
                 return null;
@@ -97,8 +99,7 @@ public class NamesrvStartup {
             MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), namesrvConfig);
 
             if (null == namesrvConfig.getRocketmqHome()) {
-                System.out.printf("Please set the " + MixAll.ROCKETMQ_HOME_ENV
-                    + " variable in your environment to match the location of the RocketMQ installation%n");
+                System.out.printf("Please set the " + MixAll.ROCKETMQ_HOME_ENV + " variable in your environment to match the location of the RocketMQ installation%n");
                 System.exit(-2);
             }
 
@@ -123,24 +124,13 @@ public class NamesrvStartup {
                 System.exit(-3);
             }
 
-            Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-                private volatile boolean hasShutdown = false;
-                private AtomicInteger shutdownTimes = new AtomicInteger(0);
-
+            Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, new Callable() {
                 @Override
-                public void run() {
-                    synchronized (this) {
-                        log.info("shutdown hook was invoked, " + this.shutdownTimes.incrementAndGet());
-                        if (!this.hasShutdown) {
-                            this.hasShutdown = true;
-                            long begineTime = System.currentTimeMillis();
-                            controller.shutdown();
-                            long consumingTimeTotal = System.currentTimeMillis() - begineTime;
-                            log.info("shutdown hook over, consuming time total(ms): " + consumingTimeTotal);
-                        }
-                    }
+                public Object call() throws Exception {
+                    controller.shutdown();
+                    return null;
                 }
-            }, "ShutdownHook"));
+            }));
 
             controller.start();
 
