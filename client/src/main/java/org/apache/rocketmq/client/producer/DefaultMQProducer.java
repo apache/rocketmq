@@ -321,94 +321,252 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.defaultMQProducerImpl.send(msg, mq, sendCallback);
     }
 
+    /**
+     * Same to {@link #send(Message, SendCallback)} with target message queue and send timeout specified.
+     * @param msg Message to send.
+     * @param mq Target message queue.
+     * @param sendCallback Callback to execute on sending completed, either successful or unsuccessful.
+     * @param timeout Send timeout.
+     * @throws MQClientException if there is any client error.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws InterruptedException if the sending thread is interrupted.
+     */
     @Override
     public void send(Message msg, MessageQueue mq, SendCallback sendCallback, long timeout)
         throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQProducerImpl.send(msg, mq, sendCallback, timeout);
     }
 
+    /**
+     * Same to {@link #sendOneway(Message)} with target message queue specified.
+     * @param msg Message to send.
+     * @param mq Target message queue.
+     * @throws MQClientException if there is any client error.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws InterruptedException if the sending thread is interrupted.
+     */
     @Override
     public void sendOneway(Message msg, MessageQueue mq) throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQProducerImpl.sendOneway(msg, mq);
     }
 
+    /**
+     *  Same to {@link #send(Message)} with message queue selector specified.
+     *
+     * @param msg Message to send.
+     * @param selector Message queue selector, through which we get target message queue to deliver message to.
+     * @param arg Argument to work along with message queue selector.
+     * @return {@link SendResult} instance to inform senders details of the deliverable, say Message ID of the message,
+     * {@link SendStatus} indicating broker storage/replication status, message queue sent to, etc.
+     * @throws MQClientException if there is any client error.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws MQBrokerException if there is any error with broker.
+     * @throws InterruptedException if the sending thread is interrupted.
+     */
     @Override
     public SendResult send(Message msg, MessageQueueSelector selector, Object arg)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.defaultMQProducerImpl.send(msg, selector, arg);
     }
 
+    /**
+     * Same to {@link #send(Message, MessageQueueSelector, Object)} with send timeout specified.
+     *
+     * @param msg Message to send.
+     * @param selector Message queue selector, through which we get target message queue to deliver message to.
+     * @param arg Argument to work along with message queue selector.
+     * @param timeout Send timeout.
+     * @return {@link SendResult} instance to inform senders details of the deliverable, say Message ID of the message,
+     * {@link SendStatus} indicating broker storage/replication status, message queue sent to, etc.
+     * @throws MQClientException if there is any client error.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws MQBrokerException if there is any error with broker.
+     * @throws InterruptedException if the sending thread is interrupted.
+     */
     @Override
     public SendResult send(Message msg, MessageQueueSelector selector, Object arg, long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.defaultMQProducerImpl.send(msg, selector, arg, timeout);
     }
 
+    /**
+     * Same to {@link #send(Message, SendCallback)} with message queue selector specified.
+     *
+     * @param msg Message to send.
+     * @param selector Message selector through which to get target message queue.
+     * @param arg Argument used along with message queue selector.
+     * @param sendCallback callback to execute on sending completion.
+     * @throws MQClientException if there is any client error.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws InterruptedException if the sending thread is interrupted.
+     */
     @Override
     public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback)
         throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQProducerImpl.send(msg, selector, arg, sendCallback);
     }
 
+    /**
+     * Same to {@link #send(Message, MessageQueueSelector, Object, SendCallback)} with timeout specified.
+     *
+     * @param msg Message to send.
+     * @param selector Message selector through which to get target message queue.
+     * @param arg Argument used along with message queue selector.
+     * @param sendCallback callback to execute on sending completion.
+     * @param timeout Send timeout.
+     * @throws MQClientException if there is any client error.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws InterruptedException if the sending thread is interrupted.
+     */
     @Override
     public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback, long timeout)
         throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQProducerImpl.send(msg, selector, arg, sendCallback, timeout);
     }
 
+    /**
+     * Same to {@link #sendOneway(Message)} with message queue selector specified.
+     * @param msg Message to send.
+     * @param selector Message queue selector, through which to determine target message queue to deliver message
+     * @param arg Argument used along with message queue selector.
+     * @throws MQClientException if there is any client error.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws InterruptedException if the sending thread is interrupted.
+     */
     @Override
     public void sendOneway(Message msg, MessageQueueSelector selector, Object arg)
         throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQProducerImpl.sendOneway(msg, selector, arg);
     }
 
+    /**
+     * This method is to send transactional messages.
+     *
+     * @param msg Transactional message to send.
+     * @param tranExecuter local transaction executor.
+     * @param arg Argument used along with local transaction executor.
+     * @return Transaction result.
+     * @throws MQClientException if there is any client error.
+     */
     @Override
     public TransactionSendResult sendMessageInTransaction(Message msg, LocalTransactionExecuter tranExecuter, final Object arg)
         throws MQClientException {
         throw new RuntimeException("sendMessageInTransaction not implement, please use TransactionMQProducer class");
     }
 
+    /**
+     * Create a topic on broker.
+     * @param key accesskey
+     * @param newTopic topic name
+     * @param queueNum topic's queue number
+     * @throws MQClientException if there is any client error.
+     */
     @Override
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
         createTopic(key, newTopic, queueNum, 0);
     }
 
+    /**
+     * Create a topic on broker.
+     * @param key accesskey
+     * @param newTopic topic name
+     * @param queueNum topic's queue number
+     * @param topicSysFlag topic system flag
+     * @throws MQClientException if there is any client error.
+     */
     @Override
     public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
         this.defaultMQProducerImpl.createTopic(key, newTopic, queueNum, topicSysFlag);
     }
 
+    /**
+     * Search consume queue offset of the given time stamp.
+     * @param mq Instance of MessageQueue
+     * @param timestamp from when in milliseconds.
+     * @return Consume queue offset.
+     * @throws MQClientException if there is any client error.
+     */
     @Override
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
         return this.defaultMQProducerImpl.searchOffset(mq, timestamp);
     }
 
+    /**
+     * Query maximum offset of the given message queue.
+     *
+     * @param mq Instance of MessageQueue
+     * @return maximum offset of the given consume queue.
+     * @throws MQClientException if there is any client error.
+     */
     @Override
     public long maxOffset(MessageQueue mq) throws MQClientException {
         return this.defaultMQProducerImpl.maxOffset(mq);
     }
 
+    /**
+     * Query minimum offset of the given message queue.
+     * @param mq Instance of MessageQueue
+     * @return minimum offset of the given message queue.
+     * @throws MQClientException if there is any client error.
+     */
     @Override
     public long minOffset(MessageQueue mq) throws MQClientException {
         return this.defaultMQProducerImpl.minOffset(mq);
     }
 
+    /**
+     * Query earliest message store time.
+     * @param mq Instance of MessageQueue
+     * @return earliest message store time.
+     * @throws MQClientException if there is any client error.
+     */
     @Override
     public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
         return this.defaultMQProducerImpl.earliestMsgStoreTime(mq);
     }
 
+    /**
+     * Query message of the given offset message ID.
+     * @param offsetMsgId message id
+     * @return Message specified.
+     * @throws MQBrokerException if there is any broker error.
+     * @throws MQClientException if there is any client error.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws InterruptedException if the sending thread is interrupted.
+     */
     @Override
     public MessageExt viewMessage(String offsetMsgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         return this.defaultMQProducerImpl.viewMessage(offsetMsgId);
     }
 
+    /**
+     * Query message by key.
+     * @param topic message topic
+     * @param key message key index word
+     * @param maxNum max message number
+     * @param begin from when
+     * @param end to when
+     * @return QueryResult instance contains matched messages.
+     * @throws MQClientException if there is any client error.
+     * @throws InterruptedException if the thread is interrupted.
+     */
     @Override
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
         throws MQClientException, InterruptedException {
         return this.defaultMQProducerImpl.queryMessage(topic, key, maxNum, begin, end);
     }
 
+    /**
+     * Query message of the given message ID.
+     *
+     * @param topic Topic
+     * @param msgId Message ID
+     * @return Message specified.
+     * @throws MQBrokerException if there is any broker error.
+     * @throws MQClientException if there is any client error.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws InterruptedException if the sending thread is interrupted.
+     */
     @Override
     public MessageExt viewMessage(String topic, String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
