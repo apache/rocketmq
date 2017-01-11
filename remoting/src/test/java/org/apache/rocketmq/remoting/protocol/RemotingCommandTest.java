@@ -16,91 +16,91 @@
  */
 package org.apache.rocketmq.remoting.protocol;
 
+import static org.assertj.core.api.Assertions.*;
+
 import java.nio.ByteBuffer;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class RemotingCommandTest {
     @Test
-    public void testCreateRequestCommand() {
+    public void testMarkProtocolType_JSONProtocolType() {
+        int source = 261;
+        SerializeType type = SerializeType.JSON;
+        byte[] result = RemotingCommand.markProtocolType(source, type);
+        assertThat(result).isEqualTo(new byte[]{0, 0, 1, 5});
+    }
+
+    @Test
+    public void testMarkProtocolType_ROCKETMQProtocolType() {
+        int source = 16777215;
+        SerializeType type = SerializeType.ROCKETMQ;
+        byte[] result = RemotingCommand.markProtocolType(source, type);
+        assertThat(result).isEqualTo(new byte[]{1, -1, -1, -1});
+    }
+
+    @Test
+    public void testCreateRequestCommand_RegisterBroker() {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
         int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
         CommandCustomHeader header = new SampleCommandCustomHeader();
         RemotingCommand cmd = RemotingCommand.createRequestCommand(code, header);
-        Assert.assertEquals(code, cmd.getCode());
-        Assert.assertEquals(2333, cmd.getVersion());
-        Assert.assertEquals(0, cmd.getFlag() & 0x01); //flag bit 0: 0 presents request
+        assertThat(cmd.getCode()).isEqualTo(code);
+        assertThat(cmd.getVersion()).isEqualTo(2333);
+        assertThat(cmd.getFlag() & 0x01).isEqualTo(0); //flag bit 0: 0 presents request
     }
 
     @Test
-    public void testCreateResponseCommandSuccess() {
+    public void testCreateResponseCommand_SuccessWithHeader() {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
         int code = RemotingSysResponseCode.SUCCESS;
         String remark = "Sample remark";
         RemotingCommand cmd = RemotingCommand.createResponseCommand(code ,remark, SampleCommandCustomHeader.class);
-        Assert.assertEquals(code, cmd.getCode());
-        Assert.assertEquals(2333, cmd.getVersion());
-        Assert.assertEquals(remark, cmd.getRemark());
-        Assert.assertEquals(1, cmd.getFlag() & 0x01); //flag bit 0: 1 presents response
+        assertThat(cmd.getCode()).isEqualTo(code);
+        assertThat(cmd.getVersion()).isEqualTo(2333);
+        assertThat(cmd.getRemark()).isEqualTo(remark);
+        assertThat(cmd.getFlag() & 0x01).isEqualTo(1); //flag bit 0: 1 presents request
     }
 
     @Test
-    public void testCreateResponseCommandWithNoHeader() {
+    public void testCreateResponseCommand_SuccessWithoutHeader() {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
         int code = RemotingSysResponseCode.SUCCESS;
         String remark = "Sample remark";
         RemotingCommand cmd = RemotingCommand.createResponseCommand(code ,remark);
-        Assert.assertEquals(code, cmd.getCode());
-        Assert.assertEquals(2333, cmd.getVersion());
-        Assert.assertEquals(remark, cmd.getRemark());
-        Assert.assertEquals(1, cmd.getFlag() & 0x01); //flag bit 0: 1 presents response
+        assertThat(cmd.getCode()).isEqualTo(code);
+        assertThat(cmd.getVersion()).isEqualTo(2333);
+        assertThat(cmd.getRemark()).isEqualTo(remark);
+        assertThat(cmd.getFlag() & 0x01).isEqualTo(1); //flag bit 0: 1 presents request
     }
 
     @Test
-    public void testCreateResponseCommandNull() {
+    public void testCreateResponseCommand_FailToCreateCommand() {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
         int code = RemotingSysResponseCode.SUCCESS;
         String remark = "Sample remark";
         RemotingCommand cmd = RemotingCommand.createResponseCommand(code ,remark, CommandCustomHeader.class);
-        Assert.assertNull(cmd);
+        assertThat(cmd).isNull();
     }
 
     @Test
-    public void testCreateResponseCommandError() {
+    public void testCreateResponseCommand_SystemError() {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
         RemotingCommand cmd = RemotingCommand.createResponseCommand(SampleCommandCustomHeader.class);
-        Assert.assertEquals(RemotingSysResponseCode.SYSTEM_ERROR, cmd.getCode());
-        Assert.assertEquals(2333, cmd.getVersion());
-        Assert.assertEquals("not set any response code", cmd.getRemark());
-        Assert.assertEquals(1, cmd.getFlag() & 0x01); //flag bit 0: 1 presents response
+        assertThat(cmd.getCode()).isEqualTo(RemotingSysResponseCode.SYSTEM_ERROR);
+        assertThat(cmd.getVersion()).isEqualTo(2333);
+        assertThat(cmd.getRemark()).contains("not set any response code");
+        assertThat(cmd.getFlag() & 0x01).isEqualTo(1); //flag bit 0: 1 presents response
     }
 
     @Test
-    public void testMarkProtocolTypeForJSON() {
-        int source = 261;
-        SerializeType type = SerializeType.JSON;
-        byte[] result = RemotingCommand.markProtocolType(source, type);
-        Assert.assertArrayEquals(new byte[]{0, 0, 1, 5}, result);
-    }
-
-    @Test
-    public void testMarkProtocolTypeForROCKETMQ() {
-        int source = 16777215;
-        SerializeType type = SerializeType.ROCKETMQ;
-        byte[] result = RemotingCommand.markProtocolType(source, type);
-        Assert.assertArrayEquals(new byte[]{1, -1, -1, -1}, result);
-    }
-
-    @Test
-    public void testEncodeAndDecodeWithEmptyBody() {
+    public void testEncodeAndDecode_EmptyBody() {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
         int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
@@ -117,12 +117,12 @@ public class RemotingCommandTest {
 
         RemotingCommand decodedCommand = RemotingCommand.decode(buffer);
 
-        Assert.assertEquals(SerializeType.JSON, decodedCommand.getSerializeTypeCurrentRPC());
-        Assert.assertNull(decodedCommand.getBody());
+        assertThat(decodedCommand.getSerializeTypeCurrentRPC()).isEqualTo(SerializeType.JSON);
+        assertThat(decodedCommand.getBody()).isNull();
     }
 
     @Test
-    public void testEncodeAndDecode() {
+    public void testEncodeAndDecode_FilledBody() {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
         int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
@@ -140,12 +140,12 @@ public class RemotingCommandTest {
 
         RemotingCommand decodedCommand = RemotingCommand.decode(buffer);
 
-        Assert.assertEquals(SerializeType.JSON, decodedCommand.getSerializeTypeCurrentRPC());
-        Assert.assertArrayEquals(new byte[]{ 0, 1, 2, 3, 4}, decodedCommand.getBody());
+        assertThat(decodedCommand.getSerializeTypeCurrentRPC()).isEqualTo(SerializeType.JSON);
+        assertThat(decodedCommand.getBody()).isEqualTo(new byte[]{ 0, 1, 2, 3, 4});
     }
 
     @Test
-    public void testEncodeAndDecodeWithExtFields() {
+    public void testEncodeAndDecode_FilledBodyWithExtFields() {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
         int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
@@ -164,24 +164,24 @@ public class RemotingCommandTest {
 
         RemotingCommand decodedCommand = RemotingCommand.decode(buffer);
 
-        Assert.assertEquals("bilibili", decodedCommand.getExtFields().get("stringValue"));
-        Assert.assertEquals("2333", decodedCommand.getExtFields().get("intValue"));
-        Assert.assertEquals("23333333", decodedCommand.getExtFields().get("longValue"));
-        Assert.assertEquals("true", decodedCommand.getExtFields().get("booleanValue"));
-        Assert.assertEquals("0.618", decodedCommand.getExtFields().get("doubleValue"));
+        assertThat(decodedCommand.getExtFields().get("stringValue")).isEqualTo("bilibili");
+        assertThat(decodedCommand.getExtFields().get("intValue")).isEqualTo("2333");
+        assertThat(decodedCommand.getExtFields().get("longValue")).isEqualTo("23333333");
+        assertThat(decodedCommand.getExtFields().get("booleanValue")).isEqualTo("true");
+        assertThat(decodedCommand.getExtFields().get("doubleValue")).isEqualTo("0.618");
 
-        Assert.assertEquals("value", decodedCommand.getExtFields().get("key"));
+        assertThat(decodedCommand.getExtFields().get("key")).isEqualTo("value");
 
         try {
             CommandCustomHeader decodedHeader = decodedCommand.decodeCommandCustomHeader(ExtFieldsHeader.class);
-            Assert.assertEquals("bilibili", ((ExtFieldsHeader)decodedHeader).getStringValue());
-            Assert.assertEquals(2333, ((ExtFieldsHeader)decodedHeader).getIntValue());
-            Assert.assertEquals(23333333l, ((ExtFieldsHeader)decodedHeader).getLongValue());
-            Assert.assertEquals(true, ((ExtFieldsHeader)decodedHeader).isBooleanValue());
-            Assert.assertEquals(true, ((ExtFieldsHeader)decodedHeader).getDoubleValue() - 0.618 < 0.01);
+            assertThat(((ExtFieldsHeader)decodedHeader).getStringValue()).isEqualTo("bilibili");
+            assertThat(((ExtFieldsHeader)decodedHeader).getIntValue()).isEqualTo(2333);
+            assertThat(((ExtFieldsHeader)decodedHeader).getLongValue()).isEqualTo(23333333l);
+            assertThat(((ExtFieldsHeader)decodedHeader).isBooleanValue()).isEqualTo(true);
+            assertThat(((ExtFieldsHeader)decodedHeader).getDoubleValue()).isBetween(0.617, 0.619);
 
         } catch (RemotingCommandException ex) {
-            Assert.fail();
+            fail(ex.getMessage());
         }
     }
 }

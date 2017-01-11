@@ -460,6 +460,12 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>3.6.1</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>1.7.5</version>
