@@ -102,7 +102,7 @@ public class NamesrvStartup {
                 System.exit(-2);
             }
 
-            LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+            LoggerContext lc = (LoggerContext)LoggerFactory.getILoggerFactory();
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
             lc.reset();
@@ -149,7 +149,9 @@ public class NamesrvStartup {
             System.out.printf(tip + "%n");
 
             return controller;
-        } catch (Throwable e) {
+        }
+        catch (Throwable e) {
+            System.out.printf("Namesrv startup failure with following exceptions:");
             e.printStackTrace();
             System.exit(-1);
         }

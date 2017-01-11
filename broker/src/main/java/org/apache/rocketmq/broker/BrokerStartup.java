@@ -65,6 +65,7 @@ public class BrokerStartup {
             log.info(tip);
             return controller;
         } catch (Throwable e) {
+            System.out.printf("Broker startup failure with following exceptions:");
             e.printStackTrace();
             System.exit(-1);
         }

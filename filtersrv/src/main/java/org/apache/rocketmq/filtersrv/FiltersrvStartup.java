@@ -48,7 +48,8 @@ public class FiltersrvStartup {
 
         try {
             controller.start();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
             System.exit(-1);
         }
@@ -120,7 +121,7 @@ public class FiltersrvStartup {
                 System.exit(-2);
             }
 
-            LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+            LoggerContext lc = (LoggerContext)LoggerFactory.getILoggerFactory();
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
             lc.reset();
@@ -155,7 +156,9 @@ public class FiltersrvStartup {
             }, "ShutdownHook"));
 
             return controller;
-        } catch (Throwable e) {
+        }
+        catch (Throwable e) {
+            System.out.printf("Filtersrv startup failure with following exceptions:");
             e.printStackTrace();
             System.exit(-1);
         }
