@@ -50,7 +50,8 @@ public class FiltersrvStartup {
 
         try {
             controller.start();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
             System.exit(-1);
         }
@@ -122,7 +123,7 @@ public class FiltersrvStartup {
                 System.exit(-2);
             }
 
-            LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+            LoggerContext lc = (LoggerContext)LoggerFactory.getILoggerFactory();
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
             lc.reset();
@@ -146,7 +147,8 @@ public class FiltersrvStartup {
             }));
 
             return controller;
-        } catch (Throwable e) {
+        }
+        catch (Throwable e) {
             e.printStackTrace();
             System.exit(-1);
         }
