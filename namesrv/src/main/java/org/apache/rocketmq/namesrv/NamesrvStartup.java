@@ -123,7 +123,7 @@ public class NamesrvStartup {
 
             Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, new Callable() {
                 @Override
-                public Object call() throws Exception {
+                public Void call() throws Exception {
                     controller.shutdown();
                     return null;
                 }
