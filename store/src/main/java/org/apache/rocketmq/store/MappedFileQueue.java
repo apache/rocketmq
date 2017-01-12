@@ -397,11 +397,15 @@ public class MappedFileQueue {
                         log.info("physic min offset " + offset + ", logics in current mappedFile max offset "
                             + maxOffsetInLogicQueue + ", delete it");
                     }
+                } else if (!mappedFile.isAvailable()) { // Handle hanged file.
+                    log.warn("Found a hanged consume queue file, attempting to delete it.");
+                    destroy = true;
                 } else {
                     log.warn("this being not executed forever.");
                     break;
                 }
 
+                // TODO: Externalize this hardcoded value
                 if (destroy && mappedFile.destroy(1000 * 60)) {
                     files.add(mappedFile);
                     deleteCount++;

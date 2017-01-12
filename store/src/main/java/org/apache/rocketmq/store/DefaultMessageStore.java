@@ -376,8 +376,8 @@ public class DefaultMessageStore implements MessageStore {
 
         ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
-            minOffset = consumeQueue.getMinOffsetInQuque();
-            maxOffset = consumeQueue.getMaxOffsetInQuque();
+            minOffset = consumeQueue.getMinOffsetInQueue();
+            maxOffset = consumeQueue.getMaxOffsetInQueue();
 
             if (maxOffset == 0) {
                 status = GetMessageStatus.NO_MESSAGE_IN_QUEUE;
@@ -499,7 +499,7 @@ public class DefaultMessageStore implements MessageStore {
     public long getMaxOffsetInQuque(String topic, int queueId) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
-            long offset = logic.getMaxOffsetInQuque();
+            long offset = logic.getMaxOffsetInQueue();
             return offset;
         }
 
@@ -512,7 +512,7 @@ public class DefaultMessageStore implements MessageStore {
     public long getMinOffsetInQuque(String topic, int queueId) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
-            return logic.getMinOffsetInQuque();
+            return logic.getMinOffsetInQueue();
         }
 
         return -1;
@@ -878,8 +878,8 @@ public class DefaultMessageStore implements MessageStore {
 
         ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
-            minOffset = Math.max(minOffset, consumeQueue.getMinOffsetInQuque());
-            maxOffset = Math.min(maxOffset, consumeQueue.getMaxOffsetInQuque());
+            minOffset = Math.max(minOffset, consumeQueue.getMinOffsetInQueue());
+            maxOffset = Math.min(maxOffset, consumeQueue.getMaxOffsetInQueue());
 
             if (maxOffset == 0) {
                 return messageIds;
@@ -1220,7 +1220,7 @@ public class DefaultMessageStore implements MessageStore {
         for (ConcurrentHashMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
             for (ConsumeQueue logic : maps.values()) {
                 String key = logic.getTopic() + "-" + logic.getQueueId();
-                table.put(key, logic.getMaxOffsetInQuque());
+                table.put(key, logic.getMaxOffsetInQueue());
                 logic.correctMinOffset(minPhyOffset);
             }
         }

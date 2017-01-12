@@ -77,19 +77,19 @@ public class ConsumeQueue {
             if (index < 0)
                 index = 0;
 
-            int mapedFileSizeLogics = this.mappedFileSize;
+            int mappedFileSizeLogics = this.mappedFileSize;
             MappedFile mappedFile = mappedFiles.get(index);
             ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
             long processOffset = mappedFile.getFileFromOffset();
-            long mapedFileOffset = 0;
+            long mappedFileOffset = 0;
             while (true) {
-                for (int i = 0; i < mapedFileSizeLogics; i += CQ_STORE_UNIT_SIZE) {
+                for (int i = 0; i < mappedFileSizeLogics; i += CQ_STORE_UNIT_SIZE) {
                     long offset = byteBuffer.getLong();
                     int size = byteBuffer.getInt();
                     long tagsCode = byteBuffer.getLong();
 
                     if (offset >= 0 && size > 0) {
-                        mapedFileOffset = i + CQ_STORE_UNIT_SIZE;
+                        mappedFileOffset = i + CQ_STORE_UNIT_SIZE;
                         this.maxPhysicOffset = offset;
                     } else {
                         log.info("recover current consume queue file over,  " + mappedFile.getFileName() + " "
@@ -98,7 +98,7 @@ public class ConsumeQueue {
                     }
                 }
 
-                if (mapedFileOffset == mapedFileSizeLogics) {
+                if (mappedFileOffset == mappedFileSizeLogics) {
                     index++;
                     if (index >= mappedFiles.size()) {
 
@@ -109,17 +109,17 @@ public class ConsumeQueue {
                         mappedFile = mappedFiles.get(index);
                         byteBuffer = mappedFile.sliceByteBuffer();
                         processOffset = mappedFile.getFileFromOffset();
-                        mapedFileOffset = 0;
+                        mappedFileOffset = 0;
                         log.info("recover next consume queue file, " + mappedFile.getFileName());
                     }
                 } else {
                     log.info("recover current consume queue queue over " + mappedFile.getFileName() + " "
-                        + (processOffset + mapedFileOffset));
+                        + (processOffset + mappedFileOffset));
                     break;
                 }
             }
 
-            processOffset += mapedFileOffset;
+            processOffset += mappedFileOffset;
             this.mappedFileQueue.setFlushedWhere(processOffset);
             this.mappedFileQueue.setCommittedWhere(processOffset);
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
@@ -310,7 +310,7 @@ public class ConsumeQueue {
 
                         if (offsetPy >= phyMinOffset) {
                             this.minLogicOffset = result.getMappedFile().getFileFromOffset() + i;
-                            log.info("compute logics min offset: " + this.getMinOffsetInQuque() + ", topic: "
+                            log.info("compute logics min offset: " + this.getMinOffsetInQueue() + ", topic: "
                                 + this.topic + ", queueId: " + this.queueId);
                             break;
                         }
@@ -324,7 +324,7 @@ public class ConsumeQueue {
         }
     }
 
-    public long getMinOffsetInQuque() {
+    public long getMinOffsetInQueue() {
         return this.minLogicOffset / CQ_STORE_UNIT_SIZE;
     }
 
@@ -435,8 +435,8 @@ public class ConsumeQueue {
     }
 
     public long rollNextFile(final long index) {
-        int mapedFileSize = this.mappedFileSize;
-        int totalUnitsInFile = mapedFileSize / CQ_STORE_UNIT_SIZE;
+        int mappedFileSize = this.mappedFileSize;
+        int totalUnitsInFile = mappedFileSize / CQ_STORE_UNIT_SIZE;
         return index + totalUnitsInFile - index % totalUnitsInFile;
     }
 
@@ -463,10 +463,10 @@ public class ConsumeQueue {
     }
 
     public long getMessageTotalInQueue() {
-        return this.getMaxOffsetInQuque() - this.getMinOffsetInQuque();
+        return this.getMaxOffsetInQueue() - this.getMinOffsetInQueue();
     }
 
-    public long getMaxOffsetInQuque() {
+    public long getMaxOffsetInQueue() {
         return this.mappedFileQueue.getMaxOffset() / CQ_STORE_UNIT_SIZE;
     }
 

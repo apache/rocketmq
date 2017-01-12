@@ -20,6 +20,8 @@
  */
 package org.apache.rocketmq.store;
 
+import java.nio.ByteBuffer;
+import java.util.Arrays;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -30,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class MappedFileQueueTest {
@@ -55,7 +58,7 @@ public class MappedFileQueueTest {
     }
 
     @Test
-    public void test_getLastMapedFile() {
+    public void test_getLastMappedFile() {
         final String fixedMsg = "0123456789abcdef";
 
         logger.debug("================================================================");
@@ -79,7 +82,7 @@ public class MappedFileQueueTest {
     }
 
     @Test
-    public void test_findMapedFileByOffset() {
+    public void test_findMappedFileByOffset() {
         // four-byte string.
         final String fixedMsg = "abcd";
 
@@ -179,7 +182,7 @@ public class MappedFileQueueTest {
     }
 
     @Test
-    public void test_getMapedMemorySize() {
+    public void test_getMappedMemorySize() {
         final String fixedMsg = "abcd";
 
         logger.debug("================================================================");
@@ -199,5 +202,46 @@ public class MappedFileQueueTest {
         mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();
         logger.debug("MappedFileQueue.getMappedMemorySize() OK");
+    }
+
+
+    @Test
+    public void test_deleteExpiredFileByOffset() {
+
+        logger.debug("================================================================");
+        MappedFileQueue mappedFileQueue =
+            new MappedFileQueue("target/unit_test_store/e", 5120, null);
+
+        for (int i = 0; i < 2048; i++) {
+            MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
+            assertNotNull(mappedFile);
+
+            ByteBuffer byteBuffer = ByteBuffer.allocate(ConsumeQueue.CQ_STORE_UNIT_SIZE);
+            byteBuffer.putLong(i);
+            byte[] padding = new byte[12];
+            Arrays.fill(padding, (byte)'0');
+            byteBuffer.put(padding);
+            byteBuffer.flip();
+
+            boolean result = mappedFile.appendMessage(byteBuffer.array());
+
+            assertTrue(result);
+        }
+
+        MappedFile first = mappedFileQueue.getFirstMappedFile();
+        first.hold();
+
+        int count = mappedFileQueue.deleteExpiredFileByOffset(20480, ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        assertEquals(0, count);
+        first.release();
+
+        count = mappedFileQueue.deleteExpiredFileByOffset(20480, ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        assertTrue(count > 0);
+        first = mappedFileQueue.getFirstMappedFile();
+        assertTrue(first.getFileFromOffset() > 0);
+
+        mappedFileQueue.shutdown(1000);
+        mappedFileQueue.destroy();
+        logger.debug("MappedFileQueue.deleteExpiredFileByOffset() OK");
     }
 }
