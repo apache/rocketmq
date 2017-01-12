@@ -94,8 +94,7 @@ public class RemotingUtil {
     public static boolean isLinuxPlatform() {
         return isLinuxPlatform;
     }
-
-	public static List<String> getLocalAddressArray()
+    public static List<String> getLocalAddressArray()
     {
         ArrayList<String> rstIP = new ArrayList<String>();
         try {
@@ -131,8 +130,7 @@ public class RemotingUtil {
                 Collections.reverse(rstIP);
             } else if (!ipv6Result.isEmpty()) {
                 rstIP.addAll(ipv6Result);
-            }
-            else{
+            } else {
                 rstIP.add(normalizeHostAddress(InetAddress.getLocalHost()));
             }
             return rstIP;
@@ -145,9 +143,8 @@ public class RemotingUtil {
         return null;
     }
     public static String getLocalAddress() {
-          final List<String> address = getLocalAddressArray();
-        if(address!=null && !address.isEmpty())
-        {
+        final List<String> address = getLocalAddressArray();
+        if (address != null && !address.isEmpty()) {
             return address.get(0);
         }
 

@@ -31,7 +31,7 @@ public class ClientConfig {
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
     private String clientIP = RemotingUtil.getLocalAddress();
     private List<String> clientIPArray = RemotingUtil.getLocalAddressArray();
-    private boolean isClientIPReplaced=false;
+    private boolean isClientIPReplaced = false;
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
     private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
     /**
@@ -76,35 +76,34 @@ public class ClientConfig {
      *
      * @return ip candidate list
      */
-    public List<String> computeClientIP(String ipPattern){
+    public List<String> computeClientIP(String ipPattern) {
         List<String> rstIPArray = new ArrayList<String>(this.clientIPArray.size());
-        if(ipPattern != null && !ipPattern.isEmpty())
+        if (ipPattern != null && !ipPattern.isEmpty())
         {
-            for(String ip : this.clientIPArray)
+            for (String ip : this.clientIPArray)
             {
-                if(ip.contains(ipPattern))
+                if (ip.contains(ipPattern))
                     rstIPArray.add(ip);
             }
-            if(!isClientIPReplaced && rstIPArray.size()<=0)
+            if (!isClientIPReplaced && rstIPArray.size() <= 0)
                 throw new RuntimeException("you do not have ip address pls use ifconfig to check you ip");
 
-            if(!isClientIPReplaced && rstIPArray.size() == 1)
+            if (!isClientIPReplaced && rstIPArray.size() == 1)
                 this.setClientIP(rstIPArray.get(0));
-        }
-        else{
+        } else {
             rstIPArray.addAll(this.clientIPArray);
         }
-        if(rstIPArray.size()>1 && !isClientIPReplaced)
-            try{
+        if (rstIPArray.size() > 1 && !isClientIPReplaced)
+            try {
                 throw new RuntimeException("you have more than one ip address, pls use <computeClientIP> to avoid it ,or use <setClientIP>");
             }
-            catch(Exception e){
+            catch (Exception e) {
                 e.printStackTrace();
             }
         return rstIPArray;
     }
     public void setClientIP(String clientIP) {
-        isClientIPReplaced=true;
+        isClientIPReplaced = true;
         this.clientIP = clientIP;
     }
 
