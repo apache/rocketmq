@@ -397,7 +397,7 @@ public class MappedFileQueue {
                         log.info("physic min offset " + offset + ", logics in current mappedFile max offset "
                             + maxOffsetInLogicQueue + ", delete it");
                     }
-                } else if (!mappedFile.isAvailable()) { // Handler hanged file.
+                } else if (!mappedFile.isAvailable()) { // Handle hanged file.
                     // TODO: Externalize this hardcoded value.
                     if (mappedFile.destroy(1000L * 120)) {
                         files.add(mappedFile);
