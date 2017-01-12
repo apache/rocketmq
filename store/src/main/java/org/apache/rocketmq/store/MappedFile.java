@@ -43,9 +43,9 @@ public class MappedFile extends ReferenceResource {
     public static final int OS_PAGE_SIZE = 1024 * 4;
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    private static final AtomicLong TOTAL_MAPED_VITUAL_MEMORY = new AtomicLong(0);
+    private static final AtomicLong TOTAL_MAPPED_VIRTUAL_MEMORY = new AtomicLong(0);
 
-    private static final AtomicInteger TOTAL_MAPED_FILES = new AtomicInteger(0);
+    private static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0);
     protected final AtomicInteger wrotePosition = new AtomicInteger(0);
     //ADD BY ChenYang
     protected final AtomicInteger committedPosition = new AtomicInteger(0);
@@ -132,12 +132,12 @@ public class MappedFile extends ReferenceResource {
             return viewed(viewedBuffer);
     }
 
-    public static int getTotalmapedfiles() {
-        return TOTAL_MAPED_FILES.get();
+    public static int getTotalMappedFiles() {
+        return TOTAL_MAPPED_FILES.get();
     }
 
-    public static long getTotalMapedVitualMemory() {
-        return TOTAL_MAPED_VITUAL_MEMORY.get();
+    public static long getTotalMappedVirtualMemory() {
+        return TOTAL_MAPPED_VIRTUAL_MEMORY.get();
     }
 
     public void init(final String fileName, final int fileSize, final TransientStorePool transientStorePool) throws IOException {
@@ -158,8 +158,8 @@ public class MappedFile extends ReferenceResource {
         try {
             this.fileChannel = new RandomAccessFile(this.file, "rw").getChannel();
             this.mappedByteBuffer = this.fileChannel.map(MapMode.READ_WRITE, 0, fileSize);
-            TOTAL_MAPED_VITUAL_MEMORY.addAndGet(fileSize);
-            TOTAL_MAPED_FILES.incrementAndGet();
+            TOTAL_MAPPED_VIRTUAL_MEMORY.addAndGet(fileSize);
+            TOTAL_MAPPED_FILES.incrementAndGet();
             ok = true;
         } catch (FileNotFoundException e) {
             log.error("create file channel " + this.fileName + " Failed. ", e);
@@ -405,8 +405,8 @@ public class MappedFile extends ReferenceResource {
         }
 
         clean(this.mappedByteBuffer);
-        TOTAL_MAPED_VITUAL_MEMORY.addAndGet(this.fileSize * (-1));
-        TOTAL_MAPED_FILES.decrementAndGet();
+        TOTAL_MAPPED_VIRTUAL_MEMORY.addAndGet(this.fileSize * (-1));
+        TOTAL_MAPPED_FILES.decrementAndGet();
         log.info("unmap file[REF:" + currentRef + "] " + this.fileName + " OK");
         return true;
     }
@@ -431,7 +431,7 @@ public class MappedFile extends ReferenceResource {
 
             return true;
         } else {
-            log.warn("destroy maped file[REF:" + this.getRefCount() + "] " + this.fileName
+            log.warn("destroy mapped file[REF:" + this.getRefCount() + "] " + this.fileName
                 + " Failed. cleanupOver: " + this.cleanupOver);
         }
 
