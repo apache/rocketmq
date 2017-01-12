@@ -62,7 +62,7 @@ public class RemotingCommandTest {
         assertThat(cmd.getCode()).isEqualTo(code);
         assertThat(cmd.getVersion()).isEqualTo(2333);
         assertThat(cmd.getRemark()).isEqualTo(remark);
-        assertThat(cmd.getFlag() & 0x01).isEqualTo(1); //flag bit 0: 1 presents request
+        assertThat(cmd.getFlag() & 0x01).isEqualTo(1); //flag bit 0: 1 presents response
     }
 
     @Test
@@ -75,7 +75,7 @@ public class RemotingCommandTest {
         assertThat(cmd.getCode()).isEqualTo(code);
         assertThat(cmd.getVersion()).isEqualTo(2333);
         assertThat(cmd.getRemark()).isEqualTo(remark);
-        assertThat(cmd.getFlag() & 0x01).isEqualTo(1); //flag bit 0: 1 presents request
+        assertThat(cmd.getFlag() & 0x01).isEqualTo(1); //flag bit 0: 1 presents response
     }
 
     @Test
@@ -145,7 +145,7 @@ public class RemotingCommandTest {
     }
 
     @Test
-    public void testEncodeAndDecode_FilledBodyWithExtFields() {
+    public void testEncodeAndDecode_FilledBodyWithExtFields() throws RemotingCommandException {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
         int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
@@ -172,17 +172,12 @@ public class RemotingCommandTest {
 
         assertThat(decodedCommand.getExtFields().get("key")).isEqualTo("value");
 
-        try {
-            CommandCustomHeader decodedHeader = decodedCommand.decodeCommandCustomHeader(ExtFieldsHeader.class);
-            assertThat(((ExtFieldsHeader)decodedHeader).getStringValue()).isEqualTo("bilibili");
-            assertThat(((ExtFieldsHeader)decodedHeader).getIntValue()).isEqualTo(2333);
-            assertThat(((ExtFieldsHeader)decodedHeader).getLongValue()).isEqualTo(23333333l);
-            assertThat(((ExtFieldsHeader)decodedHeader).isBooleanValue()).isEqualTo(true);
-            assertThat(((ExtFieldsHeader)decodedHeader).getDoubleValue()).isBetween(0.617, 0.619);
-
-        } catch (RemotingCommandException ex) {
-            fail(ex.getMessage());
-        }
+        CommandCustomHeader decodedHeader = decodedCommand.decodeCommandCustomHeader(ExtFieldsHeader.class);
+        assertThat(((ExtFieldsHeader) decodedHeader).getStringValue()).isEqualTo("bilibili");
+        assertThat(((ExtFieldsHeader) decodedHeader).getIntValue()).isEqualTo(2333);
+        assertThat(((ExtFieldsHeader) decodedHeader).getLongValue()).isEqualTo(23333333l);
+        assertThat(((ExtFieldsHeader) decodedHeader).isBooleanValue()).isEqualTo(true);
+        assertThat(((ExtFieldsHeader) decodedHeader).getDoubleValue()).isBetween(0.617, 0.619);
     }
 }
 
