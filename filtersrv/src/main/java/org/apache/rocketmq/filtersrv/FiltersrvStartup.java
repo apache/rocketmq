@@ -49,8 +49,7 @@ public class FiltersrvStartup {
 
         try {
             controller.start();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             System.exit(-1);
         }
@@ -146,8 +145,7 @@ public class FiltersrvStartup {
             }));
 
             return controller;
-        }
-        catch (Throwable e) {
+        } catch (Throwable e) {
             e.printStackTrace();
             System.exit(-1);
         }

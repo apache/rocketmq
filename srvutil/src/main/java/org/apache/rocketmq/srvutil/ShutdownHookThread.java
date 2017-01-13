@@ -60,8 +60,7 @@ public class ShutdownHookThread extends Thread {
                 long beginTime = System.currentTimeMillis();
                 try {
                     this.callback.call();
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     log.error("shutdown hook callback invoked failure.", e);
                 }
                 long consumingTimeTotal = System.currentTimeMillis() - beginTime;
