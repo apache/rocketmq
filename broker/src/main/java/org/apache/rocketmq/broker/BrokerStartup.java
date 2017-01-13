@@ -64,8 +64,7 @@ public class BrokerStartup {
 
             log.info(tip);
             return controller;
-        }
-        catch (Throwable e) {
+        } catch (Throwable e) {
             System.out.printf("Broker startup failure with following exceptions:");
             e.printStackTrace();
             System.exit(-1);
@@ -111,8 +110,7 @@ public class BrokerStartup {
                 MixAll.printObjectProperties(null, nettyClientConfig);
                 MixAll.printObjectProperties(null, messageStoreConfig);
                 System.exit(0);
-            }
-            else if (commandLine.hasOption('m')) {
+            } else if (commandLine.hasOption('m')) {
                 MixAll.printObjectProperties(null, brokerConfig, true);
                 MixAll.printObjectProperties(null, nettyServerConfig, true);
                 MixAll.printObjectProperties(null, nettyClientConfig, true);
@@ -154,8 +152,7 @@ public class BrokerStartup {
                     for (String addr : addrArray) {
                         RemotingUtil.string2SocketAddress(addr);
                     }
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     System.out.printf(
                         "The Name Server Address[%s] illegal, please set it as follows, \"127.0.0.1:9876;192.168.0.1:9876\"%n",
                         namesrvAddr);
@@ -227,8 +224,7 @@ public class BrokerStartup {
             }, "ShutdownHook"));
 
             return controller;
-        }
-        catch (Throwable e) {
+        } catch (Throwable e) {
             e.printStackTrace();
             System.exit(-1);
         }

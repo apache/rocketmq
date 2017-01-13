@@ -100,8 +100,7 @@ public class MQAdminStartup {
                             if (options != null) {
                                 ServerUtil.printCommandLineHelp("mqadmin " + cmd.commandName(), options);
                             }
-                        }
-                        else {
+                        } else {
                             System.out.printf("The sub command \'" + args[1] + "\' not exist.%n");
                         }
                         break;
@@ -127,14 +126,12 @@ public class MQAdminStartup {
                         }
 
                         cmd.execute(commandLine, options, rpcHook);
-                    }
-                    else {
+                    } else {
                         System.out.printf("The sub command \'" + args[0] + "\' not exist.%n");
                     }
                     break;
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             System.out.printf("MQAdmin startup failure with following exceptions:");
             e.printStackTrace();
         }

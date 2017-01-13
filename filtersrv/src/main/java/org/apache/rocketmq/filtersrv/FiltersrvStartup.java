@@ -48,8 +48,7 @@ public class FiltersrvStartup {
 
         try {
             controller.start();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             System.exit(-1);
         }
@@ -156,8 +155,7 @@ public class FiltersrvStartup {
             }, "ShutdownHook"));
 
             return controller;
-        }
-        catch (Throwable e) {
+        } catch (Throwable e) {
             System.out.printf("Filtersrv startup failure with following exceptions:");
             e.printStackTrace();
             System.exit(-1);
