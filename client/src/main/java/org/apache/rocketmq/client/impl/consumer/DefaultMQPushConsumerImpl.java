@@ -16,25 +16,17 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrentlyV2;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.store.LocalFileOffsetStore;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
@@ -52,6 +44,7 @@ import org.apache.rocketmq.client.stat.ConsumerStatsManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.consumer.AcknowledgementMode;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.help.FAQUrl;
@@ -74,6 +67,20 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
+
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     /**
@@ -584,8 +591,26 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         new ConsumeMessageOrderlyService(this, (MessageListenerOrderly) this.getMessageListenerInner());
                 } else if (this.getMessageListenerInner() instanceof MessageListenerConcurrently) {
                     this.consumeOrderly = false;
-                    this.consumeMessageService =
-                        new ConsumeMessageConcurrentlyService(this, (MessageListenerConcurrently) this.getMessageListenerInner());
+                    final MessageListenerConcurrently messageListenerConcurrentlyInner = (MessageListenerConcurrently) this.getMessageListenerInner();
+                    final MessageListenerConcurrentlyV2 messageListenerConcurrentlyV2;
+                    if (this.getMessageListenerInner() instanceof MessageListenerConcurrentlyV2) {
+                        messageListenerConcurrentlyV2 =  (MessageListenerConcurrentlyV2) this.getMessageListenerInner();
+                    } else { //wrap it into new MessageListenerConcurrentlyV2
+                        messageListenerConcurrentlyV2 = new MessageListenerConcurrentlyV2() {
+                            @Override
+                            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
+                                return messageListenerConcurrentlyInner.consumeMessage(msgs, context);
+                            }
+
+                            @Override
+                            public AcknowledgementMode acknowledgementMode() {
+                                return AcknowledgementMode.DUPS_OK_ACKNOWLEDGE;
+                            }
+                        };
+                    }
+
+                    this.consumeMessageService = new ConsumeMessageConcurrentlyService(this, messageListenerConcurrentlyV2);
+
                 }
 
                 this.consumeMessageService.start();
@@ -1000,6 +1025,19 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
 
         return info;
+    }
+
+    /**
+     * update offset corresponding to the message and message queue
+     * @param msg
+     * @param mq
+     * @param persist whether to persist immediately, if false, will only update offset locally
+     */
+    public void ackMessage(MessageExt msg, MessageQueue mq, boolean persist) {
+        ProcessQueue processQueue = getRebalanceImpl().getProcessQueueTable().get(mq);
+        if (processQueue != null) {
+            ((ConsumeMessageConcurrentlyService) this.consumeMessageService).ackMessages(Arrays.asList(msg), processQueue, mq, persist);
+        }
     }
 
     public MQClientInstance getmQClientFactory() {
