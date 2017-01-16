@@ -53,9 +53,9 @@ public class MQClientManager {
             MQClientInstance prev = this.factoryTable.putIfAbsent(clientId, instance);
             if (prev != null) {
                 instance = prev;
-                log.warn("Previous MQClientInstance has created for clientId:[{}]", clientId);
+                log.warn("Returned Previous MQClientInstance for clientId:[{}]", clientId);
             } else {
-                log.info("new MQClientInstance has created for clientId:[{}]", clientId);
+                log.info("Created new MQClientInstance for clientId:[{}]", clientId);
             }
         }
 
