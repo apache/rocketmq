@@ -30,7 +30,7 @@ public class RocketMQSerializable {
         byte[] remarkBytes = null;
         int remarkLen = 0;
         if (cmd.getRemark() != null && cmd.getRemark().length() > 0) {
-            remarkBytes = cmd.getRemark().getBytes(RemotingSerializable.CHARSET_UTF8);
+            remarkBytes = cmd.getRemark().getBytes(CHARSET_UTF8);
             remarkLen = remarkBytes.length;
         }
 
@@ -89,9 +89,9 @@ public class RocketMQSerializable {
             if (entry.getKey() != null && entry.getValue() != null) {
                 kvLength =
                     // keySize + Key
-                    2 + entry.getKey().getBytes(RemotingSerializable.CHARSET_UTF8).length
+                    2 + entry.getKey().getBytes(CHARSET_UTF8).length
                         // valSize + val
-                        + 4 + entry.getValue().getBytes(RemotingSerializable.CHARSET_UTF8).length;
+                        + 4 + entry.getValue().getBytes(CHARSET_UTF8).length;
                 totalLength += kvLength;
             }
         }
@@ -103,8 +103,8 @@ public class RocketMQSerializable {
         while (it.hasNext()) {
             Map.Entry<String, String> entry = it.next();
             if (entry.getKey() != null && entry.getValue() != null) {
-                key = entry.getKey().getBytes(RemotingSerializable.CHARSET_UTF8);
-                val = entry.getValue().getBytes(RemotingSerializable.CHARSET_UTF8);
+                key = entry.getKey().getBytes(CHARSET_UTF8);
+                val = entry.getValue().getBytes(CHARSET_UTF8);
 
                 content.putShort((short) key.length);
                 content.put(key);
@@ -154,7 +154,7 @@ public class RocketMQSerializable {
         if (remarkLength > 0) {
             byte[] remarkContent = new byte[remarkLength];
             headerBuffer.get(remarkContent);
-            cmd.setRemark(new String(remarkContent, RemotingSerializable.CHARSET_UTF8));
+            cmd.setRemark(new String(remarkContent, CHARSET_UTF8));
         }
 
         // HashMap<String, String> extFields
@@ -187,8 +187,7 @@ public class RocketMQSerializable {
             valContent = new byte[valSize];
             byteBuffer.get(valContent);
 
-            map.put(new String(keyContent, RemotingSerializable.CHARSET_UTF8), new String(valContent,
-                RemotingSerializable.CHARSET_UTF8));
+            map.put(new String(keyContent, CHARSET_UTF8), new String(valContent, CHARSET_UTF8));
         }
         return map;
     }
