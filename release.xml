@@ -17,7 +17,7 @@
   -->
 
 <assembly>
-    <id>broker</id>
+    <id>server</id>
     <baseDirectory>apache-rocketmq</baseDirectory>
     <formats>
         <format>dir</format>

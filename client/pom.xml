@@ -29,56 +29,6 @@
     <artifactId>rocketmq-client</artifactId>
     <name>rocketmq-client ${project.version}</name>
 
-    <profiles>
-        <profile>
-            <id>client-shade</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-shade-plugin</artifactId>
-                        <version>2.4.3</version>
-                        <executions>
-                            <execution>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>shade</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <keepDependenciesWithProvidedScope>false</keepDependenciesWithProvidedScope>
-                            <promoteTransitiveDependencies>false</promoteTransitiveDependencies>
-                            <createDependencyReducedPom>true</createDependencyReducedPom>
-                            <minimizeJar>false</minimizeJar>
-                            <createSourcesJar>true</createSourcesJar>
-                            <artifactSet>
-                                <includes>
-                                    <include>com.alibaba:fastjson</include>
-                                    <include>io.netty:netty-all</include>
-                                    <include>org.apache.rocketmq:rocketmq-client</include>
-                                    <include>org.apache.rocketmq:rocketmq-common</include>
-                                    <include>org.apache.rocketmq:rocketmq-remoting</include>
-                                </includes>
-                            </artifactSet>
-                            <relocations>
-                                <relocation>
-                                    <pattern>io.netty</pattern>
-                                    <shadedPattern>org.apache.rocketmq.shade.io.netty</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.alibaba.fastjson</pattern>
-                                    <shadedPattern>org.apache.rocketmq.shade.com.alibaba.fastjson</shadedPattern>
-                                </relocation>
-                            </relocations>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
-
-
     <dependencies>
         <dependency>
             <groupId>junit</groupId>

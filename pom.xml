@@ -236,29 +236,6 @@
                 </configuration>
             </plugin>
             <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.6</version>
-                <configuration>
-                    <finalName>apache-rocketmq</finalName>
-                    <descriptors>
-                        <descriptor>release.xml</descriptor>
-                    </descriptors>
-                </configuration>
-            </plugin>
-
-            <!--
-                        <plugin>
-                            <artifactId>maven-assembly-plugin</artifactId>
-                            <configuration>
-                                <finalName>apache-rocketmq-client-java-${project.version}</finalName>
-                                <descriptors>
-                                    <descriptor>release-client.xml</descriptor>
-                                </descriptors>
-                            </configuration>
-                        </plugin>
-            -->
-
-            <plugin>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>2.10.4</version>
                 <configuration>
@@ -395,6 +372,39 @@
                                 </goals>
                             </execution>
                         </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>release-server</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <version>2.6</version>
+                        <configuration>
+                            <finalName>apache-rocketmq</finalName>
+                            <descriptors>
+                                <descriptor>release.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>release-client</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <configuration>
+                            <finalName>apache-rocketmq</finalName>
+                            <descriptors>
+                                <descriptor>release-client.xml</descriptor>
+                            </descriptors>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
