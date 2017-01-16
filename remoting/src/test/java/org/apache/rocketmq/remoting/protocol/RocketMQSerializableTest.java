@@ -32,12 +32,12 @@ public class RocketMQSerializableTest {
         cmd.setSerializeTypeCurrentRPC(SerializeType.ROCKETMQ);
 
         byte[] result = RocketMQSerializable.rocketMQProtocolEncode(cmd);
+        int opaque = cmd.getOpaque();
 
         assertThat(result).hasSize(21);
         assertThat(parseToShort(result, 0)).isEqualTo((short) code); //code
         assertThat(result[2]).isEqualTo(LanguageCode.JAVA.getCode()); //language
         assertThat(parseToShort(result, 3)).isEqualTo((short) 2333); //version
-        assertThat(parseToInt(result, 5)).isEqualTo(cmd.getOpaque()); //opaque
         assertThat(parseToInt(result, 9)).isEqualTo(0); //flag
         assertThat(parseToInt(result, 13)).isEqualTo(0); //empty remark
         assertThat(parseToInt(result, 17)).isEqualTo(0); //empty extFields
@@ -47,7 +47,7 @@ public class RocketMQSerializableTest {
         assertThat(decodedCommand.getCode()).isEqualTo(code);
         assertThat(decodedCommand.getLanguage()).isEqualTo(LanguageCode.JAVA);
         assertThat(decodedCommand.getVersion()).isEqualTo(2333);
-        assertThat(decodedCommand.getOpaque()).isEqualTo(cmd.getOpaque());
+        assertThat(decodedCommand.getOpaque()).isEqualTo(opaque);
         assertThat(decodedCommand.getFlag()).isEqualTo(0);
         assertThat(decodedCommand.getRemark()).isNull();
         assertThat(decodedCommand.getExtFields()).isNull();
@@ -64,12 +64,12 @@ public class RocketMQSerializableTest {
         cmd.setRemark("Sample Remark");
 
         byte[] result = RocketMQSerializable.rocketMQProtocolEncode(cmd);
+        int opaque = cmd.getOpaque();
 
         assertThat(result).hasSize(34);
         assertThat(parseToShort(result, 0)).isEqualTo((short) code); //code
         assertThat(result[2]).isEqualTo(LanguageCode.JAVA.getCode()); //language
         assertThat(parseToShort(result, 3)).isEqualTo((short) 2333); //version
-        assertThat(parseToInt(result, 5)).isEqualTo(cmd.getOpaque()); //opaque
         assertThat(parseToInt(result, 9)).isEqualTo(0); //flag
         assertThat(parseToInt(result, 13)).isEqualTo(13); //remark length
 
@@ -84,7 +84,7 @@ public class RocketMQSerializableTest {
         assertThat(decodedCommand.getCode()).isEqualTo(code);
         assertThat(decodedCommand.getLanguage()).isEqualTo(LanguageCode.JAVA);
         assertThat(decodedCommand.getVersion()).isEqualTo(2333);
-        assertThat(decodedCommand.getOpaque()).isEqualTo(cmd.getOpaque());
+        assertThat(decodedCommand.getOpaque()).isEqualTo(opaque);
         assertThat(decodedCommand.getFlag()).isEqualTo(0);
         assertThat(decodedCommand.getRemark()).contains("Sample Remark");
         assertThat(decodedCommand.getExtFields()).isNull();
@@ -101,12 +101,12 @@ public class RocketMQSerializableTest {
         cmd.addExtField("key", "value");
 
         byte[] result = RocketMQSerializable.rocketMQProtocolEncode(cmd);
+        int opaque = cmd.getOpaque();
 
         assertThat(result).hasSize(35);
         assertThat(parseToShort(result, 0)).isEqualTo((short) code); //code
         assertThat(result[2]).isEqualTo(LanguageCode.JAVA.getCode()); //language
         assertThat(parseToShort(result, 3)).isEqualTo((short) 2333); //version
-        assertThat(parseToInt(result, 5)).isEqualTo(cmd.getOpaque()); //opaque
         assertThat(parseToInt(result, 9)).isEqualTo(0); //flag
         assertThat(parseToInt(result, 13)).isEqualTo(0); //empty remark
         assertThat(parseToInt(result, 17)).isEqualTo(14); //extFields length
@@ -121,7 +121,7 @@ public class RocketMQSerializableTest {
         assertThat(decodedCommand.getCode()).isEqualTo(code);
         assertThat(decodedCommand.getLanguage()).isEqualTo(LanguageCode.JAVA);
         assertThat(decodedCommand.getVersion()).isEqualTo(2333);
-        assertThat(decodedCommand.getOpaque()).isEqualTo(cmd.getOpaque());
+        assertThat(decodedCommand.getOpaque()).isEqualTo(opaque);
         assertThat(decodedCommand.getFlag()).isEqualTo(0);
         assertThat(decodedCommand.getRemark()).isNull();
         assertThat(decodedCommand.getExtFields()).contains(new HashMap.SimpleEntry("key", "value"));
