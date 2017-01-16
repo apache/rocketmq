@@ -377,7 +377,7 @@
             </build>
         </profile>
         <profile>
-            <id>release-server</id>
+            <id>release-all</id>
             <build>
                 <plugins>
                     <plugin>

@@ -17,8 +17,8 @@
   -->
 
 <assembly>
-    <id>server</id>
-    <baseDirectory>apache-rocketmq</baseDirectory>
+    <id>all</id>
+    <includeBaseDirectory>false</includeBaseDirectory>
     <formats>
         <format>dir</format>
         <format>tar.gz</format>
