@@ -28,10 +28,14 @@ import java.net.NetworkInterface;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
@@ -495,4 +499,38 @@ public class UtilAll {
             throw new RuntimeException("Can not get local ip", e);
         }
     }
+
+
+    public static String selectCommitLogStorePath(String pathCSV) {
+        if (!pathCSV.contains(",")) {
+            return pathCSV;
+        }
+
+        String[] paths = pathCSV.split(",");
+
+        if (paths.length == 1) {
+            return paths[0];
+        }
+
+        List<Pair<String, Long>> pathList = new ArrayList<Pair<String, Long>>();
+        for (String path : paths) {
+
+            if (null == path || path.trim().length() == 0) {
+                continue;
+            }
+
+            Pair<String, Long> pair = new Pair<String, Long>(path, new File(path).getFreeSpace());
+            pathList.add(pair);
+        }
+
+        Collections.sort(pathList, new Comparator<Pair<String, Long>>() {
+            @Override
+            public int compare(Pair<String, Long> lhs, Pair<String, Long> rhs) {
+                return lhs.getObject2() > rhs.getObject2() ? -1 : (lhs.getObject2().equals(rhs.getObject2()) ? lhs.getObject1().compareTo(rhs.getObject1()) : 1);
+            }
+        });
+
+        return pathList.get(0).getObject1();
+    }
+
 }

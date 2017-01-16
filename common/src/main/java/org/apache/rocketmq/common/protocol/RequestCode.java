@@ -159,4 +159,6 @@ public class RequestCode {
      * get config from name server
      */
     public static final int GET_NAMESRV_CONFIG = 319;
+
+    public static final int ADD_COMMIT_LOG_STORE_PATH = 320;
 }

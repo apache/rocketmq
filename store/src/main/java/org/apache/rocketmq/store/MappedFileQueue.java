@@ -17,13 +17,19 @@
 package org.apache.rocketmq.store;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.slf4j.Logger;
@@ -35,7 +41,10 @@ public class MappedFileQueue {
 
     private static final int DELETE_FILES_BATCH_MAX = 10;
 
-    private final String storePath;
+    /**
+     * commit log store path in form of CSV, allowing multiple commit log paths.
+     */
+    private String storePath;
 
     private final int mappedFileSize;
 
@@ -47,6 +56,9 @@ public class MappedFileQueue {
     private long committedWhere = 0;
 
     private volatile long storeTimestamp = 0;
+
+    private static final String MAPPED_FILE_NAME_PATTERN_STRING = "\\d+";
+    private static final Pattern MAPPED_FILE_NAME_PATTERN = Pattern.compile(MAPPED_FILE_NAME_PATTERN_STRING);
 
     public MappedFileQueue(final String storePath, int mappedFileSize,
         AllocateMappedFileService allocateMappedFileService) {
@@ -145,17 +157,70 @@ public class MappedFileQueue {
     }
 
     public boolean load() {
-        File dir = new File(this.storePath);
-        File[] files = dir.listFiles();
-        if (files != null) {
+        File[] dirs;
+        if (!this.storePath.contains(",")) {
+            dirs = new File[]{new File(this.storePath)};
+        } else {
+            String[] storePaths = storePath.split(",");
+            dirs = new File[storePaths.length];
+            for (int i = 0; i < dirs.length; i++) {
+                dirs[i] = new File(storePaths[i]);
+            }
+        }
+
+        List<File> files = new ArrayList<>();
+        for (File dir : dirs) {
+            File[] commitLogFiles = dir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    Matcher matcher = MAPPED_FILE_NAME_PATTERN.matcher(name);
+                    return matcher.matches();
+                }
+            });
+            if (null != commitLogFiles) {
+                files.addAll(Arrays.asList(commitLogFiles));
+            }
+        }
+
+        if (!files.isEmpty()) {
             // ascending order
-            Arrays.sort(files);
+            Collections.sort(files, new Comparator<File>() {
+                @Override
+                public int compare(File lhs, File rhs) {
+                    return lhs.getName().compareTo(rhs.getName());
+                }
+            });
+
+            long prevOffset = 0;
+            long currentOffset;
+            boolean first = true;
             for (File file : files) {
 
+                // Validate length
                 if (file.length() != this.mappedFileSize) {
-                    log.warn(file + "\t" + file.length()
-                        + " length not matched message store config value, ignore it");
-                    return true;
+                    log.warn(file + "\t" + file.length() + " length does not match message store config value, ignore it");
+                    continue;
+                }
+
+                currentOffset = Long.parseLong(file.getName());
+                if (first) {
+                    first = false;
+                    prevOffset = currentOffset;
+                } else if (currentOffset - prevOffset != mappedFileSize) {
+                    log.error("Mapped file queue is tampered. Previous offset: {}; current offset: {}",
+                            prevOffset, currentOffset);
+
+                    // Debug info
+                    log.warn("Commit log store paths are: {}", storePath);
+                    log.warn("Files in order are:");
+                    for (File f : files) {
+                        log.warn(f.getAbsolutePath());
+                    }
+                    // End of debug
+
+                    return false;
+                } else {
+                    prevOffset = currentOffset;
                 }
 
                 try {
@@ -204,9 +269,10 @@ public class MappedFileQueue {
         }
 
         if (createOffset != -1 && needCreate) {
-            String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
-            String nextNextFilePath = this.storePath + File.separator
-                + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
+            String selectedMappedFileStorePath = UtilAll.selectCommitLogStorePath(this.storePath);
+            String nextFilePath = resolveMappedFilePath(selectedMappedFileStorePath, createOffset);
+            String nextNextFilePath = resolveMappedFilePath(selectedMappedFileStorePath, createOffset
+                    + this.mappedFileSize);
             MappedFile mappedFile = null;
 
             if (this.allocateMappedFileService != null) {
@@ -231,6 +297,20 @@ public class MappedFileQueue {
         }
 
         return mappedFileLast;
+    }
+
+    private String resolveMappedFilePath(final String selectedMappedFileStorePath, final long startOffset) {
+        // The file might have been created previously.
+        String[] paths = this.storePath.split(",");
+        for (String path : paths) {
+            String filePath = path + File.separator + UtilAll.offset2FileName(startOffset);
+            File file = new File(filePath);
+            if (file.exists()) {
+                return filePath;
+            }
+        }
+
+        return selectedMappedFileStorePath + File.separator + UtilAll.offset2FileName(startOffset);
     }
 
     public MappedFile getLastMappedFile(final long startOffset) {
@@ -587,5 +667,9 @@ public class MappedFileQueue {
 
     public void setCommittedWhere(final long committedWhere) {
         this.committedWhere = committedWhere;
+    }
+
+    public void setStorePath(String storePath) {
+        this.storePath = storePath;
     }
 }

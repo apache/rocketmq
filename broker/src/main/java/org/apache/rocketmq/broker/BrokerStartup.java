@@ -125,7 +125,7 @@ public class BrokerStartup {
                     properties = new Properties();
                     properties.load(in);
 
-                    parsePropertie2SystemEnv(properties);
+                    parseProperties2SystemEnv(properties);
                     MixAll.properties2Object(properties, brokerConfig);
                     MixAll.properties2Object(properties, nettyServerConfig);
                     MixAll.properties2Object(properties, nettyClientConfig);
@@ -212,9 +212,9 @@ public class BrokerStartup {
                         log.info("Shutdown hook was invoked, {}", this.shutdownTimes.incrementAndGet());
                         if (!this.hasShutdown) {
                             this.hasShutdown = true;
-                            long begineTime = System.currentTimeMillis();
+                            long beginTime = System.currentTimeMillis();
                             controller.shutdown();
-                            long consumingTimeTotal = System.currentTimeMillis() - begineTime;
+                            long consumingTimeTotal = System.currentTimeMillis() - beginTime;
                             log.info("Shutdown hook over, consuming total time(ms): {}", consumingTimeTotal);
                         }
                     }
@@ -230,7 +230,7 @@ public class BrokerStartup {
         return null;
     }
 
-    private static void parsePropertie2SystemEnv(Properties properties) {
+    private static void parseProperties2SystemEnv(Properties properties) {
         if (properties == null) {
             return;
         }

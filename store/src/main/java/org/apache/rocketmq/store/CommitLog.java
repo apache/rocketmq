@@ -821,6 +821,10 @@ public class CommitLog {
         }
     }
 
+    public void updateCommitLogStorePath() {
+        mappedFileQueue.setStorePath(defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog());
+    }
+
     public static class GroupCommitRequest {
         private final long nextOffset;
         private final CountDownLatch countDownLatch = new CountDownLatch(1);

@@ -20,47 +20,22 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class CheckTransactionStateRequestHeader implements CommandCustomHeader {
+public class AddCommitLogStorePathRequestHeader implements CommandCustomHeader {
+
     @CFNotNull
-    private Long tranStateTableOffset;
-    @CFNotNull
-    private Long commitLogOffset;
-    private String msgId;
-    private String transactionId;
+    private String commitLogPath;
 
     @Override
     public void checkFields() throws RemotingCommandException {
+
     }
 
-    public Long getTranStateTableOffset() {
-        return tranStateTableOffset;
+    public String getCommitLogPath() {
+        return commitLogPath;
     }
 
-    public void setTranStateTableOffset(Long tranStateTableOffset) {
-        this.tranStateTableOffset = tranStateTableOffset;
-    }
-
-    public Long getCommitLogOffset() {
-        return commitLogOffset;
-    }
-
-    public void setCommitLogOffset(Long commitLogOffset) {
-        this.commitLogOffset = commitLogOffset;
-    }
-
-    public String getMsgId() {
-        return msgId;
-    }
-
-    public void setMsgId(String msgId) {
-        this.msgId = msgId;
-    }
-
-    public String getTransactionId() {
-        return transactionId;
-    }
-
-    public void setTransactionId(String transactionId) {
-        this.transactionId = transactionId;
+    public void setCommitLogPath(String commitLogPath) {
+        this.commitLogPath = commitLogPath;
     }
 }
+
