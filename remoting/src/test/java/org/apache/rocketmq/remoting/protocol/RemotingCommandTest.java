@@ -184,7 +184,6 @@ public class RemotingCommandTest {
 class SampleCommandCustomHeader implements CommandCustomHeader {
     @Override
     public void checkFields() throws RemotingCommandException {
-        return;
     }
 }
 
