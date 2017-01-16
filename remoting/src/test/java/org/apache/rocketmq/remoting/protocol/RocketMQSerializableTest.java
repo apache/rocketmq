@@ -19,7 +19,6 @@ package org.apache.rocketmq.remoting.protocol;
 import static org.assertj.core.api.Assertions.*;
 
 import java.util.HashMap;
-import java.util.Map;
 import org.junit.Test;
 
 public class RocketMQSerializableTest {
@@ -126,6 +125,19 @@ public class RocketMQSerializableTest {
         assertThat(decodedCommand.getFlag()).isEqualTo(0);
         assertThat(decodedCommand.getRemark()).isNull();
         assertThat(decodedCommand.getExtFields()).contains(new HashMap.SimpleEntry("key", "value"));
+    }
+
+    @Test
+    public void testIsBlank_NotBlank() {
+        assertThat(RocketMQSerializable.isBlank("aeiou")).isFalse();
+        assertThat(RocketMQSerializable.isBlank("  A  ")).isFalse();
+    }
+
+    @Test
+    public void testIsBlank_Blank() {
+        assertThat(RocketMQSerializable.isBlank(null)).isTrue();
+        assertThat(RocketMQSerializable.isBlank("")).isTrue();
+        assertThat(RocketMQSerializable.isBlank("  ")).isTrue();
     }
 
     private short parseToShort(byte[] array, int index) {
