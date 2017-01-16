@@ -610,7 +610,7 @@ public class RouteInfoManager {
                     while (it.hasNext()) {
                         BrokerData bd = brokerAddrTable.get(it.next());
                         HashMap<Long, String> brokerAddrs = bd.getBrokerAddrs();
-                        if (bd.getBrokerAddrs() != null && !bd.getBrokerAddrs().isEmpty()) {
+                        if (brokerAddrs != null && !brokerAddrs.isEmpty()) {
                             Iterator<Long> it2 = brokerAddrs.keySet().iterator();
                             topicList.setBrokerAddr(brokerAddrs.get(it2.next()));
                             break;
