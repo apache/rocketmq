@@ -23,7 +23,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 public class RocketMQSerializable {
-    public static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
+    private static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
 
     public static byte[] rocketMQProtocolEncode(RemotingCommand cmd) {
         // String remark
