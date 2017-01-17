@@ -27,10 +27,12 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,27 +41,24 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class RemoteBrokerOffsetStoreTest {
     @Mock
-    private static MQClientInstance mQClientFactory;
+    private MQClientInstance mQClientFactory;
     @Mock
-    private static MQClientAPIImpl mqClientAPI;
-    private static String group = "FooBarGroup";
-    private static String topic = "FooBar";
-    private static String brokerName = "DefaultBrokerName";
+    private MQClientAPIImpl mqClientAPI;
+    private String group = "FooBarGroup";
+    private String topic = "FooBar";
+    private String brokerName = "DefaultBrokerName";
 
-    @BeforeClass
-    public static void init() {
+    @Before
+    public void init() {
         System.setProperty("rocketmq.client.localOffsetStoreDir", System.getProperty("java.io.tmpdir") + ".rocketmq_offsets");
-        mQClientFactory = mock(MQClientInstance.class);
         String clientId = new ClientConfig().buildMQClientId() + "#TestNamespace" + System.currentTimeMillis();
         when(mQClientFactory.getClientId()).thenReturn(clientId);
         when(mQClientFactory.findBrokerAddressInAdmin(brokerName)).thenReturn(new FindBrokerResult("127.0.0.1", false));
-
-        mqClientAPI = mock(MQClientAPIImpl.class);
         when(mQClientFactory.getMQClientAPIImpl()).thenReturn(mqClientAPI);
     }
 

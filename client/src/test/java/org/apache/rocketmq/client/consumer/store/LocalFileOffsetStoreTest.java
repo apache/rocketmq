@@ -21,25 +21,26 @@ import java.util.HashSet;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class LocalFileOffsetStoreTest {
     @Mock
-    private static MQClientInstance mQClientFactory;
-    private static String group = "FooBarGroup";
-    private static String topic = "FooBar";
-    private static String brokerName = "DefaultBrokerName";
+    private MQClientInstance mQClientFactory;
+    private String group = "FooBarGroup";
+    private String topic = "FooBar";
+    private String brokerName = "DefaultBrokerName";
 
-    @BeforeClass
-    public static void init() {
+    @Before
+    public void init() {
         System.setProperty("rocketmq.client.localOffsetStoreDir", System.getProperty("java.io.tmpdir") + ".rocketmq_offsets");
-        mQClientFactory = Mockito.mock(MQClientInstance.class);
         String clientId = new ClientConfig().buildMQClientId() + "#TestNamespace" + System.currentTimeMillis();
         when(mQClientFactory.getClientId()).thenReturn(clientId);
     }
