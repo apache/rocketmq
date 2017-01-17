@@ -14,36 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.rocketmq.client.common;
 
-import java.util.Random;
+import org.junit.Test;
 
-public class ThreadLocalIndex {
-    private final ThreadLocal<Integer> threadLocalIndex = new ThreadLocal<Integer>();
-    private final Random random = new Random();
+import static org.assertj.core.api.Assertions.assertThat;
 
-    public int getAndIncrement() {
-        Integer index = this.threadLocalIndex.get();
-        if (null == index) {
-            index = Math.abs(random.nextInt());
-            if (index < 0)
-                index = 0;
-            this.threadLocalIndex.set(index);
-        }
+public class ThreadLocalIndexTest {
 
-        index = Math.abs(index + 1);
-        if (index < 0)
-            index = 0;
+    @Test
+    public void getAndIncrement() throws Exception {
+        ThreadLocalIndex localIndex = new ThreadLocalIndex();
+        int initialVal = localIndex.getAndIncrement();
 
-        this.threadLocalIndex.set(index);
-        return index;
+        assertThat(localIndex.getAndIncrement()).isEqualTo(initialVal + 1);
     }
 
-    @Override
-    public String toString() {
-        return "ThreadLocalIndex{" +
-            "threadLocalIndex=" + threadLocalIndex.get() +
-            '}';
-    }
 }
