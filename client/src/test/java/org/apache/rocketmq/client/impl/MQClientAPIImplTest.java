@@ -35,13 +35,14 @@ import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,14 +53,14 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 
+@RunWith(MockitoJUnitRunner.class)
 public class MQClientAPIImplTest {
-    private static MQClientAPIImpl mqClientAPI = new MQClientAPIImpl(new NettyClientConfig(), null, null, new ClientConfig());
+    private MQClientAPIImpl mqClientAPI = new MQClientAPIImpl(new NettyClientConfig(), null, null, new ClientConfig());
     @Mock
-    private static RemotingClient remotingClient;
+    private RemotingClient remotingClient;
     @Mock
-    private static DefaultMQProducerImpl defaultMQProducerImpl;
+    private DefaultMQProducerImpl defaultMQProducerImpl;
 
     private String brokerAddr = "127.0.0.1";
     private String brokerName = "DefaultBroker";
@@ -67,10 +68,8 @@ public class MQClientAPIImplTest {
     private static String topic = "FooBar";
     private Message msg = new Message("FooBar", new byte[] {});
 
-    @BeforeClass
-    public static void init() throws Exception {
-        remotingClient = mock(NettyRemotingClient.class);
-        defaultMQProducerImpl = mock(DefaultMQProducerImpl.class);
+    @Before
+    public void init() throws Exception {
         Field field = MQClientAPIImpl.class.getDeclaredField("remotingClient");
         field.setAccessible(true);
         field.set(mqClientAPI, remotingClient);
