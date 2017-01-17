@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ThreadLocalIndexTest {
 
     @Test
-    public void getAndIncrement() throws Exception {
+    public void testGetAndIncrement() throws Exception {
         ThreadLocalIndex localIndex = new ThreadLocalIndex();
         int initialVal = localIndex.getAndIncrement();
 
