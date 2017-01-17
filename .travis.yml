@@ -3,3 +3,10 @@ jdk:
   - oraclejdk8
   - oraclejdk7
   - openjdk7
+
+script:
+  - travis_retry mvn --batch-mode clean apache-rat:check
+  - travis_wait 60 mvn --batch-mode clean package findbugs:check
+
+after_success:
+  - mvn clean cobertura:cobertura coveralls:report
