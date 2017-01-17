@@ -22,7 +22,6 @@ import java.util.List;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
 import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.consumer.MQConsumerInner;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
@@ -34,7 +33,6 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,11 +40,8 @@ import static org.mockito.Mockito.mock;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MQClientInstanceTest {
-
-    @Mock
-    private static MQClientAPIImpl mqClientAPI;
     @InjectMocks
-    private static MQClientInstance mqClientInstance =  MQClientManager.getInstance().getAndCreateMQClientInstance(new ClientConfig());;
+    private MQClientInstance mqClientInstance =  MQClientManager.getInstance().getAndCreateMQClientInstance(new ClientConfig());;
 
     private String topic = "FooBar";
     private String group = "FooBarGroup";
