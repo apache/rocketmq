@@ -30,7 +30,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 public class LocalFileOffsetStoreTest {
-
     @Mock
     private static MQClientInstance mQClientFactory;
     private static String group = "FooBarGroup";
