@@ -16,8 +16,11 @@
  */
 package org.apache.rocketmq.namesrv.processor;
 
+import io.netty.channel.ChannelHandlerContext;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -25,10 +28,14 @@ import org.apache.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestH
 import org.apache.rocketmq.common.protocol.header.namesrv.GetKVConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.GetKVConfigResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.PutKVConfigRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.namesrv.NamesrvController;
+import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.assertj.core.util.Maps;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -137,6 +144,97 @@ public class DefaultRequestProcessorTest {
         assertThat(namesrvController.getKvConfigManager().getKVConfig("namespace", "key"))
             .isNull();
     }
+
+    @Test
+    public void testProcessRequest_RegisterBroker() throws RemotingCommandException,
+                                                    NoSuchFieldException, IllegalAccessException {
+        RemotingCommand request = genSampleRegisterCmd(true);
+
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+
+        RemotingCommand response = defaultRequestProcessor.processRequest(ctx, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(response.getRemark()).isNull();
+
+        RouteInfoManager routes = namesrvController.getRouteInfoManager();
+        Field brokerAddrTable = RouteInfoManager.class.getDeclaredField("brokerAddrTable");
+        brokerAddrTable.setAccessible(true);
+
+        BrokerData broker = new BrokerData();
+        broker.setBrokerName("broker");
+        broker.setBrokerAddrs((HashMap) Maps.newHashMap(new Long(2333), "10.10.1.1"));
+
+        assertThat((Map) brokerAddrTable.get(routes))
+            .contains(new HashMap.SimpleEntry("broker", broker));
+    }
+
+    @Test
+    public void testProcessRequest_RegisterBrokerWithFilterServer() throws RemotingCommandException,
+        NoSuchFieldException, IllegalAccessException {
+        RemotingCommand request = genSampleRegisterCmd(true);
+
+        // version >= MQVersion.Version.V3_0_11.ordinal() to register with filter server
+        request.setVersion(100); 
+
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+
+        RemotingCommand response = defaultRequestProcessor.processRequest(ctx, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(response.getRemark()).isNull();
+
+        RouteInfoManager routes = namesrvController.getRouteInfoManager();
+        Field brokerAddrTable = RouteInfoManager.class.getDeclaredField("brokerAddrTable");
+        brokerAddrTable.setAccessible(true);
+
+        BrokerData broker = new BrokerData();
+        broker.setBrokerName("broker");
+        broker.setBrokerAddrs((HashMap) Maps.newHashMap(new Long(2333), "10.10.1.1"));
+
+        assertThat((Map) brokerAddrTable.get(routes))
+            .contains(new HashMap.SimpleEntry("broker", broker));
+    }
+
+    @Test
+    public void testProcessRequest_UnregisterBroker() throws RemotingCommandException, NoSuchFieldException, IllegalAccessException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+
+        //Register broker
+        RemotingCommand regRequest = genSampleRegisterCmd(true);
+        defaultRequestProcessor.processRequest(ctx, regRequest);
+
+        //Unregister broker
+        RemotingCommand unregRequest = genSampleRegisterCmd(false);
+        RemotingCommand unregResponse = defaultRequestProcessor.processRequest(ctx, unregRequest);
+
+        assertThat(unregResponse.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(unregResponse.getRemark()).isNull();
+
+        RouteInfoManager routes = namesrvController.getRouteInfoManager();
+        Field brokerAddrTable = RouteInfoManager.class.getDeclaredField("brokerAddrTable");
+        brokerAddrTable.setAccessible(true);
+
+        assertThat((Map)brokerAddrTable.get(routes)).isEmpty();
+    }
+
+
+    private static RemotingCommand genSampleRegisterCmd(boolean reg) {
+        RegisterBrokerRequestHeader header = new RegisterBrokerRequestHeader();
+        header.setBrokerName("broker");
+        RemotingCommand request = RemotingCommand.createRequestCommand(
+            reg ? RequestCode.REGISTER_BROKER : RequestCode.UNREGISTER_BROKER, header);
+        request.addExtField("brokerName", "broker");
+        request.addExtField("brokerAddr", "10.10.1.1");
+        request.addExtField("clusterName", "cluster");
+        request.addExtField("haServerAddr", "10.10.2.1");
+        request.addExtField("brokerId", "2333");
+        return request;
+    }
+
 
     private static void setFinalStatic(Field field, Object newValue) throws Exception {
         field.setAccessible(true);
