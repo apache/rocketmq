@@ -6,6 +6,10 @@ jdk:
   - oraclejdk8
   - oraclejdk7
   - openjdk7
+matrix:
+  include:
+    - os: osx
+      osx_image: xcode8
 
 #script:
 #  - travis_retry mvn --batch-mode clean apache-rat:check
