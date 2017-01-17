@@ -21,6 +21,7 @@ import java.lang.reflect.Modifier;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.GetKVConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.GetKVConfigResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.PutKVConfigRequestHeader;
@@ -116,6 +117,25 @@ public class DefaultRequestProcessorTest {
             .readCustomHeader();
 
         assertThat(responseHeader.getValue()).isNull();
+    }
+
+    @Test
+    public void testProcessRequest_DeleteKVConfig() throws RemotingCommandException {
+        namesrvController.getKvConfigManager().putKVConfig("namespace", "key", "value");
+
+        DeleteKVConfigRequestHeader header = new DeleteKVConfigRequestHeader();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_KV_CONFIG,
+            header);
+        request.addExtField("namespace", "namespace");
+        request.addExtField("key", "key");
+
+        RemotingCommand response = defaultRequestProcessor.processRequest(null, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(response.getRemark()).isNull();
+
+        assertThat(namesrvController.getKvConfigManager().getKVConfig("namespace", "key"))
+            .isNull();
     }
 
     private static void setFinalStatic(Field field, Object newValue) throws Exception {
