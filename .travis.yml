@@ -1,18 +1,23 @@
 notifications:
   email:
-  - dev@rocketmq.incubator.apache.org
+    recipients:
+      - dev@rocketmq.incubator.apache.org
   on_success: change
   on_failure: always
-language: java
+  
 matrix:
   include:
   # On OSX, run with default JDK only.
+  - language: java
   - os: osx
   # On Linux, run with specific JDKs only.
+  - language: java
   - os: linux
     env: CUSTOM_JDK="oraclejdk8"
+  - language: java
   - os: linux
     env: CUSTOM_JDK="oraclejdk7"
+  - language: java
   - os: linux
     env: CUSTOM_JDK="openjdk7"
 
