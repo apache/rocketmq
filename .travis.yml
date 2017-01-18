@@ -1,8 +1,8 @@
 notifications:
   email:
-    - dev@rocketmq.incubator.apache.org
-    on_success: change
-    on_failure: always
+  - dev@rocketmq.incubator.apache.org
+  on_success: change
+  on_failure: always
 language: java
 matrix:
   include:
