@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -8,25 +8,27 @@
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /**
- * $Id: IndexFileTest.java 1831 2013-05-16 01:39:51Z vintagewang@apache.org $
+ * $Id: IndexFileTest.java 1831 2013-05-16 01:39:51Z shijia.wxr $
  */
-package org.apache.rocketmq.store.index;
+package com.alibaba.rocketmq.store.index;
+
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
 
 public class IndexFileTest {
     private static final int HASH_SLOT_NUM = 100;
@@ -34,6 +36,14 @@ public class IndexFileTest {
 
     @Test
     public void test_put_index() throws Exception {
+<<<<<<< HEAD
+        IndexFile indexFile = new IndexFile("100", hashSlotNum, indexNum, 0, 0);
+        for (long i = 0; i < (indexNum - 1); i++) {
+            boolean putResult = indexFile.putKey(Long.toString(i), i, System.currentTimeMillis());
+            assertTrue(putResult);
+        }
+    
+=======
         IndexFile indexFile = new IndexFile("100", HASH_SLOT_NUM, INDEX_NUM, 0, 0);
         for (long i = 0; i < (INDEX_NUM - 1); i++) {
             boolean putResult = indexFile.putKey(Long.toString(i), i, System.currentTimeMillis());
@@ -41,30 +51,44 @@ public class IndexFileTest {
         }
 
         // put over index file capacity.
+>>>>>>> b85645996a573b19159ad184007484a99742cc5f
         boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
         assertFalse(putResult);
-
+    
         indexFile.destroy(0);
     }
 
+
     @Test
     public void test_put_get_index() throws Exception {
+<<<<<<< HEAD
+        IndexFile indexFile = new IndexFile("200", hashSlotNum, indexNum, 0, 0);
+    
+        for (long i = 0; i < (indexNum - 1); i++) {
+            boolean putResult = indexFile.putKey(Long.toString(i), i, System.currentTimeMillis());
+            assertTrue(putResult);
+        }
+=======
         IndexFile indexFile = new IndexFile("200", HASH_SLOT_NUM, INDEX_NUM, 0, 0);
-
+    
         for (long i = 0; i < (INDEX_NUM - 1); i++) {
             boolean putResult = indexFile.putKey(Long.toString(i), i, System.currentTimeMillis());
             assertTrue(putResult);
         }
 
         // put over index file capacity.
+>>>>>>> b85645996a573b19159ad184007484a99742cc5f
         boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
         assertFalse(putResult);
-
+    
         final List<Long> phyOffsets = new ArrayList<Long>();
         indexFile.selectPhyOffset(phyOffsets, "60", 10, 0, Long.MAX_VALUE, true);
         assertFalse(phyOffsets.isEmpty());
         assertEquals(1, phyOffsets.size());
+<<<<<<< HEAD
+=======
 
+>>>>>>> b85645996a573b19159ad184007484a99742cc5f
         indexFile.destroy(0);
     }
 }

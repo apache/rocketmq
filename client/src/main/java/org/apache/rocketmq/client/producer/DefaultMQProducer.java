@@ -161,6 +161,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     @Override
     public void start() throws MQClientException {
+        this.computeClientIP(null);
         this.defaultMQProducerImpl.start();
     }
 

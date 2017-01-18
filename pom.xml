@@ -32,7 +32,7 @@
     <artifactId>rocketmq-all</artifactId>
     <version>4.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>Apache RocketMQ git s${project.version}</name>
+    <name>rocketmq-all ${project.version}</name>
     <url>http://rocketmq.incubator.apache.org/</url>
 
     <prerequisites>
@@ -42,8 +42,7 @@
     <scm>
         <url>https://git-wip-us.apache.org/repos/asf/incubator-rocketmq.git</url>
         <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-rocketmq.git</connection>
-        <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-rocketmq.git
-        </developerConnection>
+        <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-rocketmq.git</developerConnection>
     </scm>
 
     <mailingLists>
@@ -158,11 +157,6 @@
         <!-- compiler settings properties -->
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
-
-        <!-- URL of the ASF SonarQube server -->
-        <sonar.host.url>https://builds.apache.org/analysis</sonar.host.url>
-        <!-- Exclude all generated code -->
-        <sonar.exclusions>file:**/generated-sources/**</sonar.exclusions>
     </properties>
 
     <modules>
@@ -342,11 +336,6 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
                 <version>3.0.4</version>
-            </plugin>
-            <plugin>
-                <groupId>org.sonarsource.scanner.maven</groupId>
-                <artifactId>sonar-maven-plugin</artifactId>
-                <version>3.0.2</version>
             </plugin>
         </plugins>
     </build>
