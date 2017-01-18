@@ -35,7 +35,7 @@ before_install:
 
 
 script:
-  - travis_retry mvn -B clean apache-rat:check package jacoo:report coveralls:report
+  - travis_retry mvn -B clean apache-rat:check package jacoco:report coveralls:report
 
 after_success:
   - mvn sonar:sonar
