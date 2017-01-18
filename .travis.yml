@@ -10,7 +10,7 @@ language: java
 matrix:
   include:
   # On OSX, run with default JDK only.
-  - os: osx
+  # - os: osx
   # On Linux, run with specific JDKs only.
   - os: linux
     env: CUSTOM_JDK="oraclejdk8"
@@ -35,7 +35,8 @@ before_install:
 
 
 script:
-  - travis_retry mvn -B clean apache-rat:check package jacoco:report coveralls:report
+  - travis_retry mvn -B clean apache-rat:check
+  - travis_retry mvn package jacoco:report coveralls:report
 
 after_success:
   - mvn sonar:sonar
