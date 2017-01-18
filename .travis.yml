@@ -4,20 +4,18 @@ notifications:
       - dev@rocketmq.incubator.apache.org
   on_success: change
   on_failure: always
-  
+
+language: java
+
 matrix:
   include:
   # On OSX, run with default JDK only.
-  - language: java
   - os: osx
   # On Linux, run with specific JDKs only.
-  - language: java
   - os: linux
     env: CUSTOM_JDK="oraclejdk8"
-  - language: java
   - os: linux
     env: CUSTOM_JDK="oraclejdk7"
-  - language: java
   - os: linux
     env: CUSTOM_JDK="openjdk7"
 
@@ -26,7 +24,7 @@ before_install:
   - cat ~/.mavenrc
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then export JAVA_HOME=$(/usr/libexec/java_home); fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then jdk_switcher use "$CUSTOM_JDK"; fi
-#
+
 #os:
 #  - linux
 #  - osx
@@ -36,9 +34,8 @@ before_install:
 #  - openjdk7
 
 
-#script:
-#  - travis_retry mvn --batch-mode clean apache-rat:check
-#  - travis_wait 60 mvn --batch-mode clean package findbugs:check
+script:
+  - travis_retry mvn -B clean apache-rat:check package jacoo:report coveralls:report
 
 after_success:
-  - mvn clean apache-rat:check cobertura:cobertura coveralls:report
+  - mvn sonar:sonar
