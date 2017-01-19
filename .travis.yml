@@ -39,4 +39,5 @@ script:
   - travis_retry mvn -B package jacoco:report coveralls:report
 
 after_success:
+  - mvn clean install -Pit-test
   - mvn sonar:sonar
