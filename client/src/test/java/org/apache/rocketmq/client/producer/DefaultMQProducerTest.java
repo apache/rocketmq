@@ -190,7 +190,7 @@ public class DefaultMQProducerTest {
         }
     }
 
-    private TopicRouteData createTopicRoute() {
+    public static TopicRouteData createTopicRoute() {
         TopicRouteData topicRouteData = new TopicRouteData();
 
         topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
