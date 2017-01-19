@@ -39,7 +39,7 @@ import static org.mockito.Mockito.mock;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MQClientInstanceTest {
-    private MQClientInstance mqClientInstance =  MQClientManager.getInstance().getAndCreateMQClientInstance(new ClientConfig());;
+    private MQClientInstance mqClientInstance =  MQClientManager.getInstance().getAndCreateMQClientInstance(new ClientConfig());
     private String topic = "FooBar";
     private String group = "FooBarGroup";
 
@@ -53,7 +53,7 @@ public class MQClientInstanceTest {
         brokerData.setBrokerName("BrokerA");
         brokerData.setCluster("DefaultCluster");
         HashMap<Long, String> brokerAddrs = new HashMap<>();
-        brokerAddrs.put(0L, "127.0.0.1");
+        brokerAddrs.put(0L, "127.0.0.1:10911");
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDataList.add(brokerData);
         topicRouteData.setBrokerDatas(brokerDataList);
@@ -61,7 +61,7 @@ public class MQClientInstanceTest {
         List<QueueData> queueDataList = new ArrayList<>();
         QueueData queueData = new QueueData();
         queueData.setBrokerName("BrokerA");
-        queueData.setPerm(2);
+        queueData.setPerm(6);
         queueData.setReadQueueNums(3);
         queueData.setWriteQueueNums(4);
         queueData.setTopicSynFlag(0);
