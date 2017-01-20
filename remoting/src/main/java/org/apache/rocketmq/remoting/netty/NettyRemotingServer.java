@@ -131,8 +131,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     @Override
     public void start() {
-        this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(//
-            nettyServerConfig.getServerWorkerThreads(), //
+        this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(
+            nettyServerConfig.getServerWorkerThreads(),
             new ThreadFactory() {
 
                 private AtomicInteger threadIndex = new AtomicInteger(0);

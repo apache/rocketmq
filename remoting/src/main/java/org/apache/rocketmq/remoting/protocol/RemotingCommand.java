@@ -69,9 +69,6 @@ public class RemotingCommand {
         }
     }
 
-    /**
-
-     */
     private int code;
     private LanguageCode language = LanguageCode.JAVA;
     private int version = 0;
@@ -80,13 +77,9 @@ public class RemotingCommand {
     private String remark;
     private HashMap<String, String> extFields;
     private transient CommandCustomHeader customHeader;
-    /**
 
-     */
     private SerializeType serializeTypeCurrentRPC = serializeTypeConfigInThisServer;
-    /**
 
-     */
     private transient byte[] body;
 
     protected RemotingCommand() {
@@ -117,9 +110,6 @@ public class RemotingCommand {
         return createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, "not set any response code", classHeader);
     }
 
-    /**
-
-     */
     public static RemotingCommand createResponseCommand(int code, String remark, Class<? extends CommandCustomHeader> classHeader) {
         RemotingCommand cmd = new RemotingCommand();
         cmd.markResponseType();
@@ -411,9 +401,7 @@ public class RemotingCommand {
         return encodeHeader(this.body != null ? this.body.length : 0);
     }
 
-    /**
 
-     */
     public ByteBuffer encodeHeader(final int bodyLength) {
         // 1> header length size
         int length = 4;

@@ -42,10 +42,8 @@ public class RocketMQSerializable {
             extLen = extFieldsBytes.length;
         }
 
-        // ################### cal total length
         int totalLen = calTotalLen(remarkLen, extLen);
 
-        // ################### content
         ByteBuffer headerBuffer = ByteBuffer.allocate(totalLen);
         // int code(~32767)
         headerBuffer.putShort((short) cmd.getCode());
@@ -76,7 +74,6 @@ public class RocketMQSerializable {
     }
 
     public static byte[] mapSerialize(HashMap<String, String> map) {
-        // keySize+key+valSize+val
         // keySize+key+valSize+val
         if (null == map || map.isEmpty())
             return null;
@@ -174,10 +171,10 @@ public class RocketMQSerializable {
         HashMap<String, String> map = new HashMap<String, String>();
         ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
 
-        short keySize = 0;
-        byte[] keyContent = null;
-        int valSize = 0;
-        byte[] valContent = null;
+        short keySize;
+        byte[] keyContent;
+        int valSize;
+        byte[] valContent;
         while (byteBuffer.hasRemaining()) {
             keySize = byteBuffer.getShort();
             keyContent = new byte[keySize];

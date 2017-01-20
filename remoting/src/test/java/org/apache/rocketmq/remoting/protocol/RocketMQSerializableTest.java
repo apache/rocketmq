@@ -26,9 +26,9 @@ public class RocketMQSerializableTest {
     public void testRocketMQProtocolEncodeAndDecode_WithoutRemarkWithoutExtFields() {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
-        int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
-        RemotingCommand cmd = RemotingCommand.createRequestCommand(code,
-            new SampleCommandCustomHeader());
+        //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
+        int code = 103;
+        RemotingCommand cmd = RemotingCommand.createRequestCommand(code, new SampleCommandCustomHeader());
         cmd.setSerializeTypeCurrentRPC(SerializeType.ROCKETMQ);
 
         byte[] result = RocketMQSerializable.rocketMQProtocolEncode(cmd);
@@ -57,7 +57,8 @@ public class RocketMQSerializableTest {
     public void testRocketMQProtocolEncodeAndDecode_WithRemarkWithoutExtFields() {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
-        int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
+        //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
+        int code = 103;
         RemotingCommand cmd = RemotingCommand.createRequestCommand(code,
             new SampleCommandCustomHeader());
         cmd.setSerializeTypeCurrentRPC(SerializeType.ROCKETMQ);
@@ -94,7 +95,8 @@ public class RocketMQSerializableTest {
     public void testRocketMQProtocolEncodeAndDecode_WithoutRemarkWithExtFields() {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, "2333");
 
-        int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
+        //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
+        int code = 103;
         RemotingCommand cmd = RemotingCommand.createRequestCommand(code,
             new SampleCommandCustomHeader());
         cmd.setSerializeTypeCurrentRPC(SerializeType.ROCKETMQ);
@@ -129,7 +131,7 @@ public class RocketMQSerializableTest {
 
     @Test
     public void testIsBlank_NotBlank() {
-        assertThat(RocketMQSerializable.isBlank("aeiou")).isFalse();
+        assertThat(RocketMQSerializable.isBlank("bar")).isFalse();
         assertThat(RocketMQSerializable.isBlank("  A  ")).isFalse();
     }
 
@@ -146,6 +148,6 @@ public class RocketMQSerializableTest {
 
     private int parseToInt(byte[] array, int index) {
         return array[index] * 16777216 + array[++index] * 65536 + array[++index] * 256
-               + array[++index];
+            + array[++index];
     }
 }
