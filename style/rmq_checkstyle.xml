@@ -121,7 +121,6 @@
         <!--whitespace-->
         <module name="GenericWhitespace"/>
         <module name="NoWhitespaceBefore"/>
-        <module name="WhitespaceAfter"/>
         <module name="NoWhitespaceAfter"/>
         <module name="WhitespaceAround">
             <property name="allowEmptyConstructors" value="true"/>

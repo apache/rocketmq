@@ -173,7 +173,6 @@ public class BrokerOuterAPI {
                 RegisterBrokerResult result = new RegisterBrokerResult();
                 result.setMasterAddr(responseHeader.getMasterAddr());
                 result.setHaServerAddr(responseHeader.getHaServerAddr());
-                result.setHaServerAddr(responseHeader.getHaServerAddr());
                 if (response.getBody() != null) {
                     result.setKvTable(KVTable.decode(response.getBody(), KVTable.class));
                 }
