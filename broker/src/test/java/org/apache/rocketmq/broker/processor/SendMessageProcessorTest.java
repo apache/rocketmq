@@ -153,13 +153,7 @@ public class SendMessageProcessorTest {
         requestHeader.setReconsumeTimes(0);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(requestCode, requestHeader);
-        request.addExtField("queueId", String.valueOf(requestHeader.getQueueId()));
-        request.addExtField("topic", String.valueOf(requestHeader.getTopic()));
-        request.addExtField("defaultTopicQueueNums", String.valueOf(requestHeader.getDefaultTopicQueueNums()));
-        request.addExtField("defaultTopic", requestHeader.getDefaultTopic());
-        request.addExtField("sysFlag", String.valueOf(requestHeader.getSysFlag()));
-        request.addExtField("flag", String.valueOf(requestHeader.getFlag()));
-        request.addExtField("bornTimestamp", String.valueOf(requestHeader.getBornTimestamp()));
+        request.makeCustomHeaderToNet();
         return request;
     }
 
@@ -172,9 +166,7 @@ public class SendMessageProcessorTest {
         requestHeader.setOffset(123L);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(requestCode, requestHeader);
-        request.addExtField("group", requestHeader.getGroup());
-        request.addExtField("offset", String.valueOf(requestHeader.getOffset()));
-        request.addExtField("delayLevel", String.valueOf(requestHeader.getDelayLevel()));
+        request.makeCustomHeaderToNet();
         return request;
     }
 
