@@ -121,7 +121,7 @@ public class NamesrvStartup {
                 System.exit(-3);
             }
 
-            Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, new Callable() {
+            Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
                     controller.shutdown();
