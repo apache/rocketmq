@@ -22,7 +22,7 @@ It offers a variety of features as follows:
 ----------
 
 ## Learn it & Contact us
-* Home: [https://rocketmq.apache.org](https://rocketmq.apache.org)
+* Home: <https://rocketmq.apache.org>
 * Wiki: <https://cwiki.apache.org/confluence/display/ROCKETMQ/Apache+RocketMQ+Home>
 * Issues: <https://issues.apache.org/jira/browse/RocketMQ>
 * Ask: <http://stackoverflow.com/questions/tagged/rocketmq> or <https://www.quora.com/topic/RocketMQ>
