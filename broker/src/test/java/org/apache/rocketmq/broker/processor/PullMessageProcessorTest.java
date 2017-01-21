@@ -19,10 +19,14 @@ package org.apache.rocketmq.broker.processor;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
+import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -78,7 +82,7 @@ public class PullMessageProcessorTest {
         when(handlerContext.channel()).thenReturn(mockChannel);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());
         clientChannelInfo = new ClientChannelInfo(mockChannel);
-        ConsumerData consumerData = createConsumerData();
+        ConsumerData consumerData = createConsumerData(group, topic);
         brokerController.getConsumerManager().registerConsumer(
             consumerData.getGroupName(),
             clientChannelInfo,
@@ -131,6 +135,36 @@ public class PullMessageProcessorTest {
     }
 
     @Test
+    public void testProcessRequest_FoundWithHook() throws RemotingCommandException {
+        GetMessageResult getMessageResult = createGetMessageResult();
+        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(SubscriptionData.class))).thenReturn(getMessageResult);
+        List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
+        final ConsumeMessageContext[] messageContext = new ConsumeMessageContext[1];
+        ConsumeMessageHook consumeMessageHook = new ConsumeMessageHook() {
+            @Override public String hookName() {
+                return "TestHook";
+            }
+
+            @Override public void consumeMessageBefore(ConsumeMessageContext context) {
+                messageContext[0] = context;
+            }
+
+            @Override public void consumeMessageAfter(ConsumeMessageContext context) {
+            }
+        };
+        consumeMessageHookList.add(consumeMessageHook);
+        pullMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
+        final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
+        RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(messageContext[0]).isNotNull();
+        assertThat(messageContext[0].getConsumerGroup()).isEqualTo(group);
+        assertThat(messageContext[0].getTopic()).isEqualTo(topic);
+        assertThat(messageContext[0].getQueueId()).isEqualTo(1);
+    }
+
+    @Test
     public void testProcessRequest_MsgWasRemoving() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult();
         getMessageResult.setStatus(GetMessageStatus.MESSAGE_WAS_REMOVING);
@@ -170,7 +204,7 @@ public class PullMessageProcessorTest {
         return request;
     }
 
-    private ConsumerData createConsumerData() {
+    static ConsumerData createConsumerData(String group, String topic) {
         ConsumerData consumerData = new ConsumerData();
         consumerData.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         consumerData.setConsumeType(ConsumeType.CONSUME_PASSIVELY);
