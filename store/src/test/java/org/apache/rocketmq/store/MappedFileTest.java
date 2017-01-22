@@ -21,66 +21,30 @@
 package org.apache.rocketmq.store;
 
 import java.io.IOException;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class MappedFileTest {
-
-    private static final Logger logger = LoggerFactory.getLogger(MappedFileTest.class);
-
-    private static final String StoreMessage = "Once, there was a chance for me!";
-
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception {
-
-    }
-
-    @AfterClass
-    public static void tearDownAfterClass() throws Exception {
-    }
+    private final String storeMessage = "Once, there was a chance for me!";
 
     @Test
-    public void test_write_read() throws IOException {
+    public void testSelectMappedBuffer() throws IOException {
         MappedFile mappedFile = new MappedFile("target/unit_test_store/MappedFileTest/000", 1024 * 64);
-        boolean result = mappedFile.appendMessage(StoreMessage.getBytes());
-        assertTrue(result);
-        logger.debug("write OK");
+        boolean result = mappedFile.appendMessage(storeMessage.getBytes());
+        assertThat(result).isTrue();
 
         SelectMappedBufferResult selectMappedBufferResult = mappedFile.selectMappedBuffer(0);
-        byte[] data = new byte[StoreMessage.length()];
+        byte[] data = new byte[storeMessage.length()];
         selectMappedBufferResult.getByteBuffer().get(data);
         String readString = new String(data);
 
-        logger.debug("Read: " + readString);
-        assertTrue(readString.equals(StoreMessage));
+        assertThat(readString).isEqualTo(storeMessage);
 
         mappedFile.shutdown(1000);
-        assertTrue(!mappedFile.isAvailable());
+        assertThat(mappedFile.isAvailable()).isFalse();
         selectMappedBufferResult.release();
-        assertTrue(mappedFile.isCleanupOver());
-        assertTrue(mappedFile.destroy(1000));
-    }
-
-    @Ignore
-    public void test_jvm_crashed() throws IOException {
-        MappedFile mappedFile = new MappedFile("target/unit_test_store/MappedFileTest/10086", 1024 * 64);
-        boolean result = mappedFile.appendMessage(StoreMessage.getBytes());
-        assertTrue(result);
-        logger.debug("write OK");
-
-        SelectMappedBufferResult selectMappedBufferResult = mappedFile.selectMappedBuffer(0);
-        selectMappedBufferResult.release();
-        mappedFile.shutdown(1000);
-
-        byte[] data = new byte[StoreMessage.length()];
-        selectMappedBufferResult.getByteBuffer().get(data);
-        String readString = new String(data);
-        logger.debug(readString);
+        assertThat(mappedFile.isCleanupOver()).isTrue();
+        assertThat(mappedFile.destroy(1000)).isTrue();
     }
 }

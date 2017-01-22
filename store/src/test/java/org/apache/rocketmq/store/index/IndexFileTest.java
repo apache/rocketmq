@@ -24,47 +24,43 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class IndexFileTest {
-    private static final int HASH_SLOT_NUM = 100;
-    private static final int INDEX_NUM = 400;
+    private final int HASH_SLOT_NUM = 100;
+    private final int INDEX_NUM = 400;
 
     @Test
-    public void test_put_index() throws Exception {
+    public void testPutKey() throws Exception {
         IndexFile indexFile = new IndexFile("100", HASH_SLOT_NUM, INDEX_NUM, 0, 0);
         for (long i = 0; i < (INDEX_NUM - 1); i++) {
             boolean putResult = indexFile.putKey(Long.toString(i), i, System.currentTimeMillis());
-            assertTrue(putResult);
+            assertThat(putResult).isTrue();
         }
 
         // put over index file capacity.
         boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
-        assertFalse(putResult);
-
+        assertThat(putResult).isFalse();
         indexFile.destroy(0);
     }
 
     @Test
-    public void test_put_get_index() throws Exception {
+    public void testSelectPhyOffset() throws Exception {
         IndexFile indexFile = new IndexFile("200", HASH_SLOT_NUM, INDEX_NUM, 0, 0);
 
         for (long i = 0; i < (INDEX_NUM - 1); i++) {
             boolean putResult = indexFile.putKey(Long.toString(i), i, System.currentTimeMillis());
-            assertTrue(putResult);
+            assertThat(putResult).isTrue();
         }
 
         // put over index file capacity.
         boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
-        assertFalse(putResult);
+        assertThat(putResult).isFalse();
 
         final List<Long> phyOffsets = new ArrayList<Long>();
         indexFile.selectPhyOffset(phyOffsets, "60", 10, 0, Long.MAX_VALUE, true);
-        assertFalse(phyOffsets.isEmpty());
-        assertEquals(1, phyOffsets.size());
-
+        assertThat(phyOffsets).isNotEmpty();
+        assertThat(phyOffsets.size()).isEqualTo(1);
         indexFile.destroy(0);
     }
 }
