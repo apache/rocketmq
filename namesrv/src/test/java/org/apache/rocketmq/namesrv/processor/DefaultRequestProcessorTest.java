@@ -41,19 +41,20 @@ import org.junit.Test;
 import org.slf4j.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DefaultRequestProcessorTest {
     /** Test Target */
     private DefaultRequestProcessor defaultRequestProcessor;
 
-    private NamesrvController       namesrvController;
+    private NamesrvController namesrvController;
 
-    private NamesrvConfig           namesrvConfig;
+    private NamesrvConfig namesrvConfig;
 
-    private NettyServerConfig       nettyServerConfig;
+    private NettyServerConfig nettyServerConfig;
 
-    private Logger                  logger;
+    private Logger logger;
 
     @Before
     public void init() throws Exception {
@@ -147,7 +148,7 @@ public class DefaultRequestProcessorTest {
 
     @Test
     public void testProcessRequest_RegisterBroker() throws RemotingCommandException,
-                                                    NoSuchFieldException, IllegalAccessException {
+        NoSuchFieldException, IllegalAccessException {
         RemotingCommand request = genSampleRegisterCmd(true);
 
         ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
@@ -176,7 +177,7 @@ public class DefaultRequestProcessorTest {
         RemotingCommand request = genSampleRegisterCmd(true);
 
         // version >= MQVersion.Version.V3_0_11.ordinal() to register with filter server
-        request.setVersion(100); 
+        request.setVersion(100);
 
         ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
         when(ctx.channel()).thenReturn(null);
@@ -218,9 +219,8 @@ public class DefaultRequestProcessorTest {
         Field brokerAddrTable = RouteInfoManager.class.getDeclaredField("brokerAddrTable");
         brokerAddrTable.setAccessible(true);
 
-        assertThat((Map)brokerAddrTable.get(routes)).isEmpty();
+        assertThat((Map) brokerAddrTable.get(routes)).isEmpty();
     }
-
 
     private static RemotingCommand genSampleRegisterCmd(boolean reg) {
         RegisterBrokerRequestHeader header = new RegisterBrokerRequestHeader();
@@ -234,7 +234,6 @@ public class DefaultRequestProcessorTest {
         request.addExtField("brokerId", "2333");
         return request;
     }
-
 
     private static void setFinalStatic(Field field, Object newValue) throws Exception {
         field.setAccessible(true);
