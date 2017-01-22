@@ -23,7 +23,7 @@ import org.junit.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class NamesrvControllerTest {
-    private final int RESTART_NUM = 2;
+    private final static int RESTARTNUM = 2;
 
     /**
      * Tests if the controller can be properly stopped and started.
@@ -32,7 +32,7 @@ public class NamesrvControllerTest {
      */
     @Test
     public void testRestart() throws Exception {
-        for (int i = 0; i < RESTART_NUM; i++) {
+        for (int i = 0; i < RESTARTNUM; i++) {
             NamesrvController namesrvController = new NamesrvController(
                 new NamesrvConfig(),
                 new NettyServerConfig()
@@ -43,5 +43,4 @@ public class NamesrvControllerTest {
             namesrvController.shutdown();
         }
     }
-
 }

@@ -45,7 +45,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class DefaultRequestProcessorTest {
-    /** Test Target */
     private DefaultRequestProcessor defaultRequestProcessor;
 
     private NamesrvController namesrvController;
