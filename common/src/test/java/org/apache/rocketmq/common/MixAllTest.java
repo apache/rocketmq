@@ -59,7 +59,7 @@ public class MixAllTest {
             file.delete();
         }
         file.createNewFile();
-        try(  PrintWriter out = new PrintWriter( fileName )  ){
+        try (PrintWriter out = new PrintWriter(fileName)) {
             out.write("TestForMixAll");
         }
         String string = MixAll.file2String(fileName);
