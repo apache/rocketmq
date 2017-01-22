@@ -21,37 +21,27 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.junit.Assert;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class BrokerControllerTest {
-    private static final int RESTART_NUM = 3;
-    protected Logger logger = LoggerFactory.getLogger(BrokerControllerTest.class);
-
     /**
      * Tests if the controller can be properly stopped and started.
      *
      * @throws Exception If fails.
      */
     @Test
-    public void testRestart() throws Exception {
-
-        for (int i = 0; i < RESTART_NUM; i++) {
+    public void testBrokerRestart() throws Exception {
+        for (int i = 0; i < 2; i++) {
             BrokerController brokerController = new BrokerController(//
                 new BrokerConfig(), //
                 new NettyServerConfig(), //
                 new NettyClientConfig(), //
                 new MessageStoreConfig());
-            boolean initResult = brokerController.initialize();
-            Assert.assertTrue(initResult);
-            logger.info("Broker is initialized " + initResult);
+            assertThat(brokerController.initialize());
             brokerController.start();
-            logger.info("Broker is started");
-
             brokerController.shutdown();
-            logger.info("Broker is stopped");
         }
     }
 }

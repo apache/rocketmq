@@ -184,7 +184,7 @@ public class SubscriptionGroupManager extends ConfigManager {
             this.dataVersion.nextVersion();
             this.persist();
         } else {
-            log.warn("delete subscription group failed, subscription group: {} not exist", old);
+            log.warn("delete subscription group failed, subscription groupName: {} not exist", groupName);
         }
     }
 }

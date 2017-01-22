@@ -52,13 +52,10 @@
     <option name="KEEP_BLANK_LINES_IN_DECLARATIONS" value="1"/>
     <option name="KEEP_BLANK_LINES_IN_CODE" value="1"/>
     <option name="KEEP_BLANK_LINES_BEFORE_RBRACE" value="1"/>
-    <option name="ELSE_ON_NEW_LINE" value="true"/>
     <option name="WHILE_ON_NEW_LINE" value="true"/>
-    <option name="CATCH_ON_NEW_LINE" value="true"/>
-    <option name="FINALLY_ON_NEW_LINE" value="true"/>
     <option name="ALIGN_MULTILINE_PARAMETERS" value="false"/>
     <option name="ALIGN_MULTILINE_FOR" value="false"/>
-    <option name="SPACE_AFTER_TYPE_CAST" value="false"/>
+    <option name="SPACE_AFTER_TYPE_CAST" value="true"/>
     <option name="SPACE_BEFORE_ARRAY_INITIALIZER_LBRACE" value="true"/>
     <option name="METHOD_PARAMETERS_WRAP" value="1"/>
     <option name="ARRAY_INITIALIZER_LBRACE_ON_NEXT_LINE" value="true"/>
@@ -81,12 +78,8 @@
         <option name="KEEP_BLANK_LINES_IN_DECLARATIONS" value="1"/>
         <option name="KEEP_BLANK_LINES_IN_CODE" value="1"/>
         <option name="KEEP_BLANK_LINES_BEFORE_RBRACE" value="1"/>
-        <option name="ELSE_ON_NEW_LINE" value="true"/>
-        <option name="CATCH_ON_NEW_LINE" value="true"/>
-        <option name="FINALLY_ON_NEW_LINE" value="true"/>
         <option name="ALIGN_MULTILINE_PARAMETERS" value="false"/>
         <option name="ALIGN_MULTILINE_FOR" value="false"/>
-        <option name="SPACE_AFTER_TYPE_CAST" value="false"/>
         <option name="METHOD_PARAMETERS_WRAP" value="1"/>
         <option name="METHOD_ANNOTATION_WRAP" value="1"/>
         <option name="CLASS_ANNOTATION_WRAP" value="1"/>
@@ -105,13 +98,9 @@
         <option name="KEEP_BLANK_LINES_IN_DECLARATIONS" value="1"/>
         <option name="KEEP_BLANK_LINES_IN_CODE" value="1"/>
         <option name="KEEP_BLANK_LINES_BEFORE_RBRACE" value="1"/>
-        <option name="ELSE_ON_NEW_LINE" value="true"/>
         <option name="WHILE_ON_NEW_LINE" value="true"/>
-        <option name="CATCH_ON_NEW_LINE" value="true"/>
-        <option name="FINALLY_ON_NEW_LINE" value="true"/>
         <option name="ALIGN_MULTILINE_PARAMETERS" value="false"/>
         <option name="ALIGN_MULTILINE_FOR" value="false"/>
-        <option name="SPACE_AFTER_TYPE_CAST" value="false"/>
         <option name="SPACE_BEFORE_ARRAY_INITIALIZER_LBRACE" value="true"/>
         <option name="METHOD_PARAMETERS_WRAP" value="1"/>
         <option name="ARRAY_INITIALIZER_LBRACE_ON_NEXT_LINE" value="true"/>
@@ -132,10 +121,7 @@
         <option name="KEEP_BLANK_LINES_IN_DECLARATIONS" value="1"/>
         <option name="KEEP_BLANK_LINES_IN_CODE" value="1"/>
         <option name="KEEP_BLANK_LINES_BEFORE_RBRACE" value="1"/>
-        <option name="ELSE_ON_NEW_LINE" value="true"/>
         <option name="WHILE_ON_NEW_LINE" value="true"/>
-        <option name="CATCH_ON_NEW_LINE" value="true"/>
-        <option name="FINALLY_ON_NEW_LINE" value="true"/>
         <option name="ALIGN_MULTILINE_PARAMETERS" value="false"/>
         <option name="ALIGN_MULTILINE_FOR" value="false"/>
         <option name="METHOD_PARAMETERS_WRAP" value="1"/>
