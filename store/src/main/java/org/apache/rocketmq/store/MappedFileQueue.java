@@ -39,12 +39,16 @@ public class MappedFileQueue {
 
     private final int mappedFileSize;
 
-    private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
+    private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<>();
 
     private final AllocateMappedFileService allocateMappedFileService;
 
-    private long flushedWhere = 0;
-    private long committedWhere = 0;
+    /**
+     * 'Flushed' position within the queue.
+     */
+    private long flushedPosition = 0;
+
+    private long committedPosition = 0;
 
     private volatile long storeTimestamp = 0;
 
@@ -75,7 +79,7 @@ public class MappedFileQueue {
     }
 
     public MappedFile getMappedFileByTime(final long timestamp) {
-        Object[] mfs = this.copyMappedFiles(0);
+        Object[] mfs = this.copyMappedFiles();
 
         if (null == mfs)
             return null;
@@ -90,14 +94,18 @@ public class MappedFileQueue {
         return (MappedFile) mfs[mfs.length - 1];
     }
 
-    private Object[] copyMappedFiles(final int reservedMappedFiles) {
+    /**
+     * @return Array of the mapped files of the queue or null if no files are available.
+     */
+    private Object[] copyMappedFiles() {
         Object[] mfs;
 
-        if (this.mappedFiles.size() <= reservedMappedFiles) {
+        if (this.mappedFiles.size() <= 0) {
             return null;
         }
 
         mfs = this.mappedFiles.toArray();
+
         return mfs;
     }
 
@@ -180,7 +188,7 @@ public class MappedFileQueue {
         if (this.mappedFiles.isEmpty())
             return 0;
 
-        long committed = this.flushedWhere;
+        long committed = this.flushedPosition;
         if (committed != 0) {
             MappedFile mappedFile = this.getLastMappedFile(0, false);
             if (mappedFile != null) {
@@ -307,7 +315,7 @@ public class MappedFileQueue {
         return 0;
     }
 
-    public long getMaxWrotePosition() {
+    private long getMaxWrotePosition() {
         MappedFile mappedFile = getLastMappedFile();
         if (mappedFile != null) {
             return mappedFile.getFileFromOffset() + mappedFile.getWrotePosition();
@@ -316,11 +324,11 @@ public class MappedFileQueue {
     }
 
     public long remainHowManyDataToCommit() {
-        return getMaxWrotePosition() - committedWhere;
+        return getMaxWrotePosition() - committedPosition;
     }
 
     public long remainHowManyDataToFlush() {
-        return getMaxOffset() - flushedWhere;
+        return getMaxOffset() - flushedPosition;
     }
 
     public void deleteLastMappedFile() {
@@ -334,10 +342,10 @@ public class MappedFileQueue {
     }
 
     public int deleteExpiredFileByTime(final long expiredTime,
-        final int deleteFilesInterval,
-        final long intervalForcibly,
-        final boolean cleanImmediately) {
-        Object[] mfs = this.copyMappedFiles(0);
+                                       final int deleteFilesInterval,
+                                       final long intervalForcibly,
+                                       final boolean cleanImmediately) {
+        Object[] mfs = this.copyMappedFiles();
 
         if (null == mfs)
             return 0;
@@ -377,7 +385,7 @@ public class MappedFileQueue {
     }
 
     public int deleteExpiredFileByOffset(long offset, int unitSize) {
-        Object[] mfs = this.copyMappedFiles(0);
+        Object[] mfs = this.copyMappedFiles();
 
         List<MappedFile> files = new ArrayList<MappedFile>();
         int deleteCount = 0;
@@ -416,18 +424,31 @@ public class MappedFileQueue {
         return deleteCount;
     }
 
+    /**
+     * Attempts to flush the subsequent queued mapped file.
+     *
+     * @param flushLeastPages
+     * @return True when flushed, false otherwise.
+     */
     public boolean flush(final int flushLeastPages) {
-        boolean result = true;
-        MappedFile mappedFile = this.findMappedFileByOffset(this.flushedWhere, false);
+        boolean result = false;
+        MappedFile mappedFile = this.findMappedFileByOffset(this.flushedPosition, false);
+
         if (mappedFile != null) {
             long tmpTimeStamp = mappedFile.getStoreTimestamp();
-            int offset = mappedFile.flush(flushLeastPages);
-            long where = mappedFile.getFileFromOffset() + offset;
-            result = where == this.flushedWhere;
-            this.flushedWhere = where;
+            int fileOffset = mappedFile.flush(flushLeastPages);
+
+            long nextPosition = mappedFile.getFileFromOffset() + fileOffset;
+
+            result = nextPosition > this.flushedPosition;
+
+            this.flushedPosition = nextPosition;
+
             if (0 == flushLeastPages) {
                 this.storeTimestamp = tmpTimeStamp;
             }
+        } else {
+            log.info("Nothing to flush at position {}", this.flushedPosition);
         }
 
         return result;
@@ -435,12 +456,12 @@ public class MappedFileQueue {
 
     public boolean commit(final int commitLeastPages) {
         boolean result = true;
-        MappedFile mappedFile = this.findMappedFileByOffset(this.committedWhere, false);
+        MappedFile mappedFile = this.findMappedFileByOffset(this.committedPosition, false);
         if (mappedFile != null) {
             int offset = mappedFile.commit(commitLeastPages);
             long where = mappedFile.getFileFromOffset() + offset;
-            result = where == this.committedWhere;
-            this.committedWhere = where;
+            result = where == this.committedPosition;
+            this.committedPosition = where;
         }
 
         return result;
@@ -449,7 +470,7 @@ public class MappedFileQueue {
     /**
      * Finds a mapped file by offset.
      *
-     * @param offset Offset.
+     * @param offset                Offset.
      * @param returnFirstOnNotFound If the mapped file is not found, then return the first one.
      * @return Mapped file or null (when not found and returnFirstOnNotFound is <code>false</code>).
      */
@@ -460,12 +481,12 @@ public class MappedFileQueue {
                 int index = (int) ((offset / this.mappedFileSize) - (mappedFile.getFileFromOffset() / this.mappedFileSize));
                 if (index < 0 || index >= this.mappedFiles.size()) {
                     LOG_ERROR.warn("Offset for {} not matched. Request offset: {}, index: {}, " +
-                            "mappedFileSize: {}, mappedFiles count: {}",
-                        mappedFile,
-                        offset,
-                        index,
-                        this.mappedFileSize,
-                        this.mappedFiles.size());
+                                    "mappedFileSize: {}, mappedFiles count: {}",
+                            mappedFile,
+                            offset,
+                            index,
+                            this.mappedFileSize,
+                            this.mappedFiles.size());
                 }
 
                 try {
@@ -507,7 +528,7 @@ public class MappedFileQueue {
     public long getMappedMemorySize() {
         long size = 0;
 
-        Object[] mfs = this.copyMappedFiles(0);
+        Object[] mfs = this.copyMappedFiles();
         if (mfs != null) {
             for (Object mf : mfs) {
                 if (((ReferenceResource) mf).isAvailable()) {
@@ -552,7 +573,7 @@ public class MappedFileQueue {
             mf.destroy(1000 * 3);
         }
         this.mappedFiles.clear();
-        this.flushedWhere = 0;
+        this.flushedPosition = 0;
 
         // delete parent directory
         File file = new File(storePath);
@@ -561,12 +582,13 @@ public class MappedFileQueue {
         }
     }
 
-    public long getFlushedWhere() {
-        return flushedWhere;
+    public long getFlushedPosition() {
+        return flushedPosition;
     }
 
-    public void setFlushedWhere(long flushedWhere) {
-        this.flushedWhere = flushedWhere;
+
+    public void setFlushedPosition(long flushedPosition) {
+        this.flushedPosition = flushedPosition;
     }
 
     public long getStoreTimestamp() {
@@ -581,11 +603,11 @@ public class MappedFileQueue {
         return mappedFileSize;
     }
 
-    public long getCommittedWhere() {
-        return committedWhere;
+    public long getCommittedPosition() {
+        return committedPosition;
     }
 
-    public void setCommittedWhere(final long committedWhere) {
-        this.committedWhere = committedWhere;
+    public void setCommittedPosition(final long committedPosition) {
+        this.committedPosition = committedPosition;
     }
 }

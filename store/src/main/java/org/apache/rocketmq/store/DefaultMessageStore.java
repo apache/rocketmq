@@ -1531,8 +1531,8 @@ public class DefaultMessageStore implements MessageStore {
 
             for (ConcurrentHashMap<Integer, ConsumeQueue> maps : tables.values()) {
                 for (ConsumeQueue cq : maps.values()) {
-                    boolean result = false;
-                    for (int i = 0; i < retryTimes && !result; i++) {
+                    boolean result = true;
+                    for (int i = 0; i < retryTimes && result; i++) {
                         result = cq.flush(flushConsumeQueueLeastPages);
                     }
                 }

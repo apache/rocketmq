@@ -25,18 +25,16 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class MappedFileQueueTest {
-    private static final Logger logger = LoggerFactory.getLogger(MappedFileQueueTest.class);
+    private MappedFileQueue mappedFileQueue;
 
-    // private static final String StoreMessage =
-    // "Once, there was a chance for me! but I did not treasure it. if";
+    // four-byte string.
+    private static final String FIXED_MSG = "abcd";
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -48,54 +46,31 @@ public class MappedFileQueueTest {
 
     @Before
     public void setUp() throws Exception {
+        mappedFileQueue =
+                new MappedFileQueue("target/unit_test_store/queue", 1024, null);
     }
 
     @After
     public void tearDown() throws Exception {
+        mappedFileQueue.shutdown(1000);
+        mappedFileQueue.destroy();
     }
 
-    @Test
-    public void test_getLastMapedFile() {
-        final String fixedMsg = "0123456789abcdef";
-
-        logger.debug("================================================================");
-        MappedFileQueue mappedFileQueue =
-            new MappedFileQueue("target/unit_test_store/a/", 1024, null);
-
+    private void populateQueue() {
         for (int i = 0; i < 1024; i++) {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
             assertTrue(mappedFile != null);
 
-            boolean result = mappedFile.appendMessage(fixedMsg.getBytes());
-            if (!result) {
-                logger.debug("appendMessage " + i);
-            }
-            assertTrue(result);
+            boolean result = mappedFile.appendMessage(FIXED_MSG.getBytes());
+            assertTrue("appendMessage " + i, result);
         }
 
-        mappedFileQueue.shutdown(1000);
-        mappedFileQueue.destroy();
-        logger.debug("MappedFileQueue.getLastMappedFile() OK");
+        assertEquals(FIXED_MSG.getBytes().length * 1024, mappedFileQueue.getMappedMemorySize());
     }
 
     @Test
     public void test_findMapedFileByOffset() {
-        // four-byte string.
-        final String fixedMsg = "abcd";
-
-        logger.debug("================================================================");
-        MappedFileQueue mappedFileQueue =
-            new MappedFileQueue("target/unit_test_store/b/", 1024, null);
-
-        for (int i = 0; i < 1024; i++) {
-            MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
-            assertTrue(mappedFile != null);
-
-            boolean result = mappedFile.appendMessage(fixedMsg.getBytes());
-            assertTrue(result);
-        }
-
-        assertEquals(fixedMsg.getBytes().length * 1024, mappedFileQueue.getMappedMemorySize());
+        populateQueue();
 
         MappedFile mappedFile = mappedFileQueue.findMappedFileByOffset(0);
         assertTrue(mappedFile != null);
@@ -127,77 +102,39 @@ public class MappedFileQueueTest {
 
         mappedFile = mappedFileQueue.findMappedFileByOffset(1024 * 4 + 100);
         assertTrue(mappedFile == null);
-
-        mappedFileQueue.shutdown(1000);
-        mappedFileQueue.destroy();
-        logger.debug("MappedFileQueue.findMappedFileByOffset() OK");
     }
 
     @Test
-    public void test_commit() {
-        final String fixedMsg = "0123456789abcdef";
+    public void test_flush() {
+        populateQueue();
 
-        logger.debug("================================================================");
-        MappedFileQueue mappedFileQueue =
-            new MappedFileQueue("target/unit_test_store/c/", 1024, null);
-
-        for (int i = 0; i < 1024; i++) {
-            MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
-            assertTrue(mappedFile != null);
-
-            boolean result = mappedFile.appendMessage(fixedMsg.getBytes());
-            assertTrue(result);
+        for (int i = 1; i <= 4; i++) {
+            assertTrue(mappedFileQueue.flush(0));
+            assertEquals(1024 * i, mappedFileQueue.getFlushedPosition());
         }
 
-        boolean result = mappedFileQueue.flush(0);
-        assertFalse(result);
-        assertEquals(1024 * 1, mappedFileQueue.getFlushedWhere());
+        assertFalse(mappedFileQueue.flush(0));
+        assertEquals(1024 * 4, mappedFileQueue.getFlushedPosition());
 
-        result = mappedFileQueue.flush(0);
-        assertFalse(result);
-        assertEquals(1024 * 2, mappedFileQueue.getFlushedWhere());
+        // add extra data
+        MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
+        assertTrue(mappedFile != null);
 
-        result = mappedFileQueue.flush(0);
-        assertFalse(result);
-        assertEquals(1024 * 3, mappedFileQueue.getFlushedWhere());
+        assertTrue(mappedFile.appendMessage(FIXED_MSG.getBytes()));
 
-        result = mappedFileQueue.flush(0);
-        assertFalse(result);
-        assertEquals(1024 * 4, mappedFileQueue.getFlushedWhere());
-
-        result = mappedFileQueue.flush(0);
-        assertFalse(result);
-        assertEquals(1024 * 5, mappedFileQueue.getFlushedWhere());
-
-        result = mappedFileQueue.flush(0);
-        assertFalse(result);
-        assertEquals(1024 * 6, mappedFileQueue.getFlushedWhere());
-
-        mappedFileQueue.shutdown(1000);
-        mappedFileQueue.destroy();
-        logger.debug("MappedFileQueue.flush() OK");
+        assertTrue(mappedFileQueue.flush(0));
+        assertEquals(1024 * 4 + FIXED_MSG.getBytes().length, mappedFileQueue.getFlushedPosition());
     }
 
     @Test
-    public void test_getMapedMemorySize() {
-        final String fixedMsg = "abcd";
+    public void test_remainHowManyDataToFlush() {
+        populateQueue();
 
-        logger.debug("================================================================");
-        MappedFileQueue mappedFileQueue =
-            new MappedFileQueue("target/unit_test_store/d/", 1024, null);
+        assertEquals(1024 * 4, mappedFileQueue.remainHowManyDataToFlush());
 
-        for (int i = 0; i < 1024; i++) {
-            MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
-            assertTrue(mappedFile != null);
-
-            boolean result = mappedFile.appendMessage(fixedMsg.getBytes());
-            assertTrue(result);
+        for (int i = 3; i >= 0; i--) {
+            assertTrue(mappedFileQueue.flush(0));
+            assertEquals(1024 * i, mappedFileQueue.remainHowManyDataToFlush());
         }
-
-        assertEquals(fixedMsg.length() * 1024, mappedFileQueue.getMappedMemorySize());
-
-        mappedFileQueue.shutdown(1000);
-        mappedFileQueue.destroy();
-        logger.debug("MappedFileQueue.getMappedMemorySize() OK");
     }
 }
