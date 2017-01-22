@@ -62,11 +62,6 @@ public class UtilAllTest {
     }
 
     @Test
-    public void testTimeMillisToHumanString() {
-        assertThat(UtilAll.timeMillisToHumanString(1485078178610L)).isEqualTo("20170122174258610");
-    }
-
-    @Test
     public void testIsPropertiesEqual() {
         final Properties p1 = new Properties();
         final Properties p2 = new Properties();
