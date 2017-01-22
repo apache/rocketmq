@@ -400,6 +400,7 @@ public class MappedFileQueue {
                 } else if (!mappedFile.isAvailable()) { // Handle hanged file.
                     // TODO: Externalize this hardcoded value.
                     if (mappedFile.destroy(1000L * 120)) {
+                        deleteCount++;
                         files.add(mappedFile);
                         continue;
                     } else {

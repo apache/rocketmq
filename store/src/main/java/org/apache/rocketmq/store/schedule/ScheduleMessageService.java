@@ -324,7 +324,7 @@ public class ScheduleMessageService extends ConfigManager {
 
 
                      */
-                    long cqMinOffset = cq.getMinOffsetInQuque();
+                    long cqMinOffset = cq.getMinOffsetInQueue();
                     if (offset < cqMinOffset) {
                         failScheduleOffset = cqMinOffset;
                         log.error("schedule CQ offset invalid. offset=" + offset + ", cqMinOffset="
