@@ -20,7 +20,6 @@ package org.apache.rocketmq.common.filter;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,22 +41,5 @@ public class FilterAPITest {
             tagSet.add(tag.trim());
         }
         assertThat(subscriptionData.getTagsSet()).isEqualTo(tagSet);
-    }
-
-    @Test
-    public void testSubscriptionData() throws Exception {
-        SubscriptionData subscriptionData =
-            FilterAPI.buildSubscriptionData("ConsumerGroup1", "TestTopic", "TAG1 || Tag2 || tag3");
-        subscriptionData.setFilterClassSource("java hello");
-        String prettyJson = RemotingSerializable.toJson(subscriptionData, true);
-        long subVersion = subscriptionData.getSubVersion();
-        assertThat(prettyJson).isEqualTo("{\n" +
-            "\t\"classFilterMode\":false,\n" +
-            "\t\"codeSet\":[2567159,2598904,3552217],\n" +
-            "\t\"subString\":\"TAG1 || Tag2 || tag3\",\n" +
-            "\t\"subVersion\":" + subVersion + ",\n" +
-            "\t\"tagsSet\":[\"TAG1\",\"Tag2\",\"tag3\"],\n" +
-            "\t\"topic\":\"TestTopic\"\n" +
-            "}");
     }
 }
