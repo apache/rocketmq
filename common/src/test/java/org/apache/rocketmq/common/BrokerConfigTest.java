@@ -16,15 +16,15 @@
  */
 package org.apache.rocketmq.common;
 
-import org.junit.Assert;
 import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class BrokerConfigTest {
 
     @Test
     public void testConsumerFallBehindThresholdOverflow() {
         long expect = 1024L * 1024 * 1024 * 16;
-        Assert.assertEquals(expect, new BrokerConfig().getConsumerFallbehindThreshold());
+        assertThat(new BrokerConfig().getConsumerFallbehindThreshold()).isEqualTo(expect);
     }
-
 }

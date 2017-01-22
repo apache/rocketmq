@@ -17,19 +17,19 @@
 
 package org.apache.rocketmq.common;
 
-import org.junit.Test;
-import org.junit.Assert;
-
 import java.net.InetAddress;
 import java.util.List;
+import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class MixAllTest {
 
     @Test
-    public void test() throws Exception {
+    public void testGetLocalInetAddress() throws Exception {
         List<String> localInetAddress = MixAll.getLocalInetAddress();
         String local = InetAddress.getLocalHost().getHostAddress();
-        Assert.assertTrue(localInetAddress.contains("127.0.0.1"));
-        Assert.assertTrue(localInetAddress.contains(local));
+        assertThat(localInetAddress).contains("127.0.0.1");
+        assertThat(localInetAddress).contains(local);
     }
 }
