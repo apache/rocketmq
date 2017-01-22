@@ -398,15 +398,8 @@ public class MappedFileQueue {
                             + maxOffsetInLogicQueue + ", delete it");
                     }
                 } else if (!mappedFile.isAvailable()) { // Handle hanged file.
-                    // TODO: Externalize this hardcoded value.
-                    if (mappedFile.destroy(1000L * 120)) {
-                        deleteCount++;
-                        files.add(mappedFile);
-                        continue;
-                    } else {
-                        log.warn("Found a hanged consume queue file, but failed to delete.");
-                        break;
-                    }
+                    log.warn("Found a hanged consume queue file, attempting to delete it.");
+                    destroy = true;
                 } else {
                     log.warn("this being not executed forever.");
                     break;
