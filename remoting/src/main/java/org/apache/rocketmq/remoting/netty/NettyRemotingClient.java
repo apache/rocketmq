@@ -327,11 +327,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     @Override
-    public List<String> getNameServerAddressList() {
-        return this.namesrvAddrList.get();
-    }
-
-    @Override
     public RemotingCommand invokeSync(String addr, final RemotingCommand request, long timeoutMillis)
         throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
         final Channel channel = this.getAndCreateChannel(addr);
@@ -541,6 +536,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     @Override
+    public List<String> getNameServerAddressList() {
+        return this.namesrvAddrList.get();
+    }
+
+    @Override
     public ChannelEventListener getChannelEventListener() {
         return channelEventListener;
     }
@@ -553,14 +553,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     @Override
     public ExecutorService getCallbackExecutor() {
         return this.publicExecutor;
-    }
-
-    public List<String> getNamesrvAddrList() {
-        return namesrvAddrList.get();
-    }
-
-    public RPCHook getRpcHook() {
-        return rpcHook;
     }
 
     static class ChannelWrapper {
@@ -600,8 +592,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         @Override
         public void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress, SocketAddress localAddress,
             ChannelPromise promise) throws Exception {
-            final String local = localAddress == null ? "UNKNOW" : localAddress.toString();
-            final String remote = remoteAddress == null ? "UNKNOW" : remoteAddress.toString();
+            final String local = localAddress == null ? "UNKNOWN" : localAddress.toString();
+            final String remote = remoteAddress == null ? "UNKNOWN" : remoteAddress.toString();
             log.info("NETTY CLIENT PIPELINE: CONNECT  {} => {}", local, remote);
 
             super.connect(ctx, remoteAddress, localAddress, promise);
@@ -638,8 +630,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         @Override
         public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
             if (evt instanceof IdleStateEvent) {
-                IdleStateEvent evnet = (IdleStateEvent) evt;
-                if (evnet.state().equals(IdleState.ALL_IDLE)) {
+                IdleStateEvent event = (IdleStateEvent) evt;
+                if (event.state().equals(IdleState.ALL_IDLE)) {
                     final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
                     log.warn("NETTY CLIENT PIPELINE: IDLE exception [{}]", remoteAddress);
                     closeChannel(ctx.channel());
