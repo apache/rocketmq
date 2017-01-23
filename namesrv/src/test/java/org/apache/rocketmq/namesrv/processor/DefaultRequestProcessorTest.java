@@ -16,14 +16,20 @@
  */
 package org.apache.rocketmq.namesrv.processor;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
+import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.GetKVConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.GetKVConfigResponseHeader;
@@ -53,15 +59,24 @@ public class DefaultRequestProcessorTest {
 
     private NettyServerConfig nettyServerConfig;
 
+    private RouteInfoManager routeInfoManager;
+
     private Logger logger;
 
     @Before
     public void init() throws Exception {
         namesrvConfig = new NamesrvConfig();
         nettyServerConfig = new NettyServerConfig();
+        routeInfoManager = new RouteInfoManager();
 
         namesrvController = new NamesrvController(namesrvConfig, nettyServerConfig);
+
+        Field field = NamesrvController.class.getDeclaredField("routeInfoManager");
+        field.setAccessible(true);
+        field.set(namesrvController, routeInfoManager);
         defaultRequestProcessor = new DefaultRequestProcessor(namesrvController);
+
+        registerRouteInfoManager();
 
         logger = mock(Logger.class);
         when(logger.isInfoEnabled()).thenReturn(false);
@@ -218,7 +233,7 @@ public class DefaultRequestProcessorTest {
         Field brokerAddrTable = RouteInfoManager.class.getDeclaredField("brokerAddrTable");
         brokerAddrTable.setAccessible(true);
 
-        assertThat((Map) brokerAddrTable.get(routes)).isEmpty();
+        assertThat((Map) brokerAddrTable.get(routes)).isNotEmpty();
     }
 
     private static RemotingCommand genSampleRegisterCmd(boolean reg) {
@@ -240,5 +255,22 @@ public class DefaultRequestProcessorTest {
         modifiersField.setAccessible(true);
         modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
         field.set(null, newValue);
+    }
+
+    private void registerRouteInfoManager() {
+        TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
+        ConcurrentHashMap<String, TopicConfig> topicConfigConcurrentHashMap = new ConcurrentHashMap<>();
+        TopicConfig topicConfig = new TopicConfig();
+        topicConfig.setWriteQueueNums(8);
+        topicConfig.setTopicName("unit-test");
+        topicConfig.setPerm(6);
+        topicConfig.setReadQueueNums(8);
+        topicConfig.setOrder(false);
+        topicConfigConcurrentHashMap.put("unit-test", topicConfig);
+        topicConfigSerializeWrapper.setTopicConfigTable(topicConfigConcurrentHashMap);
+        Channel channel = mock(Channel.class);
+        RegisterBrokerResult registerBrokerResult = routeInfoManager.registerBroker("default-cluster", "127.0.0.1:10911", "default-broker", 1234, "127.0.0.1:1001",
+            topicConfigSerializeWrapper, new ArrayList<String>(), channel);
+
     }
 }
