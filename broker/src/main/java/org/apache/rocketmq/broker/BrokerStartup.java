@@ -234,7 +234,7 @@ public class BrokerStartup {
         if (properties == null) {
             return;
         }
-        String rmqAddressServerDomain = properties.getProperty("rmqAddressServerDomain", "jmenv.tbsite.net");
+        String rmqAddressServerDomain = properties.getProperty("rmqAddressServerDomain", MixAll.DEFAULT_NAMESRV_ADDR_LOOKUP);
         String rmqAddressServerSubGroup = properties.getProperty("rmqAddressServerSubGroup", "nsaddr");
         System.setProperty("rocketmq.namesrv.domain", rmqAddressServerDomain);
         System.setProperty("rocketmq.namesrv.domain.subgroup", rmqAddressServerSubGroup);
