@@ -24,10 +24,10 @@
         <groupId>org.apache.rocketmq</groupId>
         <version>4.0.0-SNAPSHOT</version>
     </parent>
+
     <modelVersion>4.0.0</modelVersion>
-
     <artifactId>rocketmq-test</artifactId>
-
+    <name>rocketmq-test ${project.version}</name>
 
     <dependencies>
         <dependency>
