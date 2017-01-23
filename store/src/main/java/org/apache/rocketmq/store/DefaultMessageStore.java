@@ -205,11 +205,17 @@ public class DefaultMessageStore implements MessageStore {
         }
         this.reputMessageService.start();
 
-        this.haService.start();
+        try {
+            this.haService.start();
 
-        this.createTempFile();
-        this.addScheduleTask();
-        this.shutdown = false;
+            this.createTempFile();
+            this.addScheduleTask();
+        } catch (Exception e) {
+            log.error("Failed to start", e);
+            throw new Exception(e);
+        } finally {
+            this.shutdown = false;
+        }
     }
 
     /**
@@ -351,7 +357,8 @@ public class DefaultMessageStore implements MessageStore {
         return commitLog;
     }
 
-    public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset, final int maxMsgNums,
+    public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
+        final int maxMsgNums,
         final SubscriptionData subscriptionData) {
         if (this.shutdown) {
             log.warn("message store has shutdown, so getMessage is forbidden");
@@ -870,7 +877,8 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    public Map<String, Long> getMessageIds(final String topic, final int queueId, long minOffset, long maxOffset, SocketAddress storeHost) {
+    public Map<String, Long> getMessageIds(final String topic, final int queueId, long minOffset, long maxOffset,
+        SocketAddress storeHost) {
         Map<String, Long> messageIds = new HashMap<String, Long>();
         if (this.shutdown) {
             return messageIds;
@@ -1278,7 +1286,8 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    public void putMessagePositionInfo(String topic, int queueId, long offset, int size, long tagsCode, long storeTimestamp,
+    public void putMessagePositionInfo(String topic, int queueId, long offset, int size, long tagsCode,
+        long storeTimestamp,
         long logicOffset) {
         ConsumeQueue cq = this.findConsumeQueue(topic, queueId);
         cq.putMessagePositionInfoWrapper(offset, size, tagsCode, storeTimestamp, logicOffset);
