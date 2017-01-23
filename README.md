@@ -3,7 +3,7 @@
 [![GitHub release](https://img.shields.io/badge/release-download-orange.svg)](https://github.org/apache/rocketmqreleases)
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
-**RocketMQ is a low latency, reliable, scalable, easy to use message oriented middleware born from alibaba massive messaging business.**
+**[RocketMQ](https://rocketmq.apache.org) is a low latency, reliable, scalable, easy to use message oriented middleware born from alibaba massive messaging business.**
 
 It offers a variety of features as follows:
 
@@ -22,6 +22,7 @@ It offers a variety of features as follows:
 ----------
 
 ## Learn it & Contact us
+* Home: <https://rocketmq.apache.org>
 * Wiki: <https://cwiki.apache.org/confluence/display/ROCKETMQ/Apache+RocketMQ+Home>
 * Issues: <https://issues.apache.org/jira/browse/RocketMQ>
 * Ask: <http://stackoverflow.com/questions/tagged/rocketmq> or <https://www.quora.com/topic/RocketMQ>
