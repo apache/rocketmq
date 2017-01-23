@@ -68,8 +68,8 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -83,19 +83,20 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultMQAdminExtTest {
-    private DefaultMQAdminExtImpl defaultMQAdminExtImpl;
-    private MQClientInstance mqClientInstance = MQClientManager.getInstance().getAndCreateMQClientInstance(new ClientConfig());
-    private MQClientAPIImpl mQClientAPIImpl;
-    private Properties properties = new Properties();
-    private TopicList topicList = new TopicList();
-    private TopicRouteData topicRouteData = new TopicRouteData();
-    private KVTable kvTable = new KVTable();
-    private ClusterInfo clusterInfo = new ClusterInfo();
+    private static DefaultMQAdminExt defaultMQAdminExt;
+    private static DefaultMQAdminExtImpl defaultMQAdminExtImpl;
+    private static MQClientInstance mqClientInstance = MQClientManager.getInstance().getAndCreateMQClientInstance(new ClientConfig());
+    private static MQClientAPIImpl mQClientAPIImpl;
+    private static Properties properties = new Properties();
+    private static TopicList topicList = new TopicList();
+    private static TopicRouteData topicRouteData = new TopicRouteData();
+    private static KVTable kvTable = new KVTable();
+    private static ClusterInfo clusterInfo = new ClusterInfo();
 
-    @Before
-    public void init() throws Exception {
+    @BeforeClass
+    public static void init() throws Exception {
         mQClientAPIImpl = mock(MQClientAPIImpl.class);
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
+        defaultMQAdminExt = new DefaultMQAdminExt();
         defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(defaultMQAdminExt, 1000);
 
         Field field = DefaultMQAdminExtImpl.class.getDeclaredField("mqClientInstance");
@@ -104,6 +105,9 @@ public class DefaultMQAdminExtTest {
         field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
         field.setAccessible(true);
         field.set(mqClientInstance, mQClientAPIImpl);
+        field = DefaultMQAdminExt.class.getDeclaredField("defaultMQAdminExtImpl");
+        field.setAccessible(true);
+        field.set(defaultMQAdminExt, defaultMQAdminExtImpl);
 
         properties.setProperty("maxMessageSize", "5000000");
         properties.setProperty("flushDelayOffsetInterval", "15000");
@@ -223,15 +227,15 @@ public class DefaultMQAdminExtTest {
         when(mQClientAPIImpl.getConsumerRunningInfo(anyString(), anyString(), anyString(), anyBoolean(), anyLong())).thenReturn(consumerRunningInfo);
     }
 
-    @After
-    public void terminate() throws Exception {
+    @AfterClass
+    public static void terminate() throws Exception {
         if (defaultMQAdminExtImpl != null)
-            defaultMQAdminExtImpl.shutdown();
+            defaultMQAdminExt.shutdown();
     }
 
     @Test
     public void testUpdateBrokerConfig() throws InterruptedException, RemotingConnectException, UnsupportedEncodingException, RemotingTimeoutException, MQBrokerException, RemotingSendRequestException {
-        Properties result = defaultMQAdminExtImpl.getBrokerConfig("127.0.0.1:10911");
+        Properties result = defaultMQAdminExt.getBrokerConfig("127.0.0.1:10911");
         assertThat(result.getProperty("maxMessageSize")).isEqualTo("5000000");
         assertThat(result.getProperty("flushDelayOffsetInterval")).isEqualTo("15000");
         assertThat(result.getProperty("serverSocketRcvBufSize")).isEqualTo("655350");
@@ -239,21 +243,21 @@ public class DefaultMQAdminExtTest {
 
     @Test
     public void testFetchAllTopicList() throws RemotingException, MQClientException, InterruptedException {
-        TopicList topicList = defaultMQAdminExtImpl.fetchAllTopicList();
+        TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
         assertThat(topicList.getTopicList().size()).isEqualTo(2);
         assertThat(topicList.getTopicList()).contains("topic_one");
     }
 
     @Test
     public void testFetchBrokerRuntimeStats() throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        KVTable brokerStats = defaultMQAdminExtImpl.fetchBrokerRuntimeStats("127.0.0.1:10911");
+        KVTable brokerStats = defaultMQAdminExt.fetchBrokerRuntimeStats("127.0.0.1:10911");
         assertThat(brokerStats.getTable().get("id")).isEqualTo("1234");
         assertThat(brokerStats.getTable().get("brokerName")).isEqualTo("default-broker");
     }
 
     @Test
     public void testExamineBrokerClusterInfo() throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        ClusterInfo clusterInfo = defaultMQAdminExtImpl.examineBrokerClusterInfo();
+        ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
         HashMap<String, BrokerData> brokerList = clusterInfo.getBrokerAddrTable();
         assertThat(brokerList.get("default-broker").getBrokerName()).isEqualTo("default-broker");
         assertThat(brokerList.containsKey("broker-test")).isTrue();
@@ -272,32 +276,32 @@ public class DefaultMQAdminExtTest {
 
     @Test
     public void testExamineConsumeStats() throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        ConsumeStats consumeStats = defaultMQAdminExtImpl.examineConsumeStats("default-consumer-group", "unit-test");
+        ConsumeStats consumeStats = defaultMQAdminExt.examineConsumeStats("default-consumer-group", "unit-test");
         assertThat(consumeStats.getConsumeTps()).isEqualTo(1234);
     }
 
     @Test
     public void testExamineConsumerConnectionInfo() throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        ConsumerConnection consumerConnection = defaultMQAdminExtImpl.examineConsumerConnectionInfo("default-consumer-group");
+        ConsumerConnection consumerConnection = defaultMQAdminExt.examineConsumerConnectionInfo("default-consumer-group");
         assertThat(consumerConnection.getConsumeType()).isEqualTo(ConsumeType.CONSUME_PASSIVELY);
         assertThat(consumerConnection.getMessageModel()).isEqualTo(MessageModel.CLUSTERING);
     }
 
     @Test
     public void testExamineProducerConnectionInfo() throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        ProducerConnection producerConnection = defaultMQAdminExtImpl.examineProducerConnectionInfo("default-producer-group", "unit-test");
+        ProducerConnection producerConnection = defaultMQAdminExt.examineProducerConnectionInfo("default-producer-group", "unit-test");
         assertThat(producerConnection.getConnectionSet().size()).isEqualTo(1);
     }
 
     @Test
     public void testWipeWritePermOfBroker() throws InterruptedException, RemotingCommandException, RemotingSendRequestException, RemotingTimeoutException, MQClientException, RemotingConnectException {
-        int result = defaultMQAdminExtImpl.wipeWritePermOfBroker("127.0.0.1:9876", "default-broker");
+        int result = defaultMQAdminExt.wipeWritePermOfBroker("127.0.0.1:9876", "default-broker");
         assertThat(result).isEqualTo(6);
     }
 
     @Test
     public void testExamineTopicRouteInfo() throws RemotingException, MQClientException, InterruptedException {
-        TopicRouteData topicRouteData = defaultMQAdminExtImpl.examineTopicRouteInfo("UnitTest");
+        TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo("UnitTest");
         assertThat(topicRouteData.getBrokerDatas().get(0).getBrokerName()).isEqualTo("default-broker");
         assertThat(topicRouteData.getBrokerDatas().get(0).getCluster()).isEqualTo("default-cluster");
     }
@@ -308,53 +312,53 @@ public class DefaultMQAdminExtTest {
         result.add("default-name-one");
         result.add("default-name-two");
         when(mqClientInstance.getMQClientAPIImpl().getNameServerAddressList()).thenReturn(result);
-        List<String> nameList = defaultMQAdminExtImpl.getNameServerAddressList();
+        List<String> nameList = defaultMQAdminExt.getNameServerAddressList();
         assertThat(nameList.get(0)).isEqualTo("default-name-one");
         assertThat(nameList.get(1)).isEqualTo("default-name-two");
     }
 
     @Test
     public void testPutKVConfig() throws RemotingException, MQClientException, InterruptedException {
-        String topicConfig = defaultMQAdminExtImpl.getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, "UnitTest");
+        String topicConfig = defaultMQAdminExt.getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, "UnitTest");
         assertThat(topicConfig).isEqualTo("topicListConfig");
-        KVTable kvs = defaultMQAdminExtImpl.getKVListByNamespace(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG);
+        KVTable kvs = defaultMQAdminExt.getKVListByNamespace(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG);
         assertThat(kvs.getTable().get("broker-name")).isEqualTo("broker-one");
         assertThat(kvs.getTable().get("cluster-name")).isEqualTo("default-cluster");
     }
 
     @Test
     public void testQueryTopicConsumeByWho() throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        GroupList groupList = defaultMQAdminExtImpl.queryTopicConsumeByWho("UnitTest");
+        GroupList groupList = defaultMQAdminExt.queryTopicConsumeByWho("UnitTest");
         assertThat(groupList.getGroupList().contains("consumer-group-two")).isTrue();
     }
 
     @Test
     public void testQueryConsumeTimeSpan() throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        List<QueueTimeSpan> result = defaultMQAdminExtImpl.queryConsumeTimeSpan("unit-test", "default-broker-group");
+        List<QueueTimeSpan> result = defaultMQAdminExt.queryConsumeTimeSpan("unit-test", "default-broker-group");
         assertThat(result.size()).isEqualTo(0);
     }
 
     @Test
     public void testCleanExpiredConsumerQueue() throws InterruptedException, RemotingTimeoutException, MQClientException, RemotingSendRequestException, RemotingConnectException {
-        boolean result = defaultMQAdminExtImpl.cleanExpiredConsumerQueue("default-cluster");
+        boolean result = defaultMQAdminExt.cleanExpiredConsumerQueue("default-cluster");
         assertThat(result).isFalse();
     }
 
     @Test
     public void testCleanExpiredConsumerQueueByAddr() throws InterruptedException, RemotingTimeoutException, MQClientException, RemotingSendRequestException, RemotingConnectException {
-        boolean clean = defaultMQAdminExtImpl.cleanExpiredConsumerQueueByAddr("127.0.0.1:10911");
+        boolean clean = defaultMQAdminExt.cleanExpiredConsumerQueueByAddr("127.0.0.1:10911");
         assertThat(clean).isTrue();
     }
 
     @Test
     public void testCleanUnusedTopic() throws InterruptedException, RemotingTimeoutException, MQClientException, RemotingSendRequestException, RemotingConnectException {
-        boolean result = defaultMQAdminExtImpl.cleanUnusedTopic("default-cluster");
+        boolean result = defaultMQAdminExt.cleanUnusedTopic("default-cluster");
         assertThat(result).isFalse();
     }
 
     @Test
     public void testGetConsumerRunningInfo() throws RemotingException, MQClientException, InterruptedException {
-        ConsumerRunningInfo consumerRunningInfo = defaultMQAdminExtImpl.getConsumerRunningInfo("consumer-group", "cid_123", false);
+        ConsumerRunningInfo consumerRunningInfo = defaultMQAdminExt.getConsumerRunningInfo("consumer-group", "cid_123", false);
         assertThat(consumerRunningInfo.getJstack()).isEqualTo("test");
     }
 
@@ -363,25 +367,25 @@ public class DefaultMQAdminExtTest {
         MessageExt messageExt = new MessageExt();
         messageExt.setMsgId("msgId");
         messageExt.setTopic("unit-test");
-        List<MessageTrack> messageTrackList = defaultMQAdminExtImpl.messageTrackDetail(messageExt);
+        List<MessageTrack> messageTrackList = defaultMQAdminExt.messageTrackDetail(messageExt);
         assertThat(messageTrackList.size()).isEqualTo(2);
     }
 
     @Test
     public void testGetConsumeStatus() throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        Map<String, Map<MessageQueue, Long>> result = defaultMQAdminExtImpl.getConsumeStatus("unit-test", "default-broker-group", "127.0.0.1:10911");
+        Map<String, Map<MessageQueue, Long>> result = defaultMQAdminExt.getConsumeStatus("unit-test", "default-broker-group", "127.0.0.1:10911");
         assertThat(result.size()).isEqualTo(0);
     }
 
     @Test
     public void testGetTopicClusterList() throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        Set<String> result = defaultMQAdminExtImpl.getTopicClusterList("unit-test");
+        Set<String> result = defaultMQAdminExt.getTopicClusterList("unit-test");
         assertThat(result.size()).isEqualTo(0);
     }
 
     @Test
     public void testGetClusterList() throws InterruptedException, RemotingTimeoutException, MQClientException, RemotingSendRequestException, RemotingConnectException {
-        Set<String> clusterlist = defaultMQAdminExtImpl.getClusterList("UnitTest");
+        Set<String> clusterlist = defaultMQAdminExt.getClusterList("UnitTest");
         assertThat(clusterlist.contains("default-cluster-one")).isTrue();
         assertThat(clusterlist.contains("default-cluster-two")).isTrue();
     }
@@ -391,13 +395,13 @@ public class DefaultMQAdminExtTest {
         ConsumeStatsList result = new ConsumeStatsList();
         result.setBrokerAddr("127.0.0.1:10911");
         when(mqClientInstance.getMQClientAPIImpl().fetchConsumeStatsInBroker("127.0.0.1:10911", false, 10000)).thenReturn(result);
-        ConsumeStatsList consumeStatsList = defaultMQAdminExtImpl.fetchConsumeStatsInBroker("127.0.0.1:10911", false, 10000);
+        ConsumeStatsList consumeStatsList = defaultMQAdminExt.fetchConsumeStatsInBroker("127.0.0.1:10911", false, 10000);
         assertThat(consumeStatsList.getBrokerAddr()).isEqualTo("127.0.0.1:10911");
     }
 
     @Test
     public void testGetAllSubscriptionGroup() throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExtImpl.getAllSubscriptionGroup("127.0.0.1:10911", 10000);
+        SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getAllSubscriptionGroup("127.0.0.1:10911", 10000);
         assertThat(subscriptionGroupWrapper.getSubscriptionGroupTable().get("Consumer-group-one").getBrokerId()).isEqualTo(1234);
         assertThat(subscriptionGroupWrapper.getSubscriptionGroupTable().get("Consumer-group-one").getGroupName()).isEqualTo("Consumer-group-one");
         assertThat(subscriptionGroupWrapper.getSubscriptionGroupTable().get("Consumer-group-one").isConsumeBroadcastEnable()).isTrue();

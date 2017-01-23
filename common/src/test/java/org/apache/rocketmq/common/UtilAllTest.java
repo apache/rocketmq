@@ -17,106 +17,85 @@
 
 package org.apache.rocketmq.common;
 
-import java.net.URL;
 import java.util.Properties;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
 public class UtilAllTest {
 
     @Test
-    public void test_currentStackTrace() {
-        System.out.println(UtilAll.currentStackTrace());
+    public void testCurrentStackTrace() {
+        String currentStackTrace = UtilAll.currentStackTrace();
+        assertThat(currentStackTrace).contains("UtilAll.currentStackTrace");
+        assertThat(currentStackTrace).contains("UtilAllTest.testCurrentStackTrace(");
     }
 
     @Test
-    public void test_a() {
-        URL url = this.getClass().getProtectionDomain().getCodeSource().getLocation();
-        System.out.println(url);
-        System.out.println(url.getPath());
-    }
-
-    @Test
-    public void test_resetClassProperties() {
+    public void testProperties2Object() {
         DemoConfig demoConfig = new DemoConfig();
-        MixAll.properties2Object(new Properties(), demoConfig);
+        Properties properties = new Properties();
+        properties.setProperty("demoWidth", "123");
+        properties.setProperty("demoLength", "456");
+        properties.setProperty("demoOK", "true");
+        properties.setProperty("demoName", "TestDemo");
+        MixAll.properties2Object(properties, demoConfig);
+        assertThat(demoConfig.getDemoLength()).isEqualTo(456);
+        assertThat(demoConfig.getDemoWidth()).isEqualTo(123);
+        assertThat(demoConfig.isDemoOK()).isTrue();
+        assertThat(demoConfig.getDemoName()).isEqualTo("TestDemo");
     }
 
     @Test
-    public void test_properties2String() {
+    public void testProperties2String() {
         DemoConfig demoConfig = new DemoConfig();
+        demoConfig.setDemoLength(123);
+        demoConfig.setDemoWidth(456);
+        demoConfig.setDemoName("TestDemo");
+        demoConfig.setDemoOK(true);
         Properties properties = MixAll.object2Properties(demoConfig);
-        System.out.println(MixAll.properties2String(properties));
+        assertThat(properties.getProperty("demoLength")).isEqualTo("123");
+        assertThat(properties.getProperty("demoWidth")).isEqualTo("456");
+        assertThat(properties.getProperty("demoOK")).isEqualTo("true");
+        assertThat(properties.getProperty("demoName")).isEqualTo("TestDemo");
     }
 
     @Test
-    public void test_timeMillisToHumanString() {
-        System.out.println(UtilAll.timeMillisToHumanString());
-    }
-
-    @Test
-    public void test_isPropertiesEqual() {
+    public void testIsPropertiesEqual() {
         final Properties p1 = new Properties();
         final Properties p2 = new Properties();
 
         p1.setProperty("a", "1");
         p1.setProperty("b", "2");
-
         p2.setProperty("a", "1");
         p2.setProperty("b", "2");
-        // p2.setProperty("c", "3");
 
-        assertTrue(MixAll.isPropertiesEqual(p1, p2));
+        assertThat(MixAll.isPropertiesEqual(p1, p2)).isTrue();
     }
 
     @Test
-    public void test_getpid() {
-        int pid = UtilAll.getPid();
-
-        System.out.println("PID = " + pid);
-        assertTrue(pid > 0);
+    public void testGetPid() {
+        assertThat(UtilAll.getPid()).isGreaterThan(0);
     }
 
     @Test
-    public void test_getDiskPartitionSpaceUsedPercent() {
-        assertEquals(-1, UtilAll.getDiskPartitionSpaceUsedPercent(null), 0);
-        assertEquals(-1, UtilAll.getDiskPartitionSpaceUsedPercent(""), 0);
-
-        assertEquals(-1, UtilAll.getDiskPartitionSpaceUsedPercent("nonExistingPath"), 0);
-
+    public void testGetDiskPartitionSpaceUsedPercent() {
         String tmpDir = System.getProperty("java.io.tmpdir");
-        assertNotEquals(-1, UtilAll.getDiskPartitionSpaceUsedPercent(tmpDir), 0);
+
+        assertThat(UtilAll.getDiskPartitionSpaceUsedPercent(null)).isCloseTo(-1, within(0.000001));
+        assertThat(UtilAll.getDiskPartitionSpaceUsedPercent("")).isCloseTo(-1, within(0.000001));
+        assertThat(UtilAll.getDiskPartitionSpaceUsedPercent("nonExistingPath")).isCloseTo(-1, within(0.000001));
+        assertThat(UtilAll.getDiskPartitionSpaceUsedPercent(tmpDir)).isNotCloseTo(-1, within(0.000001));
     }
 
     @Test
-    public void test_isBlank() {
-        {
-            boolean result = UtilAll.isBlank("Hello ");
-            assertTrue(!result);
-        }
-
-        {
-            boolean result = UtilAll.isBlank(" Hello");
-            assertTrue(!result);
-        }
-
-        {
-            boolean result = UtilAll.isBlank("He llo");
-            assertTrue(!result);
-        }
-
-        {
-            boolean result = UtilAll.isBlank("  ");
-            assertTrue(result);
-        }
-
-        {
-            boolean result = UtilAll.isBlank("Hello");
-            assertTrue(!result);
-        }
+    public void testIsBlank() {
+        assertThat(UtilAll.isBlank("Hello ")).isFalse();
+        assertThat(UtilAll.isBlank(" Hello")).isFalse();
+        assertThat(UtilAll.isBlank("He llo")).isFalse();
+        assertThat(UtilAll.isBlank("  ")).isTrue();
+        assertThat(UtilAll.isBlank("Hello")).isFalse();
     }
 
     static class DemoConfig {
@@ -125,7 +104,7 @@ public class UtilAllTest {
         private boolean demoOK = false;
         private String demoName = "haha";
 
-        public int getDemoWidth() {
+        int getDemoWidth() {
             return demoWidth;
         }
 
@@ -153,8 +132,18 @@ public class UtilAllTest {
             return demoName;
         }
 
-        public void setDemoNfieldame(String demoName) {
+        public void setDemoName(String demoName) {
             this.demoName = demoName;
+        }
+
+        @Override
+        public String toString() {
+            return "DemoConfig{" +
+                "demoWidth=" + demoWidth +
+                ", demoLength=" + demoLength +
+                ", demoOK=" + demoOK +
+                ", demoName='" + demoName + '\'' +
+                '}';
         }
     }
 }

@@ -14,32 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.tools.command.topic;
 
-package org.apache.rocketmq.common.filter;
-
-import java.util.HashSet;
-import java.util.Set;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
+import org.apache.rocketmq.srvutil.ServerUtil;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class FilterAPITest {
-    private String topic = "FooBar";
-    private String group = "FooBarGroup";
-    private String subString = "TAG1 || Tag2 || tag3";
-
+public class TopicClusterSubCommandTest {
     @Test
-    public void testBuildSubscriptionData() throws Exception {
-        SubscriptionData subscriptionData =
-            FilterAPI.buildSubscriptionData(group, topic, subString);
-        assertThat(subscriptionData.getTopic()).isEqualTo(topic);
-        assertThat(subscriptionData.getSubString()).isEqualTo(subString);
-        String [] tags = subString.split("\\|\\|");
-        Set<String> tagSet = new HashSet<>();
-        for (String tag : tags) {
-            tagSet.add(tag.trim());
-        }
-        assertThat(subscriptionData.getTagsSet()).isEqualTo(tagSet);
+    public void testExecute() {
+        TopicClusterSubCommand cmd = new TopicClusterSubCommand();
+        Options options = ServerUtil.buildCommandlineOptions(new Options());
+        String[] subargs = new String[] {"-t unit-test"};
+        final CommandLine commandLine =
+            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
+        assertThat(commandLine.getOptionValue('t').trim()).isEqualTo("unit-test");
     }
 }
