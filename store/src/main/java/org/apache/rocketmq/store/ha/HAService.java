@@ -187,8 +187,13 @@ public class HAService {
         public void shutdown(final boolean interrupt) {
             super.shutdown(interrupt);
             try {
-                this.serverSocketChannel.close();
-                this.selector.close();
+                if (this.serverSocketChannel != null) {
+                    this.serverSocketChannel.close();
+                }
+
+                if (this.selector != null) {
+                    this.selector.close();
+                }
             } catch (IOException e) {
                 log.error("AcceptSocketService shutdown exception", e);
             }

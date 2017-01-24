@@ -205,55 +205,47 @@ public class DefaultMessageStore implements MessageStore {
         }
         this.reputMessageService.start();
 
-        try {
-            this.haService.start();
+        this.haService.start();
 
-            this.createTempFile();
-            this.addScheduleTask();
-        } catch (Exception e) {
-            log.error("Failed to start", e);
-            throw new Exception(e);
-        } finally {
-            this.shutdown = false;
-        }
+        this.createTempFile();
+        this.addScheduleTask();
+        this.shutdown = false;
     }
 
     /**
 
      */
     public void shutdown() {
-        if (!this.shutdown) {
-            this.shutdown = true;
+        this.shutdown = true;
 
-            this.scheduledExecutorService.shutdown();
+        this.scheduledExecutorService.shutdown();
 
-            try {
+        try {
 
-                Thread.sleep(1000 * 3);
-            } catch (InterruptedException e) {
-                log.error("shutdown Exception, ", e);
-            }
+            Thread.sleep(1000 * 3);
+        } catch (InterruptedException e) {
+            log.error("shutdown Exception, ", e);
+        }
 
-            if (this.scheduleMessageService != null) {
-                this.scheduleMessageService.shutdown();
-            }
+        if (this.scheduleMessageService != null) {
+            this.scheduleMessageService.shutdown();
+        }
 
-            this.haService.shutdown();
+        this.haService.shutdown();
 
-            this.storeStatsService.shutdown();
-            this.indexService.shutdown();
-            this.commitLog.shutdown();
-            this.reputMessageService.shutdown();
-            this.flushConsumeQueueService.shutdown();
-            this.allocateMappedFileService.shutdown();
-            this.storeCheckpoint.flush();
-            this.storeCheckpoint.shutdown();
+        this.storeStatsService.shutdown();
+        this.indexService.shutdown();
+        this.commitLog.shutdown();
+        this.reputMessageService.shutdown();
+        this.flushConsumeQueueService.shutdown();
+        this.allocateMappedFileService.shutdown();
+        this.storeCheckpoint.flush();
+        this.storeCheckpoint.shutdown();
 
-            if (this.runningFlags.isWriteable()) {
-                this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
-            } else {
-                log.warn("the store may be wrong, so shutdown abnormally, and keep abort file.");
-            }
+        if (this.runningFlags.isWriteable()) {
+            this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
+        } else {
+            log.warn("the store may be wrong, so shutdown abnormally, and keep abort file.");
         }
 
         this.transientStorePool.destroy();
