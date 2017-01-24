@@ -60,7 +60,12 @@ public class DataVersion extends RemotingSerializable {
 
         if (timestatmp != that.timestatmp)
             return false;
-        return counter != null ? counter.equals(that.counter) : that.counter == null;
+
+        if ((counter != null && that.counter == null) || (counter == null && that.counter != null)) {
+            return false;
+        }
+
+        return 0 == Long.compare(counter.longValue(), that.counter.longValue());
 
     }
 
