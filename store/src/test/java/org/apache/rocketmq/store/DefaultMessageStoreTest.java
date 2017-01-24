@@ -26,9 +26,9 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
 
 public class DefaultMessageStoreTest {
     private final String StoreMessage = "Once, there was a chance for me!";
@@ -58,7 +58,7 @@ public class DefaultMessageStoreTest {
         MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig());
 
         boolean load = master.load();
-        assertTrue(load);
+        assertThat(load).isTrue();
 
         master.start();
         try {
@@ -102,7 +102,7 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
         MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig());
         boolean load = master.load();
-        assertTrue(load);
+        assertThat(load).isTrue();
 
         master.start();
         try {
@@ -117,6 +117,7 @@ public class DefaultMessageStoreTest {
 
             }
         } finally {
+            master.getRunningDataInfo();
             master.shutdown();
             master.destroy();
         }
@@ -125,6 +126,30 @@ public class DefaultMessageStoreTest {
     private class MyMessageArrivingListener implements MessageArrivingListener {
         @Override
         public void arriving(String topic, int queueId, long logicOffset, long tagsCode) {
+        }
+    }
+
+    @Test
+    public void testFailureOnStart() throws Exception {
+        MessageStore master = new DefaultMessageStore(
+            new MessageStoreConfig(), null, new MyMessageArrivingListener(), new BrokerConfig());
+        MessageStore masterSpy = Mockito.spy(master);
+
+        Mockito.doThrow(new Exception("Start operation failed")).when(masterSpy).start();
+
+        boolean load = masterSpy.load();
+        assertThat(load).isTrue();
+
+        try {
+            masterSpy.start();
+        } catch (Exception ignored) {
+        } finally {
+            // shutdown, no messages are accepted
+            assertThat(masterSpy.putMessage(buildMessage()).isOk()).isFalse();
+
+            // shutdown without errors
+            masterSpy.shutdown();
+            masterSpy.destroy();
         }
     }
 }
