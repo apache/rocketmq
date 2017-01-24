@@ -20,25 +20,25 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class DataVersion extends RemotingSerializable {
-    private long timestatmp = System.currentTimeMillis();
+    private long timestamp = System.currentTimeMillis();
     private AtomicLong counter = new AtomicLong(0);
 
     public void assignNewOne(final DataVersion dataVersion) {
-        this.timestatmp = dataVersion.timestatmp;
+        this.timestamp = dataVersion.timestamp;
         this.counter.set(dataVersion.counter.get());
     }
 
     public void nextVersion() {
-        this.timestatmp = System.currentTimeMillis();
+        this.timestamp = System.currentTimeMillis();
         this.counter.incrementAndGet();
     }
 
-    public long getTimestatmp() {
-        return timestatmp;
+    public long getTimestamp() {
+        return timestamp;
     }
 
-    public void setTimestatmp(long timestatmp) {
-        this.timestatmp = timestatmp;
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 
     public AtomicLong getCounter() {
@@ -58,10 +58,14 @@ public class DataVersion extends RemotingSerializable {
 
         final DataVersion that = (DataVersion) o;
 
-        if (timestatmp != that.timestatmp)
+        if (timestamp != that.timestamp)
             return false;
 
-        if ((counter != null && that.counter == null) || (counter == null && that.counter != null)) {
+        if (null == counter && null == that.counter) {
+            return true;
+        }
+
+        if (counter != null && that.counter == null || counter == null) {
             return false;
         }
 
@@ -71,7 +75,7 @@ public class DataVersion extends RemotingSerializable {
 
     @Override
     public int hashCode() {
-        int result = (int) (timestatmp ^ (timestatmp >>> 32));
+        int result = (int) (timestamp ^ (timestamp >>> 32));
         result = 31 * result + (counter != null ? counter.hashCode() : 0);
         return result;
     }
