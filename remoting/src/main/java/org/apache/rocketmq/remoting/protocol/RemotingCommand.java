@@ -110,7 +110,8 @@ public class RemotingCommand {
         return createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, "not set any response code", classHeader);
     }
 
-    public static RemotingCommand createResponseCommand(int code, String remark, Class<? extends CommandCustomHeader> classHeader) {
+    public static RemotingCommand createResponseCommand(int code, String remark,
+        Class<? extends CommandCustomHeader> classHeader) {
         RemotingCommand cmd = new RemotingCommand();
         cmd.markResponseType();
         cmd.setCode(code);
@@ -230,7 +231,8 @@ public class RemotingCommand {
         this.customHeader = customHeader;
     }
 
-    public CommandCustomHeader decodeCommandCustomHeader(Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
+    public CommandCustomHeader decodeCommandCustomHeader(
+        Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
         CommandCustomHeader objectHeader;
         try {
             objectHeader = classHeader.newInstance();
@@ -279,6 +281,7 @@ public class RemotingCommand {
                             field.set(objectHeader, valueParsed);
 
                         } catch (Throwable e) {
+                            log.error("Failed field decoding", e);
                         }
                     }
                 }
@@ -384,8 +387,8 @@ public class RemotingCommand {
                         try {
                             field.setAccessible(true);
                             value = field.get(this.customHeader);
-                        } catch (IllegalArgumentException e) {
-                        } catch (IllegalAccessException e) {
+                        } catch (IllegalArgumentException | IllegalAccessException e) {
+                            log.error("Failed to access field [{}]", name, e);
                         }
 
                         if (value != null) {
@@ -400,7 +403,6 @@ public class RemotingCommand {
     public ByteBuffer encodeHeader() {
         return encodeHeader(this.body != null ? this.body.length : 0);
     }
-
 
     public ByteBuffer encodeHeader(final int bodyLength) {
         // 1> header length size
