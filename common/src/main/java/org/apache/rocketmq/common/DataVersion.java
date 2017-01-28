@@ -58,19 +58,15 @@ public class DataVersion extends RemotingSerializable {
 
         final DataVersion that = (DataVersion) o;
 
-        if (timestamp != that.timestamp)
-            return false;
-
-        if (null == counter && null == that.counter) {
-            return true;
-        }
-
-        if (counter != null && that.counter == null || counter == null) {
+        if (timestamp != that.timestamp) {
             return false;
         }
 
-        return 0 == Long.compare(counter.longValue(), that.counter.longValue());
+        if (counter != null && that.counter != null) {
+            return counter.longValue() == that.counter.longValue();
+        }
 
+        return (null == counter) && (null == that.counter);
     }
 
     @Override
