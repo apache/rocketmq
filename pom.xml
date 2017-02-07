@@ -16,8 +16,7 @@
   limitations under the License.
   -->
 
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <parent>
         <groupId>org.apache</groupId>
@@ -30,7 +29,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>4.0.0-SNAPSHOT</version>
+    <version>4.0.0-incubating</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.incubator.apache.org/</url>
@@ -44,7 +43,8 @@
         <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-rocketmq.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-rocketmq.git
         </developerConnection>
-    </scm>
+      <tag>rocketmq-4.0.0-incubating</tag>
+  </scm>
 
     <mailingLists>
         <mailingList>
@@ -211,7 +211,7 @@
                 </executions>
                 <configuration>
                     <rules>
-                        <banCircularDependencies/>
+                        <banCircularDependencies />
                     </rules>
                     <fail>true</fail>
                 </configuration>
