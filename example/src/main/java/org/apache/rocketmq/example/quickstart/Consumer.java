@@ -42,8 +42,12 @@ public class Consumer {
          * <p/>
          *
          * Alternatively, you may specify name server addresses via exporting environmental variable: NAMESRV_ADDR
+         * <pre>
+         * {@code
+         * consumer.setNamesrvAddr("name-server1-ip:9876;name-server2-ip:9876");
+         * }
+         * </pre>
          */
-        consumer.setNamesrvAddr("name-server1-ip:9876;name-server2-ip:9876");
 
         /*
          * Specify where to start in case the specified consumer group is a brand new one.
