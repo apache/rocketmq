@@ -66,11 +66,11 @@ public class ConsumerProgressSubCommand implements SubCommand {
     }
 
     private Map<MessageQueue, String> getMessageQueueAllocationResult(DefaultMQAdminExt defaultMQAdminExt,
-        String groupName){
+        String groupName) {
         Map<MessageQueue, String> results = new HashMap<>();
-        try{
+        try {
             ConsumerConnection consumerConnection = defaultMQAdminExt.examineConsumerConnectionInfo(groupName);
-            for (Connection connection : consumerConnection.getConnectionSet()){
+            for (Connection connection : consumerConnection.getConnectionSet()) {
                 String clientId = connection.getClientId();
                 ConsumerRunningInfo consumerRunningInfo = defaultMQAdminExt.getConsumerRunningInfo(groupName, clientId,
                     false);
