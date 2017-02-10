@@ -191,7 +191,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             registerBrokerBody = RegisterBrokerBody.decode(request.getBody(), RegisterBrokerBody.class);
         } else {
             registerBrokerBody.getTopicConfigSerializeWrapper().getDataVersion().setCounter(new AtomicLong(0));
-            registerBrokerBody.getTopicConfigSerializeWrapper().getDataVersion().setTimestatmp(0);
+            registerBrokerBody.getTopicConfigSerializeWrapper().getDataVersion().setTimestamp(0);
         }
 
         RegisterBrokerResult result = this.namesrvController.getRouteInfoManager().registerBroker(
@@ -227,7 +227,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         } else {
             topicConfigWrapper = new TopicConfigSerializeWrapper();
             topicConfigWrapper.getDataVersion().setCounter(new AtomicLong(0));
-            topicConfigWrapper.getDataVersion().setTimestatmp(0);
+            topicConfigWrapper.getDataVersion().setTimestamp(0);
         }
 
         RegisterBrokerResult result = this.namesrvController.getRouteInfoManager().registerBroker(
