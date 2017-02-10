@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store;
 
+import java.nio.ByteBuffer;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.message.MessageExt;
 
@@ -23,6 +24,8 @@ public class MessageExtBrokerInner extends MessageExt {
     private static final long serialVersionUID = 7256001576878700634L;
     private String propertiesString;
     private long tagsCode;
+
+    private ByteBuffer encodedBuffer;
 
     public static long tagsString2tagsCode(final TopicFilterType filter, final String tags) {
         if (null == tags || tags.length() == 0)
@@ -45,5 +48,13 @@ public class MessageExtBrokerInner extends MessageExt {
 
     public void setTagsCode(long tagsCode) {
         this.tagsCode = tagsCode;
+    }
+
+    public ByteBuffer getEncodedBuffer() {
+        return encodedBuffer;
+    }
+
+    public void setEncodedBuffer(ByteBuffer encodedBuffer) {
+        this.encodedBuffer = encodedBuffer;
     }
 }
