@@ -3,3 +3,29 @@ Copyright 2016-2017 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
+
+-------------------------------------------------------------------------------
+This distribution has a binary dependency on netty, which is available under the ASL2 License.
+The source code of netty can be found at https://github.com/netty/netty.
+
+This distribution has a binary dependency on commons-cli, which is available under the ASL2 License.
+The source code of commons-cli can be found at https://github.com/apache/commons-cli.
+
+This distribution has a binary dependency on commons-lang, which is available under the ASL2 License.
+The source code of commons-lang can be found at https://github.com/apache/commons-lang.
+
+This distribution has a binary dependency on fastjson, which is available under the ASL2 License.
+The source code of fastjson can be found at https://github.com/alibaba/fastjson.
+
+This distribution has a binary dependency on javassist, which is available under
+the Mozilla Public License Version 1.1, the GNU Lesser General Public License Version 2.1 or later, or the ASL2 License.
+The source code of javassist can be found at https://github.com/jboss-javassist/javassist.
+
+This distribution has a binary dependency on jna, which is available under the LGPL, version 2.1 or later, and (from version 4.0 onward) the ASL2 License.
+The source code of jna can be found at https://github.com/java-native-access/jna.
+
+This distribution has a binary dependency on logback, which is available under the EPL v1.0 and the LGPL 2.1 License.
+The source code of logback can be found at https://github.com/qos-ch/logback.
+
+This distribution has a binary dependency on slf4j, which is available under the MIT License.
+The source code of slf4j can be found at https://github.com/qos-ch/slf4j.
