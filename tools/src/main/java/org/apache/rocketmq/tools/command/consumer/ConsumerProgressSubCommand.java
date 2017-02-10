@@ -75,7 +75,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
                 ConsumerRunningInfo consumerRunningInfo = defaultMQAdminExt.getConsumerRunningInfo(groupName, clientId,
                     false);
                 for (MessageQueue messageQueue : consumerRunningInfo.getMqTable().keySet()) {
-                    results.put(messageQueue, connection.getClientAddr().split(":")[0]);
+                    results.put(messageQueue, clientId.split("@")[0]);
                 }
             }
         } catch (Exception ignore) {
