@@ -11,10 +11,6 @@ Before deploying broker servers, it's highly recommended to run **os.sh**, which
 
   `nohup sh mqbroker &`
 
-* Windows platform（Only support 64 bit）
-
-  `mqbroker.exe`
-
 ### Shutdown broker
   sh mqshutdown broker
 
@@ -22,10 +18,6 @@ Before deploying broker servers, it's highly recommended to run **os.sh**, which
 * Unix platform
 
   `nohup sh mqnamesrv &`
-
-* Windows platform（Only support 64 bit）
-
-  `mqnamesrv.exe`
 
 ### Shutdown Nameserver
     sh mqshutdown namesrv
