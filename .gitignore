@@ -9,4 +9,6 @@ devenv
 .idea/
 *.versionsBackup
 *bin
+!NOTICE-BIN
+!LICENSE-BIN
 .DS_Store

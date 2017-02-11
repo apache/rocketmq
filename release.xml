@@ -29,8 +29,8 @@
                 <include>bin/*</include>
                 <include>conf/**</include>
                 <include>benchmark/*</include>
-                <include>LICENSE</include>
-                <include>NOTICE</include>
+                <include>LICENSE-BIN</include>
+                <include>NOTICE-BIN</include>
                 <include>DISCLAIMER</include>
                 <include>README.md</include>
             </includes>
