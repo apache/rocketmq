@@ -26,14 +26,22 @@
     <fileSets>
         <fileSet>
             <includes>
-                <include>LICENSE-BIN</include>
-                <include>NOTICE-BIN</include>
                 <include>DISCLAIMER</include>
                 <include>README.md</include>
             </includes>
         </fileSet>
     </fileSets>
 
+    <files>
+        <file>
+            <source>LICENSE-BIN</source>
+            <destName>LICENSE</destName>
+        </file>
+        <file>
+            <source>NOTICE-BIN</source>
+            <destName>NOTICE</destName>
+        </file>
+    </files>
 
     <moduleSets>
         <moduleSet>
