@@ -29,7 +29,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>4.0.0-incubating</version>
+    <version>4.1.0-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.incubator.apache.org/</url>
@@ -43,7 +43,7 @@
         <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-rocketmq.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-rocketmq.git
         </developerConnection>
-      <tag>rocketmq-4.0.0-incubating</tag>
+      <tag>HEAD</tag>
   </scm>
 
     <mailingLists>
