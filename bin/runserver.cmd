@@ -13,22 +13,3 @@ rem distributed under the License is distributed on an "AS IS" BASIS,
 rem WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 rem See the License for the specific language governing permissions and
 rem limitations under the License.
-
-if not exist "%JAVA_HOME%\bin\java.exe" echo Please set the JAVA_HOME variable in your environment, We need java(x64)! & pause & exit 1
-
-set "JAVA=%JAVA_HOME%\bin\java.exe"
-
-set BASE_DIR=%~dp0
-set BASE_DIR=%BASE_DIR:~0,-1%
-for %%d in (%BASE_DIR%) do set BASE_DIR=%%~dpd
-
-set CLASSPATH=.;%BASE_DIR%conf;%CLASSPATH%
-
-rem ===========================================================================================
-rem JVM Configuration
-rem ===========================================================================================
-set "JAVA_OPT=%JAVA_OPT% -server -Xms1g -Xmx1g -Xmn256m -XX:PermSize=128m -XX:MaxPermSize=128m"
-set "JAVA_OPT=%JAVA_OPT% -Djava.ext.dirs=%BASE_DIR%lib;%JAVA_HOME%\jre\lib\ext"
-set "JAVA_OPT=%JAVA_OPT% -cp %CLASSPATH%"
-%JAVA% %JAVA_OPT% %*
-
