@@ -33,3 +33,5 @@ if /I "%1" == "broker" (
 ) else (
     echo Unknown role to kill, please specify broker or namesrv
 )
+
+:end
