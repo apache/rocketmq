@@ -45,6 +45,10 @@ public class MessageStoreConfig {
     @ImportantField
     private int commitIntervalCommitLog = 200;
 
+    /**
+     * introduced since 4.0.x. Determine whether to use mutex reentrantLock when putting message.<br/>
+     * By default it is set to false indicating using spin lock when putting message.
+     */
     private boolean useReentrantLockWhenPutMessage = false;
 
     // Whether schedule flush,default is real-time
