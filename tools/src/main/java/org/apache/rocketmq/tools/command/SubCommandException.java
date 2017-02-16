@@ -16,16 +16,21 @@
  */
 package org.apache.rocketmq.tools.command;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Options;
-import org.apache.rocketmq.remoting.RPCHook;
+public class SubCommandException extends Exception {
+    private static final long serialVersionUID = 0L;
 
-public interface SubCommand {
-    String commandName();
+    /**
+     * @param msg Message.
+     */
+    public SubCommandException(String msg) {
+        super(msg);
+    }
 
-    String commandDesc();
-
-    Options buildCommandlineOptions(final Options options);
-
-    void execute(final CommandLine commandLine, final Options options, RPCHook rpcHook) throws SubCommandException;
+    /**
+     * @param msg Message.
+     * @param cause Cause.
+     */
+    public SubCommandException(String msg, Throwable cause) {
+        super(msg, cause);
+    }
 }
