@@ -25,6 +25,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -163,6 +164,49 @@ public final class ThreadUtils {
             Thread.currentThread().interrupt();
         }
     }
+
+
+
+    /**
+     * Shutdown an terminateExecutor and block util tasks are completed or the timeout occurs, or the current thread is
+     * interrupted, whichever happens first and return whether the executor is terminated
+     *
+     * @param executor ExecutorService to shutdown
+     * @param timeout Timeout milliseconds to await termination
+     * @return Whether the executor is terminated
+     * @throws InterruptedException if interrupted while waiting termination interrupted
+     */
+    public static boolean terminateExecutorInterruptibly(ExecutorService executor,
+        long timeout) throws InterruptedException {
+        executor.shutdown();
+        //await to consume
+        new ReentrantReadWriteLock().readLock().lock();
+        if (timeout > 0) {
+            executor.awaitTermination(timeout, TimeUnit.MILLISECONDS);
+        }
+        return executor.isTerminated();
+    }
+
+    /**
+     * Shutdown an terminateExecutor and block util tasks are completed or the timeout occurs, or the current thread is
+     * interrupted, whichever happens first and return whether the executor is terminated already
+     *
+     * If current thread is interrupted, no InterruptedException will be thrown but remains the interrupt flag
+     *
+     * @param executor ExecutorService to shutdown
+     * @param timeout Timeout milliseconds to await termination
+     * @return Whether the executor is terminated
+     */
+    public static boolean terminateExecutor(ExecutorService executor, long timeout) {
+        try {
+            terminateExecutorInterruptibly(executor, timeout);
+        } catch (InterruptedException e) {
+            log.warn("got InterruptedException when awaitTermination. {}", executor);
+            Thread.currentThread().interrupt(); //catch InterruptedException and interrupt current thread
+        }
+        return executor.isTerminated();
+    }
+
 
     /**
      * A constructor to stop this class being constructed.
