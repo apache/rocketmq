@@ -19,10 +19,15 @@ package org.apache.rocketmq.client.consumer;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
@@ -31,6 +36,7 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
+import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
@@ -52,6 +58,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -109,7 +116,6 @@ public class DefaultMQPushConsumerTest {
         field.setAccessible(true);
         field.set(pushConsumerImpl, mQClientFactory);
 
-
         field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
         field.setAccessible(true);
         field.set(mQClientFactory, mQClientAPIImpl);
@@ -125,27 +131,45 @@ public class DefaultMQPushConsumerTest {
         when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
             anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
             .thenAnswer(new Answer<Object>() {
-            @Override public Object answer(InvocationOnMock mock) throws Throwable {
-                PullMessageRequestHeader requestHeader = mock.getArgument(1);
-                MessageClientExt messageClientExt = new MessageClientExt();
-                messageClientExt.setTopic(topic);
-                messageClientExt.setQueueId(0);
-                messageClientExt.setMsgId("123");
-                messageClientExt.setBody(new byte[] {'a'});
-                messageClientExt.setOffsetMsgId("234");
-                messageClientExt.setBornHost(new InetSocketAddress(8080));
-                messageClientExt.setStoreHost(new InetSocketAddress(8080));
-                PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
-                ((PullCallback)mock.getArgument(4)).onSuccess(pullResult);
-                return pullResult;
-            }
-        });
+                @Override public Object answer(InvocationOnMock mock) throws Throwable {
+                    PullMessageRequestHeader requestHeader = mock.getArgument(1);
+                    MessageClientExt messageClientExt = new MessageClientExt();
+                    messageClientExt.setTopic(topic);
+                    messageClientExt.setQueueId(((PullMessageRequestHeader) mock.getArgument(1)).getQueueId());
+                    messageClientExt.setMsgId("123");
+                    messageClientExt.setBody(new byte[] {'a'});
+                    messageClientExt.setOffsetMsgId("234");
+                    messageClientExt.setBornHost(new InetSocketAddress(8080));
+                    messageClientExt.setStoreHost(new InetSocketAddress(8080));
+                    messageClientExt.setQueueOffset(((PullMessageRequestHeader) mock.getArgument(1)).getQueueOffset());
+                    PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
+                    ((PullCallback) mock.getArgument(4)).onSuccess(pullResult);
+                    return pullResult;
+                }
+            });
 
         doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
-        doReturn(Collections.singletonList(mQClientFactory.getClientId())).when(mQClientFactory).findConsumerIdList(anyString(), anyString());
-        Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
-        messageQueueSet.add(createPullRequest().getMessageQueue());
+        doReturn(new ArrayList<String>(Collections.singletonList(mQClientFactory.getClientId()))).when(mQClientFactory).findConsumerIdList(anyString(), anyString());
+        //START: mock allocating 4 queue
+        final Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+        messageQueueSet.add(createPullRequest(0).getMessageQueue());
+        messageQueueSet.add(createPullRequest(1).getMessageQueue());
+        messageQueueSet.add(createPullRequest(2).getMessageQueue());
+        messageQueueSet.add(createPullRequest(3).getMessageQueue());
+        pushConsumer.setAllocateMessageQueueStrategy(new AllocateMessageQueueStrategy() {
+            @Override public List<MessageQueue> allocate(String consumerGroup, String currentCID,
+                List<MessageQueue> mqAll, List<String> cidAll) {
+                return new ArrayList<MessageQueue>(messageQueueSet);
+            }
+
+            @Override public String getName() {
+                return "TEST";
+            }
+        });
+        rebalancePushImpl.getTopicSubscribeInfoTable().putIfAbsent(topic, messageQueueSet);
         pushConsumer.getDefaultMQPushConsumerImpl().updateTopicSubscribeInfo(topic, messageQueueSet);
+        //END: mock allocating 4 queue
+
         doReturn(123L).when(rebalancePushImpl).computePullFromWhere(any(MessageQueue.class));
     }
 
@@ -166,12 +190,52 @@ public class DefaultMQPushConsumerTest {
                 return null;
             }
         }));
-
-        PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
-        pullMessageService.executePullRequestImmediately(createPullRequest());
+        pushConsumer.getDefaultMQPushConsumerImpl().doRebalance();
         countDownLatch.await();
         assertThat(messageExts[0].getTopic()).isEqualTo(topic);
         assertThat(messageExts[0].getBody()).isEqualTo(new byte[] {'a'});
+    }
+
+    @Test
+    public void testTopicFlowControl() throws Exception {
+        final int flowControl = 200;
+        final int pullBatchSize = 1;
+        pushConsumer.setPullInterval(0);
+        pushConsumer.setPullBatchSize(pullBatchSize);
+        pushConsumer.setPullThresholdForQueue(flowControl / 2);//4 queue, each flow control in 100
+        pushConsumer.setPullThresholdForTopic(flowControl);//topic flow control in 200
+        pushConsumer.setConsumeThreadMin(200);
+        pushConsumer.setConsumeThreadMax(500);
+        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
+            @Override public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                ConsumeConcurrentlyContext context) {
+                for (MessageExt msg : msgs) {
+                    try {
+                        Thread.sleep(2000);//block some time to make it accumulated
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            }
+        }));
+        pushConsumer.getDefaultMQPushConsumerImpl().doRebalance();
+        Thread.sleep(3000);//spend some time to consume
+
+        //START  : check flow control on topic level
+        Map<MessageQueue, ProcessQueue> allProcessQMap = pushConsumer.getDefaultMQPushConsumerImpl().getRebalanceImpl().getProcessQueueTable();
+        Iterator<Map.Entry<MessageQueue, ProcessQueue>> it = allProcessQMap.entrySet().iterator();
+        long sizeOfAllQueue = 0;
+        //pick the relative process queues and calculate size
+        while (it.hasNext()) {
+            Map.Entry<MessageQueue, ProcessQueue> entry = it.next();
+            if (topic.equals(entry.getKey().getTopic())) {
+                sizeOfAllQueue += entry.getValue().getMsgCount().get();
+            }
+        }
+        Assert.assertTrue("topic flow control does not work as expected, actual = " + sizeOfAllQueue + " flowControl = " + flowControl, sizeOfAllQueue <= flowControl + pullBatchSize);
+        //END  : check flow control on topic level
+
     }
 
     @Test
@@ -200,13 +264,17 @@ public class DefaultMQPushConsumerTest {
     }
 
     private PullRequest createPullRequest() {
+        return createPullRequest(0);
+    }
+
+    private PullRequest createPullRequest(int queueId) {
         PullRequest pullRequest = new PullRequest();
         pullRequest.setConsumerGroup(consumerGroup);
         pullRequest.setNextOffset(1024);
 
         MessageQueue messageQueue = new MessageQueue();
         messageQueue.setBrokerName(brokerName);
-        messageQueue.setQueueId(0);
+        messageQueue.setQueueId(queueId);
         messageQueue.setTopic(topic);
         pullRequest.setMessageQueue(messageQueue);
         ProcessQueue processQueue = new ProcessQueue();
@@ -217,7 +285,8 @@ public class DefaultMQPushConsumerTest {
         return pullRequest;
     }
 
-    private PullResultExt createPullResult(PullMessageRequestHeader requestHeader, PullStatus pullStatus, List<MessageExt> messageExtList) throws Exception {
+    private PullResultExt createPullResult(PullMessageRequestHeader requestHeader, PullStatus pullStatus,
+        List<MessageExt> messageExtList) throws Exception {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         for (MessageExt messageExt : messageExtList) {
             outputStream.write(MessageDecoder.encode(messageExt, false));
