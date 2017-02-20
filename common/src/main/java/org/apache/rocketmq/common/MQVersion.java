@@ -18,7 +18,7 @@ package org.apache.rocketmq.common;
 
 public class MQVersion {
 
-    public static final int CURRENT_VERSION = Version.V4_0_0_SNAPSHOT.ordinal();
+    public static final int CURRENT_VERSION = Version.V4_1_0_SNAPSHOT.ordinal();
 
     public static String getVersionDesc(int value) {
         try {
@@ -339,19 +339,601 @@ public class MQVersion {
         V4_0_0_SNAPSHOT,
         V4_0_0,
 
+        V4_0_1_SNAPSHOT,
+        V4_0_1,
+
+        V4_0_2_SNAPSHOT,
+        V4_0_2,
+
+        V4_0_3_SNAPSHOT,
+        V4_0_3,
+
+        V4_0_4_SNAPSHOT,
+        V4_0_4,
+
+        V4_0_5_SNAPSHOT,
+        V4_0_5,
+
+        V4_0_6_SNAPSHOT,
+        V4_0_6,
+
+        V4_0_7_SNAPSHOT,
+        V4_0_7,
+
+        V4_0_8_SNAPSHOT,
+        V4_0_8,
+
+        V4_0_9_SNAPSHOT,
+        V4_0_9,
+
         V4_1_0_SNAPSHOT,
         V4_1_0,
+
+        V4_1_1_SNAPSHOT,
+        V4_1_1,
+
+        V4_1_2_SNAPSHOT,
+        V4_1_2,
+
+        V4_1_3_SNAPSHOT,
+        V4_1_3,
+
+        V4_1_4_SNAPSHOT,
+        V4_1_4,
+
+        V4_1_5_SNAPSHOT,
+        V4_1_5,
+
+        V4_1_6_SNAPSHOT,
+        V4_1_6,
+
+        V4_1_7_SNAPSHOT,
+        V4_1_7,
+
+        V4_1_8_SNAPSHOT,
+        V4_1_8,
+
+        V4_1_9_SNAPSHOT,
+        V4_1_9,
 
         V4_2_0_SNAPSHOT,
         V4_2_0,
 
+        V4_2_1_SNAPSHOT,
+        V4_2_1,
+
+        V4_2_2_SNAPSHOT,
+        V4_2_2,
+
+        V4_2_3_SNAPSHOT,
+        V4_2_3,
+
+        V4_2_4_SNAPSHOT,
+        V4_2_4,
+
+        V4_2_5_SNAPSHOT,
+        V4_2_5,
+
+        V4_2_6_SNAPSHOT,
+        V4_2_6,
+
+        V4_2_7_SNAPSHOT,
+        V4_2_7,
+
+        V4_2_8_SNAPSHOT,
+        V4_2_8,
+
+        V4_2_9_SNAPSHOT,
+        V4_2_9,
+
         V4_3_0_SNAPSHOT,
         V4_3_0,
+
+        V4_3_1_SNAPSHOT,
+        V4_3_1,
+
+        V4_3_2_SNAPSHOT,
+        V4_3_2,
+
+        V4_3_3_SNAPSHOT,
+        V4_3_3,
+
+        V4_3_4_SNAPSHOT,
+        V4_3_4,
+
+        V4_3_5_SNAPSHOT,
+        V4_3_5,
+
+        V4_3_6_SNAPSHOT,
+        V4_3_6,
+
+        V4_3_7_SNAPSHOT,
+        V4_3_7,
+
+        V4_3_8_SNAPSHOT,
+        V4_3_8,
+
+        V4_3_9_SNAPSHOT,
+        V4_3_9,
 
         V4_4_0_SNAPSHOT,
         V4_4_0,
 
+        V4_4_1_SNAPSHOT,
+        V4_4_1,
+
+        V4_4_2_SNAPSHOT,
+        V4_4_2,
+
+        V4_4_3_SNAPSHOT,
+        V4_4_3,
+
+        V4_4_4_SNAPSHOT,
+        V4_4_4,
+
+        V4_4_5_SNAPSHOT,
+        V4_4_5,
+
+        V4_4_6_SNAPSHOT,
+        V4_4_6,
+
+        V4_4_7_SNAPSHOT,
+        V4_4_7,
+
+        V4_4_8_SNAPSHOT,
+        V4_4_8,
+
+        V4_4_9_SNAPSHOT,
+        V4_4_9,
+
         V4_5_0_SNAPSHOT,
         V4_5_0,
+
+        V4_5_1_SNAPSHOT,
+        V4_5_1,
+
+        V4_5_2_SNAPSHOT,
+        V4_5_2,
+
+        V4_5_3_SNAPSHOT,
+        V4_5_3,
+
+        V4_5_4_SNAPSHOT,
+        V4_5_4,
+
+        V4_5_5_SNAPSHOT,
+        V4_5_5,
+
+        V4_5_6_SNAPSHOT,
+        V4_5_6,
+
+        V4_5_7_SNAPSHOT,
+        V4_5_7,
+
+        V4_5_8_SNAPSHOT,
+        V4_5_8,
+
+        V4_5_9_SNAPSHOT,
+        V4_5_9,
+
+        V4_6_0_SNAPSHOT,
+        V4_6_0,
+
+        V4_6_1_SNAPSHOT,
+        V4_6_1,
+
+        V4_6_2_SNAPSHOT,
+        V4_6_2,
+
+        V4_6_3_SNAPSHOT,
+        V4_6_3,
+
+        V4_6_4_SNAPSHOT,
+        V4_6_4,
+
+        V4_6_5_SNAPSHOT,
+        V4_6_5,
+
+        V4_6_6_SNAPSHOT,
+        V4_6_6,
+
+        V4_6_7_SNAPSHOT,
+        V4_6_7,
+
+        V4_6_8_SNAPSHOT,
+        V4_6_8,
+
+        V4_6_9_SNAPSHOT,
+        V4_6_9,
+
+        V4_7_0_SNAPSHOT,
+        V4_7_0,
+
+        V4_7_1_SNAPSHOT,
+        V4_7_1,
+
+        V4_7_2_SNAPSHOT,
+        V4_7_2,
+
+        V4_7_3_SNAPSHOT,
+        V4_7_3,
+
+        V4_7_4_SNAPSHOT,
+        V4_7_4,
+
+        V4_7_5_SNAPSHOT,
+        V4_7_5,
+
+        V4_7_6_SNAPSHOT,
+        V4_7_6,
+
+        V4_7_7_SNAPSHOT,
+        V4_7_7,
+
+        V4_7_8_SNAPSHOT,
+        V4_7_8,
+
+        V4_7_9_SNAPSHOT,
+        V4_7_9,
+
+        V4_8_0_SNAPSHOT,
+        V4_8_0,
+
+        V4_8_1_SNAPSHOT,
+        V4_8_1,
+
+        V4_8_2_SNAPSHOT,
+        V4_8_2,
+
+        V4_8_3_SNAPSHOT,
+        V4_8_3,
+
+        V4_8_4_SNAPSHOT,
+        V4_8_4,
+
+        V4_8_5_SNAPSHOT,
+        V4_8_5,
+
+        V4_8_6_SNAPSHOT,
+        V4_8_6,
+
+        V4_8_7_SNAPSHOT,
+        V4_8_7,
+
+        V4_8_8_SNAPSHOT,
+        V4_8_8,
+
+        V4_8_9_SNAPSHOT,
+        V4_8_9,
+
+        V4_9_0_SNAPSHOT,
+        V4_9_0,
+
+        V4_9_1_SNAPSHOT,
+        V4_9_1,
+
+        V4_9_2_SNAPSHOT,
+        V4_9_2,
+
+        V4_9_3_SNAPSHOT,
+        V4_9_3,
+
+        V4_9_4_SNAPSHOT,
+        V4_9_4,
+
+        V4_9_5_SNAPSHOT,
+        V4_9_5,
+
+        V4_9_6_SNAPSHOT,
+        V4_9_6,
+
+        V4_9_7_SNAPSHOT,
+        V4_9_7,
+
+        V4_9_8_SNAPSHOT,
+        V4_9_8,
+
+        V4_9_9_SNAPSHOT,
+        V4_9_9,
+
+        V5_0_0_SNAPSHOT,
+        V5_0_0,
+
+        V5_0_1_SNAPSHOT,
+        V5_0_1,
+
+        V5_0_2_SNAPSHOT,
+        V5_0_2,
+
+        V5_0_3_SNAPSHOT,
+        V5_0_3,
+
+        V5_0_4_SNAPSHOT,
+        V5_0_4,
+
+        V5_0_5_SNAPSHOT,
+        V5_0_5,
+
+        V5_0_6_SNAPSHOT,
+        V5_0_6,
+
+        V5_0_7_SNAPSHOT,
+        V5_0_7,
+
+        V5_0_8_SNAPSHOT,
+        V5_0_8,
+
+        V5_0_9_SNAPSHOT,
+        V5_0_9,
+
+        V5_1_0_SNAPSHOT,
+        V5_1_0,
+
+        V5_1_1_SNAPSHOT,
+        V5_1_1,
+
+        V5_1_2_SNAPSHOT,
+        V5_1_2,
+
+        V5_1_3_SNAPSHOT,
+        V5_1_3,
+
+        V5_1_4_SNAPSHOT,
+        V5_1_4,
+
+        V5_1_5_SNAPSHOT,
+        V5_1_5,
+
+        V5_1_6_SNAPSHOT,
+        V5_1_6,
+
+        V5_1_7_SNAPSHOT,
+        V5_1_7,
+
+        V5_1_8_SNAPSHOT,
+        V5_1_8,
+
+        V5_1_9_SNAPSHOT,
+        V5_1_9,
+
+        V5_2_0_SNAPSHOT,
+        V5_2_0,
+
+        V5_2_1_SNAPSHOT,
+        V5_2_1,
+
+        V5_2_2_SNAPSHOT,
+        V5_2_2,
+
+        V5_2_3_SNAPSHOT,
+        V5_2_3,
+
+        V5_2_4_SNAPSHOT,
+        V5_2_4,
+
+        V5_2_5_SNAPSHOT,
+        V5_2_5,
+
+        V5_2_6_SNAPSHOT,
+        V5_2_6,
+
+        V5_2_7_SNAPSHOT,
+        V5_2_7,
+
+        V5_2_8_SNAPSHOT,
+        V5_2_8,
+
+        V5_2_9_SNAPSHOT,
+        V5_2_9,
+
+        V5_3_0_SNAPSHOT,
+        V5_3_0,
+
+        V5_3_1_SNAPSHOT,
+        V5_3_1,
+
+        V5_3_2_SNAPSHOT,
+        V5_3_2,
+
+        V5_3_3_SNAPSHOT,
+        V5_3_3,
+
+        V5_3_4_SNAPSHOT,
+        V5_3_4,
+
+        V5_3_5_SNAPSHOT,
+        V5_3_5,
+
+        V5_3_6_SNAPSHOT,
+        V5_3_6,
+
+        V5_3_7_SNAPSHOT,
+        V5_3_7,
+
+        V5_3_8_SNAPSHOT,
+        V5_3_8,
+
+        V5_3_9_SNAPSHOT,
+        V5_3_9,
+
+        V5_4_0_SNAPSHOT,
+        V5_4_0,
+
+        V5_4_1_SNAPSHOT,
+        V5_4_1,
+
+        V5_4_2_SNAPSHOT,
+        V5_4_2,
+
+        V5_4_3_SNAPSHOT,
+        V5_4_3,
+
+        V5_4_4_SNAPSHOT,
+        V5_4_4,
+
+        V5_4_5_SNAPSHOT,
+        V5_4_5,
+
+        V5_4_6_SNAPSHOT,
+        V5_4_6,
+
+        V5_4_7_SNAPSHOT,
+        V5_4_7,
+
+        V5_4_8_SNAPSHOT,
+        V5_4_8,
+
+        V5_4_9_SNAPSHOT,
+        V5_4_9,
+
+        V5_5_0_SNAPSHOT,
+        V5_5_0,
+
+        V5_5_1_SNAPSHOT,
+        V5_5_1,
+
+        V5_5_2_SNAPSHOT,
+        V5_5_2,
+
+        V5_5_3_SNAPSHOT,
+        V5_5_3,
+
+        V5_5_4_SNAPSHOT,
+        V5_5_4,
+
+        V5_5_5_SNAPSHOT,
+        V5_5_5,
+
+        V5_5_6_SNAPSHOT,
+        V5_5_6,
+
+        V5_5_7_SNAPSHOT,
+        V5_5_7,
+
+        V5_5_8_SNAPSHOT,
+        V5_5_8,
+
+        V5_5_9_SNAPSHOT,
+        V5_5_9,
+
+        V5_6_0_SNAPSHOT,
+        V5_6_0,
+
+        V5_6_1_SNAPSHOT,
+        V5_6_1,
+
+        V5_6_2_SNAPSHOT,
+        V5_6_2,
+
+        V5_6_3_SNAPSHOT,
+        V5_6_3,
+
+        V5_6_4_SNAPSHOT,
+        V5_6_4,
+
+        V5_6_5_SNAPSHOT,
+        V5_6_5,
+
+        V5_6_6_SNAPSHOT,
+        V5_6_6,
+
+        V5_6_7_SNAPSHOT,
+        V5_6_7,
+
+        V5_6_8_SNAPSHOT,
+        V5_6_8,
+
+        V5_6_9_SNAPSHOT,
+        V5_6_9,
+
+        V5_7_0_SNAPSHOT,
+        V5_7_0,
+
+        V5_7_1_SNAPSHOT,
+        V5_7_1,
+
+        V5_7_2_SNAPSHOT,
+        V5_7_2,
+
+        V5_7_3_SNAPSHOT,
+        V5_7_3,
+
+        V5_7_4_SNAPSHOT,
+        V5_7_4,
+
+        V5_7_5_SNAPSHOT,
+        V5_7_5,
+
+        V5_7_6_SNAPSHOT,
+        V5_7_6,
+
+        V5_7_7_SNAPSHOT,
+        V5_7_7,
+
+        V5_7_8_SNAPSHOT,
+        V5_7_8,
+
+        V5_7_9_SNAPSHOT,
+        V5_7_9,
+
+        V5_8_0_SNAPSHOT,
+        V5_8_0,
+
+        V5_8_1_SNAPSHOT,
+        V5_8_1,
+
+        V5_8_2_SNAPSHOT,
+        V5_8_2,
+
+        V5_8_3_SNAPSHOT,
+        V5_8_3,
+
+        V5_8_4_SNAPSHOT,
+        V5_8_4,
+
+        V5_8_5_SNAPSHOT,
+        V5_8_5,
+
+        V5_8_6_SNAPSHOT,
+        V5_8_6,
+
+        V5_8_7_SNAPSHOT,
+        V5_8_7,
+
+        V5_8_8_SNAPSHOT,
+        V5_8_8,
+
+        V5_8_9_SNAPSHOT,
+        V5_8_9,
+
+        V5_9_0_SNAPSHOT,
+        V5_9_0,
+
+        V5_9_1_SNAPSHOT,
+        V5_9_1,
+
+        V5_9_2_SNAPSHOT,
+        V5_9_2,
+
+        V5_9_3_SNAPSHOT,
+        V5_9_3,
+
+        V5_9_4_SNAPSHOT,
+        V5_9_4,
+
+        V5_9_5_SNAPSHOT,
+        V5_9_5,
+
+        V5_9_6_SNAPSHOT,
+        V5_9_6,
+
+        V5_9_7_SNAPSHOT,
+        V5_9_7,
+
+        V5_9_8_SNAPSHOT,
+        V5_9_8,
+
+        V5_9_9_SNAPSHOT,
+        V5_9_9,
     }
 }
