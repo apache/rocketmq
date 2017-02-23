@@ -97,7 +97,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private final long consumerStartTimestamp = System.currentTimeMillis();
     private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
     private final RPCHook rpcHook;
-    private ServiceState serviceState = ServiceState.CREATE_JUST;
+    private volatile ServiceState serviceState = ServiceState.CREATE_JUST;
     private MQClientInstance mQClientFactory;
     private PullAPIWrapper pullAPIWrapper;
     private volatile boolean pause = false;
@@ -515,7 +515,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
     }
 
-    public void shutdown() {
+    public synchronized void shutdown() {
         switch (this.serviceState) {
             case CREATE_JUST:
                 break;
@@ -535,7 +535,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
     }
 
-    public void start() throws MQClientException {
+    public synchronized void start() throws MQClientException {
         switch (this.serviceState) {
             case CREATE_JUST:
                 log.info("the consumer [{}] start beginning. messageModel={}, isUnitMode={}", this.defaultMQPushConsumer.getConsumerGroup(),
@@ -615,9 +615,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
 
         this.updateTopicSubscribeInfoWhenSubscriptionChanged();
-
         this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
-
         this.mQClientFactory.rebalanceImmediately();
     }
 
@@ -855,7 +853,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         this.consumeMessageService.updateCorePoolSize(corePoolSize);
     }
 
-    public MessageExt viewMessage(String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+    public MessageExt viewMessage(
+        String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
     }
 
@@ -1014,7 +1013,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         return serviceState;
     }
 
-    public void setServiceState(ServiceState serviceState) {
+    //should not use since set service state directly may be dangerous
+    @Deprecated
+    public synchronized void setServiceState(ServiceState serviceState) {
         this.serviceState = serviceState;
     }
 
