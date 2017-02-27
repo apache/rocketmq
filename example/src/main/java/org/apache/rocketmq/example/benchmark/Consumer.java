@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -75,14 +76,11 @@ public class Consumer {
                     Long[] begin = snapshotList.getFirst();
                     Long[] end = snapshotList.getLast();
 
-                    final long consumeTps =
-                        (long) (((end[1] - begin[1]) / (double) (end[0] - begin[0])) * 1000L);
+                    final long consumeTps = (long) (((end[1] - begin[1]) / (double) (end[0] - begin[0])) * 1000L);
                     final double averageB2CRT = (end[2] - begin[2]) / (double) (end[1] - begin[1]);
                     final double averageS2CRT = (end[3] - begin[3]) / (double) (end[1] - begin[1]);
 
-                    System.out.printf("Consume TPS: %d Average(B2C) RT: %7.3f Average(S2C) RT: %7.3f MAX(B2C) RT: %d MAX(S2C) RT: %d%n",
-                        consumeTps, averageB2CRT, averageS2CRT, end[4], end[5]
-                    );
+                    System.out.printf("Consume TPS: %d Average(B2C) RT: %7.3f Average(S2C) RT: %7.3f MAX(B2C) RT: %d MAX(S2C) RT: %d%n", consumeTps, averageB2CRT, averageS2CRT, end[4], end[5]);
                 }
             }
 
@@ -103,8 +101,7 @@ public class Consumer {
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeConcurrentlyContext context) {
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
                 MessageExt msg = msgs.get(0);
                 long now = System.currentTimeMillis();
 
@@ -149,8 +146,7 @@ public class Consumer {
         long prev = target.get();
         while (value > prev) {
             boolean updated = target.compareAndSet(prev, value);
-            if (updated)
-                break;
+            if (updated) break;
 
             prev = target.get();
         }
@@ -169,14 +165,7 @@ class StatsBenchmarkConsumer {
     private final AtomicLong store2ConsumerMaxRT = new AtomicLong(0L);
 
     public Long[] createSnapshot() {
-        Long[] snap = new Long[] {
-            System.currentTimeMillis(),
-            this.receiveMessageTotalCount.get(),
-            this.born2ConsumerTotalRT.get(),
-            this.store2ConsumerTotalRT.get(),
-            this.born2ConsumerMaxRT.get(),
-            this.store2ConsumerMaxRT.get(),
-        };
+        Long[] snap = new Long[]{System.currentTimeMillis(), this.receiveMessageTotalCount.get(), this.born2ConsumerTotalRT.get(), this.store2ConsumerTotalRT.get(), this.born2ConsumerMaxRT.get(), this.store2ConsumerMaxRT.get(),};
 
         return snap;
     }
