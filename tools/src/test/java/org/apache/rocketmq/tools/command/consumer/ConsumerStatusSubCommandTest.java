@@ -50,8 +50,10 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExtImpl;
+import org.apache.rocketmq.tools.command.SubCommandException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -119,8 +121,9 @@ public class ConsumerStatusSubCommandTest {
         defaultMQAdminExt.shutdown();
     }
 
+    @Ignore
     @Test
-    public void testExecute() {
+    public void testExecute() throws SubCommandException {
         ConsumerStatusSubCommand cmd = new ConsumerStatusSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs = new String[] {"-g default-group", "-i cid_one"};
