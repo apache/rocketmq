@@ -18,6 +18,7 @@ package org.apache.rocketmq.store;
 
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -31,6 +32,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.store.config.FlushDiskType;
@@ -86,8 +88,7 @@ public class MappedFile extends ReferenceResource {
     }
 
     public static void clean(final ByteBuffer buffer) {
-        if (buffer == null || !buffer.isDirect() || buffer.capacity() == 0)
-            return;
+        if (buffer == null || !buffer.isDirect() || buffer.capacity() == 0) return;
         invoke(invoke(viewed(buffer), "cleaner"), "clean");
     }
 
@@ -105,8 +106,7 @@ public class MappedFile extends ReferenceResource {
         });
     }
 
-    private static Method method(Object target, String methodName, Class<?>[] args)
-        throws NoSuchMethodException {
+    private static Method method(Object target, String methodName, Class<?>[] args) throws NoSuchMethodException {
         try {
             return target.getClass().getMethod(methodName, args);
         } catch (NoSuchMethodException e) {
@@ -126,10 +126,8 @@ public class MappedFile extends ReferenceResource {
         }
 
         ByteBuffer viewedBuffer = (ByteBuffer) invoke(buffer, methodName);
-        if (viewedBuffer == null)
-            return buffer;
-        else
-            return viewed(viewedBuffer);
+        if (viewedBuffer == null) return buffer;
+        else return viewed(viewedBuffer);
     }
 
     public static int getTotalMappedFiles() {
@@ -195,15 +193,13 @@ public class MappedFile extends ReferenceResource {
         if (currentPos < this.fileSize) {
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
-            AppendMessageResult result =
-                cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, msg);
+            AppendMessageResult result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, msg);
             this.wrotePosition.addAndGet(result.getWroteBytes());
             this.storeTimestamp = result.getStoreTimestamp();
             return result;
         }
 
-        log.error("MappedFile.appendMessage return null, wrotePosition: " + currentPos + " fileSize: "
-            + this.fileSize);
+        log.error("MappedFile.appendMessage return null, wrotePosition: " + currentPos + " fileSize: " + this.fileSize);
         return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
     }
 
@@ -360,12 +356,10 @@ public class MappedFile extends ReferenceResource {
                 byteBufferNew.limit(size);
                 return new SelectMappedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);
             } else {
-                log.warn("matched, but hold failed, request pos: " + pos + ", fileFromOffset: "
-                    + this.fileFromOffset);
+                log.warn("matched, but hold failed, request pos: " + pos + ", fileFromOffset: " + this.fileFromOffset);
             }
         } else {
-            log.warn("selectMappedBuffer request pos invalid, request pos: " + pos + ", size: " + size
-                + ", fileFromOffset: " + this.fileFromOffset);
+            log.warn("selectMappedBuffer request pos invalid, request pos: " + pos + ", size: " + size + ", fileFromOffset: " + this.fileFromOffset);
         }
 
         return null;
@@ -393,14 +387,12 @@ public class MappedFile extends ReferenceResource {
     @Override
     public boolean cleanup(final long currentRef) {
         if (this.isAvailable()) {
-            log.error("this file[REF:" + currentRef + "] " + this.fileName
-                + " have not shutdown, stop unmaping.");
+            log.error("this file[REF:" + currentRef + "] " + this.fileName + " have not shutdown, stop unmaping.");
             return false;
         }
 
         if (this.isCleanupOver()) {
-            log.error("this file[REF:" + currentRef + "] " + this.fileName
-                + " have cleanup, do not do it again.");
+            log.error("this file[REF:" + currentRef + "] " + this.fileName + " have cleanup, do not do it again.");
             return true;
         }
 
@@ -421,18 +413,14 @@ public class MappedFile extends ReferenceResource {
 
                 long beginTime = System.currentTimeMillis();
                 boolean result = this.file.delete();
-                log.info("delete file[REF:" + this.getRefCount() + "] " + this.fileName
-                    + (result ? " OK, " : " Failed, ") + "W:" + this.getWrotePosition() + " M:"
-                    + this.getFlushedPosition() + ", "
-                    + UtilAll.computeEclipseTimeMilliseconds(beginTime));
+                log.info("delete file[REF:" + this.getRefCount() + "] " + this.fileName + (result ? " OK, " : " Failed, ") + "W:" + this.getWrotePosition() + " M:" + this.getFlushedPosition() + ", " + UtilAll.computeEclipseTimeMilliseconds(beginTime));
             } catch (Exception e) {
                 log.warn("close file channel " + this.fileName + " Failed. ", e);
             }
 
             return true;
         } else {
-            log.warn("destroy mapped file[REF:" + this.getRefCount() + "] " + this.fileName
-                + " Failed. cleanupOver: " + this.cleanupOver);
+            log.warn("destroy mapped file[REF:" + this.getRefCount() + "] " + this.fileName + " Failed. cleanupOver: " + this.cleanupOver);
         }
 
         return false;
@@ -486,12 +474,10 @@ public class MappedFile extends ReferenceResource {
 
         // force flush when prepare load finished
         if (type == FlushDiskType.SYNC_FLUSH) {
-            log.info("mapped file warm-up done, force to disk, mappedFile={}, costTime={}",
-                this.getFileName(), System.currentTimeMillis() - beginTime);
+            log.info("mapped file warm-up done, force to disk, mappedFile={}, costTime={}", this.getFileName(), System.currentTimeMillis() - beginTime);
             mappedByteBuffer.force();
         }
-        log.info("mapped file warm-up done. mappedFile={}, costTime={}", this.getFileName(),
-            System.currentTimeMillis() - beginTime);
+        log.info("mapped file warm-up done. mappedFile={}, costTime={}", this.getFileName(), System.currentTimeMillis() - beginTime);
 
         this.mlock();
     }

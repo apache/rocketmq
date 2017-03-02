@@ -97,7 +97,7 @@ public class BrokerStartup {
 
             brokerConfig.setRocketmqHome("D:\\rocketmqx");  // todo 待删除
 
-            
+
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
             final NettyClientConfig nettyClientConfig = new NettyClientConfig();
             nettyServerConfig.setListenPort(10911);
@@ -142,7 +142,7 @@ public class BrokerStartup {
             }
 
             /////////////////////////////////////////////////////////////// todo cancel start
-            String file = "D:\\rocketmqx\\conf\\single-master\\broker.properties";
+            String file = "D:\\rocketmqx\\conf\\broker.properties";
             if (file != null) {
                 configFile = file;
                 InputStream in = new BufferedInputStream(new FileInputStream(file));
