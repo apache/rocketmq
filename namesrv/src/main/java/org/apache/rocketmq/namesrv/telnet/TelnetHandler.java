@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.namesrv.telnet;
 
-
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -24,24 +23,26 @@ import io.netty.channel.SimpleChannelInboundHandler;
 
 public class TelnetHandler extends SimpleChannelInboundHandler<String> {
 
-	private static StringBuilder builder = new StringBuilder();
-	static{
-		
-		builder.append("****************************************************\r\n")
-		.append("Welcome . CMD for example \r\n")
-		.append("1. consumerProgress  -g zzHelloSubGroup \r\n")
-		.append("2. consumerConnection  -g zzHelloSubGroup \r\n")
-		.append("3. producerConnection -t zzHello -g zzHelloSendGroup \r\n")
-		.append("4. topicStatus -t zzHello \r\n")
-		.append("****************************************************\r\n");
-	}
+    private static StringBuilder builder = new StringBuilder();
+
+    static {
+
+        builder.append("****************************************************\r\n")
+            .append("Welcome . CMD for example \r\n")
+            .append("1. consumerProgress  -g zzHelloSubGroup \r\n")
+            .append("2. consumerConnection  -g zzHelloSubGroup \r\n")
+            .append("3. producerConnection -t zzHello -g zzHelloSendGroup \r\n")
+            .append("4. topicStatus -t zzHello \r\n")
+            .append("****************************************************\r\n");
+    }
+
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         // Send greeting for a new connection.
-    	
-       // ctx.write("Welcome to " + InetAddress.getLocalHost().getHostName() + "!\r\n");
-       // ctx.write("It is " + new Date() + " now.\r\n");
-    	ctx.write(builder.toString());
+
+        // ctx.write("Welcome to " + InetAddress.getLocalHost().getHostName() + "!\r\n");
+        // ctx.write("It is " + new Date() + " now.\r\n");
+        ctx.write(builder.toString());
         ctx.flush();
     }
 
@@ -51,7 +52,7 @@ public class TelnetHandler extends SimpleChannelInboundHandler<String> {
         String response;
         boolean close = false;
         if (request.isEmpty()) {
-            return ;
+            return;
         } else if ("bye".equals(request.toLowerCase())) {
             response = "Have a good day!\r\n";
             close = true;
@@ -80,10 +81,5 @@ public class TelnetHandler extends SimpleChannelInboundHandler<String> {
         cause.printStackTrace();
         ctx.close();
     }
-	
-	
-
-
-
 
 }

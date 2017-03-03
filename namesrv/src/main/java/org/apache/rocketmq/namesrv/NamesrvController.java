@@ -55,8 +55,8 @@ public class NamesrvController {
     private ExecutorService remotingExecutor;
 
     private Configuration configuration;
-    
-    private TelnetServer  telnetServer;
+
+    private TelnetServer telnetServer;
 
     public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
         this.namesrvConfig = namesrvConfig;
@@ -81,10 +81,10 @@ public class NamesrvController {
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
         this.registerProcessor();
-        
-        int port = this.nettyServerConfig.getListenPort() -1 ;
+
+        int port = this.nettyServerConfig.getListenPort() - 1;
         this.telnetServer = new TelnetServer(port);
-        String nameAddr = "localhost:"+this.nettyServerConfig.getListenPort();
+        String nameAddr = "localhost:" + this.nettyServerConfig.getListenPort();
         telnetServer.init(nameAddr);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {

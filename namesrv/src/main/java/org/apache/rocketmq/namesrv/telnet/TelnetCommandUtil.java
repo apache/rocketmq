@@ -54,131 +54,107 @@ import org.apache.rocketmq.tools.command.topic.TopicStatusSubCommand;
 
 public class TelnetCommandUtil {
 
-	private static final String ERROR = " cmd error \r\n";
-	private static final String EXE_ERROR = " execute error ";
-	private static final String DATA_NULL = " execute get data null \r\n";
-	private static String NAMESRV_ADDR = "";
-	private static final String P_CON = "producerConnection";
-	private static final String T_STATUS = "topicStatus";
-	private static final String C_CON = "consumerConnection";
-	private static final String C_PRO = "consumerProgress";
-	static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
+    private static final String ERROR = " cmd error \r\n";
+    private static final String EXE_ERROR = " execute error ";
+    private static final String DATA_NULL = " execute get data null \r\n";
+    private static String namesrvAddr = "";
+    private static final String P_CON = "producerConnection";
+    private static final String T_STATUS = "topicStatus";
+    private static final String C_CON = "consumerConnection";
+    private static final String C_PRO = "consumerProgress";
+    static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
 
-	static {
-		subCommandList.add(new ProducerConnectionSubCommand());
-		subCommandList.add(new TopicStatusSubCommand());
-		subCommandList.add(new ConsumerConnectionSubCommand());
-		subCommandList.add(new ConsumerProgressSubCommand());
-		
-	}
+    static {
+        subCommandList.add(new ProducerConnectionSubCommand());
+        subCommandList.add(new TopicStatusSubCommand());
+        subCommandList.add(new ConsumerConnectionSubCommand());
+        subCommandList.add(new ConsumerProgressSubCommand());
 
-	public static void setNamseSrvAddr(String nameSrvAddr){
-		NAMESRV_ADDR = nameSrvAddr;
-		System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, NAMESRV_ADDR);
-	}
+    }
 
-	/**
-	 * 
-	 * 
-	 * @param str
-	 * @return
-	 */
-	public static String doCmd(String str) {
-		CommandLineParser parser = new PosixParser();
-		StringTokenizer token = new StringTokenizer(str);
-		String[] data = new String[token.countTokens()];
-		int i = 0;
-		while (token.hasMoreTokens()) {
-			String tmp = token.nextToken();
-			data[i] = tmp;
-			i++;
-		}
-		SubCommand cmd = findSubCommand(data[0]);
-		if (cmd == null)
-			return ERROR;
-		String[] subargs = parseSubArgs(data);
+    public static void setNamseSrvAddr(String nameSrvAddr) {
+        namesrvAddr = nameSrvAddr;
+        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, namesrvAddr);
+    }
 
-		Options options = ServerUtil.buildCommandlineOptions(new Options());
-		cmd.buildCommandlineOptions(options);
-		CommandLine commandLine = null;
-		try {
-			commandLine = parser.parse(options, subargs);
-		} catch (ParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return ERROR;
-		}
-		
-		
-		//cmd.execute(commandLine, options, null);
-		String response = null;
-		if(cmd.commandName().equalsIgnoreCase(T_STATUS))
-			response = executeTopicStatus(commandLine, options,null);
-		else if(cmd.commandName().equalsIgnoreCase(C_CON))
-			response = executeConsumerCon(commandLine, options, null);
-		else if(cmd.commandName().equalsIgnoreCase(P_CON))
-			response = executeProducerCon(commandLine, options, null);
-		else if(cmd.commandName().equalsIgnoreCase(C_PRO))
-			response = executeConsumerProgress(commandLine, options,null);
-		
-		if(response == null || response.isEmpty())
-			return DATA_NULL;
-		return response;
-	}
+    /**
+     * @param str
+     * @return
+     */
+    public static String doCmd(String str) {
+        CommandLineParser parser = new PosixParser();
+        StringTokenizer token = new StringTokenizer(str);
+        String[] data = new String[token.countTokens()];
+        int i = 0;
+        while (token.hasMoreTokens()) {
+            String tmp = token.nextToken();
+            data[i] = tmp;
+            i++;
+        }
+        SubCommand cmd = findSubCommand(data[0]);
+        if (cmd == null)
+            return ERROR;
+        String[] subargs = parseSubArgs(data);
+
+        Options options = ServerUtil.buildCommandlineOptions(new Options());
+        cmd.buildCommandlineOptions(options);
+        CommandLine commandLine = null;
+        try {
+            commandLine = parser.parse(options, subargs);
+        } catch (ParseException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return ERROR;
+        }
+
+        //cmd.execute(commandLine, options, null);
+        String response = null;
+        if (cmd.commandName().equalsIgnoreCase(T_STATUS))
+            response = executeTopicStatus(commandLine, options, null);
+        else if (cmd.commandName().equalsIgnoreCase(C_CON))
+            response = executeConsumerCon(commandLine, options, null);
+        else if (cmd.commandName().equalsIgnoreCase(P_CON))
+            response = executeProducerCon(commandLine, options, null);
+        else if (cmd.commandName().equalsIgnoreCase(C_PRO))
+            response = executeConsumerProgress(commandLine, options, null);
+
+        if (response == null || response.isEmpty())
+            return DATA_NULL;
+        return response;
+    }
 
 
 
-	public static void main1(String[] args) {
-		//String str = "producerConnection -t zzInfo -g zzInfoSendGroup ";
-		// String str = "producerConnection -t zzInfo ";
-		// parseStr(str);
+    private static String[] parseSubArgs(String[] args) {
+        if (args.length > 1) {
+            String[] result = new String[args.length - 1];
+            for (int i = 0; i < args.length - 1; i++) {
+                result[i] = args[i + 1];
+            }
+            return result;
+        }
+        return null;
+    }
 
-/*		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-		PrintStream bak = System.out;
-		System.setOut(new PrintStream(outStream));
-		System.out.println("helloworld");
-		String hello = outStream.toString();
-		hello.length();
-		System.setOut(bak);
-		System.out.println("*****************");
-		System.out.println(hello);*/
-		String str = "topicStatus -t TestTopic";
-		System.out.println("********************************8");
-		String reponse = doCmd(str);
-		System.out.println(reponse);
-		
+    private static SubCommand findSubCommand(final String name) {
+        for (SubCommand cmd : subCommandList) {
+            if (cmd.commandName().toUpperCase().equals(name.toUpperCase())) {
+                return cmd;
+            }
+        }
 
-	}
+        return null;
+    }
 
-	private static String[] parseSubArgs(String[] args) {
-		if (args.length > 1) {
-			String[] result = new String[args.length - 1];
-			for (int i = 0; i < args.length - 1; i++) {
-				result[i] = args[i + 1];
-			}
-			return result;
-		}
-		return null;
-	}
-
-	private static SubCommand findSubCommand(final String name) {
-		for (SubCommand cmd : subCommandList) {
-			if (cmd.commandName().toUpperCase().equals(name.toUpperCase())) {
-				return cmd;
-			}
-		}
-
-		return null;
-	}
-	
-	/**
-	 * can change the tools package void to String
-	 * @param commandLine
-	 * @param options
-	 * @param rpcHook
-	 * @return
-	 */
-	private static String executeProducerCon(CommandLine commandLine, Options options, RPCHook rpcHook){
+    /**
+     * can change the tools package void to String
+     *
+     * @param commandLine
+     * @param options
+     * @param rpcHook
+     * @return
+     */
+    private static String executeProducerCon(CommandLine commandLine, Options options, RPCHook rpcHook) {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
@@ -200,188 +176,177 @@ public class TelnetCommandUtil {
                     conn.getClientAddr(),//
                     conn.getLanguage(),//
                     MQVersion.getVersionDesc(conn.getVersion())//
-                    ));
+                ));
             }
             return builder.toString();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
-            return EXE_ERROR+e.getMessage()+"\r\n";
-        }
-        finally {
+            return EXE_ERROR + e.getMessage() + "\r\n";
+        } finally {
             defaultMQAdminExt.shutdown();
         }
-	}
-	
-	 private static String executeTopicStatus(final CommandLine commandLine, final Options options, RPCHook rpcHook) {
-	        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+    }
 
-	        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+    private static String executeTopicStatus(final CommandLine commandLine, final Options options, RPCHook rpcHook) {
+        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
 
-	        try {
-	            defaultMQAdminExt.start();
+        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
-	            String topic = commandLine.getOptionValue('t').trim();
-	            TopicStatsTable topicStatsTable = defaultMQAdminExt.examineTopicStats(topic);
+        try {
+            defaultMQAdminExt.start();
 
-	            List<MessageQueue> mqList = new LinkedList<MessageQueue>();
-	            mqList.addAll(topicStatsTable.getOffsetTable().keySet());
-	            Collections.sort(mqList);
-	            StringBuilder builder = new StringBuilder();
-	            builder.append(String.format("%-32s  %-4s  %-20s  %-20s    %s\r\n",//
-	                "#Broker Name",//
-	                "#QID",//
-	                "#Min Offset",//
-	                "#Max Offset",//
-	                "#Last Updated" //
-	            ));
+            String topic = commandLine.getOptionValue('t').trim();
+            TopicStatsTable topicStatsTable = defaultMQAdminExt.examineTopicStats(topic);
 
-	            for (MessageQueue mq : mqList) {
-	                TopicOffset topicOffset = topicStatsTable.getOffsetTable().get(mq);
+            List<MessageQueue> mqList = new LinkedList<MessageQueue>();
+            mqList.addAll(topicStatsTable.getOffsetTable().keySet());
+            Collections.sort(mqList);
+            StringBuilder builder = new StringBuilder();
+            builder.append(String.format("%-32s  %-4s  %-20s  %-20s    %s\r\n",//
+                "#Broker Name",//
+                "#QID",//
+                "#Min Offset",//
+                "#Max Offset",//
+                "#Last Updated" //
+            ));
 
-	                String humanTimestamp = "";
-	                if (topicOffset.getLastUpdateTimestamp() > 0) {
-	                    humanTimestamp = UtilAll.timeMillisToHumanString2(topicOffset.getLastUpdateTimestamp());
-	                }
+            for (MessageQueue mq : mqList) {
+                TopicOffset topicOffset = topicStatsTable.getOffsetTable().get(mq);
 
-	                builder.append(String.format("%-32s  %-4d  %-20d  %-20d    %s\r\n",//
-	                    UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),//
-	                    mq.getQueueId(),//
-	                    topicOffset.getMinOffset(),//
-	                    topicOffset.getMaxOffset(),//
-	                    humanTimestamp //
-	                    ));
-	            }
-	            
-	            return builder.toString();
-	        }
-	        catch (Exception e) {
-	            e.printStackTrace();
-	            return EXE_ERROR+e.getMessage()+"\r\n";
-	        }
-	        finally {
-	            defaultMQAdminExt.shutdown();
-	        }
-	 }
-	 
-	 private static String executeConsumerProgress(CommandLine commandLine, Options options, RPCHook rpcHook) {
-	        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+                String humanTimestamp = "";
+                if (topicOffset.getLastUpdateTimestamp() > 0) {
+                    humanTimestamp = UtilAll.timeMillisToHumanString2(topicOffset.getLastUpdateTimestamp());
+                }
 
-	        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+                builder.append(String.format("%-32s  %-4d  %-20d  %-20d    %s\r\n",//
+                    UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),//
+                    mq.getQueueId(),//
+                    topicOffset.getMinOffset(),//
+                    topicOffset.getMaxOffset(),//
+                    humanTimestamp //
+                ));
+            }
 
-	        try {
-	            defaultMQAdminExt.start();
-	            StringBuilder builder = new StringBuilder();
-	            if (commandLine.hasOption('g')) {
-	                String consumerGroup = commandLine.getOptionValue('g').trim();
-	                ConsumeStats consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
+            return builder.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return EXE_ERROR + e.getMessage() + "\r\n";
+        } finally {
+            defaultMQAdminExt.shutdown();
+        }
+    }
 
-	                List<MessageQueue> mqList = new LinkedList<MessageQueue>();
-	                mqList.addAll(consumeStats.getOffsetTable().keySet());
-	                Collections.sort(mqList);
-	               
-	                builder.append(String.format("%-32s  %-32s  %-4s  %-20s  %-20s  %-20s  %s\r\n",//
-	                    "#Topic",//
-	                    "#Broker Name",//
-	                    "#QID",//
-	                    "#Broker Offset",//
-	                    "#Consumer Offset",//
-	                    "#Diff", //
-	                    "#LastTime"));
+    private static String executeConsumerProgress(CommandLine commandLine, Options options, RPCHook rpcHook) {
+        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
 
-	                long diffTotal = 0L;
+        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
-	                for (MessageQueue mq : mqList) {
-	                    OffsetWrapper offsetWrapper = consumeStats.getOffsetTable().get(mq);
+        try {
+            defaultMQAdminExt.start();
+            StringBuilder builder = new StringBuilder();
+            if (commandLine.hasOption('g')) {
+                String consumerGroup = commandLine.getOptionValue('g').trim();
+                ConsumeStats consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
 
-	                    long diff = offsetWrapper.getBrokerOffset() - offsetWrapper.getConsumerOffset();
-	                    diffTotal += diff;
+                List<MessageQueue> mqList = new LinkedList<MessageQueue>();
+                mqList.addAll(consumeStats.getOffsetTable().keySet());
+                Collections.sort(mqList);
 
-	                    String lastTime = "-";
-	                    try {
-	                        lastTime = UtilAll.formatDate(new Date(offsetWrapper.getLastTimestamp()), UtilAll.YYYY_MM_DD_HH_MM_SS);
-	                    }
-	                    catch (Exception e) {
-	                        //
-	                    }
-	                    if (offsetWrapper.getLastTimestamp() > 0)
-	                    	builder.append(String.format("%-32s  %-32s  %-4d  %-20d  %-20d  %-20d  %s\r\n",//
-	                            UtilAll.frontStringAtLeast(mq.getTopic(), 32),//
-	                            UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),//
-	                            mq.getQueueId(),//
-	                            offsetWrapper.getBrokerOffset(),//
-	                            offsetWrapper.getConsumerOffset(),//
-	                            diff, //
-	                            lastTime//
-	                            ));
-	                }
+                builder.append(String.format("%-32s  %-32s  %-4s  %-20s  %-20s  %-20s  %s\r\n",//
+                    "#Topic",//
+                    "#Broker Name",//
+                    "#QID",//
+                    "#Broker Offset",//
+                    "#Consumer Offset",//
+                    "#Diff", //
+                    "#LastTime"));
 
-	                builder.append(String.format("Consume TPS: %s\r\n", consumeStats.getConsumeTps()));
-	                builder.append(String.format("Diff Total: %d\r\n", diffTotal));
-	                return builder.toString();
-	            }
-	            else
-	            	return ERROR;
-	            
+                long diffTotal = 0L;
 
-	        }
-	        catch (Exception e) {
-	            e.printStackTrace();
-	            return EXE_ERROR+e.getMessage()+"\r\n";
-	        }
-	        finally {
-	            defaultMQAdminExt.shutdown();
-	        }
-	    }
-	 
-	    private static String executeConsumerCon(CommandLine commandLine, Options options, RPCHook rpcHook) {
-	        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+                for (MessageQueue mq : mqList) {
+                    OffsetWrapper offsetWrapper = consumeStats.getOffsetTable().get(mq);
 
-	        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+                    long diff = offsetWrapper.getBrokerOffset() - offsetWrapper.getConsumerOffset();
+                    diffTotal += diff;
 
-	        try {
-	            defaultMQAdminExt.start();
+                    String lastTime = "-";
+                    try {
+                        lastTime = UtilAll.formatDate(new Date(offsetWrapper.getLastTimestamp()), UtilAll.YYYY_MM_DD_HH_MM_SS);
+                    } catch (Exception e) {
+                        //
+                    }
+                    if (offsetWrapper.getLastTimestamp() > 0)
+                        builder.append(String.format("%-32s  %-32s  %-4d  %-20d  %-20d  %-20d  %s\r\n",//
+                            UtilAll.frontStringAtLeast(mq.getTopic(), 32),//
+                            UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),//
+                            mq.getQueueId(),//
+                            offsetWrapper.getBrokerOffset(),//
+                            offsetWrapper.getConsumerOffset(),//
+                            diff, //
+                            lastTime//
+                        ));
+                }
 
-	            String group = commandLine.getOptionValue('g').trim();
+                builder.append(String.format("Consume TPS: %s\r\n", consumeStats.getConsumeTps()));
+                builder.append(String.format("Diff Total: %d\r\n", diffTotal));
+                return builder.toString();
+            } else
+                return ERROR;
 
-	            ConsumerConnection cc = defaultMQAdminExt.examineConsumerConnectionInfo(group);
-	            StringBuilder builder = new StringBuilder();
-	            int i = 1;
-	            for (Connection conn : cc.getConnectionSet()) {
-	            	builder.append(String.format("%03d  %-32s %-22s %-8s %s\r\n",//
-	                    i++,//
-	                    conn.getClientId(),//
-	                    conn.getClientAddr(),//
-	                    conn.getLanguage(),//
-	                    MQVersion.getVersionDesc(conn.getVersion())//
-	                    ));
-	            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return EXE_ERROR + e.getMessage() + "\r\n";
+        } finally {
+            defaultMQAdminExt.shutdown();
+        }
+    }
 
-	            builder.append("\nBelow is subscription:");
-	            Iterator<Entry<String, SubscriptionData>> it = cc.getSubscriptionTable().entrySet().iterator();
-	            i = 1;
-	            while (it.hasNext()) {
-	                Entry<String, SubscriptionData> entry = it.next();
-	                SubscriptionData sd = entry.getValue();
-	                builder.append(String.format("%03d  Topic: %-40s SubExpression: %s\r\n",//
-	                    i++,//
-	                    sd.getTopic(),//
-	                    sd.getSubString()//
-	                    ));
-	            }
-	            
-	            builder.append(String.format("ConsumeType: %s\r\n", cc.getConsumeType()));
-	            builder.append(String.format("MessageModel: %s\r\n", cc.getMessageModel()));
-	            builder.append(String.format("ConsumeFromWhere: %s\r\n", cc.getConsumeFromWhere()));
-	            return builder.toString();
-	        }
-	        catch (Exception e) {
-	            e.printStackTrace();
-	            return EXE_ERROR+e.getMessage()+"\r\n";
-	        }
-	        finally {
-	            defaultMQAdminExt.shutdown();
-	        }
-	    }
+    private static String executeConsumerCon(CommandLine commandLine, Options options, RPCHook rpcHook) {
+        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+
+        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+
+        try {
+            defaultMQAdminExt.start();
+
+            String group = commandLine.getOptionValue('g').trim();
+
+            ConsumerConnection cc = defaultMQAdminExt.examineConsumerConnectionInfo(group);
+            StringBuilder builder = new StringBuilder();
+            int i = 1;
+            for (Connection conn : cc.getConnectionSet()) {
+                builder.append(String.format("%03d  %-32s %-22s %-8s %s\r\n",//
+                    i++,//
+                    conn.getClientId(),//
+                    conn.getClientAddr(),//
+                    conn.getLanguage(),//
+                    MQVersion.getVersionDesc(conn.getVersion())//
+                ));
+            }
+
+            builder.append("\nBelow is subscription:");
+            Iterator<Entry<String, SubscriptionData>> it = cc.getSubscriptionTable().entrySet().iterator();
+            i = 1;
+            while (it.hasNext()) {
+                Entry<String, SubscriptionData> entry = it.next();
+                SubscriptionData sd = entry.getValue();
+                builder.append(String.format("%03d  Topic: %-40s SubExpression: %s\r\n",//
+                    i++,//
+                    sd.getTopic(),//
+                    sd.getSubString()//
+                ));
+            }
+
+            builder.append(String.format("ConsumeType: %s\r\n", cc.getConsumeType()));
+            builder.append(String.format("MessageModel: %s\r\n", cc.getMessageModel()));
+            builder.append(String.format("ConsumeFromWhere: %s\r\n", cc.getConsumeFromWhere()));
+            return builder.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return EXE_ERROR + e.getMessage() + "\r\n";
+        } finally {
+            defaultMQAdminExt.shutdown();
+        }
+    }
 
 }
