@@ -29,6 +29,7 @@ import org.apache.rocketmq.namesrv.processor.ClusterTestRequestProcessor;
 import org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor;
 import org.apache.rocketmq.namesrv.routeinfo.BrokerHousekeepingService;
 import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
+import org.apache.rocketmq.namesrv.telnet.TelnetServer;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
@@ -54,6 +55,8 @@ public class NamesrvController {
     private ExecutorService remotingExecutor;
 
     private Configuration configuration;
+    
+    private TelnetServer  telnetServer;
 
     public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
         this.namesrvConfig = namesrvConfig;
@@ -78,6 +81,11 @@ public class NamesrvController {
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
         this.registerProcessor();
+        
+        int port = this.nettyServerConfig.getListenPort() -1 ;
+        this.telnetServer = new TelnetServer(port);
+        String nameAddr = "localhost:"+this.nettyServerConfig.getListenPort();
+        telnetServer.init(nameAddr);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -111,11 +119,13 @@ public class NamesrvController {
 
     public void start() throws Exception {
         this.remotingServer.start();
+        this.telnetServer.start();
     }
 
     public void shutdown() {
         this.remotingServer.shutdown();
         this.remotingExecutor.shutdown();
+        this.telnetServer.shutdown();
         this.scheduledExecutorService.shutdown();
     }
 
