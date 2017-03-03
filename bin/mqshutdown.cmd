@@ -14,7 +14,7 @@ rem WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 rem See the License for the specific language governing permissions and
 rem limitations under the License.
 
-if not exist "%JAVA_HOME%\bin\jps.exe" echo Please set the JAVA_HOME variable in your environment, We need java(x64)! & goto end
+if not exist "%JAVA_HOME%\bin\jps.exe" echo Please set the JAVA_HOME variable in your environment, We need java(x64)! & EXIT /B 1
 
 setlocal
 
@@ -33,5 +33,3 @@ if /I "%1" == "broker" (
 ) else (
     echo Unknown role to kill, please specify broker or namesrv
 )
-
-:end
