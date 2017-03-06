@@ -461,6 +461,7 @@
                 <plugins>
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
+                        <version>2.6</version>
                         <configuration>
                             <finalName>apache-rocketmq</finalName>
                             <descriptors>
