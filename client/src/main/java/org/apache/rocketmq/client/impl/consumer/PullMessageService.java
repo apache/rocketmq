@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.ServiceThread;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.slf4j.Logger;
 
 public class PullMessageService extends ServiceThread {
@@ -95,6 +96,12 @@ public class PullMessageService extends ServiceThread {
         }
 
         log.info(this.getServiceName() + " service end");
+    }
+
+    @Override
+    public void shutdown(boolean interrupt) {
+        super.shutdown(interrupt);
+        ThreadUtils.shutdownGracefully(this.scheduledExecutorService, 1000, TimeUnit.MILLISECONDS);
     }
 
     @Override
