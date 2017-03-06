@@ -42,16 +42,48 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * <p>
+ *     This class is to read and parse command line arguments then start broker servers.
+ * </p>
+ */
 public class BrokerStartup {
+
+    /**
+     * {@link Properties} instance to store key-value pairs of specified broker configuration file.
+     */
     public static Properties properties = null;
+
+    /**
+     * Command line argument parser.
+     */
     public static CommandLine commandLine = null;
+
+    /**
+     * Broker configuration file.
+     */
     public static String configFile = null;
+
+    /**
+     * Logger instance.
+     */
     public static Logger log;
 
+    /**
+     * Main method, all things start here.
+     *
+     * @param args command line argument.
+     */
     public static void main(String[] args) {
         start(createBrokerController(args));
     }
 
+    /**
+     * Starts the {@link BrokerController} instance.
+     *
+     * @param controller BrokerController instance.
+     * @return The same broker controller instance if successful; null otherwise.
+     */
     public static BrokerController start(BrokerController controller) {
         try {
             controller.start();
@@ -72,13 +104,21 @@ public class BrokerStartup {
         return null;
     }
 
+    /**
+     * This method creates {@link BrokerController} instance using command line arguments.
+     *
+     * @param args Command line arguments.
+     * @return Instance of {@link BrokerController}.
+     */
     public static BrokerController createBrokerController(String[] args) {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
 
+        // Default send buffer size to 128KB
         if (null == System.getProperty(NettySystemConfig.COM_ROCKETMQ_REMOTING_SOCKET_SNDBUF_SIZE)) {
             NettySystemConfig.socketSndbufSize = 131072;
         }
 
+        // Default receive buffer size to 128KB
         if (null == System.getProperty(NettySystemConfig.COM_ROCKETMQ_REMOTING_SOCKET_RCVBUF_SIZE)) {
             NettySystemConfig.socketRcvbufSize = 131072;
         }
@@ -95,15 +135,19 @@ public class BrokerStartup {
             final BrokerConfig brokerConfig = new BrokerConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
             final NettyClientConfig nettyClientConfig = new NettyClientConfig();
-            nettyServerConfig.setListenPort(10911);
+            nettyServerConfig.setListenPort(10911); // Set default broker listen port
             final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
 
             if (BrokerRole.SLAVE == messageStoreConfig.getBrokerRole()) {
+
+                // Use a conservative value for slave brokers so that consumer groups won't frequently change targeting
+                // brokers when they are consuming messages at the boundary between being probably resident in physical
+                // memory and swapped out.
                 int ratio = messageStoreConfig.getAccessMessageInMemoryMaxRatio() - 10;
                 messageStoreConfig.setAccessMessageInMemoryMaxRatio(ratio);
             }
 
-            if (commandLine.hasOption('p')) {
+            if (commandLine.hasOption('p')) { // print configurable options.
                 MixAll.printObjectProperties(null, brokerConfig);
                 MixAll.printObjectProperties(null, nettyServerConfig);
                 MixAll.printObjectProperties(null, nettyClientConfig);
@@ -117,6 +161,7 @@ public class BrokerStartup {
                 System.exit(0);
             }
 
+            // Set broker via specified configuration file.
             if (commandLine.hasOption('c')) {
                 String file = commandLine.getOptionValue('c');
                 if (file != null) {
