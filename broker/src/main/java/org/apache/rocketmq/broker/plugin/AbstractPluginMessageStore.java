@@ -233,5 +233,4 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     public void setConfirmOffset(long phyOffset) {
         next.setConfirmOffset(phyOffset);
     }
-
 }

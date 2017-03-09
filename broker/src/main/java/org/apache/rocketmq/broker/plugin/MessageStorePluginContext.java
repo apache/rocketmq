@@ -53,5 +53,4 @@ public class MessageStorePluginContext {
     public BrokerConfig getBrokerConfig() {
         return brokerConfig;
     }
-
 }
