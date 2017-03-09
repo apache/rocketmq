@@ -44,7 +44,7 @@ public class MessageStoreFactoryTest {
     @Test
     public void buildWithPluginMisConfigured() throws Exception {
         BrokerConfig brokerConfig = new BrokerConfig();
-        brokerConfig.setMessageStorePlugIn("UnexistingPlugin ,");
+        brokerConfig.setMessageStorePlugIn("NonExistentPlugin ");
         MessageStorePluginContext ctx = new MessageStorePluginContext(new MessageStoreConfig(), null, null, brokerConfig);
         try {
             MessageStoreFactory.build(ctx, messageStore);
@@ -57,7 +57,7 @@ public class MessageStoreFactoryTest {
     @Test
     public void buildWithPluginConfigured() throws Exception {
         BrokerConfig brokerConfig = new BrokerConfig();
-        brokerConfig.setMessageStorePlugIn("org.apache.rocketmq.broker.plugin.MessageStoreFactoryTest$PluginStoreMock");
+        brokerConfig.setMessageStorePlugIn("org.apache.rocketmq.broker.plugin.MessageStoreFactoryTest$PluginStoreMock ");
         MessageStorePluginContext ctx = new MessageStorePluginContext(new MessageStoreConfig(), null, null, brokerConfig);
         assertThat(MessageStoreFactory.build(ctx, messageStore)).isInstanceOf(PluginStoreMock.class);
     }

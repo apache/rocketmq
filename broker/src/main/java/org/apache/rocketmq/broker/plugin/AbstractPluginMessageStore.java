@@ -28,9 +28,12 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 
+/**
+ * An abstract class that can be used to implement an alternative message store.
+ */
 public abstract class AbstractPluginMessageStore implements MessageStore {
-    protected MessageStore next = null;
-    protected MessageStorePluginContext context;
+    private final MessageStore next;
+    private final MessageStorePluginContext context;
 
     public AbstractPluginMessageStore(MessageStorePluginContext context, MessageStore next) {
         this.next = next;

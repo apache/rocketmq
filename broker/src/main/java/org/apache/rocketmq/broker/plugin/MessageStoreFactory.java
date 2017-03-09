@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.plugin;
 
 import java.lang.reflect.Constructor;
 import org.apache.rocketmq.broker.exception.BrokerException;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.store.MessageStore;
 
 /**
@@ -27,6 +28,8 @@ import org.apache.rocketmq.store.MessageStore;
 public final class MessageStoreFactory {
 
     /**
+     * Creates a new {@link MessageStore} by the store plugin class name specified in {@link BrokerConfig}.
+     *
      * @param context Store plugin context.
      * @param messageStore Default message store.
      * @return A new {@link MessageStore} if configured.
@@ -34,25 +37,19 @@ public final class MessageStoreFactory {
      */
     public static MessageStore build(MessageStorePluginContext context,
         MessageStore messageStore) throws BrokerException {
-        String plugin = context.getBrokerConfig().getMessageStorePlugIn();
+        String pluginClass = context.getBrokerConfig().getMessageStorePlugIn();
 
-        if (plugin != null && plugin.trim().length() != 0) {
-            String[] pluginClasses = plugin.split(",");
-
-            for (int i = pluginClasses.length - 1; i >= 0; --i) {
-                String pluginClass = pluginClasses[i].trim();
-
-                try {
-                    @SuppressWarnings("unchecked")
-                    Class<AbstractPluginMessageStore> clazz =
-                        (Class<AbstractPluginMessageStore>) Class.forName(pluginClass);
-                    Constructor<AbstractPluginMessageStore> construct =
-                        clazz.getConstructor(MessageStorePluginContext.class, MessageStore.class);
-                    messageStore = construct.newInstance(context, messageStore);
-                } catch (Throwable e) {
-                    throw new BrokerException(String.format(
-                        "Initialize plugin's class %s not found!", pluginClass), e);
-                }
+        if (pluginClass != null && !pluginClass.trim().isEmpty()) {
+            try {
+                @SuppressWarnings("unchecked")
+                Class<AbstractPluginMessageStore> clazz =
+                    (Class<AbstractPluginMessageStore>) Class.forName(pluginClass.trim());
+                Constructor<AbstractPluginMessageStore> construct =
+                    clazz.getConstructor(MessageStorePluginContext.class, MessageStore.class);
+                messageStore = construct.newInstance(context, messageStore);
+            } catch (Throwable e) {
+                throw new BrokerException(String.format(
+                    "Initialize plugin's class %s not found!", pluginClass.trim()), e);
             }
         }
 
