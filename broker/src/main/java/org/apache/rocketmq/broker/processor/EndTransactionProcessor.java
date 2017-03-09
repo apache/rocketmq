@@ -157,7 +157,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     // Failed
                     case CREATE_MAPEDFILE_FAILED:
                         response.setCode(ResponseCode.SYSTEM_ERROR);
-                        response.setRemark("create maped file failed.");
+                        response.setRemark("create mapped file failed.");
                         break;
                     case MESSAGE_ILLEGAL:
                     case PROPERTIES_SIZE_EXCEEDED:
