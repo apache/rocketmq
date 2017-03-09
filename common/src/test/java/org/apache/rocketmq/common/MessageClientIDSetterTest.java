@@ -20,22 +20,29 @@ import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class MessageClientIDSetterTest {
 
     @Test
-    public void testGetNearlyTimeFromID() {
+    public void testGetNearlyTimeFromID() throws ParseException {
 
         MessageClientIDSetter messageClientIDSetter = new MessageClientIDSetter();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
         //2017-03-07 09:04:00
         String message1 = "AC1F0B01327B5B2133B120D8340B3D7D";
-        Date date1 = messageClientIDSetter.getNearlyTimeFromID(message1);
+        Date actualDate1 = messageClientIDSetter.getNearlyTimeFromID(message1);
         //2017-03-07 15:11:13
         String message2 = "AC1F0B01696C5B2133B1222866B409C9";
-        Date date2 = messageClientIDSetter.getNearlyTimeFromID(message2);
+        Date actualDate2 = messageClientIDSetter.getNearlyTimeFromID(message2);
 
-        Assert.assertEquals("Tue Mar 07 09:04:00 GMT+08:00 2017", date1.toString());
-        Assert.assertEquals("Tue Mar 07 15:11:13 GMT+08:00 2017", date2.toString());
+        Date expectedDate1 = sdf.parse("2017-03-07 09:04:00");
+        Date expectedDate2 = sdf.parse("2017-03-07 15:11:13");
+
+        Assert.assertEquals(expectedDate1.toString(), actualDate1.toString());
+        Assert.assertEquals(expectedDate2.toString(), actualDate2.toString());
     }
 }
