@@ -99,7 +99,7 @@ public class DefaultMQPullConsumerTest {
         assertThat(pullResult.getNextBeginOffset()).isEqualTo(1024 + 1);
         assertThat(pullResult.getMinOffset()).isEqualTo(123);
         assertThat(pullResult.getMaxOffset()).isEqualTo(2048);
-        assertThat(pullResult.getMsgFoundList()).isEqualTo(new ArrayList<>());
+        assertThat(pullResult.getMsgFoundList()).isEqualTo(new ArrayList<Object>());
     }
 
     @Test
@@ -137,7 +137,7 @@ public class DefaultMQPullConsumerTest {
                 assertThat(pullResult.getNextBeginOffset()).isEqualTo(1024 + 1);
                 assertThat(pullResult.getMinOffset()).isEqualTo(123);
                 assertThat(pullResult.getMaxOffset()).isEqualTo(2048);
-                assertThat(pullResult.getMsgFoundList()).isEqualTo(new ArrayList<>());
+                assertThat(pullResult.getMsgFoundList()).isEqualTo(new ArrayList<Object>());
             }
 
             @Override public void onException(Throwable e) {

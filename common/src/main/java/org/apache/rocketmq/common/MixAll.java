@@ -256,7 +256,7 @@ public class MixAll {
                         if (null == value) {
                             value = "";
                         }
-                    } catch (IllegalArgumentException | IllegalAccessException e) {
+                    } catch (IllegalAccessException e) {
                         e.printStackTrace();
                     }
 
@@ -313,7 +313,7 @@ public class MixAll {
                     try {
                         field.setAccessible(true);
                         value = field.get(object);
-                    } catch (IllegalArgumentException | IllegalAccessException e) {
+                    } catch (IllegalAccessException e) {
                         e.printStackTrace();
                     }
 

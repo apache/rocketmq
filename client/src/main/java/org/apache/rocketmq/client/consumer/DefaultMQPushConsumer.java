@@ -133,7 +133,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Subscription relationship
      */
-    private Map<String /* topic */, String /* sub expression */> subscription = new HashMap<>();
+    private Map<String /* topic */, String /* sub expression */> subscription = new HashMap<String, String>();
 
     /**
      * Message listener
