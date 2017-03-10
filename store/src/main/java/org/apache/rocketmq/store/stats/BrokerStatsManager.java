@@ -123,7 +123,9 @@ public class BrokerStatsManager {
     public void incTopicPutNums(final String topic) {
         this.statsTable.get(TOPIC_PUT_NUMS).addValue(topic, 1, 1);
     }
-
+    public void incTopicPutNums(final String topic, int num, int times) {
+        this.statsTable.get(TOPIC_PUT_NUMS).addValue(topic, num, times);
+    }
     public void incTopicPutSize(final String topic, final int size) {
         this.statsTable.get(TOPIC_PUT_SIZE).addValue(topic, size, 1);
     }
@@ -154,7 +156,9 @@ public class BrokerStatsManager {
     public void incBrokerPutNums() {
         this.statsTable.get(BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().incrementAndGet();
     }
-
+    public void incBrokerPutNums(final int incValue) {
+        this.statsTable.get(BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().addAndGet(incValue);
+    }
     public void incBrokerGetNums(final int incValue) {
         this.statsTable.get(BROKER_GET_NUMS).getAndCreateStatsItem(this.clusterName).getValue().addAndGet(incValue);
     }

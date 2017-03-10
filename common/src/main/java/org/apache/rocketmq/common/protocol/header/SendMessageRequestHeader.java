@@ -48,6 +48,8 @@ public class SendMessageRequestHeader implements CommandCustomHeader {
     private Integer reconsumeTimes;
     @CFNullable
     private boolean unitMode = false;
+    @CFNullable
+    private boolean batch = false;
     private Integer maxReconsumeTimes;
 
     @Override
@@ -148,5 +150,13 @@ public class SendMessageRequestHeader implements CommandCustomHeader {
 
     public void setMaxReconsumeTimes(final Integer maxReconsumeTimes) {
         this.maxReconsumeTimes = maxReconsumeTimes;
+    }
+
+    public boolean isBatch() {
+        return batch;
+    }
+
+    public void setBatch(boolean batch) {
+        this.batch = batch;
     }
 }
