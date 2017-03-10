@@ -281,7 +281,7 @@ public class RemotingCommand {
                             field.set(objectHeader, valueParsed);
 
                         } catch (Throwable e) {
-                            log.error("Failed field decoding", e);
+                            log.error("Failed field [{}] decoding", fieldName, e);
                         }
                     }
                 }
@@ -387,7 +387,7 @@ public class RemotingCommand {
                         try {
                             field.setAccessible(true);
                             value = field.get(this.customHeader);
-                        } catch (IllegalArgumentException | IllegalAccessException e) {
+                        } catch (Exception e) {
                             log.error("Failed to access field [{}]", name, e);
                         }
 
