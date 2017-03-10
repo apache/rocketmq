@@ -50,6 +50,13 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
+/**
+ * This processor handles all send message requests.
+ *
+ * <p>
+ *     <strong>Thread Safety:</strong> This class is thread safe.
+ * </p>
+ */
 public class SendMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
 
     private List<ConsumeMessageHook> consumeMessageHookList;
@@ -58,12 +65,21 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         super(brokerController);
     }
 
+    /**
+     * Process various send message request per request code.
+     *
+     * @param ctx The channel handler context.
+     * @param request Incoming request.
+     * @return process result.
+     * @throws RemotingCommandException if there is any error.
+     */
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         SendMessageContext mqtraceContext;
         switch (request.getCode()) {
             case RequestCode.CONSUMER_SEND_MSG_BACK:
                 return this.consumerSendMsgBack(ctx, request);
+
             default:
                 SendMessageRequestHeader requestHeader = parseRequestHeader(request);
                 if (requestHeader == null) {
@@ -79,6 +95,11 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
     }
 
+    /**
+     * Reject the request when system is over-loaded.
+     *
+     * @return true if rejecting the request; false otherwise.
+     */
     @Override
     public boolean rejectRequest() {
         return this.brokerController.getMessageStore().isOSPageCacheBusy() ||
@@ -246,6 +267,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
         final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader) response.readCustomHeader();
 
+        // Set opaque value in case of returning prematurely
         response.setOpaque(request.getOpaque());
 
         response.addExtField(MessageConst.PROPERTY_MSG_REGION, this.brokerController.getBrokerConfig().getRegionId());
@@ -255,13 +277,15 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             log.debug("receive SendMessage request command, {}", request);
         }
 
-        final long startTimstamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
-        if (this.brokerController.getMessageStore().now() < startTimstamp) {
+        // confirm the current broker is currently serving.
+        final long startTimestamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
+        if (this.brokerController.getMessageStore().now() < startTimestamp) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(String.format("broker unable to service, until %s", UtilAll.timeMillisToHumanString2(startTimstamp)));
+            response.setRemark(String.format("broker will not serve until %s", UtilAll.timeMillisToHumanString2(startTimestamp)));
             return response;
         }
 
+        // validate message
         response.setCode(-1);
         super.msgCheck(ctx, requestHeader, response);
         if (response.getCode() != -1) {

@@ -86,6 +86,16 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * <p>
+ *     This class, as its name implies, is the core controller of the broker server, which manages various internal
+ *     services and resources.
+ * </p>
+ *
+ * <p>
+ *     <strong>Thread Safety:</strong> Technically, this class itself is not thread-safe.
+ * </p>
+ */
 public class BrokerController {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final Logger LOG_PROTECTION = LoggerFactory.getLogger(LoggerName.PROTECTION_LOGGER_NAME);
