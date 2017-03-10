@@ -59,9 +59,9 @@ public class MixAllTest {
             file.delete();
         }
         file.createNewFile();
-        try (PrintWriter out = new PrintWriter(fileName)) {
-            out.write("TestForMixAll");
-        }
+        PrintWriter out = new PrintWriter(fileName);
+        out.write("TestForMixAll");
+        out.close();
         String string = MixAll.file2String(fileName);
         assertThat(string).isEqualTo("TestForMixAll");
         file.delete();

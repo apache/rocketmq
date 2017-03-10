@@ -143,7 +143,7 @@ public class DefaultMQPushConsumerTest {
 
         doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
         doReturn(Collections.singletonList(mQClientFactory.getClientId())).when(mQClientFactory).findConsumerIdList(anyString(), anyString());
-        Set<MessageQueue> messageQueueSet = new HashSet<>();
+        Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
         messageQueueSet.add(createPullRequest().getMessageQueue());
         pushConsumer.getDefaultMQPushConsumerImpl().updateTopicSubscribeInfo(topic, messageQueueSet);
         doReturn(123L).when(rebalancePushImpl).computePullFromWhere(any(MessageQueue.class));
