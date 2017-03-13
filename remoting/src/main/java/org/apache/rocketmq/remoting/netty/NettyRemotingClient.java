@@ -527,12 +527,24 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     @Override
-    public boolean isChannelWriteable(String addr) {
+    public boolean isChannelWritable(String addr) {
         ChannelWrapper cw = this.channelTables.get(addr);
         if (cw != null && cw.isOK()) {
             return cw.isWriteable();
         }
         return true;
+    }
+
+    @Override
+    public boolean connect(String address) {
+        try {
+            Channel channel = getAndCreateChannel(address);
+            if (null != channel) {
+                return true;
+            }
+        } catch (InterruptedException ignore) {
+        }
+        return false;
     }
 
     @Override

@@ -18,6 +18,7 @@ package org.apache.rocketmq.client.impl.factory;
 
 import java.io.UnsupportedEncodingException;
 import java.net.DatagramSocket;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -275,7 +276,7 @@ public class MQClientInstance {
                     log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", e);
                 }
             }
-        }, 10, this.clientConfig.getPollNameServerInteval(), TimeUnit.MILLISECONDS);
+        }, 10, this.clientConfig.getPollNameServerInterval(), TimeUnit.MILLISECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -322,6 +323,25 @@ public class MQClientInstance {
     public void updateTopicRouteInfoFromNameServer() {
         Set<String> topicList = new HashSet<String>();
 
+        // Producer
+        {
+            Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<String, MQProducerInner> entry = it.next();
+                MQProducerInner impl = entry.getValue();
+                if (impl != null) {
+                    Set<String> lst = impl.getPublishTopicList();
+                    topicList.addAll(lst);
+                }
+            }
+        }
+
+        // Producers need eager connection
+        for (String topic : topicList) {
+            this.updateTopicRouteInfoFromNameServer(topic, true);
+        }
+        topicList.clear();
+
         // Consumer
         {
             Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
@@ -339,21 +359,8 @@ public class MQClientInstance {
             }
         }
 
-        // Producer
-        {
-            Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry<String, MQProducerInner> entry = it.next();
-                MQProducerInner impl = entry.getValue();
-                if (impl != null) {
-                    Set<String> lst = impl.getPublishTopicList();
-                    topicList.addAll(lst);
-                }
-            }
-        }
-
         for (String topic : topicList) {
-            this.updateTopicRouteInfoFromNameServer(topic);
+            this.updateTopicRouteInfoFromNameServer(topic, false);
         }
     }
 
@@ -443,6 +450,10 @@ public class MQClientInstance {
                 }
             }
         }
+    }
+
+    public boolean updateTopicRouteInfoFromNameServer(final String topic, final boolean connectImmediately) {
+        return updateTopicRouteInfoFromNameServer(topic, false, null, connectImmediately);
     }
 
     public boolean updateTopicRouteInfoFromNameServer(final String topic) {
@@ -536,7 +547,13 @@ public class MQClientInstance {
         }
     }
 
-    public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault, DefaultMQProducer defaultMQProducer) {
+    public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
+        DefaultMQProducer defaultMQProducer) {
+        return updateTopicRouteInfoFromNameServer(topic, isDefault, defaultMQProducer, false);
+    }
+
+    public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
+        DefaultMQProducer defaultMQProducer, boolean connectImmediately) {
         try {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
@@ -567,6 +584,11 @@ public class MQClientInstance {
                             TopicRouteData cloneTopicRouteData = topicRouteData.cloneTopicRouteData();
 
                             for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+                                // Establish connection to new-join brokers.
+                                if (connectImmediately) {
+                                    connect(bd);
+                                }
+
                                 this.brokerAddrTable.put(bd.getBrokerName(), bd.getBrokerAddrs());
                             }
 
@@ -618,6 +640,37 @@ public class MQClientInstance {
         }
 
         return false;
+    }
+
+    private void connect(BrokerData brokerData) {
+
+        if (null == brokerData || null == brokerData.getBrokerAddrs() || brokerData.getBrokerAddrs().isEmpty()) {
+            return;
+        }
+
+        Map<Long, String> existingBrokers = this.brokerAddrTable.get(brokerData.getBrokerName());
+
+        List<String> brokerAddresses = new ArrayList<String>();
+        if (null == existingBrokers) {
+            brokerAddresses.addAll(brokerData.getBrokerAddrs().values());
+        } else {
+            Set<String> existingBrokerAddresses = new HashSet<String>();
+            existingBrokerAddresses.addAll(existingBrokers.values());
+            for (Map.Entry<Long, String> next : brokerData.getBrokerAddrs().entrySet()) {
+                if (!existingBrokerAddresses.contains(next.getValue())) {
+                    brokerAddresses.add(next.getValue());
+                }
+            }
+        }
+
+        for (String brokerAddress : brokerAddresses) {
+            boolean successful = this.mQClientAPIImpl.getRemotingClient().connect(brokerAddress);
+            if (successful) {
+                log.info("Eagerly established a connection to: {}", brokerAddress);
+            } else {
+                log.warn("Failed to eagerly establish a connection to: {}", brokerAddress);
+            }
+        }
     }
 
     private HeartbeatData prepareHeartbeatData() {
