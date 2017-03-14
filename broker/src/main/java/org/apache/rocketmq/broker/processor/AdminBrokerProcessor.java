@@ -220,6 +220,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             response.setRemark(null);
             ctx.writeAndFlush(response);
         } catch (Exception e) {
+            log.error("Failed to produce a proper response", e);
         }
 
         TopicConfig topicConfig = new TopicConfig(requestHeader.getTopic());
@@ -231,6 +232,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
         this.brokerController.registerBrokerAll(false, true);
+
         return null;
     }
 
