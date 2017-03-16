@@ -394,7 +394,7 @@ public class MappedFile extends ReferenceResource {
     public boolean cleanup(final long currentRef) {
         if (this.isAvailable()) {
             log.error("this file[REF:" + currentRef + "] " + this.fileName
-                + " have not shutdown, stop unmaping.");
+                + " have not shutdown, stop unmapping.");
             return false;
         }
 
