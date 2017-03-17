@@ -50,6 +50,13 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
+/**
+ * This processor handles all send message requests.
+ *
+ * <p>
+ *     <strong>Thread Safety:</strong> This class is thread safe.
+ * </p>
+ */
 public class SendMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
 
     private List<ConsumeMessageHook> consumeMessageHookList;
@@ -58,12 +65,21 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         super(brokerController);
     }
 
+    /**
+     * Process various send message requests per request code.
+     *
+     * @param ctx The channel handler context.
+     * @param request Incoming request.
+     * @return process result.
+     * @throws RemotingCommandException if there is any error.
+     */
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         SendMessageContext mqtraceContext;
         switch (request.getCode()) {
             case RequestCode.CONSUMER_SEND_MSG_BACK:
                 return this.consumerSendMsgBack(ctx, request);
+
             default:
                 SendMessageRequestHeader requestHeader = parseRequestHeader(request);
                 if (requestHeader == null) {
@@ -79,15 +95,42 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
     }
 
+    /**
+     * Reject the request when system is over-loaded.
+     *
+     * @return true if rejecting the request; false otherwise.
+     */
     @Override
     public boolean rejectRequest() {
         return this.brokerController.getMessageStore().isOSPageCacheBusy() ||
             this.brokerController.getMessageStore().isTransientStorePoolDeficient();
     }
 
+    /**
+     * <p>
+     *     Handle messages sent back by consumer clients, which are assumed to be re-consumed later.
+     * </p>
+     *
+     * <p>
+     *     If the retry times do not exceed maximum specified, the message will be store in a topic named after consumer
+     *     group name, see {@link MixAll#getRetryTopic(String)}. These messages will then be delivered to consumers of
+     *     this group after a delay.
+     * </p>
+     *
+     * <p>
+     *     If the retry times have exceeded maximum times allowed, the message will be stored in topic named
+     *     {@link MixAll#getDLQTopic(String)}, which functions as Dead-Letter-Queue.
+     * </p>
+     *
+     * @param ctx The channel handler context.
+     * @param request Request from client.
+     * @return Response {@link RemotingCommand} instance.
+     * @throws RemotingCommandException If there is any error.
+     */
     private RemotingCommand consumerSendMsgBack(final ChannelHandlerContext ctx, final RemotingCommand request)
         throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setOpaque(request.getOpaque());
         final ConsumerSendMsgBackRequestHeader requestHeader =
             (ConsumerSendMsgBackRequestHeader) request.decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
 
@@ -103,6 +146,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             this.executeConsumeMessageHookAfter(context);
         }
 
+        // Check existence of the consumer group being used.
         SubscriptionGroupConfig subscriptionGroupConfig =
             this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(requestHeader.getGroup());
         if (null == subscriptionGroupConfig) {
@@ -112,18 +156,21 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             return response;
         }
 
+        // Make sure message store of the broker is writable.
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
             response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1() + "] sending message is forbidden");
             return response;
         }
 
+        // TODO: we should warn client here because OP may carelessly get things wrong here.
         if (subscriptionGroupConfig.getRetryQueueNums() <= 0) {
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
             return response;
         }
 
+        // Get the retry topic and the target queue ID.
         String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
         int queueIdInt = Math.abs(this.random.nextInt() % 99999999) % subscriptionGroupConfig.getRetryQueueNums();
 
@@ -148,6 +195,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             return response;
         }
 
+        // Look up the original message.
         MessageExt msgExt = this.brokerController.getMessageStore().lookMessageByOffset(requestHeader.getOffset());
         if (null == msgExt) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -163,11 +211,14 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         int delayLevel = requestHeader.getDelayLevel();
 
+        // Figure out maximum retry times. Note final call of latest release is up to the client while version prior to
+        // 3.4.9 is determined by consumer group configuration on broker.
         int maxReconsumeTimes = subscriptionGroupConfig.getRetryMaxTimes();
         if (request.getVersion() >= MQVersion.Version.V3_4_9.ordinal()) {
             maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
         }
 
+        // Check if the message should be put into Dead-Letter-Queue
         if (msgExt.getReconsumeTimes() >= maxReconsumeTimes//
             || delayLevel < 0) {
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
@@ -182,7 +233,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 response.setRemark("topic[" + newTopic + "] not exist");
                 return response;
             }
-        } else {
+        } else { // Compute delay period, after which to re-deliver this message to consumer clients.
             if (0 == delayLevel) {
                 delayLevel = 3 + msgExt.getReconsumeTimes();
             }
@@ -190,6 +241,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             msgExt.setDelayTimeLevel(delayLevel);
         }
 
+        // Construct internal message representation
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(newTopic);
         msgInner.setBody(msgExt.getBody());
@@ -208,7 +260,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         String originMsgId = MessageAccessor.getOriginMessageId(msgExt);
         MessageAccessor.setOriginMessageId(msgInner, UtilAll.isBlank(originMsgId) ? msgExt.getMsgId() : originMsgId);
 
+        // Store the message.
         PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
+
         if (putMessageResult != null) {
             switch (putMessageResult.getPutMessageStatus()) {
                 case PUT_OK:
@@ -218,6 +272,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                         backTopic = correctTopic;
                     }
 
+                    // Update statistics
                     this.brokerController.getBrokerStatsManager().incSendBackNums(requestHeader.getGroup(), backTopic);
 
                     response.setCode(ResponseCode.SUCCESS);
@@ -238,6 +293,18 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         return response;
     }
 
+    /**
+     * <p>
+     *     Handle send message request.
+     * </p>
+     *
+     * @param ctx channel handler context.
+     * @param request The send message request.
+     * @param sendMessageContext Send message context
+     * @param requestHeader Header part of the send message request.
+     * @return Broker response
+     * @throws RemotingCommandException if there is any unexpected error.
+     */
     private RemotingCommand sendMessage(final ChannelHandlerContext ctx, //
         final RemotingCommand request, //
         final SendMessageContext sendMessageContext, //
@@ -246,6 +313,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
         final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader) response.readCustomHeader();
 
+        // Set opaque value in case of returning prematurely
         response.setOpaque(request.getOpaque());
 
         response.addExtField(MessageConst.PROPERTY_MSG_REGION, this.brokerController.getBrokerConfig().getRegionId());
@@ -255,13 +323,15 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             log.debug("receive SendMessage request command, {}", request);
         }
 
-        final long startTimstamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
-        if (this.brokerController.getMessageStore().now() < startTimstamp) {
+        // confirm the current broker is currently serving.
+        final long startTimestamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
+        if (this.brokerController.getMessageStore().now() < startTimestamp) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(String.format("broker unable to service, until %s", UtilAll.timeMillisToHumanString2(startTimstamp)));
+            response.setRemark(String.format("broker will not serve until %s", UtilAll.timeMillisToHumanString2(startTimestamp)));
             return response;
         }
 
+        // validate message
         response.setCode(-1);
         super.msgCheck(ctx, requestHeader, response);
         if (response.getCode() != -1) {

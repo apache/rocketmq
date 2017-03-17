@@ -20,11 +20,31 @@ import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 /**
- * Common remoting command processor
+ * <p>
+ *     This interface defines a contract for request processor.
+ * </p>
+ *
+ * <p>
+ *     <strong>Thread Safety:</strong> implementation of this interface MUST be thread-safe as the processor is normally
+ *     executed concurrently.
+ * </p>
  */
 public interface NettyRequestProcessor {
-    RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
-        throws Exception;
 
+    /**
+     * In the high level, this method would process the incoming <code>request</code> then generate a response
+     * accordingly.
+     *
+     * @param ctx The channel handler context.
+     * @param request Incoming request.
+     * @return Response command.
+     * @throws Exception if there is any error.
+     */
+    RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws Exception;
+
+    /**
+     * Check if current request should be rejected.
+     * @return true if reject; false otherwise.
+     */
     boolean rejectRequest();
 }

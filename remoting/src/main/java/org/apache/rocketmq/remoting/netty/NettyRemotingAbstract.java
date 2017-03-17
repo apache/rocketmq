@@ -59,7 +59,7 @@ public abstract class NettyRemotingAbstract {
 
     protected final HashMap<Integer/* request code */, Pair<NettyRequestProcessor, ExecutorService>> processorTable =
         new HashMap<Integer, Pair<NettyRequestProcessor, ExecutorService>>(64);
-    protected final NettyEventExecuter nettyEventExecuter = new NettyEventExecuter();
+    protected final NettyEventExecutor nettyEventExecutor = new NettyEventExecutor();
 
     protected Pair<NettyRequestProcessor, ExecutorService> defaultRequestProcessor;
 
@@ -71,25 +71,47 @@ public abstract class NettyRemotingAbstract {
     public abstract ChannelEventListener getChannelEventListener();
 
     public void putNettyEvent(final NettyEvent event) {
-        this.nettyEventExecuter.putNettyEvent(event);
+        this.nettyEventExecutor.putNettyEvent(event);
     }
 
     public void processMessageReceived(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
         final RemotingCommand cmd = msg;
         if (cmd != null) {
             switch (cmd.getType()) {
+                // handle incoming requests, for example, new message arrival.
                 case REQUEST_COMMAND:
                     processRequestCommand(ctx, cmd);
                     break;
+
+                // handle response from name servers, consumers and producers.
                 case RESPONSE_COMMAND:
                     processResponseCommand(ctx, cmd);
                     break;
+
                 default:
                     break;
             }
         }
     }
 
+    /**
+     * <p>
+     *     This method handles incoming requests.
+     * </p>
+     *
+     * <ol>
+     *     <li>
+     *         Look up [processor, thread-pool] pair among registered <code>processorTable</code> by request code,
+     *         if not found, default processor is used.
+     *     </li>
+     *     <li>
+     *         Wrap the request into a task and then submit the task into the thread-pool.
+     *     </li>
+     * </ol>
+     *
+     * @param ctx The channel handler context.
+     * @param cmd The remoting command instance, containing all required data per protocol.
+     */
     public void processRequestCommand(final ChannelHandlerContext ctx, final RemotingCommand cmd) {
         final Pair<NettyRequestProcessor, ExecutorService> matched = this.processorTable.get(cmd.getCode());
         final Pair<NettyRequestProcessor, ExecutorService> pair = null == matched ? this.defaultRequestProcessor : matched;
@@ -389,7 +411,7 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
-    class NettyEventExecuter extends ServiceThread {
+    class NettyEventExecutor extends ServiceThread {
         private final LinkedBlockingQueue<NettyEvent> eventQueue = new LinkedBlockingQueue<NettyEvent>();
         private final int maxSize = 10000;
 
@@ -439,7 +461,7 @@ public abstract class NettyRemotingAbstract {
 
         @Override
         public String getServiceName() {
-            return NettyEventExecuter.class.getSimpleName();
+            return NettyEventExecutor.class.getSimpleName();
         }
     }
 }
