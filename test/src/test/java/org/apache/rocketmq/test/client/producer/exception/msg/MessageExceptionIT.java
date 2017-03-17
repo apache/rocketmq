@@ -61,7 +61,7 @@ public class MessageExceptionIT extends BaseConf {
 
     @Test(expected = org.apache.rocketmq.client.exception.MQClientException.class)
     public void testSynSendNullMessage() throws Exception {
-        producer.send(null);
+        producer.send((Message) null);
     }
 
     @Test(expected = org.apache.rocketmq.client.exception.MQClientException.class)

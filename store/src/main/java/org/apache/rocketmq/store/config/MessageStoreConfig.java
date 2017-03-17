@@ -132,6 +132,7 @@ public class MessageStoreConfig {
     private int transientStorePoolSize = 5;
     private boolean fastFailIfNoBufferInStorePool = false;
 
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -629,4 +630,5 @@ public class MessageStoreConfig {
     public void setCommitCommitLogThoroughInterval(final int commitCommitLogThoroughInterval) {
         this.commitCommitLogThoroughInterval = commitCommitLogThoroughInterval;
     }
+
 }

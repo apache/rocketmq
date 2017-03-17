@@ -33,6 +33,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.util.LibC;
 import org.slf4j.Logger;
@@ -187,7 +189,15 @@ public class MappedFile extends ReferenceResource {
     }
 
     public AppendMessageResult appendMessage(final MessageExtBrokerInner msg, final AppendMessageCallback cb) {
-        assert msg != null;
+        return appendMessagesInner(msg, cb);
+    }
+
+    public AppendMessageResult appendMessages(final MessageExtBatch messageExtBatch, final AppendMessageCallback cb) {
+        return appendMessagesInner(messageExtBatch, cb);
+    }
+
+    public AppendMessageResult appendMessagesInner(final MessageExt messageExt, final AppendMessageCallback cb) {
+        assert messageExt != null;
         assert cb != null;
 
         int currentPos = this.wrotePosition.get();
@@ -195,30 +205,28 @@ public class MappedFile extends ReferenceResource {
         if (currentPos < this.fileSize) {
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
-            AppendMessageResult result =
-                cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, msg);
+            AppendMessageResult result = null;
+            if (messageExt instanceof MessageExtBrokerInner) {
+                result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBrokerInner) messageExt);
+            } else if (messageExt instanceof MessageExtBatch) {
+                result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBatch)messageExt);
+            } else {
+                return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
+            }
             this.wrotePosition.addAndGet(result.getWroteBytes());
             this.storeTimestamp = result.getStoreTimestamp();
             return result;
         }
-
-        log.error("MappedFile.appendMessage return null, wrotePosition: " + currentPos + " fileSize: "
-            + this.fileSize);
+        log.error("MappedFile.appendMessage return null, wrotePosition: {} fileSize: {}", currentPos,  this.fileSize);
         return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
     }
 
-    /**
 
-     */
     public long getFileFromOffset() {
         return this.fileFromOffset;
     }
 
-    /**
 
-     *
-
-     */
     public boolean appendMessage(final byte[] data) {
         int currentPos = this.wrotePosition.get();
 

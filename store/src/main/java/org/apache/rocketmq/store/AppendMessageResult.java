@@ -34,6 +34,8 @@ public class AppendMessageResult {
     private long logicsOffset;
     private long pagecacheRT = 0;
 
+    private int msgNum = 1;
+
     public AppendMessageResult(AppendMessageStatus status) {
         this(status, 0, 0, "", 0, 0, 0);
     }
@@ -109,6 +111,14 @@ public class AppendMessageResult {
         this.logicsOffset = logicsOffset;
     }
 
+    public int getMsgNum() {
+        return msgNum;
+    }
+
+    public void setMsgNum(int msgNum) {
+        this.msgNum = msgNum;
+    }
+
     @Override
     public String toString() {
         return "AppendMessageResult{" +
@@ -119,6 +129,7 @@ public class AppendMessageResult {
             ", storeTimestamp=" + storeTimestamp +
             ", logicsOffset=" + logicsOffset +
             ", pagecacheRT=" + pagecacheRT +
+            ", msgNum=" + msgNum +
             '}';
     }
 }
