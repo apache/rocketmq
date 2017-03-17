@@ -159,4 +159,7 @@ public class RequestCode {
      * get config from name server
      */
     public static final int GET_NAMESRV_CONFIG = 319;
+
+
+    public static final int SEND_BATCH_MESSAGE = 320;
 }

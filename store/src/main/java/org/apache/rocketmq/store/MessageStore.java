@@ -19,6 +19,7 @@ package org.apache.rocketmq.store;
 import java.util.HashMap;
 import java.util.Set;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 public interface MessageStore {
@@ -32,6 +33,8 @@ public interface MessageStore {
     void destroy();
 
     PutMessageResult putMessage(final MessageExtBrokerInner msg);
+
+    PutMessageResult putMessages(final MessageExtBatch messageExtBatch);
 
     GetMessageResult getMessage(final String group, final String topic, final int queueId,
         final long offset, final int maxMsgNums, final SubscriptionData subscriptionData);
