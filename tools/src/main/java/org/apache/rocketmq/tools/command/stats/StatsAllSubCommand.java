@@ -189,7 +189,7 @@ public class StatsAllSubCommand implements SubCommand {
                     continue;
                 }
 
-                if (selectTopic != null && selectTopic != "" && !topic.equals(selectTopic)) {
+                if (selectTopic != null && !selectTopic.isEmpty() && !topic.equals(selectTopic)) {
                     continue;
                 }
 
