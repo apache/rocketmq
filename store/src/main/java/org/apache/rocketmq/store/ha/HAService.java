@@ -253,12 +253,12 @@ public class HAService {
         private volatile List<CommitLog.GroupCommitRequest> requestsWrite = new ArrayList<>();
         private volatile List<CommitLog.GroupCommitRequest> requestsRead = new ArrayList<>();
 
-        public void putRequest(final CommitLog.GroupCommitRequest request) {
-            synchronized (this) {
+        public synchronized void putRequest(final CommitLog.GroupCommitRequest request) {
+            synchronized (this.requestsWrite) {
                 this.requestsWrite.add(request);
-                if (hasNotified.compareAndSet(false, true)) {
-                    waitPoint.countDown(); // notify
-                }
+            }
+            if (hasNotified.compareAndSet(false, true)) {
+                waitPoint.countDown(); // notify
             }
         }
 
@@ -273,22 +273,24 @@ public class HAService {
         }
 
         private void doWaitTransfer() {
-            if (!this.requestsRead.isEmpty()) {
-                for (CommitLog.GroupCommitRequest req : this.requestsRead) {
-                    boolean transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
-                    for (int i = 0; !transferOK && i < 5; i++) {
-                        this.notifyTransferObject.waitForRunning(1000);
-                        transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
+            synchronized (this.requestsRead) {
+                if (!this.requestsRead.isEmpty()) {
+                    for (CommitLog.GroupCommitRequest req : this.requestsRead) {
+                        boolean transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
+                        for (int i = 0; !transferOK && i < 5; i++) {
+                            this.notifyTransferObject.waitForRunning(1000);
+                            transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
+                        }
+
+                        if (!transferOK) {
+                            log.warn("transfer messsage to slave timeout, " + req.getNextOffset());
+                        }
+
+                        req.wakeupCustomer(transferOK);
                     }
 
-                    if (!transferOK) {
-                        log.warn("transfer messsage to slave timeout, " + req.getNextOffset());
-                    }
-
-                    req.wakeupCustomer(transferOK);
+                    this.requestsRead.clear();
                 }
-
-                this.requestsRead.clear();
             }
         }
 
