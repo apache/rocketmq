@@ -29,7 +29,8 @@ It offers a variety of features as follows:
 ----------
 
 ## Apache RocketMQ Community
-* [RocketMQ Community Projects](https://github.com/rocketmq)
+* [RocketMQ Community Incubator Projects](https://github.com/rocketmq)
+* [RocketMQ Community Projects](https://github.com/apache/incubator-rocketmq-externals)
 
 ----------
 
