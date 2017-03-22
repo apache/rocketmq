@@ -46,7 +46,7 @@ public class TelnetServer {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private int port;
     private AtomicBoolean haveStartUp = new AtomicBoolean(false);
-    private static int serverChannelMaxIdleTimeSeconds = 120;
+    private static int serverChannelMaxIdleTimeSeconds = 1800;
     EventLoopGroup bossGroup = new NioEventLoopGroup(1);
     EventLoopGroup workerGroup = new NioEventLoopGroup();
 
