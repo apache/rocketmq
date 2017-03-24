@@ -216,38 +216,36 @@ public class DefaultMessageStore implements MessageStore {
 
      */
     public void shutdown() {
-        if (!this.shutdown) {
-            this.shutdown = true;
+        this.shutdown = true;
 
-            this.scheduledExecutorService.shutdown();
+        this.scheduledExecutorService.shutdown();
 
-            try {
+        try {
 
-                Thread.sleep(1000 * 3);
-            } catch (InterruptedException e) {
-                log.error("shutdown Exception, ", e);
-            }
+            Thread.sleep(1000 * 3);
+        } catch (InterruptedException e) {
+            log.error("shutdown Exception, ", e);
+        }
 
-            if (this.scheduleMessageService != null) {
-                this.scheduleMessageService.shutdown();
-            }
+        if (this.scheduleMessageService != null) {
+            this.scheduleMessageService.shutdown();
+        }
 
-            this.haService.shutdown();
+        this.haService.shutdown();
 
-            this.storeStatsService.shutdown();
-            this.indexService.shutdown();
-            this.commitLog.shutdown();
-            this.reputMessageService.shutdown();
-            this.flushConsumeQueueService.shutdown();
-            this.allocateMappedFileService.shutdown();
-            this.storeCheckpoint.flush();
-            this.storeCheckpoint.shutdown();
+        this.storeStatsService.shutdown();
+        this.indexService.shutdown();
+        this.commitLog.shutdown();
+        this.reputMessageService.shutdown();
+        this.flushConsumeQueueService.shutdown();
+        this.allocateMappedFileService.shutdown();
+        this.storeCheckpoint.flush();
+        this.storeCheckpoint.shutdown();
 
-            if (this.runningFlags.isWriteable()) {
-                this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
-            } else {
-                log.warn("the store may be wrong, so shutdown abnormally, and keep abort file.");
-            }
+        if (this.runningFlags.isWriteable()) {
+            this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
+        } else {
+            log.warn("the store may be wrong, so shutdown abnormally, and keep abort file.");
         }
 
         this.transientStorePool.destroy();
@@ -351,7 +349,8 @@ public class DefaultMessageStore implements MessageStore {
         return commitLog;
     }
 
-    public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset, final int maxMsgNums,
+    public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
+        final int maxMsgNums,
         final SubscriptionData subscriptionData) {
         if (this.shutdown) {
             log.warn("message store has shutdown, so getMessage is forbidden");
@@ -715,7 +714,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public void excuteDeleteFilesManualy() {
-        this.cleanCommitLogService.excuteDeleteFilesManualy();
+        this.cleanCommitLogService.executeDeleteFilesManualy();
     }
 
     @Override
@@ -870,8 +869,9 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    public Map<String, Long> getMessageIds(final String topic, final int queueId, long minOffset, long maxOffset, SocketAddress storeHost) {
-        Map<String, Long> messageIds = new HashMap<String, Long>();
+    public Map<String, Long> getMessageIds(final String topic, final int queueId, long minOffset, long maxOffset,
+        SocketAddress storeHost) {
+        Map<String, Long> messageIds = new HashMap<>();
         if (this.shutdown) {
             return messageIds;
         }
@@ -979,7 +979,7 @@ public class DefaultMessageStore implements MessageStore {
     public ConsumeQueue findConsumeQueue(String topic, int queueId) {
         ConcurrentHashMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
         if (null == map) {
-            ConcurrentHashMap<Integer, ConsumeQueue> newMap = new ConcurrentHashMap<Integer, ConsumeQueue>(128);
+            ConcurrentHashMap<Integer, ConsumeQueue> newMap = new ConcurrentHashMap<>(128);
             ConcurrentHashMap<Integer, ConsumeQueue> oldMap = consumeQueueTable.putIfAbsent(topic, newMap);
             if (oldMap != null) {
                 map = oldMap;
@@ -1198,7 +1198,7 @@ public class DefaultMessageStore implements MessageStore {
     private void putConsumeQueue(final String topic, final int queueId, final ConsumeQueue consumeQueue) {
         ConcurrentHashMap<Integer/* queueId */, ConsumeQueue> map = this.consumeQueueTable.get(topic);
         if (null == map) {
-            map = new ConcurrentHashMap<Integer/* queueId */, ConsumeQueue>();
+            map = new ConcurrentHashMap<>();
             map.put(queueId, consumeQueue);
             this.consumeQueueTable.put(topic, map);
         } else {
@@ -1215,7 +1215,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private void recoverTopicQueueTable() {
-        HashMap<String/* topic-queueid */, Long/* offset */> table = new HashMap<String, Long>(1024);
+        HashMap<String/* topic-queueid */, Long/* offset */> table = new HashMap<>(1024);
         long minPhyOffset = this.commitLog.getMinOffset();
         for (ConcurrentHashMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
             for (ConsumeQueue logic : maps.values()) {
@@ -1278,7 +1278,8 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    public void putMessagePositionInfo(String topic, int queueId, long offset, int size, long tagsCode, long storeTimestamp,
+    public void putMessagePositionInfo(String topic, int queueId, long offset, int size, long tagsCode,
+        long storeTimestamp,
         long logicOffset) {
         ConsumeQueue cq = this.findConsumeQueue(topic, queueId);
         cq.putMessagePositionInfoWrapper(offset, size, tagsCode, storeTimestamp, logicOffset);
@@ -1320,9 +1321,9 @@ public class DefaultMessageStore implements MessageStore {
 
         private volatile boolean cleanImmediately = false;
 
-        public void excuteDeleteFilesManualy() {
+        public void executeDeleteFilesManualy() {
             this.manualDeleteFileSeveralTimes = MAX_MANUAL_DELETE_FILE_TIMES;
-            DefaultMessageStore.log.info("excuteDeleteFilesManualy was invoked");
+            DefaultMessageStore.log.info("executeDeleteFilesManualy was invoked");
         }
 
         public void run() {
@@ -1339,7 +1340,7 @@ public class DefaultMessageStore implements MessageStore {
             int deleteCount = 0;
             long fileReservedTime = DefaultMessageStore.this.getMessageStoreConfig().getFileReservedTime();
             int deletePhysicFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteCommitLogFilesInterval();
-            int destroyMapedFileIntervalForcibly = DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
+            int destroyMappedFileIntervalForcibly = DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
 
             boolean timeup = this.isTimeToDelete();
             boolean spacefull = this.isSpaceToDelete();
@@ -1362,7 +1363,7 @@ public class DefaultMessageStore implements MessageStore {
                 fileReservedTime *= 60 * 60 * 1000;
 
                 deleteCount = DefaultMessageStore.this.commitLog.deleteExpiredFile(fileReservedTime, deletePhysicFilesInterval,
-                    destroyMapedFileIntervalForcibly, cleanAtOnce);
+                    destroyMappedFileIntervalForcibly, cleanAtOnce);
                 if (deleteCount > 0) {
                 } else if (spacefull) {
                     log.warn("disk space will be full soon, but delete file failed.");
