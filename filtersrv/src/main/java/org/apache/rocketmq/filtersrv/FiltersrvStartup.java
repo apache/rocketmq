@@ -156,6 +156,7 @@ public class FiltersrvStartup {
 
             return controller;
         } catch (Throwable e) {
+            System.out.printf("Filtersrv startup failure with following exceptions:");
             e.printStackTrace();
             System.exit(-1);
         }

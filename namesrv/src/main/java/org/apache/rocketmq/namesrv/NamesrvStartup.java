@@ -149,7 +149,9 @@ public class NamesrvStartup {
             System.out.printf(tip + "%n");
 
             return controller;
-        } catch (Throwable e) {
+        }
+        catch (Throwable e) {
+            System.out.printf("Namesrv startup failure with following exceptions:");
             e.printStackTrace();
             System.exit(-1);
         }

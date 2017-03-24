@@ -132,6 +132,7 @@ public class MQAdminStartup {
                     break;
             }
         } catch (Exception e) {
+            System.out.printf("MQAdmin startup failure with following exceptions:");
             e.printStackTrace();
         }
     }
