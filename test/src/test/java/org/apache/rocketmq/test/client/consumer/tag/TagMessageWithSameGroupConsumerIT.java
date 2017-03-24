@@ -78,10 +78,10 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
         RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, tag,
             new RMQNormalListner(originMsgDCName, msgBodyDCName));
         producer.send(tag, msgSize, 100);
-        TestUtils.waitForMonment(5);
+        TestUtils.waitForMoment(5);
         RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), tag,
             new RMQNormalListner(originMsgDCName, msgBodyDCName));
-        TestUtils.waitForMonment(5);
+        TestUtils.waitForMoment(5);
 
         consumer1.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
@@ -102,10 +102,10 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
             new RMQNormalListner(originMsgDCName, msgBodyDCName));
 
         producer.send(tag, msgSize, 100);
-        TestUtils.waitForMonment(5);
+        TestUtils.waitForMoment(5);
         consumer2.shutdown();
         mqClients.remove(1);
-        TestUtils.waitForMonment(5);
+        TestUtils.waitForMoment(5);
 
         consumer1.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
