@@ -208,7 +208,7 @@ public class MQAdminStartup {
             System.out.printf("   %-20s %s%n", cmd.commandName(), cmd.commandDesc());
         }
 
-        System.out.printf("%nSee 'mqadmin help <command>' for more information on a specific command.");
+        System.out.printf("%nSee 'mqadmin help <command>' for more information on a specific command.%n");
     }
 
     private static SubCommand findSubCommand(final String name) {
