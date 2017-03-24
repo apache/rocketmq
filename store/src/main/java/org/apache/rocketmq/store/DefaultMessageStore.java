@@ -351,7 +351,8 @@ public class DefaultMessageStore implements MessageStore {
         return commitLog;
     }
 
-    public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset, final int maxMsgNums,
+    public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
+        final int maxMsgNums,
         final SubscriptionData subscriptionData) {
         if (this.shutdown) {
             log.warn("message store has shutdown, so getMessage is forbidden");
@@ -630,19 +631,17 @@ public class DefaultMessageStore implements MessageStore {
         ConsumeQueue logicQueue = this.findConsumeQueue(topic, queueId);
         if (logicQueue != null) {
             long minLogicOffset = logicQueue.getMinLogicOffset();
+            long startIndex = minLogicOffset / ConsumeQueue.CQ_STORE_UNIT_SIZE;
+            return getStoreTimestamp(logicQueue, startIndex);
+        }
+        return -1;
+    }
 
-            SelectMappedBufferResult result = logicQueue.getIndexBuffer(minLogicOffset / ConsumeQueue.CQ_STORE_UNIT_SIZE);
-            if (result != null) {
-                try {
-                    final long phyOffset = result.getByteBuffer().getLong();
-                    final int size = result.getByteBuffer().getInt();
-                    long storeTime = this.getCommitLog().pickupStoreTimestamp(phyOffset, size);
-                    return storeTime;
-                } catch (Exception e) {
-                } finally {
-                    result.release();
-                }
-            }
+    @Override
+    public long getMessageStoreTimeStamp(String topic, int queueId, long offset) {
+        ConsumeQueue logicQueue = this.findConsumeQueue(topic, queueId);
+        if (logicQueue != null) {
+            return getStoreTimestamp(logicQueue, offset);
         }
 
         return -1;
@@ -653,27 +652,6 @@ public class DefaultMessageStore implements MessageStore {
         final long minPhyOffset = this.getMinPhyOffset();
         final int size = this.messageStoreConfig.getMaxMessageSize() * 2;
         return this.getCommitLog().pickupStoreTimestamp(minPhyOffset, size);
-    }
-
-    @Override
-    public long getMessageStoreTimeStamp(String topic, int queueId, long offset) {
-        ConsumeQueue logicQueue = this.findConsumeQueue(topic, queueId);
-        if (logicQueue != null) {
-            SelectMappedBufferResult result = logicQueue.getIndexBuffer(offset);
-            if (result != null) {
-                try {
-                    final long phyOffset = result.getByteBuffer().getLong();
-                    final int size = result.getByteBuffer().getInt();
-                    long storeTime = this.getCommitLog().pickupStoreTimestamp(phyOffset, size);
-                    return storeTime;
-                } catch (Exception ignored) {
-                } finally {
-                    result.release();
-                }
-            }
-        }
-
-        return -1;
     }
 
     @Override
@@ -870,7 +848,8 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    public Map<String, Long> getMessageIds(final String topic, final int queueId, long minOffset, long maxOffset, SocketAddress storeHost) {
+    public Map<String, Long> getMessageIds(final String topic, final int queueId, long minOffset, long maxOffset,
+        SocketAddress storeHost) {
         Map<String, Long> messageIds = new HashMap<String, Long>();
         if (this.shutdown) {
             return messageIds;
@@ -1005,6 +984,31 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         return logic;
+    }
+
+    /**
+     * According the given {@link ConsumeQueue} and startIndex, pickup store timestamp.
+     *
+     * @param logicQueue given queue.
+     * @param startIndex start index of the given gueue.
+     * @return the store timestamp, or -1 if unexpected exception.
+     */
+    private long getStoreTimestamp(ConsumeQueue logicQueue, long startIndex) {
+        SelectMappedBufferResult result = logicQueue.getIndexBuffer(startIndex);
+        if (result != null) {
+            try {
+                final long phyOffset = result.getByteBuffer().getLong();
+                final int size = result.getByteBuffer().getInt();
+                long storeTime = this.getCommitLog().pickupStoreTimestamp(phyOffset, size);
+                return storeTime;
+            } catch (Exception e) {
+                log.warn("Can't pickup timestamp from the given queue", e);
+            } finally {
+                result.release();
+            }
+        }
+
+        return -1;
     }
 
     private long nextOffsetCorrection(long oldOffset, long newOffset) {
@@ -1278,7 +1282,8 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    public void putMessagePositionInfo(String topic, int queueId, long offset, int size, long tagsCode, long storeTimestamp,
+    public void putMessagePositionInfo(String topic, int queueId, long offset, int size, long tagsCode,
+        long storeTimestamp,
         long logicOffset) {
         ConsumeQueue cq = this.findConsumeQueue(topic, queueId);
         cq.putMessagePositionInfoWrapper(offset, size, tagsCode, storeTimestamp, logicOffset);
