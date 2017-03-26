@@ -27,7 +27,7 @@
     </appender>
 
     <root>
-        <level value="OFF"/>
+        <level value="WARN"/>
         <appender-ref ref="DefaultAppender"/>
     </root>
 </configuration>
