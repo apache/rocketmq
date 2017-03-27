@@ -20,13 +20,26 @@
  */
 package org.apache.rocketmq.common.protocol.route;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.rocketmq.common.MixAll;
 
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Broker数据
+ */
 public class BrokerData implements Comparable<BrokerData> {
+    /**
+     * 集群名
+     */
     private String cluster;
+    /**
+     * Broker名
+     */
     private String brokerName;
+    /**
+     * broker角色编号 和 broker地址 Map
+     */
     private HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs;
 
     public String selectBrokerAddr() {

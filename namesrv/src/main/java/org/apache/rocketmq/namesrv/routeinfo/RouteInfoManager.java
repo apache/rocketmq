@@ -50,8 +50,9 @@ public class RouteInfoManager {
      */
     private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
     /**
-     * broker 与 broker数据 Map
-     * broker名唯一
+     * broker名 与 broker数据 Map
+     * 一个broker名下可以有多个broker，即broker可以同名
+     * TODO 疑问：需要研究下
      */
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
     /**
@@ -219,6 +220,12 @@ public class RouteInfoManager {
         return result;
     }
 
+    /**
+     * 是否Broker Topic配置有变化
+     * @param brokerAddr broker地址
+     * @param dataVersion 数据版本
+     * @return 是否变化
+     */
     private boolean isBrokerTopicConfigChanged(final String brokerAddr, final DataVersion dataVersion) {
         BrokerLiveInfo prev = this.brokerLiveTable.get(brokerAddr);
         if (null == prev || !prev.getDataVersion().equals(dataVersion)) {
@@ -307,6 +314,15 @@ public class RouteInfoManager {
         return wipeTopicCnt;
     }
 
+    /**
+     * 移除注册Broker
+     *
+     * @param clusterName 集群名
+     * @param brokerAddr broker地址
+     * @param brokerName broker名
+     * @param brokerId broker角色编号
+     */
+    @SuppressWarnings("SpellCheckingInspection")
     public void unregisterBroker(
         final String clusterName,
         final String brokerAddr,
@@ -315,14 +331,18 @@ public class RouteInfoManager {
         try {
             try {
                 this.lock.writeLock().lockInterruptibly();
+
+                // 更新broker连接信息
                 BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.remove(brokerAddr);
                 log.info("unregisterBroker, remove from brokerLiveTable {}, {}",
                         brokerLiveInfo != null ? "OK" : "Failed",
                         brokerAddr
                 );
 
+                // 移除filtersrv
                 this.filterServerTable.remove(brokerAddr);
 
+                // 移除Broker信息
                 boolean removeBrokerName = false;
                 BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                 if (null != brokerData) {
@@ -332,7 +352,7 @@ public class RouteInfoManager {
                         brokerAddr
                     );
 
-                    if (brokerData.getBrokerAddrs().isEmpty()) {
+                    if (brokerData.getBrokerAddrs().isEmpty()) { // 如果broker名下午broker了，移除brokerAddrTable
                         this.brokerAddrTable.remove(brokerName);
                         log.info("unregisterBroker, remove name from brokerAddrTable OK, {}",
                             brokerName
@@ -342,6 +362,7 @@ public class RouteInfoManager {
                     }
                 }
 
+                // 移除集群信息
                 if (removeBrokerName) {
                     Set<String> nameSet = this.clusterAddrTable.get(clusterName);
                     if (nameSet != null) {
@@ -350,13 +371,14 @@ public class RouteInfoManager {
                             removed ? "OK" : "Failed",
                             brokerName);
 
-                        if (nameSet.isEmpty()) {
+                        if (nameSet.isEmpty()) { // 如果集群下没broker，移除集群
                             this.clusterAddrTable.remove(clusterName);
                             log.info("unregisterBroker, remove cluster from clusterAddrTable {}",
                                 clusterName
                             );
                         }
                     }
+                    // 移除topic信息
                     this.removeTopicByBrokerName(brokerName);
                 }
             } finally {
@@ -367,6 +389,11 @@ public class RouteInfoManager {
         }
     }
 
+    /**
+     * 移除broker名下对应的topic
+     *
+     * @param brokerName broker名
+     */
     private void removeTopicByBrokerName(final String brokerName) {
         Iterator<Entry<String, List<QueueData>>> itMap = this.topicQueueTable.entrySet().iterator();
         while (itMap.hasNext()) {

@@ -79,7 +79,10 @@ public class RequestCode {
      * Broker => Namesrv
      */
     public static final int REGISTER_BROKER = 103;
-
+    /**
+     * 移除注册 Broker
+     * Broker => Namesrv
+     */
     public static final int UNREGISTER_BROKER = 104;
     public static final int GET_ROUTEINTO_BY_TOPIC = 105;
 
