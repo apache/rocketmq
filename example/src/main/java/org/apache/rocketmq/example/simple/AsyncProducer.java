@@ -17,9 +17,12 @@
 package org.apache.rocketmq.example.simple;
 
 import java.io.UnsupportedEncodingException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.client.producer.SendFuture;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -54,6 +57,52 @@ public class AsyncProducer {
                 e.printStackTrace();
             }
         }
+
+        /**
+         * Another way to send messages in async, there are some advantages for this way:
+         *
+         * 0. Supports multiple callbacks
+         * 1. Executes the callback(the callback might take too long) in exclusive thread pool
+         * 2. Converts to blocking mode(by invoking {@link SendFuture#get()})
+         *
+         * It's a more efficient mechanism(higher throughput) if your callback will
+         * take a short period of time(eg. blocking on I/O)
+         */
+        Message message = new Message();
+        message.setTopic("your topic identifier");
+        message.setBody("hello, RocketMQ!".getBytes());
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+
+        try {
+            SendFuture future = producer.send(message, executor, 1000);
+            future.addCallback(new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    // do sth
+                }
+
+                @Override
+                public void onException(Throwable e) {
+                    // do sth
+                }
+            });
+            future.addCallback(new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    // do sth
+                }
+
+                @Override
+                public void onException(Throwable e) {
+                    // do sth
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        executor.shutdown();
         producer.shutdown();
     }
 }
