@@ -62,6 +62,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         }
 
         switch (request.getCode()) {
+            // TODO 待读（暂时跳过）：kv增删改查
             case RequestCode.PUT_KV_CONFIG:
                 return this.putKVConfig(ctx, request);
             case RequestCode.GET_KV_CONFIG:
