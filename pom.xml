@@ -179,6 +179,7 @@
         <module>filtersrv</module>
         <module>srvutil</module>
         <module>test</module>
+        <module>distribution</module>
     </modules>
 
     <build>
@@ -380,6 +381,14 @@
                 <version>3.0.2</version>
             </plugin>
         </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.0.0</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
 
     <profiles>
@@ -434,40 +443,6 @@
                                 </goals>
                             </execution>
                         </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>release-all</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <version>2.6</version>
-                        <configuration>
-                            <finalName>apache-rocketmq</finalName>
-                            <descriptors>
-                                <descriptor>release.xml</descriptor>
-                            </descriptors>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>release-client</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <version>2.6</version>
-                        <configuration>
-                            <finalName>apache-rocketmq</finalName>
-                            <descriptors>
-                                <descriptor>release-client.xml</descriptor>
-                            </descriptors>
-                        </configuration>
                     </plugin>
                 </plugins>
             </build>
@@ -576,6 +551,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-srvutil</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-example</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

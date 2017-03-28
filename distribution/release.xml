@@ -15,7 +15,6 @@
   See the License for the specific language governing permissions and
   limitations under the License.
   -->
-
 <assembly>
     <id>all</id>
     <includeBaseDirectory>false</includeBaseDirectory>
@@ -25,13 +24,25 @@
     </formats>
     <fileSets>
         <fileSet>
+            <directory>../</directory>
             <includes>
-                <include>bin/*</include>
-                <include>conf/**</include>
-                <include>benchmark/*</include>
                 <include>DISCLAIMER</include>
                 <include>README.md</include>
             </includes>
+        </fileSet>
+
+        <fileSet>
+            <includes>
+                <include>conf/**</include>
+                <include>benchmark/*</include>
+            </includes>
+        </fileSet>
+
+        <fileSet>
+            <includes>
+                <include>bin/*</include>
+            </includes>
+            <fileMode>0755</fileMode>
         </fileSet>
     </fileSets>
 
@@ -48,6 +59,7 @@
 
     <moduleSets>
         <moduleSet>
+            <useAllReactorProjects>true</useAllReactorProjects>
             <includes>
                 <include>org.apache.rocketmq:rocketmq-broker</include>
                 <include>org.apache.rocketmq:rocketmq-tools</include>

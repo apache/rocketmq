@@ -130,9 +130,7 @@ public class ConsumeQueue {
         MappedFile mappedFile = this.mappedFileQueue.getMappedFileByTime(timestamp);
         if (mappedFile != null) {
             long offset = 0;
-            int low =
-                minLogicOffset > mappedFile.getFileFromOffset() ? (int) (minLogicOffset - mappedFile
-                    .getFileFromOffset()) : 0;
+            int low = minLogicOffset > mappedFile.getFileFromOffset() ? (int) (minLogicOffset - mappedFile.getFileFromOffset()) : 0;
             int high = 0;
             int midOffset = -1, targetOffset = -1, leftOffset = -1, rightOffset = -1;
             long leftIndexValue = -1L, rightIndexValue = -1L;
@@ -302,7 +300,6 @@ public class ConsumeQueue {
             SelectMappedBufferResult result = mappedFile.selectMappedBuffer(0);
             if (result != null) {
                 try {
-
                     for (int i = 0; i < result.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
                         long offsetPy = result.getByteBuffer().getLong();
                         result.getByteBuffer().getInt();
@@ -310,13 +307,13 @@ public class ConsumeQueue {
 
                         if (offsetPy >= phyMinOffset) {
                             this.minLogicOffset = result.getMappedFile().getFileFromOffset() + i;
-                            log.info("compute logics min offset: " + this.getMinOffsetInQueue() + ", topic: "
-                                + this.topic + ", queueId: " + this.queueId);
+                            log.info("Compute logical min offset: {}, topic: {}, queueId: {}",
+                                    this.getMinOffsetInQueue(), this.topic, this.queueId);
                             break;
                         }
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    log.error("Exception thrown when correctMinOffset", e);
                 } finally {
                     result.release();
                 }

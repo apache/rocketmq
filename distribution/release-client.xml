@@ -15,7 +15,6 @@
   See the License for the specific language governing permissions and
   limitations under the License.
   -->
-
 <assembly>
     <id>client</id>
     <includeBaseDirectory>false</includeBaseDirectory>
@@ -23,14 +22,14 @@
         <format>dir</format>
         <format>tar.gz</format>
     </formats>
-    <fileSets>
-        <fileSet>
-            <includes>
-                <include>DISCLAIMER</include>
-                <include>README.md</include>
-            </includes>
-        </fileSet>
-    </fileSets>
+
+    <fileSet>
+        <directory>../</directory>
+        <includes>
+            <include>DISCLAIMER</include>
+            <include>README.md</include>
+        </includes>
+    </fileSet>
 
     <files>
         <file>
@@ -45,6 +44,7 @@
 
     <moduleSets>
         <moduleSet>
+            <useAllReactorProjects>true</useAllReactorProjects>
             <includes>
                 <include>org.apache.rocketmq:rocketmq-client</include>
             </includes>
