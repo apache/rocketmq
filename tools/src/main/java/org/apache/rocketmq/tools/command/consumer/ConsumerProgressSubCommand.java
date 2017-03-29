@@ -16,12 +16,6 @@
  */
 package org.apache.rocketmq.tools.command.consumer;
 
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -42,6 +36,13 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.slf4j.Logger;
+
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 public class ConsumerProgressSubCommand implements SubCommand {
     private final Logger log = ClientLogger.getLog();
@@ -118,13 +119,14 @@ public class ConsumerProgressSubCommand implements SubCommand {
                     } catch (Exception e) {
                     }
 
+                    String clientIP = messageQueueAllocationResult.get(mq);
                     System.out.printf("%-32s  %-32s  %-4d  %-20d  %-20d  %-20s %-20d  %s%n",
                         UtilAll.frontStringAtLeast(mq.getTopic(), 32),
                         UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),
                         mq.getQueueId(),
                         offsetWrapper.getBrokerOffset(),
                         offsetWrapper.getConsumerOffset(),
-                        messageQueueAllocationResult.containsKey(mq) ? messageQueueAllocationResult.get(mq) : "NA",
+                        null != clientIP ? clientIP : "NA",
                         diff,
                         lastTime
                     );
