@@ -52,7 +52,7 @@ public class MQAdmin {
         while (!createResult) {
             createResult = checkTopicExist(mqAdminExt, topic);
             if (System.currentTimeMillis() - startTime < waitTimeSec * 1000) {
-                TestUtils.waitForMonment(100);
+                TestUtils.waitForMoment(100);
             } else {
                 log.error(String.format("timeout,but create topic[%s] failed!", topic));
                 break;
