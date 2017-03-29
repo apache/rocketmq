@@ -16,20 +16,17 @@
  */
 package org.apache.rocketmq.client.producer;
 
-import java.util.List;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageId;
-import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.message.*;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+
+import java.util.List;
 
 /**
  * This class is the entry point for applications intending to send messages.
@@ -106,6 +103,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Indicate whether to retry another broker on sending failure internally.
      */
+    // TODO 疑问：作用？？？
     private boolean retryAnotherBrokerWhenNotStoreOK = false;
 
     /**

@@ -16,20 +16,30 @@
  */
 package org.apache.rocketmq.client.impl;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.slf4j.Logger;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * MQ Client管理器
+ * 维护clientId 与 MQClient对象的关系
+ */
 public class MQClientManager {
     private final static Logger log = ClientLogger.getLog();
+    /**
+     * 单例对象
+     */
     private static MQClientManager instance = new MQClientManager();
     private AtomicInteger factoryIndexGenerator = new AtomicInteger();
-    private ConcurrentHashMap<String/* clientId */, MQClientInstance> factoryTable =
-        new ConcurrentHashMap<String, MQClientInstance>();
+    /**
+     * clientId 与 MQClient对象 映射Map
+     */
+    private ConcurrentHashMap<String/* clientId */, MQClientInstance> factoryTable = new ConcurrentHashMap<>();
 
     private MQClientManager() {
 
@@ -43,6 +53,13 @@ public class MQClientManager {
         return getAndCreateMQClientInstance(clientConfig, null);
     }
 
+    /**
+     * 获得 MQClient 对象。如果不存在，则进行创建。
+     *
+     * @param clientConfig client配置
+     * @param rpcHook rpcHook
+     * @return MQ Client Instance
+     */
     public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
         String clientId = clientConfig.buildMQClientId();
         MQClientInstance instance = this.factoryTable.get(clientId);

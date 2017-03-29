@@ -80,6 +80,9 @@ import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
 
+/**
+ * MQClient对象
+ */
 public class MQClientInstance {
     private final static long LOCK_TIMEOUT_MILLIS = 3000;
     private final Logger log = ClientLogger.getLog();
@@ -87,6 +90,9 @@ public class MQClientInstance {
     private final int instanceIndex;
     private final String clientId;
     private final long bootTimestamp = System.currentTimeMillis();
+    /**
+     * Producer Map
+     */
     private final ConcurrentHashMap<String/* group */, MQProducerInner> producerTable = new ConcurrentHashMap<String, MQProducerInner>();
     private final ConcurrentHashMap<String/* group */, MQConsumerInner> consumerTable = new ConcurrentHashMap<String, MQConsumerInner>();
     private final ConcurrentHashMap<String/* group */, MQAdminExtInner> adminExtTable = new ConcurrentHashMap<String, MQAdminExtInner>();
@@ -106,6 +112,7 @@ public class MQClientInstance {
     });
     private final ClientRemotingProcessor clientRemotingProcessor;
     private final PullMessageService pullMessageService;
+    @SuppressWarnings("SpellCheckingInspection")
     private final RebalanceService rebalanceService;
     private final DefaultMQProducer defaultMQProducer;
     private final ConsumerStatsManager consumerStatsManager;
@@ -851,6 +858,14 @@ public class MQClientInstance {
         }
     }
 
+    /**
+     * 注册Producer
+     * 若之前创建过，则返回失败；否则，成功。
+     *
+     * @param group 分组
+     * @param producer producer
+     * @return 是否成功。
+     */
     public boolean registerProducer(final String group, final DefaultMQProducerImpl producer) {
         if (null == group || null == producer) {
             return false;

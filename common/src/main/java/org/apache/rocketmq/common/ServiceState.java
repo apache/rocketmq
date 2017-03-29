@@ -16,6 +16,10 @@
  */
 package org.apache.rocketmq.common;
 
+/**
+ * 服务状态
+ * 目前使用的有Producer和Consumer
+ */
 public enum ServiceState {
     /**
      * Service just created,not start
@@ -32,5 +36,5 @@ public enum ServiceState {
     /**
      * Service Start failure
      */
-    START_FAILED;
+    START_FAILED
 }

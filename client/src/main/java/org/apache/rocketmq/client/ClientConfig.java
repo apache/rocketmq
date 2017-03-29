@@ -45,6 +45,10 @@ public class ClientConfig {
     private String unitName;
     private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "true"));
 
+    /**
+     * 创建MQ ClientId
+     * @return ip@instanceName@unitName
+     */
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
         sb.append(this.getClientIP());
@@ -75,6 +79,9 @@ public class ClientConfig {
         this.instanceName = instanceName;
     }
 
+    /**
+     * 设置instance名为pid
+     */
     public void changeInstanceNameToPID() {
         if (this.instanceName.equals("DEFAULT")) {
             this.instanceName = String.valueOf(UtilAll.getPid());

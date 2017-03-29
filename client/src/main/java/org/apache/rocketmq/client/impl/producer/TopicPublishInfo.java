@@ -16,18 +16,37 @@
  */
 package org.apache.rocketmq.client.impl.producer;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Topic信息
+ */
 public class TopicPublishInfo {
+    /**
+     * 是否顺序消息
+     */
     private boolean orderTopic = false;
+    /**
+     * 是否有路由信息
+     */
     private boolean haveTopicRouterInfo = false;
+    /**
+     * 消息队列数组
+     */
     private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
+    /**
+     * 线程变量（Index）
+     */
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
+    /**
+     * Topic消息路由信息
+     */
     private TopicRouteData topicRouteData;
 
     public boolean isOrderTopic() {

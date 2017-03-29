@@ -20,15 +20,32 @@
  */
 package org.apache.rocketmq.common.protocol.route;
 
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
+/**
+ * Topic路由数据
+ */
 public class TopicRouteData extends RemotingSerializable {
+
+    /**
+     * 顺序消息配置
+     */
     private String orderTopicConf;
+    /**
+     * 队列数组数据
+     */
     private List<QueueData> queueDatas;
+    /**
+     * Broker数组数据
+     */
     private List<BrokerData> brokerDatas;
+    /**
+     * Broker地址 和 FilterSrv Map
+     */
     private HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public TopicRouteData cloneTopicRouteData() {
