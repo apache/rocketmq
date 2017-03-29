@@ -97,6 +97,9 @@ public class MQClientInstance {
     private final ConcurrentHashMap<String/* group */, MQConsumerInner> consumerTable = new ConcurrentHashMap<String, MQConsumerInner>();
     private final ConcurrentHashMap<String/* group */, MQAdminExtInner> adminExtTable = new ConcurrentHashMap<String, MQAdminExtInner>();
     private final NettyClientConfig nettyClientConfig;
+    /**
+     * MQClient API实现
+     */
     private final MQClientAPIImpl mQClientAPIImpl;
     private final MQAdminImpl mQAdminImpl;
     private final ConcurrentHashMap<String/* Topic */, TopicRouteData> topicRouteTable = new ConcurrentHashMap<String, TopicRouteData>();
@@ -230,18 +233,18 @@ public class MQClientInstance {
                     this.serviceState = ServiceState.START_FAILED;
                     // If not specified,looking address from name server
                     if (null == this.clientConfig.getNamesrvAddr()) {
-                        this.mQClientAPIImpl.fetchNameServerAddr();
+                        this.mQClientAPIImpl.fetchNameServerAddr(); // TODO 待读：获取namesrv，从url
                     }
                     // Start request-response channel
                     this.mQClientAPIImpl.start();
                     // Start various schedule tasks
                     this.startScheduledTask();
                     // Start pull service
-                    this.pullMessageService.start();
+                    this.pullMessageService.start(); // TODO 疑问：producer调用这个干啥
                     // Start rebalance service
-                    this.rebalanceService.start();
+                    this.rebalanceService.start(); // TODO 疑问：producer调用这个干啥
                     // Start push service
-                    this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
+                    this.defaultMQProducer.getDefaultMQProducerImpl().start(false); // TODO 疑问：为什么这里要调用
                     log.info("the client factory [{}] start OK", this.clientId);
                     this.serviceState = ServiceState.RUNNING;
                     break;
@@ -258,7 +261,7 @@ public class MQClientInstance {
     }
 
     private void startScheduledTask() {
-        if (null == this.clientConfig.getNamesrvAddr()) {
+        if (null == this.clientConfig.getNamesrvAddr()) { // TODO 待读：获取namesrv，从url
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
                 @Override
@@ -275,7 +278,7 @@ public class MQClientInstance {
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
-            public void run() {
+            public void run() { // TODO 待读：ALL
                 try {
                     MQClientInstance.this.updateTopicRouteInfoFromNameServer();
                 } catch (Exception e) {
@@ -287,7 +290,7 @@ public class MQClientInstance {
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
-            public void run() {
+            public void run() { // TODO 待读：ALL
                 try {
                     MQClientInstance.this.cleanOfflineBroker();
                     MQClientInstance.this.sendHeartbeatToAllBrokerWithLock();
@@ -300,7 +303,7 @@ public class MQClientInstance {
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
-            public void run() {
+            public void run() { // TODO 待读：ALL
                 try {
                     MQClientInstance.this.persistAllConsumerOffset();
                 } catch (Exception e) {
@@ -312,7 +315,7 @@ public class MQClientInstance {
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
-            public void run() {
+            public void run() { // TODO 待读：ALL
                 try {
                     MQClientInstance.this.adjustThreadPool();
                 } catch (Exception e) {
