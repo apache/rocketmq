@@ -30,18 +30,23 @@ import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.test.util.MQAdmin;
+import org.apache.rocketmq.test.util.TestUtils;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class IntegrationTestBase {
+    public static Logger logger = LoggerFactory.getLogger(IntegrationTestBase.class);
+
     protected static final String SEP = File.separator;
     protected static final String BROKER_NAME_PREFIX = "TestBrokerName_";
     protected static final AtomicInteger BROKER_INDEX = new AtomicInteger(0);
     protected static final List<File> TMPE_FILES = new ArrayList<>();
     protected static final List<BrokerController> BROKER_CONTROLLERS = new ArrayList<>();
     protected static final List<NamesrvController> NAMESRV_CONTROLLERS = new ArrayList<>();
-    public static Logger logger = LoggerFactory.getLogger(IntegrationTestBase.class);
+    protected static int topicCreateTime = 30 * 1000;
+
     protected static Random random = new Random();
 
     static {
@@ -123,6 +128,27 @@ public class IntegrationTestBase {
         }
         BROKER_CONTROLLERS.add(brokerController);
         return brokerController;
+    }
+
+    public static boolean initTopic(String topic, String nsAddr, String clusterName) {
+        long startTime = System.currentTimeMillis();
+        boolean createResult;
+
+        while (true) {
+            createResult = MQAdmin.createTopic(nsAddr, clusterName, topic, 8);
+            if (createResult) {
+                break;
+            } else if (System.currentTimeMillis() - startTime > topicCreateTime) {
+                Assert.fail(String.format("topic[%s] is created failed after:%d ms", topic,
+                    System.currentTimeMillis() - startTime));
+                break;
+            } else {
+                TestUtils.waitForMoment(500);
+                continue;
+            }
+        }
+
+        return createResult;
     }
 
     public static void deleteFile(File file) {
