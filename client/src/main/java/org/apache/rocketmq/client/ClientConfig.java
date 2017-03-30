@@ -23,6 +23,7 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 /**
  * Client Common configuration
  */
+// TODO 疑问：为什么选择继承，组合会不会更好一些
 public class ClientConfig {
     public static final String SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY = "com.rocketmq.sendMessageWithVIPChannel";
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));

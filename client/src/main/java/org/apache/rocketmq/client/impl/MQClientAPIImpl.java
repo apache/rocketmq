@@ -1108,6 +1108,16 @@ public class MQClientAPIImpl {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * 向 Namesrv 请求 Topic 路由信息
+     * // TODO 疑问：为啥不提供批量请求topic接口
+     * @param topic Topic
+     * @param timeoutMillis 超时时间
+     * @return
+     * @throws RemotingException 调用异常
+     * @throws MQClientException 调用返回非SUCCESS
+     * @throws InterruptedException 中断
+     */
     public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis)
         throws RemotingException, MQClientException, InterruptedException {
         GetRouteInfoRequestHeader requestHeader = new GetRouteInfoRequestHeader();

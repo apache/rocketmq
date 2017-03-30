@@ -221,10 +221,16 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return topicList;
     }
 
+    /**
+     * Topic 是否需要更新路由信息
+     * 不更新条件：Topic 路由信息不为空 && Topic 处于正常状态（队列不为空）
+     *
+     * @param topic Topic
+     * @return 是否需要
+     */
     @Override
     public boolean isPublishTopicNeedUpdate(String topic) {
         TopicPublishInfo prev = this.topicPublishInfoTable.get(topic);
-
         return null == prev || !prev.ok();
     }
 
@@ -317,6 +323,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.checkExecutor.submit(request);
     }
 
+    /**
+     * 更新 Topic 路由信息
+     *
+     * @param topic Topic
+     * @param info Topic 路由信息
+     */
     @Override
     public void updateTopicPublishInfo(final String topic, final TopicPublishInfo info) {
         if (info != null && topic != null) {

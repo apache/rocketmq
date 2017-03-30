@@ -57,6 +57,11 @@ public class TopicPublishInfo {
         this.orderTopic = orderTopic;
     }
 
+    /**
+     * Topic 是否正常：消息队列不为空
+     *
+     * @return 是否正常
+     */
     public boolean ok() {
         return null != this.messageQueueList && !this.messageQueueList.isEmpty();
     }

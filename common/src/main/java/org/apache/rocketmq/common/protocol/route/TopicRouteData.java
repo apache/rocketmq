@@ -32,7 +32,8 @@ import java.util.List;
 public class TopicRouteData extends RemotingSerializable {
 
     /**
-     * 顺序消息配置
+     * 顺序消息配置。
+     * 格式为=》BrokerName1:QueueId1;BrokerName2:QueueId2;...BrokerNameN:QueueIdN
      */
     private String orderTopicConf;
     /**
@@ -48,6 +49,11 @@ public class TopicRouteData extends RemotingSerializable {
      */
     private HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
+    /**
+     * 克隆 Topic 路由数据
+     *
+     * @return 新的 Topic 路由数据
+     */
     public TopicRouteData cloneTopicRouteData() {
         TopicRouteData topicRouteData = new TopicRouteData();
         topicRouteData.setQueueDatas(new ArrayList<QueueData>());
