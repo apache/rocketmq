@@ -17,14 +17,15 @@
 
 package org.apache.rocketmq.client;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Common Validator
@@ -84,9 +85,9 @@ public class Validators {
     /**
      * Validate message
      *
-     * @param msg
-     * @param defaultMQProducer
-     * @throws MQClientException
+     * @param msg 消息
+     * @param defaultMQProducer producer
+     * @throws MQClientException 当 msg 格式不正确
      */
     public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer)
         throws MQClientException {

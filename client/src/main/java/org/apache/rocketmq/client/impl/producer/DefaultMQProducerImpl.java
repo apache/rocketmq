@@ -73,7 +73,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private MQClientInstance mQClientFactory;
     private ArrayList<CheckForbiddenHook> checkForbiddenHookList = new ArrayList<CheckForbiddenHook>();
     private int zipCompressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
-
+    /**
+     * MQ故障策略
+     */
     private MQFaultStrategy mqFaultStrategy = new MQFaultStrategy();
 
     public DefaultMQProducerImpl(final DefaultMQProducer defaultMQProducer) {
@@ -355,6 +357,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, topicSysFlag);
     }
 
+    /**
+     * 校验Producer是否处于运行{@link ServiceState#RUNNING}状态。
+     *
+     * @throws MQClientException 当不处于运行状态抛出client异常
+     */
     private void makeSureStateOK() throws MQClientException {
         if (this.serviceState != ServiceState.RUNNING) {
             throw new MQClientException("The producer service state not OK, "//
@@ -565,6 +572,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             null).setResponseCode(ClientErrorCode.NOT_FOUND_TOPIC_EXCEPTION);
     }
 
+    /**
+     * 获取 Topic 信息
+     * 如果获取不到，或者状态不正确，则从 Namesrv获取一次
+     *
+     * @param topic Topic
+     * @return topic 信息
+     */
     private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
         TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
@@ -573,7 +587,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
         }
 
-        if (topicPublishInfo.isHaveTopicRouterInfo() || topicPublishInfo.ok()) {
+        if (topicPublishInfo.isHaveTopicRouterInfo() || topicPublishInfo.ok()) { // TODO 疑问：为啥这里判断isHaveTopicRouterInfo
             return topicPublishInfo;
         } else {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, true, this.defaultMQProducer);

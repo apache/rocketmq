@@ -113,6 +113,14 @@ public class MQClientInstance {
      */
     private final ConcurrentHashMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable =
         new ConcurrentHashMap<String, HashMap<Long, String>>();
+    /**
+     * 定时器
+     * 目前有如下任务：
+     * 1.
+     * 2. 定时拉取 Topic路由配置
+     * 3.
+     * 4.
+     */
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
         @Override
         public Thread newThread(Runnable r) {
@@ -227,7 +235,7 @@ public class MQClientInstance {
     }
 
     public static Set<MessageQueue> topicRouteData2TopicSubscribeInfo(final String topic, final TopicRouteData route) {
-        Set<MessageQueue> mqList = new HashSet<MessageQueue>();
+        Set<MessageQueue> mqList = new HashSet<>();
         List<QueueData> qds = route.getQueueDatas();
         for (QueueData qd : qds) {
             if (PermName.isReadable(qd.getPerm())) {
@@ -291,10 +299,11 @@ public class MQClientInstance {
             }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
         }
 
+        // 定时拉取 Topic路由配置
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
-            public void run() { // TODO 待读：ALL
+            public void run() {
                 try {
                     MQClientInstance.this.updateTopicRouteInfoFromNameServer();
                 } catch (Exception e) {
@@ -348,7 +357,7 @@ public class MQClientInstance {
     /**
      * 从 Namesrv 批量更新 Topic路由信息
      */
-    public void updateTopicRouteInfoFromNameServer() {
+    private void updateTopicRouteInfoFromNameServer() {
         Set<String> topicList = new HashSet<String>();
 
         // Consumer 获取topic数组
@@ -583,7 +592,7 @@ public class MQClientInstance {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
                     TopicRouteData topicRouteData;
-                    if (isDefault && defaultMQProducer != null) {
+                    if (isDefault && defaultMQProducer != null) { // TODO 疑问：这里的用途是？？？
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
                             1000 * 3);
                         if (topicRouteData != null) {
@@ -606,7 +615,7 @@ public class MQClientInstance {
                         }
 
                         if (changed) {
-                            TopicRouteData cloneTopicRouteData = topicRouteData.cloneTopicRouteData(); // TODO 疑问：为什么要clone
+                            TopicRouteData cloneTopicRouteData = topicRouteData.cloneTopicRouteData(); // 克隆对象的原因：topicRouteData会被设置到下面的publishInfo/subscribeInfo
 
                             // 更新 Broker 地址相关信息
                             for (BrokerData bd : topicRouteData.getBrokerDatas()) {

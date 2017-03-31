@@ -52,7 +52,7 @@ public class Producer {
          */
         producer.start();
 
-        Thread.sleep(10000000L);
+//        Thread.sleep(10000000L);
 
         for (int i = 0; i < 1000; i++) {
             try {
