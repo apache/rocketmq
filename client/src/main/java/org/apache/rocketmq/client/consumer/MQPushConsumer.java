@@ -52,20 +52,20 @@ public interface MQPushConsumer extends MQConsumer {
     /**
      * Subscribe some topic
      *
-     * @param topic
+     * @param topic Topic
      * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if null or * expression,meaning subscribe
      * all
-     * @throws MQClientException
+     * @throws MQClientException 当发生Client异常时
      */
     void subscribe(final String topic, final String subExpression) throws MQClientException;
 
     /**
      * Subscribe some topic
      *
-     * @param topic
+     * @param topic Topic
      * @param fullClassName full class name,must extend org.apache.rocketmq.common.filter. MessageFilter
      * @param filterClassSource class source code,used UTF-8 file encoding,must be responsible for your code safety
-     * @throws MQClientException
+     * @throws MQClientException 当发生Client异常时
      */
     void subscribe(final String topic, final String fullClassName, final String filterClassSource) throws MQClientException;
 
