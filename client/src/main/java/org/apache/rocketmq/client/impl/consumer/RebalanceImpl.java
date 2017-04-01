@@ -45,9 +45,21 @@ public abstract class RebalanceImpl {
      * Topic 与 订阅数据 Map
      */
     protected final ConcurrentHashMap<String /* topic */, SubscriptionData> subscriptionInner = new ConcurrentHashMap<>();
+    /**
+     * 消费分组
+     */
     protected String consumerGroup;
+    /**
+     * 消息模型
+     */
     protected MessageModel messageModel;
+    /**
+     * 消息分配策略
+     */
     protected AllocateMessageQueueStrategy allocateMessageQueueStrategy;
+    /**
+     * MQ客户端对象
+     */
     protected MQClientInstance mQClientFactory;
 
     public RebalanceImpl(String consumerGroup, MessageModel messageModel, AllocateMessageQueueStrategy allocateMessageQueueStrategy,

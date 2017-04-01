@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.client.stat;
 
-import java.util.concurrent.ScheduledExecutorService;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatus;
 import org.apache.rocketmq.common.stats.StatsItemSet;
@@ -25,6 +24,11 @@ import org.apache.rocketmq.common.stats.StatsSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.ScheduledExecutorService;
+
+/**
+ * Consumer统计管理
+ */
 public class ConsumerStatsManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.CLIENT_LOGGER_NAME);
 

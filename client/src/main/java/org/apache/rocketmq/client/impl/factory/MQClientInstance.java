@@ -93,9 +93,12 @@ public class MQClientInstance {
     /**
      * Producer Map
      */
-    private final ConcurrentHashMap<String/* group */, MQProducerInner> producerTable = new ConcurrentHashMap<String, MQProducerInner>();
-    private final ConcurrentHashMap<String/* group */, MQConsumerInner> consumerTable = new ConcurrentHashMap<String, MQConsumerInner>();
-    private final ConcurrentHashMap<String/* group */, MQAdminExtInner> adminExtTable = new ConcurrentHashMap<String, MQAdminExtInner>();
+    private final ConcurrentHashMap<String/* group */, MQProducerInner> producerTable = new ConcurrentHashMap<>();
+    /**
+     * Consumer Map
+     */
+    private final ConcurrentHashMap<String/* group */, MQConsumerInner> consumerTable = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String/* group */, MQAdminExtInner> adminExtTable = new ConcurrentHashMap<>();
     private final NettyClientConfig nettyClientConfig;
     /**
      * MQClient API实现
@@ -128,10 +131,19 @@ public class MQClientInstance {
         }
     });
     private final ClientRemotingProcessor clientRemotingProcessor;
+    /**
+     * 拉取消息服务
+     */
     private final PullMessageService pullMessageService;
+    /**
+     * consumer负载均衡服务
+     */
     @SuppressWarnings("SpellCheckingInspection")
     private final RebalanceService rebalanceService;
     private final DefaultMQProducer defaultMQProducer;
+    /**
+     * Consumer统计管理
+     */
     private final ConsumerStatsManager consumerStatsManager;
     private final AtomicLong storeTimesTotal = new AtomicLong(0);
     private ServiceState serviceState = ServiceState.CREATE_JUST;
@@ -853,6 +865,14 @@ public class MQClientInstance {
         }
     }
 
+    /**
+     * 注册Consumer
+     * 如果已经存在group对应的consumer，则注册失败
+     *
+     * @param group 消费分组
+     * @param consumer consumer
+     * @return 是否成功
+     */
     public boolean registerConsumer(final String group, final MQConsumerInner consumer) {
         if (null == group || null == consumer) {
             return false;

@@ -52,7 +52,7 @@ public class Validators {
     /**
      * Validate group
      *
-     * @param group
+     * @param group 分组
      * @throws MQClientException
      */
     public static void checkGroup(String group) throws MQClientException {
