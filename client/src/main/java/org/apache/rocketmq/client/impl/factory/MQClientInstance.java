@@ -112,7 +112,7 @@ public class MQClientInstance {
     private final RebalanceService rebalanceService;
     private final DefaultMQProducer defaultMQProducer;
     private final ConsumerStatsManager consumerStatsManager;
-    private final AtomicLong storeTimesTotal = new AtomicLong(0);
+    private final AtomicLong sendHeartbeatTimesTotal = new AtomicLong(0);
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private DatagramSocket datagramSocket;
     private Random random = new Random();
@@ -517,38 +517,40 @@ public class MQClientInstance {
             return;
         }
 
-        long times = this.storeTimesTotal.getAndIncrement();
-        Iterator<Entry<String, HashMap<Long, String>>> it = this.brokerAddrTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, HashMap<Long, String>> entry = it.next();
-            String brokerName = entry.getKey();
-            HashMap<Long, String> oneTable = entry.getValue();
-            if (oneTable != null) {
-                for (Map.Entry<Long, String> entry1 : oneTable.entrySet()) {
-                    Long id = entry1.getKey();
-                    String addr = entry1.getValue();
-                    if (addr != null) {
-                        if (consumerEmpty) {
-                            if (id != MixAll.MASTER_ID)
-                                continue;
-                        }
+        if (!this.brokerAddrTable.isEmpty()) {
+            long times = this.sendHeartbeatTimesTotal.getAndIncrement();
+            Iterator<Entry<String, HashMap<Long, String>>> it = this.brokerAddrTable.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<String, HashMap<Long, String>> entry = it.next();
+                String brokerName = entry.getKey();
+                HashMap<Long, String> oneTable = entry.getValue();
+                if (oneTable != null) {
+                    for (Map.Entry<Long, String> entry1 : oneTable.entrySet()) {
+                        Long id = entry1.getKey();
+                        String addr = entry1.getValue();
+                        if (addr != null) {
+                            if (consumerEmpty) {
+                                if (id != MixAll.MASTER_ID)
+                                    continue;
+                            }
 
-                        try {
-                            int version = this.mQClientAPIImpl.sendHearbeat(addr, heartbeatData, 3000);
-                            if (!this.brokerVersionTable.containsKey(brokerName)) {
-                                this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));
-                            }
-                            this.brokerVersionTable.get(brokerName).put(addr, version);
-                            if (times % 20 == 0) {
-                                log.info("send heart beat to broker[{} {} {}] success", brokerName, id, addr);
-                                log.info(heartbeatData.toString());
-                            }
-                        } catch (Exception e) {
-                            if (this.isBrokerInNameServer(addr)) {
-                                log.error("send heart beat to broker exception", e);
-                            } else {
-                                log.info("send heart beat to broker[{} {} {}] exception, because the broker not up, forget it", brokerName,
-                                    id, addr);
+                            try {
+                                int version = this.mQClientAPIImpl.sendHearbeat(addr, heartbeatData, 3000);
+                                if (!this.brokerVersionTable.containsKey(brokerName)) {
+                                    this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));
+                                }
+                                this.brokerVersionTable.get(brokerName).put(addr, version);
+                                if (times % 20 == 0) {
+                                    log.info("send heart beat to broker[{} {} {}] success", brokerName, id, addr);
+                                    log.info(heartbeatData.toString());
+                                }
+                            } catch (Exception e) {
+                                if (this.isBrokerInNameServer(addr)) {
+                                    log.error("send heart beat to broker exception", e);
+                                } else {
+                                    log.info("send heart beat to broker[{} {} {}] exception, because the broker not up, forget it", brokerName,
+                                        id, addr);
+                                }
                             }
                         }
                     }
