@@ -39,8 +39,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public abstract class RebalanceImpl {
     protected static final Logger log = ClientLogger.getLog();
     protected final ConcurrentHashMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
-    protected final ConcurrentHashMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
-        new ConcurrentHashMap<String, Set<MessageQueue>>();
+    /**
+     * Topic 和 消息队列 订阅Map
+     */
+    protected final ConcurrentHashMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable = new ConcurrentHashMap<>();
     /**
      * Topic 与 订阅数据 Map
      */
@@ -222,6 +224,10 @@ public abstract class RebalanceImpl {
         }
     }
 
+    /**
+     * 消费者进行平衡
+     * @param isOrder 是否顺序消息
+     */
     public void doRebalance(final boolean isOrder) {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
@@ -244,6 +250,12 @@ public abstract class RebalanceImpl {
         return subscriptionInner;
     }
 
+    /**
+     * 消费者对 单个Topic 重新进行平衡
+     *
+     * @param topic Topic
+     * @param isOrder 是否顺序
+     */
     private void rebalanceByTopic(final String topic, final boolean isOrder) {
         switch (messageModel) {
             case BROADCASTING: {
@@ -277,7 +289,7 @@ public abstract class RebalanceImpl {
                 }
 
                 if (mqSet != null && cidAll != null) {
-                    List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
+                    List<MessageQueue> mqAll = new ArrayList<>();
                     mqAll.addAll(mqSet);
 
                     Collections.sort(mqAll);
@@ -285,7 +297,7 @@ public abstract class RebalanceImpl {
 
                     AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;
 
-                    List<MessageQueue> allocateResult = null;
+                    List<MessageQueue> allocateResult;
                     try {
                         allocateResult = strategy.allocate(//
                             this.consumerGroup, //

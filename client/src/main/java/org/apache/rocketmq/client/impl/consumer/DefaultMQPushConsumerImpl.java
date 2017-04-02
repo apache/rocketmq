@@ -104,6 +104,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
      * 消息拉取API封装
      */
     private PullAPIWrapper pullAPIWrapper;
+    /**
+     * 是否暂停
+     */
     private volatile boolean pause = false;
     /**
      * 是否顺序消费
@@ -980,6 +983,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         return subSet;
     }
 
+    /**
+     * 进行平衡
+     */
     @Override
     public void doRebalance() {
         if (!this.pause) {

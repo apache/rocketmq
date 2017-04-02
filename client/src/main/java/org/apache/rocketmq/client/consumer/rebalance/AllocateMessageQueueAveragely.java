@@ -16,15 +16,24 @@
  */
 package org.apache.rocketmq.client.consumer.rebalance;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Average Hashing queue algorithm
+ * 队列分配策略 - 平均分配
+ * 如果 队列数 和 消费者数量 相除有余数时，余数按照顺序"1"个"1"个分配消费者。
+ * 例如，5个队列，3个消费者时，分配如下：
+ * - 消费者0：[0, 1] 2个队列
+ * - 消费者1：[2, 3] 2个队列
+ * - 消费者2：[4, 4] 1个队列
+ *
+ * 代码块 (mod > 0 && index < mod) 判断即在处理相除有余数的情况。
  */
 public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrategy {
     private final Logger log = ClientLogger.getLog();
@@ -42,7 +51,7 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
             throw new IllegalArgumentException("cidAll is null or cidAll empty");
         }
 
-        List<MessageQueue> result = new ArrayList<MessageQueue>();
+        List<MessageQueue> result = new ArrayList<>();
         if (!cidAll.contains(currentCID)) {
             log.info("[BUG] ConsumerGroup: {} The consumerId: {} not in cidAll: {}",
                 consumerGroup,
@@ -50,7 +59,6 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
                 cidAll);
             return result;
         }
-
         int index = cidAll.indexOf(currentCID);
         int mod = mqAll.size() % cidAll.size();
         int averageSize =
