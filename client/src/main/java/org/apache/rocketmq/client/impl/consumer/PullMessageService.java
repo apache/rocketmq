@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import java.util.concurrent.*;
 
 /**
- * 消费者拉取消息服务
+ * 消费者拉取消息线程服务
  */
 public class PullMessageService extends ServiceThread {
     private final Logger log = ClientLogger.getLog();

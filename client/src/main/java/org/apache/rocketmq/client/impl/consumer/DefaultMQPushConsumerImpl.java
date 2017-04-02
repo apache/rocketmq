@@ -641,10 +641,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 break;
         }
 
+        // 更新 Topic路由信息
         this.updateTopicSubscribeInfoWhenSubscriptionChanged();
 
         this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
 
+        // 重新均衡
         this.mQClientFactory.rebalanceImmediately();
     }
 
@@ -843,6 +845,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         return messageListenerInner;
     }
 
+    /**
+     * 当 订阅信息 改变时，更新 Topic路由信息
+     */
     private void updateTopicSubscribeInfoWhenSubscriptionChanged() {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {

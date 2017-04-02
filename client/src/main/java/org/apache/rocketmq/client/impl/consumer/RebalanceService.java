@@ -23,13 +23,21 @@ import org.slf4j.Logger;
 
 /**
  * Rebalance Service
- * consumer负载均衡服务
+ * consumer负载均衡线程服务
  */
 public class RebalanceService extends ServiceThread {
+
+    /**
+     * 等待间隔，单位：毫秒
+     */
     private static long waitInterval =
         Long.parseLong(System.getProperty(
             "rocketmq.client.rebalance.waitInterval", "20000"));
+
     private final Logger log = ClientLogger.getLog();
+    /**
+     * MQClient对象
+     */
     private final MQClientInstance mqClientFactory;
 
     public RebalanceService(MQClientInstance mqClientFactory) {

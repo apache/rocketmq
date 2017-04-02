@@ -132,11 +132,11 @@ public class MQClientInstance {
     });
     private final ClientRemotingProcessor clientRemotingProcessor;
     /**
-     * 拉取消息服务
+     * 拉取消息线程服务
      */
     private final PullMessageService pullMessageService;
     /**
-     * consumer负载均衡服务
+     * consumer负载均衡线程服务
      */
     @SuppressWarnings("SpellCheckingInspection")
     private final RebalanceService rebalanceService;
@@ -455,6 +455,7 @@ public class MQClientInstance {
         }
     }
 
+    // TODO 待读：心跳
     public void sendHeartbeatToAllBrokerWithLock() {
         if (this.lockHeartbeat.tryLock()) {
             try {
@@ -978,6 +979,9 @@ public class MQClientInstance {
         this.adminExtTable.remove(group);
     }
 
+    /**
+     * 重新均衡
+     */
     public void rebalanceImmediately() {
         this.rebalanceService.wakeup();
     }
