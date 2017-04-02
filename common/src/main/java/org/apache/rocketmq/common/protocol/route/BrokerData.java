@@ -42,6 +42,12 @@ public class BrokerData implements Comparable<BrokerData> {
      */
     private HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs;
 
+    /**
+     * 获取 Broker地址
+     * 优先级： Master > {@link #brokerAddrs}第一个
+     *
+     * @return Broker地址
+     */
     public String selectBrokerAddr() {
         String value = this.brokerAddrs.get(MixAll.MASTER_ID);
         if (null == value) {

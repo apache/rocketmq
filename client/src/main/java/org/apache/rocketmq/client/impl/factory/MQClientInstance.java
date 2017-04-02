@@ -1081,6 +1081,14 @@ public class MQClientInstance {
         return null;
     }
 
+    /**
+     * 获取 消费者集群 + Topic 对应的 消费者编号数组
+     * TODO 疑问：如果一个group，关注的topic不同，结果会怎么样？取topic的并集么？
+     *
+     * @param topic Topic
+     * @param group 消费者集群
+     * @return 消费者编号数组
+     */
     public List<String> findConsumerIdList(final String topic, final String group) {
         String brokerAddr = this.findBrokerAddrByTopic(topic);
         if (null == brokerAddr) {
@@ -1099,6 +1107,12 @@ public class MQClientInstance {
         return null;
     }
 
+    /**
+     * 获取 Topic 对应的 Broker地址
+     *
+     * @param topic Topic
+     * @return  Broker地址
+     */
     public String findBrokerAddrByTopic(final String topic) {
         TopicRouteData topicRouteData = this.topicRouteTable.get(topic);
         if (topicRouteData != null) {

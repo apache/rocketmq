@@ -38,13 +38,16 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public abstract class RebalanceImpl {
     protected static final Logger log = ClientLogger.getLog();
-    protected final ConcurrentHashMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
+    /**
+     * 消息队列 和 消息处理队列 Map
+     */
+    protected final ConcurrentHashMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<>(64);
     /**
      * Topic 和 消息队列 订阅Map
      */
     protected final ConcurrentHashMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable = new ConcurrentHashMap<>();
     /**
-     * Topic 与 订阅数据 Map
+     * Topic 和 订阅数据 Map
      */
     protected final ConcurrentHashMap<String /* topic */, SubscriptionData> subscriptionInner = new ConcurrentHashMap<>();
     /**
@@ -226,6 +229,7 @@ public abstract class RebalanceImpl {
 
     /**
      * 消费者进行平衡
+     *
      * @param isOrder 是否顺序消息
      */
     public void doRebalance(final boolean isOrder) {
@@ -276,6 +280,7 @@ public abstract class RebalanceImpl {
                 break;
             }
             case CLUSTERING: {
+                // 获取 topic 对应的 队列 和 consumer信息
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
                 if (null == mqSet) {
@@ -289,6 +294,7 @@ public abstract class RebalanceImpl {
                 }
 
                 if (mqSet != null && cidAll != null) {
+                    // 计算 负载均衡 后的 队列数组
                     List<MessageQueue> mqAll = new ArrayList<>();
                     mqAll.addAll(mqSet);
 
@@ -310,11 +316,12 @@ public abstract class RebalanceImpl {
                         return;
                     }
 
-                    Set<MessageQueue> allocateResultSet = new HashSet<MessageQueue>();
+                    Set<MessageQueue> allocateResultSet = new HashSet<>();
                     if (allocateResult != null) {
                         allocateResultSet.addAll(allocateResult);
                     }
 
+                    // 消息处理队列
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
                     if (changed) {
                         log.info(
@@ -346,11 +353,23 @@ public abstract class RebalanceImpl {
         }
     }
 
+    /**
+     * 当负载均衡时，更新 消息处理队列
+     * - 移除 在processQueueTable && 不存在于 mqSet 里的消息队列
+     * - 增加 不在processQueueTable && 存在于mqSet 里的消息队列
+     * -
+     *
+     * @param topic Topic
+     * @param mqSet 负载均衡结果后的消息队列数组
+     * @param isOrder 是否顺序
+     * @return 是否变更
+     */
     private boolean updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet, final boolean isOrder) {
         boolean changed = false;
 
+        // 移除 在processQueueTable && 不存在于 mqSet 里的消息队列
         Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();
-        while (it.hasNext()) {
+        while (it.hasNext()) { // TODO 待读：
             Entry<MessageQueue, ProcessQueue> next = it.next();
             MessageQueue mq = next.getKey();
             ProcessQueue pq = next.getValue();
@@ -383,7 +402,8 @@ public abstract class RebalanceImpl {
             }
         }
 
-        List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
+        // 增加 不在processQueueTable && 存在于mqSet 里的消息队列
+        List<PullRequest> pullRequestList = new ArrayList<>();
         for (MessageQueue mq : mqSet) {
             if (!this.processQueueTable.containsKey(mq)) {
                 if (isOrder && !this.lock(mq)) {
@@ -414,6 +434,7 @@ public abstract class RebalanceImpl {
             }
         }
 
+        // 发起消息拉取请求
         this.dispatchPullRequest(pullRequestList);
 
         return changed;
@@ -427,8 +448,19 @@ public abstract class RebalanceImpl {
 
     public abstract void removeDirtyOffset(final MessageQueue mq);
 
+    /**
+     * 获取 队列 对应的 消息offset
+     *
+     * @param mq MQ
+     * @return 消息offset
+     */
     public abstract long computePullFromWhere(final MessageQueue mq);
 
+    /**
+     * 发起消息拉取请求
+     *
+     * @param pullRequestList 请求
+     */
     public abstract void dispatchPullRequest(final List<PullRequest> pullRequestList);
 
     public void removeProcessQueue(final MessageQueue mq) {

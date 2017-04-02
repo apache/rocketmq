@@ -620,6 +620,7 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    @SuppressWarnings("SameParameterValue")
     public List<String> getConsumerIdListByGroup(//
         final String addr, //
         final String consumerGroup, //
