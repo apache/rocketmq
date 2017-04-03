@@ -121,7 +121,13 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
      * 消费消息服务
      */
     private ConsumeMessageService consumeMessageService;
+    /**
+     * this.defaultMQPushConsumer.getPullThresholdForQueue()
+     */
     private long flowControlTimes1 = 0;
+    /**
+     *
+     */
     private long flowControlTimes2 = 0;
 
     public DefaultMQPushConsumerImpl(DefaultMQPushConsumer defaultMQPushConsumer, RPCHook rpcHook) {
@@ -437,6 +443,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
     }
 
+    /**
+     * 校验Consumer是否处于运行{@link ServiceState#RUNNING}状态。
+     *
+     * @throws MQClientException 当不处于运行状态抛出client异常
+     */
     private void makeSureStateOK() throws MQClientException {
         if (this.serviceState != ServiceState.RUNNING) {
             throw new MQClientException("The consumer service state not OK, "//

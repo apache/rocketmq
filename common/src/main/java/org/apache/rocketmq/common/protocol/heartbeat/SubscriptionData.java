@@ -55,7 +55,7 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
      */
     private Set<Integer> codeSet = new HashSet<>();
     /**
-     * 订阅时间
+     * 订阅版本。实现方式为：订阅时间
      */
     private long subVersion = System.currentTimeMillis();
 

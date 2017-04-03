@@ -18,11 +18,29 @@ package org.apache.rocketmq.client.impl.consumer;
 
 import org.apache.rocketmq.common.message.MessageQueue;
 
+/**
+ * 拉取消息请求
+ */
 public class PullRequest {
+    /**
+     * 消费者分组
+     */
     private String consumerGroup;
+    /**
+     * 消息队列
+     */
     private MessageQueue messageQueue;
+    /**
+     * 处理队列
+     */
     private ProcessQueue processQueue;
+    /**
+     * 下一个 offset
+     */
     private long nextOffset;
+    /**
+     * // TODO 疑问：用处是？
+     */
     private boolean lockedFirst = false;
 
     public boolean isLockedFirst() {

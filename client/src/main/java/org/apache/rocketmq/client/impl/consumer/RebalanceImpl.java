@@ -402,8 +402,8 @@ public abstract class RebalanceImpl {
             }
         }
 
-        // 增加 不在processQueueTable && 存在于mqSet 里的消息队列
-        List<PullRequest> pullRequestList = new ArrayList<>();
+        // 增加 不在processQueueTable && 存在于mqSet 里的消息队列。
+        List<PullRequest> pullRequestList = new ArrayList<>(); // 拉消息请求数组
         for (MessageQueue mq : mqSet) {
             if (!this.processQueueTable.containsKey(mq)) {
                 if (isOrder && !this.lock(mq)) {
