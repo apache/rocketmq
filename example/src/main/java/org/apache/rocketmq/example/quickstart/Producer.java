@@ -54,7 +54,7 @@ public class Producer {
 
 //        Thread.sleep(10000000L);
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 10000000; i++) {
             try {
 
                 /*

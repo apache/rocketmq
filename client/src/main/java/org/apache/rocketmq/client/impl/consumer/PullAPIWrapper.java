@@ -138,21 +138,21 @@ public class PullAPIWrapper {
      * @param mq 消息嘟列
      * @param subExpression 订阅表达式
      * @param subVersion 订阅版本号
-     * @param offset 拉取开始offset
-     * @param maxNums 批量拉取消息数量
-     * @param sysFlag
-     * @param commitOffset
-     * @param brokerSuspendMaxTimeMillis
-     * @param timeoutMillis
-     * @param communicationMode
-     * @param pullCallback
-     * @return
-     * @throws MQClientException
-     * @throws RemotingException
-     * @throws MQBrokerException
-     * @throws InterruptedException
+     * @param offset 拉取队列开始位置
+     * @param maxNums 批量拉 取消息数量
+     * @param sysFlag // TODO 疑问：用途
+     * @param commitOffset // TODO 疑问：用途
+     * @param brokerSuspendMaxTimeMillis // TODO 疑问：用途
+     * @param timeoutMillis 请求broker超时时间
+     * @param communicationMode 通讯模式
+     * @param pullCallback 拉取回调
+     * @return 拉取消息结果。只有通讯模式为同步时，才返回结果，否则返回null。
+     * @throws MQClientException 当寻找不到 broker 时，或发生其他client异常
+     * @throws RemotingException 当远程调用发生异常时
+     * @throws MQBrokerException 当 broker 发生异常时。只有通讯模式为同步时才会发生该异常。
+     * @throws InterruptedException 当发生中断异常时
      */
-    public PullResult pullKernelImpl(
+    protected PullResult pullKernelImpl(
         final MessageQueue mq,
         final String subExpression,
         final long subVersion,

@@ -27,5 +27,5 @@ public enum ConsumeConcurrentlyStatus {
     /**
      * Failure consumption,later try to consume
      */
-    RECONSUME_LATER;
+    RECONSUME_LATER
 }

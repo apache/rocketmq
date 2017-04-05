@@ -37,6 +37,10 @@ public class Consumer {
          * Instantiate with specified consumer group name.
          */
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
+        consumer.setConsumeThreadMin(1);
+        consumer.setConsumeThreadMax(1);
+
+//        consumer.setConsumeMessageBatchMaxSize(2);
 
         consumer.setNamesrvAddr("127.0.0.1:9876"); // TODO add by yunai
 
@@ -72,6 +76,7 @@ public class Consumer {
                 ConsumeConcurrentlyContext context) {
                 System.out.printf(Thread.currentThread().getName() + " Receive New Messages: " + msgs + "%n");
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+//                return ConsumeConcurrentlyStatus.RECONSUME_LATER;
             }
         });
 

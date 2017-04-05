@@ -16,25 +16,42 @@
  */
 package org.apache.rocketmq.common.message;
 
+import org.apache.rocketmq.common.TopicFilterType;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import org.apache.rocketmq.common.TopicFilterType;
-import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 
 public class MessageExt extends Message {
     private static final long serialVersionUID = 5720810158625748049L;
 
+    /**
+     * 队列编号
+     */
     private int queueId;
 
     private int storeSize;
-
+    /**
+     * 队列offset
+     */
     private long queueOffset;
     private int sysFlag;
+    /**
+     * 生成时间
+     */
     private long bornTimestamp;
+    /**
+     * 生成host
+     */
     private SocketAddress bornHost;
-
+    /**
+     * 存储时间
+     */
     private long storeTimestamp;
+    /**
+     * 存储host
+     */
     private SocketAddress storeHost;
     private String msgId;
     private long commitLogOffset;

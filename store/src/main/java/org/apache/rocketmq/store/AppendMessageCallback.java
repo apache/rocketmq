@@ -24,11 +24,12 @@ import java.nio.ByteBuffer;
 public interface AppendMessageCallback {
 
     /**
-     * After message serialization, write MapedByteBuffer
+     * After message serialization, write MappedByteBuffer
      *
-     * @param byteBuffer
-     * @param maxBlank
-     * @param msg
+     * @param fileFromOffset 相对于整个 broker 的offset
+     * @param byteBuffer 文件字节流缓冲区
+     * @param maxBlank 剩余文件字节空间
+     * @param msg 消息
      * @return How many bytes to write
      */
     AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer,

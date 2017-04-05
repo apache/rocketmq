@@ -18,11 +18,29 @@ package org.apache.rocketmq.store;
 
 /**
  * When write a message to the commit log, returns code
+ * 拼接消息到 {@link MappedFile#mappedByteBuffer} or {@link MappedFile#writeBuffer} 结果状态码
+ *
+ * @see AppendMessageCallback
  */
 public enum AppendMessageStatus {
+    /**
+     * 添加成功
+     */
     PUT_OK,
+    /**
+     * 添加失败，因为buffer长度不够
+     */
     END_OF_FILE,
+    /**
+     * 添加失败，因为消息过长
+     */
     MESSAGE_SIZE_EXCEEDED,
+    /**
+     * 添加失败，因为properties过长
+     */
     PROPERTIES_SIZE_EXCEEDED,
+    /**
+     * 未知错误，因为{@link MappedFile#wrotePosition}超过{@link MappedFile#fileSize}
+     */
     UNKNOWN_ERROR,
 }

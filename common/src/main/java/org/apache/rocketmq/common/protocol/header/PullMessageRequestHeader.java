@@ -25,25 +25,58 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
+/**
+ * 拉取消息请求Header
+ */
 public class PullMessageRequestHeader implements CommandCustomHeader {
+    /**
+     * 消费者分组
+     */
     @CFNotNull
     private String consumerGroup;
+    /**
+     * Topic
+     */
     @CFNotNull
     private String topic;
+    /**
+     * 队列编号
+     */
     @CFNotNull
     private Integer queueId;
+    /**
+     * 队列开始位置
+     */
     @CFNotNull
     private Long queueOffset;
+    /**
+     * 消息数量
+     */
     @CFNotNull
     private Integer maxMsgNums;
+    /**
+     * TODO 疑问
+     */
     @CFNotNull
     private Integer sysFlag;
+    /**
+     * TODO 疑问
+     */
     @CFNotNull
     private Long commitOffset;
+    /**
+     * TODO 疑问
+     */
     @CFNotNull
     private Long suspendTimeoutMillis;
+    /**
+     * 订阅表达式
+     */
     @CFNullable
     private String subscription;
+    /**
+     * 订阅版本号
+     */
     @CFNotNull
     private Long subVersion;
 

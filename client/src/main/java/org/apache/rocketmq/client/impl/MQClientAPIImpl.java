@@ -455,6 +455,19 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * 拉取消息
+     *
+     * @param addr broker地址
+     * @param requestHeader 请求头
+     * @param timeoutMillis 请求超时
+     * @param communicationMode 通讯方式
+     * @param pullCallback 回调
+     * @return 消息。只有通讯模式为同步时，才返回结果，否则返回null。
+     * @throws RemotingException 当远程调用发生异常时
+     * @throws MQBrokerException  当 broker 发生异常时。只有通讯模式为同步时才会发生该异常。
+     * @throws InterruptedException 当发生中断异常时
+     */
     public PullResult pullMessage(//
         final String addr, //
         final PullMessageRequestHeader requestHeader, //
@@ -481,6 +494,16 @@ public class MQClientAPIImpl {
         return null;
     }
 
+    /**
+     * 异步拉取消息
+     *
+     * @param addr broker地址
+     * @param request 请求
+     * @param timeoutMillis 请求超时
+     * @param pullCallback 回调
+     * @throws RemotingException 当远程调用发生异常时
+     * @throws InterruptedException 当发生中断异常时
+     */
     private void pullMessageAsync(//
         final String addr, // 1
         final RemotingCommand request, //
@@ -513,6 +536,17 @@ public class MQClientAPIImpl {
         });
     }
 
+    /**
+     * 同步拉取消息
+     *
+     * @param addr broker地址
+     * @param request 请求
+     * @param timeoutMillis 请求超时
+     * @return 消息
+     * @throws RemotingException 当远程调用发生异常时
+     * @throws InterruptedException 当发生中断异常时
+     * @throws MQBrokerException 当 broker 发生异常时。只有通讯模式为同步时才会发生该异常。
+     */
     private PullResult pullMessageSync(//
         final String addr, // 1
         final RemotingCommand request, // 2
