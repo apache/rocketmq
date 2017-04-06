@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.impl;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -131,6 +132,7 @@ import org.apache.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerR
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingClient;
@@ -164,6 +166,8 @@ public class MQClientAPIImpl {
     private final ClientRemotingProcessor clientRemotingProcessor;
     private String nameSrvAddr = null;
     private ClientConfig clientConfig;
+
+    private int zipCompressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
 
     public MQClientAPIImpl(final NettyClientConfig nettyClientConfig, final ClientRemotingProcessor clientRemotingProcessor,
         RPCHook rpcHook, final ClientConfig clientConfig) {
@@ -306,6 +310,19 @@ public class MQClientAPIImpl {
         final SendMessageContext context, // 11
         final DefaultMQProducerImpl producer // 12
     ) throws RemotingException, MQBrokerException, InterruptedException {
+
+        byte[] msgBody = msg.getBody();
+        Integer sysFlag = requestHeader.getSysFlag();
+        if (null != sysFlag && ((sysFlag & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG)) {
+            try {
+                msgBody = UtilAll.compress(msgBody, zipCompressLevel);
+            } catch (IOException e) {
+                requestHeader.setSysFlag(MessageSysFlag.clearCompressedFlag(sysFlag));
+                log.error("tryToCompressMessage exception", e);
+                log.warn(msg.toString());
+            }
+        }
+
         RemotingCommand request = null;
         if (sendSmartMsg || msg instanceof MessageBatch) {
             SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
@@ -314,7 +331,7 @@ public class MQClientAPIImpl {
             request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
         }
 
-        request.setBody(msg.getBody());
+        request.setBody(msgBody);
 
         switch (communicationMode) {
             case ONEWAY:

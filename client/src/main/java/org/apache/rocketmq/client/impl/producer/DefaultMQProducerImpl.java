@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.client.impl.producer;
 
-import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,7 +65,6 @@ import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.client.producer.TransactionSendResult;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
-import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
@@ -93,7 +91,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private MQClientInstance mQClientFactory;
     private ArrayList<CheckForbiddenHook> checkForbiddenHookList = new ArrayList<CheckForbiddenHook>();
-    private int zipCompressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
 
     private MQFaultStrategy mqFaultStrategy = new MQFaultStrategy();
 
@@ -594,7 +591,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (brokerAddr != null) {
             brokerAddr = MixAll.brokerVIPChannel(this.defaultMQProducer.isSendMessageWithVIPChannel(), brokerAddr);
 
-            byte[] prevBody = msg.getBody();
             try {
                 //for MessageBatch,ID has been set in the generating process
                 if (!(msg instanceof MessageBatch)) {
@@ -602,7 +598,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 }
 
                 int sysFlag = 0;
-                if (this.tryToCompressMessage(msg)) {
+                if (this.needToCompressMessage(msg)) {
                     sysFlag |= MessageSysFlag.COMPRESSED_FLAG;
                 }
 
@@ -728,8 +724,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     this.executeSendMessageHookAfter(context);
                 }
                 throw e;
-            } finally {
-                msg.setBody(prevBody);
             }
         }
 
@@ -740,28 +734,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return mQClientFactory;
     }
 
-    private boolean tryToCompressMessage(final Message msg) {
+    private boolean needToCompressMessage(final Message msg) {
         if (msg instanceof MessageBatch) {
             //batch dose not support compressing right now
             return false;
         }
-        byte[] body = msg.getBody();
-        if (body != null) {
-            if (body.length >= this.defaultMQProducer.getCompressMsgBodyOverHowmuch()) {
-                try {
-                    byte[] data = UtilAll.compress(body, zipCompressLevel);
-                    if (data != null) {
-                        msg.setBody(data);
-                        return true;
-                    }
-                } catch (IOException e) {
-                    log.error("tryToCompressMessage exception", e);
-                    log.warn(msg.toString());
-                }
-            }
-        }
 
-        return false;
+        byte[] body = msg.getBody();
+        return null != body && body.length >= this.defaultMQProducer.getCompressMsgBodyOverHowmuch();
     }
 
     public boolean hasCheckForbiddenHook() {
@@ -1059,14 +1039,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public ConcurrentHashMap<String, TopicPublishInfo> getTopicPublishInfoTable() {
         return topicPublishInfoTable;
-    }
-
-    public int getZipCompressLevel() {
-        return zipCompressLevel;
-    }
-
-    public void setZipCompressLevel(int zipCompressLevel) {
-        this.zipCompressLevel = zipCompressLevel;
     }
 
     public ServiceState getServiceState() {
