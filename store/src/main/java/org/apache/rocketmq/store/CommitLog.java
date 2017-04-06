@@ -45,18 +45,32 @@ import java.util.concurrent.locks.ReentrantLock;
  * Store all metadata downtime for recovery, data protection reliability
  */
 public class CommitLog {
-    // Message's MAGIC CODE daa320a7
-    public final static int MESSAGE_MAGIC_CODE = 0xAABBCCDD ^ 1880681586 + 8;
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-    // End of file empty MAGIC CODE cbd43194
+    /**
+     * MAGIC_CODE - MESSAGE
+     * Message's MAGIC CODE daa320a7
+     * 标记某一段为消息，即：[msgId, MESSAGE_MAGIC_CODE, 消息]
+     */
+    public final static int MESSAGE_MAGIC_CODE = 0xAABBCCDD ^ 1880681586 + 8;
+    /**
+     * MAGIC_CODE - BLANK
+     * End of file empty MAGIC CODE cbd43194
+     * 标记某一段为空白，即：[msgId, BLANK_MAGIC_CODE, 空白]
+     * 当CommitLog无法容纳消息时，使用该类型结尾
+     */
     private final static int BLANK_MAGIC_CODE = 0xBBCCDDEE ^ 1880681586 + 8;
+    /**
+     * 映射文件队列
+     */
     private final MappedFileQueue mappedFileQueue;
     private final DefaultMessageStore defaultMessageStore;
     private final FlushCommitLogService flushCommitLogService;
 
     //If TransientStorePool enabled, we must flush message to FileChannel at fixed periods
     private final FlushCommitLogService commitLogService;
-
+    /**
+     *
+     */
     private final AppendMessageCallback appendMessageCallback;
     /**
      * topic消息队列 与 offset 的Map
@@ -601,7 +615,7 @@ public class CommitLog {
             switch (result.getStatus()) {
                 case PUT_OK:
                     break;
-                case END_OF_FILE:
+                case END_OF_FILE: // 当文件尾时，获取新的映射文件，并进行插入
                     unlockMappedFile = mappedFile;
                     // Create a new file, re-write the message
                     mappedFile = this.mappedFileQueue.getLastMappedFile(0);
@@ -1099,6 +1113,9 @@ public class CommitLog {
         }
     }
 
+    /**
+     * 写入消息到Buffer默认实现
+     */
     class DefaultAppendMessageCallback implements AppendMessageCallback {
         // File at the end of the minimum fixed length empty
         private static final int END_FILE_MIN_BLANK_LENGTH = 4 + 4;

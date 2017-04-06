@@ -16,36 +16,54 @@
  */
 package org.apache.rocketmq.store;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+/**
+ * 映射文件队列
+ */
 public class MappedFileQueue {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final Logger LOG_ERROR = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
+    /**
+     * 批量删除文件上限
+     */
     private static final int DELETE_FILES_BATCH_MAX = 10;
-
+    /**
+     * 目录
+     */
     private final String storePath;
-
+    /**
+     * 每个映射文件大小
+     */
     private final int mappedFileSize;
-
-    private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
-
+    /**
+     * 映射文件数组
+     */
+    private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<>();
+    /**
+     * TODO
+     */
     private final AllocateMappedFileService allocateMappedFileService;
-
+    /**
+     * TODO
+     */
     private long flushedWhere = 0;
+    /**
+     * TODO
+     */
     private long committedWhere = 0;
-
+    /**
+     * TODO
+     */
     private volatile long storeTimestamp = 0;
 
     public MappedFileQueue(final String storePath, int mappedFileSize,
@@ -56,7 +74,6 @@ public class MappedFileQueue {
     }
 
     public void checkSelf() {
-
         if (!this.mappedFiles.isEmpty()) {
             Iterator<MappedFile> iterator = mappedFiles.iterator();
             MappedFile pre = null;
@@ -191,19 +208,27 @@ public class MappedFileQueue {
         return 0;
     }
 
+    /**
+     * 获取最后一个可写入的映射文件。
+     * 当最后一个文件已经满的时候，创建一个新的文件
+     *
+     * @param startOffset 开始offset。用于一个映射文件都不存在时，创建的起始位置
+     * @param needCreate 是否需要创建
+     * @return 映射文件
+     */
     public MappedFile getLastMappedFile(final long startOffset, boolean needCreate) {
-        long createOffset = -1;
+        long createOffset = -1; // 创建文件开始offset。-1时，不创建
         MappedFile mappedFileLast = getLastMappedFile();
 
-        if (mappedFileLast == null) {
+        if (mappedFileLast == null) { // 一个映射文件都不存在
             createOffset = startOffset - (startOffset % this.mappedFileSize);
         }
 
-        if (mappedFileLast != null && mappedFileLast.isFull()) {
+        if (mappedFileLast != null && mappedFileLast.isFull()) { // 最后一个文件已满
             createOffset = mappedFileLast.getFileFromOffset() + this.mappedFileSize;
         }
 
-        if (createOffset != -1 && needCreate) {
+        if (createOffset != -1 && needCreate) { // 创建文件
             String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
             String nextNextFilePath = this.storePath + File.separator
                 + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
@@ -237,6 +262,12 @@ public class MappedFileQueue {
         return getLastMappedFile(startOffset, true);
     }
 
+    /**
+     * 获取最后一个MappedFile
+     * IndexOutOfBoundsException的容错处理
+     *
+     * @return 最后一个映射文件
+     */
     public MappedFile getLastMappedFile() {
         MappedFile mappedFileLast = null;
 

@@ -20,6 +20,7 @@ import java.nio.ByteBuffer;
 
 /**
  * Write messages callback interface
+ * 写入消息到Buffer接口
  */
 public interface AppendMessageCallback {
 
