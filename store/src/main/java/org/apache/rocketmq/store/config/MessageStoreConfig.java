@@ -16,38 +16,56 @@
  */
 package org.apache.rocketmq.store.config;
 
-import java.io.File;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
+
+import java.io.File;
 
 public class MessageStoreConfig {
     //The root directory in which the log data is kept
     @ImportantField
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
 
-    //The directory in which the commitlog is kept
+    /**
+     * The directory in which the commit_log is kept
+     * commitlog 目录
+     */
     @ImportantField
+    @SuppressWarnings("SpellCheckingInspection")
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
         + File.separator + "commitlog";
 
-    // CommitLog file size,default is 1G
+    /**
+     * CommitLog file size,default is 1G
+     */
+    @SuppressWarnings("SpellCheckingInspection")
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
     // ConsumeQueue file size,default is 30W
     private int mapedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
 
-    // CommitLog flush interval
-    // flush data to disk
+    /**
+     * CommitLog flush interval
+     * flush data to disk
+     * flush commitLog 周期，单位：毫秒
+     */
     @ImportantField
     private int flushIntervalCommitLog = 500;
 
-    // Only used if TransientStorePool enabled
-    // flush data to FileChannel
+    /**
+     * Only used if TransientStorePool enabled
+     * flush data to FileChannel
+     * commit CommitLog 周期，单位：毫秒
+     */
     @ImportantField
     private int commitIntervalCommitLog = 200;
 
+    @SuppressWarnings("SpellCheckingInspection")
     private boolean useReentrantLockWhenPutMessage = false;
 
-    // Whether schedule flush,default is real-time
+    /**
+     * Whether schedule flush,default is real-time
+     * flush commitLog 是否是定时的
+     */
     @ImportantField
     private boolean flushCommitLogTimed = false;
     // ConsumeQueue flush interval
@@ -75,15 +93,27 @@ public class MessageStoreConfig {
     // This ensures no on-the-wire or on-disk corruption to the messages occurred.
     // This check adds some overhead,so it may be disabled in cases seeking extreme performance.
     private boolean checkCRCOnRecover = true;
-    // How many pages are to be flushed when flush CommitLog
+    /**
+     * How many pages are to be flushed when flush CommitLog
+     * flush commitLog 最小分页
+     */
     private int flushCommitLogLeastPages = 4;
-    // How many pages are to be committed when commit data to file
+    /**
+     * How many pages are to be committed when commit data to file
+     * commit commitLog 最小分页
+     */
     private int commitCommitLogLeastPages = 4;
     // Flush page size when the disk in warming state
     private int flushLeastPagesWhenWarmMapedFile = 1024 / 4 * 16;
     // How many pages are to be flushed when flush ConsumeQueue
     private int flushConsumeQueueLeastPages = 2;
+    /**
+     * flush commitLog 大周期
+     */
     private int flushCommitLogThoroughInterval = 1000 * 10;
+    /**
+     * commit commitLog 大周期
+     */
     private int commitCommitLogThoroughInterval = 200;
     private int flushConsumeQueueThoroughInterval = 1000 * 60;
     @ImportantField

@@ -63,21 +63,34 @@ public class CommitLog {
      * 映射文件队列
      */
     private final MappedFileQueue mappedFileQueue;
+    /**
+     * 消息存储
+     */
     private final DefaultMessageStore defaultMessageStore;
+    /**
+     * flush commitLog 线程服务
+     */
     private final FlushCommitLogService flushCommitLogService;
-
-    //If TransientStorePool enabled, we must flush message to FileChannel at fixed periods
+    /**
+     * If TransientStorePool enabled, we must flush message to FileChannel at fixed periods
+     * commit commitLog 线程服务
+     */
     private final FlushCommitLogService commitLogService;
     /**
-     *
+     * 写入消息到Buffer Callback
      */
     private final AppendMessageCallback appendMessageCallback;
     /**
      * topic消息队列 与 offset 的Map
      */
-    private HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<>(1024);
+    private HashMap<String/* topic-queue_id */, Long/* offset */> topicQueueTable = new HashMap<>(1024);
+    /**
+     * TODO
+     */
     private volatile long confirmOffset = -1L;
-
+    /**
+     * TODO
+     */
     private volatile long beginTimeInLock = 0;
 
     //true: Can lock, false : in lock.
@@ -876,12 +889,21 @@ public class CommitLog {
         }
     }
 
+    /**
+     * flush commitLog 线程服务
+     */
     abstract class FlushCommitLogService extends ServiceThread {
         protected static final int RETRY_TIMES_OVER = 10;
     }
 
+    /**
+     * 实时 commit commitLog 线程服务
+     */
     class CommitRealTimeService extends FlushCommitLogService {
 
+        /**
+         * 最后 commit 时间戳
+         */
         private long lastCommitTimestamp = 0;
 
         @Override
@@ -894,12 +916,10 @@ public class CommitLog {
             CommitLog.log.info(this.getServiceName() + " service started");
             while (!this.isStopped()) {
                 int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitIntervalCommitLog();
-
                 int commitDataLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogLeastPages();
+                int commitDataThoroughInterval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogThoroughInterval();
 
-                int commitDataThoroughInterval =
-                    CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogThoroughInterval();
-
+                // 当时间满足commitDataThoroughInterval时，即使写入的数量不足commitDataLeastPages，也进行flush
                 long begin = System.currentTimeMillis();
                 if (begin >= (this.lastCommitTimestamp + commitDataThoroughInterval)) {
                     this.lastCommitTimestamp = begin;
@@ -907,9 +927,10 @@ public class CommitLog {
                 }
 
                 try {
+                    // commit
                     boolean result = CommitLog.this.mappedFileQueue.commit(commitDataLeastPages);
                     long end = System.currentTimeMillis();
-                    if (!result) {
+                    if (!result) { // TODO 疑问：未写入成功，为啥要唤醒flushCommitLogService
                         this.lastCommitTimestamp = end; // result = false means some data committed.
                         //now wake up flush thread.
                         flushCommitLogService.wakeup();
@@ -918,6 +939,8 @@ public class CommitLog {
                     if (end - begin > 500) {
                         log.info("Commit data to file costs {} ms", end - begin);
                     }
+
+                    // 等待执行
                     this.waitForRunning(interval);
                 } catch (Throwable e) {
                     CommitLog.log.error(this.getServiceName() + " service has exception. ", e);
@@ -933,8 +956,18 @@ public class CommitLog {
         }
     }
 
+    /**
+     * 实时 flush commitLog 线程服务
+     */
     class FlushRealTimeService extends FlushCommitLogService {
+        /**
+         * 最后flush时间戳
+         */
         private long lastFlushTimestamp = 0;
+        /**
+         * print计时器。
+         * 满足print次数时，调用{@link #printFlushProgress()}
+         */
         private long printTimes = 0;
 
         public void run() {
@@ -942,16 +975,13 @@ public class CommitLog {
 
             while (!this.isStopped()) {
                 boolean flushCommitLogTimed = CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed();
-
                 int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog();
                 int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
-
-                int flushPhysicQueueThoroughInterval =
-                    CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
-
-                boolean printFlushProgress = false;
+                int flushPhysicQueueThoroughInterval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
 
                 // Print flush progress
+                // 当时间满足flushPhysicQueueThoroughInterval时，即使写入的数量不足flushPhysicQueueLeastPages，也进行flush
+                boolean printFlushProgress = false;
                 long currentTimeMillis = System.currentTimeMillis();
                 if (currentTimeMillis >= (this.lastFlushTimestamp + flushPhysicQueueThoroughInterval)) {
                     this.lastFlushTimestamp = currentTimeMillis;
@@ -960,6 +990,7 @@ public class CommitLog {
                 }
 
                 try {
+                    // 等待执行
                     if (flushCommitLogTimed) {
                         Thread.sleep(interval);
                     } else {
@@ -970,6 +1001,7 @@ public class CommitLog {
                         this.printFlushProgress();
                     }
 
+                    // flush commitLog
                     long begin = System.currentTimeMillis();
                     CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
                     long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
@@ -1009,6 +1041,7 @@ public class CommitLog {
         }
 
         @Override
+        @SuppressWarnings("SpellCheckingInspection")
         public long getJointime() {
             return 1000 * 60 * 5;
         }
@@ -1016,6 +1049,7 @@ public class CommitLog {
 
     /**
      * GroupCommit Service
+     * // TODO 待读
      */
     class GroupCommitService extends FlushCommitLogService {
         private volatile List<GroupCommitRequest> requestsWrite = new ArrayList<GroupCommitRequest>();
