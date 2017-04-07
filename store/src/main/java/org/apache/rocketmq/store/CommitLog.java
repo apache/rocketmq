@@ -89,14 +89,20 @@ public class CommitLog {
      */
     private volatile long confirmOffset = -1L;
     /**
-     * TODO
+     * 当前获取lock时间。
+     * 如果当前解锁，则为0
      */
     private volatile long beginTimeInLock = 0;
 
-    //true: Can lock, false : in lock.
+    /**
+     * true: Can lock, false : in lock.
+     * 添加消息 螺旋锁（通过while循环实现）
+     */
     private AtomicBoolean putMessageSpinLock = new AtomicBoolean(true);
-
-    private ReentrantLock putMessageNormalLock = new ReentrantLock(); // NonfairSync
+    /**
+     * 添加消息重入锁
+     */
+    private ReentrantLock putMessageNormalLock = new ReentrantLock(); // Non fair Sync
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
         this.mappedFileQueue = new MappedFileQueue(defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog(),
@@ -124,7 +130,7 @@ public class CommitLog {
         this.flushCommitLogService.start();
 
         if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
-            this.commitLogService.start();
+            this.commitLogService.start(); // TODO 疑问：为啥要用这个
         }
     }
 
@@ -566,6 +572,12 @@ public class CommitLog {
         return beginTimeInLock;
     }
 
+    /**
+     * 添加消息
+     *
+     * @param msg 消息
+     * @return 结果
+     */
     public PutMessageResult putMessage(final MessageExtBrokerInner msg) {
         // Set the storage time
         msg.setStoreTimestamp(System.currentTimeMillis());
@@ -580,6 +592,7 @@ public class CommitLog {
         String topic = msg.getTopic();
         int queueId = msg.getQueueId();
 
+        // TODO 待读：
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE//
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
@@ -603,6 +616,8 @@ public class CommitLog {
         }
 
         long eclipseTimeInLock = 0;
+
+        // 获取写入映射文件
         MappedFile unlockMappedFile = null;
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
 
@@ -615,6 +630,7 @@ public class CommitLog {
             // global
             msg.setStoreTimestamp(beginLockTimestamp);
 
+            // 当不存在映射文件时，进行创建
             if (null == mappedFile || mappedFile.isFull()) {
                 mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
             }
@@ -662,6 +678,7 @@ public class CommitLog {
             log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", eclipseTimeInLock, msg.getBody().length, result);
         }
 
+        // TODO 待读：
         if (null != unlockMappedFile && this.defaultMessageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
             this.defaultMessageStore.unlockMappedFile(unlockMappedFile);
         }
@@ -672,10 +689,10 @@ public class CommitLog {
         storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
 
+        // 进行同步||异步 flush||commit
         GroupCommitRequest request = null;
-
         // Synchronization flush
-        if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
+        if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) { // TODO 待读：同步逻辑
             final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
             if (msg.isWaitStoreMsgOK()) {
                 request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
@@ -693,13 +710,14 @@ public class CommitLog {
         // Asynchronous flush
         else {
             if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
-                flushCommitLogService.wakeup();
+                flushCommitLogService.wakeup(); // import：唤醒commitLog线程，进行flush
             } else {
                 commitLogService.wakeup();
             }
         }
 
-        // Synchronous write double
+        // Synchronous write double 如果是同步Master，同步到从节点
+        // TODO 待读：数据同步
         if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
             HAService service = this.defaultMessageStore.getHaService();
             if (msg.isWaitStoreMsgOK()) {
@@ -839,6 +857,7 @@ public class CommitLog {
 
     /**
      * Spin util acquired the lock.
+     * 获取 putMessage 锁
      */
     private void lockForPutMessage() {
         if (this.defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage()) {
@@ -852,6 +871,9 @@ public class CommitLog {
         }
     }
 
+    /**
+     * 释放 putMessage 锁
+     */
     private void releasePutMessageLock() {
         if (this.defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage()) {
             putMessageNormalLock.unlock();

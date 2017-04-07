@@ -46,7 +46,7 @@ public class MessageExt extends Message {
      */
     private SocketAddress bornHost;
     /**
-     * 存储时间
+     * 存储时间。在broker生成
      */
     private long storeTimestamp;
     /**
@@ -55,6 +55,9 @@ public class MessageExt extends Message {
     private SocketAddress storeHost;
     private String msgId;
     private long commitLogOffset;
+    /**
+     * body crc
+     */
     private int bodyCRC;
     private int reconsumeTimes;
 

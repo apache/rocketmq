@@ -36,10 +36,12 @@ public class AppendMessageResult {
     private int wroteBytes;
     /**
      * Message ID
+     * 消息编号
      */
     private String msgId;
     /**
      * Message storage timestamp
+     * 存储时间
      */
     private long storeTimestamp;
     /**

@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.store;
 
+// TODO 待读
 public interface MessageArrivingListener {
     void arriving(String topic, int queueId, long logicOffset, long tagsCode);
 }
