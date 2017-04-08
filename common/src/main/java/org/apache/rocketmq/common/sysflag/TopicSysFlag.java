@@ -17,9 +17,7 @@
 package org.apache.rocketmq.common.sysflag;
 
 /**
-
- *
- *
+ * TODO 疑问
  */
 public class TopicSysFlag {
 

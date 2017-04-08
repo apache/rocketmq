@@ -26,7 +26,9 @@ public class RemotingSysResponseCode {
      * 成功
      */
     public static final int SUCCESS = 0;
-
+    /**
+     * 系统异常
+     */
     public static final int SYSTEM_ERROR = 1;
 
     public static final int SYSTEM_BUSY = 2;

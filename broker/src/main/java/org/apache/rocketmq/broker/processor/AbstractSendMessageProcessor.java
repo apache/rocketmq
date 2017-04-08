@@ -17,11 +17,6 @@
 package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
@@ -51,12 +46,21 @@ import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
 public abstract class AbstractSendMessageProcessor implements NettyRequestProcessor {
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     protected final static int DLQ_NUMS_PER_GROUP = 1;
     protected final BrokerController brokerController;
     protected final Random random = new Random(System.currentTimeMillis());
+    /**
+     * 存储Host
+     */
     protected final SocketAddress storeHost;
     private List<SendMessageHook> sendMessageHookList;
 
@@ -158,8 +162,19 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         return response;
     }
 
+    /**
+     * 校验消息是否正确，主要是消息配置方面，例如：broker是否可写，topic配置是否存在，队列编号是否正确。
+     * 如果查找不到消息配置，则会进行创建
+     * 该方法会对response的code、remark
+     *
+     * @param ctx ctx
+     * @param requestHeader 请求
+     * @param response 响应
+     * @return 响应
+     */
+    @SuppressWarnings("Duplicates")
     protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,
-        final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
+                                       final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
             && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.NO_PERMISSION);
@@ -167,6 +182,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 + "] sending message is forbidden");
             return response;
         }
+        // 检查topic是否可以被发送。目前是{@link MixAll.DEFAULT_TOPIC}不被允许发送
         if (!this.brokerController.getTopicConfigManager().isTopicCanSendMessage(requestHeader.getTopic())) {
             String errorMsg = "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
             log.warn(errorMsg);
@@ -175,9 +191,9 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             return response;
         }
 
-        TopicConfig topicConfig =
-            this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
+        TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
+            // TODO 疑问
             int topicSysFlag = 0;
             if (requestHeader.isUnitMode()) {
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -186,14 +202,13 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                     topicSysFlag = TopicSysFlag.buildSysFlag(true, false);
                 }
             }
-
+            // 创建topic配置 TODO 待读：消息创建
             log.warn("the topic {} not exist, producer: {}", requestHeader.getTopic(), ctx.channel().remoteAddress());
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(//
                 requestHeader.getTopic(), //
                 requestHeader.getDefaultTopic(), //
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
                 requestHeader.getDefaultTopicQueueNums(), topicSysFlag);
-
             if (null == topicConfig) {
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     topicConfig =
@@ -202,7 +217,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                             topicSysFlag);
                 }
             }
-
+            // 如果没配置
             if (null == topicConfig) {
                 response.setCode(ResponseCode.TOPIC_NOT_EXIST);
                 response.setRemark("topic[" + requestHeader.getTopic() + "] not exist, apply first please!"
@@ -210,19 +225,17 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 return response;
             }
         }
-
+        // 队列编号是否正确
         int queueIdInt = requestHeader.getQueueId();
         int idValid = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());
         if (queueIdInt >= idValid) {
-            String errorInfo = String.format("request queueId[%d] is illagal, %s Producer: %s",
+            String errorInfo = String.format("request queueId[%d] is illegal, %s Producer: %s",
                 queueIdInt,
                 topicConfig.toString(),
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-
             log.warn(errorInfo);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(errorInfo);
-
             return response;
         }
         return response;

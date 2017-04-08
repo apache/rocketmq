@@ -26,7 +26,9 @@ public class ResponseCode extends RemotingSysResponseCode {
     public static final int SLAVE_NOT_AVAILABLE = 11;
 
     public static final int FLUSH_SLAVE_TIMEOUT = 12;
-
+    /**
+     * Message不正确
+     */
     public static final int MESSAGE_ILLEGAL = 13;
 
     public static final int SERVICE_NOT_AVAILABLE = 14;
@@ -34,7 +36,9 @@ public class ResponseCode extends RemotingSysResponseCode {
     public static final int VERSION_NOT_SUPPORTED = 15;
 
     public static final int NO_PERMISSION = 16;
-
+    /**
+     * Topic不存在
+     */
     public static final int TOPIC_NOT_EXIST = 17;
     public static final int TOPIC_EXIST_ALREADY = 18;
     public static final int PULL_NOT_FOUND = 19;
@@ -50,7 +54,9 @@ public class ResponseCode extends RemotingSysResponseCode {
     public static final int SUBSCRIPTION_NOT_EXIST = 24;
 
     public static final int SUBSCRIPTION_NOT_LATEST = 25;
-
+    /**
+     * 订阅分组不存在
+     */
     public static final int SUBSCRIPTION_GROUP_NOT_EXIST = 26;
 
     public static final int TRANSACTION_SHOULD_COMMIT = 200;

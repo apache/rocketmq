@@ -16,35 +16,19 @@
  */
 package org.apache.rocketmq.common;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import org.apache.rocketmq.common.annotation.ImportantField;
+import org.apache.rocketmq.common.help.FAQUrl;
+import org.slf4j.Logger;
+
+import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.URL;
-import java.net.URLConnection;
+import java.net.*;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.rocketmq.common.annotation.ImportantField;
-import org.apache.rocketmq.common.help.FAQUrl;
-import org.slf4j.Logger;
 
 public class MixAll {
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
@@ -83,6 +67,7 @@ public class MixAll {
 
     public static final String RETRY_GROUP_TOPIC_PREFIX = "%RETRY%";
 
+    // TODO 待读
     public static final String DLQ_GROUP_TOPIC_PREFIX = "%DLQ%";
     public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
     public static final String UNIQUE_MSG_QUERY_FLAG = "_UNIQUE_KEY_QUERY";

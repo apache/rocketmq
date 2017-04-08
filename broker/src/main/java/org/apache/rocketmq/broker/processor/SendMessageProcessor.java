@@ -17,17 +17,11 @@
 package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
-import java.net.SocketAddress;
-import java.util.List;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
-import org.apache.rocketmq.common.MQVersion;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.TopicFilterType;
-import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.*;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -49,6 +43,9 @@ import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+
+import java.net.SocketAddress;
+import java.util.List;
 
 public class SendMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
 
@@ -238,16 +235,25 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         return response;
     }
 
+    /**
+     * 发送消息
+     *
+     * @param ctx channel ctx
+     * @param request 请求
+     * @param sendMessageContext 发送消息ctx
+     * @param requestHeader 发送消息请求
+     * @return 响应
+     * @throws RemotingCommandException 当远程调用异常
+     */
     private RemotingCommand sendMessage(final ChannelHandlerContext ctx, //
         final RemotingCommand request, //
         final SendMessageContext sendMessageContext, //
         final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
 
+        // 初始化响应
         final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
         final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader) response.readCustomHeader();
-
         response.setOpaque(request.getOpaque());
-
         response.addExtField(MessageConst.PROPERTY_MSG_REGION, this.brokerController.getBrokerConfig().getRegionId());
         response.addExtField(MessageConst.PROPERTY_TRACE_SWITCH, String.valueOf(this.brokerController.getBrokerConfig().isTraceOn()));
 
@@ -255,6 +261,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             log.debug("receive SendMessage request command, {}", request);
         }
 
+        // 如果未开始接收消息，抛出系统异常
+        @SuppressWarnings("SpellCheckingInspection")
         final long startTimstamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
         if (this.brokerController.getMessageStore().now() < startTimstamp) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -262,6 +270,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             return response;
         }
 
+        // 消息校验
         response.setCode(-1);
         super.msgCheck(ctx, requestHeader, response);
         if (response.getCode() != -1) {
@@ -270,31 +279,31 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         final byte[] body = request.getBody();
 
+        // 如果队列小于0，从可用队列随机选择
         int queueIdInt = requestHeader.getQueueId();
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
-
         if (queueIdInt < 0) {
             queueIdInt = Math.abs(this.random.nextInt() % 99999999) % topicConfig.getWriteQueueNums();
         }
 
         int sysFlag = requestHeader.getSysFlag();
-
         if (TopicFilterType.MULTI_TAG == topicConfig.getTopicFilterType()) {
             sysFlag |= MessageSysFlag.MULTI_TAGS_FLAG;
         }
 
+        // 对消费超过最大时的处理，创建tDLQTopic
         String newTopic = requestHeader.getTopic();
         if (null != newTopic && newTopic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+            // 获取订阅分组配置
             String groupName = newTopic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
             SubscriptionGroupConfig subscriptionGroupConfig =
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(groupName);
             if (null == subscriptionGroupConfig) {
                 response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
-                response.setRemark(
-                    "subscription group not exist, " + groupName + " " + FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST));
+                response.setRemark("subscription group not exist, " + groupName + " " + FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST));
                 return response;
             }
-
+            // 计算最大可消费次数
             int maxReconsumeTimes = subscriptionGroupConfig.getRetryMaxTimes();
             if (request.getVersion() >= MQVersion.Version.V3_4_9.ordinal()) {
                 maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
@@ -314,6 +323,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 }
             }
         }
+
+        // 创建MessageExtBrokerInner
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(newTopic);
         msgInner.setBody(body);
@@ -321,7 +332,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         MessageAccessor.setProperties(msgInner, MessageDecoder.string2messageProperties(requestHeader.getProperties()));
         msgInner.setPropertiesString(requestHeader.getProperties());
         msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(topicConfig.getTopicFilterType(), msgInner.getTags()));
-
         msgInner.setQueueId(queueIdInt);
         msgInner.setSysFlag(sysFlag);
         msgInner.setBornTimestamp(requestHeader.getBornTimestamp());
@@ -329,6 +339,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgInner.setStoreHost(this.getStoreHost());
         msgInner.setReconsumeTimes(requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes());
 
+        // 校验是否不允许发送事务消息
         if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
             String traFlag = msgInner.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
             if (traFlag != null) {
@@ -339,6 +350,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             }
         }
 
+        // 添加消息
         PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
         if (putMessageResult != null) {
             boolean sendOK = false;
@@ -396,8 +408,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             if (sendOK) {
 
                 this.brokerController.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic());
-                this.brokerController.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(),
-                    putMessageResult.getAppendMessageResult().getWroteBytes());
+                this.brokerController.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(), putMessageResult.getAppendMessageResult().getWroteBytes());
                 this.brokerController.getBrokerStatsManager().incBrokerPutNums();
 
                 response.setRemark(null);
@@ -406,9 +417,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 responseHeader.setQueueId(queueIdInt);
                 responseHeader.setQueueOffset(putMessageResult.getAppendMessageResult().getLogicsOffset());
 
-                doResponse(ctx, request, response);
+                doResponse(ctx, request, response); // TODO 疑问：为啥直接doResponse
 
-                if (hasSendMessageHook()) {
+                if (hasSendMessageHook()) { // TODO 待读：hook
                     sendMessageContext.setMsgId(responseHeader.getMsgId());
                     sendMessageContext.setQueueId(responseHeader.getQueueId());
                     sendMessageContext.setQueueOffset(responseHeader.getQueueOffset());
@@ -424,7 +435,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 }
                 return null;
             } else {
-                if (hasSendMessageHook()) {
+                if (hasSendMessageHook()) { // TODO 待读：hook
                     int wroteSize = request.getBody().length;
                     int incValue = (int) Math.ceil(wroteSize / BrokerStatsManager.SIZE_PER_COUNT);
 

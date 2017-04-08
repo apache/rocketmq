@@ -16,11 +16,12 @@
  */
 package org.apache.rocketmq.common;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class BrokerConfig {
     private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
@@ -85,6 +86,7 @@ public class BrokerConfig {
     private boolean transferMsgByHeap = true;
     private int maxDelayTime = 40;
 
+    // TODO 疑问：这个是干啥的
     private String regionId = MixAll.DEFAULT_TRACE_REGION_ID;
     private int registerBrokerTimeoutMills = 6000;
 
@@ -94,7 +96,10 @@ public class BrokerConfig {
     private long consumerFallbehindThreshold = 1024L * 1024 * 1024 * 16;
 
     private long waitTimeMillsInSendQueue = 200;
-
+    /**
+     * 开始接收请求时间
+     * TODO 疑问：什么时候设置的
+     */
     private long startAcceptSendRequestTimeStamp = 0L;
 
     private boolean traceOn = true;

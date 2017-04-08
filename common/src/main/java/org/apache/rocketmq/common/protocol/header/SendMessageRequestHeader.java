@@ -46,6 +46,7 @@ public class SendMessageRequestHeader implements CommandCustomHeader {
     private String properties;
     @CFNullable
     private Integer reconsumeTimes;
+    // TODO 疑问：unitMode是？
     @CFNullable
     private boolean unitMode = false;
     private Integer maxReconsumeTimes;

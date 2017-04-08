@@ -56,7 +56,9 @@ public class DefaultMessageStore implements MessageStore {
      * MessageStore配置
      */
     private final MessageStoreConfig messageStoreConfig;
-    // CommitLog
+    /**
+     * CommitLog
+     */
     private final CommitLog commitLog;
 
     private final ConcurrentHashMap<String/* topic */, ConcurrentHashMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;

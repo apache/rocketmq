@@ -16,11 +16,15 @@
  */
 package org.apache.rocketmq.store;
 
-import java.util.HashMap;
-import java.util.Set;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
+import java.util.HashMap;
+import java.util.Set;
+
+/**
+ * 消息存储
+ */
 public interface MessageStore {
 
     boolean load();

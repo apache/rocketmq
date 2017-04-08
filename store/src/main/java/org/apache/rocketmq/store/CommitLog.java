@@ -93,7 +93,6 @@ public class CommitLog {
      * 如果当前解锁，则为0
      */
     private volatile long beginTimeInLock = 0;
-
     /**
      * true: Can lock, false : in lock.
      * 添加消息 螺旋锁（通过while循环实现）
