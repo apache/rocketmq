@@ -36,6 +36,9 @@ public class RequestCode {
     public static final int QUERY_MESSAGE = 12;
     public static final int QUERY_BROKER_OFFSET = 13;
     public static final int QUERY_CONSUMER_OFFSET = 14;
+    /**
+     * TODO
+     */
     public static final int UPDATE_CONSUMER_OFFSET = 15;
     public static final int UPDATE_AND_CREATE_TOPIC = 17;
     public static final int GET_ALL_TOPIC_CONFIG = 21;

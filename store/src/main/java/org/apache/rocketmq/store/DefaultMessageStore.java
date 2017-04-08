@@ -427,7 +427,7 @@ public class DefaultMessageStore implements MessageStore {
                             }
 
                             if (this.messageFilter.isMessageMatched(subscriptionData, tagsCode)) {
-                                SelectMappedBufferResult selectResult = this.commitLog.getMessage(offsetPy, sizePy);
+                                SelectMappedBufferResult selectResult = this.commitLog.getMessage(offsetPy, sizePy); // TODO 待读
                                 if (selectResult != null) {
                                     this.storeStatsService.getGetMessageTransferedMsgCount().incrementAndGet();
                                     getResult.addMessage(selectResult);
