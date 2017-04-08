@@ -8,7 +8,7 @@ import org.junit.Test;
 
 /**
  * {@link org.apache.rocketmq.namesrv.NamesrvController}单元测试
- * 皮皮虾，跑起来
+ * 皮皮虾
  * Created by yunai on 2017/3/25.
  */
 public class NamesrvControllerTest {
