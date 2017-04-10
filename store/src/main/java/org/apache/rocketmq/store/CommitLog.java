@@ -170,11 +170,19 @@ public class CommitLog {
 
     /**
      * Read CommitLog data, use data replication
+     * @param offset 物理offset
+     * @return 获取映射Buffer结果
      */
     public SelectMappedBufferResult getData(final long offset) {
         return this.getData(offset, offset == 0);
     }
 
+    /**
+     * Read CommitLog data, use data replication
+     * @param offset 物理offset
+     * @param returnFirstOnNotFound 当未找到时，是否返回第一个commitLog
+     * @return 获取映射Buffer结果
+     */
     public SelectMappedBufferResult getData(final long offset, final boolean returnFirstOnNotFound) {
         int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
         MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, returnFirstOnNotFound);
@@ -286,28 +294,28 @@ public class CommitLog {
             // 5 FLAG
             int flag = byteBuffer.getInt();
 
-            // 6 QUEUEOFFSET
+            // 6 QUEUE_OFFSET
             long queueOffset = byteBuffer.getLong();
 
-            // 7 PHYSICALOFFSET
+            // 7 PHYSICAL_OFFSET
             long physicOffset = byteBuffer.getLong();
 
-            // 8 SYSFLAG
+            // 8 SYS_FLAG
             int sysFlag = byteBuffer.getInt();
 
-            // 9 BORNTIMESTAMP
+            // 9 BORN_TIMESTAMP
             long bornTimeStamp = byteBuffer.getLong();
 
             // 10
             ByteBuffer byteBuffer1 = byteBuffer.get(bytesContent, 0, 8);
 
-            // 11 STORETIMESTAMP
+            // 11 STORE_TIMESTAMP
             long storeTimestamp = byteBuffer.getLong();
 
             // 12
             ByteBuffer byteBuffer2 = byteBuffer.get(bytesContent, 0, 8);
 
-            // 13 RECONSUMETIMES
+            // 13 RECONSUME_TIMES
             int reconsumeTimes = byteBuffer.getInt();
 
             // 14 Prepared Transaction Offset
@@ -338,6 +346,7 @@ public class CommitLog {
 
             long tagsCode = 0;
             String keys = "";
+            @SuppressWarnings("SpellCheckingInspection")
             String uniqKey = null;
 
             // 17 properties

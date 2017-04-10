@@ -1575,6 +1575,7 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    @SuppressWarnings("SpellCheckingInspection")
     class ReputMessageService extends ServiceThread {
 
         private volatile long reputFromOffset = 0;
@@ -1583,6 +1584,7 @@ public class DefaultMessageStore implements MessageStore {
             return reputFromOffset;
         }
 
+        // TODO 待读：计算方式
         public void setReputFromOffset(long reputFromOffset) {
             this.reputFromOffset = reputFromOffset;
         }
@@ -1615,11 +1617,13 @@ public class DefaultMessageStore implements MessageStore {
         private void doReput() {
             for (boolean doNext = true; this.isCommitLogAvailable() && doNext; ) {
 
+                // TODO 疑问：这个是啥
                 if (DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable() //
                     && this.reputFromOffset >= DefaultMessageStore.this.getConfirmOffset()) {
                     break;
                 }
 
+                // 获取从reputFromOffset开始的commitLog byteBuffer
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
                 if (result != null) {
                     try {

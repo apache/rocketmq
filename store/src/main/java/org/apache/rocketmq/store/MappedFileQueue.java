@@ -517,7 +517,7 @@ public class MappedFileQueue {
                 try {
                     return this.mappedFiles.get(index);
                 } catch (Exception e) {
-                    if (returnFirstOnNotFound) {
+                    if (returnFirstOnNotFound) { // TODO 疑问：为什么可以用returnFirstOnNotFound，会不会有问题
                         return mappedFile;
                     }
                     LOG_ERROR.warn("findMappedFileByOffset failure. ", e);

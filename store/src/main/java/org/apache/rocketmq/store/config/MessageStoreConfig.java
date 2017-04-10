@@ -37,10 +37,15 @@ public class MessageStoreConfig {
 
     /**
      * CommitLog file size,default is 1G
+     * 每个commitLog文件大小
      */
     @SuppressWarnings("SpellCheckingInspection")
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
-    // ConsumeQueue file size,default is 30W
+    /**
+     * ConsumeQueue file size,default is 30W
+     * 每个消费队列文件大小，每个文件30W消息
+     */
+    @SuppressWarnings("SpellCheckingInspection")
     private int mapedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
 
     /**
