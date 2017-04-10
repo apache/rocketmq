@@ -16,27 +16,41 @@
  */
 package org.apache.rocketmq.store;
 
-import java.io.File;
-import java.nio.ByteBuffer;
-import java.util.List;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.nio.ByteBuffer;
+import java.util.List;
+
 public class ConsumeQueue {
+
+     // TODO 疑问：00000000000024000000 为啥consume从这个开始
 
     public static final int CQ_STORE_UNIT_SIZE = 20;
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final Logger LOG_ERROR = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
     private final DefaultMessageStore defaultMessageStore;
-
+    /**
+     * 映射文件队列
+     */
     private final MappedFileQueue mappedFileQueue;
+    /**
+     * Topic
+     */
     private final String topic;
+    /**
+     * 队列编号
+     */
     private final int queueId;
     private final ByteBuffer byteBufferIndex;
 
     private final String storePath;
+    /**
+     * 每个映射文件大小
+     */
     private final int mappedFileSize;
     private long maxPhysicOffset = -1;
     private volatile long minLogicOffset = 0;
@@ -72,56 +86,58 @@ public class ConsumeQueue {
     public void recover() {
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
-
+            // TODO 疑问：-3的目的是？
             int index = mappedFiles.size() - 3;
             if (index < 0)
                 index = 0;
 
             int mappedFileSizeLogics = this.mappedFileSize;
-            MappedFile mappedFile = mappedFiles.get(index);
+            MappedFile mappedFile = mappedFiles.get(index); // 当前遍历 MappedFile
             ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
             long processOffset = mappedFile.getFileFromOffset();
-            long mappedFileOffset = 0;
+            long mappedFileOffset = 0; // 记录：当前遍历 MappedFile 最后一个有内容的offset
+            // 遍历 mappedFiles
             while (true) {
+                // 遍历 当前mappedFile
                 for (int i = 0; i < mappedFileSizeLogics; i += CQ_STORE_UNIT_SIZE) {
                     long offset = byteBuffer.getLong();
                     int size = byteBuffer.getInt();
                     long tagsCode = byteBuffer.getLong();
-
+                    // 处理mappedFileOffset
                     if (offset >= 0 && size > 0) {
                         mappedFileOffset = i + CQ_STORE_UNIT_SIZE;
                         this.maxPhysicOffset = offset;
-                    } else {
+                    } else { // TODO 疑问：什么情况下会出现这个问题啊
                         log.info("recover current consume queue file over,  " + mappedFile.getFileName() + " "
                             + offset + " " + size + " " + tagsCode);
                         break;
                     }
                 }
-
-                if (mappedFileOffset == mappedFileSizeLogics) {
+                // 根据不同情况处理
+                if (mappedFileOffset == mappedFileSizeLogics) { // 遍历到文件尾
                     index++;
-                    if (index >= mappedFiles.size()) {
-
-                        log.info("recover last consume queue file over, last maped file "
+                    if (index >= mappedFiles.size()) { // 全部 mappedFiles 遍历完了，结束
+                        log.info("recover last consume queue file over, last mapped file "
                             + mappedFile.getFileName());
                         break;
-                    } else {
+                    } else { // 遍历下一个文件
                         mappedFile = mappedFiles.get(index);
                         byteBuffer = mappedFile.sliceByteBuffer();
                         processOffset = mappedFile.getFileFromOffset();
                         mappedFileOffset = 0;
                         log.info("recover next consume queue file, " + mappedFile.getFileName());
                     }
-                } else {
+                } else { // 当前mappedFile 未全部使用，表示当前文件是最后一个文件，结束
                     log.info("recover current consume queue queue over " + mappedFile.getFileName() + " "
                         + (processOffset + mappedFileOffset));
                     break;
                 }
             }
-
+            // 设置flush/commit的offset
             processOffset += mappedFileOffset;
             this.mappedFileQueue.setFlushedWhere(processOffset);
             this.mappedFileQueue.setCommittedWhere(processOffset);
+            // TODO 待读
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
         }
     }

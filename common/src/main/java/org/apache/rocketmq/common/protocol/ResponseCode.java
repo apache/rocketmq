@@ -27,7 +27,7 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int FLUSH_SLAVE_TIMEOUT = 12;
     /**
-     * Message不正确
+     * Message 不正确
      */
     public static final int MESSAGE_ILLEGAL = 13;
 
@@ -37,7 +37,7 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int NO_PERMISSION = 16;
     /**
-     * Topic不存在
+     * Topic 不存在
      */
     public static final int TOPIC_NOT_EXIST = 17;
     public static final int TOPIC_EXIST_ALREADY = 18;
@@ -50,12 +50,16 @@ public class ResponseCode extends RemotingSysResponseCode {
     public static final int QUERY_NOT_FOUND = 22;
 
     public static final int SUBSCRIPTION_PARSE_FAILED = 23;
-
+    /**
+     * 订阅 不存在
+     */
     public static final int SUBSCRIPTION_NOT_EXIST = 24;
-
+    /**
+     * 订阅 版本不不正确
+     */
     public static final int SUBSCRIPTION_NOT_LATEST = 25;
     /**
-     * 订阅分组不存在
+     * 订阅分组 不存在
      */
     public static final int SUBSCRIPTION_GROUP_NOT_EXIST = 26;
 

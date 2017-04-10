@@ -118,6 +118,7 @@ public class MappedFileQueue {
         return mfs;
     }
 
+    // TODO 待读
     public void truncateDirtyFiles(long offset) {
         List<MappedFile> willRemoveFiles = new ArrayList<MappedFile>();
 
@@ -128,7 +129,7 @@ public class MappedFileQueue {
                     file.setWrotePosition((int) (offset % this.mappedFileSize));
                     file.setCommittedPosition((int) (offset % this.mappedFileSize));
                     file.setFlushedPosition((int) (offset % this.mappedFileSize));
-                } else {
+                } else { // TODO 会有什么情况出现？？？？
                     file.destroy(1000);
                     willRemoveFiles.add(file);
                 }

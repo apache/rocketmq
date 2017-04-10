@@ -18,7 +18,6 @@ package org.apache.rocketmq.example.quickstart;
 
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
@@ -69,9 +68,11 @@ public class Producer {
                 /*
                  * Call send message to deliver message to one of brokers.
                  */
-                SendResult sendResult = producer.send(msg);
+//                SendResult sendResult = producer.send(msg);
+                producer.sendOneway(msg);
 
-                System.out.printf("%s%n", sendResult);
+//                System.out.printf("%s%n", sendResult);
+                System.out.println(i);
             } catch (Exception e) {
                 e.printStackTrace();
                 Thread.sleep(1000);
