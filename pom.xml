@@ -180,6 +180,7 @@
         <module>srvutil</module>
         <module>test</module>
         <module>distribution</module>
+        <module>openmessaging</module>
     </modules>
 
     <build>
@@ -602,6 +603,11 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>3.4</version>
+            </dependency>
+            <dependency>
+                <groupId>io.openmessaging</groupId>
+                <artifactId>messaging-user-level-api</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
