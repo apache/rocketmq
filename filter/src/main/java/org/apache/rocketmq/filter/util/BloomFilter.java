@@ -17,12 +17,16 @@
 
 package org.apache.rocketmq.filter.util;
 
-import java.util.Arrays;
+import com.google.common.hash.Hashing;
+
+import java.nio.charset.Charset;
 
 /**
  * Simple implement of bloom filter.
  */
 public class BloomFilter {
+
+    public static final Charset UTF_8 = Charset.forName("UTF-8");
 
     // as error rate, 10/100 = 0.1
     private int f = 10;
@@ -32,8 +36,6 @@ public class BloomFilter {
     private int k;
     // bit count, by calculation.
     private int m;
-
-    private HashAlgorithm[] hashFunctions;
 
     /**
      * Create bloom filter by error rate and mapping num.
@@ -77,26 +79,33 @@ public class BloomFilter {
         this.m = (int) Math.ceil(this.n * logMN(2, 1 / errorRate) * logMN(2, Math.E));
         // m%8 = 0
         this.m = (int) (Byte.SIZE * Math.ceil(this.m / (Byte.SIZE * 1.0)));
-
-        HashAlgorithm[] hashAlgorithms = HashAlgorithm.values();
-
-        this.hashFunctions = new HashAlgorithm[this.k];
-        for (int i = 0; i < this.k; i++) {
-            this.hashFunctions[i] = hashAlgorithms[i % hashAlgorithms.length];
-        }
     }
 
     /**
      * Calculate bit positions of {@code str}.
+     * <p>
+     * See "Less Hashing, Same Performance: Building a Better Bloom Filter" by Adam Kirsch and Michael
+     * Mitzenmacher.
+     * </p>
      *
      * @param str
      * @return
      */
     public int[] calcBitPositions(String str) {
-        int[] bitPositions = new int[this.hashFunctions.length];
+        int[] bitPositions = new int[this.k];
 
-        for (int i = 0; i < this.hashFunctions.length; i++) {
-            bitPositions[i] = (int) (Math.abs(this.hashFunctions[i].hash(str)) % this.m);
+        long hash64 = Hashing.murmur3_128().hashString(str, UTF_8).asLong();
+
+        int hash1 = (int) hash64;
+        int hash2 = (int) (hash64 >>> 32);
+
+        for (int i = 1; i <= this.k; i++) {
+            int combinedHash = hash1 + (i * hash2);
+            // Flip all the bits if it's negative (guaranteed positive number)
+            if (combinedHash < 0) {
+                combinedHash = ~combinedHash;
+            }
+            bitPositions[i - 1] = combinedHash % this.m;
         }
 
         return bitPositions;
@@ -305,8 +314,6 @@ public class BloomFilter {
             return false;
         if (n != that.n)
             return false;
-        if (!Arrays.equals(hashFunctions, that.hashFunctions))
-            return false;
 
         return true;
     }
@@ -317,7 +324,6 @@ public class BloomFilter {
         result = 31 * result + n;
         result = 31 * result + k;
         result = 31 * result + m;
-        result = 31 * result + (hashFunctions != null ? Arrays.hashCode(hashFunctions) : 0);
         return result;
     }
 

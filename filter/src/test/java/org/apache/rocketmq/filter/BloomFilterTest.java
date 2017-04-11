@@ -20,7 +20,6 @@ package org.apache.rocketmq.filter;
 import org.apache.rocketmq.filter.util.BitsArray;
 import org.apache.rocketmq.filter.util.BloomFilter;
 import org.apache.rocketmq.filter.util.BloomFilterData;
-import org.apache.rocketmq.filter.util.HashAlgorithm;
 import org.junit.Test;
 
 import java.util.Random;
@@ -141,13 +140,6 @@ public class BloomFilterTest {
 
         assertThat(bloomFilter).isNotNull();
         assertThat(bloomFilter.isValid(bloomFilterData)).isFalse();
-    }
-
-    @Test
-    public void testHashAlgorithm() {
-        for (HashAlgorithm algorithm : HashAlgorithm.values()) {
-            assertThat(algorithm.hash("abc")).isNotEqualTo(0);
-        }
     }
 
     @Test
