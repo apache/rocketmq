@@ -606,8 +606,8 @@
             </dependency>
             <dependency>
                 <groupId>io.openmessaging</groupId>
-                <artifactId>messaging-user-level-api</artifactId>
-                <version>1.0.0-SNAPSHOT</version>
+                <artifactId>openmessaging-api</artifactId>
+                <version>0.1.0-beta</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

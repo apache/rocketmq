@@ -26,26 +26,39 @@ import io.openmessaging.ResourceManager;
 import io.openmessaging.SequenceProducer;
 import io.openmessaging.ServiceEndPoint;
 import io.openmessaging.observer.Observer;
+import io.openmessaging.rocketmq.producer.ProducerImpl;
+import io.openmessaging.rocketmq.producer.SequenceProducerImpl;
 
 public class MessagingAccessPointImpl implements MessagingAccessPoint {
+    private final KeyValue accessPointProperties;
+
+    public MessagingAccessPointImpl(final KeyValue accessPointProperties) {
+        this.accessPointProperties = accessPointProperties;
+    }
+
+    @Override
+    public KeyValue properties() {
+        return accessPointProperties;
+    }
+
     @Override
     public Producer createProducer() {
-        return null;
+        return new ProducerImpl(this.accessPointProperties);
     }
 
     @Override
     public Producer createProducer(KeyValue properties) {
-        return null;
+        return new ProducerImpl(OMSUtil.buildKeyValue(this.accessPointProperties, properties));
     }
 
     @Override
     public SequenceProducer createSequenceProducer() {
-        return null;
+        return new SequenceProducerImpl(this.accessPointProperties);
     }
 
     @Override
     public SequenceProducer createSequenceProducer(KeyValue properties) {
-        return null;
+        return new SequenceProducerImpl(OMSUtil.buildKeyValue(this.accessPointProperties, properties));
     }
 
     @Override
@@ -79,7 +92,7 @@ public class MessagingAccessPointImpl implements MessagingAccessPoint {
     }
 
     @Override
-    public ResourceManager createResourceManager() {
+    public ResourceManager getResourceManager() {
         return null;
     }
 
