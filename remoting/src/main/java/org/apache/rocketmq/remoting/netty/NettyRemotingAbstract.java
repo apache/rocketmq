@@ -126,11 +126,8 @@ public abstract class NettyRemotingAbstract {
                             }
                         }
                     } catch (Throwable e) {
-                        if (!"com.aliyun.openservices.ons.api.impl.authority.exception.AuthenticationException"
-                            .equals(e.getClass().getCanonicalName())) {
-                            PLOG.error("process request exception", e);
-                            PLOG.error(cmd.toString());
-                        }
+                        PLOG.error("process request exception", e);
+                        PLOG.error(cmd.toString());
 
                         if (!cmd.isOnewayRPC()) {
                             final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, //
