@@ -577,12 +577,12 @@ public class MQClientAPIImpl {
                     }
                 } else {
                     if (!responseFuture.isSendRequestOK()) {
-                        pullCallback.onException(new MQClientException("send request failed", responseFuture.getCause()));
+                        pullCallback.onException(new MQClientException("send request failed to " + addr + ".request: " + request, responseFuture.getCause()));
                     } else if (responseFuture.isTimeout()) {
-                        pullCallback.onException(new MQClientException("wait response timeout " + responseFuture.getTimeoutMillis() + "ms",
+                        pullCallback.onException(new MQClientException("wait response from " + addr + " timeout :" + responseFuture.getTimeoutMillis() + "ms" + " request: " + request,
                             responseFuture.getCause()));
                     } else {
-                        pullCallback.onException(new MQClientException("unknow reseaon", responseFuture.getCause()));
+                        pullCallback.onException(new MQClientException("unknown reason. addr: " + addr + ", timeoutMillis: " + timeoutMillis + ", request: " + request, responseFuture.getCause()));
                     }
                 }
             }
