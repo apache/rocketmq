@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.store;
 
+import java.util.Map;
+
 public class DispatchRequest {
     private final String topic;
     private final int queueId;
@@ -30,6 +32,8 @@ public class DispatchRequest {
 
     private final int sysFlag;
     private final long preparedTransactionOffset;
+    private final Map<String, String> propertiesMap;
+    private byte[] bitMap;
 
     public DispatchRequest(
         final String topic,
@@ -42,7 +46,8 @@ public class DispatchRequest {
         final String keys,
         final String uniqKey,
         final int sysFlag,
-        final long preparedTransactionOffset
+        final long preparedTransactionOffset,
+        final Map<String, String> propertiesMap
     ) {
         this.topic = topic;
         this.queueId = queueId;
@@ -57,6 +62,7 @@ public class DispatchRequest {
         this.sysFlag = sysFlag;
         this.preparedTransactionOffset = preparedTransactionOffset;
         this.success = true;
+        this.propertiesMap = propertiesMap;
     }
 
     public DispatchRequest(int size) {
@@ -81,6 +87,7 @@ public class DispatchRequest {
         this.sysFlag = 0;
         this.preparedTransactionOffset = 0;
         this.success = false;
+        this.propertiesMap = null;
     }
 
     public DispatchRequest(int size, boolean success) {
@@ -105,6 +112,7 @@ public class DispatchRequest {
         this.sysFlag = 0;
         this.preparedTransactionOffset = 0;
         this.success = success;
+        this.propertiesMap = null;
     }
 
     public String getTopic() {
@@ -155,4 +163,15 @@ public class DispatchRequest {
         return uniqKey;
     }
 
+    public Map<String, String> getPropertiesMap() {
+        return propertiesMap;
+    }
+
+    public byte[] getBitMap() {
+        return bitMap;
+    }
+
+    public void setBitMap(byte[] bitMap) {
+        this.bitMap = bitMap;
+    }
 }

@@ -46,6 +46,7 @@ public class PullMessageRequestHeader implements CommandCustomHeader {
     private String subscription;
     @CFNotNull
     private Long subVersion;
+    private String expressionType;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -129,5 +130,13 @@ public class PullMessageRequestHeader implements CommandCustomHeader {
 
     public void setSubVersion(Long subVersion) {
         this.subVersion = subVersion;
+    }
+
+    public String getExpressionType() {
+        return expressionType;
+    }
+
+    public void setExpressionType(String expressionType) {
+        this.expressionType = expressionType;
     }
 }

@@ -178,6 +178,7 @@
         <module>example</module>
         <module>filtersrv</module>
         <module>srvutil</module>
+        <module>filter</module>
         <module>test</module>
         <module>distribution</module>
     </modules>
@@ -551,6 +552,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-srvutil</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-filter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

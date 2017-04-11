@@ -32,6 +32,7 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
     private Set<String> tagsSet = new HashSet<String>();
     private Set<Integer> codeSet = new HashSet<Integer>();
     private long subVersion = System.currentTimeMillis();
+    private String expressionType;
 
     @JSONField(serialize = false)
     private String filterClassSource;
@@ -102,6 +103,14 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
         this.classFilterMode = classFilterMode;
     }
 
+    public String getExpressionType() {
+        return expressionType;
+    }
+
+    public void setExpressionType(String expressionType) {
+        this.expressionType = expressionType;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -111,6 +120,7 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
         result = prime * result + ((subString == null) ? 0 : subString.hashCode());
         result = prime * result + ((tagsSet == null) ? 0 : tagsSet.hashCode());
         result = prime * result + ((topic == null) ? 0 : topic.hashCode());
+        result = prime * result + ((expressionType == null) ? 0 : expressionType.hashCode());
         return result;
     }
 
@@ -147,6 +157,11 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
                 return false;
         } else if (!topic.equals(other.topic))
             return false;
+        if (expressionType == null) {
+            if (other.expressionType != null)
+                return false;
+        } else if (!expressionType.equals(other.expressionType))
+            return false;
         return true;
     }
 
@@ -154,7 +169,7 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
     public String toString() {
         return "SubscriptionData [classFilterMode=" + classFilterMode + ", topic=" + topic + ", subString="
             + subString + ", tagsSet=" + tagsSet + ", codeSet=" + codeSet + ", subVersion=" + subVersion
-            + "]";
+            + ", expressionType=" + expressionType + "]";
     }
 
     @Override
