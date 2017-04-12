@@ -232,12 +232,10 @@ public class BrokerStartup {
 
     private static void properties2SystemEnv(Properties properties) {
         if (properties == null) {
-            log.info("No properties to set system environment");
             return;
         }
-
-        String rmqAddressServerDomain = properties.getProperty("rmqAddressServerDomain", MixAll.DEFAULT_NAMESRV_ADDR_LOOKUP);
-        String rmqAddressServerSubGroup = properties.getProperty("rmqAddressServerSubGroup", "nsaddr");
+        String rmqAddressServerDomain = properties.getProperty("rmqAddressServerDomain", MixAll.WS_DOMAIN_NAME);
+        String rmqAddressServerSubGroup = properties.getProperty("rmqAddressServerSubGroup", MixAll.WS_DOMAIN_SUBGROUP);
         System.setProperty("rocketmq.namesrv.domain", rmqAddressServerDomain);
         System.setProperty("rocketmq.namesrv.domain.subgroup", rmqAddressServerSubGroup);
     }
