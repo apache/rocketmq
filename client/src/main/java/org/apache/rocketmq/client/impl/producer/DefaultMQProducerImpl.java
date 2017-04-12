@@ -55,7 +55,7 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.latency.MQFaultStrategy;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.client.producer.LocalTransactionExecuter;
+import org.apache.rocketmq.client.producer.LocalTransactionExecutor;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendCallback;
@@ -258,7 +258,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             public void run() {
                 TransactionCheckListener transactionCheckListener = DefaultMQProducerImpl.this.checkListener();
                 if (transactionCheckListener != null) {
-                    LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
+                    LocalTransactionState localTransactionState = LocalTransactionState.UNKNOWN;
                     Throwable exception = null;
                     try {
                         localTransactionState = transactionCheckListener.checkLocalTransactionState(message);
@@ -300,7 +300,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         thisHeader.setCommitOrRollback(MessageSysFlag.TRANSACTION_ROLLBACK_TYPE);
                         log.warn("when broker check, client rollback this transaction, {}", thisHeader);
                         break;
-                    case UNKNOW:
+                    case UNKNOWN:
                         thisHeader.setCommitOrRollback(MessageSysFlag.TRANSACTION_NOT_TYPE);
                         log.warn("when broker check, client does not know this transaction state, {}", thisHeader);
                         break;
@@ -415,7 +415,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         try {
             this.sendDefaultImpl(msg, CommunicationMode.ASYNC, sendCallback, timeout);
         } catch (MQBrokerException e) {
-            throw new MQClientException("unknownn exception", e);
+            throw new MQClientException("unknown exception", e);
         }
     }
 
@@ -902,7 +902,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             try {
                 mq = selector.select(topicPublishInfo.getMessageQueueList(), msg, arg);
             } catch (Throwable e) {
-                throw new MQClientException("select message queue throwed exception.", e);
+                throw new MQClientException("select message queue threw exception.", e);
             }
 
             if (mq != null) {
@@ -928,7 +928,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         try {
             this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, sendCallback, timeout);
         } catch (MQBrokerException e) {
-            throw new MQClientException("unknownn exception", e);
+            throw new MQClientException("unknown exception", e);
         }
     }
 
@@ -944,9 +944,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
     }
 
-    public TransactionSendResult sendMessageInTransaction(final Message msg, final LocalTransactionExecuter tranExecuter, final Object arg)
+    public TransactionSendResult sendMessageInTransaction(final Message msg, final LocalTransactionExecutor tranExecutor, final Object arg)
         throws MQClientException {
-        if (null == tranExecuter) {
+        if (null == tranExecutor) {
             throw new MQClientException("tranExecutor is null", null);
         }
         Validators.checkMessage(msg, this.defaultMQProducer);
@@ -960,7 +960,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             throw new MQClientException("send message Exception", e);
         }
 
-        LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
+        LocalTransactionState localTransactionState = LocalTransactionState.UNKNOWN;
         Throwable localException = null;
         switch (sendResult.getSendStatus()) {
             case SEND_OK: {
@@ -968,9 +968,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     if (sendResult.getTransactionId() != null) {
                         msg.putUserProperty("__transactionId__", sendResult.getTransactionId());
                     }
-                    localTransactionState = tranExecuter.executeLocalTransactionBranch(msg, arg);
+                    localTransactionState = tranExecutor.executeLocalTransactionBranch(msg, arg);
                     if (null == localTransactionState) {
-                        localTransactionState = LocalTransactionState.UNKNOW;
+                        localTransactionState = LocalTransactionState.UNKNOWN;
                     }
 
                     if (localTransactionState != LocalTransactionState.COMMIT_MESSAGE) {
@@ -1038,7 +1038,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             case ROLLBACK_MESSAGE:
                 requestHeader.setCommitOrRollback(MessageSysFlag.TRANSACTION_ROLLBACK_TYPE);
                 break;
-            case UNKNOW:
+            case UNKNOWN:
                 requestHeader.setCommitOrRollback(MessageSysFlag.TRANSACTION_NOT_TYPE);
                 break;
             default:

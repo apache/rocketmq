@@ -14,29 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.client.producer.selector;
 
-/**
- * $Id: GetEarliestMsgStoretimeResponseHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
- */
-package org.apache.rocketmq.common.protocol.header;
+import java.util.List;
+import java.util.Random;
+import org.apache.rocketmq.client.producer.MessageQueueSelector;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageQueue;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-
-public class GetEarliestMsgStoretimeResponseHeader implements CommandCustomHeader {
-    @CFNotNull
-    private Long timestamp;
+public class SelectMessageQueueByRandom implements MessageQueueSelector {
+    private Random random = new Random(System.currentTimeMillis());
 
     @Override
-    public void checkFields() throws RemotingCommandException {
-    }
+    public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
+        int value = random.nextInt();
+        if (value < 0) {
+            value = Math.abs(value);
+        }
 
-    public Long getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(Long timestamp) {
-        this.timestamp = timestamp;
+        value = value % mqs.size();
+        return mqs.get(value);
     }
 }

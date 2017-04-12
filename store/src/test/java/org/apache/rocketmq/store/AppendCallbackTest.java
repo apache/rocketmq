@@ -113,17 +113,17 @@ public class AppendCallbackTest {
 
         messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
-        AppendMessageResult allresult = callback.doAppend(0, buff, 1024 * 10, messageExtBatch);
+        AppendMessageResult allResult = callback.doAppend(0, buff, 1024 * 10, messageExtBatch);
 
-        assertEquals(AppendMessageStatus.PUT_OK, allresult.getStatus());
-        assertEquals(0, allresult.getWroteOffset());
-        assertEquals(0, allresult.getLogicsOffset());
-        assertEquals(buff.position(), allresult.getWroteBytes());
+        assertEquals(AppendMessageStatus.PUT_OK, allResult.getStatus());
+        assertEquals(0, allResult.getWroteOffset());
+        assertEquals(0, allResult.getLogicsOffset());
+        assertEquals(buff.position(), allResult.getWroteBytes());
 
-        assertEquals(messages.size(), allresult.getMsgNum());
+        assertEquals(messages.size(), allResult.getMsgNum());
 
         Set<String> msgIds = new HashSet<>();
-        for (String msgId: allresult.getMsgId().split(",")) {
+        for (String msgId: allResult.getMsgId().split(",")) {
             assertEquals(32, msgId.length());
             msgIds.add(msgId);
         }

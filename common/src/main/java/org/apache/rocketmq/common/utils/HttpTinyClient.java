@@ -66,10 +66,10 @@ public class HttpTinyClient {
             return null;
         }
 
-        for (Iterator<String> iter = paramValues.iterator(); iter.hasNext(); ) {
-            sb.append(iter.next()).append("=");
-            sb.append(URLEncoder.encode(iter.next(), encoding));
-            if (iter.hasNext()) {
+        for (Iterator<String> iterator = paramValues.iterator(); iterator.hasNext(); ) {
+            sb.append(iterator.next()).append("=");
+            sb.append(URLEncoder.encode(iterator.next(), encoding));
+            if (iterator.hasNext()) {
                 sb.append("&");
             }
         }
@@ -78,8 +78,8 @@ public class HttpTinyClient {
 
     static private void setHeaders(HttpURLConnection conn, List<String> headers, String encoding) {
         if (null != headers) {
-            for (Iterator<String> iter = headers.iterator(); iter.hasNext(); ) {
-                conn.addRequestProperty(iter.next(), iter.next());
+            for (Iterator<String> iterator = headers.iterator(); iterator.hasNext(); ) {
+                conn.addRequestProperty(iterator.next(), iterator.next());
             }
         }
         conn.addRequestProperty("Client-Version", MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));

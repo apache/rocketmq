@@ -124,7 +124,7 @@ public abstract class AbstractMQProducer extends MQCollector implements MQProduc
     public void send(long msgNum, int intervalMills) {
         for (int i = 0; i < msgNum; i++) {
             this.send();
-            TestUtil.waitForMonment(intervalMills);
+            TestUtil.waitForMoment(intervalMills);
         }
     }
 
@@ -139,7 +139,7 @@ public abstract class AbstractMQProducer extends MQCollector implements MQProduc
         for (int i = 0; i < msgSize; i++) {
             Object msg = getMessageByTag(tag);
             send(msg, null);
-            TestUtil.waitForMonment(intervalMills);
+            TestUtil.waitForMoment(intervalMills);
         }
     }
 

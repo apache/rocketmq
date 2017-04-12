@@ -28,16 +28,16 @@ public class BaseBroadCastIT extends BaseConf {
 
     public static RMQBroadCastConsumer getBroadCastConsumer(String nsAddr, String topic,
         String subExpression,
-        AbstractListener listner) {
+        AbstractListener listener) {
         String consumerGroup = initConsumerGroup();
-        return getBroadCastConsumer(nsAddr, consumerGroup, topic, subExpression, listner);
+        return getBroadCastConsumer(nsAddr, consumerGroup, topic, subExpression, listener);
     }
 
     public static RMQBroadCastConsumer getBroadCastConsumer(String nsAddr, String consumerGroup,
         String topic, String subExpression,
-        AbstractListener listner) {
+        AbstractListener listener) {
         RMQBroadCastConsumer consumer = ConsumerFactory.getRMQBroadCastConsumer(nsAddr,
-            consumerGroup, topic, subExpression, listner);
+            consumerGroup, topic, subExpression, listener);
 
         consumer.setDebug();
 
@@ -47,7 +47,7 @@ public class BaseBroadCastIT extends BaseConf {
         return consumer;
     }
 
-    public void printSeperator() {
+    public void printSeparator() {
         for (int i = 0; i < 3; i++) {
             logger.info(
                 "<<<<<<<<================================================================================>>>>>>>>");

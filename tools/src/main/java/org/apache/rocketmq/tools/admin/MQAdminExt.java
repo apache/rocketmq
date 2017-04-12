@@ -205,7 +205,7 @@ public interface MQAdminExt extends MQAdmin {
     /**
      * Update name server config.
      * <br>
-     * Command Code : RequestCode.UPDATE_NAMESRV_CONFIG
+     * Command Code : RequestCode.UPDATE_NAME_SERVER_CONFIG
      *
      * <br> If param(nameServers) is null or empty, will use name servers from ns!
      *
@@ -226,7 +226,7 @@ public interface MQAdminExt extends MQAdmin {
     /**
      * Get name server config.
      * <br>
-     * Command Code : RequestCode.GET_NAMESRV_CONFIG
+     * Command Code : RequestCode.GET_NAME_SERVER_CONFIG
      * <br> If param(nameServers) is null or empty, will use name servers from ns!
      *
      * @param nameServers

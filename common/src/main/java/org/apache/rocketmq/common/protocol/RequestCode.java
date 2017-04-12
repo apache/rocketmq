@@ -44,7 +44,7 @@ public class RequestCode {
     public static final int GET_MAX_OFFSET = 30;
     public static final int GET_MIN_OFFSET = 31;
 
-    public static final int GET_EARLIEST_MSG_STORETIME = 32;
+    public static final int GET_EARLIEST_MSG_STORE_TIME = 32;
 
     public static final int VIEW_MESSAGE_BY_ID = 33;
 
@@ -77,19 +77,19 @@ public class RequestCode {
     public static final int REGISTER_BROKER = 103;
 
     public static final int UNREGISTER_BROKER = 104;
-    public static final int GET_ROUTEINTO_BY_TOPIC = 105;
+    public static final int GET_ROUTE_INTO_BY_TOPIC = 105;
 
     public static final int GET_BROKER_CLUSTER_INFO = 106;
-    public static final int UPDATE_AND_CREATE_SUBSCRIPTIONGROUP = 200;
-    public static final int GET_ALL_SUBSCRIPTIONGROUP_CONFIG = 201;
+    public static final int UPDATE_AND_CREATE_SUBSCRIPTION_GROUP = 200;
+    public static final int GET_ALL_SUBSCRIPTION_GROUP_CONFIG = 201;
     public static final int GET_TOPIC_STATS_INFO = 202;
     public static final int GET_CONSUMER_CONNECTION_LIST = 203;
     public static final int GET_PRODUCER_CONNECTION_LIST = 204;
     public static final int WIPE_WRITE_PERM_OF_BROKER = 205;
 
-    public static final int GET_ALL_TOPIC_LIST_FROM_NAMESERVER = 206;
+    public static final int GET_ALL_TOPIC_LIST_FROM_NAME_SERVER = 206;
 
-    public static final int DELETE_SUBSCRIPTIONGROUP = 207;
+    public static final int DELETE_SUBSCRIPTION_GROUP = 207;
     public static final int GET_CONSUME_STATS = 208;
 
     public static final int SUSPEND_CONSUMER = 209;
@@ -104,8 +104,8 @@ public class RequestCode {
 
     public static final int DELETE_TOPIC_IN_BROKER = 215;
 
-    public static final int DELETE_TOPIC_IN_NAMESRV = 216;
-    public static final int GET_KVLIST_BY_NAMESPACE = 219;
+    public static final int DELETE_TOPIC_IN_NAME_SERVER = 216;
+    public static final int GET_KV_LIST_BY_NAMESPACE = 219;
 
     public static final int RESET_CONSUMER_CLIENT_OFFSET = 220;
 
@@ -127,7 +127,7 @@ public class RequestCode {
     public static final int GET_SYSTEM_TOPIC_LIST_FROM_NS = 304;
     public static final int GET_SYSTEM_TOPIC_LIST_FROM_BROKER = 305;
 
-    public static final int CLEAN_EXPIRED_CONSUMEQUEUE = 306;
+    public static final int CLEAN_EXPIRED_CONSUME_QUEUE = 306;
 
     public static final int GET_CONSUMER_RUNNING_INFO = 307;
 
@@ -153,12 +153,12 @@ public class RequestCode {
     /**
      * update the config of name server
      */
-    public static final int UPDATE_NAMESRV_CONFIG = 318;
+    public static final int UPDATE_NAME_SERVER_CONFIG = 318;
 
     /**
      * get config from name server
      */
-    public static final int GET_NAMESRV_CONFIG = 319;
+    public static final int GET_NAME_SERVER_CONFIG = 319;
 
 
     public static final int SEND_BATCH_MESSAGE = 320;

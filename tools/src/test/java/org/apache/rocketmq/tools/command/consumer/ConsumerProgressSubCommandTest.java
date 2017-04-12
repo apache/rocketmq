@@ -81,8 +81,8 @@ public class ConsumerProgressSubCommandTest {
         brokerData.setBrokerName("default-broker");
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDatas.add(brokerData);
-        topicRouteData.setBrokerDatas(brokerDatas);
-        topicRouteData.setQueueDatas(new ArrayList<QueueData>());
+        topicRouteData.setBrokerDataList(brokerDatas);
+        topicRouteData.setQueueDataList(new ArrayList<QueueData>());
         topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
 

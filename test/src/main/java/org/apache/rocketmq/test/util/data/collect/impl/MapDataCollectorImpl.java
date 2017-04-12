@@ -28,15 +28,15 @@ import org.apache.rocketmq.test.util.data.collect.DataCollector;
 
 public class MapDataCollectorImpl implements DataCollector {
 
-    private Map<Object, AtomicInteger> datas = new ConcurrentHashMap<Object, AtomicInteger>();
+    private Map<Object, AtomicInteger> dataMap = new ConcurrentHashMap<Object, AtomicInteger>();
     private boolean lock = false;
 
     public MapDataCollectorImpl() {
 
     }
 
-    public MapDataCollectorImpl(Collection<Object> datas) {
-        for (Object data : datas) {
+    public MapDataCollectorImpl(Collection<Object> dataMap) {
+        for (Object data : dataMap) {
             addData(data);
         }
     }
@@ -45,16 +45,16 @@ public class MapDataCollectorImpl implements DataCollector {
         if (lock) {
             return;
         }
-        if (datas.containsKey(data)) {
-            datas.get(data).addAndGet(1);
+        if (dataMap.containsKey(data)) {
+            dataMap.get(data).addAndGet(1);
         } else {
-            datas.put(data, new AtomicInteger(1));
+            dataMap.put(data, new AtomicInteger(1));
         }
     }
 
     public Collection<Object> getAllData() {
         List<Object> lst = new ArrayList<Object>();
-        for (Entry<Object, AtomicInteger> entry : datas.entrySet()) {
+        for (Entry<Object, AtomicInteger> entry : dataMap.entrySet()) {
             for (int i = 0; i < entry.getValue().get(); i++) {
                 lst.add(entry.getKey());
             }
@@ -63,42 +63,42 @@ public class MapDataCollectorImpl implements DataCollector {
     }
 
     public long getDataSizeWithoutDuplicate() {
-        return datas.keySet().size();
+        return dataMap.keySet().size();
     }
 
     public void resetData() {
-        datas.clear();
+        dataMap.clear();
         unlockIncrement();
     }
 
     public long getDataSize() {
         long sum = 0;
-        for (AtomicInteger count : datas.values()) {
+        for (AtomicInteger count : dataMap.values()) {
             sum = sum + count.get();
         }
         return sum;
     }
 
     public boolean isRepeatedData(Object data) {
-        if (datas.containsKey(data)) {
-            return datas.get(data).get() == 1;
+        if (dataMap.containsKey(data)) {
+            return dataMap.get(data).get() == 1;
         }
         return false;
     }
 
     public Collection<Object> getAllDataWithoutDuplicate() {
-        return datas.keySet();
+        return dataMap.keySet();
     }
 
     public int getRepeatedTimeForData(Object data) {
-        if (datas.containsKey(data)) {
-            return datas.get(data).intValue();
+        if (dataMap.containsKey(data)) {
+            return dataMap.get(data).intValue();
         }
         return 0;
     }
 
     public void removeData(Object data) {
-        datas.remove(data);
+        dataMap.remove(data);
     }
 
     public void lockIncrement() {

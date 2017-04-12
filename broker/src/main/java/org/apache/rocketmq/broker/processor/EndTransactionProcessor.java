@@ -155,7 +155,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                         response.setRemark(null);
                         break;
                     // Failed
-                    case CREATE_MAPEDFILE_FAILED:
+                    case CREATE_MAPPED_FILE_FAILED:
                         response.setCode(ResponseCode.SYSTEM_ERROR);
                         response.setRemark("create mapped file failed.");
                         break;
@@ -168,7 +168,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                         response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
                         response.setRemark("service not available now.");
                         break;
-                    case OS_PAGECACHE_BUSY:
+                    case OS_PAGE_CACHE_BUSY:
                         response.setCode(ResponseCode.SYSTEM_ERROR);
                         response.setRemark("OS page cache busy, please try another machine");
                         break;

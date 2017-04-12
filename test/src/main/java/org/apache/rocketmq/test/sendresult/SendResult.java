@@ -57,6 +57,6 @@ public class SendResult {
 
     @Override
     public String toString() {
-        return String.format("sendstatus:%s msgId:%s", sendResult, msgId);
+        return String.format("sendStatus:%s msgId:%s", sendResult, msgId);
     }
 }

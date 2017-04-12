@@ -73,8 +73,8 @@ import org.apache.rocketmq.common.protocol.header.GetConsumeStatsRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerConnectionListRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerStatusRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetEarliestMsgStoretimeRequestHeader;
-import org.apache.rocketmq.common.protocol.header.GetEarliestMsgStoretimeResponseHeader;
+import org.apache.rocketmq.common.protocol.header.GetEarliestMsgStoreTimeResponseHeader;
+import org.apache.rocketmq.common.protocol.header.GetEarliestMsgStoreTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
@@ -133,19 +133,19 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.getMaxOffset(ctx, request);
             case RequestCode.GET_MIN_OFFSET:
                 return this.getMinOffset(ctx, request);
-            case RequestCode.GET_EARLIEST_MSG_STORETIME:
-                return this.getEarliestMsgStoretime(ctx, request);
+            case RequestCode.GET_EARLIEST_MSG_STORE_TIME:
+                return this.getEarliestMsgStoreTime(ctx, request);
             case RequestCode.GET_BROKER_RUNTIME_INFO:
                 return this.getBrokerRuntimeInfo(ctx, request);
             case RequestCode.LOCK_BATCH_MQ:
                 return this.lockBatchMQ(ctx, request);
             case RequestCode.UNLOCK_BATCH_MQ:
                 return this.unlockBatchMQ(ctx, request);
-            case RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP:
+            case RequestCode.UPDATE_AND_CREATE_SUBSCRIPTION_GROUP:
                 return this.updateAndCreateSubscriptionGroup(ctx, request);
-            case RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG:
+            case RequestCode.GET_ALL_SUBSCRIPTION_GROUP_CONFIG:
                 return this.getAllSubscriptionGroup(ctx, request);
-            case RequestCode.DELETE_SUBSCRIPTIONGROUP:
+            case RequestCode.DELETE_SUBSCRIPTION_GROUP:
                 return this.deleteSubscriptionGroup(ctx, request);
             case RequestCode.GET_TOPIC_STATS_INFO:
                 return this.getTopicStatsInfo(ctx, request);
@@ -171,7 +171,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.queryConsumeTimeSpan(ctx, request);
             case RequestCode.GET_SYSTEM_TOPIC_LIST_FROM_BROKER:
                 return this.getSystemTopicListFromBroker(ctx, request);
-            case RequestCode.CLEAN_EXPIRED_CONSUMEQUEUE:
+            case RequestCode.CLEAN_EXPIRED_CONSUME_QUEUE:
                 return this.cleanExpiredConsumeQueue();
             case RequestCode.CLEAN_UNUSED_TOPIC:
                 return this.cleanUnusedTopic();
@@ -364,7 +364,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final GetMaxOffsetRequestHeader requestHeader =
             (GetMaxOffsetRequestHeader) request.decodeCommandCustomHeader(GetMaxOffsetRequestHeader.class);
 
-        long offset = this.brokerController.getMessageStore().getMaxOffsetInQuque(requestHeader.getTopic(), requestHeader.getQueueId());
+        long offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
 
         responseHeader.setOffset(offset);
 
@@ -379,7 +379,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final GetMinOffsetRequestHeader requestHeader =
             (GetMinOffsetRequestHeader) request.decodeCommandCustomHeader(GetMinOffsetRequestHeader.class);
 
-        long offset = this.brokerController.getMessageStore().getMinOffsetInQuque(requestHeader.getTopic(), requestHeader.getQueueId());
+        long offset = this.brokerController.getMessageStore().getMinOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
 
         responseHeader.setOffset(offset);
         response.setCode(ResponseCode.SUCCESS);
@@ -387,11 +387,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand getEarliestMsgStoretime(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(GetEarliestMsgStoretimeResponseHeader.class);
-        final GetEarliestMsgStoretimeResponseHeader responseHeader = (GetEarliestMsgStoretimeResponseHeader) response.readCustomHeader();
-        final GetEarliestMsgStoretimeRequestHeader requestHeader =
-            (GetEarliestMsgStoretimeRequestHeader) request.decodeCommandCustomHeader(GetEarliestMsgStoretimeRequestHeader.class);
+    private RemotingCommand getEarliestMsgStoreTime(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(GetEarliestMsgStoreTimeResponseHeader.class);
+        final GetEarliestMsgStoreTimeResponseHeader responseHeader = (GetEarliestMsgStoreTimeResponseHeader) response.readCustomHeader();
+        final GetEarliestMsgStoreTimeRequestHeader requestHeader =
+            (GetEarliestMsgStoreTimeRequestHeader) request.decodeCommandCustomHeader(GetEarliestMsgStoreTimeRequestHeader.class);
 
         long timestamp =
             this.brokerController.getMessageStore().getEarliestMessageTime(requestHeader.getTopic(), requestHeader.getQueueId());
@@ -525,11 +525,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             mq.setQueueId(i);
 
             TopicOffset topicOffset = new TopicOffset();
-            long min = this.brokerController.getMessageStore().getMinOffsetInQuque(topic, i);
+            long min = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, i);
             if (min < 0)
                 min = 0;
 
-            long max = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, i);
+            long max = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
             if (max < 0)
                 max = 0;
 
@@ -560,11 +560,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         ConsumerGroupInfo consumerGroupInfo =
             this.brokerController.getConsumerManager().getConsumerGroupInfo(requestHeader.getConsumerGroup());
         if (consumerGroupInfo != null) {
-            ConsumerConnection bodydata = new ConsumerConnection();
-            bodydata.setConsumeFromWhere(consumerGroupInfo.getConsumeFromWhere());
-            bodydata.setConsumeType(consumerGroupInfo.getConsumeType());
-            bodydata.setMessageModel(consumerGroupInfo.getMessageModel());
-            bodydata.getSubscriptionTable().putAll(consumerGroupInfo.getSubscriptionTable());
+            ConsumerConnection bodyData = new ConsumerConnection();
+            bodyData.setConsumeFromWhere(consumerGroupInfo.getConsumeFromWhere());
+            bodyData.setConsumeType(consumerGroupInfo.getConsumeType());
+            bodyData.setMessageModel(consumerGroupInfo.getMessageModel());
+            bodyData.getSubscriptionTable().putAll(consumerGroupInfo.getSubscriptionTable());
 
             Iterator<Map.Entry<Channel, ClientChannelInfo>> it = consumerGroupInfo.getChannelInfoTable().entrySet().iterator();
             while (it.hasNext()) {
@@ -575,10 +575,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 connection.setVersion(info.getVersion());
                 connection.setClientAddr(RemotingHelper.parseChannelRemoteAddr(info.getChannel()));
 
-                bodydata.getConnectionSet().add(connection);
+                bodyData.getConnectionSet().add(connection);
             }
 
-            byte[] body = bodydata.encode();
+            byte[] body = bodyData.encode();
             response.setBody(body);
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
@@ -596,7 +596,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final GetProducerConnectionListRequestHeader requestHeader =
             (GetProducerConnectionListRequestHeader) request.decodeCommandCustomHeader(GetProducerConnectionListRequestHeader.class);
 
-        ProducerConnection bodydata = new ProducerConnection();
+        ProducerConnection bodyData = new ProducerConnection();
         HashMap<Channel, ClientChannelInfo> channelInfoHashMap =
             this.brokerController.getProducerManager().getGroupChannelTable().get(requestHeader.getProducerGroup());
         if (channelInfoHashMap != null) {
@@ -609,10 +609,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 connection.setVersion(info.getVersion());
                 connection.setClientAddr(RemotingHelper.parseChannelRemoteAddr(info.getChannel()));
 
-                bodydata.getConnectionSet().add(connection);
+                bodyData.getConnectionSet().add(connection);
             }
 
-            byte[] body = bodydata.encode();
+            byte[] body = bodyData.encode();
             response.setBody(body);
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
@@ -667,7 +667,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
                 OffsetWrapper offsetWrapper = new OffsetWrapper();
 
-                long brokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, i);
+                long brokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
                 if (brokerOffset < 0)
                     brokerOffset = 0;
 
@@ -850,7 +850,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             long minTime = this.brokerController.getMessageStore().getEarliestMessageTime(topic, i);
             timeSpan.setMinTimeStamp(minTime);
 
-            long max = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, i);
+            long max = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
             long maxTime = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, max - 1);
             timeSpan.setMaxTimeStamp(maxTime);
 
@@ -864,7 +864,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
             timeSpan.setConsumeTimeStamp(consumeTime);
 
-            long maxBrokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(requestHeader.getTopic(), i);
+            long maxBrokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(requestHeader.getTopic(), i);
             if (consumerOffset < maxBrokerOffset) {
                 long nextTime = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, consumerOffset);
                 timeSpan.setDelayTime(System.currentTimeMillis() - nextTime);
@@ -1081,7 +1081,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         long totalDiff = 0L;
 
         for (String group : subscriptionGroups.keySet()) {
-            Map<String, List<ConsumeStats>> subscripTopicConsumeMap = new HashMap<String, List<ConsumeStats>>();
+            Map<String, List<ConsumeStats>> subscriptionTopicConsumeMap = new HashMap<String, List<ConsumeStats>>();
             Set<String> topics = this.brokerController.getConsumerOffsetManager().whichTopicByConsumer(group);
             List<ConsumeStats> consumeStatsList = new ArrayList<ConsumeStats>();
             for (String topic : topics) {
@@ -1114,7 +1114,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
                     mq.setQueueId(i);
                     OffsetWrapper offsetWrapper = new OffsetWrapper();
-                    long brokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, i);
+                    long brokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
                     if (brokerOffset < 0)
                         brokerOffset = 0;
                     long consumerOffset = this.brokerController.getConsumerOffsetManager().queryOffset(//
@@ -1142,8 +1142,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 totalDiff += consumeStats.computeTotalDiff();
                 consumeStatsList.add(consumeStats);
             }
-            subscripTopicConsumeMap.put(group, consumeStatsList);
-            brokerConsumeStatsList.add(subscripTopicConsumeMap);
+            subscriptionTopicConsumeMap.put(group, consumeStatsList);
+            brokerConsumeStatsList.add(subscriptionTopicConsumeMap);
         }
         ConsumeStatsList consumeStats = new ConsumeStatsList();
         consumeStats.setBrokerAddr(brokerController.getBrokerAddr());

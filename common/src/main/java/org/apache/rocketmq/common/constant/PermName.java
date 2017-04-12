@@ -28,7 +28,7 @@ public class PermName {
             sb.replace(0, 1, "R");
         }
 
-        if (isWriteable(perm)) {
+        if (isWritable(perm)) {
             sb.replace(1, 2, "W");
         }
 
@@ -43,7 +43,7 @@ public class PermName {
         return (perm & PERM_READ) == PERM_READ;
     }
 
-    public static boolean isWriteable(final int perm) {
+    public static boolean isWritable(final int perm) {
         return (perm & PERM_WRITE) == PERM_WRITE;
     }
 

@@ -95,7 +95,7 @@ public final class ThreadUtils {
      * @param name The name of the thread
      * @param runnable The work for the thread to do
      * @param daemon Should the thread block JVM stop?
-     * @return The unstarted thread
+     * @return The new thread which is not yet started.
      */
     public static Thread newThread(String name, Runnable runnable, boolean daemon) {
         Thread thread = new Thread(runnable, name);

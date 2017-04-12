@@ -446,7 +446,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             for (ByteBuffer bb : messageBufferList) {
 
                 byteBuffer.put(bb);
-                storeTimestamp = bb.getLong(MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSTION);
+                storeTimestamp = bb.getLong(MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION);
             }
         } finally {
             getMessageResult.release();

@@ -124,14 +124,14 @@ public class AllocateMappedFileService extends ServiceThread {
         this.thread.interrupt();
 
         try {
-            this.thread.join(this.getJointime());
+            this.thread.join(this.getJoinTime());
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
         for (AllocateRequest req : this.requestTable.values()) {
             if (req.mappedFile != null) {
-                log.info("delete pre allocated maped file, {}", req.mappedFile.getFileName());
+                log.info("delete pre allocated mapped file, {}", req.mappedFile.getFileName());
                 req.mappedFile.destroy(1000);
             }
         }

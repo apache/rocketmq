@@ -48,7 +48,7 @@ public class StatsAllSubCommand implements SubCommand {
 
         long inMsgCntToday = 0;
 
-        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+        for (BrokerData bd : topicRouteData.getBrokerDataList()) {
             String masterAddr = bd.getBrokerAddrs().get(MixAll.MASTER_ID);
             if (masterAddr != null) {
                 try {
@@ -66,7 +66,7 @@ public class StatsAllSubCommand implements SubCommand {
                 double outTPS = 0;
                 long outMsgCntToday = 0;
 
-                for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+                for (BrokerData bd : topicRouteData.getBrokerDataList()) {
                     String masterAddr = bd.getBrokerAddrs().get(MixAll.MASTER_ID);
                     if (masterAddr != null) {
                         try {

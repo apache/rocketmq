@@ -39,9 +39,9 @@ public interface MessageStore {
     GetMessageResult getMessage(final String group, final String topic, final int queueId,
         final long offset, final int maxMsgNums, final SubscriptionData subscriptionData);
 
-    long getMaxOffsetInQuque(final String topic, final int queueId);
+    long getMaxOffsetInQueue(final String topic, final int queueId);
 
-    long getMinOffsetInQuque(final String topic, final int queueId);
+    long getMinOffsetInQueue(final String topic, final int queueId);
 
     long getCommitLogOffsetInQueue(final String topic, final int queueId, final long cqOffset);
 
@@ -73,7 +73,7 @@ public interface MessageStore {
 
     boolean appendToCommitLog(final long startOffset, final byte[] data);
 
-    void excuteDeleteFilesManualy();
+    void executeDeleteFilesManually();
 
     QueryMessageResult queryMessage(final String topic, final String key, final int maxNum,
         final long begin, final long end);

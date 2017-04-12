@@ -130,7 +130,7 @@ public class SendMessageProcessorTest {
 
     @Test
     public void testProcessRequest_CreateMappedFileFailed() throws RemotingCommandException {
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
+        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
         assertPutResult(ResponseCode.SYSTEM_ERROR);
     }
 
@@ -142,7 +142,7 @@ public class SendMessageProcessorTest {
 
     @Test
     public void testProcessRequest_PageCacheBusy() throws RemotingCommandException {
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
+        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.OS_PAGE_CACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
         assertPutResult(ResponseCode.SYSTEM_ERROR);
     }
 

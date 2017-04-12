@@ -59,7 +59,7 @@ public abstract class NettyRemotingAbstract {
 
     protected final HashMap<Integer/* request code */, Pair<NettyRequestProcessor, ExecutorService>> processorTable =
         new HashMap<Integer, Pair<NettyRequestProcessor, ExecutorService>>(64);
-    protected final NettyEventExecuter nettyEventExecuter = new NettyEventExecuter();
+    protected final NettyEventExecutor nettyEventExecutor = new NettyEventExecutor();
 
     protected Pair<NettyRequestProcessor, ExecutorService> defaultRequestProcessor;
 
@@ -71,7 +71,7 @@ public abstract class NettyRemotingAbstract {
     public abstract ChannelEventListener getChannelEventListener();
 
     public void putNettyEvent(final NettyEvent event) {
-        this.nettyEventExecuter.putNettyEvent(event);
+        this.nettyEventExecutor.putNettyEvent(event);
     }
 
     public void processMessageReceived(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
@@ -324,7 +324,7 @@ public abstract class NettyRemotingAbstract {
                         try {
                             executeInvokeCallback(responseFuture);
                         } catch (Throwable e) {
-                            PLOG.warn("excute callback in writeAndFlush addListener, and callback throw", e);
+                            PLOG.warn("execute callback in writeAndFlush addListener, and callback throw", e);
                         } finally {
                             responseFuture.release();
                         }
@@ -386,7 +386,7 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
-    class NettyEventExecuter extends ServiceThread {
+    class NettyEventExecutor extends ServiceThread {
         private final LinkedBlockingQueue<NettyEvent> eventQueue = new LinkedBlockingQueue<NettyEvent>();
         private final int maxSize = 10000;
 
@@ -436,7 +436,7 @@ public abstract class NettyRemotingAbstract {
 
         @Override
         public String getServiceName() {
-            return NettyEventExecuter.class.getSimpleName();
+            return NettyEventExecutor.class.getSimpleName();
         }
     }
 }

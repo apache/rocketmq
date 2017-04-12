@@ -202,7 +202,7 @@ public class DefaultMQProducerTest {
         brokerAddrs.put(0L, "127.0.0.1:10911");
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDataList.add(brokerData);
-        topicRouteData.setBrokerDatas(brokerDataList);
+        topicRouteData.setBrokerDataList(brokerDataList);
 
         List<QueueData> queueDataList = new ArrayList<QueueData>();
         QueueData queueData = new QueueData();
@@ -212,7 +212,7 @@ public class DefaultMQProducerTest {
         queueData.setWriteQueueNums(4);
         queueData.setTopicSynFlag(0);
         queueDataList.add(queueData);
-        topicRouteData.setQueueDatas(queueDataList);
+        topicRouteData.setQueueDataList(queueDataList);
         return topicRouteData;
     }
 

@@ -38,9 +38,9 @@ public class RemotingHelper {
 
             StackTraceElement[] stackTrace = e.getStackTrace();
             if (stackTrace != null && stackTrace.length > 0) {
-                StackTraceElement elment = stackTrace[0];
+                StackTraceElement element = stackTrace[0];
                 sb.append(", ");
-                sb.append(elment.toString());
+                sb.append(element.toString());
             }
         }
 
@@ -66,7 +66,7 @@ public class RemotingHelper {
 
                 socketChannel.configureBlocking(true);
 
-                //bugfix  http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4614802
+                //bugFix  http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4614802
                 socketChannel.socket().setSoTimeout((int) timeoutMillis);
 
                 ByteBuffer byteBufferRequest = request.encode();

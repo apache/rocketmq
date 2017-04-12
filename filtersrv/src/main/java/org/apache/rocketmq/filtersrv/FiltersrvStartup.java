@@ -145,9 +145,9 @@ public class FiltersrvStartup {
                         log.info("shutdown hook was invoked, " + this.shutdownTimes.incrementAndGet());
                         if (!this.hasShutdown) {
                             this.hasShutdown = true;
-                            long begineTime = System.currentTimeMillis();
+                            long beginTime = System.currentTimeMillis();
                             controller.shutdown();
-                            long consumingTimeTotal = System.currentTimeMillis() - begineTime;
+                            long consumingTimeTotal = System.currentTimeMillis() - beginTime;
                             log.info("shutdown hook over, consuming time total(ms): " + consumingTimeTotal);
                         }
                     }

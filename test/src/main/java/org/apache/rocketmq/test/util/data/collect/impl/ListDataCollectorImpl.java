@@ -26,25 +26,25 @@ import org.apache.rocketmq.test.util.data.collect.DataCollector;
 
 public class ListDataCollectorImpl implements DataCollector {
 
-    private List<Object> datas = new ArrayList<Object>();
+    private List<Object> dataList = new ArrayList<Object>();
     private boolean lock = false;
 
     public ListDataCollectorImpl() {
 
     }
 
-    public ListDataCollectorImpl(Collection<Object> datas) {
-        for (Object data : datas) {
+    public ListDataCollectorImpl(Collection<Object> dataList) {
+        for (Object data : dataList) {
             addData(data);
         }
     }
 
     public Collection<Object> getAllData() {
-        return datas;
+        return dataList;
     }
 
     public void resetData() {
-        datas.clear();
+        dataList.clear();
         unlockIncrement();
     }
 
@@ -56,24 +56,24 @@ public class ListDataCollectorImpl implements DataCollector {
         if (lock) {
             return;
         }
-        datas.add(data);
+        dataList.add(data);
     }
 
     public long getDataSize() {
-        return datas.size();
+        return dataList.size();
     }
 
     public boolean isRepeatedData(Object data) {
-        return Collections.frequency(datas, data) == 1;
+        return Collections.frequency(dataList, data) == 1;
     }
 
     public Collection<Object> getAllDataWithoutDuplicate() {
-        return new HashSet<Object>(datas);
+        return new HashSet<Object>(dataList);
     }
 
     public int getRepeatedTimeForData(Object data) {
         int res = 0;
-        for (Object obj : datas) {
+        for (Object obj : dataList) {
             if (obj.equals(data)) {
                 res++;
             }
@@ -82,7 +82,7 @@ public class ListDataCollectorImpl implements DataCollector {
     }
 
     public void removeData(Object data) {
-        datas.remove(data);
+        dataList.remove(data);
     }
 
     public void lockIncrement() {

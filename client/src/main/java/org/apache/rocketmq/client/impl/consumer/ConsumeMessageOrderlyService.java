@@ -143,7 +143,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
         final long beginTime = System.currentTimeMillis();
 
-        log.info("consumeMessageDirectly receive new messge: {}", msg);
+        log.info("consumeMessageDirectly receive new message: {}", msg);
 
         try {
             ConsumeOrderlyStatus status = this.messageListener.consumeMessage(msgs, context);
@@ -191,8 +191,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         final List<MessageExt> msgs, //
         final ProcessQueue processQueue, //
         final MessageQueue messageQueue, //
-        final boolean dispathToConsume) {
-        if (dispathToConsume) {
+        final boolean dispatchToConsume) {
+        if (dispatchToConsume) {
             ConsumeRequest consumeRequest = new ConsumeRequest(processQueue, messageQueue);
             this.consumeExecutor.submit(consumeRequest);
         }
@@ -272,7 +272,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msgs.size());
                     if (checkReconsumeTimes(msgs)) {
-                        consumeRequest.getProcessQueue().makeMessageToCosumeAgain(msgs);
+                        consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs);
                         this.submitConsumeRequestLater(//
                             consumeRequest.getProcessQueue(), //
                             consumeRequest.getMessageQueue(), //
@@ -304,7 +304,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msgs.size());
                     if (checkReconsumeTimes(msgs)) {
-                        consumeRequest.getProcessQueue().makeMessageToCosumeAgain(msgs);
+                        consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs);
                         this.submitConsumeRequestLater(//
                             consumeRequest.getProcessQueue(), //
                             consumeRequest.getMessageQueue(), //
@@ -436,7 +436,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                         final int consumeBatchSize =
                             ConsumeMessageOrderlyService.this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize();
 
-                        List<MessageExt> msgs = this.processQueue.takeMessags(consumeBatchSize);
+                        List<MessageExt> msgs = this.processQueue.takeMessages(consumeBatchSize);
                         if (!msgs.isEmpty()) {
                             final ConsumeOrderlyContext context = new ConsumeOrderlyContext(this.messageQueue);
 
@@ -492,7 +492,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                                 if (hasException) {
                                     returnType = ConsumeReturnType.EXCEPTION;
                                 } else {
-                                    returnType = ConsumeReturnType.RETURNNULL;
+                                    returnType = ConsumeReturnType.RETURN_NULL;
                                 }
                             } else if (consumeRT >= defaultMQPushConsumer.getConsumeTimeout() * 60 * 1000) {
                                 returnType = ConsumeReturnType.TIME_OUT;

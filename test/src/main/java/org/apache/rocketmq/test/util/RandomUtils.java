@@ -33,11 +33,11 @@ public class RandomUtils {
         return UUID.randomUUID().toString();
     }
 
-    public static String getCheseWord(int len) {
+    public static String getChineseWord(int len) {
         StringBuilder res = new StringBuilder();
 
         for (int i = 0; i < len; ++i) {
-            char str = getCheseChar();
+            char str = getChineseChar();
             res.append(str);
         }
 
@@ -85,7 +85,7 @@ public class RandomUtils {
         return res;
     }
 
-    private static char getCheseChar() {
+    private static char getChineseChar() {
         return (char) (UNICODE_START + rd.nextInt(UNICODE_END - UNICODE_START));
     }
 }

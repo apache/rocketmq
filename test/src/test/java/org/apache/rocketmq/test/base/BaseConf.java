@@ -90,9 +90,9 @@ public class BaseConf {
         return producer;
     }
 
-    public static RMQNormalProducer getProducer(String nsAddr, String topic, String producerGoup,
+    public static RMQNormalProducer getProducer(String nsAddr, String topic, String producerGroup,
         String instanceName) {
-        RMQNormalProducer producer = new RMQNormalProducer(nsAddr, topic, producerGoup,
+        RMQNormalProducer producer = new RMQNormalProducer(nsAddr, topic, producerGroup,
             instanceName);
         if (debug) {
             producer.setDebug();
@@ -111,15 +111,15 @@ public class BaseConf {
     }
 
     public static RMQNormalConsumer getConsumer(String nsAddr, String topic, String subExpression,
-        AbstractListener listner) {
+        AbstractListener listener) {
         String consumerGroup = initConsumerGroup();
-        return getConsumer(nsAddr, consumerGroup, topic, subExpression, listner);
+        return getConsumer(nsAddr, consumerGroup, topic, subExpression, listener);
     }
 
     public static RMQNormalConsumer getConsumer(String nsAddr, String consumerGroup, String topic,
-        String subExpression, AbstractListener listner) {
+        String subExpression, AbstractListener listener) {
         RMQNormalConsumer consumer = ConsumerFactory.getRMQNormalConsumer(nsAddr, consumerGroup,
-            topic, subExpression, listner);
+            topic, subExpression, listener);
         if (debug) {
             consumer.setDebug();
         }

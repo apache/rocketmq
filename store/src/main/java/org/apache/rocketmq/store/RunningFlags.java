@@ -20,7 +20,7 @@ public class RunningFlags {
 
     private static final int NOT_READABLE_BIT = 1;
 
-    private static final int NOT_WRITEABLE_BIT = 1 << 1;
+    private static final int NOT_WRITABLE_BIT = 1 << 1;
 
     private static final int WRITE_LOGICS_QUEUE_ERROR_BIT = 1 << 2;
 
@@ -62,16 +62,16 @@ public class RunningFlags {
         return result;
     }
 
-    public boolean getAndMakeWriteable() {
-        boolean result = this.isWriteable();
+    public boolean getAndMakeWritable() {
+        boolean result = this.isWritable();
         if (!result) {
-            this.flagBits &= ~NOT_WRITEABLE_BIT;
+            this.flagBits &= ~NOT_WRITABLE_BIT;
         }
         return result;
     }
 
-    public boolean isWriteable() {
-        if ((this.flagBits & (NOT_WRITEABLE_BIT | WRITE_LOGICS_QUEUE_ERROR_BIT | DISK_FULL_BIT | WRITE_INDEX_FILE_ERROR_BIT)) == 0) {
+    public boolean isWritable() {
+        if ((this.flagBits & (NOT_WRITABLE_BIT | WRITE_LOGICS_QUEUE_ERROR_BIT | DISK_FULL_BIT | WRITE_INDEX_FILE_ERROR_BIT)) == 0) {
             return true;
         }
 
@@ -79,18 +79,18 @@ public class RunningFlags {
     }
 
     //for consume queue, just ignore the DISK_FULL_BIT
-    public boolean isCQWriteable() {
-        if ((this.flagBits & (NOT_WRITEABLE_BIT | WRITE_LOGICS_QUEUE_ERROR_BIT | WRITE_INDEX_FILE_ERROR_BIT)) == 0) {
+    public boolean isCQWritable() {
+        if ((this.flagBits & (NOT_WRITABLE_BIT | WRITE_LOGICS_QUEUE_ERROR_BIT | WRITE_INDEX_FILE_ERROR_BIT)) == 0) {
             return true;
         }
 
         return false;
     }
 
-    public boolean getAndMakeNotWriteable() {
-        boolean result = this.isWriteable();
+    public boolean getAndMakeNotWritable() {
+        boolean result = this.isWritable();
         if (result) {
-            this.flagBits |= NOT_WRITEABLE_BIT;
+            this.flagBits |= NOT_WRITABLE_BIT;
         }
         return result;
     }

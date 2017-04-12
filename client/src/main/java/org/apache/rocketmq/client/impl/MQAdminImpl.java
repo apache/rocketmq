@@ -79,7 +79,7 @@ public class MQAdminImpl {
     public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
         try {
             TopicRouteData topicRouteData = this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(key, timeoutMillis);
-            List<BrokerData> brokerDataList = topicRouteData.getBrokerDatas();
+            List<BrokerData> brokerDataList = topicRouteData.getBrokerDataList();
             if (brokerDataList != null && !brokerDataList.isEmpty()) {
                 Collections.sort(brokerDataList);
 
@@ -230,7 +230,7 @@ public class MQAdminImpl {
 
         if (brokerAddr != null) {
             try {
-                return this.mQClientFactory.getMQClientAPIImpl().getEarliestMsgStoretime(brokerAddr, mq.getTopic(), mq.getQueueId(),
+                return this.mQClientFactory.getMQClientAPIImpl().getEarliestMsgStoreTime(brokerAddr, mq.getTopic(), mq.getQueueId(),
                     timeoutMillis);
             } catch (Exception e) {
                 throw new MQClientException("Invoke Broker[" + brokerAddr + "] exception", e);
@@ -278,7 +278,7 @@ public class MQAdminImpl {
 
         if (topicRouteData != null) {
             List<String> brokerAddrs = new LinkedList<String>();
-            for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
+            for (BrokerData brokerData : topicRouteData.getBrokerDataList()) {
                 String addr = brokerData.selectBrokerAddr();
                 if (addr != null) {
                     brokerAddrs.add(addr);

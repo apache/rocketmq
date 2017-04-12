@@ -37,6 +37,6 @@ public class TransactionCheckListenerImpl implements TransactionCheckListener {
             return LocalTransactionState.COMMIT_MESSAGE;
         }
 
-        return LocalTransactionState.UNKNOW;
+        return LocalTransactionState.UNKNOWN;
     }
 }

@@ -162,7 +162,7 @@ public class RMQAsyncSendProducer extends AbstractMQProducer {
         long startTime = System.currentTimeMillis();
         while (this.successSendResult.size() != this.msgSize) {
             if (System.currentTimeMillis() - startTime < timeoutMills) {
-                TestUtil.waitForMonment(100);
+                TestUtil.waitForMoment(100);
             } else {
                 logger.info("timeout but still not recv all response!");
                 break;

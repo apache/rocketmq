@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 
 public class ClientLogger {
     public static final String CLIENT_LOG_ROOT = "rocketmq.client.logRoot";
-    public static final String CLIENT_LOG_MAXINDEX = "rocketmq.client.logFileMaxIndex";
+    public static final String CLIENT_LOG_MAX_INDEX = "rocketmq.client.logFileMaxIndex";
     public static final String CLIENT_LOG_LEVEL = "rocketmq.client.logLevel";
     private static Logger log;
 
@@ -50,7 +50,7 @@ public class ClientLogger {
         System.setProperty("client.logRoot", clientLogRoot);
         String clientLogLevel = System.getProperty(CLIENT_LOG_LEVEL, "INFO");
         System.setProperty("client.logLevel", clientLogLevel);
-        String clientLogMaxIndex = System.getProperty(CLIENT_LOG_MAXINDEX, "10");
+        String clientLogMaxIndex = System.getProperty(CLIENT_LOG_MAX_INDEX, "10");
         System.setProperty("client.logFileMaxIndex", clientLogMaxIndex);
 
         if (isloadconfig) {
@@ -58,36 +58,36 @@ public class ClientLogger {
                 ILoggerFactory iLoggerFactory = LoggerFactory.getILoggerFactory();
                 Class classType = iLoggerFactory.getClass();
                 if (classType.getName().equals("org.slf4j.impl.Log4jLoggerFactory")) {
-                    Class<?> domconfigurator;
-                    Object domconfiguratorobj;
-                    domconfigurator = Class.forName("org.apache.log4j.xml.DOMConfigurator");
-                    domconfiguratorobj = domconfigurator.newInstance();
+                    Class<?> domConfigurator;
+                    Object domConfiguratorObj;
+                    domConfigurator = Class.forName("org.apache.log4j.xml.DOMConfigurator");
+                    domConfiguratorObj = domConfigurator.newInstance();
                     if (null == logConfigFilePath) {
-                        Method configure = domconfiguratorobj.getClass().getMethod("configure", URL.class);
+                        Method configure = domConfiguratorObj.getClass().getMethod("configure", URL.class);
                         URL url = ClientLogger.class.getClassLoader().getResource(log4JResourceFile);
-                        configure.invoke(domconfiguratorobj, url);
+                        configure.invoke(domConfiguratorObj, url);
                     } else {
-                        Method configure = domconfiguratorobj.getClass().getMethod("configure", String.class);
-                        configure.invoke(domconfiguratorobj, logConfigFilePath);
+                        Method configure = domConfiguratorObj.getClass().getMethod("configure", String.class);
+                        configure.invoke(domConfiguratorObj, logConfigFilePath);
                     }
 
                 } else if (classType.getName().equals("ch.qos.logback.classic.LoggerContext")) {
                     Class<?> joranConfigurator;
                     Class<?> context = Class.forName("ch.qos.logback.core.Context");
-                    Object joranConfiguratoroObj;
+                    Object joranConfiguratorObj;
                     joranConfigurator = Class.forName("ch.qos.logback.classic.joran.JoranConfigurator");
-                    joranConfiguratoroObj = joranConfigurator.newInstance();
-                    Method setContext = joranConfiguratoroObj.getClass().getMethod("setContext", context);
-                    setContext.invoke(joranConfiguratoroObj, iLoggerFactory);
+                    joranConfiguratorObj = joranConfigurator.newInstance();
+                    Method setContext = joranConfiguratorObj.getClass().getMethod("setContext", context);
+                    setContext.invoke(joranConfiguratorObj, iLoggerFactory);
                     if (null == logConfigFilePath) {
                         URL url = ClientLogger.class.getClassLoader().getResource(logbackResourceFile);
                         Method doConfigure =
-                            joranConfiguratoroObj.getClass().getMethod("doConfigure", URL.class);
-                        doConfigure.invoke(joranConfiguratoroObj, url);
+                            joranConfiguratorObj.getClass().getMethod("doConfigure", URL.class);
+                        doConfigure.invoke(joranConfiguratorObj, url);
                     } else {
                         Method doConfigure =
-                            joranConfiguratoroObj.getClass().getMethod("doConfigure", String.class);
-                        doConfigure.invoke(joranConfiguratoroObj, logConfigFilePath);
+                            joranConfiguratorObj.getClass().getMethod("doConfigure", String.class);
+                        doConfigure.invoke(joranConfiguratorObj, logConfigFilePath);
                     }
 
                 }

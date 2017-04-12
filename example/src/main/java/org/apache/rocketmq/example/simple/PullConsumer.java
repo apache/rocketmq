@@ -25,7 +25,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class PullConsumer {
-    private static final Map<MessageQueue, Long> OFFSE_TABLE = new HashMap<MessageQueue, Long>();
+    private static final Map<MessageQueue, Long> OFFSET_TABLE = new HashMap<MessageQueue, Long>();
 
     public static void main(String[] args) throws MQClientException {
         DefaultMQPullConsumer consumer = new DefaultMQPullConsumer("please_rename_unique_group_name_5");
@@ -64,7 +64,7 @@ public class PullConsumer {
     }
 
     private static long getMessageQueueOffset(MessageQueue mq) {
-        Long offset = OFFSE_TABLE.get(mq);
+        Long offset = OFFSET_TABLE.get(mq);
         if (offset != null)
             return offset;
 
@@ -72,7 +72,7 @@ public class PullConsumer {
     }
 
     private static void putMessageQueueOffset(MessageQueue mq, long offset) {
-        OFFSE_TABLE.put(mq, offset);
+        OFFSET_TABLE.put(mq, offset);
     }
 
 }

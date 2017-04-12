@@ -80,15 +80,15 @@ public class ClusterTestRequestProcessorTest {
         field.set(clusterTestProcessor, defaultMQAdminExt);
 
         TopicRouteData topicRouteData = new TopicRouteData();
-        List<BrokerData> brokerDatas = new ArrayList<>();
+        List<BrokerData> brokerDataList = new ArrayList<>();
         HashMap<Long, String> brokerAddrs = new HashMap<>();
         brokerAddrs.put(1234l, "127.0.0.1:10911");
         BrokerData brokerData = new BrokerData();
         brokerData.setCluster("default-cluster");
         brokerData.setBrokerName("default-broker");
         brokerData.setBrokerAddrs(brokerAddrs);
-        brokerDatas.add(brokerData);
-        topicRouteData.setBrokerDatas(brokerDatas);
+        brokerDataList.add(brokerData);
+        topicRouteData.setBrokerDataList(brokerDataList);
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
     }
 

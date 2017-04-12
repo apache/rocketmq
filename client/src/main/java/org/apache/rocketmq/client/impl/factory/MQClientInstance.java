@@ -144,7 +144,7 @@ public class MQClientInstance {
 
         this.consumerStatsManager = new ConsumerStatsManager(this.scheduledExecutorService);
 
-        log.info("created a new client Instance, FactoryIndex: {} ClinetID: {} {} {}, serializeType={}", //
+        log.info("created a new client Instance, FactoryIndex: {} ClientID: {} {} {}, serializeType={}", //
             this.instanceIndex, //
             this.clientId, //
             this.clientConfig, //
@@ -167,12 +167,12 @@ public class MQClientInstance {
 
             info.setOrderTopic(true);
         } else {
-            List<QueueData> qds = route.getQueueDatas();
+            List<QueueData> qds = route.getQueueDataList();
             Collections.sort(qds);
             for (QueueData qd : qds) {
-                if (PermName.isWriteable(qd.getPerm())) {
+                if (PermName.isWritable(qd.getPerm())) {
                     BrokerData brokerData = null;
-                    for (BrokerData bd : route.getBrokerDatas()) {
+                    for (BrokerData bd : route.getBrokerDataList()) {
                         if (bd.getBrokerName().equals(qd.getBrokerName())) {
                             brokerData = bd;
                             break;
@@ -202,7 +202,7 @@ public class MQClientInstance {
 
     public static Set<MessageQueue> topicRouteData2TopicSubscribeInfo(final String topic, final TopicRouteData route) {
         Set<MessageQueue> mqList = new HashSet<MessageQueue>();
-        List<QueueData> qds = route.getQueueDatas();
+        List<QueueData> qds = route.getQueueDataList();
         for (QueueData qd : qds) {
             if (PermName.isReadable(qd.getPerm())) {
                 for (int i = 0; i < qd.getReadQueueNums(); i++) {
@@ -454,7 +454,7 @@ public class MQClientInstance {
         while (it.hasNext()) {
             Entry<String, TopicRouteData> entry = it.next();
             TopicRouteData topicRouteData = entry.getValue();
-            List<BrokerData> bds = topicRouteData.getBrokerDatas();
+            List<BrokerData> bds = topicRouteData.getBrokerDataList();
             for (BrokerData bd : bds) {
                 if (bd.getBrokerAddrs() != null) {
                     boolean exist = bd.getBrokerAddrs().containsValue(addr);
@@ -545,7 +545,7 @@ public class MQClientInstance {
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
                             1000 * 3);
                         if (topicRouteData != null) {
-                            for (QueueData data : topicRouteData.getQueueDatas()) {
+                            for (QueueData data : topicRouteData.getQueueDataList()) {
                                 int queueNums = Math.min(defaultMQProducer.getDefaultTopicQueueNums(), data.getReadQueueNums());
                                 data.setReadQueueNums(queueNums);
                                 data.setWriteQueueNums(queueNums);
@@ -566,7 +566,7 @@ public class MQClientInstance {
                         if (changed) {
                             TopicRouteData cloneTopicRouteData = topicRouteData.cloneTopicRouteData();
 
-                            for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+                            for (BrokerData bd : topicRouteData.getBrokerDataList()) {
                                 this.brokerAddrTable.put(bd.getBrokerName(), bd.getBrokerAddrs());
                             }
 
@@ -660,7 +660,7 @@ public class MQClientInstance {
         Iterator<Entry<String, TopicRouteData>> it = this.topicRouteTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, TopicRouteData> itNext = it.next();
-            List<BrokerData> brokerDatas = itNext.getValue().getBrokerDatas();
+            List<BrokerData> brokerDatas = itNext.getValue().getBrokerDataList();
             for (BrokerData bd : brokerDatas) {
                 boolean contain = bd.getBrokerAddrs().containsValue(brokerAddr);
                 if (contain)
@@ -715,10 +715,10 @@ public class MQClientInstance {
             return true;
         TopicRouteData old = olddata.cloneTopicRouteData();
         TopicRouteData now = nowdata.cloneTopicRouteData();
-        Collections.sort(old.getQueueDatas());
-        Collections.sort(old.getBrokerDatas());
-        Collections.sort(now.getQueueDatas());
-        Collections.sort(now.getBrokerDatas());
+        Collections.sort(old.getQueueDataList());
+        Collections.sort(old.getBrokerDataList());
+        Collections.sort(now.getQueueDataList());
+        Collections.sort(now.getBrokerDataList());
         return !old.equals(now);
 
     }
@@ -1009,7 +1009,7 @@ public class MQClientInstance {
     public String findBrokerAddrByTopic(final String topic) {
         TopicRouteData topicRouteData = this.topicRouteTable.get(topic);
         if (topicRouteData != null) {
-            List<BrokerData> brokers = topicRouteData.getBrokerDatas();
+            List<BrokerData> brokers = topicRouteData.getBrokerDataList();
             if (!brokers.isEmpty()) {
                 int index = random.nextInt(brokers.size());
                 BrokerData bd = brokers.get(index % brokers.size());

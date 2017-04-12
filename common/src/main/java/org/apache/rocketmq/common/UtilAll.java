@@ -104,7 +104,7 @@ public class UtilAll {
             cal.get(Calendar.MILLISECOND));
     }
 
-    public static long computNextMorningTimeMillis() {
+    public static long computeNextMorningTimeMillis() {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(System.currentTimeMillis());
         cal.add(Calendar.DAY_OF_MONTH, 1);

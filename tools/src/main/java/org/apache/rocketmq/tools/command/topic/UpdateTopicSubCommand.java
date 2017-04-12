@@ -160,11 +160,11 @@ public class UpdateTopicSubCommand implements SubCommand {
                     Set<String> brokerNameSet =
                         CommandUtil.fetchBrokerNameByClusterName(defaultMQAdminExt, clusterName);
                     StringBuilder orderConf = new StringBuilder();
-                    String splitor = "";
+                    String splitter = "";
                     for (String s : brokerNameSet) {
-                        orderConf.append(splitor).append(s).append(":")
+                        orderConf.append(splitter).append(s).append(":")
                             .append(topicConfig.getWriteQueueNums());
-                        splitor = ";";
+                        splitter = ";";
                     }
                     defaultMQAdminExt.createOrUpdateOrderConf(topicConfig.getTopicName(),
                         orderConf.toString(), true);

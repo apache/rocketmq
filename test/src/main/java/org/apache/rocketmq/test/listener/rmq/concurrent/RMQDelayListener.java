@@ -17,54 +17,45 @@
 
 package org.apache.rocketmq.test.listener.rmq.concurrent;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.test.listener.AbstractListener;
+import org.apache.rocketmq.test.util.RandomUtil;
+import org.apache.rocketmq.test.util.data.collect.DataCollector;
+import org.apache.rocketmq.test.util.data.collect.DataCollectorManager;
 
-public class RMQNormalListner extends AbstractListener implements MessageListenerConcurrently {
-    private ConsumeConcurrentlyStatus consumeStatus = ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-    private AtomicInteger msgIndex = new AtomicInteger(0);
+public class RMQDelayListener extends AbstractListener implements MessageListenerConcurrently {
+    private DataCollector msgDelayTimes = null;
 
-    public RMQNormalListner() {
-        super();
+    public RMQDelayListener() {
+        msgDelayTimes = DataCollectorManager.getInstance()
+            .fetchDataCollector(RandomUtil.getStringByUUID());
     }
 
-    public RMQNormalListner(String listnerName) {
-        super(listnerName);
+    public Collection<Object> getMsgDelayTimes() {
+        return msgDelayTimes.getAllData();
     }
 
-    public RMQNormalListner(ConsumeConcurrentlyStatus consumeStatus) {
-        super();
-        this.consumeStatus = consumeStatus;
-    }
-
-    public RMQNormalListner(String originMsgCollector, String msgBodyCollector) {
-        super(originMsgCollector, msgBodyCollector);
+    public void resetMsgDelayTimes() {
+        msgDelayTimes.resetData();
     }
 
     public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
         ConsumeConcurrentlyContext consumeConcurrentlyContext) {
+        long recvTime = System.currentTimeMillis();
         for (MessageExt msg : msgs) {
-            msgIndex.getAndIncrement();
             if (isDebug) {
-                if (listnerName != null && listnerName != "") {
-                    logger.info(listnerName + ":" + msgIndex.get() + ":"
-                        + String.format("msgid:%s broker:%s queueId:%s offset:%s",
-                        msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(),
-                        msg.getQueueOffset()));
-                } else {
-                    logger.info(msg);
-                }
+                logger.info(listenerName + ":" + msg);
             }
 
             msgBodys.addData(new String(msg.getBody()));
             originMsgs.addData(msg);
-            originMsgIndex.put(new String(msg.getBody()), msg);
+            msgDelayTimes.addData(Math.abs(recvTime - msg.getBornTimestamp()));
         }
-        return consumeStatus;
+        return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
     }
 }

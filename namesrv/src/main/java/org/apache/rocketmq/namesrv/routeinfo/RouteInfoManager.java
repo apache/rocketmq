@@ -156,7 +156,7 @@ public class RouteInfoManager {
                         channel,
                         haServerAddr));
                 if (null == prevBrokerLiveInfo) {
-                    log.info("new broker registerd, {} HAServer: {}", brokerAddr, haServerAddr);
+                    log.info("new broker registered, {} HAServer: {}", brokerAddr, haServerAddr);
                 }
 
                 if (filterServerList != null) {
@@ -209,7 +209,7 @@ public class RouteInfoManager {
             queueDataList = new LinkedList<QueueData>();
             queueDataList.add(queueData);
             this.topicQueueTable.put(topicConfig.getTopicName(), queueDataList);
-            log.info("new topic registerd, {} {}", topicConfig.getTopicName(), queueData);
+            log.info("new topic registered, {} {}", topicConfig.getTopicName(), queueData);
         } else {
             boolean addNewOne = true;
 
@@ -359,7 +359,7 @@ public class RouteInfoManager {
         boolean foundBrokerData = false;
         Set<String> brokerNameSet = new HashSet<String>();
         List<BrokerData> brokerDataList = new LinkedList<BrokerData>();
-        topicRouteData.setBrokerDatas(brokerDataList);
+        topicRouteData.setBrokerDataList(brokerDataList);
 
         HashMap<String, List<String>> filterServerMap = new HashMap<String, List<String>>();
         topicRouteData.setFilterServerTable(filterServerMap);
@@ -369,7 +369,7 @@ public class RouteInfoManager {
                 this.lock.readLock().lockInterruptibly();
                 List<QueueData> queueDataList = this.topicQueueTable.get(topic);
                 if (queueDataList != null) {
-                    topicRouteData.setQueueDatas(queueDataList);
+                    topicRouteData.setQueueDataList(queueDataList);
                     foundQueueData = true;
 
                     Iterator<QueueData> it = queueDataList.iterator();
@@ -634,13 +634,10 @@ public class RouteInfoManager {
                 this.lock.readLock().lockInterruptibly();
                 Set<String> brokerNameSet = this.clusterAddrTable.get(cluster);
                 for (String brokerName : brokerNameSet) {
-                    Iterator<Entry<String, List<QueueData>>> topicTableIt =
-                        this.topicQueueTable.entrySet().iterator();
-                    while (topicTableIt.hasNext()) {
-                        Entry<String, List<QueueData>> topicEntry = topicTableIt.next();
+                    for (Entry<String, List<QueueData>> topicEntry : this.topicQueueTable.entrySet()) {
                         String topic = topicEntry.getKey();
-                        List<QueueData> queueDatas = topicEntry.getValue();
-                        for (QueueData queueData : queueDatas) {
+                        List<QueueData> queueDataList = topicEntry.getValue();
+                        for (QueueData queueData : queueDataList) {
                             if (brokerName.equals(queueData.getBrokerName())) {
                                 topicList.getTopicList().add(topic);
                                 break;
@@ -663,14 +660,11 @@ public class RouteInfoManager {
         try {
             try {
                 this.lock.readLock().lockInterruptibly();
-                Iterator<Entry<String, List<QueueData>>> topicTableIt =
-                    this.topicQueueTable.entrySet().iterator();
-                while (topicTableIt.hasNext()) {
-                    Entry<String, List<QueueData>> topicEntry = topicTableIt.next();
+                for (Entry<String, List<QueueData>> topicEntry : this.topicQueueTable.entrySet()) {
                     String topic = topicEntry.getKey();
-                    List<QueueData> queueDatas = topicEntry.getValue();
-                    if (queueDatas != null && queueDatas.size() > 0
-                        && TopicSysFlag.hasUnitFlag(queueDatas.get(0).getTopicSynFlag())) {
+                    List<QueueData> queueDataList = topicEntry.getValue();
+                    if (queueDataList != null && queueDataList.size() > 0
+                        && TopicSysFlag.hasUnitFlag(queueDataList.get(0).getTopicSynFlag())) {
                         topicList.getTopicList().add(topic);
                     }
                 }
@@ -689,14 +683,11 @@ public class RouteInfoManager {
         try {
             try {
                 this.lock.readLock().lockInterruptibly();
-                Iterator<Entry<String, List<QueueData>>> topicTableIt =
-                    this.topicQueueTable.entrySet().iterator();
-                while (topicTableIt.hasNext()) {
-                    Entry<String, List<QueueData>> topicEntry = topicTableIt.next();
+                for (Entry<String, List<QueueData>> topicEntry : this.topicQueueTable.entrySet()) {
                     String topic = topicEntry.getKey();
-                    List<QueueData> queueDatas = topicEntry.getValue();
-                    if (queueDatas != null && queueDatas.size() > 0
-                        && TopicSysFlag.hasUnitSubFlag(queueDatas.get(0).getTopicSynFlag())) {
+                    List<QueueData> queueDataList = topicEntry.getValue();
+                    if (queueDataList != null && queueDataList.size() > 0
+                        && TopicSysFlag.hasUnitSubFlag(queueDataList.get(0).getTopicSynFlag())) {
                         topicList.getTopicList().add(topic);
                     }
                 }
@@ -715,15 +706,12 @@ public class RouteInfoManager {
         try {
             try {
                 this.lock.readLock().lockInterruptibly();
-                Iterator<Entry<String, List<QueueData>>> topicTableIt =
-                    this.topicQueueTable.entrySet().iterator();
-                while (topicTableIt.hasNext()) {
-                    Entry<String, List<QueueData>> topicEntry = topicTableIt.next();
+                for (Entry<String, List<QueueData>> topicEntry : this.topicQueueTable.entrySet()) {
                     String topic = topicEntry.getKey();
-                    List<QueueData> queueDatas = topicEntry.getValue();
-                    if (queueDatas != null && queueDatas.size() > 0
-                        && !TopicSysFlag.hasUnitFlag(queueDatas.get(0).getTopicSynFlag())
-                        && TopicSysFlag.hasUnitSubFlag(queueDatas.get(0).getTopicSynFlag())) {
+                    List<QueueData> queueDataList = topicEntry.getValue();
+                    if (queueDataList != null && queueDataList.size() > 0
+                        && !TopicSysFlag.hasUnitFlag(queueDataList.get(0).getTopicSynFlag())
+                        && TopicSysFlag.hasUnitSubFlag(queueDataList.get(0).getTopicSynFlag())) {
                         topicList.getTopicList().add(topic);
                     }
                 }
