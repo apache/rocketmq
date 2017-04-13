@@ -76,6 +76,12 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         this(nettyServerConfig, null);
     }
 
+    
+    //1: “NettyBoss_%d” 
+    //N: “NettyServerEPOLLSelector_%d_%d” 
+    //M1: “NettyServerCodecThread_” 
+    //M2: “RemotingExecutorThread_”
+    //前3个处于RocketMQ的网络层，最后1个是应用层传下去的。
     public NettyRemotingServer(final NettyServerConfig nettyServerConfig, final ChannelEventListener channelEventListener) {
         super(nettyServerConfig.getServerOnewaySemaphoreValue(), nettyServerConfig.getServerAsyncSemaphoreValue());
         this.serverBootstrap = new ServerBootstrap();
@@ -104,7 +110,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 return new Thread(r, String.format("NettyBoss_%d", this.threadIndex.incrementAndGet()));
             }
         });
-
+        //如果是Linux平台，并且开启了native epoll，就用EpollEventLoopGroup，这个也就是用JNI，调的c写的epoll；
+        //否则，就用Java NIO的NioEventLoopGroup。
         if (RemotingUtil.isLinuxPlatform() //
             && nettyServerConfig.isUseEpollNativeSelector()) {
             this.eventLoopGroupSelector = new EpollEventLoopGroup(nettyServerConfig.getServerSelectorThreads(), new ThreadFactory() {
@@ -181,6 +188,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             this.nettyEventExecuter.start();
         }
 
+        //定时扫描responseTable,获取返回结果,并且处理超时
         this.timer.scheduleAtFixedRate(new TimerTask() {
 
             @Override

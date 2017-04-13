@@ -93,15 +93,16 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     public NettyRemotingClient(final NettyClientConfig nettyClientConfig, //
         final ChannelEventListener channelEventListener) {
+        //调用父类的构造函数, 主要是设置单向调用和异步调用两种模式下的最大并发数 65535个
         super(nettyClientConfig.getClientOnewaySemaphoreValue(), nettyClientConfig.getClientAsyncSemaphoreValue());
         this.nettyClientConfig = nettyClientConfig;
         this.channelEventListener = channelEventListener;
-
+        //执行用户回调函数的线程数 cpu数量
         int publicThreadNums = nettyClientConfig.getClientCallbackExecutorThreads();
         if (publicThreadNums <= 0) {
             publicThreadNums = 4;
         }
-
+        //执行用户回调函数的线程池
         this.publicExecutor = Executors.newFixedThreadPool(publicThreadNums, new ThreadFactory() {
             private AtomicInteger threadIndex = new AtomicInteger(0);
 
@@ -111,6 +112,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         });
 
+        //配置客户端NIO线程租
         this.eventLoopGroupWorker = new NioEventLoopGroup(1, new ThreadFactory() {
             private AtomicInteger threadIndex = new AtomicInteger(0);
 
@@ -129,6 +131,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     @Override
     public void start() {
+         //I／O线程是不允许被阻塞的，也就是不能在ChannelHandler中进行任何阻塞式的处理，但是对此我们也有相应的解决方法.
+         //就是在把ChannelHanders添加到ChannelPipeline的时候，
+         //指定一个EventExecutorGroup，ChannelHandler中所有的方法都将会在这个指定的EventExecutorGroup中运行。
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(//
             nettyClientConfig.getClientWorkerThreads(), //
             new ThreadFactory() {
@@ -152,11 +157,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 public void initChannel(SocketChannel ch) throws Exception {
                     ch.pipeline().addLast(
                         defaultEventExecutorGroup,
-                        new NettyEncoder(),
-                        new NettyDecoder(),
-                        new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),
-                        new NettyConnectManageHandler(),
-                        new NettyClientHandler());
+                        new NettyEncoder(),//编码handler
+                        new NettyDecoder(),//解码handler
+                        new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),//心跳检测
+                        new NettyConnectManageHandler(),//连接管理handler,处理connect, disconnect, close等事件
+                        new NettyClientHandler());//处理接收到RemotingCommand消息后的事件, 收到服务器端响应后的相关操作
                 }
             });
 

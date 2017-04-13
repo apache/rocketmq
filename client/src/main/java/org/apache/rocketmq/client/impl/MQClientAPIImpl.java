@@ -304,6 +304,7 @@ public class MQClientAPIImpl {
         final SendMessageContext context, // 11
         final DefaultMQProducerImpl producer // 12
     ) throws RemotingException, MQBrokerException, InterruptedException {
+        //转化为底层的远程通讯命令对象，这是底层通讯协议。
         RemotingCommand request = null;
         if (sendSmartMsg) {
             SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
@@ -313,7 +314,7 @@ public class MQClientAPIImpl {
         }
 
         request.setBody(msg.getBody());
-
+        //三种通讯模型，调用对应的方法处理。
         switch (communicationMode) {
             case ONEWAY:
                 this.remotingClient.invokeOneway(addr, request, timeoutMillis);

@@ -218,8 +218,8 @@ public class RemotingCommand {
     }
 
     public void markResponseType() {
-        int bits = 1 << RPC_TYPE;
-        this.flag |= bits;
+        int bits = 1 << RPC_TYPE;//1<<0=1
+        this.flag |= bits;//1
     }
 
     public CommandCustomHeader readCustomHeader() {
