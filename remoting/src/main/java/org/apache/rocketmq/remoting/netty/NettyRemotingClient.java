@@ -321,6 +321,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
             if (update) {
                 Collections.shuffle(addrs);
+                log.info("name server address updated. NEW : {} , OLD: {}",addrs,old);
                 this.namesrvAddrList.set(addrs);
             }
         }
