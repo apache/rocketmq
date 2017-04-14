@@ -399,6 +399,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         String newAddr = addrList.get(index);
 
                         this.namesrvAddrChoosed.set(newAddr);
+                        log.info("new name server is chosen. OLD: {} , NEW: {}. namesrvIndex = {}", addr, newAddr, namesrvIndex);
                         Channel channelNew = this.createChannel(newAddr);
                         if (channelNew != null)
                             return channelNew;
