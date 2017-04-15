@@ -291,7 +291,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             sysFlag |= MessageSysFlag.MULTI_TAGS_FLAG;
         }
 
-        // 对消费超过最大时的处理，创建tDLQTopic
+        // 对消费超过最大时的处理，创建tDLQTopic TODO 待读
         String newTopic = requestHeader.getTopic();
         if (null != newTopic && newTopic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
             // 获取订阅分组配置

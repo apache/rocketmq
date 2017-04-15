@@ -60,7 +60,7 @@ public class Producer {
                  * Create a message instance, specifying topic, tag and message body.
                  */
 
-                Message msg = new Message("TopicTest" /* Topic */,
+                Message msg = new Message("TopicRead3" /* Topic */,
                     "TagA" /* Tag */,
                     ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
                 );
@@ -69,7 +69,7 @@ public class Producer {
                  * Call send message to deliver message to one of brokers.
                  */
 //                SendResult sendResult = producer.send(msg);
-                producer.sendOneway(msg);
+                producer.send(msg);
 
 //                System.out.printf("%s%n", sendResult);
                 System.out.println(i);

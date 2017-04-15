@@ -718,7 +718,7 @@ public class CommitLog {
         // Asynchronous flush
         else {
             if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
-                flushCommitLogService.wakeup(); // import：唤醒commitLog线程，进行flush
+                flushCommitLogService.wakeup(); // important：唤醒commitLog线程，进行flush
             } else {
                 commitLogService.wakeup();
             }

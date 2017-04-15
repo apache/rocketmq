@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Topic信息
+ * Topic发布信息
  */
 public class TopicPublishInfo {
     /**
@@ -82,6 +82,11 @@ public class TopicPublishInfo {
         this.sendWhichQueue = sendWhichQueue;
     }
 
+    /**
+     * Topic 是否有路由信息。例如 Broker 地址，Topic的读写权限等
+     *
+     * @return 是否有路由信息
+     */
     public boolean isHaveTopicRouterInfo() {
         return haveTopicRouterInfo;
     }

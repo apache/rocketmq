@@ -66,6 +66,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * Just for testing or demo program
+     * 目前会使用该变量去获取TopicRouteData
+     * @see org.apache.rocketmq.client.impl.factory.MQClientInstance#updateTopicRouteInfoFromNameServer(String, boolean, DefaultMQProducer)
      */
     private String createTopicKey = MixAll.DEFAULT_TOPIC;
 
