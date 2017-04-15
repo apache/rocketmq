@@ -75,11 +75,14 @@ public class BrokerController {
     private final ProducerManager producerManager;
     private final ClientHousekeepingService clientHousekeepingService;
     private final PullMessageProcessor pullMessageProcessor;
+// todo 待读
     private final PullRequestHoldService pullRequestHoldService;
+// todo 待读
     private final MessageArrivingListener messageArrivingListener;
     private final Broker2Client broker2Client;
     private final SubscriptionGroupManager subscriptionGroupManager;
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
+// todo 待读
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
     private final BrokerOuterAPI brokerOuterAPI;
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
