@@ -25,30 +25,63 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
+/**
+ * 发送消息请求Header
+ */
 public class SendMessageRequestHeader implements CommandCustomHeader {
+    /**
+     * producer分组
+     */
     @CFNotNull
     private String producerGroup;
+    /**
+     * Topic
+     */
     @CFNotNull
     private String topic;
+    /**
+     * 默认Topic
+     */
     @CFNotNull
     private String defaultTopic;
+    /**
+     * 默认Topic消息队列数量
+     */
     @CFNotNull
     private Integer defaultTopicQueueNums;
+    /**
+     * 消息队列编号
+     */
     @CFNotNull
     private Integer queueId;
+    /**
+     * 消息系统标记
+     */
     @CFNotNull
     private Integer sysFlag;
+    /**
+     * 创建时间
+     */
     @CFNotNull
     private Long bornTimestamp;
     @CFNotNull
     private Integer flag;
+    /**
+     * 拓展字段
+     */
     @CFNullable
     private String properties;
+    /**
+     * 已消费次数
+     */
     @CFNullable
     private Integer reconsumeTimes;
     // TODO 疑问：unitMode是？
     @CFNullable
     private boolean unitMode = false;
+    /**
+     * 最大消费次数
+     */
     private Integer maxReconsumeTimes;
 
     @Override

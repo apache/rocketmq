@@ -16,9 +16,25 @@
  */
 package org.apache.rocketmq.client.producer;
 
+/**
+ * 发送消息结果状态
+ * 该状态都是消息处理是成功的，只是存储、同步时出现问题。
+ */
 public enum SendStatus {
+    /**
+     * 发送成功 and 存储同步成功
+     */
     SEND_OK,
+    /**
+     * 发送成功 but 存储失败
+     */
     FLUSH_DISK_TIMEOUT,
+    /**
+     * 发送成功 but 从节点超时
+     */
     FLUSH_SLAVE_TIMEOUT,
+    /**
+     * 发送成功 but 从节点不可用
+     */
     SLAVE_NOT_AVAILABLE,
 }

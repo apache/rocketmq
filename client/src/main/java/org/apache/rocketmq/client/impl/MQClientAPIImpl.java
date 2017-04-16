@@ -201,6 +201,22 @@ public class MQClientAPIImpl {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * 发送消息，并返回发送结果
+     *
+     * @param addr broker地址
+     * @param brokerName brokerName
+     * @param msg 消息
+     * @param requestHeader 请求
+     * @param timeoutMillis 请求最大时间
+     * @param communicationMode 通信模式
+     * @param context 发送消息context
+     * @param producer producer
+     * @return 发送结果
+     * @throws RemotingException 当请求发生异常
+     * @throws MQBrokerException 当Broker发生异常
+     * @throws InterruptedException 当线程被打断
+     */
     public SendResult sendMessage(//
         final String addr, // 1
         final String brokerName, // 2
@@ -214,6 +230,26 @@ public class MQClientAPIImpl {
         return sendMessage(addr, brokerName, msg, requestHeader, timeoutMillis, communicationMode, null, null, null, 0, context, producer);
     }
 
+    /**
+     * 发送消息，并返回发送结果
+     *
+     * @param addr broker地址
+     * @param brokerName brokerName
+     * @param msg 消息
+     * @param requestHeader 请求
+     * @param timeoutMillis 请求最大时间
+     * @param communicationMode 通信模式
+     * @param sendCallback 发送回调
+     * @param topicPublishInfo topic发布信息
+     * @param instance client
+     * @param retryTimesWhenSendFailed
+     * @param context 发送消息context
+     * @param producer producer
+     * @return 发送结果
+     * @throws RemotingException 当请求发生异常
+     * @throws MQBrokerException 当Broker发生异常
+     * @throws InterruptedException 当线程被打断
+     */
     public SendResult sendMessage(//
         final String addr, // 1
         final String brokerName, // 2
@@ -228,16 +264,16 @@ public class MQClientAPIImpl {
         final SendMessageContext context, // 11
         final DefaultMQProducerImpl producer // 12
     ) throws RemotingException, MQBrokerException, InterruptedException {
-        RemotingCommand request = null;
+        // 创建请求。如果开启sendSmartMsg开关，实际是将请求参数的key缩短，加快序列化性能，减少网络IO
+        RemotingCommand request;
         if (sendSmartMsg) {
             SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
             request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
         } else {
             request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
         }
-
         request.setBody(msg.getBody());
-
+        // 请求
         switch (communicationMode) {
             case ONEWAY:
                 this.remotingClient.invokeOneway(addr, request, timeoutMillis);
@@ -253,10 +289,22 @@ public class MQClientAPIImpl {
                 assert false;
                 break;
         }
-
         return null;
     }
 
+    /**
+     * 发布同步消息，并返回发送结果
+     *
+     * @param addr broker地址
+     * @param brokerName brokerName
+     * @param msg 消息
+     * @param timeoutMillis 请求最大时间
+     * @param request 请求
+     * @return 发送结果
+     * @throws RemotingException 当请求发生异常
+     * @throws MQBrokerException 当Broker发生异常
+     * @throws InterruptedException 当线程被打断
+     */
     private SendResult sendMessageSync(//
         final String addr, //
         final String brokerName, //
@@ -269,6 +317,7 @@ public class MQClientAPIImpl {
         return this.processSendResponse(brokerName, msg, response);
     }
 
+    // TODO 待读
     private void sendMessageAsync(//
         final String addr, //
         final String brokerName, //
@@ -395,12 +444,23 @@ public class MQClientAPIImpl {
         }
     }
 
+    /**
+     * 处理发送消息结果
+     *
+     * @param brokerName brokerName
+     * @param msg 消息
+     * @param response 响应
+     * @return 发送结果
+     * @throws MQBrokerException 当Broker发生异常
+     * @throws RemotingCommandException 当调用发生异常
+     */
     private SendResult processSendResponse(//
         final String brokerName, //
         final Message msg, //
         final RemotingCommand response//
     ) throws MQBrokerException, RemotingCommandException {
         switch (response.getCode()) {
+            // 发送成功
             case ResponseCode.FLUSH_DISK_TIMEOUT:
             case ResponseCode.FLUSH_SLAVE_TIMEOUT:
             case ResponseCode.SLAVE_NOT_AVAILABLE: {
@@ -425,12 +485,11 @@ public class MQClientAPIImpl {
                         assert false;
                         break;
                 }
-
                 SendMessageResponseHeader responseHeader =
                     (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
-
+                // 发送成功消息队列
                 MessageQueue messageQueue = new MessageQueue(msg.getTopic(), brokerName, responseHeader.getQueueId());
-
+                // 发送结果
                 SendResult sendResult = new SendResult(sendStatus,
                     MessageClientIDSetter.getUniqID(msg),
                     responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
@@ -446,12 +505,14 @@ public class MQClientAPIImpl {
                     sendResult.setTraceOn(true);
                 }
                 sendResult.setRegionId(regionId);
+                // 返回
                 return sendResult;
             }
+            // 发送不成功
             default:
                 break;
         }
-
+        // 发送非成功，抛出Broker异常
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 

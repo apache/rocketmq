@@ -24,13 +24,28 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
+/**
+ * 发送消息响应Header
+ */
 public class SendMessageResponseHeader implements CommandCustomHeader {
+    /**
+     * commitLog消息编号
+     */
     @CFNotNull
     private String msgId;
+    /**
+     * 队列编号
+     */
     @CFNotNull
     private Integer queueId;
+    /**
+     * 队列位置
+     */
     @CFNotNull
     private Long queueOffset;
+    /**
+     * TODO 待读
+     */
     private String transactionId;
 
     @Override

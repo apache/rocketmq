@@ -16,7 +16,13 @@
  */
 package org.apache.rocketmq.common.sysflag;
 
+/**
+ * 消息系统标记
+ */
 public class MessageSysFlag {
+    /**
+     * 标记位 - 压缩
+     */
     public final static int COMPRESSED_FLAG = 0x1;
     public final static int MULTI_TAGS_FLAG = 0x1 << 1;
     public final static int TRANSACTION_NOT_TYPE = 0;
