@@ -175,6 +175,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
     @SuppressWarnings("Duplicates")
     protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,
                                        final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
+        // 检查 broker 是否有写入权限
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
             && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.NO_PERMISSION);
@@ -190,10 +191,8 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             response.setRemark(errorMsg);
             return response;
         }
-
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
-        if (null == topicConfig) {
-            // TODO 疑问
+        if (null == topicConfig) { // 不能存在topicConfig，则进行创建
             int topicSysFlag = 0;
             if (requestHeader.isUnitMode()) {
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -202,7 +201,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                     topicSysFlag = TopicSysFlag.buildSysFlag(true, false);
                 }
             }
-            // 创建topic配置 TODO 待读：消息创建
+            // 创建topic配置
             log.warn("the topic {} not exist, producer: {}", requestHeader.getTopic(), ctx.channel().remoteAddress());
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(//
                 requestHeader.getTopic(), //
@@ -245,6 +244,14 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         this.sendMessageHookList = sendMessageHookList;
     }
 
+    /**
+     * 进行响应。
+     * 这里比较特殊的是，当响应发生异常时，捕捉该异常，并输出日志
+     *
+     * @param ctx ctx
+     * @param request 请求
+     * @param response 响应
+     */
     protected void doResponse(ChannelHandlerContext ctx, RemotingCommand request,
         final RemotingCommand response) {
         if (!request.isOnewayRPC()) {
