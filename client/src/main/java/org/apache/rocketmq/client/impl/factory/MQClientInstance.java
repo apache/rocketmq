@@ -596,7 +596,7 @@ public class MQClientInstance {
                                     }
                                 }
                             }
-                            log.info("topicRouteTable.put TopicRouteData[{}]", cloneTopicRouteData);
+                            log.info("topicRouteTable.put. Topic = {}, TopicRouteData[{}]", topic, cloneTopicRouteData);
                             this.topicRouteTable.put(topic, cloneTopicRouteData);
                             return true;
                         }
