@@ -103,20 +103,6 @@ public class BrokerStartup {
                 messageStoreConfig.setAccessMessageInMemoryMaxRatio(ratio);
             }
 
-            if (commandLine.hasOption('p')) {
-                MixAll.printObjectProperties(null, brokerConfig);
-                MixAll.printObjectProperties(null, nettyServerConfig);
-                MixAll.printObjectProperties(null, nettyClientConfig);
-                MixAll.printObjectProperties(null, messageStoreConfig);
-                System.exit(0);
-            } else if (commandLine.hasOption('m')) {
-                MixAll.printObjectProperties(null, brokerConfig, true);
-                MixAll.printObjectProperties(null, nettyServerConfig, true);
-                MixAll.printObjectProperties(null, nettyClientConfig, true);
-                MixAll.printObjectProperties(null, messageStoreConfig, true);
-                System.exit(0);
-            }
-
             if (commandLine.hasOption('c')) {
                 String file = commandLine.getOptionValue('c');
                 if (file != null) {
@@ -181,8 +167,24 @@ public class BrokerStartup {
             configurator.setContext(lc);
             lc.reset();
             configurator.doConfigure(brokerConfig.getRocketmqHome() + "/conf/logback_broker.xml");
-            log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
+            if (commandLine.hasOption('p')) {
+                Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
+                MixAll.printObjectProperties(console, brokerConfig);
+                MixAll.printObjectProperties(console, nettyServerConfig);
+                MixAll.printObjectProperties(console, nettyClientConfig);
+                MixAll.printObjectProperties(console, messageStoreConfig);
+                System.exit(0);
+            } else if (commandLine.hasOption('m')) {
+                Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
+                MixAll.printObjectProperties(console, brokerConfig, true);
+                MixAll.printObjectProperties(console, nettyServerConfig, true);
+                MixAll.printObjectProperties(console, nettyClientConfig, true);
+                MixAll.printObjectProperties(console, messageStoreConfig, true);
+                System.exit(0);
+            }
+
+            log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
             MixAll.printObjectProperties(log, brokerConfig);
             MixAll.printObjectProperties(log, nettyServerConfig);
             MixAll.printObjectProperties(log, nettyClientConfig);
