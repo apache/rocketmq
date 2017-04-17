@@ -21,6 +21,7 @@ import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -31,6 +32,7 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
+import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
@@ -135,6 +137,7 @@ public class DefaultMQPushConsumerTest {
                 messageClientExt.setOffsetMsgId("234");
                 messageClientExt.setBornHost(new InetSocketAddress(8080));
                 messageClientExt.setStoreHost(new InetSocketAddress(8080));
+                messageClientExt.setQueueOffset(((PullMessageRequestHeader)mock.getArgument(1)).getQueueOffset());
                 PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
                 ((PullCallback)mock.getArgument(4)).onSuccess(pullResult);
                 return pullResult;
@@ -172,6 +175,41 @@ public class DefaultMQPushConsumerTest {
         countDownLatch.await();
         assertThat(messageExts[0].getTopic()).isEqualTo(topic);
         assertThat(messageExts[0].getBody()).isEqualTo(new byte[] {'a'});
+    }
+
+    @Test
+    public void testShutdownAwait() throws Exception {
+        final LinkedList<Long> consumedOffset = new LinkedList<>();
+        pushConsumer.setPullInterval(0);
+        pushConsumer.setPullThresholdForQueue(100);
+        pushConsumer.setConsumeThreadMin(2);
+        pushConsumer.setConsumeThreadMax(10);
+        pushConsumer.setAwaitTerminationMillisWhenShutdown(10* 1000);//await consume for at most 10 seconds. If we do not set await millis, this test case will not pass
+        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
+            @Override public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                ConsumeConcurrentlyContext context) {
+                for (MessageExt msg : msgs) {
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    synchronized (consumedOffset) {
+                        consumedOffset.add(msg.getQueueOffset());
+                    }
+                }
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            }
+        }));
+        pushConsumer.getDefaultMQPushConsumerImpl().doRebalance();
+        PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
+        pullMessageService.executePullRequestImmediately(createPullRequest());
+        Thread.sleep(500);
+        pushConsumer.shutdown();
+        long persitOffset =pushConsumer.getDefaultMQPushConsumerImpl().getOffsetStore().readOffset(new MessageQueue(topic, brokerName, 0), ReadOffsetType.READ_FROM_MEMORY);
+        Thread.sleep(500);//wait for thread pool to continue consume for some time, which will emerge problem if thread pool is not terminated well
+        Collections.sort(consumedOffset);
+        assertThat(consumedOffset.getLast() + 1).isEqualTo(persitOffset);//when shutdown with await, the persisted offset should be the latest message offset
     }
 
     @Test

@@ -215,6 +215,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private long consumeTimeout = 15;
 
     /**
+     * Maximum time to await message consuming when shutdown consumer, 0 indicates no await.
+     */
+    private long awaitTerminationMillisWhenShutdown = 0;
+
+    /**
      * Default constructor.
      */
     public DefaultMQPushConsumer() {
@@ -461,7 +466,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Override
     public void shutdown() {
-        this.defaultMQPushConsumerImpl.shutdown();
+        this.defaultMQPushConsumerImpl.shutdown(awaitTerminationMillisWhenShutdown);
     }
 
     @Override
@@ -615,5 +620,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setConsumeTimeout(final long consumeTimeout) {
         this.consumeTimeout = consumeTimeout;
+    }
+
+    public long getAwaitTerminationMillisWhenShutdown() {
+        return awaitTerminationMillisWhenShutdown;
+    }
+
+    public void setAwaitTerminationMillisWhenShutdown(long awaitTerminationMillisWhenShutdown) {
+        this.awaitTerminationMillisWhenShutdown = awaitTerminationMillisWhenShutdown;
     }
 }
