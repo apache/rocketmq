@@ -21,7 +21,12 @@ import io.openmessaging.KeyValue;
 import io.openmessaging.MessageHeader;
 import io.openmessaging.OMS;
 import io.openmessaging.SendResult;
+import io.openmessaging.rocketmq.domain.BytesMessageImpl;
+import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import io.openmessaging.rocketmq.domain.SendResultImpl;
+import java.lang.reflect.Field;
+import java.util.Map;
+import java.util.Set;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -45,8 +50,13 @@ public class OMSUtil {
         KeyValue properties = omsMessage.properties();
 
         //All destinations in RocketMQ use Topic
-        rmqMessage.setTopic(headers.containsKey(MessageHeader.TOPIC)
-            ? headers.getString(MessageHeader.TOPIC) : headers.getString(MessageHeader.QUEUE));
+        if (headers.containsKey(MessageHeader.TOPIC)) {
+            rmqMessage.setTopic(headers.getString(MessageHeader.TOPIC));
+            rmqMessage.putUserProperty(NonStandardKeys.MESSAGE_DESTINATION, "TOPIC");
+        } else {
+            rmqMessage.setTopic(headers.getString(MessageHeader.QUEUE));
+            rmqMessage.putUserProperty(NonStandardKeys.MESSAGE_DESTINATION, "QUEUE");
+        }
 
         for (String key : properties.keySet()) {
             MessageAccessor.putProperty(rmqMessage, key, properties.getString(key));
@@ -60,6 +70,50 @@ public class OMSUtil {
         return rmqMessage;
     }
 
+    public static BytesMessage msgConvert(org.apache.rocketmq.common.message.MessageExt rmqMsg) {
+        BytesMessage omsMsg = new BytesMessageImpl();
+        omsMsg.setBody(rmqMsg.getBody());
+
+        KeyValue headers = omsMsg.headers();
+        KeyValue properties = omsMsg.properties();
+
+        final Set<Map.Entry<String, String>> entries = rmqMsg.getProperties().entrySet();
+
+        for (final Map.Entry<String, String> entry : entries) {
+            if (isOMSHeader(entry.getKey())) {
+                headers.put(entry.getKey(), entry.getValue());
+            } else {
+                properties.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        omsMsg.putHeaders(MessageHeader.MESSAGE_ID, rmqMsg.getMsgId());
+        if (rmqMsg.getProperties().get(NonStandardKeys.MESSAGE_DESTINATION).equals("TOPIC")) {
+            omsMsg.putHeaders(MessageHeader.TOPIC, rmqMsg.getTopic());
+        } else {
+            omsMsg.putHeaders(MessageHeader.QUEUE, rmqMsg.getTopic());
+        }
+        omsMsg.putHeaders(MessageHeader.SEARCH_KEY, rmqMsg.getKeys());
+        omsMsg.putHeaders(MessageHeader.BORN_HOST, String.valueOf(rmqMsg.getBornHost()));
+        omsMsg.putHeaders(MessageHeader.BORN_TIMESTAMP, rmqMsg.getBornTimestamp());
+        omsMsg.putHeaders(MessageHeader.STORE_HOST, String.valueOf(rmqMsg.getStoreHost()));
+        omsMsg.putHeaders(MessageHeader.STORE_TIMESTAMP, rmqMsg.getStoreTimestamp());
+        return omsMsg;
+    }
+
+    public static boolean isOMSHeader(String value) {
+        for (Field field : MessageHeader.class.getDeclaredFields()) {
+            try {
+                if (field.get(MessageHeader.class).equals(value)) {
+                    return true;
+                }
+            } catch (IllegalAccessException e) {
+                return false;
+            }
+        }
+        return false;
+    }
+
     /**
      * Convert a RocketMQ SEND_OK SendResult instance to a OMS SendResult.
      */
@@ -68,7 +122,7 @@ public class OMSUtil {
         return new SendResultImpl(rmqResult.getMsgId(), OMS.newKeyValue());
     }
 
-    public static KeyValue buildKeyValue(KeyValue ... keyValues) {
+    public static KeyValue buildKeyValue(KeyValue... keyValues) {
         KeyValue keyValue = OMS.newKeyValue();
         for (KeyValue properties : keyValues) {
             for (String key : properties.keySet()) {

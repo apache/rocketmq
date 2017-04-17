@@ -25,7 +25,10 @@ import io.openmessaging.PushConsumer;
 import io.openmessaging.ResourceManager;
 import io.openmessaging.SequenceProducer;
 import io.openmessaging.ServiceEndPoint;
+import io.openmessaging.exception.OMSNotSupportedException;
 import io.openmessaging.observer.Observer;
+import io.openmessaging.rocketmq.consumer.PullConsumerImpl;
+import io.openmessaging.rocketmq.consumer.PushConsumerImpl;
 import io.openmessaging.rocketmq.producer.ProducerImpl;
 import io.openmessaging.rocketmq.producer.SequenceProducerImpl;
 
@@ -63,32 +66,32 @@ public class MessagingAccessPointImpl implements MessagingAccessPoint {
 
     @Override
     public PushConsumer createPushConsumer() {
-        return null;
+        return new PushConsumerImpl(accessPointProperties);
     }
 
     @Override
     public PushConsumer createPushConsumer(KeyValue properties) {
-        return null;
+        return new PushConsumerImpl(OMSUtil.buildKeyValue(this.accessPointProperties, properties));
     }
 
     @Override
     public PullConsumer createPullConsumer(String queueName) {
-        return null;
+        return new PullConsumerImpl(accessPointProperties);
     }
 
     @Override
     public PullConsumer createPullConsumer(String queueName, KeyValue properties) {
-        return null;
+        return new PullConsumerImpl(OMSUtil.buildKeyValue(this.accessPointProperties, properties));
     }
 
     @Override
     public IterableConsumer createIterableConsumer(String queueName) {
-        return null;
+        throw new OMSNotSupportedException("-1", "IterableConsumer is not supported in RocketMQ");
     }
 
     @Override
     public IterableConsumer createIterableConsumer(String queueName, KeyValue properties) {
-        return null;
+        throw new OMSNotSupportedException("-1", "IterableConsumer is not supported in RocketMQ");
     }
 
     @Override

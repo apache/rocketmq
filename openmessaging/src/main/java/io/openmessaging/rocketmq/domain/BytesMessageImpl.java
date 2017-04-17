@@ -20,6 +20,7 @@ import io.openmessaging.BytesMessage;
 import io.openmessaging.KeyValue;
 import io.openmessaging.Message;
 import io.openmessaging.OMS;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 public class BytesMessageImpl implements BytesMessage {
     private KeyValue headers;
@@ -98,5 +99,10 @@ public class BytesMessageImpl implements BytesMessage {
     public Message putProperties(final String key, final String value) {
         properties.put(key, value);
         return this;
+    }
+
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this);
     }
 }

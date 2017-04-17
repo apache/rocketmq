@@ -14,15 +14,49 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.openmessaging.rocketmq.domain;
+package io.openmessaging.rocketmq.consumer;
 
-public interface NonStandardKeys {
-    String CONSUMER_GROUP = "rmq.consumer.group";
-    String PRODUCER_GROUP = "rmq.producer.group";
-    String MAX_REDELIVERY_TIMES = "rmq.max.redelivery.times";
-    String MESSAGE_CONSUME_TIMEOUT = "rmq.message.consume.timeout";
-    String MAX_CONSUME_THREAD_NUMS = "rmq.max.consume.thread.nums";
-    String MIN_CONSUME_THREAD_NUMS = "rmq.min.consume.thread.nums";
-    String MESSAGE_CONSUME_STATUS = "rmq.message.consume.status";
-    String MESSAGE_DESTINATION = "rmq.message.destination";
+import io.openmessaging.KeyValue;
+import io.openmessaging.Message;
+import io.openmessaging.PullConsumer;
+
+public class PullConsumerImpl implements PullConsumer {
+    public PullConsumerImpl(final KeyValue properties) {
+
+    }
+
+    @Override
+    public KeyValue properties() {
+        return null;
+    }
+
+    @Override
+    public Message poll() {
+        return null;
+    }
+
+    @Override
+    public Message poll(final KeyValue properties) {
+        return null;
+    }
+
+    @Override
+    public void ack(final String messageId) {
+
+    }
+
+    @Override
+    public void ack(final String messageId, final KeyValue properties) {
+
+    }
+
+    @Override
+    public void startup() {
+
+    }
+
+    @Override
+    public void shutdown() {
+
+    }
 }

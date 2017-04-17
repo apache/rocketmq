@@ -28,6 +28,7 @@ import io.openmessaging.exception.OMSNotSupportedException;
 import io.openmessaging.exception.OMSRuntimeException;
 import io.openmessaging.exception.OMSTimeOutException;
 import io.openmessaging.rocketmq.domain.BytesMessageImpl;
+import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.log.ClientLogger;
@@ -50,20 +51,22 @@ abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory{
         this.rocketmqProducer = new DefaultMQProducer();
 
         String accessPoints = properties.getString(PropertyKeys.ACCESS_POINTS);
-
         if (accessPoints == null || accessPoints.isEmpty()) {
             throw new OMSRuntimeException("-1", "OMS AccessPoints is null or empty.");
         }
+        this.rocketmqProducer.setNamesrvAddr(accessPoints.replace(',', ';'));
+
+        String producerGroup = properties.getString(NonStandardKeys.PRODUCER_GROUP);
+        if (producerGroup == null || producerGroup.isEmpty()) {
+            producerGroup = "__OMS_PRODUCER_DEFAULT_GROUP";
+        }
+        this.rocketmqProducer.setProducerGroup(producerGroup);
+
         String producerId = buildInstanceName();
-
         int operationTimeout = properties.getInt(PropertyKeys.OPERATION_TIMEOUT);
-
-        this.rocketmqProducer.setProducerGroup(producerId);
         this.rocketmqProducer.setSendMsgTimeout(operationTimeout == 0 ? 5000 : operationTimeout);
         this.rocketmqProducer.setInstanceName(producerId);
-        this.rocketmqProducer.setNamesrvAddr(accessPoints.replace(',', ';'));
         this.rocketmqProducer.setMaxMessageSize(1024 * 1024 * 4);
-
         properties.put(PropertyKeys.PRODUCER_ID, producerId);
     }
 
