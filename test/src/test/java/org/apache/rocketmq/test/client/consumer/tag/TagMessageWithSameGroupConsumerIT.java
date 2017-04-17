@@ -36,6 +36,7 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
     private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
+    private String tag = "tag";
 
     @Before
     public void setUp() {
@@ -51,13 +52,12 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
 
     @Test
     public void testTwoConsumerWithSameGroup() {
-        String tag = "jueyin";
         int msgSize = 20;
         String originMsgDCName = RandomUtils.getStringByUUID();
         String msgBodyDCName = RandomUtils.getStringByUUID();
         RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, tag,
             new RMQNormalListner(originMsgDCName, msgBodyDCName));
-        RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), tag,
+        getConsumer(nsAddr, consumer1.getConsumerGroup(), tag,
             new RMQNormalListner(originMsgDCName, msgBodyDCName));
         producer.send(tag, msgSize);
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
@@ -70,7 +70,6 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
 
     @Test
     public void testConsumerStartWithInterval() {
-        String tag = "jueyin";
         int msgSize = 100;
         String originMsgDCName = RandomUtils.getStringByUUID();
         String msgBodyDCName = RandomUtils.getStringByUUID();
@@ -79,7 +78,7 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
             new RMQNormalListner(originMsgDCName, msgBodyDCName));
         producer.send(tag, msgSize, 100);
         TestUtils.waitForMoment(5);
-        RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), tag,
+        getConsumer(nsAddr, consumer1.getConsumerGroup(), tag,
             new RMQNormalListner(originMsgDCName, msgBodyDCName));
         TestUtils.waitForMoment(5);
 
@@ -90,8 +89,7 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
     }
 
     @Test
-    public void testConsumerStartTwoAndCrashOnsAfterWhile() {
-        String tag = "jueyin";
+    public void testConsumerStartTwoAndCrashOneAfterWhile() {
         int msgSize = 100;
         String originMsgDCName = RandomUtils.getStringByUUID();
         String msgBodyDCName = RandomUtils.getStringByUUID();

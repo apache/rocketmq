@@ -460,10 +460,6 @@
                             <argLine>@{failsafeArgLine}</argLine>
                             <excludes>
                                 <exclude>**/NormalMsgDelayIT.java</exclude>
-                                <exclude>**/BroadCastNormalMsgNotRecvIT.java</exclude>
-                                <exclude>**/TagMessageWithSameGroupConsumerIT.java</exclude>
-                                <exclude>**/AsyncSendWithMessageQueueSelectorIT.java</exclude>
-                                <exclude>**/AsyncSendWithMessageQueueIT.java</exclude>
                             </excludes>
                         </configuration>
                         <executions>

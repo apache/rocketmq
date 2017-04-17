@@ -63,7 +63,9 @@ public class RMQNormalListner extends AbstractListener implements MessageListene
 
             msgBodys.addData(new String(msg.getBody()));
             originMsgs.addData(msg);
-            originMsgIndex.put(new String(msg.getBody()), msg);
+            if (originMsgIndex != null) {
+                originMsgIndex.put(new String(msg.getBody()), msg);
+            }
         }
         return consumeStatus;
     }

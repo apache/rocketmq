@@ -33,7 +33,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 public class AsyncSendWithMessageQueueIT extends BaseConf {
     private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
-    private static boolean sendFail = false;
     private RMQAsyncSendProducer producer = null;
     private String topic = null;
 
@@ -57,7 +56,7 @@ public class AsyncSendWithMessageQueueIT extends BaseConf {
         MessageQueue mq = new MessageQueue(topic, broker1Name, queueId);
 
         producer.asyncSend(msgSize, mq);
-        producer.waitForResponse(5 * 1000);
+        producer.waitForResponse(10 * 1000);
         assertThat(producer.getSuccessMsgCount()).isEqualTo(msgSize);
 
         consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
@@ -72,7 +71,7 @@ public class AsyncSendWithMessageQueueIT extends BaseConf {
 
         mq = new MessageQueue(topic, broker2Name, queueId);
         producer.asyncSend(msgSize, mq);
-        producer.waitForResponse(5 * 1000);
+        producer.waitForResponse(10 * 1000);
         assertThat(producer.getSuccessMsgCount()).isEqualTo(msgSize);
 
         consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
