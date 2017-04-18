@@ -161,10 +161,10 @@
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
-        <!-- URL of the ASF SonarQube server -->
-        <sonar.host.url>https://builds.apache.org/analysis</sonar.host.url>
         <!-- Exclude all generated code -->
-        <sonar.exclusions>file:**/generated-sources/**</sonar.exclusions>
+        <sonar.jacoco.itReportPath>${project.basedir}/../test/target/jacoco-it.exec</sonar.jacoco.itReportPath>
+        <sonar.exclusions>file:**/generated-sources/**,**/test/**</sonar.exclusions>
+
     </properties>
 
     <modules>
@@ -477,6 +477,13 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <profile>
+            <id>sonar-apache</id>
+            <properties>
+                <!-- URL of the ASF SonarQube server -->
+                <sonar.host.url>https://builds.apache.org/analysis</sonar.host.url>
+            </properties>
         </profile>
     </profiles>
 
