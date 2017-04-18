@@ -76,12 +76,12 @@ public class MessagingAccessPointImpl implements MessagingAccessPoint {
 
     @Override
     public PullConsumer createPullConsumer(String queueName) {
-        return new PullConsumerImpl(accessPointProperties);
+        return new PullConsumerImpl(queueName, accessPointProperties);
     }
 
     @Override
     public PullConsumer createPullConsumer(String queueName, KeyValue properties) {
-        return new PullConsumerImpl(OMSUtil.buildKeyValue(this.accessPointProperties, properties));
+        return new PullConsumerImpl(queueName, OMSUtil.buildKeyValue(this.accessPointProperties, properties));
     }
 
     @Override

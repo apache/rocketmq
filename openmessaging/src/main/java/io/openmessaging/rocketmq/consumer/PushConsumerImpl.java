@@ -156,6 +156,8 @@ public class PushConsumerImpl implements PushConsumer {
             final KeyValue contextProperties = OMS.newKeyValue();
             final CountDownLatch sync = new CountDownLatch(1);
 
+            contextProperties.put(NonStandardKeys.MESSAGE_CONSUME_STATUS, ConsumeConcurrentlyStatus.RECONSUME_LATER.name());
+
             ReceivedMessageContext context = new ReceivedMessageContext() {
                 @Override
                 public KeyValue properties() {
@@ -176,9 +178,13 @@ public class PushConsumerImpl implements PushConsumer {
                         properties.getString(NonStandardKeys.MESSAGE_CONSUME_STATUS));
                 }
             };
+            long begin = System.currentTimeMillis();
             listener.onMessage(omsMsg, context);
+            long costs = System.currentTimeMillis() - begin;
+
             try {
-                sync.await(PushConsumerImpl.this.rocketmqPushConsumer.getConsumeTimeout(), TimeUnit.MILLISECONDS);
+                sync.await(Math.max(0, PushConsumerImpl.this.rocketmqPushConsumer.getConsumeTimeout() - costs)
+                    , TimeUnit.MILLISECONDS);
             } catch (InterruptedException ignore) {
             }
 

@@ -25,7 +25,9 @@ import io.openmessaging.rocketmq.domain.BytesMessageImpl;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import io.openmessaging.rocketmq.domain.SendResultImpl;
 import java.lang.reflect.Field;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.UtilAll;
@@ -88,7 +90,8 @@ public class OMSUtil {
         }
 
         omsMsg.putHeaders(MessageHeader.MESSAGE_ID, rmqMsg.getMsgId());
-        if (rmqMsg.getProperties().get(NonStandardKeys.MESSAGE_DESTINATION).equals("TOPIC")) {
+        if (!rmqMsg.getProperties().containsKey(NonStandardKeys.MESSAGE_DESTINATION) ||
+            rmqMsg.getProperties().get(NonStandardKeys.MESSAGE_DESTINATION).equals("TOPIC")) {
             omsMsg.putHeaders(MessageHeader.TOPIC, rmqMsg.getTopic());
         } else {
             omsMsg.putHeaders(MessageHeader.QUEUE, rmqMsg.getTopic());
@@ -130,5 +133,50 @@ public class OMSUtil {
             }
         }
         return keyValue;
+    }
+
+    /**
+     * Returns an iterator that cycles indefinitely over the elements of {@code Iterable}.
+     */
+    public static <T> Iterator<T> cycle(final Iterable<T> iterable) {
+        return new Iterator<T>() {
+            Iterator<T> iterator = new Iterator<T>() {
+                @Override
+                public synchronized boolean hasNext() {
+                    return false;
+                }
+
+                @Override
+                public synchronized T next() {
+                    throw new NoSuchElementException();
+                }
+
+                @Override
+                public synchronized void remove() {
+                    //Ignore
+                }
+            };
+
+            @Override
+            public synchronized boolean hasNext() {
+                return iterator.hasNext() || iterable.iterator().hasNext();
+            }
+
+            @Override
+            public synchronized T next() {
+                if (!iterator.hasNext()) {
+                    iterator = iterable.iterator();
+                    if (!iterator.hasNext()) {
+                        throw new NoSuchElementException();
+                    }
+                }
+                return iterator.next();
+            }
+
+            @Override
+            public synchronized void remove() {
+                iterator.remove();
+            }
+        };
     }
 }

@@ -18,21 +18,19 @@ package org.apache.rocketmq.example.openmessaging;
 
 import io.openmessaging.Message;
 import io.openmessaging.MessageHeader;
-import io.openmessaging.MessageListener;
 import io.openmessaging.MessagingAccessPoint;
 import io.openmessaging.MessagingAccessPointFactory;
 import io.openmessaging.OMS;
-import io.openmessaging.PushConsumer;
-import io.openmessaging.ReceivedMessageContext;
+import io.openmessaging.PullConsumer;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 
-public class SimplePushConsumer {
+public class SimplePullConsumer {
     public static void main(String[] args) {
         final MessagingAccessPoint messagingAccessPoint = MessagingAccessPointFactory
             .getMessagingAccessPoint("openmessaging:rocketmq://10.125.3.140:9876,10.189.232.59:9876/namespace");
 
-        final PushConsumer consumer = messagingAccessPoint.
-            createPushConsumer(OMS.newKeyValue().put(NonStandardKeys.CONSUMER_GROUP, "OMS_CONSUMER"));
+        final PullConsumer consumer = messagingAccessPoint.createPullConsumer("OMS_HELLO_TOPIC",
+            OMS.newKeyValue().put(NonStandardKeys.CONSUMER_GROUP, "OMS_CONSUMER"));
 
         messagingAccessPoint.startup();
         System.out.println("messagingAccessPoint startup OK");
@@ -45,15 +43,14 @@ public class SimplePushConsumer {
             }
         }));
 
-        consumer.attachQueue("OMS_HELLO_TOPIC", new MessageListener() {
-            @Override
-            public void onMessage(final Message message, final ReceivedMessageContext context) {
-                System.out.println("Received one message: " + message.headers().getString(MessageHeader.MESSAGE_ID));
-                context.ack();
-            }
-        });
-
         consumer.startup();
         System.out.println("consumer startup OK");
+
+        while (true) {
+            Message message = consumer.poll();
+            String msgId = message.headers().getString(MessageHeader.MESSAGE_ID);
+            System.out.println("Received one message: " + msgId);
+            consumer.ack(msgId);
+        }
     }
 }
