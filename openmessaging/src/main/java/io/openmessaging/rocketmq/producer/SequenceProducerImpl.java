@@ -21,7 +21,7 @@ import io.openmessaging.KeyValue;
 import io.openmessaging.Message;
 import io.openmessaging.MessageHeader;
 import io.openmessaging.SequenceProducer;
-import io.openmessaging.rocketmq.OMSUtil;
+import io.openmessaging.rocketmq.utils.OMSUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;

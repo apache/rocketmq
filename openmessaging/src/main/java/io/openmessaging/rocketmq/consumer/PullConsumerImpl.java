@@ -21,9 +21,10 @@ import io.openmessaging.Message;
 import io.openmessaging.PropertyKeys;
 import io.openmessaging.PullConsumer;
 import io.openmessaging.exception.OMSRuntimeException;
-import io.openmessaging.rocketmq.OMSUtil;
+import io.openmessaging.rocketmq.ClientConfig;
 import io.openmessaging.rocketmq.domain.ConsumeRequest;
-import io.openmessaging.rocketmq.domain.NonStandardKeys;
+import io.openmessaging.rocketmq.utils.BeanUtils;
+import io.openmessaging.rocketmq.utils.OMSUtil;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.MQPullConsumer;
 import org.apache.rocketmq.client.consumer.MQPullConsumerScheduleService;
@@ -44,6 +45,7 @@ public class PullConsumerImpl implements PullConsumer {
     private String targetQueueName;
     private final MQPullConsumerScheduleService pullConsumerScheduleService;
     private final LocalMessageCache localMessageCache;
+    private final ClientConfig clientConfig;
 
     final static Logger log = ClientLogger.getLog();
 
@@ -51,7 +53,9 @@ public class PullConsumerImpl implements PullConsumer {
         this.properties = properties;
         this.targetQueueName = queueName;
 
-        String consumerGroup = properties.getString(NonStandardKeys.CONSUMER_GROUP);
+        this.clientConfig = BeanUtils.populate(properties, ClientConfig.class);
+
+        String consumerGroup = clientConfig.getRmqConsumerGroup();
         if (null == consumerGroup || consumerGroup.isEmpty()) {
             throw new OMSRuntimeException("-1", "Consumer Group is necessary for RocketMQ, please set it.");
         }
@@ -59,7 +63,7 @@ public class PullConsumerImpl implements PullConsumer {
 
         this.rocketmqPullConsumer = pullConsumerScheduleService.getDefaultMQPullConsumer();
 
-        String accessPoints = properties.getString(PropertyKeys.ACCESS_POINTS);
+        String accessPoints = clientConfig.getOmsAccessPoints();
         if (accessPoints == null || accessPoints.isEmpty()) {
             throw new OMSRuntimeException("-1", "OMS AccessPoints is null or empty.");
         }
@@ -67,16 +71,14 @@ public class PullConsumerImpl implements PullConsumer {
 
         this.rocketmqPullConsumer.setConsumerGroup(consumerGroup);
 
-        int maxReDeliveryTimes = properties.getInt(NonStandardKeys.MAX_REDELIVERY_TIMES);
-        if (maxReDeliveryTimes != 0) {
-            this.rocketmqPullConsumer.setMaxReconsumeTimes(maxReDeliveryTimes);
-        }
+        int maxReDeliveryTimes = clientConfig.getRmqMaxRedeliveryTimes();
+        this.rocketmqPullConsumer.setMaxReconsumeTimes(maxReDeliveryTimes);
 
         String consumerId = OMSUtil.buildInstanceName();
         this.rocketmqPullConsumer.setInstanceName(consumerId);
         properties.put(PropertyKeys.CONSUMER_ID, consumerId);
 
-        this.localMessageCache = new LocalMessageCache(this.rocketmqPullConsumer, properties);
+        this.localMessageCache = new LocalMessageCache(this.rocketmqPullConsumer, clientConfig);
     }
 
     @Override
@@ -86,12 +88,14 @@ public class PullConsumerImpl implements PullConsumer {
 
     @Override
     public Message poll() {
-        return OMSUtil.msgConvert(localMessageCache.poll());
+        MessageExt rmqMsg = localMessageCache.poll();
+        return rmqMsg == null ? null : OMSUtil.msgConvert(rmqMsg);
     }
 
     @Override
     public Message poll(final KeyValue properties) {
-        return OMSUtil.msgConvert(localMessageCache.poll(properties));
+        MessageExt rmqMsg = localMessageCache.poll(properties);
+        return rmqMsg == null ? null : OMSUtil.msgConvert(rmqMsg);
     }
 
     @Override

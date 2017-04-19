@@ -24,7 +24,9 @@ import io.openmessaging.PropertyKeys;
 import io.openmessaging.PushConsumer;
 import io.openmessaging.ReceivedMessageContext;
 import io.openmessaging.exception.OMSRuntimeException;
-import io.openmessaging.rocketmq.OMSUtil;
+import io.openmessaging.rocketmq.ClientConfig;
+import io.openmessaging.rocketmq.utils.BeanUtils;
+import io.openmessaging.rocketmq.utils.OMSUtil;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import java.util.List;
 import java.util.Map;
@@ -43,43 +45,29 @@ public class PushConsumerImpl implements PushConsumer {
     private final KeyValue properties;
     private boolean started = false;
     private final Map<String, MessageListener> subscribeTable = new ConcurrentHashMap<>();
+    private final ClientConfig clientConfig;
 
 
     public PushConsumerImpl(final KeyValue properties) {
         this.rocketmqPushConsumer = new DefaultMQPushConsumer();
         this.properties = properties;
+        this.clientConfig = BeanUtils.populate(properties, ClientConfig.class);
 
-        String accessPoints = properties.getString(PropertyKeys.ACCESS_POINTS);
+        String accessPoints = clientConfig.getOmsAccessPoints();
         if (accessPoints == null || accessPoints.isEmpty()) {
             throw new OMSRuntimeException("-1", "OMS AccessPoints is null or empty.");
         }
         this.rocketmqPushConsumer.setNamesrvAddr(accessPoints.replace(',', ';'));
 
-        String consumerGroup = properties.getString(NonStandardKeys.CONSUMER_GROUP);
+        String consumerGroup = clientConfig.getRmqConsumerGroup();
         if (null == consumerGroup || consumerGroup.isEmpty()) {
             throw new OMSRuntimeException("-1", "Consumer Group is necessary for RocketMQ, please set it.");
         }
         this.rocketmqPushConsumer.setConsumerGroup(consumerGroup);
-
-        int maxReDeliveryTimes = properties.getInt(NonStandardKeys.MAX_REDELIVERY_TIMES);
-        if (maxReDeliveryTimes != 0) {
-            this.rocketmqPushConsumer.setMaxReconsumeTimes(maxReDeliveryTimes);
-        }
-
-        int messageConsumeTimeout = properties.getInt(NonStandardKeys.MESSAGE_CONSUME_TIMEOUT);
-        if (messageConsumeTimeout != 0) {
-            this.rocketmqPushConsumer.setConsumeTimeout(messageConsumeTimeout);
-        }
-
-        int maxConsumeThreadNums = properties.getInt(NonStandardKeys.MAX_CONSUME_THREAD_NUMS);
-        if (maxConsumeThreadNums != 0) {
-            this.rocketmqPushConsumer.setConsumeThreadMax(maxConsumeThreadNums);
-        }
-
-        int minConsumeThreadNums = properties.getInt(NonStandardKeys.MIN_CONSUME_THREAD_NUMS);
-        if (minConsumeThreadNums != 0) {
-            this.rocketmqPushConsumer.setConsumeThreadMin(minConsumeThreadNums);
-        }
+        this.rocketmqPushConsumer.setMaxReconsumeTimes(clientConfig.getRmqMaxRedeliveryTimes());
+        this.rocketmqPushConsumer.setConsumeTimeout(clientConfig.getRmqMessageConsumeTimeout());
+        this.rocketmqPushConsumer.setConsumeThreadMax(clientConfig.getRmqMaxConsumeThreadNums());
+        this.rocketmqPushConsumer.setConsumeThreadMin(clientConfig.getRmqMinConsumeThreadNums());
 
         String consumerId = OMSUtil.buildInstanceName();
         this.rocketmqPushConsumer.setInstanceName(consumerId);
@@ -181,10 +169,9 @@ public class PushConsumerImpl implements PushConsumer {
             long begin = System.currentTimeMillis();
             listener.onMessage(omsMsg, context);
             long costs = System.currentTimeMillis() - begin;
-
+            long timeoutMills = clientConfig.getRmqMessageConsumeTimeout() * 60 * 1000;
             try {
-                sync.await(Math.max(0, PushConsumerImpl.this.rocketmqPushConsumer.getConsumeTimeout() - costs)
-                    , TimeUnit.MILLISECONDS);
+                sync.await(Math.max(0, timeoutMills - costs), TimeUnit.MILLISECONDS);
             } catch (InterruptedException ignore) {
             }
 

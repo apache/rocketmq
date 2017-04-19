@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.openmessaging.rocketmq;
+package io.openmessaging.rocketmq.utils;
 
 import io.openmessaging.BytesMessage;
 import io.openmessaging.KeyValue;

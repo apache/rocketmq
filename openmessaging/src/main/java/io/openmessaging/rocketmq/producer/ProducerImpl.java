@@ -25,12 +25,12 @@ import io.openmessaging.Promise;
 import io.openmessaging.PropertyKeys;
 import io.openmessaging.SendResult;
 import io.openmessaging.exception.OMSRuntimeException;
-import io.openmessaging.rocketmq.OMSUtil;
+import io.openmessaging.rocketmq.utils.OMSUtil;
 import io.openmessaging.rocketmq.promise.DefaultPromise;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendStatus;
 
-import static io.openmessaging.rocketmq.OMSUtil.msgConvert;
+import static io.openmessaging.rocketmq.utils.OMSUtil.msgConvert;
 
 public class ProducerImpl extends AbstractOMSProducer implements Producer {
 

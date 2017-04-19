@@ -48,9 +48,11 @@ public class SimplePullConsumer {
 
         while (true) {
             Message message = consumer.poll();
-            String msgId = message.headers().getString(MessageHeader.MESSAGE_ID);
-            System.out.println("Received one message: " + msgId);
-            consumer.ack(msgId);
+            if (message != null) {
+                String msgId = message.headers().getString(MessageHeader.MESSAGE_ID);
+                System.out.println("Received one message: " + msgId);
+                consumer.ack(msgId);
+            }
         }
     }
 }

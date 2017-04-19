@@ -18,8 +18,8 @@ package io.openmessaging.rocketmq.consumer;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.PropertyKeys;
+import io.openmessaging.rocketmq.ClientConfig;
 import io.openmessaging.rocketmq.domain.ConsumeRequest;
-import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -38,32 +38,19 @@ class LocalMessageCache {
     private final Map<String, ConsumeRequest> consumedRequest;
     private final ConcurrentHashMap<MessageQueue, Long> pullOffsetTable;
     private final DefaultMQPullConsumer rocketmqPullConsumer;
-    private int pullBatchNums = 32;
-    private int pollTimeout = -1;
+    private final ClientConfig clientConfig;
     private final static Logger log = ClientLogger.getLog();
 
-    LocalMessageCache(final DefaultMQPullConsumer rocketmqPullConsumer, final KeyValue properties) {
-        int cacheCapacity = 1000;
-        if (properties.containsKey(NonStandardKeys.PULL_MESSAGE_CACHE_CAPACITY)) {
-            cacheCapacity = properties.getInt(NonStandardKeys.PULL_MESSAGE_CACHE_CAPACITY);
-        }
-        consumeRequestCache = new LinkedBlockingQueue<>(cacheCapacity);
-
-        if (properties.containsKey(NonStandardKeys.PULL_MESSAGE_BATCH_NUMS)) {
-            pullBatchNums = properties.getInt(NonStandardKeys.PULL_MESSAGE_BATCH_NUMS);
-        }
-
-        if (properties.containsKey(PropertyKeys.OPERATION_TIMEOUT)) {
-            pollTimeout = properties.getInt(PropertyKeys.OPERATION_TIMEOUT);
-        }
-
+    LocalMessageCache(final DefaultMQPullConsumer rocketmqPullConsumer, final ClientConfig clientConfig) {
+        consumeRequestCache = new LinkedBlockingQueue<>(clientConfig.getRmqPullMessageCacheCapacity());
         this.consumedRequest = new ConcurrentHashMap<>();
         this.pullOffsetTable = new ConcurrentHashMap<>();
         this.rocketmqPullConsumer = rocketmqPullConsumer;
+        this.clientConfig = clientConfig;
     }
 
     int nextPullBatchNums() {
-        return Math.min(pullBatchNums, consumeRequestCache.remainingCapacity());
+        return Math.min(clientConfig.getRmqPullMessageBatchNums(), consumeRequestCache.remainingCapacity());
     }
 
     long nextPullOffset(MessageQueue remoteQueue) {
@@ -90,31 +77,25 @@ class LocalMessageCache {
     }
 
     MessageExt poll() {
-        try {
-            ConsumeRequest consumeRequest = consumeRequestCache.take();
-            consumeRequest.setStartConsumeTimeMillis(System.currentTimeMillis());
-            consumedRequest.put(consumeRequest.getMessageExt().getMsgId(), consumeRequest);
-            return consumeRequest.getMessageExt();
-        } catch (InterruptedException ignore) {
-        }
-        return null;
+        return poll(clientConfig.getOmsOperationTimeout());
     }
 
     MessageExt poll(final KeyValue properties) {
-        int currentPollTimeout = pollTimeout;
+        int currentPollTimeout = clientConfig.getOmsOperationTimeout();
         if (properties.containsKey(PropertyKeys.OPERATION_TIMEOUT)) {
             currentPollTimeout = properties.getInt(PropertyKeys.OPERATION_TIMEOUT);
         }
+        return poll(currentPollTimeout);
+    }
 
-        if (currentPollTimeout == -1) {
-            return poll();
-        }
-
+    private MessageExt poll(long timeout) {
         try {
-            ConsumeRequest consumeRequest = consumeRequestCache.poll(currentPollTimeout, TimeUnit.MILLISECONDS);
-            consumeRequest.setStartConsumeTimeMillis(System.currentTimeMillis());
-            consumedRequest.put(consumeRequest.getMessageExt().getMsgId(), consumeRequest);
-            return consumeRequest.getMessageExt();
+            ConsumeRequest consumeRequest = consumeRequestCache.poll(timeout, TimeUnit.MILLISECONDS);
+            if (consumeRequest != null) {
+                consumeRequest.setStartConsumeTimeMillis(System.currentTimeMillis());
+                consumedRequest.put(consumeRequest.getMessageExt().getMsgId(), consumeRequest);
+                return consumeRequest.getMessageExt();
+            }
         } catch (InterruptedException ignore) {
         }
         return null;

@@ -31,6 +31,7 @@ import io.openmessaging.rocketmq.consumer.PullConsumerImpl;
 import io.openmessaging.rocketmq.consumer.PushConsumerImpl;
 import io.openmessaging.rocketmq.producer.ProducerImpl;
 import io.openmessaging.rocketmq.producer.SequenceProducerImpl;
+import io.openmessaging.rocketmq.utils.OMSUtil;
 
 public class MessagingAccessPointImpl implements MessagingAccessPoint {
     private final KeyValue accessPointProperties;
