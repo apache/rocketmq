@@ -114,6 +114,7 @@ public class PullConsumerImpl implements PullConsumer {
             try {
                 registerPullTaskCallback();
                 this.pullConsumerScheduleService.start();
+                this.localMessageCache.startup();
             } catch (MQClientException e) {
                 throw new OMSRuntimeException("-1", e);
             }
@@ -136,6 +137,7 @@ public class PullConsumerImpl implements PullConsumer {
                     switch (pullResult.getPullStatus()) {
                         case FOUND:
                             if (pq != null) {
+                                pq.putMessage(pullResult.getMsgFoundList());
                                 for (final MessageExt messageExt : pullResult.getMsgFoundList()) {
                                     localMessageCache.submitConsumeRequest(new ConsumeRequest(messageExt, mq, pq));
                                 }
@@ -155,6 +157,7 @@ public class PullConsumerImpl implements PullConsumer {
     @Override
     public synchronized void shutdown() {
         if (this.started) {
+            this.localMessageCache.shutdown();
             this.pullConsumerScheduleService.shutdown();
             this.rocketmqPullConsumer.shutdown();
         }
