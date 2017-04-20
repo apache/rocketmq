@@ -34,4 +34,4 @@ Build Instructions for Apache RocketMQ
 
     Execute the following command in order to build the tar.gz packages and install JAR into local repository:
 
-    $ mvn -Prelease-all -DskipTests clean package install -U
+    $ mvn -Prelease-all -DskipTests clean install -U
