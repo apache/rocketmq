@@ -21,7 +21,7 @@ import io.openmessaging.Message;
 import io.openmessaging.PropertyKeys;
 import io.openmessaging.PullConsumer;
 import io.openmessaging.exception.OMSRuntimeException;
-import io.openmessaging.rocketmq.ClientConfig;
+import io.openmessaging.rocketmq.config.ClientConfig;
 import io.openmessaging.rocketmq.domain.ConsumeRequest;
 import io.openmessaging.rocketmq.utils.BeanUtils;
 import io.openmessaging.rocketmq.utils.OMSUtil;

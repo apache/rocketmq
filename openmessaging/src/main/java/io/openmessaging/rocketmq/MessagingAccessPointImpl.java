@@ -87,37 +87,37 @@ public class MessagingAccessPointImpl implements MessagingAccessPoint {
 
     @Override
     public IterableConsumer createIterableConsumer(String queueName) {
-        throw new OMSNotSupportedException("-1", "IterableConsumer is not supported in RocketMQ");
+        throw new OMSNotSupportedException("-1", "IterableConsumer is not supported in current version");
     }
 
     @Override
     public IterableConsumer createIterableConsumer(String queueName, KeyValue properties) {
-        throw new OMSNotSupportedException("-1", "IterableConsumer is not supported in RocketMQ");
+        throw new OMSNotSupportedException("-1", "IterableConsumer is not supported in current version");
     }
 
     @Override
     public ResourceManager getResourceManager() {
-        return null;
+        throw new OMSNotSupportedException("-1", "ResourceManager is not supported in current version.");
     }
 
     @Override
     public ServiceEndPoint createServiceEndPoint() {
-        return null;
+        throw new OMSNotSupportedException("-1", "ServiceEndPoint is not supported in current version.");
     }
 
     @Override
     public ServiceEndPoint createServiceEndPoint(KeyValue properties) {
-        return null;
+        throw new OMSNotSupportedException("-1", "ServiceEndPoint is not supported in current version.");
     }
 
     @Override
     public void addObserver(Observer observer) {
-
+        //Ignore
     }
 
     @Override
     public void deleteObserver(Observer observer) {
-
+        //Ignore
     }
 
     @Override

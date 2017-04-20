@@ -47,6 +47,7 @@
             <useAllReactorProjects>true</useAllReactorProjects>
             <includes>
                 <include>org.apache.rocketmq:rocketmq-client</include>
+                <include>org.apache.rocketmq:rocketmq-openmessaging</include>
             </includes>
             <binaries>
                 <outputDirectory>./</outputDirectory>

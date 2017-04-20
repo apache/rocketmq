@@ -27,7 +27,7 @@ import io.openmessaging.exception.OMSMessageFormatException;
 import io.openmessaging.exception.OMSNotSupportedException;
 import io.openmessaging.exception.OMSRuntimeException;
 import io.openmessaging.exception.OMSTimeOutException;
-import io.openmessaging.rocketmq.ClientConfig;
+import io.openmessaging.rocketmq.config.ClientConfig;
 import io.openmessaging.rocketmq.domain.BytesMessageImpl;
 import io.openmessaging.rocketmq.utils.BeanUtils;
 import org.apache.rocketmq.client.exception.MQBrokerException;

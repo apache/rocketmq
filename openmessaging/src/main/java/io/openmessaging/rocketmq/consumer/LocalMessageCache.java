@@ -19,7 +19,7 @@ package io.openmessaging.rocketmq.consumer;
 import io.openmessaging.KeyValue;
 import io.openmessaging.PropertyKeys;
 import io.openmessaging.ServiceLifecycle;
-import io.openmessaging.rocketmq.ClientConfig;
+import io.openmessaging.rocketmq.config.ClientConfig;
 import io.openmessaging.rocketmq.domain.ConsumeRequest;
 import java.util.Collections;
 import java.util.Map;
