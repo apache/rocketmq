@@ -59,6 +59,7 @@ import org.apache.rocketmq.common.namesrv.TopAddressing;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
+import org.apache.rocketmq.common.protocol.body.CheckClientRequestBody;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
@@ -70,6 +71,7 @@ import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.common.protocol.body.LockBatchResponseBody;
 import org.apache.rocketmq.common.protocol.body.ProducerConnection;
+import org.apache.rocketmq.common.protocol.body.QueryConsumeQueueResponseBody;
 import org.apache.rocketmq.common.protocol.body.QueryConsumeTimeSpanBody;
 import org.apache.rocketmq.common.protocol.body.QueryCorrectionOffsetBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
@@ -103,6 +105,7 @@ import org.apache.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader
 import org.apache.rocketmq.common.protocol.header.GetTopicsByClusterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
+import org.apache.rocketmq.common.protocol.header.QueryConsumeQueueRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryConsumeTimeSpanRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
@@ -129,6 +132,7 @@ import org.apache.rocketmq.common.protocol.header.namesrv.PutKVConfigRequestHead
 import org.apache.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerResponseHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
+import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.InvokeCallback;
@@ -168,7 +172,7 @@ public class MQClientAPIImpl {
     public MQClientAPIImpl(final NettyClientConfig nettyClientConfig, final ClientRemotingProcessor clientRemotingProcessor,
         RPCHook rpcHook, final ClientConfig clientConfig) {
         this.clientConfig = clientConfig;
-        topAddressing = new TopAddressing(MixAll.WS_ADDR, clientConfig.getUnitName());
+        topAddressing = new TopAddressing(MixAll.getWSAddr(), clientConfig.getUnitName());
         this.remotingClient = new NettyRemotingClient(nettyClientConfig, null);
         this.clientRemotingProcessor = clientRemotingProcessor;
 
@@ -843,7 +847,7 @@ public class MQClientAPIImpl {
         this.remotingClient.invokeOneway(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr), request, timeoutMillis);
     }
 
-    public void sendHearbeat(//
+    public int sendHearbeat(//
         final String addr, //
         final HeartbeatData heartbeatData, //
         final long timeoutMillis//
@@ -855,7 +859,7 @@ public class MQClientAPIImpl {
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
-                return;
+                return response.getVersion();
             }
             default:
                 break;
@@ -2024,4 +2028,51 @@ public class MQClientAPIImpl {
         return configMap;
     }
 
+    public QueryConsumeQueueResponseBody queryConsumeQueue(final String brokerAddr, final String topic, final int queueId,
+                                                   final long index, final int count, final String consumerGroup,
+                                                   final long timeoutMillis) throws InterruptedException,
+        RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
+
+        QueryConsumeQueueRequestHeader requestHeader = new QueryConsumeQueueRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setQueueId(queueId);
+        requestHeader.setIndex(index);
+        requestHeader.setCount(count);
+        requestHeader.setConsumerGroup(consumerGroup);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_CONSUME_QUEUE, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), brokerAddr), request, timeoutMillis);
+
+        assert response != null;
+
+        if (ResponseCode.SUCCESS == response.getCode()) {
+            return QueryConsumeQueueResponseBody.decode(response.getBody(), QueryConsumeQueueResponseBody.class);
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+    public void checkClientInBroker(final String brokerAddr, final String consumerGroup,
+                                    final String clientId, final SubscriptionData subscriptionData,
+                                    final long timeoutMillis)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+        RemotingConnectException, MQClientException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CHECK_CLIENT_CONFIG, null);
+
+        CheckClientRequestBody requestBody = new CheckClientRequestBody();
+        requestBody.setClientId(clientId);
+        requestBody.setGroup(consumerGroup);
+        requestBody.setSubscriptionData(subscriptionData);
+
+        request.setBody(requestBody.encode());
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), brokerAddr), request, timeoutMillis);
+
+        assert response != null;
+
+        if (ResponseCode.SUCCESS != response.getCode()) {
+            throw new MQClientException(response.getCode(), response.getRemark());
+        }
+    }
 }

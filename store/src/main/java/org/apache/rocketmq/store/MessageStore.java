@@ -17,10 +17,10 @@
 package org.apache.rocketmq.store;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Set;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 public interface MessageStore {
 
@@ -37,7 +37,7 @@ public interface MessageStore {
     PutMessageResult putMessages(final MessageExtBatch messageExtBatch);
 
     GetMessageResult getMessage(final String group, final String topic, final int queueId,
-        final long offset, final int maxMsgNums, final SubscriptionData subscriptionData);
+        final long offset, final int maxMsgNums, final MessageFilter messageFilter);
 
     long getMaxOffsetInQuque(final String topic, final int queueId);
 
@@ -105,4 +105,8 @@ public interface MessageStore {
     long lockTimeMills();
 
     boolean isTransientStorePoolDeficient();
+
+    LinkedList<CommitLogDispatcher> getDispatcherList();
+
+    ConsumeQueue getConsumeQueue(String topic, int queueId);
 }
