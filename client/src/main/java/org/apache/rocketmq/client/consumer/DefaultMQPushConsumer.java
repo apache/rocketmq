@@ -519,6 +519,21 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     }
 
     /**
+     * Subscribe a topic by message selector.
+     *
+     * @see org.apache.rocketmq.client.consumer.MessageSelector#bySql
+     * @see org.apache.rocketmq.client.consumer.MessageSelector#byTag
+     *
+     * @param topic topic to consume.
+     * @param messageSelector {@link org.apache.rocketmq.client.consumer.MessageSelector}
+     * @throws MQClientException
+     */
+    @Override
+    public void subscribe(final String topic, final MessageSelector messageSelector) throws MQClientException {
+        this.defaultMQPushConsumerImpl.subscribe(topic, messageSelector);
+    }
+
+    /**
      * Un-subscribe the specified topic from subscription.
      * @param topic message topic
      */

@@ -16,9 +16,7 @@
  */
 package org.apache.rocketmq.broker.client;
 
-import io.netty.channel.Channel;
-import java.util.List;
-
 public interface ConsumerIdsChangeListener {
-    void consumerIdsChanged(final String group, final List<Channel> channels);
+
+    void handle(ConsumerGroupEvent event, String group, Object... args);
 }

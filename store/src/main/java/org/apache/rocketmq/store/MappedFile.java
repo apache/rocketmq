@@ -245,6 +245,31 @@ public class MappedFile extends ReferenceResource {
     }
 
     /**
+     * Content of data from offset to offset + length will be wrote to file.
+     *
+     * @param data
+     * @param offset The offset of the subarray to be used.
+     * @param length The length of the subarray to be used.
+     * @return
+     */
+    public boolean appendMessage(final byte[] data, final int offset, final int length) {
+        int currentPos = this.wrotePosition.get();
+
+        if ((currentPos + length) <= this.fileSize) {
+            try {
+                this.fileChannel.position(currentPos);
+                this.fileChannel.write(ByteBuffer.wrap(data, offset, length));
+            } catch (Throwable e) {
+                log.error("Error occurred when append message to mappedFile.", e);
+            }
+            this.wrotePosition.addAndGet(length);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * @param flushLeastPages
      * @return The current flushed position
      */
