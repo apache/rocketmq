@@ -45,7 +45,6 @@ public class MQAdmin {
             mqAdminExt.start();
             mqAdminExt.createTopic(clusterName, topic, queueNum);
         } catch (Exception e) {
-            e.printStackTrace();
         }
 
         long startTime = System.currentTimeMillis();

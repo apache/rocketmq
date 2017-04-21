@@ -36,7 +36,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 public class AsyncSendWithMessageQueueSelectorIT extends BaseConf {
     private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
-    private static boolean sendFail = false;
     private RMQAsyncSendProducer producer = null;
     private String topic = null;
 
