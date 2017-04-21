@@ -24,7 +24,6 @@ import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.factory.MQMessageFactory;
 import org.apache.rocketmq.test.listener.rmq.concurrent.RMQDelayListner;
-import org.apache.rocketmq.test.listener.rmq.order.RMQOrderListener;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -43,7 +42,7 @@ public class NormalMsgDelayIT extends DelayConf {
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
         producer = getProducer(nsAddr, topic);
-        consumer = getConsumer(nsAddr, topic, "*", new RMQOrderListener());
+        consumer = getConsumer(nsAddr, topic, "*", new RMQDelayListner());
     }
 
     @After
