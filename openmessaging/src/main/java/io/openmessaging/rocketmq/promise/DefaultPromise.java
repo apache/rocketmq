@@ -32,7 +32,7 @@ public class DefaultPromise<V> implements Promise<V> {
     private long timeout;
     private long createTime;
     private Throwable exception = null;
-    private List<PromiseListener> promiseListenerList;
+    private List<PromiseListener<V>> promiseListenerList;
 
     public DefaultPromise() {
         createTime = System.currentTimeMillis();
@@ -120,7 +120,7 @@ public class DefaultPromise<V> implements Promise<V> {
     }
 
     @Override
-    public void addListener(final PromiseListener listener) {
+    public void addListener(final PromiseListener<V> listener) {
         if (listener == null) {
             throw new NullPointerException("FutureListener is null");
         }
@@ -149,7 +149,7 @@ public class DefaultPromise<V> implements Promise<V> {
 
     private void notifyListeners() {
         if (promiseListenerList != null) {
-            for (PromiseListener listener : promiseListenerList) {
+            for (PromiseListener<V> listener : promiseListenerList) {
                 notifyListener(listener);
             }
         }
@@ -165,7 +165,7 @@ public class DefaultPromise<V> implements Promise<V> {
                 return;
             }
             state = FutureState.CANCELLED;
-            exception = new RuntimeException("get request result is timeout or interrupted");
+            exception = new RuntimeException("Get request result is timeout or interrupted");
             lock.notifyAll();
         }
         notifyListeners();

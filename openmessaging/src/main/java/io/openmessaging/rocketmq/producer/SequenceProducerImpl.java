@@ -72,6 +72,10 @@ public class SequenceProducerImpl extends AbstractOMSProducer implements Sequenc
             rmqMessages.add(OMSUtil.msgConvert((BytesMessage) message));
         }
 
+        if (rmqMessages.size() == 0) {
+            return;
+        }
+
         try {
             SendResult sendResult = this.rocketmqProducer.send(rmqMessages);
             String [] msgIdArray = sendResult.getMsgId().split(",");
