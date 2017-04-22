@@ -5,131 +5,130 @@ package org.apache.rocketmq.namesrv.yunai;
  */
 public class Main {
 
-    private static final String STR = "public class MQFaultStrategy {\n" +
-            "    private final static Logger log = ClientLogger.getLog();\n" +
+    private static final String STR = "class GroupCommitService extends FlushCommitLogService {\n" +
+            "        /**\n" +
+            "         * 写入请求队列\n" +
+            "         */\n" +
+            "        private volatile List<GroupCommitRequest> requestsWrite = new ArrayList<>();\n" +
+            "        /**\n" +
+            "         * 读取请求队列\n" +
+            "         */\n" +
+            "        private volatile List<GroupCommitRequest> requestsRead = new ArrayList<>();\n" +
             "\n" +
-            "    /**\n" +
-            "     * 延迟故障容错，维护每个Broker的发送消息的延迟\n" +
-            "     * key：brokerName\n" +
-            "     */\n" +
-            "    private final LatencyFaultTolerance<String> latencyFaultTolerance = new LatencyFaultToleranceImpl();\n" +
-            "    /**\n" +
-            "     * 发送消息延迟容错开关\n" +
-            "     */\n" +
-            "    private boolean sendLatencyFaultEnable = false;\n" +
-            "    /**\n" +
-            "     * 延迟级别数组\n" +
-            "     */\n" +
-            "    private long[] latencyMax = {50L, 100L, 550L, 1000L, 2000L, 3000L, 15000L};\n" +
-            "    /**\n" +
-            "     * 不可用时长数组\n" +
-            "     */\n" +
-            "    private long[] notAvailableDuration = {0L, 0L, 30000L, 60000L, 120000L, 180000L, 600000L};\n" +
-            "\n" +
-            "    /**\n" +
-            "     * 根据 Topic发布信息 选择一个消息队列\n" +
-            "     *\n" +
-            "     * @param tpInfo Topic发布信息\n" +
-            "     * @param lastBrokerName brokerName\n" +
-            "     * @return 消息队列\n" +
-            "     */\n" +
-            "    public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {\n" +
-            "        if (this.sendLatencyFaultEnable) {\n" +
-            "            try {\n" +
-            "                // 获取 brokerName=lastBrokerName && 可用的一个消息队列\n" +
-            "                int index = tpInfo.getSendWhichQueue().getAndIncrement();\n" +
-            "                for (int i = 0; i < tpInfo.getMessageQueueList().size(); i++) {\n" +
-            "                    int pos = Math.abs(index++) % tpInfo.getMessageQueueList().size();\n" +
-            "                    if (pos < 0)\n" +
-            "                        pos = 0;\n" +
-            "                    MessageQueue mq = tpInfo.getMessageQueueList().get(pos);\n" +
-            "                    if (latencyFaultTolerance.isAvailable(mq.getBrokerName())) {\n" +
-            "                        if (null == lastBrokerName || mq.getBrokerName().equals(lastBrokerName))\n" +
-            "                            return mq;\n" +
-            "                    }\n" +
-            "                }\n" +
-            "                // 选择一个相对好的broker，并获得其对应的一个消息队列，不考虑该队列的可用性\n" +
-            "                final String notBestBroker = latencyFaultTolerance.pickOneAtLeast();\n" +
-            "                int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker);\n" +
-            "                if (writeQueueNums > 0) {\n" +
-            "                    final MessageQueue mq = tpInfo.selectOneMessageQueue();\n" +
-            "                    if (notBestBroker != null) {\n" +
-            "                        mq.setBrokerName(notBestBroker);\n" +
-            "                        mq.setQueueId(tpInfo.getSendWhichQueue().getAndIncrement() % writeQueueNums);\n" +
-            "                    }\n" +
-            "                    return mq;\n" +
-            "                } else {\n" +
-            "                    latencyFaultTolerance.remove(notBestBroker);\n" +
-            "                }\n" +
-            "            } catch (Exception e) {\n" +
-            "                log.error(\"Error occurred when selecting message queue\", e);\n" +
+            "        /**\n" +
+            "         * 添加写入请求\n" +
+            "         *\n" +
+            "         * @param request 写入请求\n" +
+            "         */\n" +
+            "        public synchronized void putRequest(final GroupCommitRequest request) {\n" +
+            "            // 添加写入请求\n" +
+            "            synchronized (this.requestsWrite) {\n" +
+            "                this.requestsWrite.add(request);\n" +
             "            }\n" +
-            "            // 选择一个消息队列，不考虑队列的可用性\n" +
-            "            return tpInfo.selectOneMessageQueue();\n" +
+            "            // 切换读写队列\n" +
+            "            if (hasNotified.compareAndSet(false, true)) {\n" +
+            "                waitPoint.countDown(); // notify\n" +
+            "            }\n" +
             "        }\n" +
-            "        // 获得 lastBrokerName 对应的一个消息队列，不考虑该队列的可用性\n" +
-            "        return tpInfo.selectOneMessageQueue(lastBrokerName);\n" +
-            "    }\n" +
             "\n" +
-            "    /**\n" +
-            "     * 更新延迟容错信息\n" +
-            "     *\n" +
-            "     * @param brokerName brokerName\n" +
-            "     * @param currentLatency 延迟\n" +
-            "     * @param isolation 是否隔离。当开启隔离时，默认延迟为30000。目前主要用于发送消息异常时\n" +
-            "     */\n" +
-            "    public void updateFaultItem(final String brokerName, final long currentLatency, boolean isolation) {\n" +
-            "        if (this.sendLatencyFaultEnable) {\n" +
-            "            long duration = computeNotAvailableDuration(isolation ? 30000 : currentLatency);\n" +
-            "            this.latencyFaultTolerance.updateFaultItem(brokerName, currentLatency, duration);\n" +
+            "        /**\n" +
+            "         * 切换读写队列\n" +
+            "         */\n" +
+            "        private void swapRequests() {\n" +
+            "            List<GroupCommitRequest> tmp = this.requestsWrite;\n" +
+            "            this.requestsWrite = this.requestsRead;\n" +
+            "            this.requestsRead = tmp;\n" +
             "        }\n" +
-            "    }\n" +
             "\n" +
-            "    /**\n" +
-            "     * 计算延迟对应的不可用时间\n" +
-            "     *\n" +
-            "     * @param currentLatency 延迟\n" +
-            "     * @return 不可用时间\n" +
-            "     */\n" +
-            "    private long computeNotAvailableDuration(final long currentLatency) {\n" +
-            "        for (int i = latencyMax.length - 1; i >= 0; i--) {\n" +
-            "            if (currentLatency >= latencyMax[i])\n" +
-            "                return this.notAvailableDuration[i];\n" +
+            "        private void doCommit() {\n" +
+            "            synchronized (this.requestsRead) {\n" +
+            "                if (!this.requestsRead.isEmpty()) {\n" +
+            "                    for (GroupCommitRequest req : this.requestsRead) {\n" +
+            "                        // There may be a message in the next file, so a maximum of\n" +
+            "                        // two times the flush (可能批量提交的messages，分布在两个MappedFile)\n" +
+            "                        boolean flushOK = false;\n" +
+            "                        for (int i = 0; i < 2 && !flushOK; i++) {\n" +
+            "                            // 是否满足需要flush条件，即请求的offset超过flush的offset\n" +
+            "                            flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() >= req.getNextOffset();\n" +
+            "                            if (!flushOK) {\n" +
+            "                                CommitLog.this.mappedFileQueue.flush(0);\n" +
+            "                            }\n" +
+            "                        }\n" +
+            "                        // 唤醒等待请求\n" +
+            "                        req.wakeupCustomer(flushOK);\n" +
+            "                    }\n" +
+            "\n" +
+            "                    long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();\n" +
+            "                    if (storeTimestamp > 0) {\n" +
+            "                        CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);\n" +
+            "                    }\n" +
+            "\n" +
+            "                    // 清理读取队列\n" +
+            "                    this.requestsRead.clear();\n" +
+            "                } else {\n" +
+            "                    // Because of individual messages is set to not sync flush, it\n" +
+            "                    // will come to this process 不合法的请求，比如message上未设置isWaitStoreMsgOK。\n" +
+            "                    // 走到此处的逻辑，相当于发送一条消息，落盘一条消息，实际无批量提交的效果。\n" +
+            "                    CommitLog.this.mappedFileQueue.flush(0);\n" +
+            "                }\n" +
+            "            }\n" +
             "        }\n" +
-            "        return 0;\n" +
-            "    }\n" +
             "\n" +
-            "    public long[] getNotAvailableDuration() {\n" +
-            "        return notAvailableDuration;\n" +
-            "    }\n" +
+            "        public void run() {\n" +
+            "            CommitLog.log.info(this.getServiceName() + \" service started\");\n" +
             "\n" +
-            "    public void setNotAvailableDuration(final long[] notAvailableDuration) {\n" +
-            "        this.notAvailableDuration = notAvailableDuration;\n" +
-            "    }\n" +
+            "            while (!this.isStopped()) {\n" +
+            "                try {\n" +
+            "                    this.waitForRunning(10);\n" +
+            "                    this.doCommit();\n" +
+            "                } catch (Exception e) {\n" +
+            "                    CommitLog.log.warn(this.getServiceName() + \" service has exception. \", e);\n" +
+            "                }\n" +
+            "            }\n" +
             "\n" +
-            "    public long[] getLatencyMax() {\n" +
-            "        return latencyMax;\n" +
-            "    }\n" +
+            "            // Under normal circumstances shutdown, wait for the arrival of the\n" +
+            "            // request, and then flush\n" +
+            "            try {\n" +
+            "                Thread.sleep(10);\n" +
+            "            } catch (InterruptedException e) {\n" +
+            "                CommitLog.log.warn(\"GroupCommitService Exception, \", e);\n" +
+            "            }\n" +
             "\n" +
-            "    public void setLatencyMax(final long[] latencyMax) {\n" +
-            "        this.latencyMax = latencyMax;\n" +
-            "    }\n" +
+            "            synchronized (this) {\n" +
+            "                this.swapRequests();\n" +
+            "            }\n" +
             "\n" +
-            "    public boolean isSendLatencyFaultEnable() {\n" +
-            "        return sendLatencyFaultEnable;\n" +
-            "    }\n" +
+            "            this.doCommit();\n" +
             "\n" +
-            "    public void setSendLatencyFaultEnable(final boolean sendLatencyFaultEnable) {\n" +
-            "        this.sendLatencyFaultEnable = sendLatencyFaultEnable;\n" +
-            "    }\n" +
-            "}";
+            "            CommitLog.log.info(this.getServiceName() + \" service end\");\n" +
+            "        }\n" +
+            "\n" +
+            "        /**\n" +
+            "         * 每次执行完，切换读写队列\n" +
+            "         */\n" +
+            "        @Override\n" +
+            "        protected void onWaitEnd() {\n" +
+            "            this.swapRequests();\n" +
+            "        }\n" +
+            "\n" +
+            "        @Override\n" +
+            "        public String getServiceName() {\n" +
+            "            return GroupCommitService.class.getSimpleName();\n" +
+            "        }\n" +
+            "\n" +
+            "        @Override\n" +
+            "        public long getJointime() {\n" +
+            "            return 1000 * 60 * 5;\n" +
+            "        }\n" +
+            "    }"
+            ;
 
     public static void main(String[] args) {
         int i = 1;
         boolean replaceBlank = STR.split("\n")[0].contains("class")
                 || STR.split("\n")[0].contains("interface");
         for (String str : STR.split("\n")) {
-            if (!replaceBlank) {
+            if (replaceBlank) {
                 str = str.replaceFirst("    ", "");
             }
             if (i < 10) {

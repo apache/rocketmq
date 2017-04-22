@@ -18,6 +18,7 @@ package org.apache.rocketmq.example.quickstart;
 
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
@@ -53,7 +54,12 @@ public class Producer {
 
 //        Thread.sleep(10000000L);
 
-        for (int i = 0; i < 10000000; i++) {
+        String body = "";
+        for (int i = 0; i < 10 * 1024; i++) {
+            body += "" + i;
+        }
+
+        for (int i = 0; i < Integer.MAX_VALUE; i++) {
             try {
 
                 /*
@@ -62,17 +68,21 @@ public class Producer {
 
                 Message msg = new Message("TopicRead3" /* Topic */,
                     "TagA" /* Tag */,
-                    ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
+                    (body).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
                 );
 
                 /*
                  * Call send message to deliver message to one of brokers.
                  */
-//                SendResult sendResult = producer.send(msg);
-                producer.send(msg);
+                SendResult sendResult = producer.send(msg);
+//                producer.send(msg);
+//                producer.sendOneway(msg);
 
 //                System.out.printf("%s%n", sendResult);
-                System.out.println(i);
+//                System.out.println(i);
+                if (i % 10000 == 0) {
+                    System.out.println("sendOneway：" + i);
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 Thread.sleep(1000);

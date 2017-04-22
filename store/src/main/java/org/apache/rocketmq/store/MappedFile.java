@@ -60,16 +60,16 @@ public class MappedFile extends ReferenceResource {
      */
     private static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0);
     /**
-     * 写入位置
+     * 当前写入位置，下次开始写入的开始位置
      */
     protected final AtomicInteger wrotePosition = new AtomicInteger(0);
     /**
      * ADD BY ChenYang
-     * commit位置
+     * 当前commit位置
      */
     protected final AtomicInteger committedPosition = new AtomicInteger(0);
     /**
-     * flush位置
+     * 当前flush位置
      */
     private final AtomicInteger flushedPosition = new AtomicInteger(0);
     /**
@@ -83,11 +83,11 @@ public class MappedFile extends ReferenceResource {
     protected FileChannel fileChannel;
     /**
      * Message will put to here first, and then reput to FileChannel if writeBuffer is not null.
-     * TODO
+     * 写入缓冲
      */
     protected ByteBuffer writeBuffer = null;
     /**
-     * TODO 疑问：干啥的~
+     * writeBuffer缓存池
      */
     protected TransientStorePool transientStorePool = null;
     /**
@@ -359,8 +359,7 @@ public class MappedFile extends ReferenceResource {
             }
         }
 
-        // All dirty data has been committed to FileChannel.
-        // TODO 疑问：这个是啥
+        // All dirty data has been committed to FileChannel. 写到文件尾时，回收writeBuffer。
         if (writeBuffer != null && this.transientStorePool != null && this.fileSize == this.committedPosition.get()) {
             this.transientStorePool.returnBuffer(writeBuffer);
             this.writeBuffer = null;
