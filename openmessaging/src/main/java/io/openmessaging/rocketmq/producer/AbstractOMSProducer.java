@@ -41,7 +41,7 @@ import org.slf4j.Logger;
 
 import static io.openmessaging.rocketmq.utils.OMSUtil.buildInstanceName;
 
-abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory{
+abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
     final static Logger log = ClientLogger.getLog();
     final KeyValue properties;
     final DefaultMQProducer rocketmqProducer;

@@ -33,10 +33,10 @@ public class SimpleProducer {
         final Producer producer = messagingAccessPoint.createProducer();
 
         messagingAccessPoint.startup();
-        System.out.println("messagingAccessPoint startup OK");
+        System.out.printf("MessagingAccessPoint startup OK%n");
 
         producer.startup();
-        System.out.println("producer startup OK");
+        System.out.printf("Producer startup OK%n");
 
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override
@@ -50,25 +50,27 @@ public class SimpleProducer {
             Message message = producer.createBytesMessageToTopic("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8")));
             SendResult sendResult = producer.send(message);
             //final Void aVoid = result.get(3000L);
-            System.out.println("send async message OK, msgId: " + sendResult.messageId());
+            System.out.printf("Send async message OK, msgId: %s%n", sendResult.messageId());
         }
 
         {
             final Promise<SendResult> result = producer.sendAsync(producer.createBytesMessageToTopic("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8"))));
             result.addListener(new PromiseListener<SendResult>() {
-                @Override public void operationCompleted(Promise<SendResult> promise) {
-                    System.out.println("Send async message OK, msgId: " + promise.get().messageId());
+                @Override
+                public void operationCompleted(Promise<SendResult> promise) {
+                    System.out.printf("Send async message OK, msgId: %s%n", promise.get().messageId());
                 }
 
-                @Override public void operationFailed(Promise<SendResult> promise) {
-                    System.out.println("send async message Failed, error: " + promise.getThrowable().getMessage());
+                @Override
+                public void operationFailed(Promise<SendResult> promise) {
+                    System.out.printf("Send async message Failed, error: %s%n", promise.getThrowable().getMessage());
                 }
             });
         }
 
         {
             producer.sendOneway(producer.createBytesMessageToTopic("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8"))));
-            System.out.println("Send oneway message OK");
+            System.out.printf("Send oneway message OK%n");
         }
     }
 }

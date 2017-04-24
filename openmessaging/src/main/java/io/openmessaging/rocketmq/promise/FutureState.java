@@ -18,11 +18,17 @@
 package io.openmessaging.rocketmq.promise;
 
 public enum FutureState {
-    /** the task is doing **/
+    /**
+     * the task is doing
+     **/
     DOING(0),
-    /** the task is done **/
+    /**
+     * the task is done
+     **/
     DONE(1),
-    /** ths task is cancelled **/
+    /**
+     * ths task is cancelled
+     **/
     CANCELLED(2);
 
     public final int value;

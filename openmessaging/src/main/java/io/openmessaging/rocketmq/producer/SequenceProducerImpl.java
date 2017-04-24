@@ -78,7 +78,7 @@ public class SequenceProducerImpl extends AbstractOMSProducer implements Sequenc
 
         try {
             SendResult sendResult = this.rocketmqProducer.send(rmqMessages);
-            String [] msgIdArray = sendResult.getMsgId().split(",");
+            String[] msgIdArray = sendResult.getMsgId().split(",");
             for (int i = 0; i < messages.size(); i++) {
                 Message message = messages.get(i);
                 message.headers().put(MessageHeader.MESSAGE_ID, msgIdArray[i]);

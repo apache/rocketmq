@@ -35,7 +35,7 @@ public class SimplePushConsumer {
             createPushConsumer(OMS.newKeyValue().put(NonStandardKeys.CONSUMER_GROUP, "OMS_CONSUMER"));
 
         messagingAccessPoint.startup();
-        System.out.println("messagingAccessPoint startup OK");
+        System.out.printf("MessagingAccessPoint startup OK%n");
 
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override
@@ -48,12 +48,12 @@ public class SimplePushConsumer {
         consumer.attachQueue("OMS_HELLO_TOPIC", new MessageListener() {
             @Override
             public void onMessage(final Message message, final ReceivedMessageContext context) {
-                System.out.println("Received one message: " + message.headers().getString(MessageHeader.MESSAGE_ID));
+                System.out.printf("Received one message: %s%n", message.headers().getString(MessageHeader.MESSAGE_ID));
                 context.ack();
             }
         });
 
         consumer.startup();
-        System.out.println("consumer startup OK");
+        System.out.printf("Consumer startup OK%n");
     }
 }

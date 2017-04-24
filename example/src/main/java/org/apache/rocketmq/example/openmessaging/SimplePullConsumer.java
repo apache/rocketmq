@@ -33,7 +33,7 @@ public class SimplePullConsumer {
             OMS.newKeyValue().put(NonStandardKeys.CONSUMER_GROUP, "OMS_CONSUMER"));
 
         messagingAccessPoint.startup();
-        System.out.println("messagingAccessPoint startup OK");
+        System.out.printf("MessagingAccessPoint startup OK%n");
 
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override
@@ -44,13 +44,13 @@ public class SimplePullConsumer {
         }));
 
         consumer.startup();
-        System.out.println("consumer startup OK");
+        System.out.printf("Consumer startup OK%n");
 
         while (true) {
             Message message = consumer.poll();
             if (message != null) {
                 String msgId = message.headers().getString(MessageHeader.MESSAGE_ID);
-                System.out.println("Received one message: " + msgId);
+                System.out.printf("Received one message: %s%n", msgId);
                 consumer.ack(msgId);
             }
         }

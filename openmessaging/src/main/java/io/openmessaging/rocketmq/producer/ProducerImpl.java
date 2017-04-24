@@ -25,8 +25,8 @@ import io.openmessaging.Promise;
 import io.openmessaging.PropertyKeys;
 import io.openmessaging.SendResult;
 import io.openmessaging.exception.OMSRuntimeException;
-import io.openmessaging.rocketmq.utils.OMSUtil;
 import io.openmessaging.rocketmq.promise.DefaultPromise;
+import io.openmessaging.rocketmq.utils.OMSUtil;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendStatus;
 

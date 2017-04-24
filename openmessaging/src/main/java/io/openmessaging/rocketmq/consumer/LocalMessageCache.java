@@ -175,7 +175,6 @@ class LocalMessageCache implements ServiceLifecycle {
                     try {
                         if (!msgTreeMap.isEmpty()) {
                             msg = msgTreeMap.firstEntry().getValue();
-                            System.out.println(msg);
                             if (System.currentTimeMillis() - Long.parseLong(MessageAccessor.getConsumeStartTimeStamp(msg))
                                 > clientConfig.getRmqMessageConsumeTimeout() * 60 * 1000) {
                                 //Expired, ack and remove it.

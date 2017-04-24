@@ -29,7 +29,7 @@ import org.slf4j.Logger;
 
 public final class BeanUtils {
     final static Logger log = ClientLogger.getLog();
-    
+
     /**
      * Maps primitive {@code Class}es to their corresponding wrapper {@code Class}.
      */
@@ -136,7 +136,7 @@ public final class BeanUtils {
     public static <T> T populate(final Properties properties, final T obj) {
         Class<?> clazz = obj.getClass();
         try {
-            
+
             Set<Map.Entry<Object, Object>> entries = properties.entrySet();
             for (Map.Entry<Object, Object> entry : entries) {
                 String entryKey = entry.getKey().toString();
@@ -147,7 +147,7 @@ public final class BeanUtils {
                 }
                 String beanFieldNameWithCapitalization = StringUtils.join(keyGroup);
                 try {
-                        setProperties(clazz, obj, "set" + beanFieldNameWithCapitalization, entry.getValue());
+                    setProperties(clazz, obj, "set" + beanFieldNameWithCapitalization, entry.getValue());
                 } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
                     //ignored...
                 }

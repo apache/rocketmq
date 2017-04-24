@@ -25,9 +25,9 @@ import io.openmessaging.PushConsumer;
 import io.openmessaging.ReceivedMessageContext;
 import io.openmessaging.exception.OMSRuntimeException;
 import io.openmessaging.rocketmq.config.ClientConfig;
+import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import io.openmessaging.rocketmq.utils.BeanUtils;
 import io.openmessaging.rocketmq.utils.OMSUtil;
-import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,7 +46,6 @@ public class PushConsumerImpl implements PushConsumer {
     private boolean started = false;
     private final Map<String, MessageListener> subscribeTable = new ConcurrentHashMap<>();
     private final ClientConfig clientConfig;
-
 
     public PushConsumerImpl(final KeyValue properties) {
         this.rocketmqPushConsumer = new DefaultMQPushConsumer();
@@ -130,7 +129,8 @@ public class PushConsumerImpl implements PushConsumer {
     class MessageListenerImpl implements MessageListenerConcurrently {
 
         @Override
-        public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> rmqMsgList, ConsumeConcurrentlyContext contextRMQ) {
+        public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> rmqMsgList,
+            ConsumeConcurrentlyContext contextRMQ) {
             MessageExt rmqMsg = rmqMsgList.get(0);
             BytesMessage omsMsg = OMSUtil.msgConvert(rmqMsg);
 
