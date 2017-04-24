@@ -657,9 +657,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         Date dt = UtilAll.parseDate(this.defaultMQPushConsumer.getConsumeTimestamp(), UtilAll.YYYYMMDDHHMMSS);
         if (null == dt) {
             throw new MQClientException(
-                "consumeTimestamp is invalid, the valid format is yyyyMMddHHmmss,but received "+this.defaultMQPushConsumer.getConsumeTimestamp()+" "
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL),
-                null);
+                "consumeTimestamp is invalid, the valid format is yyyyMMddHHmmss,but received "
+                    + this.defaultMQPushConsumer.getConsumeTimestamp()
+                    + " " + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL), null);
         }
 
         // allocateMessageQueueStrategy
