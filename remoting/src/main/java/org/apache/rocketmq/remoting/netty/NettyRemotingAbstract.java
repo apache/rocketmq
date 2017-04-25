@@ -338,14 +338,18 @@ public abstract class NettyRemotingAbstract {
                 throw new RemotingSendRequestException(RemotingHelper.parseChannelRemoteAddr(channel), e);
             }
         } else {
-            String info =
-                String.format("invokeAsyncImpl tryAcquire semaphore timeout, %dms, waiting thread nums: %d semaphoreAsyncValue: %d", //
-                    timeoutMillis, //
-                    this.semaphoreAsync.getQueueLength(), //
-                    this.semaphoreAsync.availablePermits()//
-                );
-            PLOG.warn(info);
-            throw new RemotingTooMuchRequestException(info);
+            if (timeoutMillis <= 0) {
+                throw new RemotingTooMuchRequestException("invokeAsyncImpl invoke too fast");
+            } else {
+                String info =
+                    String.format("invokeAsyncImpl tryAcquire semaphore timeout, %dms, waiting thread nums: %d semaphoreAsyncValue: %d", //
+                        timeoutMillis, //
+                        this.semaphoreAsync.getQueueLength(), //
+                        this.semaphoreAsync.availablePermits()//
+                    );
+                PLOG.warn(info);
+                throw new RemotingTimeoutException(info);
+            }
         }
     }
 
