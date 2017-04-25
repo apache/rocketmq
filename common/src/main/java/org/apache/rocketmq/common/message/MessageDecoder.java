@@ -163,9 +163,9 @@ public class MessageDecoder {
                 + 8 // 12 STOREHOSTADDRESS
                 + 4 // 13 RECONSUMETIMES
                 + 8 // 14 Prepared Transaction Offset
-                + 4 + bodyLength // 14 BODY
-                + 1 + topicLen // 15 TOPIC
-                + 2 + propertiesLength // 16 propertiesLength
+                + 4 + bodyLength // 15 BODY
+                + 1 + topicLen // 16 TOPIC
+                + 2 + propertiesLength // 17 propertiesLength
                 + 0;
             byteBuffer = ByteBuffer.allocate(storeSize);
         }
