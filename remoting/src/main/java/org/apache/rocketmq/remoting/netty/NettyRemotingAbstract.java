@@ -48,32 +48,84 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class NettyRemotingAbstract {
+
+    /**
+     * Remoting logger instance.
+     */
     private static final Logger PLOG = LoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
+    /**
+     * Semaphore to limit maximum number of on-going one-way requests, which protects system memory footprint.
+     */
     protected final Semaphore semaphoreOneway;
 
+    /**
+     * Semaphore to limit maximum number of on-going asynchronous requests, which protects system memory footprint.
+     */
     protected final Semaphore semaphoreAsync;
 
+    /**
+     * This map caches all on-going requests.
+     */
     protected final ConcurrentHashMap<Integer /* opaque */, ResponseFuture> responseTable =
         new ConcurrentHashMap<Integer, ResponseFuture>(256);
 
+    /**
+     * This container holds all processors per request code, aka, for each incoming request, we may look up the
+     * responding processor in this map to handle the request.
+     */
     protected final HashMap<Integer/* request code */, Pair<NettyRequestProcessor, ExecutorService>> processorTable =
         new HashMap<Integer, Pair<NettyRequestProcessor, ExecutorService>>(64);
-    protected final NettyEventExecuter nettyEventExecuter = new NettyEventExecuter();
 
+    /**
+     * Executor to feed netty events to user defined {@link ChannelEventListener}.
+     */
+    protected final NettyEventExecutor nettyEventExecutor = new NettyEventExecutor();
+
+    /**
+     * The default request processor to use in case there is no exact match in {@link #processorTable} per request code.
+     */
     protected Pair<NettyRequestProcessor, ExecutorService> defaultRequestProcessor;
 
+    /**
+     * Constructor, specifying capacity of one-way and asynchronous semaphores.
+     * @param permitsOneway Number of permits for one-way requests.
+     * @param permitsAsync Number of permits for asynchronous requests.
+     */
     public NettyRemotingAbstract(final int permitsOneway, final int permitsAsync) {
         this.semaphoreOneway = new Semaphore(permitsOneway, true);
         this.semaphoreAsync = new Semaphore(permitsAsync, true);
     }
 
+    /**
+     * Custom channel event listener.
+     * @return custom channel event listener if defined; null otherwise.
+     */
     public abstract ChannelEventListener getChannelEventListener();
 
+    /**
+     * Put a netty event to the executor.
+     * @param event Netty event instance.
+     */
     public void putNettyEvent(final NettyEvent event) {
-        this.nettyEventExecuter.putNettyEvent(event);
+        this.nettyEventExecutor.putNettyEvent(event);
     }
 
+    /**
+     * Entry of incoming command processing.
+     *
+     * <p>
+     *     <strong>Note:</strong>
+     *     The incoming remoting command may be
+     *     <ul>
+     *         <li>An inquiry request from a remote peer component;</li>
+     *         <li>A response to a previous request issued by this very participant.</li>
+     *     </ul>
+     * </p>
+     * @param ctx Channel handler context.
+     * @param msg incoming remoting command.
+     * @throws Exception if there were any error while processing the incoming command.
+     */
     public void processMessageReceived(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
         final RemotingCommand cmd = msg;
         if (cmd != null) {
@@ -90,6 +142,11 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+    /**
+     * Process incoming request command issued by remote peer.
+     * @param ctx channel handler context.
+     * @param cmd request command.
+     */
     public void processRequestCommand(final ChannelHandlerContext ctx, final RemotingCommand cmd) {
         final Pair<NettyRequestProcessor, ExecutorService> matched = this.processorTable.get(cmd.getCode());
         final Pair<NettyRequestProcessor, ExecutorService> pair = null == matched ? this.defaultRequestProcessor : matched;
@@ -175,6 +232,11 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+    /**
+     * Process response from remote peer to the previous issued requests.
+     * @param ctx channel handler context.
+     * @param cmd response command instance.
+     */
     public void processResponseCommand(ChannelHandlerContext ctx, RemotingCommand cmd) {
         final int opaque = cmd.getOpaque();
         final ResponseFuture responseFuture = responseTable.get(opaque);
@@ -196,7 +258,10 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
-    //execute callback in callback executor. If callback executor is null, run directly in current thread
+    /**
+     * Execute callback in callback executor. If callback executor is null, run directly in current thread
+     * @param responseFuture
+     */
     private void executeInvokeCallback(final ResponseFuture responseFuture) {
         boolean runInThisThread = false;
         ExecutorService executor = this.getCallbackExecutor();
@@ -229,10 +294,24 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+    /**
+     * Custom RPC hook.
+     * @return RPC hook if specified; null otherwise.
+     */
     public abstract RPCHook getRPCHook();
 
-    abstract public ExecutorService getCallbackExecutor();
+    /**
+     * This method specifies thread pool to use while invoking callback methods.
+     * @return Dedicated thread pool instance if specified; or null if the callback is supposed to be executed in the
+     * netty event-loop thread.
+     */
+    public abstract ExecutorService getCallbackExecutor();
 
+    /**
+     * <p>
+     *    This method is periodically invoked to scan and expire deprecated request.
+     * </p>
+     */
     public void scanResponseTable() {
         final List<ResponseFuture> rfList = new LinkedList<ResponseFuture>();
         Iterator<Entry<Integer, ResponseFuture>> it = this.responseTable.entrySet().iterator();
@@ -386,7 +465,7 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
-    class NettyEventExecuter extends ServiceThread {
+    class NettyEventExecutor extends ServiceThread {
         private final LinkedBlockingQueue<NettyEvent> eventQueue = new LinkedBlockingQueue<NettyEvent>();
         private final int maxSize = 10000;
 
@@ -436,7 +515,7 @@ public abstract class NettyRemotingAbstract {
 
         @Override
         public String getServiceName() {
-            return NettyEventExecuter.class.getSimpleName();
+            return NettyEventExecutor.class.getSimpleName();
         }
     }
 }
