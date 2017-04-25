@@ -155,6 +155,10 @@ public class MessageStoreConfig {
     @ImportantField
     private boolean cleanFileForciblyEnable = true;
     private boolean warmMapedFileEnable = false;
+    /**
+     * slave节点是否检查消费offset
+     * 在拉取消息时，由于各种情况，拉取请求的offset可能不正确，是否修复生成新的拉取offset给client端。
+     */
     private boolean offsetCheckInSlave = false;
     private boolean debugLockEnable = false;
     private boolean duplicationEnable = false;

@@ -17,12 +17,25 @@
 package org.apache.rocketmq.common.sysflag;
 
 /**
- * todo 疑问
+ * 拉取消息系统标志
  */
 public class PullSysFlag {
+
+    /**
+     * 标志 - 提交消费进度
+     */
     private final static int FLAG_COMMIT_OFFSET = 0x1 << 0;
+    /**
+     * 标志 - 是否挂起请求，当无消息时
+     */
     private final static int FLAG_SUSPEND = 0x1 << 1;
+    /**
+     * 标记 - 是否过滤订阅表达式(subscription)
+     */
     private final static int FLAG_SUBSCRIPTION = 0x1 << 2;
+    /**
+     *
+     */
     private final static int FLAG_CLASS_FILTER = 0x1 << 3;
 
     public static int buildSysFlag(final boolean commitOffset, final boolean suspend,

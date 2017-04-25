@@ -16,15 +16,19 @@
  */
 package org.apache.rocketmq.store;
 
+import org.apache.rocketmq.store.stats.BrokerStatsManager;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
+/**
+ * 获取消息结果
+ */
 public class GetMessageResult {
 
     private final List<SelectMappedBufferResult> messageMapedList =
-        new ArrayList<SelectMappedBufferResult>(100);
+            new ArrayList<>(100);
 
     private final List<ByteBuffer> messageBufferList = new ArrayList<ByteBuffer>(100);
 

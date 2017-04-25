@@ -55,17 +55,17 @@ public class PullMessageRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private Integer maxMsgNums;
     /**
-     * TODO 疑问
+     * 系统标识
      */
     @CFNotNull
     private Integer sysFlag;
     /**
-     * TODO 疑问
+     * 提交消费进度位置
      */
     @CFNotNull
     private Long commitOffset;
     /**
-     * TODO 疑问
+     * 挂起超时时间
      */
     @CFNotNull
     private Long suspendTimeoutMillis;

@@ -24,9 +24,10 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+/**
+ * 消费队列
+ */
 public class ConsumeQueue {
-
-     // TODO 疑问：00000000000024000000 为啥consume从这个开始
 
     public static final int CQ_STORE_UNIT_SIZE = 20;
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -45,8 +46,13 @@ public class ConsumeQueue {
      * 队列编号
      */
     private final int queueId;
+    /**
+     * 消息位置信息ByteBuffer
+     */
     private final ByteBuffer byteBufferIndex;
-
+    /**
+     * 文件存储地址
+     */
     private final String storePath;
     /**
      * 每个映射文件大小
@@ -429,6 +435,12 @@ public class ConsumeQueue {
         }
     }
 
+    /**
+     * 获取映射Buffer结果
+     *
+     * @param startIndex 队列开始位置 queueOffset
+     * @return 映射Buffer结果
+     */
     public SelectMappedBufferResult getIndexBuffer(final long startIndex) {
         int mappedFileSize = this.mappedFileSize;
         long offset = startIndex * CQ_STORE_UNIT_SIZE;
