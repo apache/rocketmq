@@ -1311,7 +1311,15 @@ public class DefaultMessageStore implements MessageStore {
         return runningFlags;
     }
 
+    /**
+     * 执行调度请求
+     * 1. 非事务消息 或 事务提交消息 建立 消息位置信息 到 ConsumeQueue
+     * 2. 建立 索引信息 到 IndexFile
+     *
+     * @param req 调度请求
+     */
     public void doDispatch(DispatchRequest req) {
+        // 非事务消息 或 事务提交消息 建立 消息位置信息 到 ConsumeQueue
         final int tranType = MessageSysFlag.getTransactionValue(req.getSysFlag());
         switch (tranType) {
             case MessageSysFlag.TRANSACTION_NOT_TYPE:
@@ -1323,12 +1331,23 @@ public class DefaultMessageStore implements MessageStore {
             case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
                 break;
         }
-
+        // 建立 索引信息 到 IndexFile
         if (DefaultMessageStore.this.getMessageStoreConfig().isMessageIndexEnable()) {
             DefaultMessageStore.this.indexService.buildIndex(req);
         }
     }
 
+    /**
+     * 建立 消息位置信息 到 ConsumeQueue
+     *
+     * @param topic 主题
+     * @param queueId 队列编号
+     * @param offset commitLog存储位置
+     * @param size 消息长度
+     * @param tagsCode 消息tagsCode
+     * @param storeTimestamp 存储时间
+     * @param logicOffset 队列位置
+     */
     public void putMessagePositionInfo(String topic, int queueId, long offset, int size, long tagsCode, long storeTimestamp,
         long logicOffset) {
         ConsumeQueue cq = this.findConsumeQueue(topic, queueId);
@@ -1626,16 +1645,23 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    /**
+     * 重放消息线程服务
+     * 该服务不断生成 消息位置信息 到 消费队列(ConsumeQueue)
+     * 该服务不断生成 消息索引 到 索引文件(IndexFile)
+     */
     @SuppressWarnings("SpellCheckingInspection")
     class ReputMessageService extends ServiceThread {
 
+        /**
+         * 开始重放消息的CommitLog物理位置
+         */
         private volatile long reputFromOffset = 0;
 
         public long getReputFromOffset() {
             return reputFromOffset;
         }
 
-        // TODO 待读：计算方式
         public void setReputFromOffset(long reputFromOffset) {
             this.reputFromOffset = reputFromOffset;
         }
@@ -1657,10 +1683,20 @@ public class DefaultMessageStore implements MessageStore {
             super.shutdown();
         }
 
+        /**
+         * 剩余需要重放消息字节数
+         *
+         * @return 字节数
+         */
         public long behind() {
             return DefaultMessageStore.this.commitLog.getMaxOffset() - this.reputFromOffset;
         }
 
+        /**
+         * 是否commitLog需要重放消息
+         *
+         * @return 是否
+         */
         private boolean isCommitLogAvailable() {
             return this.reputFromOffset < DefaultMessageStore.this.commitLog.getMaxOffset();
         }
@@ -1674,21 +1710,22 @@ public class DefaultMessageStore implements MessageStore {
                     break;
                 }
 
-                // 获取从reputFromOffset开始的commitLog byteBuffer
+                // 获取从reputFromOffset开始的commitLog对应的MappeFile对应的MappedByteBuffer
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
                 if (result != null) {
                     try {
                         this.reputFromOffset = result.getStartOffset();
 
+                        // 遍历MappedByteBuffer
                         for (int readSize = 0; readSize < result.getSize() && doNext; ) {
-                            DispatchRequest dispatchRequest =
-                                DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false);
-                            int size = dispatchRequest.getMsgSize();
-
-                            if (dispatchRequest.isSuccess()) {
-                                if (size > 0) {
+                            // 生成重放消息重放调度请求
+                            DispatchRequest dispatchRequest = DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false);
+                            int size = dispatchRequest.getMsgSize(); // 消息长度
+                            // 根据请求的结果处理
+                            if (dispatchRequest.isSuccess()) { // 读取成功
+                                if (size > 0) { // 读取Message
                                     DefaultMessageStore.this.doDispatch(dispatchRequest);
-
+                                    // 通知有新消息
                                     if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()
                                         && DefaultMessageStore.this.brokerConfig.isLongPollingEnable()) {
                                         DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
@@ -1706,16 +1743,15 @@ public class DefaultMessageStore implements MessageStore {
                                             .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic())
                                             .addAndGet(dispatchRequest.getMsgSize());
                                     }
-                                } else if (size == 0) {
+                                } else if (size == 0) { // 读取到MappedFile文件尾
                                     this.reputFromOffset = DefaultMessageStore.this.commitLog.rollNextFile(this.reputFromOffset);
                                     readSize = result.getSize();
                                 }
-                            } else if (!dispatchRequest.isSuccess()) {
-
-                                if (size > 0) {
+                            } else if (!dispatchRequest.isSuccess()) { // 读取失败
+                                if (size > 0) { // 读取到Message却不是Message
                                     log.error("[BUG]read total count not equals msg total size. reputFromOffset={}", reputFromOffset);
                                     this.reputFromOffset += size;
-                                } else {
+                                } else { // 读取到Blank却不是Blank
                                     doNext = false;
                                     if (DefaultMessageStore.this.brokerConfig.getBrokerId() == MixAll.MASTER_ID) {
                                         log.error("[BUG]the master dispatch message to consume queue error, COMMITLOG OFFSET: {}",

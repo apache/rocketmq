@@ -75,9 +75,13 @@ public class BrokerController {
     private final ProducerManager producerManager;
     private final ClientHousekeepingService clientHousekeepingService;
     private final PullMessageProcessor pullMessageProcessor;
-// todo 待读
+    /**
+     * 拉取消息挂起维护线程服务
+     */
     private final PullRequestHoldService pullRequestHoldService;
-// todo 待读
+    /**
+     * 新消息到达监听器
+     */
     private final MessageArrivingListener messageArrivingListener;
     private final Broker2Client broker2Client;
     private final SubscriptionGroupManager subscriptionGroupManager;

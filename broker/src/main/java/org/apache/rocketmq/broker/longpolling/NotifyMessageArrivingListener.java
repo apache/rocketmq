@@ -19,15 +19,28 @@ package org.apache.rocketmq.broker.longpolling;
 
 import org.apache.rocketmq.store.MessageArrivingListener;
 
+/**
+ * 新消息到达监听器实现
+ */
 public class NotifyMessageArrivingListener implements MessageArrivingListener {
+
     private final PullRequestHoldService pullRequestHoldService;
 
     public NotifyMessageArrivingListener(final PullRequestHoldService pullRequestHoldService) {
         this.pullRequestHoldService = pullRequestHoldService;
     }
 
+    /**
+     * 新消息
+     *
+     * @param topic 主题
+     * @param queueId 队列编号
+     * @param logicOffset 队列位置
+     * @param tagsCode 消息tagsCode
+     */
     @Override
     public void arriving(String topic, int queueId, long logicOffset, long tagsCode) {
         this.pullRequestHoldService.notifyMessageArriving(topic, queueId, logicOffset, tagsCode);
     }
+
 }

@@ -53,6 +53,9 @@ public class BrokerControllerTest {
         messageStoreConfig.setDeleteWhen("04");
         messageStoreConfig.setFileReservedTime(48);
         messageStoreConfig.setFlushDiskType(FlushDiskType.ASYNC_FLUSH);
+
+        messageStoreConfig.setDuplicationEnable(false);
+
 //        BrokerPathConfigHelper.setBrokerConfigPath("/Users/yunai/百度云同步盘/开发/Javascript/Story/incubator-rocketmq/conf/broker.conf");
         // broker 启动
         BrokerController brokerController = new BrokerController(//

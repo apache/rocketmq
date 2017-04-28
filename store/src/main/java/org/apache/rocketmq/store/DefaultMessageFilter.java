@@ -18,25 +18,29 @@ package org.apache.rocketmq.store;
 
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
+/**
+ * 消息过滤实现
+ */
 public class DefaultMessageFilter implements MessageFilter {
 
     @Override
     public boolean isMessageMatched(SubscriptionData subscriptionData, Long tagsCode) {
+        // 消息tagsCode 空
         if (tagsCode == null) {
             return true;
         }
-
+        // 订阅数据 空
         if (null == subscriptionData) {
             return true;
         }
-
+        // classFilter
         if (subscriptionData.isClassFilterMode())
             return true;
-
+        // 订阅表达式 全匹配
         if (subscriptionData.getSubString().equals(SubscriptionData.SUB_ALL)) {
             return true;
         }
-
+        // 订阅数据code数组 是否包含 消息tagsCode
         return subscriptionData.getCodeSet().contains(tagsCode.intValue());
     }
 

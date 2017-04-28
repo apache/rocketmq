@@ -86,7 +86,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
      * @param request 请求
      * @param brokerAllowSuspend broker是否允许挂起
      * @return 响应
-     * @throws RemotingCommandException
+     * @throws RemotingCommandException 当解析请求发生异常时
      */
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend)
         throws RemotingCommandException {
@@ -498,11 +498,20 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
     }
 
+    /**
+     * 执行请求唤醒，即再次拉取消息。
+     * 该方法调用线程池，因此，不会阻塞。
+     *
+     * @param channel 通道
+     * @param request 请求
+     * @throws RemotingCommandException 当远程调用发生异常时。but，实际应该不会发生
+     */
     public void executeRequestWhenWakeup(final Channel channel, final RemotingCommand request) throws RemotingCommandException {
         Runnable run = new Runnable() {
             @Override
             public void run() {
                 try {
+                    // 调用拉取请求。本次调用，设置不挂起请求。
                     final RemotingCommand response = PullMessageProcessor.this.processRequest(channel, request, false);
 
                     if (response != null) {
@@ -530,10 +539,12 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 }
             }
         };
+        // 提交拉取请求到线程池
         this.brokerController.getPullMessageExecutor().submit(new RequestTask(run, channel, request));
     }
 
     public void registerConsumeMessageHook(List<ConsumeMessageHook> sendMessageHookList) {
         this.consumeMessageHookList = sendMessageHookList;
     }
+
 }

@@ -18,6 +18,17 @@ package org.apache.rocketmq.store;
 
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
+/**
+ * 消息过滤接口
+ */
 public interface MessageFilter {
+
+    /**
+     * 消息是否匹配
+     *
+     * @param subscriptionData 订阅数据
+     * @param tagsCode 消息tagsCode
+     * @return 是否匹配
+     */
     boolean isMessageMatched(final SubscriptionData subscriptionData, final Long tagsCode);
 }
