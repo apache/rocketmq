@@ -29,10 +29,16 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * 消费进度管理器
+ */
 public class ConsumerOffsetManager extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final String TOPIC_GROUP_SEPARATOR = "@";
 
+    /**
+     * 消费进度集合
+     */
     private ConcurrentHashMap<String/* topic@group */, ConcurrentHashMap<Integer, Long>> offsetTable = new ConcurrentHashMap<>(512);
 
     private transient BrokerController brokerController;
@@ -113,12 +119,29 @@ public class ConsumerOffsetManager extends ConfigManager {
         return groups;
     }
 
+    /**
+     * 提交消费进度
+     *
+     * @param clientHost 提交client地址
+     * @param group 消费分组
+     * @param topic 主题
+     * @param queueId 队列编号
+     * @param offset 进度（队列位置）
+     */
     public void commitOffset(final String clientHost, final String group, final String topic, final int queueId, final long offset) {
         // topic@group
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
         this.commitOffset(clientHost, key, queueId, offset);
     }
 
+    /**
+     * 提交消费进度
+     *
+     * @param clientHost 提交client地址
+     * @param key 主题@消费分组
+     * @param queueId 队列编号
+     * @param offset 进度（队列位置）
+     */
     private void commitOffset(final String clientHost, final String key, final int queueId, final long offset) {
         ConcurrentHashMap<Integer, Long> map = this.offsetTable.get(key);
         if (null == map) {
@@ -155,6 +178,12 @@ public class ConsumerOffsetManager extends ConfigManager {
         return BrokerPathConfigHelper.getConsumerOffsetPath(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
     }
 
+    /**
+     * 解码内容
+     * 格式:JSON
+     *
+     * @param jsonString 内容
+     */
     @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
@@ -165,6 +194,13 @@ public class ConsumerOffsetManager extends ConfigManager {
         }
     }
 
+    /**
+     * 编码内容
+     * 格式为JSON
+     *
+     * @param prettyFormat 是否格式化
+     * @return 编码后的内容
+     */
     public String encode(final boolean prettyFormat) {
         return RemotingSerializable.toJson(this, prettyFormat);
     }
