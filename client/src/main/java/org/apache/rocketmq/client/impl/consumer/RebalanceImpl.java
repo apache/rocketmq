@@ -338,7 +338,7 @@ public abstract class RebalanceImpl {
         }
     }
 
-    private void truncateMessageQueueNotMyTopic() {
+    private void truncateMessageQueueNotMyTopic() { // TODO 待读：去掉不属于自己的消息队列
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
 
         for (MessageQueue mq : this.processQueueTable.keySet()) {

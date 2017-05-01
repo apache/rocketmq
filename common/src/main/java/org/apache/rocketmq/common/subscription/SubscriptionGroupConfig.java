@@ -27,7 +27,9 @@ public class SubscriptionGroupConfig {
     private boolean consumeFromMinEnable = true;
 
     private boolean consumeBroadcastEnable = true;
-
+    /**
+     * 重试队列数
+     */
     private int retryQueueNums = 1;
 
     private int retryMaxTimes = 16;

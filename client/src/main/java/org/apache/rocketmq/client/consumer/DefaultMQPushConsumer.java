@@ -66,10 +66,10 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Consumers of the same role is required to have exactly same subscriptions and consumerGroup to correctly achieve
      * load balance. It's required and needs to be globally unique.
      * </p>
+     * 消费分组
      *
      * See <a href="http://rocketmq.incubator.apache.org/docs/core-concept/">here</a> for further discussion.
      */
-    // TODO 疑问：相同订阅+分组？相同角色
     private String consumerGroup;
 
     /**
@@ -135,6 +135,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     /**
      * Subscription relationship
+     * 订阅关系
      */
     private Map<String /* topic */, String /* sub expression */> subscription = new HashMap<>();
 
