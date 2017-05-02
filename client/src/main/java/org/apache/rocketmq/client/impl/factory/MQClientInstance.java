@@ -1068,7 +1068,6 @@ public class MQClientInstance {
 
     /**
      * 获取 消费者集群 + Topic 对应的 消费者编号数组
-     * TODO 疑问：如果一个group，关注的topic不同，结果会怎么样？取topic的并集么？
      *
      * @param topic Topic
      * @param group 消费者集群

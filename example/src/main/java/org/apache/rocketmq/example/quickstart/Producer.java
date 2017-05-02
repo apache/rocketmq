@@ -66,7 +66,7 @@ public class Producer {
                  * Create a message instance, specifying topic, tag and message body.
                  */
 
-                Message msg = new Message("TopicRead3" /* Topic */,
+                Message msg = new Message("TopicTest" /* Topic */,
                     "TagA" /* Tag */,
                     (body).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
                 );

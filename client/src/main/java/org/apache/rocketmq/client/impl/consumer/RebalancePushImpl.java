@@ -53,10 +53,21 @@ public class RebalancePushImpl extends RebalanceImpl {
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
     }
 
+    /**
+     * 移除不需要的队列相关的信息
+     * 1. 持久化消费进度，并移除之
+     * 2. 顺序消费时，解锁对该队列的锁定
+     *
+     * @param mq 消息队列
+     * @param pq 消息处理队列
+     * @return 是否移除成功
+     */
     @Override
     public boolean removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
+        // 同步队列的消费进度，并移除之。
         this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
         this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
+        // TODO 顺序消费
         if (this.defaultMQPushConsumerImpl.isConsumeOrderly()
             && MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) {
             try {

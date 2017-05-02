@@ -16,10 +16,15 @@
  */
 package org.apache.rocketmq.client.consumer.rebalance;
 
-import java.util.List;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.common.message.MessageQueue;
 
+import java.util.List;
+
+/**
+ * 队列分配策略 - 根据配置
+ * TODO 疑问：使用场景。
+ */
 public class AllocateMessageQueueByConfig implements AllocateMessageQueueStrategy {
     private List<MessageQueue> messageQueueList;
 

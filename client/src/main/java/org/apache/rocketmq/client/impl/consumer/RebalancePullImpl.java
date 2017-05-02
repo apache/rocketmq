@@ -16,14 +16,15 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
-import java.util.List;
-import java.util.Set;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+
+import java.util.List;
+import java.util.Set;
 
 public class RebalancePullImpl extends RebalanceImpl {
     private final DefaultMQPullConsumerImpl defaultMQPullConsumerImpl;
@@ -50,6 +51,14 @@ public class RebalancePullImpl extends RebalanceImpl {
         }
     }
 
+    /**
+     * 移除不需要的队列相关的信息
+     * 1. 持久化消费进度，并移除之
+     *
+     * @param mq 消息队列
+     * @param pq 消息处理队列
+     * @return 是否移除成功
+     */
     @Override
     public boolean removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
         this.defaultMQPullConsumerImpl.getOffsetStore().persist(mq);

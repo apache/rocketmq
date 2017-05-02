@@ -144,7 +144,7 @@ public abstract class RebalanceImpl {
         return result;
     }
 
-    public boolean lock(final MessageQueue mq) {
+    public boolean lock(final MessageQueue mq) { // TODO 顺序消费
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
         if (findBrokerResult != null) {
             LockBatchRequestBody requestBody = new LockBatchRequestBody();
@@ -228,11 +228,12 @@ public abstract class RebalanceImpl {
     }
 
     /**
-     * 消费者进行平衡
+     * 执行分配消费队列
      *
      * @param isOrder 是否顺序消息
      */
     public void doRebalance(final boolean isOrder) {
+        // 分配每个 topic 的消息队列
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
@@ -246,7 +247,7 @@ public abstract class RebalanceImpl {
                 }
             }
         }
-
+        // 移除未订阅的topic对应的消息队列
         this.truncateMessageQueueNotMyTopic();
     }
 
@@ -294,7 +295,7 @@ public abstract class RebalanceImpl {
                 }
 
                 if (mqSet != null && cidAll != null) {
-                    // 计算 负载均衡 后的 队列数组
+                    // 排序 消费队列 和 消费者数组。因为是在Client进行分配队列，排序后，各Client的顺序才能保持一致。
                     List<MessageQueue> mqAll = new ArrayList<>();
                     mqAll.addAll(mqSet);
 
@@ -303,6 +304,7 @@ public abstract class RebalanceImpl {
 
                     AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;
 
+                    // 根据 队列分配策略 分配消费队列
                     List<MessageQueue> allocateResult;
                     try {
                         allocateResult = strategy.allocate(//
@@ -321,7 +323,7 @@ public abstract class RebalanceImpl {
                         allocateResultSet.addAll(allocateResult);
                     }
 
-                    // 消息处理队列
+                    // 更新消费队列
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
                     if (changed) {
                         log.info(
@@ -338,9 +340,11 @@ public abstract class RebalanceImpl {
         }
     }
 
-    private void truncateMessageQueueNotMyTopic() { // TODO 待读：去掉不属于自己的消息队列
+    /**
+     * 移除未订阅的消息队列
+     */
+    private void truncateMessageQueueNotMyTopic() {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
-
         for (MessageQueue mq : this.processQueueTable.keySet()) {
             if (!subTable.containsKey(mq.getTopic())) {
 
@@ -357,7 +361,6 @@ public abstract class RebalanceImpl {
      * 当负载均衡时，更新 消息处理队列
      * - 移除 在processQueueTable && 不存在于 mqSet 里的消息队列
      * - 增加 不在processQueueTable && 存在于mqSet 里的消息队列
-     * -
      *
      * @param topic Topic
      * @param mqSet 负载均衡结果后的消息队列数组
@@ -375,14 +378,14 @@ public abstract class RebalanceImpl {
             ProcessQueue pq = next.getValue();
 
             if (mq.getTopic().equals(topic)) {
-                if (!mqSet.contains(mq)) {
+                if (!mqSet.contains(mq)) { // 不包含的队列
                     pq.setDropped(true);
                     if (this.removeUnnecessaryMessageQueue(mq, pq)) {
                         it.remove();
                         changed = true;
                         log.info("doRebalance, {}, remove unnecessary mq, {}", consumerGroup, mq);
                     }
-                } else if (pq.isPullExpired()) {
+                } else if (pq.isPullExpired()) { // 队列拉取超时，进行清理
                     switch (this.consumeType()) {
                         case CONSUME_ACTIVELY:
                             break;
