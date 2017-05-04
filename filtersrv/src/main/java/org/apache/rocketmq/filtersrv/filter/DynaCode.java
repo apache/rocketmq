@@ -28,7 +28,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,9 +71,8 @@ public class DynaCode {
 
     private String target;
 
-    @SuppressWarnings("unchecked")
     public DynaCode(String code) {
-        this(Thread.currentThread().getContextClassLoader(), Arrays.asList(code));
+        this(Thread.currentThread().getContextClassLoader(), Collections.singletonList(code));
     }
 
     public DynaCode(ClassLoader parentClassLoader, List<String> codeStrs) {
