@@ -58,4 +58,4 @@ abstract public class UnaryInExpression extends UnaryExpression implements Boole
     public void setInList(Collection inList) {
         this.inList = inList;
     }
-};
+}
