@@ -200,6 +200,12 @@ public class RebalancePushImpl extends RebalanceImpl {
         return result;
     }
 
+    /**
+     * 发起消息拉取请求。
+     * 该调用是`PushConsumer`不断不断不断拉取消息的起点
+     *
+     * @param pullRequestList 请求
+     */
     @Override
     public void dispatchPullRequest(List<PullRequest> pullRequestList) {
         for (PullRequest pullRequest : pullRequestList) {

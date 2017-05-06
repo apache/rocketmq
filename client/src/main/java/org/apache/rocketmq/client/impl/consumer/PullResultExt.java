@@ -16,13 +16,23 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
-import java.util.List;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.message.MessageExt;
 
+import java.util.List;
+
+/**
+ * 拉取消息结果拓展
+ */
 public class PullResultExt extends PullResult {
+    /**
+     * 建议拉取Broker编号
+     */
     private final long suggestWhichBrokerId;
+    /**
+     * 消息二进制
+     */
     private byte[] messageBinary;
 
     public PullResultExt(PullStatus pullStatus, long nextBeginOffset, long minOffset, long maxOffset,

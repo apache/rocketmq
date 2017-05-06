@@ -16,14 +16,34 @@
  */
 package org.apache.rocketmq.client.consumer;
 
-import java.util.List;
 import org.apache.rocketmq.common.message.MessageExt;
 
+import java.util.List;
+
+/**
+ * 拉取消息结果
+ */
 public class PullResult {
+
+    /**
+     * 拉取消息结果状态
+     */
     private final PullStatus pullStatus;
+    /**
+     * 下次拉取消息队列位置
+     */
     private final long nextBeginOffset;
+    /**
+     * 消息队列最小位置
+     */
     private final long minOffset;
+    /**
+     * 消息队列最大位置
+     */
     private final long maxOffset;
+    /**
+     * 消息列表
+     */
     private List<MessageExt> msgFoundList;
 
     public PullResult(PullStatus pullStatus, long nextBeginOffset, long minOffset, long maxOffset,

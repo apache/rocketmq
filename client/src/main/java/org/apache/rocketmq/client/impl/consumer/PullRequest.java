@@ -35,7 +35,7 @@ public class PullRequest {
      */
     private ProcessQueue processQueue;
     /**
-     * 下一个 offset
+     * 下一个 offset，消息拉取队列开始位置
      */
     private long nextOffset;
     /**

@@ -169,13 +169,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     /**
      * Concurrently max span offset.it has no effect on sequential consumption
-     * // TODO 疑问：不懂
+     * 并发消费消息最大允许跨度
      */
     private int consumeConcurrentlyMaxSpan = 2000;
 
     /**
      * Flow control threshold
-     * pull连接维持最大时间，单位：毫秒
+     * 最大持有消息数量
      */
     private int pullThresholdForQueue = 1000;
 

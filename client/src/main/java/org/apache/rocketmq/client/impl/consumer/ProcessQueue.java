@@ -47,6 +47,9 @@ public class ProcessQueue {
     private final Logger log = ClientLogger.getLog();
     private final ReadWriteLock lockTreeMap = new ReentrantReadWriteLock();
     private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<>();
+    /**
+     * 消息数
+     */
     private final AtomicLong msgCount = new AtomicLong();
     private final Lock lockConsume = new ReentrantLock();
     private final TreeMap<Long, MessageExt> msgTreeMapTemp = new TreeMap<>();
@@ -173,6 +176,11 @@ public class ProcessQueue {
         return dispatchToConsume;
     }
 
+    /**
+     * 消息跨度。最大offset - 最小offset。
+     *
+     * @return 消息跨度
+     */
     public long getMaxSpan() {
         try {
             this.lockTreeMap.readLock().lockInterruptibly();

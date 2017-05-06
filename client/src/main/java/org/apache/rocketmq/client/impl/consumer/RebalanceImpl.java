@@ -466,6 +466,11 @@ public abstract class RebalanceImpl {
      */
     public abstract void dispatchPullRequest(final List<PullRequest> pullRequestList);
 
+    /**
+     * 移除消息处理队列
+     *
+     * @param mq 消息队列
+     */
     public void removeProcessQueue(final MessageQueue mq) {
         ProcessQueue prev = this.processQueueTable.remove(mq);
         if (prev != null) {
