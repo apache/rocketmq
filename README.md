@@ -1,3 +1,4 @@
+just a study note for rockeymq
 ## Apache RocketMQ [![Build Status](https://travis-ci.org/apache/incubator-rocketmq.svg?branch=master)](https://travis-ci.org/apache/incubator-rocketmq) [![Coverage Status](https://coveralls.io/repos/github/apache/incubator-rocketmq/badge.svg?branch=master)](https://coveralls.io/github/apache/incubator-rocketmq?branch=master)
 [![Maven Central](https://img.shields.io/badge/maven--center-stable--version-green.svg)](http://search.maven.org/#search%7Cga%7C1%7Corg.apache.rocketmq)
 [![GitHub release](https://img.shields.io/badge/release-download-orange.svg)](https://github.org/apache/rocketmqreleases)
