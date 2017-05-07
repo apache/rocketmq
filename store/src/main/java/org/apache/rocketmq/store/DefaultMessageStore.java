@@ -580,7 +580,7 @@ public class DefaultMessageStore implements MessageStore {
     /**
 
      */
-    public long getMaxOffsetInQuque(String topic, int queueId) {
+    public long getMaxOffsetInQueue(String topic, int queueId) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
             long offset = logic.getMaxOffsetInQueue();
@@ -593,7 +593,7 @@ public class DefaultMessageStore implements MessageStore {
     /**
 
      */
-    public long getMinOffsetInQuque(String topic, int queueId) {
+    public long getMinOffsetInQueue(String topic, int queueId) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
             return logic.getMinOffsetInQueue();
@@ -603,10 +603,10 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public long getCommitLogOffsetInQueue(String topic, int queueId, long cqOffset) {
+    public long getCommitLogOffsetInQueue(String topic, int queueId, long consumeQueueOffset) {
         ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
-            SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(cqOffset);
+            SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(consumeQueueOffset);
             if (bufferConsumeQueue != null) {
                 try {
                     long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
@@ -740,10 +740,10 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public long getMessageStoreTimeStamp(String topic, int queueId, long offset) {
+    public long getMessageStoreTimeStamp(String topic, int queueId, long consumeQueueOffset) {
         ConsumeQueue logicQueue = this.findConsumeQueue(topic, queueId);
         if (logicQueue != null) {
-            SelectMappedBufferResult result = logicQueue.getIndexBuffer(offset);
+            SelectMappedBufferResult result = logicQueue.getIndexBuffer(consumeQueueOffset);
             if (result != null) {
                 try {
                     final long phyOffset = result.getByteBuffer().getLong();
@@ -798,7 +798,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public void excuteDeleteFilesManualy() {
+    public void executeDeleteFilesManually() {
         this.cleanCommitLogService.excuteDeleteFilesManualy();
     }
 
@@ -1434,7 +1434,7 @@ public class DefaultMessageStore implements MessageStore {
 
         public void excuteDeleteFilesManualy() {
             this.manualDeleteFileSeveralTimes = MAX_MANUAL_DELETE_FILE_TIMES;
-            DefaultMessageStore.log.info("excuteDeleteFilesManualy was invoked");
+            DefaultMessageStore.log.info("executeDeleteFilesManually was invoked");
         }
 
         public void run() {

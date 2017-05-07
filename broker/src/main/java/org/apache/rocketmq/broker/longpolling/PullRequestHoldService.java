@@ -98,7 +98,7 @@ public class PullRequestHoldService extends ServiceThread {
             if (2 == kArray.length) {
                 String topic = kArray[0];
                 int queueId = Integer.parseInt(kArray[1]);
-                final long offset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
+                final long offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
                 try {
                     this.notifyMessageArriving(topic, queueId, offset);
                 } catch (Throwable e) {
@@ -124,7 +124,7 @@ public class PullRequestHoldService extends ServiceThread {
                 for (PullRequest request : requestList) {
                     long newestOffset = maxOffset;
                     if (newestOffset <= request.getPullFromThisOffset()) {
-                        newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
+                        newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
                     }
 
                     if (newestOffset > request.getPullFromThisOffset()) {
