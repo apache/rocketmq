@@ -92,18 +92,18 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public long getMaxOffsetInQuque(String topic, int queueId) {
-        return next.getMaxOffsetInQuque(topic, queueId);
+    public long getMaxOffsetInQueue(String topic, int queueId) {
+        return next.getMaxOffsetInQueue(topic, queueId);
     }
 
     @Override
-    public long getMinOffsetInQuque(String topic, int queueId) {
-        return next.getMinOffsetInQuque(topic, queueId);
+    public long getMinOffsetInQueue(String topic, int queueId) {
+        return next.getMinOffsetInQueue(topic, queueId);
     }
 
     @Override
-    public long getCommitLogOffsetInQueue(String topic, int queueId, long cqOffset) {
-        return next.getCommitLogOffsetInQueue(topic, queueId, cqOffset);
+    public long getCommitLogOffsetInQueue(String topic, int queueId, long consumeQueueOffset) {
+        return next.getCommitLogOffsetInQueue(topic, queueId, consumeQueueOffset);
     }
 
     @Override
@@ -152,8 +152,8 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public long getMessageStoreTimeStamp(String topic, int queueId, long offset) {
-        return next.getMessageStoreTimeStamp(topic, queueId, offset);
+    public long getMessageStoreTimeStamp(String topic, int queueId, long consumeQueueOffset) {
+        return next.getMessageStoreTimeStamp(topic, queueId, consumeQueueOffset);
     }
 
     @Override
@@ -172,8 +172,8 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public void excuteDeleteFilesManualy() {
-        next.excuteDeleteFilesManualy();
+    public void executeDeleteFilesManually() {
+        next.executeDeleteFilesManually();
     }
 
     @Override
