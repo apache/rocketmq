@@ -16,17 +16,18 @@
  */
 package org.apache.rocketmq.client.consumer.store;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Wrapper class for offset serialization
  */
 public class OffsetSerializeWrapper extends RemotingSerializable {
     private ConcurrentHashMap<MessageQueue, AtomicLong> offsetTable =
-        new ConcurrentHashMap<MessageQueue, AtomicLong>();
+            new ConcurrentHashMap<>();
 
     public ConcurrentHashMap<MessageQueue, AtomicLong> getOffsetTable() {
         return offsetTable;

@@ -306,10 +306,11 @@ public class MQClientInstance {
             }
         }, 10, this.clientConfig.getPollNameServerInteval(), TimeUnit.MILLISECONDS);
 
+        // 定时同步消费进度
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
-            public void run() { // TODO 待读：ALL
+            public void run() {
                 try {
                     MQClientInstance.this.cleanOfflineBroker();
                     MQClientInstance.this.sendHeartbeatToAllBrokerWithLock();

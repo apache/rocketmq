@@ -553,14 +553,27 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         log.info("resume this consumer, {}", this.defaultMQPushConsumer.getConsumerGroup());
     }
 
+    /**
+     * 发回消息
+     *
+     * @param msg 消息
+     * @param delayLevel 延迟级别
+     * @param brokerName brokerName
+     * @throws RemotingException 当远程调用发生异常
+     * @throws MQBrokerException 当Broker发生异常
+     * @throws InterruptedException 当线程中断
+     * @throws MQClientException 当Client发生异常时
+     */
     public void sendMessageBack(MessageExt msg, int delayLevel, final String brokerName)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
+            // Consumer发回消息
             String brokerAddr = (null != brokerName) ? this.mQClientFactory.findBrokerAddressInPublish(brokerName)
                 : RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
             this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(brokerAddr, msg,
                 this.defaultMQPushConsumer.getConsumerGroup(), delayLevel, 5000, getMaxReconsumeTimes());
-        } catch (Exception e) {
+        } catch (Exception e) { // TODO 疑问：什么情况下会发生异常
+            // 异常时，使用Client内置Producer发回消息
             log.error("sendMessageBack Exception, " + this.defaultMQPushConsumer.getConsumerGroup(), e);
 
             Message newMsg = new Message(MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup()), msg.getBody());
@@ -924,9 +937,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
      */
     public void subscribe(String topic, String subExpression) throws MQClientException {
         try {
+            // 创建订阅数据
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(), //
                 topic, subExpression);
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
+            // 通过心跳同步Consumer信息到Broker
             if (this.mQClientFactory != null) {
                 this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
             }
