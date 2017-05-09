@@ -31,6 +31,7 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
@@ -97,6 +98,11 @@ public class Consumer {
         }, 10000, 10000);
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
+        if (commandLine.hasOption('n')) {
+            String ns = commandLine.getOptionValue('n');
+            consumer.setNamesrvAddr(ns);
+        }
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         consumer.subscribe(topic, "*");
