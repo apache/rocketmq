@@ -175,6 +175,7 @@
         <module>store</module>
         <module>namesrv</module>
         <module>remoting</module>
+        <module>logappender</module>
         <module>example</module>
         <module>filtersrv</module>
         <module>srvutil</module>
