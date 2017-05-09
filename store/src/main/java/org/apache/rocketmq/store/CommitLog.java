@@ -638,7 +638,7 @@ public class CommitLog {
             if (msg.isWaitStoreMsgOK()) {
                 request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
                 service.putRequest(request);
-                boolean flushOK = request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());//似乎没必要在另一个线程中flush，有优化空间
+                boolean flushOK = request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
                 if (!flushOK) {
                     log.error("do groupcommit, wait for flush failed, topic: " + msg.getTopic() + " tags: " + msg.getTags()
                         + " client address: " + msg.getBornHostString());
@@ -650,7 +650,7 @@ public class CommitLog {
         }
         // Asynchronous flush
         else {
-            if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {//这里为啥要wakeup？浪费一次线程切换？
+            if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
                 flushCommitLogService.wakeup();
             } else {
                 commitLogService.wakeup();
@@ -668,7 +668,7 @@ public class CommitLog {
                     }
                     service.putRequest(request);
 
-                    service.getWaitNotifyObject().wakeupAll();//是否可以放到当前线程执行？少一次线程切换
+                    service.getWaitNotifyObject().wakeupAll();
 
                     boolean flushOK =
                         // TODO
