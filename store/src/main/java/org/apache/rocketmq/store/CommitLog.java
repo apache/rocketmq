@@ -17,10 +17,7 @@
 package org.apache.rocketmq.store;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -641,7 +638,7 @@ public class CommitLog {
             if (msg.isWaitStoreMsgOK()) {
                 request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
                 service.putRequest(request);
-                boolean flushOK = request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
+                boolean flushOK = request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());//似乎没必要在另一个线程中flush，有优化空间
                 if (!flushOK) {
                     log.error("do groupcommit, wait for flush failed, topic: " + msg.getTopic() + " tags: " + msg.getTags()
                         + " client address: " + msg.getBornHostString());
@@ -653,7 +650,7 @@ public class CommitLog {
         }
         // Asynchronous flush
         else {
-            if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+            if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {//这里为啥要wakeup？浪费一次线程切换？
                 flushCommitLogService.wakeup();
             } else {
                 commitLogService.wakeup();
@@ -671,7 +668,7 @@ public class CommitLog {
                     }
                     service.putRequest(request);
 
-                    service.getWaitNotifyObject().wakeupAll();
+                    service.getWaitNotifyObject().wakeupAll();//是否可以放到当前线程执行？少一次线程切换
 
                     boolean flushOK =
                         // TODO
@@ -992,8 +989,8 @@ public class CommitLog {
      * GroupCommit Service
      */
     class GroupCommitService extends FlushCommitLogService {
-        private volatile List<GroupCommitRequest> requestsWrite = new ArrayList<GroupCommitRequest>();
-        private volatile List<GroupCommitRequest> requestsRead = new ArrayList<GroupCommitRequest>();
+        private volatile List<GroupCommitRequest> requestsWrite = Collections.synchronizedList(new ArrayList<GroupCommitRequest>());
+        private volatile List<GroupCommitRequest> requestsRead = Collections.synchronizedList(new ArrayList<GroupCommitRequest>());
 
         public void putRequest(final GroupCommitRequest request) {
             synchronized (this) {
@@ -1005,14 +1002,17 @@ public class CommitLog {
         }
 
         private void swapRequests() {
-            List<GroupCommitRequest> tmp = this.requestsWrite;
-            this.requestsWrite = this.requestsRead;
-            this.requestsRead = tmp;
+            synchronized (this) {
+                List<GroupCommitRequest> tmp = this.requestsWrite;
+                this.requestsWrite = this.requestsRead;
+                this.requestsRead = tmp;
+            }
         }
 
         private void doCommit() {
-            if (!this.requestsRead.isEmpty()) {
-                for (GroupCommitRequest req : this.requestsRead) {
+            List<GroupCommitRequest> list = this.requestsRead;
+            if (!list.isEmpty()) {
+                for (GroupCommitRequest req : list) {
                     // There may be a message in the next file, so a maximum of
                     // two times the flush
                     boolean flushOK = false;
@@ -1032,7 +1032,7 @@ public class CommitLog {
                     CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
                 }
 
-                this.requestsRead.clear();
+                list.clear();
             } else {
                 // Because of individual messages is set to not sync flush, it
                 // will come to this process

@@ -25,10 +25,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -250,8 +247,8 @@ public class HAService {
     class GroupTransferService extends ServiceThread {
 
         private final WaitNotifyObject notifyTransferObject = new WaitNotifyObject();
-        private volatile List<CommitLog.GroupCommitRequest> requestsWrite = new ArrayList<>();
-        private volatile List<CommitLog.GroupCommitRequest> requestsRead = new ArrayList<>();
+        private volatile List<CommitLog.GroupCommitRequest> requestsWrite = Collections.synchronizedList(new ArrayList<CommitLog.GroupCommitRequest>());
+        private volatile List<CommitLog.GroupCommitRequest> requestsRead = Collections.synchronizedList(new ArrayList<CommitLog.GroupCommitRequest>());
 
         public void putRequest(final CommitLog.GroupCommitRequest request) {
             synchronized (this) {
@@ -267,14 +264,17 @@ public class HAService {
         }
 
         private void swapRequests() {
-            List<CommitLog.GroupCommitRequest> tmp = this.requestsWrite;
-            this.requestsWrite = this.requestsRead;
-            this.requestsRead = tmp;
+            synchronized (this) {
+                List<CommitLog.GroupCommitRequest> tmp = this.requestsWrite;
+                this.requestsWrite = this.requestsRead;
+                this.requestsRead = tmp;
+            }
         }
 
         private void doWaitTransfer() {
-            if (!this.requestsRead.isEmpty()) {
-                for (CommitLog.GroupCommitRequest req : this.requestsRead) {
+            List<CommitLog.GroupCommitRequest> list = requestsRead;
+            if (!list.isEmpty()) {
+                for (CommitLog.GroupCommitRequest req : list) {
                     boolean transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
                     for (int i = 0; !transferOK && i < 5; i++) {
                         this.notifyTransferObject.waitForRunning(1000);
@@ -288,7 +288,7 @@ public class HAService {
                     req.wakeupCustomer(transferOK);
                 }
 
-                this.requestsRead.clear();
+                list.clear();
             }
         }
 
