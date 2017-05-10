@@ -100,7 +100,7 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
         try {
             producer = ProducerInstance.getInstance(nameServerAddress, producerGroup);
         } catch (Exception e) {
-            addError("starting RocketmqLogbackAppender [" + this.getName()
+            addError("Starting RocketmqLogbackAppender [" + this.getName()
                     + "] nameServerAddress:" + nameServerAddress + " group:" + producerGroup + " " + e.getMessage());
         }
         if (producer != null) {
