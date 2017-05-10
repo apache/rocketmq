@@ -59,6 +59,7 @@ import org.apache.rocketmq.tools.command.namesrv.UpdateNamesrvConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
 import org.apache.rocketmq.tools.command.offset.CloneGroupOffsetCommand;
 import org.apache.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
+import org.apache.rocketmq.tools.command.queue.QueryConsumeQueueCommand;
 import org.apache.rocketmq.tools.command.stats.StatsAllSubCommand;
 import org.apache.rocketmq.tools.command.topic.AllocateMQSubCommand;
 import org.apache.rocketmq.tools.command.topic.DeleteTopicSubCommand;
@@ -189,6 +190,8 @@ public class MQAdminStartup {
         initCommand(new GetNamesrvConfigCommand());
         initCommand(new UpdateNamesrvConfigCommand());
         initCommand(new GetBrokerConfigCommand());
+
+        initCommand(new QueryConsumeQueueCommand());
     }
 
     private static void initLogback() throws JoranException {

@@ -359,7 +359,7 @@ public class RouteInfoManager {
         boolean foundBrokerData = false;
         Set<String> brokerNameSet = new HashSet<String>();
         List<BrokerData> brokerDataList = new LinkedList<BrokerData>();
-        topicRouteData.setBrokerDataList(brokerDataList);
+        topicRouteData.setBrokerDatas(brokerDataList);
 
         HashMap<String, List<String>> filterServerMap = new HashMap<String, List<String>>();
         topicRouteData.setFilterServerTable(filterServerMap);
@@ -369,7 +369,7 @@ public class RouteInfoManager {
                 this.lock.readLock().lockInterruptibly();
                 List<QueueData> queueDataList = this.topicQueueTable.get(topic);
                 if (queueDataList != null) {
-                    topicRouteData.setQueueDataList(queueDataList);
+                    topicRouteData.setQueueDatas(queueDataList);
                     foundQueueData = true;
 
                     Iterator<QueueData> it = queueDataList.iterator();

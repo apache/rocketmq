@@ -99,6 +99,25 @@ public class BrokerConfig {
 
     private boolean traceOn = true;
 
+    // Switch of filter bit map calculation.
+    // If switch on:
+    // 1. Calculate filter bit map when construct queue.
+    // 2. Filter bit map will be saved to consume queue extend file if allowed.
+    private boolean enableCalcFilterBitMap = false;
+
+    // Expect num of consumers will use filter.
+    private int expectConsumerNumUseFilter = 32;
+
+    // Error rate of bloom filter, 1~100.
+    private int maxErrorRateOfBloomFilter = 20;
+
+    //how long to clean filter data after dead.Default: 24h
+    private long filterDataCleanTimeSpan = 24 * 3600 * 1000;
+
+    // whether do filter when retry.
+    private boolean filterSupportRetry = false;
+    private boolean enablePropertyFilter = false;
+
     public static String localHostName() {
         try {
             return InetAddress.getLocalHost().getHostName();
@@ -483,5 +502,53 @@ public class BrokerConfig {
 
     public void setCommercialBaseCount(int commercialBaseCount) {
         this.commercialBaseCount = commercialBaseCount;
+    }
+
+    public boolean isEnableCalcFilterBitMap() {
+        return enableCalcFilterBitMap;
+    }
+
+    public void setEnableCalcFilterBitMap(boolean enableCalcFilterBitMap) {
+        this.enableCalcFilterBitMap = enableCalcFilterBitMap;
+    }
+
+    public int getExpectConsumerNumUseFilter() {
+        return expectConsumerNumUseFilter;
+    }
+
+    public void setExpectConsumerNumUseFilter(int expectConsumerNumUseFilter) {
+        this.expectConsumerNumUseFilter = expectConsumerNumUseFilter;
+    }
+
+    public int getMaxErrorRateOfBloomFilter() {
+        return maxErrorRateOfBloomFilter;
+    }
+
+    public void setMaxErrorRateOfBloomFilter(int maxErrorRateOfBloomFilter) {
+        this.maxErrorRateOfBloomFilter = maxErrorRateOfBloomFilter;
+    }
+
+    public long getFilterDataCleanTimeSpan() {
+        return filterDataCleanTimeSpan;
+    }
+
+    public void setFilterDataCleanTimeSpan(long filterDataCleanTimeSpan) {
+        this.filterDataCleanTimeSpan = filterDataCleanTimeSpan;
+    }
+
+    public boolean isFilterSupportRetry() {
+        return filterSupportRetry;
+    }
+
+    public void setFilterSupportRetry(boolean filterSupportRetry) {
+        this.filterSupportRetry = filterSupportRetry;
+    }
+
+    public boolean isEnablePropertyFilter() {
+        return enablePropertyFilter;
+    }
+
+    public void setEnablePropertyFilter(boolean enablePropertyFilter) {
+        this.enablePropertyFilter = enablePropertyFilter;
     }
 }

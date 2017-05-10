@@ -27,23 +27,23 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class TopicRouteData extends RemotingSerializable {
     private String orderTopicConf;
-    private List<QueueData> queueDataList;
-    private List<BrokerData> brokerDataList;
+    private List<QueueData> queueDatas;
+    private List<BrokerData> brokerDatas;
     private HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public TopicRouteData cloneTopicRouteData() {
         TopicRouteData topicRouteData = new TopicRouteData();
-        topicRouteData.setQueueDataList(new ArrayList<QueueData>());
-        topicRouteData.setBrokerDataList(new ArrayList<BrokerData>());
+        topicRouteData.setQueueDatas(new ArrayList<QueueData>());
+        topicRouteData.setBrokerDatas(new ArrayList<BrokerData>());
         topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
         topicRouteData.setOrderTopicConf(this.orderTopicConf);
 
-        if (this.queueDataList != null) {
-            topicRouteData.getQueueDataList().addAll(this.queueDataList);
+        if (this.queueDatas != null) {
+            topicRouteData.getQueueDatas().addAll(this.queueDatas);
         }
 
-        if (this.brokerDataList != null) {
-            topicRouteData.getBrokerDataList().addAll(this.brokerDataList);
+        if (this.brokerDatas != null) {
+            topicRouteData.getBrokerDatas().addAll(this.brokerDatas);
         }
 
         if (this.filterServerTable != null) {
@@ -53,20 +53,20 @@ public class TopicRouteData extends RemotingSerializable {
         return topicRouteData;
     }
 
-    public List<QueueData> getQueueDataList() {
-        return queueDataList;
+    public List<QueueData> getQueueDatas() {
+        return queueDatas;
     }
 
-    public void setQueueDataList(List<QueueData> queueDataList) {
-        this.queueDataList = queueDataList;
+    public void setQueueDatas(List<QueueData> queueDatas) {
+        this.queueDatas = queueDatas;
     }
 
-    public List<BrokerData> getBrokerDataList() {
-        return brokerDataList;
+    public List<BrokerData> getBrokerDatas() {
+        return brokerDatas;
     }
 
-    public void setBrokerDataList(List<BrokerData> brokerDataList) {
-        this.brokerDataList = brokerDataList;
+    public void setBrokerDatas(List<BrokerData> brokerDatas) {
+        this.brokerDatas = brokerDatas;
     }
 
     public HashMap<String, List<String>> getFilterServerTable() {
@@ -89,9 +89,9 @@ public class TopicRouteData extends RemotingSerializable {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((brokerDataList == null) ? 0 : brokerDataList.hashCode());
+        result = prime * result + ((brokerDatas == null) ? 0 : brokerDatas.hashCode());
         result = prime * result + ((orderTopicConf == null) ? 0 : orderTopicConf.hashCode());
-        result = prime * result + ((queueDataList == null) ? 0 : queueDataList.hashCode());
+        result = prime * result + ((queueDatas == null) ? 0 : queueDatas.hashCode());
         result = prime * result + ((filterServerTable == null) ? 0 : filterServerTable.hashCode());
         return result;
     }
@@ -105,20 +105,20 @@ public class TopicRouteData extends RemotingSerializable {
         if (getClass() != obj.getClass())
             return false;
         TopicRouteData other = (TopicRouteData) obj;
-        if (brokerDataList == null) {
-            if (other.brokerDataList != null)
+        if (brokerDatas == null) {
+            if (other.brokerDatas != null)
                 return false;
-        } else if (!brokerDataList.equals(other.brokerDataList))
+        } else if (!brokerDatas.equals(other.brokerDatas))
             return false;
         if (orderTopicConf == null) {
             if (other.orderTopicConf != null)
                 return false;
         } else if (!orderTopicConf.equals(other.orderTopicConf))
             return false;
-        if (queueDataList == null) {
-            if (other.queueDataList != null)
+        if (queueDatas == null) {
+            if (other.queueDatas != null)
                 return false;
-        } else if (!queueDataList.equals(other.queueDataList))
+        } else if (!queueDatas.equals(other.queueDatas))
             return false;
         if (filterServerTable == null) {
             if (other.filterServerTable != null)
@@ -130,7 +130,7 @@ public class TopicRouteData extends RemotingSerializable {
 
     @Override
     public String toString() {
-        return "TopicRouteData [orderTopicConf=" + orderTopicConf + ", queueDataList=" + queueDataList
-            + ", brokerDataList=" + brokerDataList + ", filterServerTable=" + filterServerTable + "]";
+        return "TopicRouteData [orderTopicConf=" + orderTopicConf + ", queueDatas=" + queueDatas
+            + ", brokerDatas=" + brokerDatas + ", filterServerTable=" + filterServerTable + "]";
     }
 }

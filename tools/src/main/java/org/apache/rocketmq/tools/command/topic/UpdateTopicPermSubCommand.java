@@ -75,7 +75,7 @@ public class UpdateTopicPermSubCommand implements SubCommand {
             String topic = commandLine.getOptionValue('t').trim();
             TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
             assert topicRouteData != null;
-            List<QueueData> queueDataList = topicRouteData.getQueueDataList();
+            List<QueueData> queueDataList = topicRouteData.getQueueDatas();
             assert queueDataList != null && queueDataList.size() > 0;
 
             QueueData queueData = queueDataList.get(0);

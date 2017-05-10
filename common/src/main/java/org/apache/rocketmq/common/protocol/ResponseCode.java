@@ -53,6 +53,10 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int SUBSCRIPTION_GROUP_NOT_EXIST = 26;
 
+    public static final int FILTER_DATA_NOT_EXIST = 27;
+
+    public static final int FILTER_DATA_NOT_LATEST = 28;
+
     public static final int TRANSACTION_SHOULD_COMMIT = 200;
 
     public static final int TRANSACTION_SHOULD_ROLLBACK = 201;

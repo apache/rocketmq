@@ -61,6 +61,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
@@ -98,6 +99,8 @@ public class MQClientInstance {
     private final Lock lockHeartbeat = new ReentrantLock();
     private final ConcurrentHashMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable =
         new ConcurrentHashMap<String, HashMap<Long, String>>();
+    private final ConcurrentHashMap<String/* Broker Name */, HashMap<String/* address */, Integer>> brokerVersionTable =
+        new ConcurrentHashMap<String, HashMap<String, Integer>>();
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
         @Override
         public Thread newThread(Runnable r) {
@@ -167,12 +170,12 @@ public class MQClientInstance {
 
             info.setOrderTopic(true);
         } else {
-            List<QueueData> qds = route.getQueueDataList();
+            List<QueueData> qds = route.getQueueDatas();
             Collections.sort(qds);
             for (QueueData qd : qds) {
                 if (PermName.isWritable(qd.getPerm())) {
                     BrokerData brokerData = null;
-                    for (BrokerData bd : route.getBrokerDataList()) {
+                    for (BrokerData bd : route.getBrokerDatas()) {
                         if (bd.getBrokerName().equals(qd.getBrokerName())) {
                             brokerData = bd;
                             break;
@@ -202,7 +205,7 @@ public class MQClientInstance {
 
     public static Set<MessageQueue> topicRouteData2TopicSubscribeInfo(final String topic, final TopicRouteData route) {
         Set<MessageQueue> mqList = new HashSet<MessageQueue>();
-        List<QueueData> qds = route.getQueueDataList();
+        List<QueueData> qds = route.getQueueDatas();
         for (QueueData qd : qds) {
             if (PermName.isReadable(qd.getPerm())) {
                 for (int i = 0; i < qd.getReadQueueNums(); i++) {
@@ -404,6 +407,44 @@ public class MQClientInstance {
         }
     }
 
+    public void checkClientInBroker() throws MQClientException {
+        Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
+
+        while (it.hasNext()) {
+            Entry<String, MQConsumerInner> entry = it.next();
+            Set<SubscriptionData> subscriptionInner = entry.getValue().subscriptions();
+            if (subscriptionInner == null || subscriptionInner.isEmpty()) {
+                return;
+            }
+
+            for (SubscriptionData subscriptionData : subscriptionInner) {
+                if (ExpressionType.isTagType(subscriptionData.getExpressionType())) {
+                    continue;
+                }
+                // may need to check one broker every cluster...
+                // assume that the configs of every broker in cluster are the the same.
+                String addr = findBrokerAddrByTopic(subscriptionData.getTopic());
+
+                if (addr != null) {
+                    try {
+                        this.getMQClientAPIImpl().checkClientInBroker(
+                            addr, entry.getKey(), this.clientId, subscriptionData, 3 * 1000
+                        );
+                    } catch (Exception e) {
+                        if (e instanceof MQClientException) {
+                            throw (MQClientException) e;
+                        } else {
+                            throw new MQClientException("Check client in broker error, maybe because you use "
+                                + subscriptionData.getExpressionType() + " to filter message, but server has not been upgraded to support!"
+                                + "This error would not affect the launch of consumer, but may has impact on message receiving if you " +
+                                "have use the new features which are not supported by server, please check the log!", e);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     public void sendHeartbeatToAllBrokerWithLock() {
         if (this.lockHeartbeat.tryLock()) {
             try {
@@ -454,7 +495,7 @@ public class MQClientInstance {
         while (it.hasNext()) {
             Entry<String, TopicRouteData> entry = it.next();
             TopicRouteData topicRouteData = entry.getValue();
-            List<BrokerData> bds = topicRouteData.getBrokerDataList();
+            List<BrokerData> bds = topicRouteData.getBrokerDatas();
             for (BrokerData bd : bds) {
                 if (bd.getBrokerAddrs() != null) {
                     boolean exist = bd.getBrokerAddrs().containsValue(addr);
@@ -493,7 +534,11 @@ public class MQClientInstance {
                         }
 
                         try {
-                            this.mQClientAPIImpl.sendHearbeat(addr, heartbeatData, 3000);
+                            int version = this.mQClientAPIImpl.sendHeartbeat(addr, heartbeatData, 3000);
+                            if (!this.brokerVersionTable.containsKey(brokerName)) {
+                                this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));
+                            }
+                            this.brokerVersionTable.get(brokerName).put(addr, version);
                             if (times % 20 == 0) {
                                 log.info("send heart beat to broker[{} {} {}] success", brokerName, id, addr);
                                 log.info(heartbeatData.toString());
@@ -545,7 +590,7 @@ public class MQClientInstance {
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
                             1000 * 3);
                         if (topicRouteData != null) {
-                            for (QueueData data : topicRouteData.getQueueDataList()) {
+                            for (QueueData data : topicRouteData.getQueueDatas()) {
                                 int queueNums = Math.min(defaultMQProducer.getDefaultTopicQueueNums(), data.getReadQueueNums());
                                 data.setReadQueueNums(queueNums);
                                 data.setWriteQueueNums(queueNums);
@@ -566,7 +611,7 @@ public class MQClientInstance {
                         if (changed) {
                             TopicRouteData cloneTopicRouteData = topicRouteData.cloneTopicRouteData();
 
-                            for (BrokerData bd : topicRouteData.getBrokerDataList()) {
+                            for (BrokerData bd : topicRouteData.getBrokerDatas()) {
                                 this.brokerAddrTable.put(bd.getBrokerName(), bd.getBrokerAddrs());
                             }
 
@@ -596,7 +641,7 @@ public class MQClientInstance {
                                     }
                                 }
                             }
-                            log.info("topicRouteTable.put TopicRouteData[{}]", cloneTopicRouteData);
+                            log.info("topicRouteTable.put. Topic = {}, TopicRouteData[{}]", topic, cloneTopicRouteData);
                             this.topicRouteTable.put(topic, cloneTopicRouteData);
                             return true;
                         }
@@ -660,7 +705,7 @@ public class MQClientInstance {
         Iterator<Entry<String, TopicRouteData>> it = this.topicRouteTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, TopicRouteData> itNext = it.next();
-            List<BrokerData> brokerDatas = itNext.getValue().getBrokerDataList();
+            List<BrokerData> brokerDatas = itNext.getValue().getBrokerDatas();
             for (BrokerData bd : brokerDatas) {
                 boolean contain = bd.getBrokerAddrs().containsValue(brokerAddr);
                 if (contain)
@@ -715,10 +760,10 @@ public class MQClientInstance {
             return true;
         TopicRouteData old = olddata.cloneTopicRouteData();
         TopicRouteData now = nowdata.cloneTopicRouteData();
-        Collections.sort(old.getQueueDataList());
-        Collections.sort(old.getBrokerDataList());
-        Collections.sort(now.getQueueDataList());
-        Collections.sort(now.getBrokerDataList());
+        Collections.sort(old.getQueueDatas());
+        Collections.sort(old.getBrokerDatas());
+        Collections.sort(now.getQueueDatas());
+        Collections.sort(now.getBrokerDatas());
         return !old.equals(now);
 
     }
@@ -943,7 +988,7 @@ public class MQClientInstance {
         }
 
         if (found) {
-            return new FindBrokerResult(brokerAddr, slave);
+            return new FindBrokerResult(brokerAddr, slave, findBrokerVersion(brokerName, brokerAddr));
         }
 
         return null;
@@ -982,10 +1027,19 @@ public class MQClientInstance {
         }
 
         if (found) {
-            return new FindBrokerResult(brokerAddr, slave);
+            return new FindBrokerResult(brokerAddr, slave, findBrokerVersion(brokerName, brokerAddr));
         }
 
         return null;
+    }
+
+    public int findBrokerVersion(String brokerName, String brokerAddr) {
+        if (this.brokerVersionTable.containsKey(brokerName)) {
+            if (this.brokerVersionTable.get(brokerName).containsKey(brokerAddr)) {
+                return this.brokerVersionTable.get(brokerName).get(brokerAddr);
+            }
+        }
+        return 0;
     }
 
     public List<String> findConsumerIdList(final String topic, final String group) {
@@ -1009,7 +1063,7 @@ public class MQClientInstance {
     public String findBrokerAddrByTopic(final String topic) {
         TopicRouteData topicRouteData = this.topicRouteTable.get(topic);
         if (topicRouteData != null) {
-            List<BrokerData> brokers = topicRouteData.getBrokerDataList();
+            List<BrokerData> brokers = topicRouteData.getBrokerDatas();
             if (!brokers.isEmpty()) {
                 int index = random.nextInt(brokers.size());
                 BrokerData bd = brokers.get(index % brokers.size());

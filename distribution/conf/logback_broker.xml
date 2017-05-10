@@ -222,6 +222,29 @@
         <appender-ref ref="RocketmqRebalanceLockAppender_inner"/>
     </appender>
 
+    <appender name="RocketmqFilterAppender_inner"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${user.home}/logs/rocketmqlogs/filter.log</file>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/filter.%i.log
+            </fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>10</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy
+                class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>100MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+            <charset class="java.nio.charset.Charset">UTF-8</charset>
+        </encoder>
+    </appender>
+    <appender name="RocketmqFilterAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqFilterAppender_inner"/>
+    </appender>
+
     <appender name="RocketmqStatsAppender"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/stats.log</file>
@@ -319,6 +342,11 @@
     <logger name="RocketmqCommercial" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqCommercialAppender"/>
+    </logger>
+
+    <logger name="RocketmqFilter" additivity="false">
+        <level value="INFO"/>
+        <appender-ref ref="RocketmqFilterAppender"/>
     </logger>
 
     <root>

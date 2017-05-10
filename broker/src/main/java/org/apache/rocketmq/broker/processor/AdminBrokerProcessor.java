@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.processor;
 
+import com.alibaba.fastjson.JSON;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.io.UnsupportedEncodingException;
@@ -32,6 +33,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
+import org.apache.rocketmq.broker.filter.ConsumerFilterData;
+import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -49,6 +52,7 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.common.protocol.body.BrokerStatsItem;
 import org.apache.rocketmq.common.protocol.body.Connection;
+import org.apache.rocketmq.common.protocol.body.ConsumeQueueData;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.common.protocol.body.GroupList;
@@ -56,6 +60,7 @@ import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.common.protocol.body.LockBatchResponseBody;
 import org.apache.rocketmq.common.protocol.body.ProducerConnection;
+import org.apache.rocketmq.common.protocol.body.QueryConsumeQueueResponseBody;
 import org.apache.rocketmq.common.protocol.body.QueryConsumeTimeSpanBody;
 import org.apache.rocketmq.common.protocol.body.QueryCorrectionOffsetBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
@@ -81,6 +86,7 @@ import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.GetProducerConnectionListRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
+import org.apache.rocketmq.common.protocol.header.QueryConsumeQueueRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryConsumeTimeSpanRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryCorrectionOffsetHeader;
 import org.apache.rocketmq.common.protocol.header.QueryTopicConsumeByWhoRequestHeader;
@@ -94,6 +100,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.stats.StatsItem;
 import org.apache.rocketmq.common.stats.StatsSnapshot;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.filter.util.BitsArray;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -101,7 +108,10 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.store.ConsumeQueue;
+import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -187,6 +197,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return ViewBrokerStatsData(ctx, request);
             case RequestCode.GET_BROKER_CONSUME_STATS:
                 return fetchAllConsumeStatsInBroker(ctx, request);
+            case RequestCode.QUERY_CONSUME_QUEUE:
+                return queryConsumeQueue(ctx, request);
             default:
                 break;
         }
@@ -1244,4 +1256,83 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
     }
 
+    private RemotingCommand queryConsumeQueue(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+        QueryConsumeQueueRequestHeader requestHeader =
+            (QueryConsumeQueueRequestHeader) request.decodeCommandCustomHeader(QueryConsumeQueueRequestHeader.class);
+
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        ConsumeQueue consumeQueue = this.brokerController.getMessageStore().getConsumeQueue(requestHeader.getTopic(),
+            requestHeader.getQueueId());
+        if (consumeQueue == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(String.format("%d@%s is not exist!", requestHeader.getQueueId(), requestHeader.getTopic()));
+            return response;
+        }
+
+        QueryConsumeQueueResponseBody body = new QueryConsumeQueueResponseBody();
+        response.setCode(ResponseCode.SUCCESS);
+        response.setBody(body.encode());
+
+        body.setMaxQueueIndex(consumeQueue.getMaxOffsetInQueue());
+        body.setMinQueueIndex(consumeQueue.getMinOffsetInQueue());
+
+        MessageFilter messageFilter = null;
+        if (requestHeader.getConsumerGroup() != null) {
+            SubscriptionData subscriptionData = this.brokerController.getConsumerManager().findSubscriptionData(
+                requestHeader.getConsumerGroup(), requestHeader.getTopic()
+            );
+            body.setSubscriptionData(subscriptionData);
+            if (subscriptionData == null) {
+                body.setFilterData(String.format("%s@%s is not online!", requestHeader.getConsumerGroup(), requestHeader.getTopic()));
+            } else {
+                ConsumerFilterData filterData = this.brokerController.getConsumerFilterManager()
+                    .get(requestHeader.getTopic(), requestHeader.getConsumerGroup());
+                body.setFilterData(JSON.toJSONString(filterData, true));
+
+                messageFilter = new ExpressionMessageFilter(subscriptionData, filterData,
+                    this.brokerController.getConsumerFilterManager());
+            }
+        }
+
+        SelectMappedBufferResult result = consumeQueue.getIndexBuffer(requestHeader.getIndex());
+        if (result == null) {
+            response.setRemark(String.format("Index %d of %d@%s is not exist!", requestHeader.getIndex(), requestHeader.getQueueId(), requestHeader.getTopic()));
+            return response;
+        }
+        try {
+            List<ConsumeQueueData> queues = new ArrayList<>();
+            for (int i = 0; i < result.getSize() && i < requestHeader.getCount() * ConsumeQueue.CQ_STORE_UNIT_SIZE; i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
+                ConsumeQueueData one = new ConsumeQueueData();
+                one.setPhysicOffset(result.getByteBuffer().getLong());
+                one.setPhysicSize(result.getByteBuffer().getInt());
+                one.setTagsCode(result.getByteBuffer().getLong());
+
+                if (!consumeQueue.isExtAddr(one.getTagsCode())) {
+                    queues.add(one);
+                    continue;
+                }
+
+                ConsumeQueueExt.CqExtUnit cqExtUnit = consumeQueue.getExt(one.getTagsCode());
+                if (cqExtUnit != null) {
+                    one.setExtendDataJson(JSON.toJSONString(cqExtUnit));
+                    if (cqExtUnit.getFilterBitMap() != null) {
+                        one.setBitMap(BitsArray.create(cqExtUnit.getFilterBitMap()).toString());
+                    }
+                    if (messageFilter != null) {
+                        one.setEval(messageFilter.isMatchedByConsumeQueue(cqExtUnit.getTagsCode(), cqExtUnit));
+                    }
+                } else {
+                    one.setMsg("Cq extend not exist!addr: " + one.getTagsCode());
+                }
+
+                queues.add(one);
+            }
+            body.setQueueData(queues);
+        } finally {
+            result.release();
+        }
+
+        return response;
+    }
 }

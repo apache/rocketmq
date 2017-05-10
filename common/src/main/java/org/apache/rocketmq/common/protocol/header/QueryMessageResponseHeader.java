@@ -28,7 +28,7 @@ public class QueryMessageResponseHeader implements CommandCustomHeader {
     @CFNotNull
     private Long indexLastUpdateTimestamp;
     @CFNotNull
-    private Long indexLastUpdatePhyOffset;
+    private Long indexLastUpdatePhyoffset;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -42,11 +42,11 @@ public class QueryMessageResponseHeader implements CommandCustomHeader {
         this.indexLastUpdateTimestamp = indexLastUpdateTimestamp;
     }
 
-    public Long getIndexLastUpdatePhyOffset() {
-        return indexLastUpdatePhyOffset;
+    public Long getIndexLastUpdatePhyoffset() {
+        return indexLastUpdatePhyoffset;
     }
 
-    public void setIndexLastUpdatePhyOffset(Long indexLastUpdatePhyOffset) {
-        this.indexLastUpdatePhyOffset = indexLastUpdatePhyOffset;
+    public void setIndexLastUpdatePhyoffset(Long indexLastUpdatePhyoffset) {
+        this.indexLastUpdatePhyoffset = indexLastUpdatePhyoffset;
     }
 }

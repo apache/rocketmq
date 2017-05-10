@@ -32,6 +32,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.running.RunningStats;
 import org.apache.rocketmq.store.ConsumeQueue;
+import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
@@ -248,10 +249,23 @@ public class ScheduleMessageService extends ConfigManager {
                     try {
                         long nextOffset = offset;
                         int i = 0;
+                        ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
                         for (; i < bufferCQ.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
                             long offsetPy = bufferCQ.getByteBuffer().getLong();
                             int sizePy = bufferCQ.getByteBuffer().getInt();
                             long tagsCode = bufferCQ.getByteBuffer().getLong();
+
+                            if (cq.isExtAddr(tagsCode)) {
+                                if (cq.getExt(tagsCode, cqExtUnit)) {
+                                    tagsCode = cqExtUnit.getTagsCode();
+                                } else {
+                                    //can't find ext content.So re compute tags code.
+                                    log.error("[BUG] can't find consume queue extend file content!addr={}, offsetPy={}, sizePy={}",
+                                        tagsCode, offsetPy, sizePy);
+                                    long msgStoreTime = defaultMessageStore.getCommitLog().pickupStoreTimestamp(offsetPy, sizePy);
+                                    tagsCode = computeDeliverTimestamp(delayLevel, msgStoreTime);
+                                }
+                            }
 
                             long now = System.currentTimeMillis();
                             long deliverTimestamp = this.correctDeliverTimestamp(now, tagsCode);

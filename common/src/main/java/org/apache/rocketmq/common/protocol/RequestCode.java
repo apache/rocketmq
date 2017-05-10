@@ -68,6 +68,8 @@ public class RequestCode {
 
     public static final int GET_ALL_DELAY_OFFSET = 45;
 
+    public static final int CHECK_CLIENT_CONFIG = 46;
+
     public static final int PUT_KV_CONFIG = 100;
 
     public static final int GET_KV_CONFIG = 101;
@@ -162,4 +164,6 @@ public class RequestCode {
 
 
     public static final int SEND_BATCH_MESSAGE = 320;
+
+    public static final int QUERY_CONSUME_QUEUE = 321;
 }

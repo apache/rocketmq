@@ -314,10 +314,11 @@ public class CommitLog {
 
             // 17 properties
             short propertiesLength = byteBuffer.getShort();
+            Map<String, String> propertiesMap = null;
             if (propertiesLength > 0) {
                 byteBuffer.get(bytesContent, 0, propertiesLength);
                 String properties = new String(bytesContent, 0, propertiesLength, MessageDecoder.CHARSET_UTF8);
-                Map<String, String> propertiesMap = MessageDecoder.string2messageProperties(properties);
+                propertiesMap = MessageDecoder.string2messageProperties(properties);
 
                 keys = propertiesMap.get(MessageConst.PROPERTY_KEYS);
 
@@ -369,8 +370,9 @@ public class CommitLog {
                 queueOffset, // 7
                 keys, // 8
                 uniqKey, //9
-                sysFlag, // 9
-                preparedTransactionOffset// 10
+                sysFlag, // 10
+                preparedTransactionOffset, // 11
+                propertiesMap // 12
             );
         } catch (Exception e) {
         }
