@@ -45,27 +45,27 @@ import java.util.concurrent.TimeUnit;
 public class RocketmqLog4j2Appender extends AbstractAppender {
 
     /**
-     * rokcetmq nameserver address
+     * Rokcetmq nameserver address
      */
     private String nameServerAddress;
 
     /**
-     * log producer group
+     * Log producer group
      */
     private String producerGroup;
 
     /**
-     * log producer send instance
+     * Log producer send instance
      */
     private MQProducer producer;
 
     /**
-     * appended message tag define
+     * Appended message tag define
      */
     private String tag;
 
     /**
-     * whitch topic to send log messages
+     * Whitch topic to send log messages
      */
     private String topic;
 
@@ -91,7 +91,7 @@ public class RocketmqLog4j2Appender extends AbstractAppender {
     }
 
     /**
-     * info,error,warn,callback method implementation
+     * Info,error,warn,callback method implementation
      *
      * @param event
      */
@@ -117,7 +117,7 @@ public class RocketmqLog4j2Appender extends AbstractAppender {
     }
 
     /**
-     * when system exit,this method will be called to close resources
+     * When system exit,this method will be called to close resources
      *
      * @param timeout
      * @param timeUnit
@@ -141,7 +141,7 @@ public class RocketmqLog4j2Appender extends AbstractAppender {
     }
 
     /**
-     * log4j2 builder creator
+     * Log4j2 builder creator
      */
     @PluginBuilderFactory
     public static RocketmqLog4j2Appender.Builder newBuilder() {
@@ -149,7 +149,7 @@ public class RocketmqLog4j2Appender extends AbstractAppender {
     }
 
     /**
-     * log4j2 xml builder define
+     * Log4j2 xml builder define
      */
     public static class Builder implements org.apache.logging.log4j.core.util.Builder<RocketmqLog4j2Appender> {
 

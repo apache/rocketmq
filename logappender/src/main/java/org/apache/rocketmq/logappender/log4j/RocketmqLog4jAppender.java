@@ -30,29 +30,29 @@ import org.apache.rocketmq.client.producer.MQProducer;
 public class RocketmqLog4jAppender extends AppenderSkeleton {
 
     /**
-     * appended message tag define
+     * Appended message tag define
      */
     private String tag;
 
     /**
-     * whitch topic to send log messages
+     * Whitch topic to send log messages
      */
     private String topic;
 
     private boolean locationInfo;
 
     /**
-     * log producer send instance
+     * Log producer send instance
      */
     private MQProducer producer;
 
     /**
-     * rokcetmq nameserver address
+     * Lokcetmq nameserver address
      */
     private String nameServerAddress;
 
     /**
-     * log producer group
+     * Log producer group
      */
     private String producerGroup;
 
@@ -74,7 +74,7 @@ public class RocketmqLog4jAppender extends AppenderSkeleton {
 
 
     /**
-     * info,error,warn,callback method implementation
+     * Info,error,warn,callback method implementation
      *
      * @param event
      */
@@ -116,7 +116,7 @@ public class RocketmqLog4jAppender extends AppenderSkeleton {
     }
 
     /**
-     * when system exit,this method will be called to close resources
+     * When system exit,this method will be called to close resources
      */
     public synchronized void close() {
         // The synchronized modifier avoids concurrent append and close operations

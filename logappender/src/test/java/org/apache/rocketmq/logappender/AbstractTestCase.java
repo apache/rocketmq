@@ -60,12 +60,12 @@ public class AbstractTestCase {
     public static void startRocketmqService() throws Exception {
 
         /*
-        start nameserver
+        Start nameserver
          */
         startNamesrv();
 
         /*
-        start broker
+        Start broker
          */
         startBroker();
 
@@ -73,7 +73,7 @@ public class AbstractTestCase {
     }
 
     /**
-     * start rocketmq name server
+     * Start rocketmq name server
      * @throws Exception
      */
     private static void startNamesrv() throws Exception {
@@ -92,7 +92,7 @@ public class AbstractTestCase {
     }
 
     /**
-     * start rocketmq broker service
+     * Start rocketmq broker service
      * @throws Exception
      */
     private static void startBroker() throws Exception {
@@ -158,7 +158,7 @@ public class AbstractTestCase {
             }
         });
         consumer.start();
-        countDownLatch.await(20, TimeUnit.SECONDS);
+        countDownLatch.await(30, TimeUnit.SECONDS);
         consumer.shutdown();
         return cc.get();
     }

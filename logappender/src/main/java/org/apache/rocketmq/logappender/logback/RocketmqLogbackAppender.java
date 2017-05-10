@@ -27,32 +27,32 @@ import org.apache.rocketmq.logappender.common.ProducerInstance;
 import org.apache.rocketmq.client.producer.MQProducer;
 
 /**
- * logack Appender Component
+ * Logack Appender Component
  */
 public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
 
     /**
-     * appended message tag define
+     * Appended message tag define
      */
     private String tag;
 
     /**
-     * whitch topic to send log messages
+     * Whitch topic to send log messages
      */
     private String topic;
 
     /**
-     * rokcetmq nameserver address
+     * Rokcetmq nameserver address
      */
     private String nameServerAddress;
 
     /**
-     * log producer group
+     * Log producer group
      */
     private String producerGroup;
 
     /**
-     * log producer send instance
+     * Log producer send instance
      */
     private MQProducer producer;
 
@@ -61,7 +61,7 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
     private PreSerializationTransformer<ILoggingEvent> pst = new LoggingEventPreSerializationTransformer();
 
     /**
-     * info,error,warn,callback method implementation
+     * Info,error,warn,callback method implementation
      *
      * @param event
      */
@@ -109,7 +109,7 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
     }
 
     /**
-     * when system exit,this method will be called to close resources
+     * When system exit,this method will be called to close resources
      */
     public synchronized void stop() {
         // The synchronized modifier avoids concurrent append and close operations
