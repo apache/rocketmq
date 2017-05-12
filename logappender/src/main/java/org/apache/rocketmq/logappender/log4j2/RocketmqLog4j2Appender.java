@@ -45,7 +45,7 @@ import java.util.concurrent.TimeUnit;
 public class RocketmqLog4j2Appender extends AbstractAppender {
 
     /**
-     * Rokcetmq nameserver address
+     * RocketMQ nameserver address
      */
     private String nameServerAddress;
 

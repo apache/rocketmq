@@ -47,7 +47,7 @@ public class RocketmqLog4jAppender extends AppenderSkeleton {
     private MQProducer producer;
 
     /**
-     * Rokcetmq nameserver address
+     * RocketMQ nameserver address
      */
     private String nameServerAddress;
 

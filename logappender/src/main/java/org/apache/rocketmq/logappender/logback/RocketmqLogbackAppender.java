@@ -42,7 +42,7 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
     private String topic;
 
     /**
-     * Rokcetmq nameserver address
+     * RocketMQ nameserver address
      */
     private String nameServerAddress;
 
