@@ -48,7 +48,7 @@ public class LogbackTest extends AbstractTestCase{
         for (int i = 0; i < 50; i++) {
             logger.info("logback test message " + i);
         }
-        int received = consumeMessages(30, "logback");
+        int received = consumeMessages(30, "logback",30);
         Assert.assertTrue(received>20);
     }
 }

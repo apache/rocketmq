@@ -59,9 +59,11 @@ public class ProducerInstance {
 
         DefaultMQProducer defaultMQProducer = new DefaultMQProducer(group);
         defaultMQProducer.setNamesrvAddr(nameServerAddress);
-
+        MQProducer beforeProducer = null;
         //cas put producer
-        MQProducer beforeProducer = producerMap.putIfAbsent(genKey, defaultMQProducer);
+        synchronized (producerMap){
+            beforeProducer = producerMap.putIfAbsent(genKey, defaultMQProducer);
+        }
         if (beforeProducer != null) {
             return beforeProducer;
         }

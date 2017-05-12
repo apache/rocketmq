@@ -27,12 +27,12 @@ import org.apache.rocketmq.logappender.common.ProducerInstance;
 import org.apache.rocketmq.client.producer.MQProducer;
 
 /**
- * Logack Appender Component
+ * Logback Appender Component
  */
 public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
 
     /**
-     * Appended message tag define
+     * Message tag define
      */
     private String tag;
 

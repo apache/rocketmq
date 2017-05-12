@@ -38,7 +38,7 @@ public class log4j2Test extends AbstractTestCase{
         for (int i = 0; i < 50; i++) {
             logger.info("log4j2 log message " + i);
         }
-        int received = consumeMessages(30, "log4j2");
+        int received = consumeMessages(30, "log4j2",30);
         Assert.assertTrue(received>20);
     }
 }

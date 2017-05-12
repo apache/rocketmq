@@ -59,17 +59,9 @@ public class AbstractTestCase {
     @BeforeClass
     public static void startRocketmqService() throws Exception {
 
-        /*
-        Start nameserver
-         */
         startNamesrv();
 
-        /*
-        Start broker
-         */
         startBroker();
-
-        Thread.sleep(2000);
     }
 
     /**
@@ -121,16 +113,14 @@ public class AbstractTestCase {
         ProducerInstance.closeAll();
         if (brokerController != null) {
             brokerController.shutdown();
-            brokerController = null;
         }
 
         if (namesrvController != null) {
             namesrvController.shutdown();
-            namesrvController = null;
         }
     }
 
-    protected int consumeMessages(int count,final String key) throws MQClientException, InterruptedException {
+    protected int consumeMessages(int count,final String key,int timeout) throws MQClientException, InterruptedException {
 
         final AtomicInteger cc = new AtomicInteger(0);
         final CountDownLatch countDownLatch = new CountDownLatch(count);
@@ -150,7 +140,6 @@ public class AbstractTestCase {
                     if(key==null||body.contains(key)){
                         countDownLatch.countDown();
                         cc.incrementAndGet();
-
                         continue;
                     }
                 }
@@ -158,7 +147,7 @@ public class AbstractTestCase {
             }
         });
         consumer.start();
-        countDownLatch.await(30, TimeUnit.SECONDS);
+        countDownLatch.await(timeout, TimeUnit.SECONDS);
         consumer.shutdown();
         return cc.get();
     }
