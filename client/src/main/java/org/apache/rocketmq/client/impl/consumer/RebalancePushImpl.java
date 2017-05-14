@@ -56,7 +56,7 @@ public class RebalancePushImpl extends RebalanceImpl {
     /**
      * 移除不需要的队列相关的信息
      * 1. 持久化消费进度，并移除之
-     * 2. 顺序消费时，解锁对该队列的锁定
+     * 2. 顺序消费&集群模式，解锁对该队列的锁定
      *
      * @param mq 消息队列
      * @param pq 消息处理队列
@@ -67,7 +67,7 @@ public class RebalancePushImpl extends RebalanceImpl {
         // 同步队列的消费进度，并移除之。
         this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
         this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
-        // TODO 顺序消费
+        // 集群模式下，顺序消费移除时，解锁对队列的锁定
         if (this.defaultMQPushConsumerImpl.isConsumeOrderly()
             && MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) {
             try {
@@ -93,9 +93,16 @@ public class RebalancePushImpl extends RebalanceImpl {
         return true;
     }
 
+    /**
+     * 延迟解锁 Broker 消息队列锁
+     * 当消息处理队列不存在消息，则直接解锁
+     *
+     * @param mq 消息队列
+     * @param pq 消息处理队列
+     * @return 是否解锁成功
+     */
     private boolean unlockDelay(final MessageQueue mq, final ProcessQueue pq) {
-
-        if (pq.hasTempMessage()) {
+        if (pq.hasTempMessage()) { // TODO 疑问：为什么要延迟移除
             log.info("[{}]unlockDelay, begin {} ", mq.hashCode(), mq);
             this.defaultMQPushConsumerImpl.getmQClientFactory().getScheduledExecutorService().schedule(new Runnable() {
                 @Override

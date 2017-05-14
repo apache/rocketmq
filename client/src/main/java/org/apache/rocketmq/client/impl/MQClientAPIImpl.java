@@ -1218,7 +1218,7 @@ public class MQClientAPIImpl {
 
     /**
      * 向 Namesrv 请求 Topic 路由信息
-     * // TODO 疑问：为啥不提供批量请求topic接口
+     *
      * @param topic Topic
      * @param timeoutMillis 超时时间
      * @return

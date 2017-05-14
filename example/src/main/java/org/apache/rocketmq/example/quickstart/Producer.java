@@ -34,7 +34,7 @@ public class Producer {
         DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
 
         producer.setNamesrvAddr("127.0.0.1:9876"); // TODO add by yunai
-
+        producer.setSendLatencyFaultEnable(true);
         /*
          * Specify name server addresses.
          * <p/>
@@ -78,11 +78,11 @@ public class Producer {
 //                producer.send(msg);
 //                producer.sendOneway(msg);
 
-//                System.out.printf("%s%n", sendResult);
+                System.out.printf("%s%n", sendResult);
 //                System.out.println(i);
-                if (i % 10000 == 0) {
-                    System.out.println("sendOneway：" + i);
-                }
+//                if (i % 10000 == 0) {
+//                    System.out.println("sendOneway：" + i);
+//                }
             } catch (Exception e) {
                 e.printStackTrace();
                 Thread.sleep(1000);

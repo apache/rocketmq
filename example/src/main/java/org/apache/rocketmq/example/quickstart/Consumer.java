@@ -63,7 +63,7 @@ public class Consumer {
         /*
          * Subscribe one more more topics to consume.
          */
-        consumer.subscribe("TopicRead3", "*");
+//        consumer.subscribe("TopicRead3", "*");
         consumer.subscribe("TopicTest", "*");
 
         /*

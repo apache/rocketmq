@@ -725,6 +725,14 @@ public class DefaultMessageStore implements MessageStore {
         return this.commitLog.getData(offset);
     }
 
+    /**
+     * commitLog添加数据
+     * ！该方法主要在Master与Slave同步数据时调用
+     *
+     * @param startOffset 开始物理位置
+     * @param data 数据
+     * @return 是否成功
+     */
     @Override
     public boolean appendToCommitLog(long startOffset, byte[] data) {
         if (this.shutdown) {

@@ -41,7 +41,7 @@ import java.util.concurrent.*;
 /**
  * 并发消费消息服务
  */
-    public class ConsumeMessageConcurrentlyService implements ConsumeMessageService {
+public class ConsumeMessageConcurrentlyService implements ConsumeMessageService {
     private static final Logger log = ClientLogger.getLog();
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
     private final DefaultMQPushConsumer defaultMQPushConsumer;

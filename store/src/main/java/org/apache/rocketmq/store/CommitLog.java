@@ -729,7 +729,7 @@ public class CommitLog {
             }
         }
 
-        // Synchronous write double 如果是同步Master，同步到从节点 // TODO 待读：数据同步
+        // Synchronous write double 如果是同步Master，同步到从节点
         if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
             HAService service = this.defaultMessageStore.getHaService();
             if (msg.isWaitStoreMsgOK()) {
@@ -740,11 +740,10 @@ public class CommitLog {
                     }
                     service.putRequest(request);
 
+                    // 唤醒WriteSocketService
                     service.getWaitNotifyObject().wakeupAll();
 
-                    boolean flushOK =
-                        // TODO
-                        request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
+                    boolean flushOK = request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
                     if (!flushOK) {
                         log.error("do sync transfer other node, wait return, but failed, topic: " + msg.getTopic() + " tags: "
                             + msg.getTags() + " client address: " + msg.getBornHostString());
@@ -832,6 +831,14 @@ public class CommitLog {
         this.mappedFileQueue.destroy();
     }
 
+    /**
+     * commitLog添加数据
+     * ！该方法主要在Master与Slave同步数据时调用
+     *
+     * @param startOffset 开始物理位置
+     * @param data 数据
+     * @return 是否成功
+     */
     public boolean appendData(long startOffset, byte[] data) {
         lockForPutMessage(); //spin...
         try {

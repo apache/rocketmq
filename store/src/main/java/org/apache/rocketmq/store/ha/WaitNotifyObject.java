@@ -20,8 +20,7 @@ import java.util.HashMap;
 
 public class WaitNotifyObject {
 
-    protected final HashMap<Long/* thread id */, Boolean/* notified */> waitingThreadTable =
-        new HashMap<Long, Boolean>(16);
+    protected final HashMap<Long/* thread id */, Boolean/* notified */> waitingThreadTable = new HashMap<>(16);
 
     protected volatile boolean hasNotified = false;
 

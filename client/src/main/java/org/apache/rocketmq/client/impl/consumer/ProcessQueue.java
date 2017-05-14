@@ -38,9 +38,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * Queue consumption snapshot
  */
 public class ProcessQueue {
+    /**
+     * Broker 消息队列分布式锁过期时间，默认30s
+     */
     public final static long REBALANCE_LOCK_MAX_LIVE_TIME =
         Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockMaxLiveTime", "30000"));
 
+    /**
+     * Broker 消息队列分布式锁刷新时间，默认20s
+     */
     public final static long REBALANCE_LOCK_INTERVAL = Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockInterval", "20000"));
     private final static long PULL_MAX_IDLE_TIME = Long.parseLong(System.getProperty("rocketmq.client.pull.pullMaxIdleTime", "120000"));
 
@@ -58,7 +64,13 @@ public class ProcessQueue {
      * 消息数
      */
     private final AtomicLong msgCount = new AtomicLong();
+    /**
+     * 消费锁
+     */
     private final Lock lockConsume = new ReentrantLock();
+    /**
+     * 消息映射临时存储（消费中的消息）
+     */
     private final TreeMap<Long, MessageExt> msgTreeMapTemp = new TreeMap<>();
     private final AtomicLong tryUnlockTimes = new AtomicLong(0);
     /**
@@ -74,8 +86,17 @@ public class ProcessQueue {
      * 最后拉取时间
      */
     private volatile long lastPullTimestamp = System.currentTimeMillis();
+    /**
+     * 最后消费时间
+     */
     private volatile long lastConsumeTimestamp = System.currentTimeMillis();
+    /**
+     * 是否获得 Broker 分布式锁
+     */
     private volatile boolean locked = false;
+    /**
+     * 最后获得 Broker 分布式锁时间
+     */
     private volatile long lastLockTimestamp = System.currentTimeMillis();
     /**
      * 是否正在消费
@@ -297,6 +318,10 @@ public class ProcessQueue {
         this.locked = locked;
     }
 
+    /**
+     * 回滚消费中的消息
+     * 逻辑类似于{@link #makeMessageToCosumeAgain(List)}
+     */
     public void rollback() {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
@@ -311,13 +336,25 @@ public class ProcessQueue {
         }
     }
 
+    /**
+     * 提交消费中的消息已消费成功，返回消费进度
+     *
+     * @return 消费进度
+     */
     public long commit() {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
+                // 消费进度
                 Long offset = this.msgTreeMapTemp.lastKey();
+
+                //
                 msgCount.addAndGet(this.msgTreeMapTemp.size() * (-1));
+
+                //
                 this.msgTreeMapTemp.clear();
+
+                // 返回消费进度
                 if (offset != null) {
                     return offset + 1;
                 }
@@ -331,6 +368,12 @@ public class ProcessQueue {
         return -1;
     }
 
+    /**
+     * 指定消息重新消费
+     * 逻辑类似于{@link #rollback()}
+     *
+     * @param msgs 消息
+     */
     public void makeMessageToCosumeAgain(List<MessageExt> msgs) {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
@@ -347,8 +390,14 @@ public class ProcessQueue {
         }
     }
 
+    /**
+     * 获得持有消息前N条
+     *
+     * @param batchSize 条数
+     * @return 消息
+     */
     public List<MessageExt> takeMessags(final int batchSize) {
-        List<MessageExt> result = new ArrayList<MessageExt>(batchSize);
+        List<MessageExt> result = new ArrayList<>(batchSize);
         final long now = System.currentTimeMillis();
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
