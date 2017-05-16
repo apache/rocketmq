@@ -82,18 +82,19 @@ public class RocketmqLog4jAppender extends AppenderSkeleton {
         if (null == producer) {
             return;
         }
-
+        if (locationInfo) {
+            event.getLocationInformation();
+        }
+        byte[] data = this.layout.format(event).getBytes();
         try {
-            if (locationInfo) {
-                event.getLocationInformation();
-            }
-            Message msg = new Message(topic, tag, this.layout.format(event).getBytes());
+            Message msg = new Message(topic, tag, data);
             msg.getProperties().put(ProducerInstance.APPENDER_TYPE, ProducerInstance.LOG4J_APPENDER);
 
             //Send message and do not wait for the ack from the message broker.
             producer.sendOneway(msg);
         } catch (Exception e) {
-            errorHandler.error("Could not send message in RocketmqLog4jAppender [" + name + "].", e,
+            String msg = new String(data);
+            errorHandler.error("Could not send message in RocketmqLog4jAppender [" + name + "].Message is :" + msg, e,
                     ErrorCode.GENERIC_FAILURE);
         }
     }

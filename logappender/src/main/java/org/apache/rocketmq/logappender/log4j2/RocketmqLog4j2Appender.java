@@ -100,10 +100,9 @@ public class RocketmqLog4j2Appender extends AbstractAppender {
         if (null == producer) {
             return;
         }
-
+        byte[] data = this.getLayout().toByteArray(event);
         try {
-            byte[] bytes = this.getLayout().toByteArray(event);
-            Message msg = new Message(topic, tag, bytes);
+            Message msg = new Message(topic, tag, data);
             msg.getProperties().put(ProducerInstance.APPENDER_TYPE, ProducerInstance.LOG4J2_APPENDER);
 
             //Send message and do not wait for the ack from the message broker.
@@ -111,7 +110,8 @@ public class RocketmqLog4j2Appender extends AbstractAppender {
         } catch (Exception e) {
             ErrorHandler handler = this.getHandler();
             if (handler != null) {
-                handler.error("Could not send message in RocketmqLog4j2Appender [" + this.getName() + "].", e);
+                String msg = new String(data);
+                handler.error("Could not send message in RocketmqLog4j2Appender [" + this.getName() + "].Message is : " + msg, e);
             }
 
         }

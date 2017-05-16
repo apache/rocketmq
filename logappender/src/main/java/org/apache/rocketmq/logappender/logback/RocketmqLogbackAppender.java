@@ -70,16 +70,15 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
         if (!isStarted()) {
             return;
         }
-
+        String logStr = this.layout.doLayout(event);
         try {
-            String logStr = this.layout.doLayout(event);
             Message msg = new Message(topic, tag, logStr.getBytes());
             msg.getProperties().put(ProducerInstance.APPENDER_TYPE, ProducerInstance.LOGBACK_APPENDER);
 
             //Send message and do not wait for the ack from the message broker.
             producer.sendOneway(msg);
         } catch (Exception e) {
-            addError("Could not send message in RocketmqLogbackAppender [" + name + "].", e);
+            addError("Could not send message in RocketmqLogbackAppender [" + name + "]. Message is : " + logStr, e);
         }
     }
 
