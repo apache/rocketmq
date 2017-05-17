@@ -435,7 +435,9 @@ public class MQClientInstance {
         }
     }
 
-    // TODO 待读：心跳
+    /**
+     * 发送心跳到Broker，上传过滤类源码到Filtersrv
+     */
     public void sendHeartbeatToAllBrokerWithLock() {
         if (this.lockHeartbeat.tryLock()) {
             try {
@@ -549,6 +551,9 @@ public class MQClientInstance {
         }
     }
 
+    /**
+     * 上传过滤类到Filtersrv
+     */
     private void uploadFilterClassSource() {
         Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
         while (it.hasNext()) {
@@ -718,6 +723,15 @@ public class MQClientInstance {
         return false;
     }
 
+    /**
+     * 上传过滤类到Filtersrv
+     *
+     * @param consumerGroup 消费分组
+     * @param fullClassName 类名
+     * @param topic Topic
+     * @param filterClassSource 过滤类源码文件地址
+     * @throws UnsupportedEncodingException 当读取源码文件失败
+     */
     private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String fullClassName, final String topic,
         final String filterClassSource) throws UnsupportedEncodingException {
         byte[] classBody = null;

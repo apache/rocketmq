@@ -35,6 +35,9 @@ public class FiltersrvConfig {
     private int compressMsgBodyOverHowmuch = 1024 * 8;
     private int zipCompressLevel = 5;
 
+    /**
+     * 是否允许client上传过滤类
+     */
     private boolean clientUploadFilterClassEnable = true;
 
     private String filterClassRepertoryUrl = "http://fsrep.tbsite.net/filterclass";

@@ -233,8 +233,9 @@ public class PullAPIWrapper {
             requestHeader.setSubscription(subExpression);
             requestHeader.setSubVersion(subVersion);
 
+            // 若订阅topic使用过滤类，使用filtersrv获取消息
             String brokerAddr = findBrokerResult.getBrokerAddr();
-            if (PullSysFlag.hasClassFilterFlag(sysFlagInner)) { // TODO filtersrv
+            if (PullSysFlag.hasClassFilterFlag(sysFlagInner)) {
                 brokerAddr = computPullFromWhichFilterServer(mq.getTopic(), brokerAddr);
             }
 
@@ -274,18 +275,24 @@ public class PullAPIWrapper {
         return MixAll.MASTER_ID;
     }
 
+    /**
+     * 计算filtersrv地址。如果有多个filtersrv，随机选择一个。
+     *
+     * @param topic Topic
+     * @param brokerAddr broker地址
+     * @return filtersrv地址
+     * @throws MQClientException 当filtersrv不存在时
+     */
     private String computPullFromWhichFilterServer(final String topic, final String brokerAddr)
         throws MQClientException {
         ConcurrentHashMap<String, TopicRouteData> topicRouteTable = this.mQClientFactory.getTopicRouteTable();
         if (topicRouteTable != null) {
             TopicRouteData topicRouteData = topicRouteTable.get(topic);
             List<String> list = topicRouteData.getFilterServerTable().get(brokerAddr);
-
             if (list != null && !list.isEmpty()) {
                 return list.get(randomNum() % list.size());
             }
         }
-
         throw new MQClientException("Find Filter Server Failed, Broker Addr: " + brokerAddr + " topic: "
             + topic, null);
     }

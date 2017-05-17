@@ -34,7 +34,7 @@ public class Producer {
         DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
 
         producer.setNamesrvAddr("127.0.0.1:9876"); // TODO add by yunai
-        producer.setSendLatencyFaultEnable(true);
+//        producer.setSendLatencyFaultEnable(true);
         /*
          * Specify name server addresses.
          * <p/>
@@ -66,7 +66,7 @@ public class Producer {
                  * Create a message instance, specifying topic, tag and message body.
                  */
 
-                Message msg = new Message("TopicTest" /* Topic */,
+                Message msg = new Message("TopicTest_mis" /* Topic */,
                     "TagA" /* Tag */,
                     (body).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
                 );
@@ -78,7 +78,9 @@ public class Producer {
 //                producer.send(msg);
 //                producer.sendOneway(msg);
 
+
                 System.out.printf("%s%n", sendResult);
+                break;
 //                System.out.println(i);
 //                if (i % 10000 == 0) {
 //                    System.out.println("sendOneway：" + i);

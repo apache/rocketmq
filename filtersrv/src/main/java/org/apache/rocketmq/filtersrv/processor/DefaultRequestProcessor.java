@@ -20,10 +20,6 @@ package org.apache.rocketmq.filtersrv.processor;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
@@ -49,6 +45,11 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.CommitLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DefaultRequestProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.FILTERSRV_LOGGER_NAME);
@@ -108,6 +109,14 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * 拉取消息
+     *
+     * @param ctx 拉取消息context
+     * @param request 拉取消息请求
+     * @return 响应
+     * @throws Exception 当发生异常时
+     */
     private RemotingCommand pullMessageForward(final ChannelHandlerContext ctx, final RemotingCommand request) throws Exception {
         final RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
         final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();
@@ -120,21 +129,21 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         response.setOpaque(request.getOpaque());
 
         DefaultMQPullConsumer pullConsumer = this.filtersrvController.getDefaultMQPullConsumer();
-        final FilterClassInfo findFilterClass =
-            this.filtersrvController.getFilterClassManager()
-                .findFilterClass(requestHeader.getConsumerGroup(), requestHeader.getTopic());
+
+        // 校验Topic过滤类是否完整
+        final FilterClassInfo findFilterClass = this.filtersrvController.getFilterClassManager().findFilterClass(requestHeader.getConsumerGroup(), requestHeader.getTopic());
         if (null == findFilterClass) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("Find Filter class failed, not registered");
             return response;
         }
-
         if (null == findFilterClass.getMessageFilter()) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("Find Filter class failed, registered but no class");
             return response;
         }
 
+        // 设置下次请求从 Broker主节点。
         responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
 
         MessageQueue mq = new MessageQueue();
@@ -160,6 +169,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                         List<MessageExt> msgListOK = new ArrayList<MessageExt>();
                         try {
                             for (MessageExt msg : pullResult.getMsgFoundList()) {
+                                // 使用过滤类过滤消息
                                 boolean match = findFilterClass.getMessageFilter().match(msg, filterContext);
                                 if (match) {
                                     msgListOK.add(msg);
@@ -210,8 +220,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             }
         };
 
+        // 拉取消息
         pullConsumer.pullBlockIfNotFound(mq, null, offset, maxNums, pullCallback);
-
         return null;
     }
 

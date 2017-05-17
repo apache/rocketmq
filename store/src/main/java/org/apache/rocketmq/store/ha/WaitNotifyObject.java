@@ -18,10 +18,19 @@ package org.apache.rocketmq.store.ha;
 
 import java.util.HashMap;
 
+/**
+ * 等待通知对象
+ */
 public class WaitNotifyObject {
 
+    /**
+     * 线程 与 是否有通知 的映射
+     */
     protected final HashMap<Long/* thread id */, Boolean/* notified */> waitingThreadTable = new HashMap<>(16);
 
+    /**
+     * Global 是否有通知
+     */
     protected volatile boolean hasNotified = false;
 
     public void wakeup() {
@@ -33,6 +42,11 @@ public class WaitNotifyObject {
         }
     }
 
+    /**
+     * （Global）等待执行
+     *
+     * @param interval 等待时长
+     */
     protected void waitForRunning(long interval) {
         synchronized (this) {
             if (this.hasNotified) {
@@ -61,7 +75,6 @@ public class WaitNotifyObject {
 
             for (Boolean value : this.waitingThreadTable.values()) {
                 needNotify = needNotify || !value;
-                value = true;
             }
 
             if (needNotify) {
@@ -70,6 +83,11 @@ public class WaitNotifyObject {
         }
     }
 
+    /**
+     * （线程）等待执行
+     *
+     * @param interval 等待时长
+     */
     public void allWaitForRunning(long interval) {
         long currentThreadId = Thread.currentThread().getId();
         synchronized (this) {

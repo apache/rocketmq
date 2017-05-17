@@ -17,12 +17,6 @@
 
 package org.apache.rocketmq.filtersrv.filter;
 
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
@@ -32,16 +26,34 @@ import org.apache.rocketmq.filtersrv.FiltersrvController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 过滤类管理
+ */
 public class FilterClassManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.FILTERSRV_LOGGER_NAME);
 
+    /**
+     * 编译Lock
+     */
     private final Object compileLock = new Object();
     private final FiltersrvController filtersrvController;
 
     private final ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("FSGetClassScheduledThread"));
+
+    /**
+     * 过滤类信息映射
+     */
     private ConcurrentHashMap<String/* topic@consumerGroup */, FilterClassInfo> filterClassTable =
-        new ConcurrentHashMap<String, FilterClassInfo>(128);
+            new ConcurrentHashMap<>(128);
+
     private FilterClassFetchMethod filterClassFetchMethod;
 
     public FilterClassManager(FiltersrvController filtersrvController) {
@@ -100,31 +112,39 @@ public class FilterClassManager {
         this.scheduledExecutorService.shutdown();
     }
 
+    /**
+     * 注册过滤类
+     *
+     * @param consumerGroup 消费分组
+     * @param topic Topic
+     * @param className 过滤类名
+     * @param classCRC 过滤类源码CRC
+     * @param filterSourceBinary 过滤类源码
+     * @return 是否注册成功
+     */
     public boolean registerFilterClass(final String consumerGroup, final String topic,
         final String className, final int classCRC, final byte[] filterSourceBinary) {
         final String key = buildKey(consumerGroup, topic);
-
+        // 判断是否要注册新的过滤类
         boolean registerNew = false;
         FilterClassInfo filterClassInfoPrev = this.filterClassTable.get(key);
         if (null == filterClassInfoPrev) {
             registerNew = true;
         } else {
             if (this.filtersrvController.getFiltersrvConfig().isClientUploadFilterClassEnable()) {
-                if (filterClassInfoPrev.getClassCRC() != classCRC && classCRC != 0) {
+                if (filterClassInfoPrev.getClassCRC() != classCRC && classCRC != 0) { // 类有变化
                     registerNew = true;
                 }
             }
         }
-
+        // 注册新的过滤类
         if (registerNew) {
             synchronized (this.compileLock) {
                 filterClassInfoPrev = this.filterClassTable.get(key);
                 if (null != filterClassInfoPrev && filterClassInfoPrev.getClassCRC() == classCRC) {
                     return true;
                 }
-
                 try {
-
                     FilterClassInfo filterClassInfoNew = new FilterClassInfo();
                     filterClassInfoNew.setClassName(className);
                     filterClassInfoNew.setClassCRC(0);
@@ -132,7 +152,9 @@ public class FilterClassManager {
 
                     if (this.filtersrvController.getFiltersrvConfig().isClientUploadFilterClassEnable()) {
                         String javaSource = new String(filterSourceBinary, MixAll.DEFAULT_CHARSET);
+                        // 编译新的过滤类
                         Class<?> newClass = DynaCode.compileAndLoadClass(className, javaSource);
+                        // 创建新的过滤类对象
                         Object newInstance = newClass.newInstance();
                         filterClassInfoNew.setMessageFilter((MessageFilter) newInstance);
                         filterClassInfoNew.setClassCRC(classCRC);
@@ -140,10 +162,7 @@ public class FilterClassManager {
 
                     this.filterClassTable.put(key, filterClassInfoNew);
                 } catch (Throwable e) {
-                    String info =
-                        String
-                            .format(
-                                "FilterServer, registerFilterClass Exception, consumerGroup: %s topic: %s className: %s",
+                    String info = String.format("FilterServer, registerFilterClass Exception, consumerGroup: %s topic: %s className: %s",
                                 consumerGroup, topic, className);
                     log.error(info, e);
                     return false;

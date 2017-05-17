@@ -16,10 +16,6 @@
  */
 package org.apache.rocketmq.filtersrv;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -34,6 +30,11 @@ import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class FiltersrvController {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.FILTERSRV_LOGGER_NAME);
@@ -74,13 +75,14 @@ public class FiltersrvController {
 
         this.registerProcessor();
 
+        // 固定间隔注册到Broker
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
             public void run() {
                 FiltersrvController.this.registerFilterServerToBroker();
             }
-        }, 3, 10, TimeUnit.SECONDS);
+        }, 15, 10, TimeUnit.SECONDS); // TODO edit by 芋艿：initialDelay时间太短，可能导致初始化失败。从3=》15
 
         this.defaultMQPullConsumer.setBrokerSuspendMaxTimeMillis(this.defaultMQPullConsumer
             .getBrokerSuspendMaxTimeMillis() - 1000);
@@ -98,6 +100,10 @@ public class FiltersrvController {
             .registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
     }
 
+    /**
+     * 注册Filtersrv 到 Broker
+     * ！！！如果注册失败，关闭Filtersrv
+     */
     public void registerFilterServerToBroker() {
         try {
             RegisterFilterServerResponseHeader responseHeader =
@@ -119,7 +125,7 @@ public class FiltersrvController {
             log.warn("register filter server Exception", e);
 
             log.warn("access broker failed, kill oneself");
-            System.exit(-1);
+            System.exit(-1); // 异常退出
         }
     }
 

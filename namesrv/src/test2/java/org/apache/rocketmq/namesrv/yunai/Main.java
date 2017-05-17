@@ -6,51 +6,123 @@ package org.apache.rocketmq.namesrv.yunai;
 public class Main {
 
     private static final String STR =
-             "// 【DefaultMQProducerImpl.java】\n" +
-
-            "    private SendResult sendDefaultImpl(//\n" +
-                     "        Message msg, //\n" +
-                     "        final CommunicationMode communicationMode, //\n" +
-                     "        final SendCallback sendCallback, //\n" +
-                     "        final long timeout//\n" +
-                     "    ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {\n" +
-                     "        // .... 省略：处理【校验逻辑】\n" +
-                     "        // 获取 Topic路由信息\n" +
-                     "        TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());\n" +
-                     "        if (topicPublishInfo != null && topicPublishInfo.ok()) {\n" +
-                     "            MessageQueue mq = null; // 最后选择消息要发送到的队列\n" +
-                     "            Exception exception = null;\n" +
-                     "            SendResult sendResult = null; // 最后一次发送结果\n" +
-                     "            int timesTotal = communicationMode == CommunicationMode.SYNC ? 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed() : 1; // 同步多次调用\n" +
-                     "            int times = 0; // 第几次发送\n" +
-                     "            String[] brokersSent = new String[timesTotal]; // 存储每次发送消息选择的broker名\n" +
-                     "            // 循环调用发送消息，直到成功\n" +
-                     "            for (; times < timesTotal; times++) {\n" +
-                     "                String lastBrokerName = null == mq ? null : mq.getBrokerName();\n" +
-                     "                MessageQueue tmpmq = this.selectOneMessageQueue(topicPublishInfo, lastBrokerName); // 选择消息要发送到的队列\n" +
-                     "                if (tmpmq != null) {\n" +
-                     "                    mq = tmpmq;\n" +
-                     "                    brokersSent[times] = mq.getBrokerName();\n" +
-                     "                    try {\n" +
-                     "                        beginTimestampPrev = System.currentTimeMillis();\n" +
-                     "                        // 调用发送消息核心方法\n" +
-                     "                        sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout);\n" +
-                     "                        endTimestamp = System.currentTimeMillis();\n" +
-                     "                        // 更新Broker可用性信息\n" +
-                     "                        this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false);\n" +
-                     "                        // .... 省略：处理【发送返回结果】\n" +
-                     "                        }\n" +
-                     "                    } catch (e) { // .... 省略：处理【异常】\n" +
-                     "                        \n" +
-                     "                    }\n" +
-                     "                } else {\n" +
-                     "                    break;\n" +
-                     "                }\n" +
-                     "            }\n" +
-                     "            // .... 省略：处理【发送返回结果】\n" +
-                     "        }\n" +
-                     "        // .... 省略：处理【找不到消息路由】\n" +
-                     "    }"            ;
+            "// 【DefaultRequestProcessor.java】\n" +
+                    "    /**\n" +
+                    "     * 拉取消息\n" +
+                    "     *\n" +
+                    "     * @param ctx 拉取消息context\n" +
+                    "     * @param request 拉取消息请求\n" +
+                    "     * @return 响应\n" +
+                    "     * @throws Exception 当发生异常时\n" +
+                    "     */\n" +
+                    "    private RemotingCommand pullMessageForward(final ChannelHandlerContext ctx, final RemotingCommand request) throws Exception {\n" +
+                    "        final RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);\n" +
+                    "        final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();\n" +
+                    "        final PullMessageRequestHeader requestHeader =\n" +
+                    "            (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);\n" +
+                    "\n" +
+                    "        final FilterContext filterContext = new FilterContext();\n" +
+                    "        filterContext.setConsumerGroup(requestHeader.getConsumerGroup());\n" +
+                    "\n" +
+                    "        response.setOpaque(request.getOpaque());\n" +
+                    "\n" +
+                    "        DefaultMQPullConsumer pullConsumer = this.filtersrvController.getDefaultMQPullConsumer();\n" +
+                    "\n" +
+                    "        // 校验Topic过滤类是否完整\n" +
+                    "        final FilterClassInfo findFilterClass = this.filtersrvController.getFilterClassManager().findFilterClass(requestHeader.getConsumerGroup(), requestHeader.getTopic());\n" +
+                    "        if (null == findFilterClass) {\n" +
+                    "            response.setCode(ResponseCode.SYSTEM_ERROR);\n" +
+                    "            response.setRemark(\"Find Filter class failed, not registered\");\n" +
+                    "            return response;\n" +
+                    "        }\n" +
+                    "        if (null == findFilterClass.getMessageFilter()) {\n" +
+                    "            response.setCode(ResponseCode.SYSTEM_ERROR);\n" +
+                    "            response.setRemark(\"Find Filter class failed, registered but no class\");\n" +
+                    "            return response;\n" +
+                    "        }\n" +
+                    "\n" +
+                    "        // 设置下次请求从 Broker主节点。\n" +
+                    "        responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);\n" +
+                    "\n" +
+                    "        MessageQueue mq = new MessageQueue();\n" +
+                    "        mq.setTopic(requestHeader.getTopic());\n" +
+                    "        mq.setQueueId(requestHeader.getQueueId());\n" +
+                    "        mq.setBrokerName(this.filtersrvController.getBrokerName());\n" +
+                    "        long offset = requestHeader.getQueueOffset();\n" +
+                    "        int maxNums = requestHeader.getMaxMsgNums();\n" +
+                    "\n" +
+                    "        final PullCallback pullCallback = new PullCallback() {\n" +
+                    "\n" +
+                    "            @Override\n" +
+                    "            public void onSuccess(PullResult pullResult) {\n" +
+                    "                responseHeader.setMaxOffset(pullResult.getMaxOffset());\n" +
+                    "                responseHeader.setMinOffset(pullResult.getMinOffset());\n" +
+                    "                responseHeader.setNextBeginOffset(pullResult.getNextBeginOffset());\n" +
+                    "                response.setRemark(null);\n" +
+                    "\n" +
+                    "                switch (pullResult.getPullStatus()) {\n" +
+                    "                    case FOUND:\n" +
+                    "                        response.setCode(ResponseCode.SUCCESS);\n" +
+                    "\n" +
+                    "                        List<MessageExt> msgListOK = new ArrayList<MessageExt>();\n" +
+                    "                        try {\n" +
+                    "                            for (MessageExt msg : pullResult.getMsgFoundList()) {\n" +
+                    "                                // 使用过滤类过滤消息\n" +
+                    "                                boolean match = findFilterClass.getMessageFilter().match(msg, filterContext);\n" +
+                    "                                if (match) {\n" +
+                    "                                    msgListOK.add(msg);\n" +
+                    "                                }\n" +
+                    "                            }\n" +
+                    "\n" +
+                    "                            if (!msgListOK.isEmpty()) {\n" +
+                    "                                returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx, response, msgListOK);\n" +
+                    "                                return;\n" +
+                    "                            } else {\n" +
+                    "                                response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);\n" +
+                    "                            }\n" +
+                    "                        } catch (Throwable e) {\n" +
+                    "                            final String error =\n" +
+                    "                                String.format(\"do Message Filter Exception, ConsumerGroup: %s Topic: %s \",\n" +
+                    "                                    requestHeader.getConsumerGroup(), requestHeader.getTopic());\n" +
+                    "                            log.error(error, e);\n" +
+                    "\n" +
+                    "                            response.setCode(ResponseCode.SYSTEM_ERROR);\n" +
+                    "                            response.setRemark(error + RemotingHelper.exceptionSimpleDesc(e));\n" +
+                    "                            returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx, response, null);\n" +
+                    "                            return;\n" +
+                    "                        }\n" +
+                    "\n" +
+                    "                        break;\n" +
+                    "                    case NO_MATCHED_MSG:\n" +
+                    "                        response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);\n" +
+                    "                        break;\n" +
+                    "                    case NO_NEW_MSG:\n" +
+                    "                        response.setCode(ResponseCode.PULL_NOT_FOUND);\n" +
+                    "                        break;\n" +
+                    "                    case OFFSET_ILLEGAL:\n" +
+                    "                        response.setCode(ResponseCode.PULL_OFFSET_MOVED);\n" +
+                    "                        break;\n" +
+                    "                    default:\n" +
+                    "                        break;\n" +
+                    "                }\n" +
+                    "\n" +
+                    "                returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx, response, null);\n" +
+                    "            }\n" +
+                    "\n" +
+                    "            @Override\n" +
+                    "            public void onException(Throwable e) {\n" +
+                    "                response.setCode(ResponseCode.SYSTEM_ERROR);\n" +
+                    "                response.setRemark(\"Pull Callback Exception, \" + RemotingHelper.exceptionSimpleDesc(e));\n" +
+                    "                returnResponse(requestHeader.getConsumerGroup(), requestHeader.getTopic(), ctx, response, null);\n" +
+                    "                return;\n" +
+                    "            }\n" +
+                    "        };\n" +
+                    "\n" +
+                    "        // 拉取消息\n" +
+                    "        pullConsumer.pullBlockIfNotFound(mq, null, offset, maxNums, pullCallback);\n" +
+                    "        return null;\n" +
+                    "    }"
+            ;
 
     public static void main(String[] args) {
         int i = 1;
