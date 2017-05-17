@@ -339,7 +339,7 @@ public class MixAll {
                     String key = first.toLowerCase() + tmp;
                     String property = p.getProperty(key);
                     if (property != null) {
-						//Remove spaces before and after
+			//Remove spaces before and after
                     	property = property.trim();
                         Class<?>[] pt = method.getParameterTypes();
                         if (pt != null && pt.length > 0) {
