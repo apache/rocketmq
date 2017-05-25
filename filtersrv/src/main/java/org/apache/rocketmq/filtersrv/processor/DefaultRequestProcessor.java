@@ -277,17 +277,17 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         byte[] propertiesData = properties.getBytes(MixAll.DEFAULT_CHARSET);
         final int propertiesLength = propertiesData.length;
         final int msgLen = 4 // 1 TOTALSIZE
-            + 4 // 2 MAGICCODE
-            + 4 // 3 BODYCRC
-            + 4 // 4 QUEUEID
+            + 4 // 2 MAGIC CODE
+            + 4 // 3 BODY CRC
+            + 4 // 4 QUEUE ID
             + 4 // 5 FLAG
-            + 8 // 6 QUEUEOFFSET
-            + 8 // 7 PHYSICALOFFSET
-            + 4 // 8 SYSFLAG
-            + 8 // 9 BORNTIMESTAMP
-            + 8 // 10 BORNHOST
-            + 8 // 11 STORETIMESTAMP
-            + 8 // 12 STOREHOSTADDRESS
+            + 8 // 6 QUEUE OFFSET
+            + 8 // 7 PHYSICAL OFFSET
+            + 4 // 8 SYS FLAG
+            + 8 // 9 BORN TIMESTAMP
+            + 8 // 10 BORN HOST
+            + 8 // 11 STORE TIMESTAMP
+            + 8 // 12 STORE HOST ADDRESS
             + 4 // 13 RECONSUMETIMES
             + 8 // 14 Prepared Transaction Offset
             + 4 + bodyLength // 14 BODY

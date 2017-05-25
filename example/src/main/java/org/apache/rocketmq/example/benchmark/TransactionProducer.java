@@ -25,7 +25,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.producer.LocalTransactionExecuter;
+import org.apache.rocketmq.client.producer.LocalTransactionExecutor;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.TransactionCheckListener;
@@ -37,13 +37,13 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 public class TransactionProducer {
     private static int threadCount;
     private static int messageSize;
-    private static boolean ischeck;
+    private static boolean isCheck;
     private static boolean ischeckffalse;
 
     public static void main(String[] args) throws MQClientException, UnsupportedEncodingException {
         threadCount = args.length >= 1 ? Integer.parseInt(args[0]) : 32;
         messageSize = args.length >= 2 ? Integer.parseInt(args[1]) : 1024 * 2;
-        ischeck = args.length >= 3 && Boolean.parseBoolean(args[2]);
+        isCheck = args.length >= 3 && Boolean.parseBoolean(args[2]);
         ischeckffalse = args.length >= 4 && Boolean.parseBoolean(args[3]);
 
         final Message msg = buildMessage(messageSize);
@@ -100,7 +100,7 @@ public class TransactionProducer {
         producer.setDefaultTopicQueueNums(1000);
         producer.start();
 
-        final TransactionExecuterBImpl tranExecuter = new TransactionExecuterBImpl(ischeck);
+        final TransactionExecutorBImpl tranExecutor = new TransactionExecutorBImpl(isCheck);
 
         for (int i = 0; i < threadCount; i++) {
             sendThreadPool.execute(new Runnable() {
@@ -111,7 +111,7 @@ public class TransactionProducer {
                             // Thread.sleep(1000);
                             final long beginTimestamp = System.currentTimeMillis();
                             SendResult sendResult =
-                                producer.sendMessageInTransaction(msg, tranExecuter, null);
+                                producer.sendMessageInTransaction(msg, tranExecutor, null);
                             if (sendResult != null) {
                                 statsBenchmark.getSendRequestSuccessCount().incrementAndGet();
                                 statsBenchmark.getReceiveResponseSuccessCount().incrementAndGet();
@@ -153,18 +153,18 @@ public class TransactionProducer {
     }
 }
 
-class TransactionExecuterBImpl implements LocalTransactionExecuter {
+class TransactionExecutorBImpl implements LocalTransactionExecutor {
 
     private boolean ischeck;
 
-    public TransactionExecuterBImpl(boolean ischeck) {
+    public TransactionExecutorBImpl(boolean ischeck) {
         this.ischeck = ischeck;
     }
 
     @Override
     public LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg) {
         if (ischeck) {
-            return LocalTransactionState.UNKNOW;
+            return LocalTransactionState.UNKNOWN;
         }
         return LocalTransactionState.COMMIT_MESSAGE;
     }

@@ -40,7 +40,7 @@ public class MQWait {
                     for (AbstractListener listener : listeners) {
                         Collection<Object> recvMsgs = Collections
                             .synchronizedCollection(listener.getAllUndupMsgBody());
-                        noDupMsgs.addAll(VerifyUtils.getFilterdMessage(allSendMsgs, recvMsgs));
+                        noDupMsgs.addAll(VerifyUtils.getFilteredMessage(allSendMsgs, recvMsgs));
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -52,7 +52,7 @@ public class MQWait {
                     break;
                 } catch (Throwable e) {
                 }
-                TestUtil.waitForMonment(500);
+                TestUtil.waitForMoment(500);
             } else {
                 logger.error(String.format(
                     "timeout but still not receive all messages,expectSize[%s],realSize[%s]",
@@ -71,7 +71,7 @@ public class MQWait {
                 logger.error("time out,but contidion still not meet!");
                 break;
             } else {
-                TestUtil.waitForMonment(intervalMills);
+                TestUtil.waitForMoment(intervalMills);
             }
         }
     }

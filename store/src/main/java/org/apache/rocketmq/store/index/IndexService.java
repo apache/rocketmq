@@ -156,7 +156,7 @@ public class IndexService {
         List<Long> phyOffsets = new ArrayList<Long>(maxNum);
 
         long indexLastUpdateTimestamp = 0;
-        long indexLastUpdatePhyoffset = 0;
+        long indexLastUpdatePhyOffset = 0;
         maxNum = Math.min(maxNum, this.defaultMessageStore.getMessageStoreConfig().getMaxMsgsNumBatch());
         try {
             this.readWriteLock.readLock().lock();
@@ -166,7 +166,7 @@ public class IndexService {
                     boolean lastFile = i == this.indexFileList.size();
                     if (lastFile) {
                         indexLastUpdateTimestamp = f.getEndTimestamp();
-                        indexLastUpdatePhyoffset = f.getEndPhyOffset();
+                        indexLastUpdatePhyOffset = f.getEndPhyOffset();
                     }
 
                     if (f.isTimeMatched(begin, end)) {
@@ -189,7 +189,7 @@ public class IndexService {
             this.readWriteLock.readLock().unlock();
         }
 
-        return new QueryOffsetResult(phyOffsets, indexLastUpdateTimestamp, indexLastUpdatePhyoffset);
+        return new QueryOffsetResult(phyOffsets, indexLastUpdateTimestamp, indexLastUpdatePhyOffset);
     }
 
     private String buildKey(final String topic, final String key) {

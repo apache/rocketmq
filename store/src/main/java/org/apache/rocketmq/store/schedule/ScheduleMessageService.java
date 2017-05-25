@@ -212,10 +212,10 @@ public class ScheduleMessageService extends ConfigManager {
         @Override
         public void run() {
             try {
-                this.executeOnTimeup();
+                this.executeOnTimeUp();
             } catch (Exception e) {
                 // XXX: warn and notify me
-                log.error("ScheduleMessageService, executeOnTimeup exception", e);
+                log.error("ScheduleMessageService, executeOnTimeUp exception", e);
                 ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(
                     this.delayLevel, this.offset), DELAY_FOR_A_PERIOD);
             }
@@ -236,7 +236,7 @@ public class ScheduleMessageService extends ConfigManager {
             return result;
         }
 
-        public void executeOnTimeup() {
+        public void executeOnTimeUp() {
             ConsumeQueue cq =
                 ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(SCHEDULE_TOPIC,
                     delayLevel2QueueId(delayLevel));

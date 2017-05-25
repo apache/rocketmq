@@ -21,7 +21,7 @@ import org.apache.log4j.Logger;
 import org.apache.rocketmq.test.client.consumer.broadcast.BaseBroadCastIT;
 import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
-import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListner;
+import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -38,7 +38,7 @@ public class BroadCastNormalMsgNotRecvIT extends BaseBroadCastIT {
 
     @Before
     public void setUp() {
-        printSeperator();
+        printSeparator();
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
         producer = getProducer(nsAddr, topic);
@@ -55,19 +55,19 @@ public class BroadCastNormalMsgNotRecvIT extends BaseBroadCastIT {
 
         String group = initConsumerGroup();
         RMQBroadCastConsumer consumer1 = getBroadCastConsumer(nsAddr, group, topic, "*",
-            new RMQNormalListner(group + "_1"));
+            new RMQNormalListener(group + "_1"));
 
         producer.send(msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
 
-        consumer1.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer1.getListner().getAllMsgBody()))
+        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
+            consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
 
         RMQBroadCastConsumer consumer2 = getBroadCastConsumer(nsAddr,
-            consumer1.getConsumerGroup(), topic, "*", new RMQNormalListner(group + "_2"));
-        consumer2.getListner().waitForMessageConsume(producer.getAllMsgBody(), waitTime);
-        assertThat(consumer2.getListner().getAllMsgBody().size()).isEqualTo(0);
+            consumer1.getConsumerGroup(), topic, "*", new RMQNormalListener(group + "_2"));
+        consumer2.getListener().waitForMessageConsume(producer.getAllMsgBody(), waitTime);
+        assertThat(consumer2.getListener().getAllMsgBody().size()).isEqualTo(0);
     }
 }

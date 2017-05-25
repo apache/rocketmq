@@ -35,13 +35,13 @@ public class TransactionProducer {
         producer.start();
 
         String[] tags = new String[] {"TagA", "TagB", "TagC", "TagD", "TagE"};
-        TransactionExecuterImpl tranExecuter = new TransactionExecuterImpl();
+        TransactionExecutorImpl transactionExecutor = new TransactionExecutorImpl();
         for (int i = 0; i < 100; i++) {
             try {
                 Message msg =
                     new Message("TopicTest", tags[i % tags.length], "KEY" + i,
                         ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
-                SendResult sendResult = producer.sendMessageInTransaction(msg, tranExecuter, null);
+                SendResult sendResult = producer.sendMessageInTransaction(msg, transactionExecutor, null);
                 System.out.printf("%s%n", sendResult);
 
                 Thread.sleep(10);

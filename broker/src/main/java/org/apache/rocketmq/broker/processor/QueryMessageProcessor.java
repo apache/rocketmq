@@ -90,7 +90,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
                 requestHeader.getEndTimestamp());
         assert queryMessageResult != null;
 
-        responseHeader.setIndexLastUpdatePhyoffset(queryMessageResult.getIndexLastUpdatePhyoffset());
+        responseHeader.setIndexLastUpdatePhyoffset(queryMessageResult.getIndexLastUpdatePhyOffset());
         responseHeader.setIndexLastUpdateTimestamp(queryMessageResult.getIndexLastUpdateTimestamp());
 
         if (queryMessageResult.getBufferTotalSize() > 0) {

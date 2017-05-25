@@ -209,7 +209,7 @@ public class ClusterListSubCommand implements SubCommand {
                         try {
                             KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(next1.getValue());
                             String putTps = kvTable.getTable().get("putTps");
-                            String getTransferedTps = kvTable.getTable().get("getTransferedTps");
+                            String getTransferredTps = kvTable.getTable().get("getTransferredTps");
                             sendThreadPoolQueueSize = kvTable.getTable().get("sendThreadPoolQueueSize");
                             pullThreadPoolQueueSize = kvTable.getTable().get("pullThreadPoolQueueSize");
 
@@ -231,7 +231,7 @@ public class ClusterListSubCommand implements SubCommand {
                             }
 
                             {
-                                String[] tpss = getTransferedTps.split(" ");
+                                String[] tpss = getTransferredTps.split(" ");
                                 if (tpss.length > 0) {
                                     out = Double.parseDouble(tpss[0]);
                                 }

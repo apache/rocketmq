@@ -119,7 +119,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 if (!registerOK) {
                     this.serviceState = ServiceState.CREATE_JUST;
                     throw new MQClientException("The adminExt group[" + this.defaultMQAdminExt.getAdminExtGroup()
-                        + "] has created already, specifed another name please."//
+                        + "] has created already, specified another name please."//
                         + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
                 }
 
@@ -464,10 +464,10 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String group, long timestamp, boolean isForce, boolean isC)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
-        List<BrokerData> brokerDatas = topicRouteData.getBrokerDatas();
+        List<BrokerData> brokerDataList = topicRouteData.getBrokerDatas();
         Map<MessageQueue, Long> allOffsetTable = new HashMap<MessageQueue, Long>();
-        if (brokerDatas != null) {
-            for (BrokerData brokerData : brokerDatas) {
+        if (brokerDataList != null) {
+            for (BrokerData brokerData : brokerDataList) {
                 String addr = brokerData.selectBrokerAddr();
                 if (addr != null) {
                     Map<MessageQueue, Long> offsetTable =
@@ -518,9 +518,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public Map<String, Map<MessageQueue, Long>> getConsumeStatus(String topic, String group, String clientAddr) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException {
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
-        List<BrokerData> brokerDatas = topicRouteData.getBrokerDatas();
-        if (brokerDatas != null && brokerDatas.size() > 0) {
-            String addr = brokerDatas.get(0).selectBrokerAddr();
+        List<BrokerData> brokerDataList = topicRouteData.getBrokerDatas();
+        if (brokerDataList != null && brokerDataList.size() > 0) {
+            String addr = brokerDataList.get(0).selectBrokerAddr();
             if (addr != null) {
                 return this.mqClientInstance.getMQClientAPIImpl().invokeBrokerToGetConsumerStatus(addr, topic, group, clientAddr,
                     timeoutMillis);
@@ -557,10 +557,10 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             orderConfMap.put(items[0], value);
 
             StringBuilder newOrderConf = new StringBuilder();
-            String splitor = "";
+            String splitter = "";
             for (Map.Entry<String, String> entry : orderConfMap.entrySet()) {
-                newOrderConf.append(splitor).append(entry.getValue());
-                splitor = ";";
+                newOrderConf.append(splitter).append(entry.getValue());
+                splitter = ";";
             }
             this.mqClientInstance.getMQClientAPIImpl().putKVConfigValue(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, key,
                 newOrderConf.toString(), timeoutMillis);

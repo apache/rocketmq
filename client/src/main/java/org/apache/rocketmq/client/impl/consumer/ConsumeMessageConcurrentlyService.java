@@ -163,7 +163,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         final long beginTime = System.currentTimeMillis();
 
-        log.info("consumeMessageDirectly receive new messge: {}", msg);
+        log.info("consumeMessageDirectly receive new message: {}", msg);
 
         try {
             ConsumeConcurrentlyStatus status = this.messageListener.consumeMessage(msgs, context);
@@ -430,7 +430,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 if (hasException) {
                     returnType = ConsumeReturnType.EXCEPTION;
                 } else {
-                    returnType = ConsumeReturnType.RETURNNULL;
+                    returnType = ConsumeReturnType.RETURN_NULL;
                 }
             } else if (consumeRT >= defaultMQPushConsumer.getConsumeTimeout() * 60 * 1000) {
                 returnType = ConsumeReturnType.TIME_OUT;

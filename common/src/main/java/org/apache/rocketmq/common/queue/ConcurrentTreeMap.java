@@ -49,20 +49,20 @@ public class ConcurrentTreeMap<K, V> {
         }
     }
 
-    public V putIfAbsentAndRetExsit(K key, V value) {
+    public V putIfAbsentAndReturnExisting(K key, V value) {
         lock.lock();
         try {
             if (roundQueue.put(key)) {
-                V exsit = tree.get(key);
-                if (null == exsit) {
+                V existing = tree.get(key);
+                if (null == existing) {
                     tree.put(key, value);
-                    exsit = value;
+                    existing = value;
                 }
-                log.warn("putIfAbsentAndRetExsit success. {}", key);
-                return exsit;
+                log.warn("putIfAbsentAndReturnExisting success. {}", key);
+                return existing;
             } else {
-                V exsit = tree.get(key);
-                return exsit;
+                V existing = tree.get(key);
+                return existing;
             }
         } finally {
             lock.unlock();

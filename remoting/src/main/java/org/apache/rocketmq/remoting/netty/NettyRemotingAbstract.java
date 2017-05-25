@@ -403,7 +403,7 @@ public abstract class NettyRemotingAbstract {
                         try {
                             executeInvokeCallback(responseFuture);
                         } catch (Throwable e) {
-                            PLOG.warn("excute callback in writeAndFlush addListener, and callback throw", e);
+                            PLOG.warn("execute callback in writeAndFlush addListener, and callback throw", e);
                         } finally {
                             responseFuture.release();
                         }

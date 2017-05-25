@@ -35,8 +35,8 @@ public class RMQOrderListener extends AbstractListener implements MessageListene
         super();
     }
 
-    public RMQOrderListener(String listnerName) {
-        super(listnerName);
+    public RMQOrderListener(String listenerName) {
+        super(listenerName);
     }
 
     public RMQOrderListener(String originMsgCollector, String msgBodyCollector) {
@@ -68,8 +68,8 @@ public class RMQOrderListener extends AbstractListener implements MessageListene
         ConsumeOrderlyContext context) {
         for (MessageExt msg : msgs) {
             if (isDebug) {
-                if (listnerName != null && listnerName != "") {
-                    logger.info(listnerName + ": " + msg);
+                if (listenerName != null && listenerName != "") {
+                    logger.info(listenerName + ": " + msg);
                 } else {
                     logger.info(msg);
                 }

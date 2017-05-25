@@ -189,19 +189,19 @@ public final class RandomUtil {
         }
     }
 
-    public static String getCheseWordWithPrifix(int n, String prefix) {
+    public static String getChineseWordWithPrefix(int n, String prefix) {
         int len = prefix.length();
         if (n <= len)
             return prefix;
         else {
             len = n - len;
             StringBuilder res = new StringBuilder(prefix);
-            res.append(getCheseWord(len));
+            res.append(getChineseWord(len));
             return res.toString();
         }
     }
 
-    public static String getCheseWordWithSuffix(int n, String suffix) {
+    public static String getChineseWordWithSuffix(int n, String suffix) {
 
         int len = suffix.length();
         if (n <= len)
@@ -209,35 +209,35 @@ public final class RandomUtil {
         else {
             len = n - len;
             StringBuilder res = new StringBuilder();
-            res.append(getCheseWord(len));
+            res.append(getChineseWord(len));
             res.append(suffix);
             return res.toString();
         }
     }
 
-    public static String getCheseWordWithBoth(int n, String prefix, String suffix) {
+    public static String getChineseWordWithBoth(int n, String prefix, String suffix) {
         int len = prefix.length() + suffix.length();
         StringBuilder res = new StringBuilder(prefix);
         if (n <= len)
             return res.append(suffix).toString();
         else {
             len = n - len;
-            res.append(getCheseWord(len));
+            res.append(getChineseWord(len));
             res.append(suffix);
             return res.toString();
         }
     }
 
-    public static String getCheseWord(int len) {
+    public static String getChineseWord(int len) {
         StringBuilder res = new StringBuilder();
         for (int i = 0; i < len; i++) {
-            char str = getCheseChar();
+            char str = getChineseChar();
             res.append(str);
         }
         return res.toString();
     }
 
-    private static char getCheseChar() {
+    private static char getChineseChar() {
         return (char) (UNICODE_START + rd.nextInt(UNICODE_END - UNICODE_START));
     }
 

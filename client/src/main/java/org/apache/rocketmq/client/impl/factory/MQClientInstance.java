@@ -147,7 +147,7 @@ public class MQClientInstance {
 
         this.consumerStatsManager = new ConsumerStatsManager(this.scheduledExecutorService);
 
-        log.info("created a new client Instance, FactoryIndex: {} ClinetID: {} {} {}, serializeType={}", //
+        log.info("created a new client Instance, FactoryIndex: {} ClientID: {} {} {}, serializeType={}", //
             this.instanceIndex, //
             this.clientId, //
             this.clientConfig, //
@@ -173,7 +173,7 @@ public class MQClientInstance {
             List<QueueData> qds = route.getQueueDatas();
             Collections.sort(qds);
             for (QueueData qd : qds) {
-                if (PermName.isWriteable(qd.getPerm())) {
+                if (PermName.isWritable(qd.getPerm())) {
                     BrokerData brokerData = null;
                     for (BrokerData bd : route.getBrokerDatas()) {
                         if (bd.getBrokerName().equals(qd.getBrokerName())) {
@@ -534,7 +534,7 @@ public class MQClientInstance {
                         }
 
                         try {
-                            int version = this.mQClientAPIImpl.sendHearbeat(addr, heartbeatData, 3000);
+                            int version = this.mQClientAPIImpl.sendHeartbeat(addr, heartbeatData, 3000);
                             if (!this.brokerVersionTable.containsKey(brokerName)) {
                                 this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));
                             }

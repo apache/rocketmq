@@ -37,7 +37,7 @@ public class RemotingCommand {
     public static final String REMOTING_VERSION_KEY = "rocketmq.remoting.version";
     private static final Logger log = LoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
     private static final int RPC_TYPE = 0; // 0, REQUEST_COMMAND
-    private static final int RPC_ONEWAY = 1; // 0, RPC
+    private static final int RPC_ONE_WAY = 1; // 0, RPC
     private static final Map<Class<? extends CommandCustomHeader>, Field[]> CLASS_HASH_MAP =
         new HashMap<Class<? extends CommandCustomHeader>, Field[]>();
     private static final Map<Class, String> CANONICAL_NAME_CACHE = new HashMap<Class, String>();
@@ -434,13 +434,13 @@ public class RemotingCommand {
     }
 
     public void markOnewayRPC() {
-        int bits = 1 << RPC_ONEWAY;
+        int bits = 1 << RPC_ONE_WAY;
         this.flag |= bits;
     }
 
     @JSONField(serialize = false)
     public boolean isOnewayRPC() {
-        int bits = 1 << RPC_ONEWAY;
+        int bits = 1 << RPC_ONE_WAY;
         return (this.flag & bits) == bits;
     }
 

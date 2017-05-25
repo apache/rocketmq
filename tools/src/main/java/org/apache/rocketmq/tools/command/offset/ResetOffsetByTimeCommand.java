@@ -61,7 +61,7 @@ public class ResetOffsetByTimeCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("c", "cplus", false, "reset c++ client offset");
+        opt = new Option("c", "cpp", false, "reset c++ client offset");
         opt.setRequired(false);
         options.addOption(opt);
         return options;

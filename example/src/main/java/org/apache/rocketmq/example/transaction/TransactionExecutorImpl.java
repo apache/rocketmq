@@ -17,11 +17,11 @@
 package org.apache.rocketmq.example.transaction;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.rocketmq.client.producer.LocalTransactionExecuter;
+import org.apache.rocketmq.client.producer.LocalTransactionExecutor;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.common.message.Message;
 
-public class TransactionExecuterImpl implements LocalTransactionExecuter {
+public class TransactionExecutorImpl implements LocalTransactionExecutor {
     private AtomicInteger transactionIndex = new AtomicInteger(1);
 
     @Override
@@ -36,6 +36,6 @@ public class TransactionExecuterImpl implements LocalTransactionExecuter {
             return LocalTransactionState.COMMIT_MESSAGE;
         }
 
-        return LocalTransactionState.UNKNOW;
+        return LocalTransactionState.UNKNOWN;
     }
 }

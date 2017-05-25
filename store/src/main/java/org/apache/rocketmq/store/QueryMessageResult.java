@@ -22,23 +22,23 @@ import java.util.List;
 
 public class QueryMessageResult {
 
-    private final List<SelectMappedBufferResult> messageMapedList =
+    private final List<SelectMappedBufferResult> messageMappedList =
         new ArrayList<SelectMappedBufferResult>(100);
 
     private final List<ByteBuffer> messageBufferList = new ArrayList<ByteBuffer>(100);
     private long indexLastUpdateTimestamp;
-    private long indexLastUpdatePhyoffset;
+    private long indexLastUpdatePhyOffset;
 
     private int bufferTotalSize = 0;
 
     public void addMessage(final SelectMappedBufferResult mapedBuffer) {
-        this.messageMapedList.add(mapedBuffer);
+        this.messageMappedList.add(mapedBuffer);
         this.messageBufferList.add(mapedBuffer.getByteBuffer());
         this.bufferTotalSize += mapedBuffer.getSize();
     }
 
     public void release() {
-        for (SelectMappedBufferResult select : this.messageMapedList) {
+        for (SelectMappedBufferResult select : this.messageMappedList) {
             select.release();
         }
     }
@@ -51,12 +51,12 @@ public class QueryMessageResult {
         this.indexLastUpdateTimestamp = indexLastUpdateTimestamp;
     }
 
-    public long getIndexLastUpdatePhyoffset() {
-        return indexLastUpdatePhyoffset;
+    public long getIndexLastUpdatePhyOffset() {
+        return indexLastUpdatePhyOffset;
     }
 
-    public void setIndexLastUpdatePhyoffset(long indexLastUpdatePhyoffset) {
-        this.indexLastUpdatePhyoffset = indexLastUpdatePhyoffset;
+    public void setIndexLastUpdatePhyOffset(long indexLastUpdatePhyOffset) {
+        this.indexLastUpdatePhyOffset = indexLastUpdatePhyOffset;
     }
 
     public List<ByteBuffer> getMessageBufferList() {

@@ -47,7 +47,7 @@ public class BrokerStats {
         this.msgPutTotalTodayMorning =
             this.defaultMessageStore.getStoreStatsService().getPutMessageTimesTotal();
         this.msgGetTotalTodayMorning =
-            this.defaultMessageStore.getStoreStatsService().getGetMessageTransferedMsgCount().get();
+            this.defaultMessageStore.getStoreStatsService().getGetMessageTransferredMsgCount().get();
 
         log.info("yesterday put message total: {}", msgPutTotalTodayMorning - msgPutTotalYesterdayMorning);
         log.info("yesterday get message total: {}", msgGetTotalTodayMorning - msgGetTotalYesterdayMorning);
@@ -90,6 +90,6 @@ public class BrokerStats {
     }
 
     public long getMsgGetTotalTodayNow() {
-        return this.defaultMessageStore.getStoreStatsService().getGetMessageTransferedMsgCount().get();
+        return this.defaultMessageStore.getStoreStatsService().getGetMessageTransferredMsgCount().get();
     }
 }

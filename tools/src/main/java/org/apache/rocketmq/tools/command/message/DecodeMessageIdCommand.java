@@ -25,7 +25,7 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class DecodeMessageIdCommond implements SubCommand {
+public class DecodeMessageIdCommand implements SubCommand {
     @Override
     public String commandName() {
         return "DecodeMessageId";

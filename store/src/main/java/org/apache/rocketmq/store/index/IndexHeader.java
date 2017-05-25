@@ -29,9 +29,9 @@ public class IndexHeader {
     public static final int INDEX_HEADER_SIZE = 40;
     private static int beginTimestampIndex = 0;
     private static int endTimestampIndex = 8;
-    private static int beginPhyoffsetIndex = 16;
-    private static int endPhyoffsetIndex = 24;
-    private static int hashSlotcountIndex = 32;
+    private static int beginPhyOffsetIndex = 16;
+    private static int endPhyOffsetIndex = 24;
+    private static int hashSlotCountIndex = 32;
     private static int indexCountIndex = 36;
     private final ByteBuffer byteBuffer;
     private AtomicLong beginTimestamp = new AtomicLong(0);
@@ -49,10 +49,10 @@ public class IndexHeader {
     public void load() {
         this.beginTimestamp.set(byteBuffer.getLong(beginTimestampIndex));
         this.endTimestamp.set(byteBuffer.getLong(endTimestampIndex));
-        this.beginPhyOffset.set(byteBuffer.getLong(beginPhyoffsetIndex));
-        this.endPhyOffset.set(byteBuffer.getLong(endPhyoffsetIndex));
+        this.beginPhyOffset.set(byteBuffer.getLong(beginPhyOffsetIndex));
+        this.endPhyOffset.set(byteBuffer.getLong(endPhyOffsetIndex));
 
-        this.hashSlotCount.set(byteBuffer.getInt(hashSlotcountIndex));
+        this.hashSlotCount.set(byteBuffer.getInt(hashSlotCountIndex));
         this.indexCount.set(byteBuffer.getInt(indexCountIndex));
 
         if (this.indexCount.get() <= 0) {
@@ -63,9 +63,9 @@ public class IndexHeader {
     public void updateByteBuffer() {
         this.byteBuffer.putLong(beginTimestampIndex, this.beginTimestamp.get());
         this.byteBuffer.putLong(endTimestampIndex, this.endTimestamp.get());
-        this.byteBuffer.putLong(beginPhyoffsetIndex, this.beginPhyOffset.get());
-        this.byteBuffer.putLong(endPhyoffsetIndex, this.endPhyOffset.get());
-        this.byteBuffer.putInt(hashSlotcountIndex, this.hashSlotCount.get());
+        this.byteBuffer.putLong(beginPhyOffsetIndex, this.beginPhyOffset.get());
+        this.byteBuffer.putLong(endPhyOffsetIndex, this.endPhyOffset.get());
+        this.byteBuffer.putInt(hashSlotCountIndex, this.hashSlotCount.get());
         this.byteBuffer.putInt(indexCountIndex, this.indexCount.get());
     }
 
@@ -93,7 +93,7 @@ public class IndexHeader {
 
     public void setBeginPhyOffset(long beginPhyOffset) {
         this.beginPhyOffset.set(beginPhyOffset);
-        this.byteBuffer.putLong(beginPhyoffsetIndex, beginPhyOffset);
+        this.byteBuffer.putLong(beginPhyOffsetIndex, beginPhyOffset);
     }
 
     public long getEndPhyOffset() {
@@ -102,7 +102,7 @@ public class IndexHeader {
 
     public void setEndPhyOffset(long endPhyOffset) {
         this.endPhyOffset.set(endPhyOffset);
-        this.byteBuffer.putLong(endPhyoffsetIndex, endPhyOffset);
+        this.byteBuffer.putLong(endPhyOffsetIndex, endPhyOffset);
     }
 
     public AtomicInteger getHashSlotCount() {
@@ -111,7 +111,7 @@ public class IndexHeader {
 
     public void incHashSlotCount() {
         int value = this.hashSlotCount.incrementAndGet();
-        this.byteBuffer.putInt(hashSlotcountIndex, value);
+        this.byteBuffer.putInt(hashSlotCountIndex, value);
     }
 
     public int getIndexCount() {

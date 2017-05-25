@@ -61,7 +61,7 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int TRANSACTION_SHOULD_ROLLBACK = 201;
 
-    public static final int TRANSACTION_STATE_UNKNOW = 202;
+    public static final int TRANSACTION_STATE_UNKNOWN = 202;
 
     public static final int TRANSACTION_STATE_GROUP_WRONG = 203;
     public static final int NO_BUYER_ID = 204;

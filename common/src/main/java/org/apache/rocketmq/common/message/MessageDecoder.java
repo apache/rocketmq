@@ -34,10 +34,10 @@ public class MessageDecoder {
     public final static int MSG_ID_LENGTH = 8 + 8;
 
     public final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
-    public final static int MESSAGE_MAGIC_CODE_POSTION = 4;
-    public final static int MESSAGE_FLAG_POSTION = 16;
-    public final static int MESSAGE_PHYSIC_OFFSET_POSTION = 28;
-    public final static int MESSAGE_STORE_TIMESTAMP_POSTION = 56;
+    public final static int MESSAGE_MAGIC_CODE_POSITION = 4;
+    public final static int MESSAGE_FLAG_POSITION = 16;
+    public final static int MESSAGE_PHYSIC_OFFSET_POSITION = 28;
+    public final static int MESSAGE_STORE_TIMESTAMP_POSITION = 56;
     public final static int MESSAGE_MAGIC_CODE = 0xAABBCCDD ^ 1880681586 + 8;
     public static final char NAME_VALUE_SEPARATOR = 1;
     public static final char PROPERTY_SEPARATOR = 2;

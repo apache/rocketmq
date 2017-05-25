@@ -48,7 +48,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class BrokerConsumeStatsSubCommadTest {
+public class BrokerConsumeStatsSubCommandTest {
     private static DefaultMQAdminExt defaultMQAdminExt;
     private static DefaultMQAdminExtImpl defaultMQAdminExtImpl;
     private static MQClientInstance mqClientInstance = MQClientManager.getInstance().getAndCreateMQClientInstance(new ClientConfig());
@@ -84,7 +84,7 @@ public class BrokerConsumeStatsSubCommadTest {
     @Ignore
     @Test
     public void testExecute() throws SubCommandException {
-        BrokerConsumeStatsSubCommad cmd = new BrokerConsumeStatsSubCommad();
+        BrokerConsumeStatsSubCommand cmd = new BrokerConsumeStatsSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs = new String[] {"-b 127.0.0.1:10911", "-t 3000", "-l 5", "-o true"};
         final CommandLine commandLine =

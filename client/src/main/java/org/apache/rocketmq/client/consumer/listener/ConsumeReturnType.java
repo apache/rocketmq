@@ -33,7 +33,7 @@ public enum ConsumeReturnType {
     /**
      * consume return null
      */
-    RETURNNULL,
+    RETURN_NULL,
     /**
      * consume return failed
      */

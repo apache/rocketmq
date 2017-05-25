@@ -89,11 +89,11 @@ public class TagMessage {
     }
 
     public List<Object> getMessageBodyByTag(List<String> tags) {
-        List<Object> msgBodys = new ArrayList<Object>();
+        List<Object> msgBodyList = new ArrayList<Object>();
         for (String tag : tags) {
-            msgBodys.addAll(MQMessageFactory.getMessageBody(rmqMsgs.get(tag)));
+            msgBodyList.addAll(MQMessageFactory.getMessageBody(rmqMsgs.get(tag)));
         }
-        return msgBodys;
+        return msgBodyList;
     }
 
     public List<Object> getAllTagMessageBody() {

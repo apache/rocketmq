@@ -119,7 +119,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             return response;
         }
 
-        if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
+        if (!PermName.isWritable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
             response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1() + "] sending message is forbidden");
             return response;
@@ -149,7 +149,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             return response;
         }
 
-        if (!PermName.isWriteable(topicConfig.getPerm())) {
+        if (!PermName.isWritable(topicConfig.getPerm())) {
             response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark(String.format("the topic[%s] sending message is forbidden", newTopic));
             return response;
@@ -391,7 +391,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 break;
 
             // Failed
-            case CREATE_MAPEDFILE_FAILED:
+            case CREATE_MAPPED_FILE_FAILED:
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("create mapped file failed, server is busy or broken.");
                 break;
@@ -406,7 +406,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 response.setRemark(
                     "service not available now, maybe disk full, " + diskUtil() + ", maybe your broker machine memory too small.");
                 break;
-            case OS_PAGECACHE_BUSY:
+            case OS_PAGE_CACHE_BUSY:
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("[PC_SYNCHRONIZED]broker busy, start flow control for a while");
                 break;
@@ -480,10 +480,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         log.debug("Receive SendMessage request command {}", request);
 
-        final long startTimstamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
-        if (this.brokerController.getMessageStore().now() < startTimstamp) {
+        final long startTimestamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
+        if (this.brokerController.getMessageStore().now() < startTimestamp) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(String.format("broker unable to service, until %s", UtilAll.timeMillisToHumanString2(startTimstamp)));
+            response.setRemark(String.format("broker unable to service, until %s", UtilAll.timeMillisToHumanString2(startTimestamp)));
             return response;
         }
 
@@ -560,15 +560,15 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         String storePathPhysic = this.brokerController.getMessageStoreConfig().getStorePathCommitLog();
         double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
 
-        String storePathLogis =
+        String storePathLogics =
             StorePathConfigHelper.getStorePathConsumeQueue(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
-        double logisRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogis);
+        double logicsRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogics);
 
         String storePathIndex =
             StorePathConfigHelper.getStorePathIndex(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
         double indexRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathIndex);
 
-        return String.format("CL: %5.2f CQ: %5.2f INDEX: %5.2f", physicRatio, logisRatio, indexRatio);
+        return String.format("CL: %5.2f CQ: %5.2f INDEX: %5.2f", physicRatio, logicsRatio, indexRatio);
     }
 
     public void registerConsumeMessageHook(List<ConsumeMessageHook> consumeMessageHookList) {

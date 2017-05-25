@@ -118,7 +118,7 @@ public class MessageExceptionIT extends BaseConf {
     @Test
     public void testSendMsgWithUserProperty() {
         Message msg = MessageFactory.getRandomMessage(topic);
-        msg.putUserProperty("key", RandomUtils.getCheseWord(10 * 1024));
+        msg.putUserProperty("key", RandomUtils.getChineseWord(10 * 1024));
         SendResult sendResult = null;
         try {
             sendResult = producer.send(msg);
