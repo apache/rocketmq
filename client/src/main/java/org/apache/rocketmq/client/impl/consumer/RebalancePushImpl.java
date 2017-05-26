@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 public class RebalancePushImpl extends RebalanceImpl {
     private final static long UNLOCK_DELAY_TIME_MILLS = Long.parseLong(System.getProperty("rocketmq.client.unlockDelayTimeMills", "20000"));
@@ -47,6 +48,16 @@ public class RebalancePushImpl extends RebalanceImpl {
 
     @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
+        /**
+         * When rebalance result changed, should update subscription's version to notify broker.
+         * Fix: inconsistency subscription may lead to consumer miss messages.
+         */
+        SubscriptionData subscriptionData = this.subscriptionInner.get(topic);
+        long newVersion = System.currentTimeMillis();
+        log.info("{} Rebalance changed, also update version: {}, {}", topic, subscriptionData.getSubVersion(), newVersion);
+        subscriptionData.setSubVersion(newVersion);
+        // notify broker
+        this.getmQClientFactory().sendHeartbeatToAllBrokerWithLock();
     }
 
     @Override
