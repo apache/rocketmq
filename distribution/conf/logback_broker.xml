@@ -349,6 +349,11 @@
         <appender-ref ref="RocketmqFilterAppender"/>
     </logger>
 
+    <logger name="RocketmqConsole" additivity="false">
+        <level value="INFO" />
+        <appender-ref ref="STDOUT" />
+    </logger>
+
     <root>
         <level value="INFO"/>
         <appender-ref ref="DefaultAppender"/>
