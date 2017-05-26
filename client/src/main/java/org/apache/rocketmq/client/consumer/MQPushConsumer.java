@@ -70,6 +70,27 @@ public interface MQPushConsumer extends MQConsumer {
     void subscribe(final String topic, final String fullClassName, final String filterClassSource) throws MQClientException;
 
     /**
+     * Subscribe some topic with selector.
+     * <p>
+     * This interface also has the ability of {@link #subscribe(String, String)},
+     * and, support other message selection, such as {@link org.apache.rocketmq.common.filter.ExpressionType#SQL92}.
+     * </p>
+     * <p/>
+     * <p>
+     * Choose Tag: {@link MessageSelector#byTag(java.lang.String)}
+     * </p>
+     * <p/>
+     * <p>
+     * Choose SQL92: {@link MessageSelector#bySql(java.lang.String)}
+     * </p>
+     *
+     * @param topic
+     * @param selector message selector({@link MessageSelector}), can be null.
+     * @throws MQClientException
+     */
+    void subscribe(final String topic, final MessageSelector selector) throws MQClientException;
+
+    /**
      * Unsubscribe consumption some topic
      *
      * @param topic message topic

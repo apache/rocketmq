@@ -135,7 +135,7 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
             response.setRemark(null);
         } else {
             long minOffset =
-                this.brokerController.getMessageStore().getMinOffsetInQuque(requestHeader.getTopic(),
+                this.brokerController.getMessageStore().getMinOffsetInQueue(requestHeader.getTopic(),
                     requestHeader.getQueueId());
             if (minOffset <= 0
                 && !this.brokerController.getMessageStore().checkInDiskByConsumeOffset(

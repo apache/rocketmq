@@ -85,10 +85,11 @@ public class ConsumerManager {
                     if (remove != null) {
                         log.info("unregister consumer ok, no any connection, and remove consumer group, {}",
                             next.getKey());
+                        this.consumerIdsChangeListener.handle(ConsumerGroupEvent.UNREGISTER, next.getKey());
                     }
                 }
 
-                this.consumerIdsChangeListener.consumerIdsChanged(next.getKey(), info.getAllChannel());
+                this.consumerIdsChangeListener.handle(ConsumerGroupEvent.CHANGE, next.getKey(), info.getAllChannel());
             }
         }
     }
@@ -111,9 +112,11 @@ public class ConsumerManager {
 
         if (r1 || r2) {
             if (isNotifyConsumerIdsChangedEnable) {
-                this.consumerIdsChangeListener.consumerIdsChanged(group, consumerGroupInfo.getAllChannel());
+                this.consumerIdsChangeListener.handle(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
             }
         }
+
+        this.consumerIdsChangeListener.handle(ConsumerGroupEvent.REGISTER, group, subList);
 
         return r1 || r2;
     }
@@ -126,10 +129,12 @@ public class ConsumerManager {
                 ConsumerGroupInfo remove = this.consumerTable.remove(group);
                 if (remove != null) {
                     log.info("unregister consumer ok, no any connection, and remove consumer group, {}", group);
+
+                    this.consumerIdsChangeListener.handle(ConsumerGroupEvent.UNREGISTER, group);
                 }
             }
             if (isNotifyConsumerIdsChangedEnable) {
-                this.consumerIdsChangeListener.consumerIdsChanged(group, consumerGroupInfo.getAllChannel());
+                this.consumerIdsChangeListener.handle(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
             }
         }
     }

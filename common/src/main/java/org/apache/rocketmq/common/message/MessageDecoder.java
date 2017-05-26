@@ -41,6 +41,20 @@ public class MessageDecoder {
     public final static int MESSAGE_MAGIC_CODE = 0xAABBCCDD ^ 1880681586 + 8;
     public static final char NAME_VALUE_SEPARATOR = 1;
     public static final char PROPERTY_SEPARATOR = 2;
+    public static final int BODY_SIZE_POSITION = 4 // 1 TOTALSIZE
+        + 4 // 2 MAGICCODE
+        + 4 // 3 BODYCRC
+        + 4 // 4 QUEUEID
+        + 4 // 5 FLAG
+        + 8 // 6 QUEUEOFFSET
+        + 8 // 7 PHYSICALOFFSET
+        + 4 // 8 SYSFLAG
+        + 8 // 9 BORNTIMESTAMP
+        + 8 // 10 BORNHOST
+        + 8 // 11 STORETIMESTAMP
+        + 8 // 12 STOREHOSTADDRESS
+        + 4 // 13 RECONSUMETIMES
+        + 8; // 14 Prepared Transaction Offset
 
     public static String createMessageId(final ByteBuffer input, final ByteBuffer addr, final long offset) {
         input.flip();
@@ -78,6 +92,31 @@ public class MessageDecoder {
         offset = bb.getLong(0);
 
         return new MessageId(address, offset);
+    }
+
+    /**
+     * Just decode properties from msg buffer.
+     *
+     * @param byteBuffer msg commit log buffer.
+     * @return
+     */
+    public static Map<String, String> decodeProperties(java.nio.ByteBuffer byteBuffer) {
+        int topicLengthPosition = BODY_SIZE_POSITION + 4 + byteBuffer.getInt(BODY_SIZE_POSITION);
+
+        byte topicLength = byteBuffer.get(topicLengthPosition);
+
+        short propertiesLength = byteBuffer.getShort(topicLengthPosition + 1 + topicLength);
+
+        byteBuffer.position(topicLengthPosition + 1 + topicLength + 2);
+
+        if (propertiesLength > 0) {
+            byte[] properties = new byte[propertiesLength];
+            byteBuffer.get(properties);
+            String propertiesString = new String(properties, CHARSET_UTF8);
+            Map<String, String> map = string2messageProperties(propertiesString);
+            return map;
+        }
+        return null;
     }
 
     public static MessageExt decode(java.nio.ByteBuffer byteBuffer) {
