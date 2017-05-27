@@ -180,7 +180,12 @@ public class LocalFileOffsetStore implements OffsetStore {
     }
 
     private OffsetSerializeWrapper readLocalOffset() throws MQClientException {
-        String content = MixAll.file2String(this.storePath);
+        String content = null;
+        try {
+            content = MixAll.file2String(this.storePath);
+        } catch (IOException e) {
+            log.warn("Load local offset store file exception", e);
+        }
         if (null == content || content.length() == 0) {
             return this.readLocalOffsetBak();
         } else {
@@ -198,7 +203,12 @@ public class LocalFileOffsetStore implements OffsetStore {
     }
 
     private OffsetSerializeWrapper readLocalOffsetBak() throws MQClientException {
-        String content = MixAll.file2String(this.storePath + ".bak");
+        String content = null;
+        try {
+            content = MixAll.file2String(this.storePath + ".bak");
+        } catch (IOException e) {
+            log.warn("Load local offset store bak file exception", e);
+        }
         if (content != null && content.length() > 0) {
             OffsetSerializeWrapper offsetSerializeWrapper = null;
             try {
