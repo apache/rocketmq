@@ -43,7 +43,12 @@ public class KVConfigManager {
     }
 
     public void load() {
-        String content = MixAll.file2String(this.namesrvController.getNamesrvConfig().getKvConfigPath());
+        String content = null;
+        try {
+            content = MixAll.file2String(this.namesrvController.getNamesrvConfig().getKvConfigPath());
+        } catch (IOException e) {
+            log.warn("Load KV config table exception", e);
+        }
         if (content != null) {
             KVConfigSerializeWrapper kvConfigSerializeWrapper =
                 KVConfigSerializeWrapper.fromJson(content, KVConfigSerializeWrapper.class);
