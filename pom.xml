@@ -76,8 +76,7 @@
                 <role>committer</role>
             </roles>
             <email>vintagewang@apache.org</email>
-            <url>https://github.com/vintagewang</url>
-            <timezone>8</timezone>
+            <timezone>+8</timezone>
         </developer>
         <developer>
             <id>vongosling@apache.org</id>
@@ -87,14 +86,12 @@
                 <role>committer</role>
             </roles>
             <email>vongosling@apache.org</email>
-            <url>https://github.com/vongosling@apache.org</url>
             <timezone>+8</timezone>
         </developer>
         <developer>
             <id>yukon</id>
             <name>Xinyu Zhou</name>
             <email>yukon@@apache.org</email>
-            <url>https://github.com/zhouxinyu</url>
             <roles>
                 <role>committer</role>
             </roles>
@@ -130,6 +127,16 @@
             </roles>
             <timezone>+8</timezone>
         </developer>
+        <developer>
+            <id>dongeforever</id>
+            <name>dongeforever</name>
+            <email>dongeforever@apache.org</email>
+            <roles>
+                <role>committer</role>
+            </roles>
+            <timezone>+8</timezone>
+        </developer>
+
     </developers>
 
     <licenses>
