@@ -15,9 +15,7 @@
  * limitations under the License.
  */
 
-/**
- * $Id: BrokerData.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
- */
+
 package org.apache.rocketmq.common.protocol.route;
 
 import java.util.HashMap;
@@ -28,6 +26,16 @@ public class BrokerData implements Comparable<BrokerData> {
     private String cluster;
     private String brokerName;
     private HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs;
+
+    public BrokerData() {
+
+    }
+
+    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs) {
+        this.cluster = cluster;
+        this.brokerName = brokerName;
+        this.brokerAddrs = brokerAddrs;
+    }
 
     public String selectBrokerAddr() {
         String value = this.brokerAddrs.get(MixAll.MASTER_ID);
