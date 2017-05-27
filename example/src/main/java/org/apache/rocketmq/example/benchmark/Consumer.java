@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.example.benchmark;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Timer;
@@ -39,7 +40,7 @@ import org.apache.rocketmq.srvutil.ServerUtil;
 
 public class Consumer {
 
-    public static void main(String[] args) throws MQClientException {
+    public static void main(String[] args) throws MQClientException, IOException {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine("benchmarkConsumer", args, buildCommandlineOptions(options), new PosixParser());
         if (null == commandLine) {
