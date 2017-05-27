@@ -76,19 +76,19 @@ public class AllocateMessageQueueConsistentHash  implements AllocateMessageQueue
         }
 
 
-        Collection<ClientNode> cidNodes = new ArrayList<>();
+        Collection<ClientNode> cidNodes = new ArrayList<ClientNode>();
         for (String cid : cidAll) {
             cidNodes.add(new ClientNode(cid));
         }
 
         final ConsistentHashRouter<ClientNode> router; //for building hash ring
         if (customHashFunction != null) {
-            router = new ConsistentHashRouter<>(cidNodes, virtualNodeCnt, customHashFunction);
+            router = new ConsistentHashRouter<ClientNode>(cidNodes, virtualNodeCnt, customHashFunction);
         } else {
-            router = new ConsistentHashRouter<>(cidNodes, virtualNodeCnt);
+            router = new ConsistentHashRouter<ClientNode>(cidNodes, virtualNodeCnt);
         }
 
-        List<MessageQueue> results = new ArrayList<>();
+        List<MessageQueue> results = new ArrayList<MessageQueue>();
         for (MessageQueue mq : mqAll) {
             ClientNode clientNode = router.routeNode(mq.toString());
             if (clientNode != null && currentCID.equals(clientNode.getKey())) {
