@@ -101,7 +101,6 @@
             <id>stevenschew</id>
             <name>Wei Zhou</name>
             <email>stevenschew@@apache.org</email>
-            <url>https://github.com/stevenschew</url>
             <roles>
                 <role>committer</role>
             </roles>
@@ -111,7 +110,6 @@
             <id>lollipop</id>
             <name>Jixiang Jin</name>
             <email>lollipop@apache.org</email>
-            <url>https://github.com/lollipopjin</url>
             <roles>
                 <role>committer</role>
             </roles>
@@ -121,7 +119,6 @@
             <id>lizhanhui</id>
             <name>Zhanhui Li</name>
             <email>lizhanhui@apache.org</email>
-            <url>https://github.com/lizhanhui</url>
             <roles>
                 <role>committer</role>
             </roles>
