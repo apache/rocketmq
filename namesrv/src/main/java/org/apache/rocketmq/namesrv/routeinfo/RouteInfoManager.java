@@ -205,7 +205,7 @@ public class RouteInfoManager {
             queueDataList = new LinkedList<QueueData>();
             queueDataList.add(queueData);
             this.topicQueueTable.put(topicConfig.getTopicName(), queueDataList);
-            log.info("new topic registerd, {} {}", topicConfig.getTopicName(), queueData);
+            log.info("new topic registered, {} {}", topicConfig.getTopicName(), queueData);
         } else {
             boolean addNewOne = true;
 
