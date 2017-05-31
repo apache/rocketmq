@@ -78,8 +78,8 @@ public class AllocateMachineRoomNearByTest {
 
 
     @Test
-    public void testRun100RandomCase(){
-        for(int i=0;i<100;i++){
+    public void testRun10RandomCase(){
+        for(int i=0;i<10;i++){
             int consumerSize = new Random().nextInt(200)+1;//1-200
             int queueSize = new Random().nextInt(100)+1;//1-100
             int brokerIDCSize = new Random().nextInt(10)+1;//1-10
