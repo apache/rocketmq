@@ -23,8 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -63,12 +61,7 @@ public class CommitLog {
     private volatile long confirmOffset = -1L;
 
     private volatile long beginTimeInLock = 0;
-
-    //true: Can lock, false : in lock.
-    private AtomicBoolean putMessageSpinLock = new AtomicBoolean(true);
-
-    private ReentrantLock putMessageNormalLock = new ReentrantLock(); // NonfairSync
-
+    private final PutMessageLock putMessageLock;
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
         this.mappedFileQueue = new MappedFileQueue(defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog(),
             defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog(), defaultMessageStore.getAllocateMappedFileService());
@@ -88,6 +81,8 @@ public class CommitLog {
                 return new MessageExtBatchEncoder(defaultMessageStore.getMessageStoreConfig().getMaxMessageSize());
             }
         };
+        this.putMessageLock =  defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new PutMessageSpinLock();
+
     }
 
     public boolean load() {
@@ -577,7 +572,7 @@ public class CommitLog {
         MappedFile unlockMappedFile = null;
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
 
-        lockForPutMessage(); //spin...
+        putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
         try {
             long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
             this.beginTimeInLock = beginLockTimestamp;
@@ -626,7 +621,7 @@ public class CommitLog {
             eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
             beginTimeInLock = 0;
         } finally {
-            releasePutMessageLock();
+            putMessageLock.unlock();
         }
 
         if (eclipseTimeInLock > 500) {
@@ -727,7 +722,7 @@ public class CommitLog {
 
         messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
 
-        lockForPutMessage(); //spin...
+        putMessageLock.lock();
         try {
             long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
             this.beginTimeInLock = beginLockTimestamp;
@@ -776,7 +771,7 @@ public class CommitLog {
             eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
             beginTimeInLock = 0;
         } finally {
-            releasePutMessageLock();
+            putMessageLock.unlock();
         }
 
 
@@ -861,7 +856,7 @@ public class CommitLog {
     }
 
     public boolean appendData(long startOffset, byte[] data) {
-        lockForPutMessage(); //spin...
+        putMessageLock.lock();
         try {
             MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(startOffset);
             if (null == mappedFile) {
@@ -871,7 +866,7 @@ public class CommitLog {
 
             return mappedFile.appendMessage(data);
         } finally {
-            releasePutMessageLock();
+            putMessageLock.unlock();
         }
     }
 
@@ -906,28 +901,7 @@ public class CommitLog {
         return diff;
     }
 
-    /**
-     * Spin util acquired the lock.
-     */
-    private void lockForPutMessage() {
-        if (this.defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage()) {
-            putMessageNormalLock.lock();
-        } else {
-            boolean flag;
-            do {
-                flag = this.putMessageSpinLock.compareAndSet(true, false);
-            }
-            while (!flag);
-        }
-    }
 
-    private void releasePutMessageLock() {
-        if (this.defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage()) {
-            putMessageNormalLock.unlock();
-        } else {
-            this.putMessageSpinLock.compareAndSet(false, true);
-        }
-    }
 
     public static class GroupCommitRequest {
         private final long nextOffset;

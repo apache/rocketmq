@@ -76,8 +76,7 @@
                 <role>committer</role>
             </roles>
             <email>vintagewang@apache.org</email>
-            <url>https://github.com/vintagewang</url>
-            <timezone>8</timezone>
+            <timezone>+8</timezone>
         </developer>
         <developer>
             <id>vongosling@apache.org</id>
@@ -87,14 +86,12 @@
                 <role>committer</role>
             </roles>
             <email>vongosling@apache.org</email>
-            <url>https://github.com/vongosling@apache.org</url>
             <timezone>+8</timezone>
         </developer>
         <developer>
             <id>yukon</id>
             <name>Xinyu Zhou</name>
             <email>yukon@@apache.org</email>
-            <url>https://github.com/zhouxinyu</url>
             <roles>
                 <role>committer</role>
             </roles>
@@ -104,7 +101,6 @@
             <id>stevenschew</id>
             <name>Wei Zhou</name>
             <email>stevenschew@@apache.org</email>
-            <url>https://github.com/stevenschew</url>
             <roles>
                 <role>committer</role>
             </roles>
@@ -114,7 +110,6 @@
             <id>lollipop</id>
             <name>Jixiang Jin</name>
             <email>lollipop@apache.org</email>
-            <url>https://github.com/lollipopjin</url>
             <roles>
                 <role>committer</role>
             </roles>
@@ -124,12 +119,21 @@
             <id>lizhanhui</id>
             <name>Zhanhui Li</name>
             <email>lizhanhui@apache.org</email>
-            <url>https://github.com/lizhanhui</url>
             <roles>
                 <role>committer</role>
             </roles>
             <timezone>+8</timezone>
         </developer>
+        <developer>
+            <id>dongeforever</id>
+            <name>dongeforever</name>
+            <email>dongeforever@apache.org</email>
+            <roles>
+                <role>committer</role>
+            </roles>
+            <timezone>+8</timezone>
+        </developer>
+
     </developers>
 
     <licenses>
@@ -177,12 +181,14 @@
         <module>store</module>
         <module>namesrv</module>
         <module>remoting</module>
+        <module>logappender</module>
         <module>example</module>
         <module>filtersrv</module>
         <module>srvutil</module>
         <module>filter</module>
         <module>test</module>
         <module>distribution</module>
+        <module>openmessaging</module>
     </modules>
 
     <build>
@@ -618,6 +624,21 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>19.0</version>
+            </dependency>
+            <dependency>
+                <groupId>io.openmessaging</groupId>
+                <artifactId>openmessaging-api</artifactId>
+                <version>0.1.0-alpha</version>
+            </dependency>
+            <dependency>
+                <groupId>log4j</groupId>
+                <artifactId>log4j</artifactId>
+                <version>1.2.17</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>2.7</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

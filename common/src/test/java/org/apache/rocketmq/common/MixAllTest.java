@@ -21,6 +21,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
+import java.nio.ByteOrder;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Test;
@@ -64,6 +68,22 @@ public class MixAllTest {
         out.close();
         String string = MixAll.file2String(fileName);
         assertThat(string).isEqualTo("TestForMixAll");
+        file.delete();
+    }
+
+    @Test
+    public void testFile2String_WithChinese() throws IOException {
+        String fileName = System.getProperty("java.io.tmpdir") + File.separator + "MixAllTest" + System.currentTimeMillis();
+        File file = new File(fileName);
+        if (file.exists()) {
+            file.delete();
+        }
+        file.createNewFile();
+        PrintWriter out = new PrintWriter(fileName);
+        out.write("TestForMixAll_中文");
+        out.close();
+        String string = MixAll.file2String(fileName);
+        assertThat(string).isEqualTo("TestForMixAll_中文");
         file.delete();
     }
 
