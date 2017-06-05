@@ -23,6 +23,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -34,6 +35,7 @@ import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import java.net.SocketAddress;
+import java.security.cert.CertificateException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +51,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import javax.net.ssl.SSLException;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -119,6 +122,18 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 return new Thread(r, String.format("NettyClientSelector_%d", this.threadIndex.incrementAndGet()));
             }
         });
+
+        if (NettySystemConfig.enableSSL) {
+            try {
+                sslContext = SslHelper.buildSslContext(true);
+                log.info("SSL enabled for client");
+            } catch (SSLException e) {
+                log.error("Failed to create SSLContext", e);
+            } catch (CertificateException e) {
+                log.error("Failed to create SSLContext", e);
+                throw new RuntimeException("Failed to create SSLContext", e);
+            }
+        }
     }
 
     private static int initValueIndex() {
@@ -150,7 +165,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
-                    ch.pipeline().addLast(
+                    ChannelPipeline pipeline = ch.pipeline();
+
+                    if (null != sslContext) {
+                        pipeline.addLast(defaultEventExecutorGroup, sslContext.newHandler(ch.alloc()));
+                    }
+
+                    pipeline.addLast(
                         defaultEventExecutorGroup,
                         new NettyEncoder(),
                         new NettyDecoder(),

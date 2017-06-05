@@ -20,6 +20,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.ssl.SslContext;
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -86,6 +87,11 @@ public abstract class NettyRemotingAbstract {
      * The default request processor to use in case there is no exact match in {@link #processorTable} per request code.
      */
     protected Pair<NettyRequestProcessor, ExecutorService> defaultRequestProcessor;
+
+    /**
+     * SSL Context.
+     */
+    protected SslContext sslContext;
 
     /**
      * Constructor, specifying capacity of one-way and asynchronous semaphores.

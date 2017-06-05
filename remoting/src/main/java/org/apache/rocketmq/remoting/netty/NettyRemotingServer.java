@@ -24,6 +24,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.epoll.Epoll;
@@ -37,12 +38,14 @@ import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import java.net.InetSocketAddress;
+import java.security.cert.CertificateException;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.net.ssl.SSLException;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -128,6 +131,19 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 }
             });
         }
+
+        if (NettySystemConfig.enableSSL) {
+            try {
+                sslContext = SslHelper.buildSslContext(false);
+                log.info("SSL enabled for server");
+            } catch (CertificateException e) {
+                log.error("Failed to create SSLContext for server", e);
+                throw new RuntimeException(e);
+            } catch (SSLException e) {
+                log.error("Failed to create SSLContext for server", e);
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     private boolean useEpoll() {
@@ -163,7 +179,14 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) throws Exception {
-                        ch.pipeline().addLast(
+                        ChannelPipeline pipeline = ch.pipeline();
+                        if (null != sslContext) {
+                            pipeline.addLast(defaultEventExecutorGroup,
+                                sslContext.newHandler(ch.alloc()),
+                                new FileRegionEncoder());
+                        }
+
+                        pipeline.addLast(
                             defaultEventExecutorGroup,
                             new NettyEncoder(),
                             new NettyDecoder(),
