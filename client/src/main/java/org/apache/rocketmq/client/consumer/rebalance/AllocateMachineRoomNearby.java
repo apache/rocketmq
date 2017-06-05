@@ -38,12 +38,20 @@ public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
     private final Logger log = ClientLogger.getLog();
 
     private final AllocateMessageQueueStrategy allocateMessageQueueStrategy;//actual allocate strategy
-    private final MachineRoomSelector machineRoomSelector;
+    private final MachineRoomResolver machineRoomResolver;
 
     public AllocateMachineRoomNearby(AllocateMessageQueueStrategy allocateMessageQueueStrategy,
-        MachineRoomSelector machineRoomSelector) {
+        MachineRoomResolver machineRoomResolver) throws NullPointerException {
+        if (allocateMessageQueueStrategy == null) {
+            throw new NullPointerException("allocateMessageQueueStrategy is null");
+        }
+
+        if (machineRoomResolver == null) {
+            throw new NullPointerException("machineRoomResolver is null");
+        }
+
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
-        this.machineRoomSelector = machineRoomSelector;
+        this.machineRoomResolver = machineRoomResolver;
     }
 
     @Override
@@ -69,9 +77,9 @@ public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
         }
 
         //group mq by machine room
-        Map<String, List<MessageQueue>> mr2Mq = new TreeMap<String, List<MessageQueue>>();
+        Map<String/*machine room */, List<MessageQueue>> mr2Mq = new TreeMap<String, List<MessageQueue>>();
         for (MessageQueue mq : mqAll) {
-            String brokerMachineRoom = machineRoomSelector.brokerDeployIn(mq);
+            String brokerMachineRoom = machineRoomResolver.brokerDeployIn(mq);
             if (StringUtils.isNoneEmpty(brokerMachineRoom)) {
                 if (mr2Mq.get(brokerMachineRoom) == null) {
                     mr2Mq.put(brokerMachineRoom, new ArrayList<MessageQueue>());
@@ -83,9 +91,9 @@ public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
         }
 
         //group consumer by machine room
-        Map<String, List<String>> mr2c = new TreeMap<String, List<String>>();
+        Map<String/*machine room */, List<String/*clientId*/>> mr2c = new TreeMap<String, List<String>>();
         for (String cid : cidAll) {
-            String consumerMachineRoom = machineRoomSelector.consumerDeployIn(cid);
+            String consumerMachineRoom = machineRoomResolver.consumerDeployIn(cid);
             if (StringUtils.isNoneEmpty(consumerMachineRoom)) {
                 if (mr2c.get(consumerMachineRoom) == null) {
                     mr2c.put(consumerMachineRoom, new ArrayList<String>());
@@ -99,7 +107,7 @@ public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
         List<MessageQueue> allocateResults = new ArrayList<MessageQueue>();
 
         //1.allocate the mq that deploy in the same machine room with the current consumer
-        String currentMachineRoom = machineRoomSelector.consumerDeployIn(currentCID);
+        String currentMachineRoom = machineRoomResolver.consumerDeployIn(currentCID);
         List<MessageQueue> mqInThisMachineRoom = mr2Mq.remove(currentMachineRoom);
         List<String> consumerInThisMachineRoom = mr2c.get(currentMachineRoom);
         if (mqInThisMachineRoom != null && !mqInThisMachineRoom.isEmpty()) {
@@ -121,7 +129,14 @@ public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
         return "MACHINE_ROOM_NEARBY" + "-" + allocateMessageQueueStrategy.getName();
     }
 
-    public interface MachineRoomSelector {
+    /**
+     * A resolver object to determine which machine room do the message queues or clients are deployed in.
+     *
+     * AllocateMachineRoomNearby will use the results to group the message queues and clients by machine room.
+     *
+     * The result returned from the implemented method CANNOT be null.
+     */
+    public interface MachineRoomResolver {
         String brokerDeployIn(MessageQueue messageQueue);
 
         String consumerDeployIn(String clientID);

@@ -35,7 +35,7 @@ public class AllocateMachineRoomNearByTest {
     private static final String CID_PREFIX = "CID-";
 
     private final String topic = "topic_test";
-    private final AllocateMachineRoomNearby.MachineRoomSelector machineRoomSelector =  new AllocateMachineRoomNearby.MachineRoomSelector() {
+    private final AllocateMachineRoomNearby.MachineRoomResolver machineRoomResolver =  new AllocateMachineRoomNearby.MachineRoomResolver() {
         @Override public String brokerDeployIn(MessageQueue messageQueue) {
             return messageQueue.getBrokerName().split("-")[0];
         }
@@ -44,7 +44,7 @@ public class AllocateMachineRoomNearByTest {
             return clientID.split("-")[0];
         }
     };
-    private final AllocateMessageQueueStrategy allocateMessageQueueStrategy = new AllocateMachineRoomNearby(new AllocateMessageQueueAveragely(),machineRoomSelector);
+    private final AllocateMessageQueueStrategy allocateMessageQueueStrategy = new AllocateMachineRoomNearby(new AllocateMessageQueueAveragely(), machineRoomResolver);
 
 
     @Before
@@ -112,7 +112,7 @@ public class AllocateMachineRoomNearByTest {
                 System.out.println("cid: "+currentID+"--> res :" +res);
             }
             for (MessageQueue mq : res) {
-                Assert.assertTrue(machineRoomSelector.brokerDeployIn(mq).equals(machineRoomSelector.consumerDeployIn(currentID)));
+                Assert.assertTrue(machineRoomResolver.brokerDeployIn(mq).equals(machineRoomResolver.consumerDeployIn(currentID)));
             }
             resAll.addAll(res);
         }
@@ -131,7 +131,7 @@ public class AllocateMachineRoomNearByTest {
         List<String> cidAll = prepareConsumer(brokerIDCSize +consumerMore, consumerSize);
         List<MessageQueue> mqAll = prepareMQ(brokerIDCSize, queueSize);
         for (MessageQueue mq : mqAll) {
-            brokerIDCWithConsumer.add(machineRoomSelector.brokerDeployIn(mq));
+            brokerIDCWithConsumer.add(machineRoomResolver.brokerDeployIn(mq));
         }
 
         List<MessageQueue> resAll = new ArrayList<MessageQueue>();
@@ -141,8 +141,8 @@ public class AllocateMachineRoomNearByTest {
                 System.out.println("cid: "+currentID+"--> res :" +res);
             }
             for (MessageQueue mq : res) {
-                if (brokerIDCWithConsumer.contains(machineRoomSelector.brokerDeployIn(mq))) {//healthy idc, so only consumer in this idc should be allocated
-                    Assert.assertTrue(machineRoomSelector.brokerDeployIn(mq).equals(machineRoomSelector.consumerDeployIn(currentID)));
+                if (brokerIDCWithConsumer.contains(machineRoomResolver.brokerDeployIn(mq))) {//healthy idc, so only consumer in this idc should be allocated
+                    Assert.assertTrue(machineRoomResolver.brokerDeployIn(mq).equals(machineRoomResolver.consumerDeployIn(currentID)));
                 }
             }
             resAll.addAll(res);
@@ -162,13 +162,13 @@ public class AllocateMachineRoomNearByTest {
         List<String> cidAll = prepareConsumer(brokerIDCSize - consumerIDCLess, consumerSize);
         List<MessageQueue> mqAll = prepareMQ(brokerIDCSize, queueSize);
         for (String cid : cidAll) {
-            healthyIDC.add(machineRoomSelector.consumerDeployIn(cid));
+            healthyIDC.add(machineRoomResolver.consumerDeployIn(cid));
         }
 
         List<MessageQueue> resAll = new ArrayList<MessageQueue>();
         Map<String, List<MessageQueue>> idc2Res = new TreeMap<String, List<MessageQueue>>();
         for (String currentID : cidAll) {
-            String currentIDC = machineRoomSelector.consumerDeployIn(currentID);
+            String currentIDC = machineRoomResolver.consumerDeployIn(currentID);
             List<MessageQueue> res = allocateMessageQueueStrategy.allocate("Test-C-G",currentID,mqAll,cidAll);
             if (print) {
                 System.out.println("cid: "+currentID+"--> res :" +res);
