@@ -50,13 +50,13 @@ public class BroadCastNormalMsgNotRecvIT extends BaseBroadCastIT {
     }
 
     @Test
-    public void testNotConsumeAfterConsume() {
+    public void testNotConsumeAfterConsume() throws Exception {
         int msgSize = 16;
 
         String group = initConsumerGroup();
         RMQBroadCastConsumer consumer1 = getBroadCastConsumer(nsAddr, group, topic, "*",
             new RMQNormalListner(group + "_1"));
-
+        Thread.sleep(3000);
         producer.send(msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
 

@@ -80,6 +80,7 @@ public class AsyncSendWithMessageQueueSelectorIT extends BaseConf {
 
         producer.clearMsg();
         consumer.clearMsg();
+        producer.getSuccessSendResult().clear();
 
         producer.asyncSend(msgSize, new MessageQueueSelector() {
             @Override
