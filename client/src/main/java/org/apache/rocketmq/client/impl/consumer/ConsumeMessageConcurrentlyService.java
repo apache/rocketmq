@@ -30,15 +30,16 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.ConsumeReturnType;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrentlyV2;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.hook.ConsumeMessageContext;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.stat.ConsumerStatsManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.consumer.AcknowledgementMode;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -52,7 +53,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     private static final Logger log = ClientLogger.getLog();
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
     private final DefaultMQPushConsumer defaultMQPushConsumer;
-    private final MessageListenerConcurrently messageListener;
+    private final MessageListenerConcurrentlyV2 messageListener;
     private final BlockingQueue<Runnable> consumeRequestQueue;
     private final ThreadPoolExecutor consumeExecutor;
     private final String consumerGroup;
@@ -61,7 +62,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     private final ScheduledExecutorService cleanExpireMsgExecutors;
 
     public ConsumeMessageConcurrentlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
-        MessageListenerConcurrently messageListener) {
+                                             MessageListenerConcurrentlyV2 messageListener) {
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
         this.messageListener = messageListener;
 
@@ -315,10 +316,15 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 break;
         }
 
-        long offset = consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMsgs());
-        if (offset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
-            this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(), offset, true);
+        ackMessages(consumeRequest.getMsgs(), consumeRequest.getProcessQueue(), consumeRequest.getMessageQueue(), false);
+    }
+
+    public void ackMessages(List<MessageExt> msgs, ProcessQueue processQueue, MessageQueue messageQueue, boolean persitNow) {
+        long offset = processQueue.removeMessage(msgs);
+        if (offset >= 0 && !processQueue.isDropped()) {
+            this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(messageQueue, offset, true);
         }
+        if (persitNow) this.defaultMQPushConsumerImpl.getOffsetStore().persist(messageQueue);
     }
 
     public ConsumerStatsManager getConsumerStatsManager() {
@@ -391,9 +397,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 return;
             }
 
-            MessageListenerConcurrently listener = ConsumeMessageConcurrentlyService.this.messageListener;
+            MessageListenerConcurrentlyV2 listener = ConsumeMessageConcurrentlyService.this.messageListener;
             ConsumeConcurrentlyContext context = new ConsumeConcurrentlyContext(messageQueue);
             ConsumeConcurrentlyStatus status = null;
+            final AcknowledgementMode acknowledgementMode = listener.acknowledgementMode();
 
             ConsumeMessageContext consumeMessageContext = null;
             if (ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.hasHook()) {
@@ -461,13 +468,21 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             ConsumeMessageConcurrentlyService.this.getConsumerStatsManager()
                 .incConsumeRT(ConsumeMessageConcurrentlyService.this.consumerGroup, messageQueue.getTopic(), consumeRT);
 
-            if (!processQueue.isDropped()) {
-                ConsumeMessageConcurrentlyService.this.processConsumeResult(status, context, this);
-            } else {
-                log.warn("processQueue is dropped without process consume result. messageQueue={}, msgs={}", messageQueue, msgs);
+
+            if (acknowledgementMode == AcknowledgementMode.DUPS_OK_ACKNOWLEDGE || acknowledgementMode == AcknowledgementMode.AUTO_CLIENT_ACKNOWLEDGE) {
+                if (!processQueue.isDropped()) {
+                    if (acknowledgementMode == AcknowledgementMode.DUPS_OK_ACKNOWLEDGE) {
+                        ConsumeMessageConcurrentlyService.this.processConsumeResult(status, context, this);
+                    } else if (acknowledgementMode == AcknowledgementMode.AUTO_CLIENT_ACKNOWLEDGE) {
+                        ConsumeMessageConcurrentlyService.this.processConsumeResult(status, context, this);
+                        defaultMQPushConsumerImpl.getOffsetStore().persist(messageQueue);
+                    }
+
+                } else {
+                    log.warn("processQueue is dropped without process consume result. messageQueue={}, msgs={}, acknowledgementMode={}", messageQueue, msgs, acknowledgementMode);
+                }
             }
         }
-
         public MessageQueue getMessageQueue() {
             return messageQueue;
         }
