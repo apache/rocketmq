@@ -46,9 +46,9 @@ public class TopicConfigManager extends ConfigManager {
     private transient final Lock lockTopicConfigTable = new ReentrantLock();
 
     private final ConcurrentMap<String, TopicConfig> topicConfigTable =
-        new ConcurrentHashMap<String, TopicConfig>(1024);
+            new ConcurrentHashMap<>(1024);
     private final DataVersion dataVersion = new DataVersion();
-    private final Set<String> systemTopicList = new HashSet<String>();
+    private final Set<String> systemTopicList = new HashSet<>();
     private transient BrokerController brokerController;
 
     public TopicConfigManager() {

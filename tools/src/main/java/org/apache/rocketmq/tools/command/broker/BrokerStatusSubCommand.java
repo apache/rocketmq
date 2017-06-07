@@ -95,7 +95,7 @@ public class BrokerStatusSubCommand implements SubCommand {
         final boolean printBroker) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(brokerAddr);
 
-        TreeMap<String, String> tmp = new TreeMap<String, String>();
+        TreeMap<String, String> tmp = new TreeMap<>();
         tmp.putAll(kvTable.getTable());
 
         Iterator<Entry<String, String>> it = tmp.entrySet().iterator();

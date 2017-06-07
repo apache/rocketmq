@@ -40,7 +40,7 @@ public class FilterServerManager {
     public static final long FILTER_SERVER_MAX_IDLE_TIME_MILLS = 30000;
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final ConcurrentMap<Channel, FilterServerInfo> filterServerTable =
-        new ConcurrentHashMap<Channel, FilterServerInfo>(16);
+            new ConcurrentHashMap<>(16);
     private final BrokerController brokerController;
 
     private ScheduledExecutorService scheduledExecutorService = Executors

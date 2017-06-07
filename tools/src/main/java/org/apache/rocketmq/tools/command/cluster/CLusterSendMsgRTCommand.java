@@ -113,7 +113,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
                 .getOptionValue('m').trim();
 
             if (commandLine.hasOption('c')) {
-                clusterNames = new TreeSet<String>();
+                clusterNames = new TreeSet<>();
                 clusterNames.add(commandLine.getOptionValue('c').trim());
             } else {
                 clusterNames = clusterAddr.keySet();

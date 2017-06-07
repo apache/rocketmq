@@ -50,11 +50,11 @@ public class StoreStatsService extends ServiceThread {
     private final AtomicLong getMessageTimesTotalFound = new AtomicLong(0);
     private final AtomicLong getMessageTransferedMsgCount = new AtomicLong(0);
     private final AtomicLong getMessageTimesTotalMiss = new AtomicLong(0);
-    private final LinkedList<CallSnapshot> putTimesList = new LinkedList<CallSnapshot>();
+    private final LinkedList<CallSnapshot> putTimesList = new LinkedList<>();
 
-    private final LinkedList<CallSnapshot> getTimesFoundList = new LinkedList<CallSnapshot>();
-    private final LinkedList<CallSnapshot> getTimesMissList = new LinkedList<CallSnapshot>();
-    private final LinkedList<CallSnapshot> transferedMsgCountList = new LinkedList<CallSnapshot>();
+    private final LinkedList<CallSnapshot> getTimesFoundList = new LinkedList<>();
+    private final LinkedList<CallSnapshot> getTimesMissList = new LinkedList<>();
+    private final LinkedList<CallSnapshot> transferedMsgCountList = new LinkedList<>();
     private volatile AtomicLong[] putMessageDistributeTime;
     private long messageStoreBootTimestamp = System.currentTimeMillis();
     private volatile long putMessageEntireTimeMax = 0;
@@ -416,7 +416,7 @@ public class StoreStatsService extends ServiceThread {
     }
 
     public HashMap<String, String> getRuntimeInfo() {
-        HashMap<String, String> result = new HashMap<String, String>(64);
+        HashMap<String, String> result = new HashMap<>(64);
 
         Long totalTimes = getPutMessageTimesTotal();
         if (0 == totalTimes) {

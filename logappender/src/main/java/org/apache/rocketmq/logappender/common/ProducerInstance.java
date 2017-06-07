@@ -39,7 +39,7 @@ public class ProducerInstance {
 
     public static final String DEFAULT_GROUP = "rocketmq_appender";
 
-    private static ConcurrentHashMap<String, MQProducer> producerMap = new ConcurrentHashMap<String, MQProducer>();
+    private static ConcurrentHashMap<String, MQProducer> producerMap = new ConcurrentHashMap<>();
 
     private static String genKey(String nameServerAddress, String group) {
         return nameServerAddress + "_" + group;

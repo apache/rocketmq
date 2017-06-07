@@ -88,7 +88,7 @@ public class BrokerOuterAPI {
     }
 
     public void updateNameServerAddressList(final String addrs) {
-        List<String> lst = new ArrayList<String>();
+        List<String> lst = new ArrayList<>();
         String[] addrArray = addrs.split(";");
         for (String addr : addrArray) {
             lst.add(addr);
