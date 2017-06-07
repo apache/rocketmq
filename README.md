@@ -10,7 +10,7 @@ It offers a variety of features:
 * Pub/Sub messaging model
 * Reliable FIFO and strict sequential messaging in the same queue
 * Long pull queue model and push consumption style
-* Million-level message accumulation capacity in single queue
+* Million-level message accumulation capacity in a single queue
 * Useful messaging protocols like [JMS](http://docs.oracle.com/javaee/6/tutorial/doc/bncdq.html)
 * Distributed highly available deployment architecture, satisfy at least once the message delivery semantics
 * Docker images for isolated testing and cloud isolated clusters
