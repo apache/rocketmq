@@ -599,9 +599,24 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     class StartTlsHandler extends SimpleChannelInboundHandler<RemotingCommand> {
+
+        private long opaque;
+
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
-            ctx.fireChannelRead(msg);
+            if (opaque == msg.getOpaque()) {
+                if (msg.getCode() == RemotingSysResponseCode.SUCCESS) {
+                    if (null != sslContext) {
+                        ctx.pipeline().addFirst(defaultEventExecutorGroup, sslContext.newHandler(ctx.channel().alloc()));
+                    } else {
+                        log.error("SslContext is being null, unable to startTls");
+                    }
+                } else {
+                    log.error("Server fails to support StartTLS");
+                }
+            } else {
+                ctx.fireChannelRead(msg);
+            }
         }
 
         @Override
@@ -609,14 +624,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             if (nettyClientConfig.isStartTls()) {
                 log.info("Start to negotiate upgrading connection to TLS");
                 RemotingCommand request = RemotingCommand.createRequestCommand(RemotingSysRequestCode.START_TLS, null);
-                RemotingCommand response = invokeSyncImpl(ctx.channel(), request, nettyClientConfig.getConnectTimeoutMillis());
-                if (response.getCode() == RemotingSysResponseCode.SUCCESS) {
-                    if (null != sslContext) {
-                        ctx.pipeline().addFirst(defaultEventExecutorGroup, sslContext.newHandler(ctx.channel().alloc()));
-                    } else {
-                        log.error("SslContext is being null, unable to startTls");
-                    }
-                }
+                opaque = request.getOpaque();
+                ctx.writeAndFlush(request);
             }
             super.channelActive(ctx);
         }
