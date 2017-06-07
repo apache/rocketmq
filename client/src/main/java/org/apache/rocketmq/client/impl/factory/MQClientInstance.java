@@ -621,27 +621,13 @@ public class MQClientInstance {
                             {
                                 TopicPublishInfo publishInfo = topicRouteData2TopicPublishInfo(topic, topicRouteData);
                                 publishInfo.setHaveTopicRouterInfo(true);
-                                Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
-                                while (it.hasNext()) {
-                                    Entry<String, MQProducerInner> entry = it.next();
-                                    MQProducerInner impl = entry.getValue();
-                                    if (impl != null) {
-                                        impl.updateTopicPublishInfo(topic, publishInfo);
-                                    }
-                                }
+                                updatePubInfoTable(topic, publishInfo);
                             }
 
                             // Update sub info
                             {
                                 Set<MessageQueue> subscribeInfo = topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
-                                Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
-                                while (it.hasNext()) {
-                                    Entry<String, MQConsumerInner> entry = it.next();
-                                    MQConsumerInner impl = entry.getValue();
-                                    if (impl != null) {
-                                        impl.updateTopicSubscribeInfo(topic, subscribeInfo);
-                                    }
-                                }
+                                updateSubInfoTable(topic, subscribeInfo);
                             }
                             log.info("topicRouteTable.put. Topic = {}, TopicRouteData[{}]", topic, cloneTopicRouteData);
                             this.topicRouteTable.put(topic, cloneTopicRouteData);
@@ -667,6 +653,28 @@ public class MQClientInstance {
         }
 
         return false;
+    }
+
+    private void updateSubInfoTable(String topic, Set<MessageQueue> subscribeInfo) {
+        Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, MQConsumerInner> entry = it.next();
+            MQConsumerInner impl = entry.getValue();
+            if (impl != null) {
+                impl.updateTopicSubscribeInfo(topic, subscribeInfo);
+            }
+        }
+    }
+
+    private void updatePubInfoTable(String topic, TopicPublishInfo publishInfo) {
+        Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, MQProducerInner> entry = it.next();
+            MQProducerInner impl = entry.getValue();
+            if (impl != null) {
+                impl.updateTopicPublishInfo(topic, publishInfo);
+            }
+        }
     }
 
     private HeartbeatData prepareHeartbeatData() {

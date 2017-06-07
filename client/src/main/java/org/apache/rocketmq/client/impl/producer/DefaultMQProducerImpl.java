@@ -332,6 +332,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             if (prev != null) {
                 log.info("updateTopicPublishInfo prev is not null, " + prev.toString());
             }
+        } else if (info == null) { //remove
+            TopicPublishInfo prev = this.topicPublishInfoTable.remove(topic);
+            log.info("TopicPublishInfo for topic {} is remove, prev = {} ", topic, prev.toString());
         }
     }
 
@@ -569,7 +572,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
         }
 
-        if (topicPublishInfo.isHaveTopicRouterInfo() || topicPublishInfo.ok()) {
+        if (topicPublishInfo != null && (topicPublishInfo.isHaveTopicRouterInfo() || topicPublishInfo.ok())) {
             return topicPublishInfo;
         } else {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, true, this.defaultMQProducer);
