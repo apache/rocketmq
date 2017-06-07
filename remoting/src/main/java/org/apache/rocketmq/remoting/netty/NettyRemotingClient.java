@@ -546,10 +546,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     @Override
-    public boolean isChannelWriteable(String addr) {
+    public boolean isChannelWritable(String addr) {
         ChannelWrapper cw = this.channelTables.get(addr);
         if (cw != null && cw.isOK()) {
-            return cw.isWriteable();
+            return cw.isWritable();
         }
         return true;
     }
@@ -574,7 +574,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         return this.publicExecutor;
     }
 
-    static class ChannelWrapper {
+    class ChannelWrapper {
         private final ChannelFuture channelFuture;
 
         public ChannelWrapper(ChannelFuture channelFuture) {
@@ -585,7 +585,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             return this.channelFuture.channel() != null && this.channelFuture.channel().isActive();
         }
 
-        public boolean isWriteable() {
+        public boolean isWritable() {
             return this.channelFuture.channel().isWritable();
         }
 
@@ -601,6 +601,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     class StartTlsHandler extends SimpleChannelInboundHandler<RemotingCommand> {
 
         private long opaque;
+
+        public StartTlsHandler() {
+            opaque = -1;
+        }
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
