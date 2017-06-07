@@ -3,18 +3,18 @@
 [![GitHub release](https://img.shields.io/badge/release-download-orange.svg)](https://github.org/apache/rocketmqreleases)
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
-**[Apache RocketMQ](https://rocketmq.incubator.apache.org) is a low latency, reliable, scalable, easy to use message oriented middleware born from alibaba massive messaging business.**
+**[Apache RocketMQ](https://rocketmq.incubator.apache.org) is a open source distributed messaging and streaming data platform with low latency, highly reliability, trillion-level capacity, well-structed concurrency, flexible scalability.**
 
 It offers a variety of features as follows:
 
-* Pub/Sub and P2P messaging model
+* Pub/Sub messaging model
 * Reliable FIFO and strict sequential messaging in the same queue
-* Long pull queue model,also support push consumption style
+* Long pull queue model and push consumption style
 * Million message accumulation ability in single queue
-* Over a variety of messaging protocols.such as JMS,MQTT etc.
-* Distributed high available deploy architecture, meets at least once message delivery semantics
+* Useful messaging protocols like JMS
+* Distributed highly available deployment architecture, meeting at least one message delivery semantic
 * Docker images for isolated testing and cloud Isolated clusters
-* Feature-rich administrative dashboard for configuration,metrics and monitoring
+* Feature-rich administrative dashboard for configuration, metrics and monitoring
 
 ----------
 
@@ -30,12 +30,11 @@ It offers a variety of features as follows:
 
 ## Apache RocketMQ Community
 * [RocketMQ Community Incubator Projects](https://github.com/rocketmq)
-* [RocketMQ Community Projects](https://github.com/apache/incubator-rocketmq-externals)
 
 ----------
 
 ## Contributing
-We are always very happy to have contributions, whether for trivial cleanups,big new features or other material rewards. more details see [here](CONTRIBUTING.md) 
+We always welcome new contributions, whether for trivial cleanups, big new features or other material rewards. more details see [here](CONTRIBUTING.md) 
  
 ----------
 ## License
