@@ -3,9 +3,9 @@
 [![GitHub release](https://img.shields.io/badge/release-download-orange.svg)](https://github.org/apache/rocketmqreleases)
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
-**[Apache RocketMQ](https://rocketmq.incubator.apache.org) is a open source distributed messaging and streaming data platform with low latency, highly reliability, trillion-level capacity, well-structed concurrency, flexible scalability.**
+**[Apache RocketMQ](https://rocketmq.incubator.apache.org) is an open source distributed messaging and streaming data platform with low latency, high reliability, trillion-level capacity, well-structed concurrency and flexible scalability.**
 
-It offers a variety of features as follows:
+It offers a variety of features:
 
 * Pub/Sub messaging model
 * Reliable FIFO and strict sequential messaging in the same queue
