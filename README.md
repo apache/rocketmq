@@ -12,7 +12,7 @@ It offers a variety of features:
 * Long pull queue model and push consumption style
 * Million-level message accumulation capacity in single queue
 * Useful messaging protocols like [JMS](http://docs.oracle.com/javaee/6/tutorial/doc/bncdq.html)
-* Distributed highly available deployment architecture, meeting at least one message delivery semantic
+* Distributed highly available deployment architecture, satisfy at least once the message delivery semantics
 * Docker images for isolated testing and cloud isolated clusters
 * Feature-rich administrative dashboard for configuration, metrics and monitoring
 
