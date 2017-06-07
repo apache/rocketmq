@@ -38,6 +38,8 @@ public class NettyClientConfig {
     private boolean clientPooledByteBufAllocatorEnable = false;
     private boolean clientCloseSocketIfTimeout = false;
 
+    private boolean startTls;
+
     public boolean isClientCloseSocketIfTimeout() {
         return clientCloseSocketIfTimeout;
     }
@@ -124,5 +126,13 @@ public class NettyClientConfig {
 
     public void setClientPooledByteBufAllocatorEnable(boolean clientPooledByteBufAllocatorEnable) {
         this.clientPooledByteBufAllocatorEnable = clientPooledByteBufAllocatorEnable;
+    }
+
+    public boolean isStartTls() {
+        return startTls;
+    }
+
+    public void setStartTls(boolean startTls) {
+        this.startTls = startTls;
     }
 }

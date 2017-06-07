@@ -23,7 +23,6 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -64,6 +63,8 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RemotingSysRequestCode;
+import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -165,18 +166,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
-                    ChannelPipeline pipeline = ch.pipeline();
-
-                    if (null != sslContext) {
-                        pipeline.addLast(defaultEventExecutorGroup, sslContext.newHandler(ch.alloc()));
-                    }
-
-                    pipeline.addLast(
+                    ch.pipeline().addLast(
                         defaultEventExecutorGroup,
                         new NettyEncoder(),
                         new NettyDecoder(),
                         new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),
                         new NettyConnectManageHandler(),
+                        new StartTlsHandler(),
                         new NettyClientHandler());
                 }
             });
@@ -599,6 +595,30 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         public ChannelFuture getChannelFuture() {
             return channelFuture;
+        }
+    }
+
+    class StartTlsHandler extends SimpleChannelInboundHandler<RemotingCommand> {
+        @Override
+        protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
+            ctx.fireChannelRead(msg);
+        }
+
+        @Override
+        public void channelActive(ChannelHandlerContext ctx) throws Exception {
+            if (nettyClientConfig.isStartTls()) {
+                log.info("Start to negotiate upgrading connection to TLS");
+                RemotingCommand request = RemotingCommand.createRequestCommand(RemotingSysRequestCode.START_TLS, null);
+                RemotingCommand response = invokeSyncImpl(ctx.channel(), request, nettyClientConfig.getConnectTimeoutMillis());
+                if (response.getCode() == RemotingSysResponseCode.SUCCESS) {
+                    if (null != sslContext) {
+                        ctx.pipeline().addFirst(defaultEventExecutorGroup, sslContext.newHandler(ctx.channel().alloc()));
+                    } else {
+                        log.error("SslContext is being null, unable to startTls");
+                    }
+                }
+            }
+            super.channelActive(ctx);
         }
     }
 

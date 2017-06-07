@@ -17,7 +17,9 @@
 
 package org.apache.rocketmq.common.protocol;
 
-public class RequestCode {
+import org.apache.rocketmq.remoting.protocol.RemotingSysRequestCode;
+
+public class RequestCode extends RemotingSysRequestCode {
 
     public static final int SEND_MESSAGE = 10;
 

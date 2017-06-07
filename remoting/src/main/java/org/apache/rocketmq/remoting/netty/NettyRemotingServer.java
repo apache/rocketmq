@@ -21,10 +21,10 @@ import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.epoll.Epoll;
@@ -57,6 +57,9 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RemotingCommandType;
+import org.apache.rocketmq.remoting.protocol.RemotingSysRequestCode;
+import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -179,19 +182,13 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) throws Exception {
-                        ChannelPipeline pipeline = ch.pipeline();
-                        if (null != sslContext) {
-                            pipeline.addLast(defaultEventExecutorGroup,
-                                sslContext.newHandler(ch.alloc()),
-                                new FileRegionEncoder());
-                        }
-
-                        pipeline.addLast(
+                        ch.pipeline().addLast(
                             defaultEventExecutorGroup,
                             new NettyEncoder(),
                             new NettyDecoder(),
                             new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
                             new NettyConnectManageHandler(),
+                            new StartTlsHandler(),
                             new NettyServerHandler());
                     }
                 });
@@ -318,6 +315,41 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     @Override
     public ExecutorService getCallbackExecutor() {
         return this.publicExecutor;
+    }
+
+    class StartTlsHandler extends SimpleChannelInboundHandler<RemotingCommand> {
+
+        @Override
+        protected void channelRead0(final ChannelHandlerContext ctx, final RemotingCommand msg) throws Exception {
+            if (msg.getCode() == RemotingSysRequestCode.START_TLS && msg.getType() == RemotingCommandType.REQUEST_COMMAND) {
+                log.info("{} negotiates to upgrade connection to TLS", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                if (null != sslContext) {
+                    RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SUCCESS, "OK");
+                    response.setOpaque(msg.getOpaque());
+                    ctx.writeAndFlush(response).addListener(new ChannelFutureListener() {
+                        @Override
+                        public void operationComplete(ChannelFuture future) throws Exception {
+                            if (future.isSuccess()) {
+                                ctx.pipeline().addFirst(defaultEventExecutorGroup,
+                                    sslContext.newHandler(ctx.channel().alloc()),
+                                    new FileRegionEncoder());
+                                log.info("SSL handler prepended to channel pipeline");
+                            } else {
+                                log.warn("Failed to send negotiation result to remote peer");
+                            }
+                        }
+                    });
+                } else {
+                    log.warn("Upgrading failed due to sslContext is being null");
+                    RemotingCommand response = RemotingCommand
+                            .createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, "TLS not supported");
+                    response.setOpaque(msg.getOpaque());
+                    ctx.writeAndFlush(response);
+                }
+            } else {
+                ctx.fireChannelRead(msg);
+            }
+        }
     }
 
     class NettyServerHandler extends SimpleChannelInboundHandler<RemotingCommand> {
