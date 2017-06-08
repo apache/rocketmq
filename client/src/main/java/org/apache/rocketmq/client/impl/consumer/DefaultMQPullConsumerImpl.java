@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
@@ -115,7 +115,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             throw new IllegalArgumentException("topic is null");
         }
 
-        ConcurrentHashMap<MessageQueue, ProcessQueue> mqTable = this.rebalanceImpl.getProcessQueueTable();
+        ConcurrentMap<MessageQueue, ProcessQueue> mqTable = this.rebalanceImpl.getProcessQueueTable();
         Set<MessageQueue> mqResult = new HashSet<MessageQueue>();
         for (MessageQueue mq : mqTable.keySet()) {
             if (mq.getTopic().equals(topic)) {

@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.broker.filter;
 
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
@@ -45,7 +46,7 @@ public class ConsumerFilterManager extends ConfigManager {
 
     private static final long MS_24_HOUR = 24 * 3600 * 1000;
 
-    private ConcurrentHashMap<String/*Topic*/, FilterDataMapByTopic>
+    private ConcurrentMap<String/*Topic*/, FilterDataMapByTopic>
         filterDataByTopic = new ConcurrentHashMap<String/*consumer group*/, FilterDataMapByTopic>(256);
 
     private transient BrokerController brokerController;
@@ -316,7 +317,7 @@ public class ConsumerFilterManager extends ConfigManager {
         }
     }
 
-    public ConcurrentHashMap<String, FilterDataMapByTopic> getFilterDataByTopic() {
+    public ConcurrentMap<String, FilterDataMapByTopic> getFilterDataByTopic() {
         return filterDataByTopic;
     }
 
@@ -326,7 +327,7 @@ public class ConsumerFilterManager extends ConfigManager {
 
     public static class FilterDataMapByTopic {
 
-        private ConcurrentHashMap<String/*consumer group*/, ConsumerFilterData>
+        private ConcurrentMap<String/*consumer group*/, ConsumerFilterData>
             groupFilterData = new ConcurrentHashMap<String, ConsumerFilterData>();
 
         private String topic;
@@ -452,7 +453,7 @@ public class ConsumerFilterManager extends ConfigManager {
             return this.groupFilterData.get(consumerGroup);
         }
 
-        public final ConcurrentHashMap<String, ConsumerFilterData> getGroupFilterData() {
+        public final ConcurrentMap<String, ConsumerFilterData> getGroupFilterData() {
             return this.groupFilterData;
         }
 

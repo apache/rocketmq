@@ -127,6 +127,7 @@ public class IntegrationTestBase {
         brokerConfig.setBrokerName(BROKER_NAME_PREFIX + BROKER_INDEX.getAndIncrement());
         brokerConfig.setBrokerIP1("127.0.0.1");
         brokerConfig.setNamesrvAddr(nsAddr);
+        brokerConfig.setEnablePropertyFilter(true);
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + SEP + "commitlog");
         storeConfig.setHaListenPort(8000 + random.nextInt(1000));

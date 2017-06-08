@@ -95,6 +95,28 @@ public class AbstractListener extends MQCollector implements MessageListener {
         return sendMsgs;
     }
 
+    public long waitForMessageConsume(int size,
+        int timeoutMills) {
+
+        long curTime = System.currentTimeMillis();
+        while (true) {
+            if (msgBodys.getDataSize() >= size) {
+                break;
+            }
+            if (System.currentTimeMillis() - curTime >= timeoutMills) {
+                logger.error(String.format("timeout but  [%s]  not recv all send messages!",
+                    listnerName));
+                break;
+            } else {
+                logger.info(String.format("[%s] still [%s] msg not recv!", listnerName,
+                    size - msgBodys.getDataSize()));
+                TestUtil.waitForMonment(500);
+            }
+        }
+
+        return msgBodys.getDataSize();
+    }
+
     public void waitForMessageConsume(Map<Object, Object> sendMsgIndex, int timeoutMills) {
         Collection<Object> notRecvMsgs = waitForMessageConsume(sendMsgIndex.keySet(), timeoutMills);
         for (Object object : notRecvMsgs) {

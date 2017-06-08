@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
@@ -1084,7 +1084,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         GetConsumeStatsInBrokerHeader requestHeader =
             (GetConsumeStatsInBrokerHeader) request.decodeCommandCustomHeader(GetConsumeStatsInBrokerHeader.class);
         boolean isOrder = requestHeader.isOrder();
-        ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptionGroups =
+        ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroups =
             brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable();
 
         List<Map<String/* subscriptionGroupName */, List<ConsumeStats>>> brokerConsumeStatsList =
