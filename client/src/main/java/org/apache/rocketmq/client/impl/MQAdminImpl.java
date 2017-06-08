@@ -287,6 +287,7 @@ public class MQAdminImpl {
 
             if (!brokerAddrs.isEmpty()) {
                 final CountDownLatch countDownLatch = new CountDownLatch(brokerAddrs.size());
+                final ReadWriteLock lock = new ReentrantReadWriteLock();
                 final List<QueryResult> queryResultList = new LinkedList<QueryResult>();
                 final ReadWriteLock lock = new ReentrantReadWriteLock(false);
 
