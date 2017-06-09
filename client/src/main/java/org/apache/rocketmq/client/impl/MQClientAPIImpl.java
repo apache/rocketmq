@@ -1189,7 +1189,7 @@ public class MQClientAPIImpl {
         switch (response.getCode()) {
             case ResponseCode.TOPIC_NOT_EXIST: {
                 // TODO LOG
-                break;
+                return null;
             }
             case ResponseCode.SUCCESS: {
                 byte[] body = response.getBody();
@@ -1217,7 +1217,7 @@ public class MQClientAPIImpl {
             case ResponseCode.TOPIC_NOT_EXIST: {
                 if (!topic.equals(MixAll.DEFAULT_TOPIC))
                     log.warn("get Topic [{}] RouteInfoFromNameServer is not exist value", topic);
-                break;
+                return null;
             }
             case ResponseCode.SUCCESS: {
                 byte[] body = response.getBody();

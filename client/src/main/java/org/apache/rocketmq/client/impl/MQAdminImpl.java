@@ -79,6 +79,10 @@ public class MQAdminImpl {
     public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
         try {
             TopicRouteData topicRouteData = this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(key, timeoutMillis);
+            if (topicRouteData == null) { // auto create topic key does not exist
+                throw new MQClientException("Not found broker for auto create topic key " + key, null);
+            }
+
             List<BrokerData> brokerDataList = topicRouteData.getBrokerDatas();
             if (brokerDataList != null && !brokerDataList.isEmpty()) {
                 Collections.sort(brokerDataList);

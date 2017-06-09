@@ -1075,9 +1075,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         List<QueueTimeSpan> queueTimeSpan = new ArrayList<QueueTimeSpan>();
         TopicRouteData routeData = this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(topic, 3000);
-        for (BrokerData brokerData : routeData.getBrokerDatas()) {
-            String addr = brokerData.selectBrokerAddr();
-            queueTimeSpan.addAll(this.mQClientFactory.getMQClientAPIImpl().queryConsumeTimeSpan(addr, topic, groupName(), 3000));
+        if (routeData != null) {
+            for (BrokerData brokerData : routeData.getBrokerDatas()) {
+                String addr = brokerData.selectBrokerAddr();
+                queueTimeSpan.addAll(this.mQClientFactory.getMQClientAPIImpl().queryConsumeTimeSpan(addr, topic, groupName(), 3000));
+            }
         }
 
         return queueTimeSpan;

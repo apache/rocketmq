@@ -648,7 +648,9 @@ public class MQClientInstance {
                             return true;
                         }
                     } else {
-                        log.warn("updateTopicRouteInfoFromNameServer, getTopicRouteInfoFromNameServer return null, Topic: {}", topic);
+                        updatePubInfoTable(topic, null);
+                        updateSubInfoTable(topic, null);
+                        this.topicRouteTable.remove(topic);
                     }
                 } catch (Exception e) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) && !topic.equals(MixAll.DEFAULT_TOPIC)) {
