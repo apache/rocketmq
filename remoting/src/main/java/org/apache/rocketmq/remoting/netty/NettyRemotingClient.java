@@ -23,6 +23,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -43,7 +44,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -65,8 +65,6 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.remoting.protocol.RemotingSysRequestCode;
-import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -168,13 +166,17 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
-                    ch.pipeline().addLast(
+                    ChannelPipeline pipeline = ch.pipeline();
+                    if (nettyClientConfig.isUseTLS() && null != sslContext) {
+                        pipeline.addFirst(defaultEventExecutorGroup, "sslHandler", sslContext.newHandler(ch.alloc()));
+                        log.info("Prepend SSL handler");
+                    }
+                    pipeline.addLast(
                         defaultEventExecutorGroup,
                         new NettyEncoder(),
                         new NettyDecoder(),
                         new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),
                         new NettyConnectManageHandler(),
-                        new StartTlsHandler(),
                         new NettyClientHandler());
                 }
             });
@@ -394,7 +396,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         String addr = this.namesrvAddrChoosed.get();
         if (addr != null) {
             ChannelWrapper cw = this.channelTables.get(addr);
-            if (cw != null && cw.isOK() && cw.awaitStartTLS()) {
+            if (cw != null && cw.isOK()) {
                 return cw.getChannel();
             }
         }
@@ -405,7 +407,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 addr = this.namesrvAddrChoosed.get();
                 if (addr != null) {
                     ChannelWrapper cw = this.channelTables.get(addr);
-                    if (cw != null && cw.isOK() && cw.awaitStartTLS()) {
+                    if (cw != null && cw.isOK()) {
                         return cw.getChannel();
                     }
                 }
@@ -439,12 +441,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private Channel createChannel(final String addr) throws InterruptedException {
         ChannelWrapper cw = this.channelTables.get(addr);
         if (cw != null && cw.isOK()) {
-            if (cw.awaitStartTLS()) {
-                return cw.getChannel();
-            } else {
-                cw.getChannel().close();
-                channelTables.remove(addr);
-            }
+            cw.getChannel().close();
+            channelTables.remove(addr);
         }
 
         if (this.lockChannelTables.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
@@ -454,13 +452,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 if (cw != null) {
 
                     if (cw.isOK()) {
-                        if (cw.awaitStartTLS()) {
-                            return cw.getChannel();
-                        } else {
-                            cw.getChannel().close();
-                            this.channelTables.remove(addr);
-                            createNewConnection = true;
-                        }
+                        cw.getChannel().close();
+                        this.channelTables.remove(addr);
+                        createNewConnection = true;
                     } else if (!cw.getChannelFuture().isDone()) {
                         createNewConnection = false;
                     } else {
@@ -474,11 +468,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 if (createNewConnection) {
                     ChannelFuture channelFuture = this.bootstrap.connect(RemotingHelper.string2SocketAddress(addr));
                     log.info("createChannel: begin to connect remote host[{}] asynchronously", addr);
-                    CountDownLatch countDownLatch = null;
-                    if (nettyClientConfig.isStartTls()) {
-                        countDownLatch = new CountDownLatch(1);
-                    }
-                    cw = new ChannelWrapper(channelFuture, countDownLatch);
+                    cw = new ChannelWrapper(channelFuture);
                     this.channelTables.put(addr, cw);
                 }
             } catch (Exception e) {
@@ -495,9 +485,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             if (channelFuture.awaitUninterruptibly(this.nettyClientConfig.getConnectTimeoutMillis())) {
                 if (cw.isOK()) {
                     log.info("createChannel: connect remote host[{}] success, {}", addr, channelFuture.toString());
-                    if (cw.awaitStartTLS()) {
-                        return cw.getChannel();
-                    }
+                    return cw.getChannel();
                 } else {
                     log.warn("createChannel: connect remote host[" + addr + "] failed, " + channelFuture.toString(), channelFuture.cause());
                 }
@@ -593,13 +581,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         return this.publicExecutor;
     }
 
-    class ChannelWrapper {
+    static class ChannelWrapper {
         private final ChannelFuture channelFuture;
-        private final CountDownLatch countDownLatch;
 
-        public ChannelWrapper(ChannelFuture channelFuture, final CountDownLatch countDownLatch) {
+        public ChannelWrapper(ChannelFuture channelFuture) {
             this.channelFuture = channelFuture;
-            this.countDownLatch = countDownLatch;
         }
 
         public boolean isOK() {
@@ -614,70 +600,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             return this.channelFuture.channel();
         }
 
-        public boolean awaitStartTLS() {
-            try {
-                if (null != countDownLatch) {
-                    return countDownLatch.await(nettyClientConfig.getConnectTimeoutMillis(), TimeUnit.MILLISECONDS);
-                }
-            } catch (InterruptedException e) {
-                log.error("Waiting StartTLS interrupted.", e);
-                return false;
-            }
-
-            return true;
-        }
-
         public ChannelFuture getChannelFuture() {
             return channelFuture;
-        }
-
-        public CountDownLatch getCountDownLatch() {
-            return countDownLatch;
-        }
-    }
-
-    class StartTlsHandler extends SimpleChannelInboundHandler<RemotingCommand> {
-
-        private long opaque;
-
-        public StartTlsHandler() {
-            opaque = -1;
-        }
-
-        @Override
-        protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
-            if (opaque == msg.getOpaque()) {
-                if (msg.getCode() == RemotingSysResponseCode.SUCCESS) {
-                    if (null != sslContext) {
-                        ctx.pipeline().addFirst(defaultEventExecutorGroup, sslContext.newHandler(ctx.channel().alloc()));
-                    } else {
-                        log.error("SslContext is being null, unable to startTls");
-                    }
-                } else {
-                    log.error("Server fails to support StartTLS");
-                }
-
-                // TODO: Use a faster to look up the corresponding ChannelWrapper
-                for (ConcurrentMap.Entry<String, ChannelWrapper> next : channelTables.entrySet()) {
-                    if (next.getValue().getChannelFuture().channel().equals(ctx.channel())) {
-                        next.getValue().getCountDownLatch().countDown();
-                        log.info("TLS connection to {} is ready and operating", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-                    }
-                }
-            } else {
-                ctx.fireChannelRead(msg);
-            }
-        }
-
-        @Override
-        public void channelActive(ChannelHandlerContext ctx) throws Exception {
-            if (nettyClientConfig.isStartTls()) {
-                log.info("Start to negotiate upgrading connection to TLS");
-                RemotingCommand request = RemotingCommand.createRequestCommand(RemotingSysRequestCode.START_TLS, null);
-                opaque = request.getOpaque();
-                ctx.writeAndFlush(request);
-            }
-            super.channelActive(ctx);
         }
     }
 

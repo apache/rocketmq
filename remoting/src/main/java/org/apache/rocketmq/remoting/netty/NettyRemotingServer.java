@@ -17,11 +17,11 @@
 package org.apache.rocketmq.remoting.netty;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -57,9 +57,6 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.remoting.protocol.RemotingCommandType;
-import org.apache.rocketmq.remoting.protocol.RemotingSysRequestCode;
-import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,6 +76,10 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private RPCHook rpcHook;
 
     private int port = 0;
+
+    private static final String HANDSHAKE_HANDLER_NAME = "handshakeHandler";
+    private static final String TLS_HANDLER_NAME = "sslHandler";
+    private static final String FILE_REGION_ENCODER_NAME = "fileRegionEncoder";
 
     public NettyRemotingServer(final NettyServerConfig nettyServerConfig) {
         this(nettyServerConfig, null);
@@ -182,14 +183,15 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) throws Exception {
-                        ch.pipeline().addLast(
-                            defaultEventExecutorGroup,
-                            new NettyEncoder(),
-                            new NettyDecoder(),
-                            new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
-                            new NettyConnectManageHandler(),
-                            new StartTlsHandler(),
-                            new NettyServerHandler());
+                        ch.pipeline()
+                            .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, new HandshakeHandler())
+                            .addLast(defaultEventExecutorGroup,
+                                new NettyEncoder(),
+                                new NettyDecoder(),
+                                new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
+                                new NettyConnectManageHandler(),
+                                new NettyServerHandler()
+                            );
                     }
                 });
 
@@ -317,38 +319,39 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         return this.publicExecutor;
     }
 
-    class StartTlsHandler extends SimpleChannelInboundHandler<RemotingCommand> {
+    class HandshakeHandler extends SimpleChannelInboundHandler<ByteBuf> {
+
+        private static final byte HANDSHAKE_MAGIC_CODE = 0x16;
 
         @Override
-        protected void channelRead0(final ChannelHandlerContext ctx, final RemotingCommand msg) throws Exception {
-            if (msg.getCode() == RemotingSysRequestCode.START_TLS && msg.getType() == RemotingCommandType.REQUEST_COMMAND) {
-                log.info("{} negotiates to upgrade connection to TLS", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+        protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
+
+            // mark the current position so that we can peek the first byte to determine if the content is starting with
+            // TLS handshake
+            msg.markReaderIndex();
+
+            byte b = msg.getByte(0);
+
+            if (b == HANDSHAKE_MAGIC_CODE) {
                 if (null != sslContext) {
-                    RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SUCCESS, "OK");
-                    response.setOpaque(msg.getOpaque());
-                    ctx.writeAndFlush(response).addListener(new ChannelFutureListener() {
-                        @Override
-                        public void operationComplete(ChannelFuture future) throws Exception {
-                            if (future.isSuccess()) {
-                                ctx.pipeline().addFirst(defaultEventExecutorGroup,
-                                    sslContext.newHandler(ctx.channel().alloc()),
-                                    new FileRegionEncoder());
-                                log.info("SSL handler prepended to channel pipeline");
-                            } else {
-                                log.warn("Failed to send negotiation result to remote peer");
-                            }
-                        }
-                    });
+                    ctx.pipeline()
+                        .addAfter(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, TLS_HANDLER_NAME, sslContext.newHandler(ctx.channel().alloc()))
+                        .addAfter(defaultEventExecutorGroup, TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
+                    log.info("SSL handler prepended to channel pipeline");
                 } else {
-                    log.warn("Upgrading failed due to sslContext is being null");
-                    RemotingCommand response = RemotingCommand
-                            .createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, "TLS not supported");
-                    response.setOpaque(msg.getOpaque());
-                    ctx.writeAndFlush(response);
+                    ctx.close();
+                    log.error("Requiring SSL handler but sslContext is being null");
                 }
-            } else {
-                ctx.fireChannelRead(msg);
             }
+
+            // reset the reader index so that handshake negotiation may proceed as normal.
+            msg.resetReaderIndex();
+
+            // Remove this handler
+            ctx.pipeline().remove(HANDSHAKE_HANDLER_NAME);
+
+            // Hand over this message to the next .
+            ctx.fireChannelRead(msg.retain());
         }
     }
 
