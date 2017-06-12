@@ -22,10 +22,18 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.FileRegion;
 import io.netty.handler.codec.MessageToByteEncoder;
 
+import io.netty.handler.ssl.SslHandler;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 
+/**
+ * <p>
+ *     By default, file region are directly transferred to socket channel which is known as zero copy. In case we need
+ *     to encrypt transmission, data being sent should go through the {@link SslHandler}. This encoder ensures this
+ *     process.
+ * </p>
+ */
 public class FileRegionEncoder extends MessageToByteEncoder<FileRegion> {
 
     /**
