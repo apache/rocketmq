@@ -66,7 +66,9 @@ public class FileRegionEncoder extends MessageToByteEncoder<FileRegion> {
         };
 
         while (true) {
-            if (msg.transferTo(writableByteChannel, 0) == 0) {
+            long position = msg.transfered();
+            msg.transferTo(writableByteChannel, position);
+            if (msg.count() == 0) {
                 break;
             }
         }
