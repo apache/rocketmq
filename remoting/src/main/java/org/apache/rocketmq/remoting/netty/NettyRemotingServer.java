@@ -17,6 +17,7 @@
 package org.apache.rocketmq.remoting.netty;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
@@ -37,12 +38,14 @@ import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import java.net.InetSocketAddress;
+import java.security.cert.CertificateException;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.net.ssl.SSLException;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -73,6 +76,10 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private RPCHook rpcHook;
 
     private int port = 0;
+
+    private static final String HANDSHAKE_HANDLER_NAME = "handshakeHandler";
+    private static final String TLS_HANDLER_NAME = "sslHandler";
+    private static final String FILE_REGION_ENCODER_NAME = "fileRegionEncoder";
 
     public NettyRemotingServer(final NettyServerConfig nettyServerConfig) {
         this(nettyServerConfig, null);
@@ -128,6 +135,19 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 }
             });
         }
+
+        if (NettySystemConfig.enableSSL) {
+            try {
+                sslContext = SslHelper.buildSslContext(false);
+                log.info("SSL enabled for server");
+            } catch (CertificateException e) {
+                log.error("Failed to create SSLContext for server", e);
+                throw new RuntimeException(e);
+            } catch (SSLException e) {
+                log.error("Failed to create SSLContext for server", e);
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     private boolean useEpoll() {
@@ -163,13 +183,15 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) throws Exception {
-                        ch.pipeline().addLast(
-                            defaultEventExecutorGroup,
-                            new NettyEncoder(),
-                            new NettyDecoder(),
-                            new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
-                            new NettyConnectManageHandler(),
-                            new NettyServerHandler());
+                        ch.pipeline()
+                            .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, new HandshakeHandler())
+                            .addLast(defaultEventExecutorGroup,
+                                new NettyEncoder(),
+                                new NettyDecoder(),
+                                new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
+                                new NettyConnectManageHandler(),
+                                new NettyServerHandler()
+                            );
                     }
                 });
 
@@ -295,6 +317,42 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     @Override
     public ExecutorService getCallbackExecutor() {
         return this.publicExecutor;
+    }
+
+    class HandshakeHandler extends SimpleChannelInboundHandler<ByteBuf> {
+
+        private static final byte HANDSHAKE_MAGIC_CODE = 0x16;
+
+        @Override
+        protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
+
+            // mark the current position so that we can peek the first byte to determine if the content is starting with
+            // TLS handshake
+            msg.markReaderIndex();
+
+            byte b = msg.getByte(0);
+
+            if (b == HANDSHAKE_MAGIC_CODE) {
+                if (null != sslContext) {
+                    ctx.pipeline()
+                        .addAfter(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, TLS_HANDLER_NAME, sslContext.newHandler(ctx.channel().alloc()))
+                        .addAfter(defaultEventExecutorGroup, TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
+                    log.info("SSL handler prepended to channel pipeline");
+                } else {
+                    ctx.close();
+                    log.error("Requiring SSL handler but sslContext is being null");
+                }
+            }
+
+            // reset the reader index so that handshake negotiation may proceed as normal.
+            msg.resetReaderIndex();
+
+            // Remove this handler
+            ctx.pipeline().remove(HANDSHAKE_HANDLER_NAME);
+
+            // Hand over this message to the next .
+            ctx.fireChannelRead(msg.retain());
+        }
     }
 
     class NettyServerHandler extends SimpleChannelInboundHandler<RemotingCommand> {
