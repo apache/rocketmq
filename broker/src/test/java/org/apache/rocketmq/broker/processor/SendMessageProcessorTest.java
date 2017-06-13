@@ -181,7 +181,7 @@ public class SendMessageProcessorTest {
         SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
         requestHeader.setProducerGroup(group);
         requestHeader.setTopic(topic);
-        requestHeader.setDefaultTopic(MixAll.DEFAULT_TOPIC);
+        requestHeader.setDefaultTopic(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC);
         requestHeader.setDefaultTopicQueueNums(3);
         requestHeader.setQueueId(1);
         requestHeader.setSysFlag(0);
