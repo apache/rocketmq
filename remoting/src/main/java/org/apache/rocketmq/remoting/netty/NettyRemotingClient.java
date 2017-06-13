@@ -23,6 +23,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -34,6 +35,7 @@ import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import java.net.SocketAddress;
+import java.security.cert.CertificateException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +52,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import javax.net.ssl.SSLException;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -120,6 +123,18 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 return new Thread(r, String.format("NettyClientSelector_%d", this.threadIndex.incrementAndGet()));
             }
         });
+
+        if (NettySystemConfig.enableSSL) {
+            try {
+                sslContext = SslHelper.buildSslContext(true);
+                log.info("SSL enabled for client");
+            } catch (SSLException e) {
+                log.error("Failed to create SSLContext", e);
+            } catch (CertificateException e) {
+                log.error("Failed to create SSLContext", e);
+                throw new RuntimeException("Failed to create SSLContext", e);
+            }
+        }
     }
 
     private static int initValueIndex() {
@@ -151,7 +166,12 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
-                    ch.pipeline().addLast(
+                    ChannelPipeline pipeline = ch.pipeline();
+                    if (nettyClientConfig.isUseTLS() && null != sslContext) {
+                        pipeline.addFirst(defaultEventExecutorGroup, "sslHandler", sslContext.newHandler(ch.alloc()));
+                        log.info("Prepend SSL handler");
+                    }
+                    pipeline.addLast(
                         defaultEventExecutorGroup,
                         new NettyEncoder(),
                         new NettyDecoder(),
@@ -421,17 +441,20 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private Channel createChannel(final String addr) throws InterruptedException {
         ChannelWrapper cw = this.channelTables.get(addr);
         if (cw != null && cw.isOK()) {
-            return cw.getChannel();
+            cw.getChannel().close();
+            channelTables.remove(addr);
         }
 
         if (this.lockChannelTables.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
             try {
-                boolean createNewConnection = false;
+                boolean createNewConnection;
                 cw = this.channelTables.get(addr);
                 if (cw != null) {
 
                     if (cw.isOK()) {
-                        return cw.getChannel();
+                        cw.getChannel().close();
+                        this.channelTables.remove(addr);
+                        createNewConnection = true;
                     } else if (!cw.getChannelFuture().isDone()) {
                         createNewConnection = false;
                     } else {
@@ -530,10 +553,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     @Override
-    public boolean isChannelWriteable(String addr) {
+    public boolean isChannelWritable(String addr) {
         ChannelWrapper cw = this.channelTables.get(addr);
         if (cw != null && cw.isOK()) {
-            return cw.isWriteable();
+            return cw.isWritable();
         }
         return true;
     }
@@ -569,7 +592,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             return this.channelFuture.channel() != null && this.channelFuture.channel().isActive();
         }
 
-        public boolean isWriteable() {
+        public boolean isWritable() {
             return this.channelFuture.channel().isWritable();
         }
 
