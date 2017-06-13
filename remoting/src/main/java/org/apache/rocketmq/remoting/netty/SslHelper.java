@@ -18,6 +18,7 @@
 package org.apache.rocketmq.remoting.netty;
 
 import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.OpenSsl;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
@@ -58,15 +59,18 @@ public class SslHelper {
             }
         }
 
+        SslProvider provider = OpenSsl.isAvailable() ? SslProvider.OPENSSL : SslProvider.JDK;
+
         if (forClient) {
             if (testMode) {
                 return SslContextBuilder
                     .forClient()
+                    .sslProvider(SslProvider.JDK)
                     .trustManager(InsecureTrustManagerFactory.INSTANCE)
                     .build();
             } else {
                 return SslContextBuilder.forClient()
-                    .sslProvider(SslProvider.OPENSSL)
+                    .sslProvider(provider)
                     .trustManager(new File(properties.getProperty("trustManager")))
                     .keyManager(
                         properties.containsKey("client.keyCertChainFile") ? new File(properties.getProperty("client.keyCertChainFile")) : null,
@@ -80,6 +84,7 @@ public class SslHelper {
                 SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
                 return SslContextBuilder
                     .forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
+                    .sslProvider(SslProvider.JDK)
                     .clientAuth(ClientAuth.OPTIONAL)
                     .build();
             } else {
@@ -87,7 +92,7 @@ public class SslHelper {
                     properties.containsKey("server.keyCertChainFile") ? new File(properties.getProperty("server.keyCertChainFile")) : null,
                     properties.containsKey("server.keyFile") ? new File(properties.getProperty("server.key")) : null,
                     properties.containsKey("server.password") ? properties.getProperty("server.password") : null)
-                    .sslProvider(SslProvider.OPENSSL)
+                    .sslProvider(provider)
                     .trustManager(new File(properties.getProperty("server.trustManager")))
                     .clientAuth(parseClientAuthMode(properties.getProperty("server.auth.client")))
                     .build();
