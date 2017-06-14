@@ -71,10 +71,10 @@ public class SslHelper {
             } else {
                 return SslContextBuilder.forClient()
                     .sslProvider(provider)
-                    .trustManager(new File(properties.getProperty("trustManager")))
+                    .trustManager(new File(properties.getProperty("client.trustManager")))
                     .keyManager(
                         properties.containsKey("client.keyCertChainFile") ? new File(properties.getProperty("client.keyCertChainFile")) : null,
-                        properties.containsKey("client.keyFile") ? new File(properties.getProperty("client.key")) : null,
+                        properties.containsKey("client.keyFile") ? new File(properties.getProperty("client.keyFile")) : null,
                         properties.containsKey("client.password") ? properties.getProperty("client.password") : null)
                     .build();
             }
@@ -90,7 +90,7 @@ public class SslHelper {
             } else {
                 return SslContextBuilder.forServer(
                     properties.containsKey("server.keyCertChainFile") ? new File(properties.getProperty("server.keyCertChainFile")) : null,
-                    properties.containsKey("server.keyFile") ? new File(properties.getProperty("server.key")) : null,
+                    properties.containsKey("server.keyFile") ? new File(properties.getProperty("server.keyFile")) : null,
                     properties.containsKey("server.password") ? properties.getProperty("server.password") : null)
                     .sslProvider(provider)
                     .trustManager(new File(properties.getProperty("server.trustManager")))
