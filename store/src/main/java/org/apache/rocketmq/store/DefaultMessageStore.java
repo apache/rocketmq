@@ -1340,13 +1340,13 @@ public class DefaultMessageStore implements MessageStore {
         // 非事务消息 或 事务提交消息 建立 消息位置信息 到 ConsumeQueue
         final int tranType = MessageSysFlag.getTransactionValue(req.getSysFlag());
         switch (tranType) {
-            case MessageSysFlag.TRANSACTION_NOT_TYPE:
-            case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
+            case MessageSysFlag.TRANSACTION_NOT_TYPE: // 非事务消息
+            case MessageSysFlag.TRANSACTION_COMMIT_TYPE: // 事务消息COMMIT
                 DefaultMessageStore.this.putMessagePositionInfo(req.getTopic(), req.getQueueId(), req.getCommitLogOffset(), req.getMsgSize(),
                     req.getTagsCode(), req.getStoreTimestamp(), req.getConsumeQueueOffset());
                 break;
-            case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
-            case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
+            case MessageSysFlag.TRANSACTION_PREPARED_TYPE: // 事务消息PREPARED
+            case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE: // 事务消息ROLLBACK
                 break;
         }
         // 建立 索引信息 到 IndexFile

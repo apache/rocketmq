@@ -17,9 +17,17 @@
 
 package org.apache.rocketmq.broker.transaction;
 
+/**
+ * 事务记录
+ */
 public class TransactionRecord {
-    // Commit Log Offset
+    /**
+     * Commit Log Offset
+     */
     private long offset;
+    /**
+     * producerGroup
+     */
     private String producerGroup;
 
     public long getOffset() {
