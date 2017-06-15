@@ -21,6 +21,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslHandler;
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -90,7 +91,7 @@ public abstract class NettyRemotingAbstract {
     protected Pair<NettyRequestProcessor, ExecutorService> defaultRequestProcessor;
 
     /**
-     * SSL Context.
+     * SSL context via which to create {@link SslHandler}.
      */
     protected SslContext sslContext;
 
