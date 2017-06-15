@@ -25,6 +25,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.epoll.Epoll;
@@ -39,6 +40,7 @@ import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import java.net.InetSocketAddress;
 import java.security.cert.CertificateException;
+import java.util.NoSuchElementException;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
@@ -53,6 +55,7 @@ import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.common.Pair;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.common.SslMode;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
@@ -136,16 +139,17 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             });
         }
 
-        if (NettySystemConfig.enableSSL) {
+        SslMode sslMode = NettySystemConfig.sslMode;
+        log.info("Server is running in TLS {} mode", sslMode.getName());
+
+        if (sslMode != SslMode.DISABLED) {
             try {
                 sslContext = SslHelper.buildSslContext(false);
-                log.info("SSL enabled for server");
+                log.info("SSLContext created for server");
             } catch (CertificateException e) {
                 log.error("Failed to create SSLContext for server", e);
-                throw new RuntimeException(e);
             } catch (SSLException e) {
                 log.error("Failed to create SSLContext for server", e);
-                throw new RuntimeException(e);
             }
         }
     }
@@ -184,7 +188,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     @Override
                     public void initChannel(SocketChannel ch) throws Exception {
                         ch.pipeline()
-                            .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, new HandshakeHandler())
+                            .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME,
+                                new HandshakeHandler(NettySystemConfig.sslMode))
                             .addLast(defaultEventExecutorGroup,
                                 new NettyEncoder(),
                                 new NettyDecoder(),
@@ -321,7 +326,13 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     class HandshakeHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
+        private final SslMode sslMode;
+
         private static final byte HANDSHAKE_MAGIC_CODE = 0x16;
+
+        HandshakeHandler(SslMode sslMode) {
+            this.sslMode = sslMode;
+        }
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
@@ -333,22 +344,42 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             byte b = msg.getByte(0);
 
             if (b == HANDSHAKE_MAGIC_CODE) {
-                if (null != sslContext) {
-                    ctx.pipeline()
-                        .addAfter(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, TLS_HANDLER_NAME, sslContext.newHandler(ctx.channel().alloc()))
-                        .addAfter(defaultEventExecutorGroup, TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
-                    log.info("SSL handler prepended to channel pipeline");
-                } else {
-                    ctx.close();
-                    log.error("Requiring SSL handler but sslContext is being null");
+                switch (sslMode) {
+                    case DISABLED:
+                        ctx.close();
+                        log.warn("Clients intend to establish a SSL connection while this server is running in SSL disabled mode");
+                        break;
+                    case PERMISSIVE:
+                    case ENFORCING:
+                        if (null != sslContext) {
+                            ctx.pipeline()
+                                .addAfter(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, TLS_HANDLER_NAME, sslContext.newHandler(ctx.channel().alloc()))
+                                .addAfter(defaultEventExecutorGroup, TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
+                            log.info("Handlers prepended to channel pipeline to establish SSL connection");
+                        } else {
+                            ctx.close();
+                            log.error("Trying to establish a SSL connection but sslContext is null");
+                        }
+                        break;
+
+                    default:
+                        log.warn("Unknown TLS mode");
+                        break;
                 }
+            } else if (sslMode == SslMode.ENFORCING) {
+                ctx.close();
+                log.warn("Clients intend to establish an insecure connection while this server is running in SSL enforcing mode");
             }
 
             // reset the reader index so that handshake negotiation may proceed as normal.
             msg.resetReaderIndex();
 
-            // Remove this handler
-            ctx.pipeline().remove(HANDSHAKE_HANDLER_NAME);
+            try {
+                // Remove this handler
+                ctx.pipeline().remove(this);
+            } catch (NoSuchElementException e) {
+                log.error("Error while removing HandshakeHandler", e);
+            }
 
             // Hand over this message to the next .
             ctx.fireChannelRead(msg.retain());

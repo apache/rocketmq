@@ -60,6 +60,7 @@ import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.common.Pair;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.common.SslMode;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -124,7 +125,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         });
 
-        if (NettySystemConfig.enableSSL) {
+        if (nettyClientConfig.isUseTLS()) {
             try {
                 sslContext = SslHelper.buildSslContext(true);
                 log.info("SSL enabled for client");
@@ -167,9 +168,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
                     ChannelPipeline pipeline = ch.pipeline();
-                    if (nettyClientConfig.isUseTLS() && null != sslContext) {
-                        pipeline.addFirst(defaultEventExecutorGroup, "sslHandler", sslContext.newHandler(ch.alloc()));
-                        log.info("Prepend SSL handler");
+                    if (nettyClientConfig.isUseTLS()) {
+                        if (null != sslContext) {
+                            pipeline.addFirst(defaultEventExecutorGroup, "sslHandler", sslContext.newHandler(ch.alloc()));
+                            log.info("Prepend SSL handler");
+                        } else {
+                            log.warn("Connections are insecure as SSLContext is null!");
+                        }
                     }
                     pipeline.addLast(
                         defaultEventExecutorGroup,
