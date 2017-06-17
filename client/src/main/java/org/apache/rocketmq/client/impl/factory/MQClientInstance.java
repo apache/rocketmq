@@ -933,7 +933,7 @@ public class MQClientInstance {
                     break;
 
                 }
-            }  // end of for
+            } // end of for
         }
 
         if (found) {
