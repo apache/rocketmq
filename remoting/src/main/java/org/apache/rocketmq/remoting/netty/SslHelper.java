@@ -32,8 +32,13 @@ import java.io.InputStream;
 import java.security.cert.CertificateException;
 import java.util.Properties;
 import javax.net.ssl.SSLException;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SslHelper {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
     public static SslContext buildSslContext(boolean forClient) throws SSLException, CertificateException {
 
@@ -59,7 +64,14 @@ public class SslHelper {
             }
         }
 
-        SslProvider provider = OpenSsl.isAvailable() ? SslProvider.OPENSSL : SslProvider.JDK;
+        SslProvider provider = null;
+        if (OpenSsl.isAvailable()) {
+            provider = SslProvider.OPENSSL;
+            LOGGER.info("Using OpenSSL provider");
+        } else {
+            provider = SslProvider.JDK;
+            LOGGER.info("Using JDK SSL provider");
+        }
 
         if (forClient) {
             if (testMode) {
@@ -70,7 +82,7 @@ public class SslHelper {
                     .build();
             } else {
                 return SslContextBuilder.forClient()
-                    .sslProvider(provider)
+                    .sslProvider(SslProvider.JDK)
                     .trustManager(new File(properties.getProperty("client.trustManager")))
                     .keyManager(
                         properties.containsKey("client.keyCertChainFile") ? new File(properties.getProperty("client.keyCertChainFile")) : null,
