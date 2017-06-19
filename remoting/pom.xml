@@ -48,10 +48,9 @@
 
         <dependency>
             <groupId>io.netty</groupId>
-            <artifactId>netty-tcnative-boringssl-static</artifactId>
-            <version>2.0.0.Final</version>
+            <artifactId>netty-tcnative</artifactId>
+            <version>1.1.33.Fork22</version>
             <classifier>${os.detected.classifier}</classifier>
-            <optional>true</optional>
         </dependency>
     </dependencies>
 
