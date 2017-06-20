@@ -202,7 +202,7 @@ public class RouteInfoManager {
         queueData.setWriteQueueNums(topicConfig.getWriteQueueNums());
         queueData.setReadQueueNums(topicConfig.getReadQueueNums());
         queueData.setPerm(topicConfig.getPerm());
-        queueData.setTopicSynFlag(topicConfig.getTopicSysFlag());
+        queueData.setTopicSysFlag(topicConfig.getTopicSysFlag());
 
         List<QueueData> queueDataList = this.topicQueueTable.get(topicConfig.getTopicName());
         if (null == queueDataList) {
@@ -670,7 +670,7 @@ public class RouteInfoManager {
                     String topic = topicEntry.getKey();
                     List<QueueData> queueDatas = topicEntry.getValue();
                     if (queueDatas != null && queueDatas.size() > 0
-                        && TopicSysFlag.hasUnitFlag(queueDatas.get(0).getTopicSynFlag())) {
+                        && TopicSysFlag.hasUnitFlag(queueDatas.get(0).getTopicSysFlag())) {
                         topicList.getTopicList().add(topic);
                     }
                 }
@@ -696,7 +696,7 @@ public class RouteInfoManager {
                     String topic = topicEntry.getKey();
                     List<QueueData> queueDatas = topicEntry.getValue();
                     if (queueDatas != null && queueDatas.size() > 0
-                        && TopicSysFlag.hasUnitSubFlag(queueDatas.get(0).getTopicSynFlag())) {
+                        && TopicSysFlag.hasUnitSubFlag(queueDatas.get(0).getTopicSysFlag())) {
                         topicList.getTopicList().add(topic);
                     }
                 }
@@ -722,8 +722,8 @@ public class RouteInfoManager {
                     String topic = topicEntry.getKey();
                     List<QueueData> queueDatas = topicEntry.getValue();
                     if (queueDatas != null && queueDatas.size() > 0
-                        && !TopicSysFlag.hasUnitFlag(queueDatas.get(0).getTopicSynFlag())
-                        && TopicSysFlag.hasUnitSubFlag(queueDatas.get(0).getTopicSynFlag())) {
+                        && !TopicSysFlag.hasUnitFlag(queueDatas.get(0).getTopicSysFlag())
+                        && TopicSysFlag.hasUnitSubFlag(queueDatas.get(0).getTopicSysFlag())) {
                         topicList.getTopicList().add(topic);
                     }
                 }
