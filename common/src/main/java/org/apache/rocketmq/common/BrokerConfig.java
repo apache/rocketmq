@@ -99,6 +99,8 @@ public class BrokerConfig {
 
     private boolean traceOn = true;
 
+    private int listenPort = -1;
+
     public static String localHostName() {
         try {
             return InetAddress.getLocalHost().getHostName();
@@ -115,6 +117,14 @@ public class BrokerConfig {
 
     public void setTraceOn(final boolean traceOn) {
         this.traceOn = traceOn;
+    }
+
+    public int getListenPort() {
+        return listenPort;
+    }
+
+    public void setListenPort(int listenPort) {
+        this.listenPort = listenPort;
     }
 
     public long getStartAcceptSendRequestTimeStamp() {

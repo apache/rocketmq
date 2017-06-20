@@ -95,7 +95,11 @@ public class BrokerStartup {
             final BrokerConfig brokerConfig = new BrokerConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
             final NettyClientConfig nettyClientConfig = new NettyClientConfig();
-            nettyServerConfig.setListenPort(10911);
+            int port = 10911;
+            if(brokerConfig.getListenPort() != -1) {
+                port = brokerConfig.getListenPort();
+            }
+            nettyServerConfig.setListenPort(port);
             final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
 
             if (BrokerRole.SLAVE == messageStoreConfig.getBrokerRole()) {
