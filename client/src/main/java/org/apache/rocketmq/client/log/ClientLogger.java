@@ -36,7 +36,7 @@ public class ClientLogger {
         log = createLogger(LoggerName.CLIENT_LOGGER_NAME);
     }
 
-    public static Class getLogClass(){
+    public static Class getLogClass() {
         return logClass;
     }
 
