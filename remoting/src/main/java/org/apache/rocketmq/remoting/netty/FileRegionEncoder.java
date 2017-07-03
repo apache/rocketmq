@@ -65,12 +65,14 @@ public class FileRegionEncoder extends MessageToByteEncoder<FileRegion> {
             }
         };
 
+        long toTransfer = msg.count();
+
         while (true) {
-            long position = msg.transfered();
-            msg.transferTo(writableByteChannel, position);
-            if (msg.count() == 0) {
+            long transferred = msg.transfered();
+            if (toTransfer - transferred <= 0) {
                 break;
             }
+            msg.transferTo(writableByteChannel, transferred);
         }
     }
 }
