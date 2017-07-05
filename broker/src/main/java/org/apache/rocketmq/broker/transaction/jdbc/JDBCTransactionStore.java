@@ -63,7 +63,7 @@ public class JDBCTransactionStore implements TransactionStore {
 
                 return true;
             } catch (SQLException e) {
-                log.info("Create JDBC Connection Exeption", e);
+                log.info("Create JDBC Connection Exception", e);
             }
         }
 

@@ -19,44 +19,44 @@ package org.apache.rocketmq.common.help;
 public class FAQUrl {
 
     public static final String APPLY_TOPIC_URL = //
-        "http://docs.aliyun.com/cn#/pub/ons/faq/exceptions&topic_not_exist";
+        "http://rocketmq.apache.org/docs/faq/";
 
     public static final String NAME_SERVER_ADDR_NOT_EXIST_URL = //
-        "http://docs.aliyun.com/cn#/pub/ons/faq/exceptions&namesrv_not_exist";
+        "http://rocketmq.apache.org/docs/faq/";
 
     public static final String GROUP_NAME_DUPLICATE_URL = //
-        "http://docs.aliyun.com/cn#/pub/ons/faq/exceptions&group_duplicate";
+        "http://rocketmq.apache.org/docs/faq/";
 
     public static final String CLIENT_PARAMETER_CHECK_URL = //
-        "http://docs.aliyun.com/cn#/pub/ons/faq/exceptions&parameter_check_failed";
+        "http://rocketmq.apache.org/docs/faq/";
 
     public static final String SUBSCRIPTION_GROUP_NOT_EXIST = //
-        "http://docs.aliyun.com/cn#/pub/ons/faq/exceptions&subGroup_not_exist";
+        "http://rocketmq.apache.org/docs/faq/";
 
     public static final String CLIENT_SERVICE_NOT_OK = //
-        "http://docs.aliyun.com/cn#/pub/ons/faq/exceptions&service_not_ok";
+        "http://rocketmq.apache.org/docs/faq/";
 
     // FAQ: No route info of this topic, TopicABC
     public static final String NO_TOPIC_ROUTE_INFO = //
-        "http://docs.aliyun.com/cn#/pub/ons/faq/exceptions&topic_not_exist";
+        "http://rocketmq.apache.org/docs/faq/";
 
     public static final String LOAD_JSON_EXCEPTION = //
-        "http://docs.aliyun.com/cn#/pub/ons/faq/exceptions&load_json_exception";
+        "http://rocketmq.apache.org/docs/faq/";
 
     public static final String SAME_GROUP_DIFFERENT_TOPIC = //
-        "http://docs.aliyun.com/cn#/pub/ons/faq/exceptions&subscription_exception";
+        "http://rocketmq.apache.org/docs/faq/";
 
     public static final String MQLIST_NOT_EXIST = //
-        "http://docs.aliyun.com/cn#/pub/ons/faq/exceptions&queue_not_exist";
+        "http://rocketmq.apache.org/docs/faq/";
 
     public static final String UNEXPECTED_EXCEPTION_URL = //
-        "http://docs.aliyun.com/cn#/pub/ons/faq/exceptions&unexpected_exception";
+        "http://rocketmq.apache.org/docs/faq/";
 
     public static final String SEND_MSG_FAILED = //
-        "http://docs.aliyun.com/cn#/pub/ons/faq/exceptions&send_msg_failed";
+        "http://rocketmq.apache.org/docs/faq/";
 
     public static final String UNKNOWN_HOST_EXCEPTION = //
-        "http://docs.aliyun.com/cn#/pub/ons/faq/exceptions&unknown_host";
+        "http://rocketmq.apache.org/docs/faq/";
 
     private static final String TIP_STRING_BEGIN = "\nSee ";
     private static final String TIP_STRING_END = " for further details.";

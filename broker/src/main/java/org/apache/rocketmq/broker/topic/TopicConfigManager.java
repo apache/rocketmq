@@ -16,13 +16,13 @@
  */
 package org.apache.rocketmq.broker.topic;
 
-import java.io.File;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -45,7 +45,7 @@ public class TopicConfigManager extends ConfigManager {
     private static final long LOCK_TIMEOUT_MILLIS = 3000;
     private transient final Lock lockTopicConfigTable = new ReentrantLock();
 
-    private final ConcurrentHashMap<String, TopicConfig> topicConfigTable =
+    private final ConcurrentMap<String, TopicConfig> topicConfigTable =
         new ConcurrentHashMap<String, TopicConfig>(1024);
     private final DataVersion dataVersion = new DataVersion();
     private final Set<String> systemTopicList = new HashSet<String>();
@@ -383,9 +383,8 @@ public class TopicConfigManager extends ConfigManager {
 
     @Override
     public String configFilePath() {
-//        return BrokerPathConfigHelper.getTopicConfigPath(this.brokerController.getMessageStoreConfig()
-//                .getStorePathRootDir());
-        return BrokerPathConfigHelper.getTopicConfigPath(System.getProperty("user.home") + File.separator + "store");
+        return BrokerPathConfigHelper.getTopicConfigPath(this.brokerController.getMessageStoreConfig()
+                .getStorePathRootDir());
     }
 
     @Override
@@ -420,7 +419,7 @@ public class TopicConfigManager extends ConfigManager {
         return dataVersion;
     }
 
-    public ConcurrentHashMap<String, TopicConfig> getTopicConfigTable() {
+    public ConcurrentMap<String, TopicConfig> getTopicConfigTable() {
         return topicConfigTable;
     }
 }

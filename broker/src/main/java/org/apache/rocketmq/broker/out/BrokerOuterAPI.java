@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
 public class BrokerOuterAPI {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final RemotingClient remotingClient;
-    private final TopAddressing topAddressing = new TopAddressing(MixAll.WS_ADDR);
+    private final TopAddressing topAddressing = new TopAddressing(MixAll.getWSAddr());
     private String nameSrvAddr = null;
 
     public BrokerOuterAPI(final NettyClientConfig nettyClientConfig) {
@@ -172,7 +172,6 @@ public class BrokerOuterAPI {
                     (RegisterBrokerResponseHeader) response.decodeCommandCustomHeader(RegisterBrokerResponseHeader.class);
                 RegisterBrokerResult result = new RegisterBrokerResult();
                 result.setMasterAddr(responseHeader.getMasterAddr());
-                result.setHaServerAddr(responseHeader.getHaServerAddr());
                 result.setHaServerAddr(responseHeader.getHaServerAddr());
                 if (response.getBody() != null) {
                     result.setKvTable(KVTable.decode(response.getBody(), KVTable.class));

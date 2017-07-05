@@ -95,6 +95,7 @@ public class Validators {
         }
         // topic
         Validators.checkTopic(msg.getTopic());
+
         // body
         if (null == msg.getBody()) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body is null");
@@ -118,23 +119,23 @@ public class Validators {
      */
     public static void checkTopic(String topic) throws MQClientException {
         if (UtilAll.isBlank(topic)) {
-            throw new MQClientException("the specified topic is blank", null);
+            throw new MQClientException("The specified topic is blank", null);
         }
 
         if (!regularExpressionMatcher(topic, PATTERN)) {
             throw new MQClientException(String.format(
-                "the specified topic[%s] contains illegal characters, allowing only %s", topic,
+                "The specified topic[%s] contains illegal characters, allowing only %s", topic,
                 VALID_PATTERN_STR), null);
         }
 
         if (topic.length() > CHARACTER_MAX_LENGTH) {
-            throw new MQClientException("the specified topic is longer than topic max length 255.", null);
+            throw new MQClientException("The specified topic is longer than topic max length 255.", null);
         }
 
         //whether the same with system reserved keyword
         if (topic.equals(MixAll.DEFAULT_TOPIC)) {
             throw new MQClientException(
-                String.format("the topic[%s] is conflict with default topic.", topic), null);
+                String.format("The topic[%s] is conflict with default topic.", topic), null);
         }
     }
 }

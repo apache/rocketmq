@@ -25,6 +25,10 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
+import org.apache.rocketmq.broker.filter.ConsumerFilterData;
+import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
+import org.apache.rocketmq.broker.filter.ExpressionForRetryMessageFilter;
+import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.broker.longpolling.PullRequest;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
@@ -34,6 +38,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -50,9 +55,11 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -130,8 +137,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
 
         if (requestHeader.getQueueId() < 0 || requestHeader.getQueueId() >= topicConfig.getReadQueueNums()) {
-            String errorInfo = "queueId[" + requestHeader.getQueueId() + "] is illegal,Topic :" + requestHeader.getTopic()
-                    + " topicConfig.readQueueNums: " + topicConfig.getReadQueueNums() + " consumer: " + channel.remoteAddress();
+            String errorInfo = String.format("queueId[%d] is illegal, topic:[%s] topicConfig.readQueueNums:[%d] consumer:[%s]",
+                    requestHeader.getQueueId(), requestHeader.getTopic(), topicConfig.getReadQueueNums(), channel.remoteAddress());
             log.warn(errorInfo);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(errorInfo);
@@ -139,13 +146,22 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
 
         SubscriptionData subscriptionData = null;
+        ConsumerFilterData consumerFilterData = null;
         if (hasSubscriptionFlag) {
             try {
-                subscriptionData = FilterAPI.buildSubscriptionData(requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                    requestHeader.getSubscription());
+                subscriptionData = FilterAPI.build(
+                    requestHeader.getTopic(), requestHeader.getSubscription(), requestHeader.getExpressionType()
+                );
+                if (!ExpressionType.isTagType(subscriptionData.getExpressionType())) {
+                    consumerFilterData = ConsumerFilterManager.build(
+                        requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getSubscription(),
+                        requestHeader.getExpressionType(), requestHeader.getSubVersion()
+                    );
+                    assert consumerFilterData != null;
+                }
             } catch (Exception e) {
-                log.warn("parse the consumer's subscription[{}] failed, group: {}", requestHeader.getSubscription(), //
-                        requestHeader.getConsumerGroup());
+                log.warn("Parse the consumer's subscription[{}] failed, group: {}", requestHeader.getSubscription(), //
+                    requestHeader.getConsumerGroup());
                 response.setCode(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
                 response.setRemark("parse the consumer's subscription failed");
                 return response;
@@ -176,17 +192,49 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             }
 
             if (subscriptionData.getSubVersion() < requestHeader.getSubVersion()) {
-                log.warn("the broker's subscription is not latest, group: {} {}", requestHeader.getConsumerGroup(),
-                        subscriptionData.getSubString());
+                log.warn("The broker's subscription is not latest, group: {} {}", requestHeader.getConsumerGroup(),
+                    subscriptionData.getSubString());
                 response.setCode(ResponseCode.SUBSCRIPTION_NOT_LATEST);
                 response.setRemark("the consumer's subscription not latest");
                 return response;
             }
+            if (!ExpressionType.isTagType(subscriptionData.getExpressionType())) {
+                consumerFilterData = this.brokerController.getConsumerFilterManager().get(requestHeader.getTopic(),
+                    requestHeader.getConsumerGroup());
+                if (consumerFilterData == null) {
+                    response.setCode(ResponseCode.FILTER_DATA_NOT_EXIST);
+                    response.setRemark("The broker's consumer filter data is not exist!Your expression may be wrong!");
+                    return response;
+                }
+                if (consumerFilterData.getClientVersion() < requestHeader.getSubVersion()) {
+                    log.warn("The broker's consumer filter data is not latest, group: {}, topic: {}, serverV: {}, clientV: {}",
+                        requestHeader.getConsumerGroup(), requestHeader.getTopic(), consumerFilterData.getClientVersion(), requestHeader.getSubVersion());
+                    response.setCode(ResponseCode.FILTER_DATA_NOT_LATEST);
+                    response.setRemark("the consumer's consumer filter data not latest");
+                    return response;
+                }
+            }
+        }
+
+        if (!ExpressionType.isTagType(subscriptionData.getExpressionType())
+            && !this.brokerController.getBrokerConfig().isEnablePropertyFilter()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("The broker does not support consumer to filter message by " + subscriptionData.getExpressionType());
+            return response;
+        }
+
+        MessageFilter messageFilter;
+        if (this.brokerController.getBrokerConfig().isFilterSupportRetry()) {
+            messageFilter = new ExpressionForRetryMessageFilter(subscriptionData, consumerFilterData,
+                this.brokerController.getConsumerFilterManager());
+        } else {
+            messageFilter = new ExpressionMessageFilter(subscriptionData, consumerFilterData,
+                this.brokerController.getConsumerFilterManager());
         }
 
         final GetMessageResult getMessageResult =
             this.brokerController.getMessageStore().getMessage(requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                requestHeader.getQueueId(), requestHeader.getQueueOffset(), requestHeader.getMaxMsgNums(), subscriptionData);
+                requestHeader.getQueueId(), requestHeader.getQueueOffset(), requestHeader.getMaxMsgNums(), messageFilter);
         if (getMessageResult != null) {
             response.setRemark(getMessageResult.getStatus().name());
             responseHeader.setNextBeginOffset(getMessageResult.getNextBeginOffset());
@@ -366,7 +414,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                         long offset = requestHeader.getQueueOffset();
                         int queueId = requestHeader.getQueueId();
                         PullRequest pullRequest = new PullRequest(request, channel, pollingTimeMills,
-                            this.brokerController.getMessageStore().now(), offset, subscriptionData);
+                            this.brokerController.getMessageStore().now(), offset, subscriptionData, messageFilter);
                         this.brokerController.getPullRequestHoldService().suspendPullRequest(topic, queueId, pullRequest);
                         response = null;
                         break;
@@ -480,7 +528,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
     }
 
-    public void excuteRequestWhenWakeup(final Channel channel, final RemotingCommand request) throws RemotingCommandException {
+    public void executeRequestWhenWakeup(final Channel channel, final RemotingCommand request) throws RemotingCommandException {
         Runnable run = new Runnable() {
             @Override
             public void run() {
@@ -513,8 +561,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 }
             }
         };
-
-        this.brokerController.getPullMessageExecutor().submit(run);
+        this.brokerController.getPullMessageExecutor().submit(new RequestTask(run, channel, request));
     }
 
     public void registerConsumeMessageHook(List<ConsumeMessageHook> sendMessageHookList) {

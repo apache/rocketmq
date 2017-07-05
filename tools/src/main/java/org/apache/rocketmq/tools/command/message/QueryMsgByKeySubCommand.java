@@ -25,6 +25,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
+import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class QueryMsgByKeySubCommand implements SubCommand {
 
@@ -52,7 +53,7 @@ public class QueryMsgByKeySubCommand implements SubCommand {
     }
 
     @Override
-    public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
+    public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
@@ -63,13 +64,13 @@ public class QueryMsgByKeySubCommand implements SubCommand {
 
             this.queryByKey(defaultMQAdminExt, topic, key);
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
             defaultMQAdminExt.shutdown();
         }
     }
 
-    void queryByKey(final DefaultMQAdminExt admin, final String topic, final String key)
+    private void queryByKey(final DefaultMQAdminExt admin, final String topic, final String key)
         throws MQClientException, InterruptedException {
         admin.start();
 

@@ -20,25 +20,25 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class DataVersion extends RemotingSerializable {
-    private long timestatmp = System.currentTimeMillis();
+    private long timestamp = System.currentTimeMillis();
     private AtomicLong counter = new AtomicLong(0);
 
     public void assignNewOne(final DataVersion dataVersion) {
-        this.timestatmp = dataVersion.timestatmp;
+        this.timestamp = dataVersion.timestamp;
         this.counter.set(dataVersion.counter.get());
     }
 
     public void nextVersion() {
-        this.timestatmp = System.currentTimeMillis();
+        this.timestamp = System.currentTimeMillis();
         this.counter.incrementAndGet();
     }
 
-    public long getTimestatmp() {
-        return timestatmp;
+    public long getTimestamp() {
+        return timestamp;
     }
 
-    public void setTimestatmp(long timestatmp) {
-        this.timestatmp = timestatmp;
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 
     public AtomicLong getCounter() {
@@ -58,16 +58,24 @@ public class DataVersion extends RemotingSerializable {
 
         final DataVersion that = (DataVersion) o;
 
-        if (timestatmp != that.timestatmp)
+        if (timestamp != that.timestamp) {
             return false;
-        return counter != null ? counter.equals(that.counter) : that.counter == null;
+        }
 
+        if (counter != null && that.counter != null) {
+            return counter.longValue() == that.counter.longValue();
+        }
+
+        return (null == counter) && (null == that.counter);
     }
 
     @Override
     public int hashCode() {
-        int result = (int) (timestatmp ^ (timestatmp >>> 32));
-        result = 31 * result + (counter != null ? counter.hashCode() : 0);
+        int result = (int) (timestamp ^ (timestamp >>> 32));
+        if (null != counter) {
+            long l = counter.get();
+            result = 31 * result + (int)(l ^ (l >>> 32));
+        }
         return result;
     }
 }

@@ -16,10 +16,10 @@
  */
 package org.apache.rocketmq.broker.subscription;
 
-import java.io.File;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 public class SubscriptionGroupManager extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    private final ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
+    private final ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
         new ConcurrentHashMap<String, SubscriptionGroupConfig>(1024);
     private final DataVersion dataVersion = new DataVersion();
     private transient BrokerController brokerController;
@@ -142,8 +142,8 @@ public class SubscriptionGroupManager extends ConfigManager {
 
     @Override
     public String configFilePath() {
-        //return BrokerPathConfigHelper.getSubscriptionGroupPath(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
-        return BrokerPathConfigHelper.getSubscriptionGroupPath(System.getProperty("user.home") + File.separator + "store");
+        return BrokerPathConfigHelper.getSubscriptionGroupPath(this.brokerController.getMessageStoreConfig()
+                .getStorePathRootDir());
     }
 
     @Override
@@ -170,7 +170,7 @@ public class SubscriptionGroupManager extends ConfigManager {
         }
     }
 
-    public ConcurrentHashMap<String, SubscriptionGroupConfig> getSubscriptionGroupTable() {
+    public ConcurrentMap<String, SubscriptionGroupConfig> getSubscriptionGroupTable() {
         return subscriptionGroupTable;
     }
 
@@ -185,7 +185,7 @@ public class SubscriptionGroupManager extends ConfigManager {
             this.dataVersion.nextVersion();
             this.persist();
         } else {
-            log.warn("delete subscription group failed, subscription group: {} not exist", old);
+            log.warn("delete subscription group failed, subscription groupName: {} not exist", groupName);
         }
     }
 }

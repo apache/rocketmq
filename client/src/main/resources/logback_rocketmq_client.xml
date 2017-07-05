@@ -22,7 +22,7 @@
         <file>${client.logRoot}/rocketmq_client.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${client.logRoot}/otherdays/rocketmq_client.%properties.log
+            <fileNamePattern>${client.logRoot}/otherdays/rocketmq_client.%i.log
             </fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>${client.logFileMaxIndex}</maxIndex>
@@ -32,7 +32,7 @@
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
-            <pattern>%defaultTopicQueueNums{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>

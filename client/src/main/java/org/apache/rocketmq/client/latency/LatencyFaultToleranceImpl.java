@@ -27,7 +27,7 @@ import org.apache.rocketmq.client.common.ThreadLocalIndex;
 public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> {
     private final ConcurrentHashMap<String, FaultItem> faultItemTable = new ConcurrentHashMap<String, FaultItem>(16);
 
-    private final ThreadLocalIndex whichItemWorst = new ThreadLocalIndex(0);
+    private final ThreadLocalIndex whichItemWorst = new ThreadLocalIndex();
 
     @Override
     public void updateFaultItem(final String name, final long currentLatency, final long notAvailableDuration) {

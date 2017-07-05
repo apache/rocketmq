@@ -24,6 +24,10 @@ public class StorePathConfigHelper {
         return rootDir + File.separator + "consumequeue";
     }
 
+    public static String getStorePathConsumeQueueExt(final String rootDir) {
+        return rootDir + File.separator + "consumequeue_ext";
+    }
+
     public static String getStorePathIndex(final String rootDir) {
         return rootDir + File.separator + "index";
     }

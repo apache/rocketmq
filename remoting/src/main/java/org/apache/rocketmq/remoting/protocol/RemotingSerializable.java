@@ -20,7 +20,7 @@ import com.alibaba.fastjson.JSON;
 import java.nio.charset.Charset;
 
 public abstract class RemotingSerializable {
-    public final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
+    private final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
 
     public static byte[] encode(final Object obj) {
         final String json = toJson(obj, false);

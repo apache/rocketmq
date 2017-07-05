@@ -20,6 +20,7 @@ public class LoggerName {
     public static final String FILTERSRV_LOGGER_NAME = "RocketmqFiltersrv";
     public static final String NAMESRV_LOGGER_NAME = "RocketmqNamesrv";
     public static final String BROKER_LOGGER_NAME = "RocketmqBroker";
+    public static final String BROKER_CONSOLE_NAME = "RocketmqConsole";
     public static final String CLIENT_LOGGER_NAME = "RocketmqClient";
     public static final String TOOLS_LOGGER_NAME = "RocketmqTools";
     public static final String COMMON_LOGGER_NAME = "RocketmqCommon";
@@ -34,4 +35,5 @@ public class LoggerName {
     public static final String DUPLICATION_LOGGER_NAME = "RocketmqDuplication";
     public static final String PROTECTION_LOGGER_NAME = "RocketmqProtection";
     public static final String WATER_MARK_LOGGER_NAME = "RocketmqWaterMark";
+    public static final String FILTER_LOGGER_NAME = "RocketmqFilter";
 }

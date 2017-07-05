@@ -53,6 +53,9 @@ public class BrokerConfig {
     private boolean autoCreateSubscriptionGroup = true;
     private String messageStorePlugIn = "";
 
+    /**
+     * thread numbers for send message thread pool, since spin lock will be used by default since 4.0.x, the default value is 1.
+     */
     private int sendMessageThreadPoolNums = 1; //16 + Runtime.getRuntime().availableProcessors() * 4;
     private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int adminBrokerThreadPoolNums = 16;
@@ -97,13 +100,32 @@ public class BrokerConfig {
     private boolean slaveReadEnable = false;
 
     private boolean disableConsumeIfConsumerReadSlowly = false;
-    private long consumerFallbehindThreshold = 1024 * 1024 * 1024 * 16;
+    private long consumerFallbehindThreshold = 1024L * 1024 * 1024 * 16;
 
     private long waitTimeMillsInSendQueue = 200;
 
     private long startAcceptSendRequestTimeStamp = 0L;
 
     private boolean traceOn = true;
+
+    // Switch of filter bit map calculation.
+    // If switch on:
+    // 1. Calculate filter bit map when construct queue.
+    // 2. Filter bit map will be saved to consume queue extend file if allowed.
+    private boolean enableCalcFilterBitMap = false;
+
+    // Expect num of consumers will use filter.
+    private int expectConsumerNumUseFilter = 32;
+
+    // Error rate of bloom filter, 1~100.
+    private int maxErrorRateOfBloomFilter = 20;
+
+    //how long to clean filter data after dead.Default: 24h
+    private long filterDataCleanTimeSpan = 24 * 3600 * 1000;
+
+    // whether do filter when retry.
+    private boolean filterSupportRetry = false;
+    private boolean enablePropertyFilter = false;
 
     public boolean isTraceOn() {
         return traceOn;
@@ -489,5 +511,53 @@ public class BrokerConfig {
 
     public void setCommercialBaseCount(int commercialBaseCount) {
         this.commercialBaseCount = commercialBaseCount;
+    }
+
+    public boolean isEnableCalcFilterBitMap() {
+        return enableCalcFilterBitMap;
+    }
+
+    public void setEnableCalcFilterBitMap(boolean enableCalcFilterBitMap) {
+        this.enableCalcFilterBitMap = enableCalcFilterBitMap;
+    }
+
+    public int getExpectConsumerNumUseFilter() {
+        return expectConsumerNumUseFilter;
+    }
+
+    public void setExpectConsumerNumUseFilter(int expectConsumerNumUseFilter) {
+        this.expectConsumerNumUseFilter = expectConsumerNumUseFilter;
+    }
+
+    public int getMaxErrorRateOfBloomFilter() {
+        return maxErrorRateOfBloomFilter;
+    }
+
+    public void setMaxErrorRateOfBloomFilter(int maxErrorRateOfBloomFilter) {
+        this.maxErrorRateOfBloomFilter = maxErrorRateOfBloomFilter;
+    }
+
+    public long getFilterDataCleanTimeSpan() {
+        return filterDataCleanTimeSpan;
+    }
+
+    public void setFilterDataCleanTimeSpan(long filterDataCleanTimeSpan) {
+        this.filterDataCleanTimeSpan = filterDataCleanTimeSpan;
+    }
+
+    public boolean isFilterSupportRetry() {
+        return filterSupportRetry;
+    }
+
+    public void setFilterSupportRetry(boolean filterSupportRetry) {
+        this.filterSupportRetry = filterSupportRetry;
+    }
+
+    public boolean isEnablePropertyFilter() {
+        return enablePropertyFilter;
+    }
+
+    public void setEnablePropertyFilter(boolean enablePropertyFilter) {
+        this.enablePropertyFilter = enablePropertyFilter;
     }
 }

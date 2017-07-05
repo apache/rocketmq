@@ -16,8 +16,7 @@
   limitations under the License.
   -->
 
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <parent>
         <groupId>org.apache</groupId>
@@ -30,9 +29,9 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>4.0.0-SNAPSHOT</version>
+    <version>4.2.0-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>rocketmq-all ${project.version}</name>
+    <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.incubator.apache.org/</url>
 
     <prerequisites>
@@ -42,7 +41,9 @@
     <scm>
         <url>https://git-wip-us.apache.org/repos/asf/incubator-rocketmq.git</url>
         <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-rocketmq.git</connection>
-        <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-rocketmq.git</developerConnection>
+        <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-rocketmq.git
+        </developerConnection>
+        <tag>HEAD</tag>
     </scm>
 
     <mailingLists>
@@ -68,66 +69,9 @@
 
     <developers>
         <developer>
-            <id>vintagewang</id>
-            <name>vintagewang</name>
-            <roles>
-                <role>architect</role>
-                <role>committer</role>
-            </roles>
-            <email>vintagewang@apache.org</email>
-            <url>https://github.com/vintagewang</url>
-            <timezone>8</timezone>
-        </developer>
-        <developer>
-            <id>vongosling@apache.org</id>
-            <name>vongosling@apache.org</name>
-            <roles>
-                <role>architect</role>
-                <role>committer</role>
-            </roles>
-            <email>vongosling@apache.org</email>
-            <url>https://github.com/vongosling@apache.org</url>
-            <timezone>+8</timezone>
-        </developer>
-        <developer>
-            <id>yukon</id>
-            <name>Xinyu Zhou</name>
-            <email>yukon@@apache.org</email>
-            <url>https://github.com/zhouxinyu</url>
-            <roles>
-                <role>committer</role>
-            </roles>
-            <timezone>+8</timezone>
-        </developer>
-        <developer>
-            <id>stevenschew</id>
-            <name>Wei Zhou</name>
-            <email>stevenschew@@apache.org</email>
-            <url>https://github.com/stevenschew</url>
-            <roles>
-                <role>committer</role>
-            </roles>
-            <timezone>+8</timezone>
-        </developer>
-        <developer>
-            <id>lollipop</id>
-            <name>Jixiang Jin</name>
-            <email>lollipop@apache.org</email>
-            <url>https://github.com/lollipopjin</url>
-            <roles>
-                <role>committer</role>
-            </roles>
-            <timezone>+8</timezone>
-        </developer>
-        <developer>
-            <id>lizhanhui</id>
-            <name>Zhanhui Li</name>
-            <email>lizhanhui@apache.org</email>
-            <url>https://github.com/lizhanhui</url>
-            <roles>
-                <role>committer</role>
-            </roles>
-            <timezone>+8</timezone>
+            <id>Apache RocketMQ</id>
+            <name>Apache RocketMQ of ASF</name>
+            <url>https://rocketmq.apache.org/</url>
         </developer>
     </developers>
 
@@ -151,12 +95,19 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!--maven properties -->
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- Maven properties -->
         <maven.test.skip>false</maven.test.skip>
         <maven.javadoc.skip>true</maven.javadoc.skip>
-        <!-- compiler settings properties -->
+        <!-- Compiler settings properties -->
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
+        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
+        <!-- Exclude all generated code -->
+        <sonar.jacoco.itReportPath>${project.basedir}/../test/target/jacoco-it.exec</sonar.jacoco.itReportPath>
+        <sonar.exclusions>file:**/generated-sources/**,**/test/**</sonar.exclusions>
+
     </properties>
 
     <modules>
@@ -167,9 +118,14 @@
         <module>store</module>
         <module>namesrv</module>
         <module>remoting</module>
+        <module>logappender</module>
         <module>example</module>
         <module>filtersrv</module>
         <module>srvutil</module>
+        <module>filter</module>
+        <module>test</module>
+        <module>distribution</module>
+        <module>openmessaging</module>
     </modules>
 
     <build>
@@ -202,7 +158,7 @@
                 </executions>
                 <configuration>
                     <rules>
-                        <banCircularDependencies/>
+                        <banCircularDependencies />
                     </rules>
                     <fail>true</fail>
                 </configuration>
@@ -225,39 +181,6 @@
                     <showWarnings>true</showWarnings>
                 </configuration>
             </plugin>
-            <plugin>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.19.1</version>
-                <configuration>
-                    <argLine>-Xms512m -Xmx1024m</argLine>
-                    <includes>
-                        <include>**/*Test.java</include>
-                    </includes>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.6</version>
-                <configuration>
-                    <finalName>alibaba-rocketmq</finalName>
-                    <descriptors>
-                        <descriptor>release.xml</descriptor>
-                    </descriptors>
-                </configuration>
-            </plugin>
-
-            <!--
-                        <plugin>
-                            <artifactId>maven-assembly-plugin</artifactId>
-                            <configuration>
-                                <finalName>alibaba-rocketmq-client-java-${project.version}</finalName>
-                                <descriptors>
-                                    <descriptor>release-client.xml</descriptor>
-                                </descriptors>
-                            </configuration>
-                        </plugin>
-            -->
-
             <plugin>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>2.10.4</version>
@@ -313,6 +236,7 @@
                             <encoding>UTF-8</encoding>
                             <consoleOutput>true</consoleOutput>
                             <failsOnError>true</failsOnError>
+                            <includeTestSourceDirectory>false</includeTestSourceDirectory>
                         </configuration>
                         <goals>
                             <goal>check</goal>
@@ -340,7 +264,77 @@
                     <encoding>${project.build.sourceEncoding}</encoding>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.eluder.coveralls</groupId>
+                <artifactId>coveralls-maven-plugin</artifactId>
+                <version>4.3.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.7.8</version>
+                <executions>
+                    <execution>
+                        <id>default-prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                        <configuration>
+                            <destFile>${project.build.directory}/jacoco.exec</destFile>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>default-prepare-agent-integration</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>prepare-agent-integration</goal>
+                        </goals>
+                        <configuration>
+                            <destFile>${project.build.directory}/jacoco-it.exec</destFile>
+                            <propertyName>failsafeArgLine</propertyName>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>default-report</id>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>default-report-integration</id>
+                        <goals>
+                            <goal>report-integration</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.19.1</version>
+                <configuration>
+                    <forkCount>1</forkCount>
+                    <reuseForks>true</reuseForks>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>3.0.4</version>
+            </plugin>
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>3.0.2</version>
+            </plugin>
         </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.0.0</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
 
     <profiles>
@@ -399,7 +393,62 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>it-test</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>2.19.1</version>
+                        <configuration>
+                            <forkCount>1</forkCount>
+                            <reuseForks>true</reuseForks>
+                            <argLine>@{failsafeArgLine}</argLine>
+                            <excludes>
+                                <exclude>**/NormalMsgDelayIT.java</exclude>
+                            </excludes>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>sonar-apache</id>
+            <properties>
+                <!-- URL of the ASF SonarQube server -->
+                <sonar.host.url>https://builds.apache.org/analysis</sonar.host.url>
+            </properties>
+        </profile>
     </profiles>
+
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>2.6.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>2.6.3</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
     <dependencyManagement>
         <dependencies>
@@ -440,7 +489,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-qatest</artifactId>
+                <artifactId>rocketmq-test</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -454,10 +503,14 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>4.11</version>
-                <scope>test</scope>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-filter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-example</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -487,7 +540,7 @@
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
-                <version>1.2.12</version>
+                <version>1.2.29</version>
             </dependency>
             <dependency>
                 <groupId>org.javassist</groupId>
@@ -495,14 +548,34 @@
                 <version>3.20.0-GA</version>
             </dependency>
             <dependency>
+                <groupId>net.java.dev.jna</groupId>
+                <artifactId>jna</artifactId>
+                <version>4.2.2</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>3.4</version>
             </dependency>
             <dependency>
-                <groupId>net.java.dev.jna</groupId>
-                <artifactId>jna</artifactId>
-                <version>4.2.2</version>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>19.0</version>
+            </dependency>
+            <dependency>
+                <groupId>io.openmessaging</groupId>
+                <artifactId>openmessaging-api</artifactId>
+                <version>0.1.0-alpha</version>
+            </dependency>
+            <dependency>
+                <groupId>log4j</groupId>
+                <artifactId>log4j</artifactId>
+                <version>1.2.17</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>2.7</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

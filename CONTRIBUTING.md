@@ -1,16 +1,17 @@
 ## How To Contribute
 
 We are always very happy to have contributions, whether for trivial cleanups or big new features.
-We want to have high quality, well documented codes for each programming language, as well as the surrounding [ecosystem](https://github.com/rocketmq) of integration tools that people use with RocketMQ.
+We want to have high quality, well documented codes for each programming language, as well as the surrounding [ecosystem](https://github.com/apache/incubator-rocketmq-externals) of integration tools that people use with RocketMQ.
 
 Nor is code the only way to contribute to the project. We strongly value documentation, integration with other project, and gladly accept improvements for these aspects.
 
 ## Contributing code
 
 To submit a change for inclusion, please do the following:
-####If the change is non-trivial please include some unit tests that cover the new functionality.
-####If you are introducing a completely new feature or API it is a good idea to start a wiki and get consensus on the basic design first.
-####It is our job to follow up on patches in a timely fashion. Nag us if we aren't doing our job (sometimes we drop things).
+
+#### If the change is non-trivial please include some unit tests that cover the new functionality.
+#### If you are introducing a completely new feature or API it is a good idea to start a wiki and get consensus on the basic design first.
+#### It is our job to follow up on patches in a timely fashion. Nag us if we aren't doing our job (sometimes we drop things).
 
 ## Becoming a Committer
 
@@ -27,5 +28,5 @@ If you want to contribute the above listing points, you must abide our some prer
 
 ###### Readability - API must have Javadoc,some very important methods also must have javadoc
 ###### Testability - 80% above unit test coverage about main process
-###### Maintainability - Comply with our [checkstyle spec](checkstyle/checkstyle.xml),and at least 3 month update frequency
+###### Maintainability - Comply with our [checkstyle spec](style/rmq_checkstyle.xml), and at least 3 month update frequency
 ###### Deployability - We encourage you to deploy into [maven repository](http://search.maven.org/)

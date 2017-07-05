@@ -18,7 +18,7 @@ package org.apache.rocketmq.common;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,10 +55,11 @@ public class MixAll {
     public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
     public static final String NAMESRV_ADDR_PROPERTY = "rocketmq.namesrv.addr";
     public static final String MESSAGE_COMPRESS_LEVEL = "rocketmq.message.compressLevel";
-    public static final String WS_DOMAIN_NAME = System.getProperty("rocketmq.namesrv.domain", "jmenv.tbsite.net");
+    public static final String DEFAULT_NAMESRV_ADDR_LOOKUP = "jmenv.tbsite.net";
+    public static final String WS_DOMAIN_NAME = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);
     public static final String WS_DOMAIN_SUBGROUP = System.getProperty("rocketmq.namesrv.domain.subgroup", "nsaddr");
-    // http://jmenv.tbsite.net:8080/rocketmq/nsaddr
-    public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + ":8080/rocketmq/" + WS_DOMAIN_SUBGROUP;
+//    // http://jmenv.tbsite.net:8080/rocketmq/nsaddr
+//    public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + ":8080/rocketmq/" + WS_DOMAIN_SUBGROUP;
     public static final String DEFAULT_TOPIC = "TBW102";
     public static final String BENCHMARK_TOPIC = "BenchmarkTest";
     public static final String DEFAULT_PRODUCER_GROUP = "DEFAULT_PRODUCER";
@@ -90,6 +91,16 @@ public class MixAll {
     public static final String UNIQUE_MSG_QUERY_FLAG = "_UNIQUE_KEY_QUERY";
     public static final String DEFAULT_TRACE_REGION_ID = "DefaultRegion";
     public static final String CONSUME_CONTEXT_TYPE = "ConsumeContextType";
+
+    public static String getWSAddr() {
+        String wsDomainName = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);
+        String wsDomainSubgroup = System.getProperty("rocketmq.namesrv.domain.subgroup", "nsaddr");
+        String wsAddr = "http://" + wsDomainName + ":8080/rocketmq/" + wsDomainSubgroup;
+        if (wsDomainName.indexOf(":") > 0) {
+            wsAddr = "http://" + wsDomainName + "/rocketmq/" + wsDomainSubgroup;
+        }
+        return wsAddr;
+    }
 
     public static String getRetryTopic(final String consumerGroup) {
         return RETRY_GROUP_TOPIC_PREFIX + consumerGroup;
@@ -179,30 +190,24 @@ public class MixAll {
         }
     }
 
-    public static String file2String(final String fileName) {
+    public static String file2String(final String fileName) throws IOException {
         File file = new File(fileName);
         return file2String(file);
     }
 
-    public static String file2String(final File file) {
+    public static String file2String(final File file) throws IOException {
         if (file.exists()) {
-            char[] data = new char[(int) file.length()];
-            boolean result = false;
+            byte[] data = new byte[(int) file.length()];
+            boolean result;
 
-            FileReader fileReader = null;
+            FileInputStream inputStream = null;
             try {
-                fileReader = new FileReader(file);
-                int len = fileReader.read(data);
+                inputStream = new FileInputStream(file);
+                int len = inputStream.read(data);
                 result = len == data.length;
-            } catch (IOException e) {
-                log.error("Failed to read data", e);
             } finally {
-                if (fileReader != null) {
-                    try {
-                        fileReader.close();
-                    } catch (IOException e) {
-                        log.error("Failed to close", e);
-                    }
+                if (inputStream != null) {
+                    inputStream.close();
                 }
             }
 
@@ -258,7 +263,7 @@ public class MixAll {
                         if (null == value) {
                             value = "";
                         }
-                    } catch (Exception e) {
+                    } catch (IllegalAccessException e) {
                         log.error("Failed to obtain object properties", e);
                     }
 
@@ -313,7 +318,7 @@ public class MixAll {
                     try {
                         field.setAccessible(true);
                         value = field.get(object);
-                    } catch (Exception e) {
+                    } catch (IllegalAccessException e) {
                         log.error("Failed to handle properties", e);
                     }
 

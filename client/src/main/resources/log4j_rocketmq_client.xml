@@ -24,7 +24,7 @@
         <param name="encoding" value="UTF-8"/>
         <param name="target" value="System.out"/>
         <layout class="org.apache.log4j.PatternLayout">
-            <param name="ConversionPattern" value="%-5p %defaultTopic{2} , %m%n"/>
+            <param name="ConversionPattern" value="%-5p %c{2} , %m%n"/>
         </layout>
     </appender>
 
@@ -35,7 +35,7 @@
         <param name="maxFileSize" value="1073741824"/>
         <param name="maxBackupIndex" value="${client.logFileMaxIndex}"/>
         <layout class="org.apache.log4j.PatternLayout">
-            <param name="ConversionPattern" value="%defaultTopicQueueNums{yyy-MM-dd HH\:mm\:ss,SSS} %p %defaultTopic{1}(%L) - %m%n"/>
+            <param name="ConversionPattern" value="%d{yyy-MM-dd HH\:mm\:ss,SSS} %p %c{1}(%L) - %m%n"/>
         </layout>
     </appender>
 
