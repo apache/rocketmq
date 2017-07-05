@@ -296,7 +296,7 @@ public class BrokerController {
                 public void run() {
                     try {
                         BrokerController.this.protectBroker();
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         log.error("protectBroker error.", e);
                     }
                 }
@@ -307,7 +307,7 @@ public class BrokerController {
                 public void run() {
                     try {
                         BrokerController.this.printWaterMark();
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         log.error("printWaterMark error.", e);
                     }
                 }

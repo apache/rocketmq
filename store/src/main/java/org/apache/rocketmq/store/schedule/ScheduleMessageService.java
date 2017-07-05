@@ -121,7 +121,7 @@ public class ScheduleMessageService extends ConfigManager {
             public void run() {
                 try {
                     ScheduleMessageService.this.persist();
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     log.error("scheduleAtFixedRate flush exception", e);
                 }
             }
