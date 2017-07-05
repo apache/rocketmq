@@ -44,7 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DynaCode {
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.FILTERSRV_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.FILTERSRV_LOGGER_NAME);
 
     private static final String FILE_SP = System.getProperty("file.separator");
 
@@ -231,7 +231,7 @@ public class DynaCode {
                             loadClass.put(getFullClassName(code), null);
                         }
                         if (null != srcFile) {
-                            LOGGER.warn("Dyna Create Java Source File:---->" + srcFile.getAbsolutePath());
+                            log.warn("Dyna Create Java Source File:----> {}", srcFile.getAbsolutePath());
                             srcFileAbsolutePaths.add(srcFile.getAbsolutePath());
                             srcFile.deleteOnExit();
                         }
@@ -277,9 +277,9 @@ public class DynaCode {
                 Class<?> classz = classLoader.loadClass(key);
                 if (null != classz) {
                     loadClass.put(key, classz);
-                    LOGGER.info("Dyna Load Java Class File OK:----> className: " + key);
+                    log.info("Dyna Load Java Class File OK:----> className: {}", key);
                 } else {
-                    LOGGER.error("Dyna Load Java Class File Fail:----> className: " + key);
+                    log.error("Dyna Load Java Class File Fail:----> className: {}", key);
                 }
             }
         }

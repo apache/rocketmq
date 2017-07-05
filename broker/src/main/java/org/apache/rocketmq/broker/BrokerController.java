@@ -210,7 +210,7 @@ public class BrokerController {
                 this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
             } catch (IOException e) {
                 result = false;
-                e.printStackTrace();
+                log.error("Failed to initialize", e);
             }
         }
 

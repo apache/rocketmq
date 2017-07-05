@@ -903,35 +903,6 @@ public class CommitLog {
 
 
 
-    public static class GroupCommitRequest {
-        private final long nextOffset;
-        private final CountDownLatch countDownLatch = new CountDownLatch(1);
-        private volatile boolean flushOK = false;
-
-        public GroupCommitRequest(long nextOffset) {
-            this.nextOffset = nextOffset;
-        }
-
-        public long getNextOffset() {
-            return nextOffset;
-        }
-
-        public void wakeupCustomer(final boolean flushOK) {
-            this.flushOK = flushOK;
-            this.countDownLatch.countDown();
-        }
-
-        public boolean waitForFlush(long timeout) {
-            try {
-                this.countDownLatch.await(timeout, TimeUnit.MILLISECONDS);
-                return this.flushOK;
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                return false;
-            }
-        }
-    }
-
     abstract class FlushCommitLogService extends ServiceThread {
         protected static final int RETRY_TIMES_OVER = 10;
     }
@@ -1067,6 +1038,39 @@ public class CommitLog {
         @Override
         public long getJointime() {
             return 1000 * 60 * 5;
+        }
+    }
+
+    public static class GroupCommitRequest {
+        private final long nextOffset;
+        private final CountDownLatch countDownLatch = new CountDownLatch(1);
+        private volatile boolean flushOK = false;
+
+
+        public GroupCommitRequest(long nextOffset) {
+            this.nextOffset = nextOffset;
+        }
+
+
+        public long getNextOffset() {
+            return nextOffset;
+        }
+
+
+        public void wakeupCustomer(final boolean flushOK) {
+            this.flushOK = flushOK;
+            this.countDownLatch.countDown();
+        }
+
+
+        public boolean waitForFlush(long timeout) {
+            try {
+                this.countDownLatch.await(timeout, TimeUnit.MILLISECONDS);
+                return this.flushOK;
+            } catch (InterruptedException e) {
+                log.error("Interrupted", e);
+                return false;
+            }
         }
     }
 
