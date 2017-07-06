@@ -195,8 +195,26 @@ public class ConsumeQueue {
                     }
 
                     if (targetOffset != -1) {
-
-                        offset = targetOffset;
+                        // Fix messages same store time,get best candidate offset
+                        int candidateOffset = targetOffset;
+                        int fixedLow = minLogicOffset > mappedFile.getFileFromOffset() ? (int) (minLogicOffset - mappedFile.getFileFromOffset()) : 0;
+                        int fixedOffset = candidateOffset;
+                        while (fixedOffset >= fixedLow) {
+                            byteBuffer.position(fixedOffset);
+                            long phyOffset = byteBuffer.getLong();
+                            int size = byteBuffer.getInt();
+                            if (phyOffset < minPhysicOffset) {
+                                break;
+                            }
+                            long storeTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
+                            if (storeTime < timestamp) {
+                                break;
+                            } else {
+                                candidateOffset = fixedOffset;
+                                fixedOffset = candidateOffset - CQ_STORE_UNIT_SIZE;
+                            }
+                        }
+                        offset = candidateOffset;
                     } else {
                         if (leftIndexValue == -1) {
 
