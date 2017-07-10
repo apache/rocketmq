@@ -15,17 +15,21 @@
  * limitations under the License.
  */
 
-
 package org.apache.rocketmq.common.protocol.route;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import org.apache.rocketmq.common.MixAll;
 
 public class BrokerData implements Comparable<BrokerData> {
     private String cluster;
     private String brokerName;
     private HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs;
+
+    private final Random random = new Random();
 
     public BrokerData() {
 
@@ -37,15 +41,20 @@ public class BrokerData implements Comparable<BrokerData> {
         this.brokerAddrs = brokerAddrs;
     }
 
+    /**
+     * Randomly selects a broker address from the registered list.
+     *
+     * @return Broker address.
+     */
     public String selectBrokerAddr() {
-        String value = this.brokerAddrs.get(MixAll.MASTER_ID);
-        if (null == value) {
-            for (Map.Entry<Long, String> entry : this.brokerAddrs.entrySet()) {
-                return entry.getValue();
-            }
+        String addr = this.brokerAddrs.get(MixAll.MASTER_ID);
+
+        if (addr == null) {
+            List<Long> keys = new ArrayList<Long>(brokerAddrs.keySet());
+            return brokerAddrs.get(keys.get(random.nextInt(keys.size())));
         }
 
-        return value;
+        return addr;
     }
 
     public HashMap<Long, String> getBrokerAddrs() {
