@@ -210,10 +210,17 @@ public class DefaultMessageStoreTest {
 
         TreeMap<Long, AtomicInteger> sameTimeCountCache = new TreeMap<>();
         TreeMap<Long, AtomicInteger> sameTimeResultCache = new TreeMap<>();
+        long hlTime = System.currentTimeMillis();
+        long hlCount = 0;
         long start = 0;
         master.start();
         try {
             for (long i = 0; i < totalMsgs; i++) {
+                if (i == totalMsgs - 20) {
+                    Thread.sleep(1000);
+                    hlTime = System.currentTimeMillis();
+                    Thread.sleep(500);
+                }
                 MessageExtBrokerInner messageExtBrokerInner = new MessageExtBrokerInner();
                 messageExtBrokerInner.setBody(("time:" + System.currentTimeMillis() + " index:" + i).getBytes());
                 messageExtBrokerInner.setTopic(topic);
@@ -250,6 +257,11 @@ public class DefaultMessageStoreTest {
                 cc.incrementAndGet();
             }
             testQueryByTime.release();
+
+            long hlOffset = master.getOffsetInQueueByTime(topic, 0, hlTime);
+            GetMessageResult hlResult = master.getMessage(consumerGroup, topic, 0, hlOffset, 20, null);
+            hlCount = hlResult.getMessageCount();
+            hlResult.release();
         } finally {
             master.shutdown();
             master.destroy();
@@ -259,5 +271,6 @@ public class DefaultMessageStoreTest {
         AtomicInteger cc = sameTimeCountCache.get(start);
         AtomicInteger result = sameTimeResultCache.get(start);
         Assert.assertEquals(cc.get(), result.get());
+        Assert.assertTrue(19 == hlCount || hlCount == 20);
     }
 }

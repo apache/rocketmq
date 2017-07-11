@@ -225,7 +225,7 @@ public class ConsumeQueue {
                         } else {
                             offset =
                                 Math.abs(timestamp - leftIndexValue) > Math.abs(timestamp
-                                    - rightIndexValue) ? rightOffset : leftOffset;
+                                    - rightIndexValue) ? rightOffset - CQ_STORE_UNIT_SIZE : leftOffset + CQ_STORE_UNIT_SIZE;
                         }
                     }
 
