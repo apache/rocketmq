@@ -42,7 +42,8 @@ public class BrokerData implements Comparable<BrokerData> {
     }
 
     /**
-     * Randomly selects a broker address from the registered list.
+     * Selects a (preferably master) broker address from the registered list.
+     * If the master's address cannot be found, a slave broker address is selected in a random manner.
      *
      * @return Broker address.
      */
