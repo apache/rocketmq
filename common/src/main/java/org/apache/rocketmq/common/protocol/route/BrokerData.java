@@ -18,6 +18,7 @@
 package org.apache.rocketmq.common.protocol.route;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,8 +52,8 @@ public class BrokerData implements Comparable<BrokerData> {
         String addr = this.brokerAddrs.get(MixAll.MASTER_ID);
 
         if (addr == null) {
-            List<Long> keys = new ArrayList<Long>(brokerAddrs.keySet());
-            return brokerAddrs.get(keys.get(random.nextInt(keys.size())));
+            List<String> addrs = new ArrayList<String>(brokerAddrs.values());
+            return addrs.get(random.nextInt(addrs.size()));
         }
 
         return addr;
