@@ -133,7 +133,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Subscription relationship
      */
-    private Map<String /* topic */, String /* sub expression */> subscription = new HashMap<>();
+    private Map<String /* topic */, String /* sub expression */> subscription = new HashMap<String, String>();
 
     /**
      * Message listener
@@ -516,6 +516,21 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Override
     public void subscribe(String topic, String fullClassName, String filterClassSource) throws MQClientException {
         this.defaultMQPushConsumerImpl.subscribe(topic, fullClassName, filterClassSource);
+    }
+
+    /**
+     * Subscribe a topic by message selector.
+     *
+     * @see org.apache.rocketmq.client.consumer.MessageSelector#bySql
+     * @see org.apache.rocketmq.client.consumer.MessageSelector#byTag
+     *
+     * @param topic topic to consume.
+     * @param messageSelector {@link org.apache.rocketmq.client.consumer.MessageSelector}
+     * @throws MQClientException
+     */
+    @Override
+    public void subscribe(final String topic, final MessageSelector messageSelector) throws MQClientException {
+        this.defaultMQPushConsumerImpl.subscribe(topic, messageSelector);
     }
 
     /**

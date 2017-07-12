@@ -26,7 +26,9 @@ public enum LanguageCode {
     ERLANG((byte) 5),
     RUBY((byte) 6),
     OTHER((byte) 7),
-    HTTP((byte) 8);
+    HTTP((byte) 8),
+    GO((byte) 9),
+    PHP((byte) 10);
 
     private byte code;
 

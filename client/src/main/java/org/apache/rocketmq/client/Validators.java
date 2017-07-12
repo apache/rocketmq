@@ -95,6 +95,7 @@ public class Validators {
         }
         // topic
         Validators.checkTopic(msg.getTopic());
+
         // body
         if (null == msg.getBody()) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body is null");

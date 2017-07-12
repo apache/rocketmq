@@ -1,37 +1,37 @@
-Build instructions for RocketMQ
+Build Instructions for Apache RocketMQ
 
 ====================================================
 
-(1) Requisites
+(1) Prerequisites
 
-JDK 1.7+ is required in order to compile and run RocketMQ.
+    JDK 1.7+ is required in order to compile and run RocketMQ.
 
-RocketMQ utilizes Maven as a distribution management and packaging tool. Version 3.0.3 or later is required.
-Maven installation and configuration instructions can be found here:
+    RocketMQ utilizes Maven as a distribution management and packaging tool. Version 3.0.3 or later is required.
+    Maven installation and configuration instructions can be found here:
 
-http://maven.apache.org/run-maven/index.html
-
-
-(2) Executing test cases
-
-Execute the following command in order to compile and test the components:
-
-$ mvn test
+    http://maven.apache.org/run-maven/index.html
 
 
-(3) Importing projects to eclipse
+(2) Run test cases
 
-First, generate eclipse project files:
+    Execute the following command in order to compile and run test cases of each components:
 
-$ mvn -U eclipse:eclipse
-
-Then, import to eclipse by specifying the root directory of the project via:
-
-[File] > [Import] > [Existing Projects into Workspace].
+    $ mvn test
 
 
-(4) Building packages
+(3) Import projects to Eclipse IDE
 
-Execute the following command in order to build the tar.gz packages and install JAR to the local repository:
+    First, generate eclipse project files:
 
-$ mvn clean install -Prelease-all assembly:assembly -U
+    $ mvn -U eclipse:eclipse
+
+    Then, import to eclipse by specifying the root directory of the project via:
+
+    [File] > [Import] > [Existing Projects into Workspace].
+
+
+(4) Build distribution packages
+
+    Execute the following command in order to build the tar.gz packages and install JAR into local repository:
+
+    $ mvn -Prelease-all -DskipTests clean install -U

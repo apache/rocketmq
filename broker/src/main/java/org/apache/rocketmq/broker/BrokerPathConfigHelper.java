@@ -44,4 +44,7 @@ public class BrokerPathConfigHelper {
         return rootDir + File.separator + "config" + File.separator + "subscriptionGroup.json";
     }
 
+    public static String getConsumerFilterPath(final String rootDir) {
+        return rootDir + File.separator + "config" + File.separator + "consumerFilter.json";
+    }
 }
