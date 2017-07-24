@@ -184,15 +184,27 @@ public class UtilAll {
             cal.get(Calendar.SECOND));
     }
 
+    /**
+     * Estimates the disk usage percentage by the specified path.
+     *
+     * @param path Path.
+     * @return Disk usage percentage by path.
+     */
     public static double getDiskPartitionSpaceUsedPercent(final String path) {
-        if (null == path || path.isEmpty())
+        if (null == path || path.isEmpty()) {
+            log.warn("Can't estimate used disk space percentage by an empty path");
+
             return -1;
+        }
 
         try {
             File file = new File(path);
 
-            if (!file.exists())
+            if (!file.exists()) {
+                log.warn("No file to estimate used disk space percentage");
+
                 return -1;
+            }
 
             long totalSpace = file.getTotalSpace();
 
@@ -203,6 +215,8 @@ public class UtilAll {
                 return usedSpace / (double) totalSpace;
             }
         } catch (Exception e) {
+            log.warn("Failed to estimate used disk space percentage", e);
+
             return -1;
         }
 
