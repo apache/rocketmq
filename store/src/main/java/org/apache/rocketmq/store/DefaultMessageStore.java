@@ -717,20 +717,26 @@ public class DefaultMessageStore implements MessageStore {
             long minLogicOffset = logicQueue.getMinLogicOffset();
 
             SelectMappedBufferResult result = logicQueue.getIndexBuffer(minLogicOffset / ConsumeQueue.CQ_STORE_UNIT_SIZE);
-            if (result != null) {
-                try {
-                    final long phyOffset = result.getByteBuffer().getLong();
-                    final int size = result.getByteBuffer().getInt();
-                    long storeTime = this.getCommitLog().pickupStoreTimestamp(phyOffset, size);
-                    return storeTime;
-                } catch (Exception e) {
-                } finally {
-                    result.release();
-                }
-            }
+            Long storeTime = getStoreTime(result);
+            if (storeTime != null) return storeTime;
         }
 
         return -1;
+    }
+
+    private Long getStoreTime(SelectMappedBufferResult result) {
+        if (result != null) {
+            try {
+                final long phyOffset = result.getByteBuffer().getLong();
+                final int size = result.getByteBuffer().getInt();
+                long storeTime = this.getCommitLog().pickupStoreTimestamp(phyOffset, size);
+                return storeTime;
+            } catch (Exception e) {
+            } finally {
+                result.release();
+            }
+        }
+        return null;
     }
 
     @Override
@@ -745,17 +751,7 @@ public class DefaultMessageStore implements MessageStore {
         ConsumeQueue logicQueue = this.findConsumeQueue(topic, queueId);
         if (logicQueue != null) {
             SelectMappedBufferResult result = logicQueue.getIndexBuffer(consumeQueueOffset);
-            if (result != null) {
-                try {
-                    final long phyOffset = result.getByteBuffer().getLong();
-                    final int size = result.getByteBuffer().getInt();
-                    long storeTime = this.getCommitLog().pickupStoreTimestamp(phyOffset, size);
-                    return storeTime;
-                } catch (Exception ignored) {
-                } finally {
-                    result.release();
-                }
-            }
+            long storeTime = getStoreTime(result);
         }
 
         return -1;
