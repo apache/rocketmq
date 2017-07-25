@@ -1179,33 +1179,17 @@ public class MQClientAPIImpl {
 
     public TopicRouteData getDefaultTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis)
         throws RemotingException, MQClientException, InterruptedException {
-        GetRouteInfoRequestHeader requestHeader = new GetRouteInfoRequestHeader();
-        requestHeader.setTopic(topic);
 
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINTO_BY_TOPIC, requestHeader);
-
-        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
-        assert response != null;
-        switch (response.getCode()) {
-            case ResponseCode.TOPIC_NOT_EXIST: {
-                // TODO LOG
-                break;
-            }
-            case ResponseCode.SUCCESS: {
-                byte[] body = response.getBody();
-                if (body != null) {
-                    return TopicRouteData.decode(body, TopicRouteData.class);
-                }
-            }
-            default:
-                break;
-        }
-
-        throw new MQClientException(response.getCode(), response.getRemark());
+        return getTopicRouteInfoFromNameServer(topic, timeoutMillis, false);
     }
 
     public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis)
         throws RemotingException, MQClientException, InterruptedException {
+
+        return getTopicRouteInfoFromNameServer(topic, timeoutMillis, true);
+    }
+
+    public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis, boolean allowTopicNotExist) throws MQClientException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         GetRouteInfoRequestHeader requestHeader = new GetRouteInfoRequestHeader();
         requestHeader.setTopic(topic);
 
@@ -1215,9 +1199,14 @@ public class MQClientAPIImpl {
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.TOPIC_NOT_EXIST: {
-                if (!topic.equals(MixAll.DEFAULT_TOPIC))
-                    log.warn("get Topic [{}] RouteInfoFromNameServer is not exist value", topic);
-                break;
+                if(allowTopicNotExist) {
+                    if (!topic.equals(MixAll.DEFAULT_TOPIC))
+                        log.warn("get Topic [{}] RouteInfoFromNameServer is not exist value", topic);
+                    break;
+                } else {
+                    // TODO LOG
+                    break;
+                }
             }
             case ResponseCode.SUCCESS: {
                 byte[] body = response.getBody();
