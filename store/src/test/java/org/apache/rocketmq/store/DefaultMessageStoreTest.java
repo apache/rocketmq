@@ -117,7 +117,7 @@ public class DefaultMessageStoreTest {
     private class MyMessageArrivingListener implements MessageArrivingListener {
         @Override
         public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
-                             byte[] filterBitMap, Map<String, String> properties) {
+            byte[] filterBitMap, Map<String, String> properties) {
         }
     }
 }
