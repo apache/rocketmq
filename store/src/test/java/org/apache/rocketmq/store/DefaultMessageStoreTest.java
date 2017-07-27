@@ -62,20 +62,7 @@ public class DefaultMessageStoreTest {
         assertTrue(load);
 
         master.start();
-        try {
-            for (long i = 0; i < totalMsgs; i++) {
-                master.putMessage(buildMessage());
-            }
-
-            for (long i = 0; i < totalMsgs; i++) {
-                GetMessageResult result = master.getMessage("GROUP_A", "TOPIC_A", 0, i, 1024 * 1024, null);
-                assertThat(result).isNotNull();
-                result.release();
-            }
-        } finally {
-            master.shutdown();
-            master.destroy();
-        }
+        verifyThatMasterIsFunctional(totalMsgs, master);
     }
 
     public MessageExtBrokerInner buildMessage() {
@@ -106,6 +93,10 @@ public class DefaultMessageStoreTest {
         assertTrue(load);
 
         master.start();
+        verifyThatMasterIsFunctional(totalMsgs, master);
+    }
+
+    private void verifyThatMasterIsFunctional(long totalMsgs, MessageStore master) {
         try {
             for (long i = 0; i < totalMsgs; i++) {
                 master.putMessage(buildMessage());
