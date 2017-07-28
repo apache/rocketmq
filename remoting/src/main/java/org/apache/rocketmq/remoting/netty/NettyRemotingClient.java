@@ -190,7 +190,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             public void run() {
                 try {
                     NettyRemotingClient.this.scanResponseTable();
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     log.error("scanResponseTable exception", e);
                 }
             }

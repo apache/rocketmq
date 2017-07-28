@@ -147,7 +147,7 @@ public class IndexFile {
                     try {
                         fileLock.release();
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        log.error("Failed to release the lock", e);
                     }
                 }
             }
@@ -254,7 +254,7 @@ public class IndexFile {
                     try {
                         fileLock.release();
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        log.error("Failed to release the lock", e);
                     }
                 }
 

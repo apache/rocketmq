@@ -71,7 +71,7 @@ public class StoreCheckpoint {
         try {
             this.fileChannel.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Failed to properly close the channel", e);
         }
     }
 

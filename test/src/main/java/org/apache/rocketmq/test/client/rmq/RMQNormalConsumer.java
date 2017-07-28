@@ -34,11 +34,11 @@ public class RMQNormalConsumer extends AbstractMQConsumer {
     }
 
     public AbstractListener getListener() {
-        return listner;
+        return listener;
     }
 
     public void setListener(AbstractListener listener) {
-        this.listner = listener;
+        this.listener = listener;
     }
 
     public void create() {
@@ -55,7 +55,7 @@ public class RMQNormalConsumer extends AbstractMQConsumer {
             logger.error("consumer subscribe failed!");
             e.printStackTrace();
         }
-        consumer.setMessageListener(listner);
+        consumer.setMessageListener(listener);
         consumer.setUseTLS(useTLS);
     }
 
@@ -84,7 +84,7 @@ public class RMQNormalConsumer extends AbstractMQConsumer {
 
     @Override
     public void clearMsg() {
-        this.listner.clearMsg();
+        this.listener.clearMsg();
     }
 
     public void restart() {

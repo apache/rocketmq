@@ -22,7 +22,6 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -43,10 +42,14 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.annotation.ImportantField;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MixAll {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
     public static final String ROCKETMQ_HOME_PROPERTY = "rocketmq.home.dir";
     public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
@@ -243,11 +246,11 @@ public class MixAll {
         return url.getPath();
     }
 
-    public static void printObjectProperties(final Logger log, final Object object) {
-        printObjectProperties(log, object, false);
+    public static void printObjectProperties(final Logger logger, final Object object) {
+        printObjectProperties(logger, object, false);
     }
 
-    public static void printObjectProperties(final Logger log, final Object object, final boolean onlyImportantField) {
+    public static void printObjectProperties(final Logger logger, final Object object, final boolean onlyImportantField) {
         Field[] fields = object.getClass().getDeclaredFields();
         for (Field field : fields) {
             if (!Modifier.isStatic(field.getModifiers())) {
@@ -261,7 +264,7 @@ public class MixAll {
                             value = "";
                         }
                     } catch (IllegalAccessException e) {
-                        e.printStackTrace();
+                        log.error("Failed to obtain object properties", e);
                     }
 
                     if (onlyImportantField) {
@@ -271,8 +274,9 @@ public class MixAll {
                         }
                     }
 
-                    if (log != null) {
-                        log.info(name + "=" + value);
+                    if (logger != null) {
+                        logger.info(name + "=" + value);
+                    } else {
                     }
                 }
             }
@@ -294,11 +298,8 @@ public class MixAll {
         try {
             InputStream in = new ByteArrayInputStream(str.getBytes(DEFAULT_CHARSET));
             properties.load(in);
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-            return null;
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            log.error("Failed to handle properties", e);
             return null;
         }
 
@@ -318,7 +319,7 @@ public class MixAll {
                         field.setAccessible(true);
                         value = field.get(object);
                     } catch (IllegalAccessException e) {
-                        e.printStackTrace();
+                        log.error("Failed to handle properties", e);
                     }
 
                     if (value != null) {
