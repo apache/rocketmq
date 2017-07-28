@@ -65,11 +65,11 @@ public abstract class AbstractMQConsumer implements MQConsumer {
         this.subExpression = subExpression;
     }
 
-    public AbstractListener getListner() {
+    public AbstractListener getListener() {
         return listner;
     }
 
-    public void setListner(AbstractListener listner) {
+    public void setListener(AbstractListener listner) {
         this.listner = listner;
     }
 

@@ -29,19 +29,23 @@ public class RMQNormalConsumer extends AbstractMQConsumer {
     protected DefaultMQPushConsumer consumer = null;
 
     public RMQNormalConsumer(String nsAddr, String topic, String subExpression,
-        String consumerGroup, AbstractListener listner) {
-        super(nsAddr, topic, subExpression, consumerGroup, listner);
+        String consumerGroup, AbstractListener listener) {
+        super(nsAddr, topic, subExpression, consumerGroup, listener);
     }
 
-    public AbstractListener getListner() {
+    public AbstractListener getListener() {
         return listner;
     }
 
-    public void setListner(AbstractListener listner) {
-        this.listner = listner;
+    public void setListener(AbstractListener listener) {
+        this.listner = listener;
     }
 
     public void create() {
+        create(false);
+    }
+
+    public void create(boolean useTLS) {
         consumer = new DefaultMQPushConsumer(consumerGroup);
         consumer.setInstanceName(RandomUtil.getStringByUUID());
         consumer.setNamesrvAddr(nsAddr);
@@ -52,6 +56,7 @@ public class RMQNormalConsumer extends AbstractMQConsumer {
             e.printStackTrace();
         }
         consumer.setMessageListener(listner);
+        consumer.setUseTLS(useTLS);
     }
 
     public void start() {
