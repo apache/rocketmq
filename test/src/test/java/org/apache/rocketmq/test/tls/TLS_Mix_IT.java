@@ -27,7 +27,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TLS_IT extends BaseConf {
+public class TLS_Mix_IT extends BaseConf {
 
     private RMQNormalProducer producer;
     private RMQNormalConsumer consumer;
@@ -37,9 +37,11 @@ public class TLS_IT extends BaseConf {
     @Before
     public void setUp() {
         topic = initTopic();
-        // Send messages via TLS
-        producer = getProducer(nsAddr, topic, true);
-        // Receive messages via TLS
+
+        // send message without TLS
+        producer = getProducer(nsAddr, topic);
+
+        // Receive message via TLS
         consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener(), true);
     }
 
