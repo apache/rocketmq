@@ -36,8 +36,6 @@ public class SelectMessageQueueByConsistentHash implements MessageQueueSelector 
 
     private volatile HashMap<String, MessageQueue> idToQueueMap = new HashMap<String, MessageQueue>();
 
-    private Object idToQueueMapMonitor = new Object();
-
     public SelectMessageQueueByConsistentHash() {
         this.virtualNodeNum = DEFAULT_VIRTUAL_NODES;
     }
@@ -46,19 +44,17 @@ public class SelectMessageQueueByConsistentHash implements MessageQueueSelector 
         this.virtualNodeNum = virtualNodeNum;
     }
 
-
     @Override
     public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
-        if (queueChange(mqs)) {
-            synchronized (this.idToQueueMapMonitor) {
-                if (queueChange(mqs)) {
-                    reloadConsistentHash(mqs);
-                }
+        synchronized (this) {
+            if (queueChange(mqs)) {
+                reloadConsistentHash(mqs);
             }
+
+            String uniqueQueueId = getMsgQueueIdBy(arg.toString());
+            MessageQueue messageQueue = idToQueueMap.get(uniqueQueueId);
+            return messageQueue;
         }
-        String uniqueQueueId = getMsgQueue(arg.toString());
-        MessageQueue messageQueue = idToQueueMap.get(uniqueQueueId);
-        return messageQueue;
     }
 
     private boolean queueChange(List<MessageQueue> mqs) {
@@ -76,8 +72,8 @@ public class SelectMessageQueueByConsistentHash implements MessageQueueSelector 
         return false;
     }
 
-    private String getMsgQueue(String node) {
-        int hash = getHash(node);
+    private String getMsgQueueIdBy(String arg) {
+        int hash = getHash(arg);
         SortedMap<Integer, String> subMap = virtualNodes.tailMap(hash);
 
         Integer i;
