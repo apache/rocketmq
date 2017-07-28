@@ -28,13 +28,10 @@ public class ClientLogger {
     public static final String CLIENT_LOG_ROOT = "rocketmq.client.logRoot";
     public static final String CLIENT_LOG_MAXINDEX = "rocketmq.client.logFileMaxIndex";
     public static final String CLIENT_LOG_LEVEL = "rocketmq.client.logLevel";
+
     private static Logger log;
 
     public static Class logClass = null;
-
-    static {
-        log = createLogger(LoggerName.CLIENT_LOGGER_NAME);
-    }
 
     public static Class getLogClass() {
         return logClass;
@@ -118,7 +115,12 @@ public class ClientLogger {
     }
 
     public static Logger getLog() {
-        return log;
+        if (log == null) {
+            log = createLogger(LoggerName.CLIENT_LOGGER_NAME);
+            return log;
+        } else {
+            return log;
+        }
     }
 
     public static void setLog(Logger log) {
