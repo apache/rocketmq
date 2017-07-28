@@ -277,8 +277,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             private void scheduleNextPull(PullResult pullResult) {
                 pullRequest.setNextOffset(pullResult.getNextBeginOffset());
                 correctTagsOffset(pullRequest);
-                if (defaultMQPushConsumer.getPullInterval() > 0) {
-                    executePullRequestLater(pullRequest, defaultMQPushConsumer.getPullInterval());
+                if (defaultMQPushConsumer.getPullIntervalPolicy().getPullInterval() > 0) {
+                    executePullRequestLater(pullRequest, defaultMQPushConsumer.getPullIntervalPolicy().getPullInterval());
                 } else {
                     DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                 }
@@ -289,6 +289,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 if (pullResult != null) {
                     pullResult = DefaultMQPushConsumerImpl.this.pullAPIWrapper.processPullResult(pullRequest.getMessageQueue(), pullResult,
                         subscriptionData);
+
+                    defaultMQPushConsumer.getPullIntervalPolicy().update(pullResult.getPullStatus());
 
                     switch (pullResult.getPullStatus()) {
                         case FOUND:
@@ -313,13 +315,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                                     processQueue, //
                                     pullRequest.getMessageQueue(), //
                                     dispatchToConsume);
-
-                                if (DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval() > 0) {
-                                    DefaultMQPushConsumerImpl.this.executePullRequestLater(pullRequest,
-                                        DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval());
-                                } else {
-                                    DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
-                                }
+                                DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                             }
 
                             if (pullResult.getNextBeginOffset() < prevRequestOffset//
