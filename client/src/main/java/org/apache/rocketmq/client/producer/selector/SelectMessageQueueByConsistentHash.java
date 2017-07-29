@@ -25,6 +25,11 @@ import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+/**
+* wanting to send a message with the same key combine with orderly consumer, user can 
+* use the implements of the MessageQueueSelector, which has one optimization compared with SelectMessageQueueByHash
+* when a broker crash , it can reduce the message Arriving out of the order
+*/
 public class SelectMessageQueueByConsistentHash implements MessageQueueSelector {
 
     private volatile SortedMap<Integer, String> virtualNodes =
