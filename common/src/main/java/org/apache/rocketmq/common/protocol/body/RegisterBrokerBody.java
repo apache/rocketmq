@@ -121,7 +121,7 @@ public class RegisterBrokerBody extends RemotingSerializable {
 
 
         int topicConfigNumber = readInt(inflaterInputStream);
-        LOGGER.debug("{} topic config to extract", topicConfigNumber);
+        LOGGER.debug("{} topic configs to extract", topicConfigNumber);
 
         for (int i = 0; i < topicConfigNumber; i++) {
             int topicConfigJsonLength = readInt(inflaterInputStream);
