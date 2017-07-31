@@ -58,7 +58,7 @@
     <appender name="mqAppender1" class="org.apache.rocketmq.logappender.logback.RocketmqLogbackAppender">
         <tag>log1</tag>
         <topic>TopicTest</topic>
-        <producerGroup>logback</producerGroup>
+        <producerGroup>loggerAppender</producerGroup>
         <nameServerAddress>127.0.0.1:9876</nameServerAddress>
         <layout>
             <pattern>%date %p %t - %m%n</pattern>

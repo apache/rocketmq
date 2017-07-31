@@ -29,7 +29,7 @@ limitations under the License.
     <appender name="mqAppender1" class="org.apache.rocketmq.logappender.log4j.RocketmqLog4jAppender">
         <param name="Tag" value="log1" />
         <param name="Topic" value="TopicTest" />
-        <param name="ProducerGroup" value="log4jxml" />
+        <param name="ProducerGroup" value="loggerAppender" />
         <param name="NameServerAddress" value="127.0.0.1:9876"/>
         <layout class="org.apache.log4j.PatternLayout">
             <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss}-%p %t %c - %m%n" />
