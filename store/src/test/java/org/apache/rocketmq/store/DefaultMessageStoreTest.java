@@ -136,14 +136,14 @@ public class DefaultMessageStoreTest {
         messageStore.start();
         String topic = "pullSizeTopic";
 
-        for (int i = 0; i < 200; i++) {
+        for (int i = 0; i < 32; i++) {
             MessageExtBrokerInner messageExtBrokerInner = buildMessage();
             messageExtBrokerInner.setTopic(topic);
             messageExtBrokerInner.setQueueId(0);
             PutMessageResult putMessageResult = messageStore.putMessage(messageExtBrokerInner);
         }
         //wait for consume queue build
-        Thread.sleep(1000);
+        Thread.sleep(100);
         String group = "simple";
         GetMessageResult getMessageResult32 = messageStore.getMessage(group, topic, 0, 0, 32, null);
         assertThat(getMessageResult32.getMessageBufferList().size()).isEqualTo(32);

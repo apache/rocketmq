@@ -1110,7 +1110,7 @@ public class DefaultMessageStore implements MessageStore {
             return false;
         }
 
-        if (messageTotal > maxMsgNums - 1) {
+        if (maxMsgNums <= messageTotal) {
             return true;
         }
 
