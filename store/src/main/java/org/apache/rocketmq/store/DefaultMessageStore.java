@@ -718,8 +718,7 @@ public class DefaultMessageStore implements MessageStore {
             long minLogicOffset = logicQueue.getMinLogicOffset();
 
             SelectMappedBufferResult result = logicQueue.getIndexBuffer(minLogicOffset / ConsumeQueue.CQ_STORE_UNIT_SIZE);
-            Long storeTime = getStoreTime(result);
-            return storeTime;
+            return getStoreTime(result);
         }
 
         return -1;
