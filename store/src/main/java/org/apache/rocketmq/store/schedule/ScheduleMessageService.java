@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -43,16 +44,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ScheduleMessageService extends ConfigManager {
-    public static final String SCHEDULE_TOPIC = "SCHEDULE_TOPIC_XXXX";
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+
+    public static final String SCHEDULE_TOPIC = "SCHEDULE_TOPIC_XXXX";
     private static final long FIRST_DELAY_TIME = 1000L;
     private static final long DELAY_FOR_A_WHILE = 100L;
     private static final long DELAY_FOR_A_PERIOD = 10000L;
 
-    private final ConcurrentHashMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
+    private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
         new ConcurrentHashMap<Integer, Long>(32);
 
-    private final ConcurrentHashMap<Integer /* level */, Long/* offset */> offsetTable =
+    private final ConcurrentMap<Integer /* level */, Long/* offset */> offsetTable =
         new ConcurrentHashMap<Integer, Long>(32);
 
     private final Timer timer = new Timer("ScheduleMessageTimerThread", true);
@@ -120,7 +122,7 @@ public class ScheduleMessageService extends ConfigManager {
             public void run() {
                 try {
                     ScheduleMessageService.this.persist();
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     log.error("scheduleAtFixedRate flush exception", e);
                 }
             }

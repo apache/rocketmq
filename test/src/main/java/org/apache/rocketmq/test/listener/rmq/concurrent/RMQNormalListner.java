@@ -51,8 +51,8 @@ public class RMQNormalListner extends AbstractListener implements MessageListene
         for (MessageExt msg : msgs) {
             msgIndex.getAndIncrement();
             if (isDebug) {
-                if (listnerName != null && listnerName != "") {
-                    logger.info(listnerName + ":" + msgIndex.get() + ":"
+                if (listenerName != null && listenerName != "") {
+                    logger.info(listenerName + ":" + msgIndex.get() + ":"
                         + String.format("msgid:%s broker:%s queueId:%s offset:%s",
                         msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(),
                         msg.getQueueOffset()));

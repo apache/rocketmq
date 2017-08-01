@@ -61,10 +61,10 @@ public class MulTagSubIT extends BaseConf {
             new RMQNormalListner());
         producer.send(tag, msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
 
@@ -83,10 +83,10 @@ public class MulTagSubIT extends BaseConf {
         producer.send(tag2Msgs);
         Assert.assertEquals("Not all sent succeeded", msgSize * 2, producer.getAllUndupMsgBody().size());
 
-        consumer.getListner().waitForMessageConsume(MQMessageFactory.getMessageBody(tag2Msgs),
+        consumer.getListener().waitForMessageConsume(MQMessageFactory.getMessageBody(tag2Msgs),
             consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(MQMessageFactory.getMessageBody(tag2Msgs));
     }
 
@@ -104,10 +104,10 @@ public class MulTagSubIT extends BaseConf {
         Assert.assertEquals("Not all sent succeeded", msgSize * tags.length,
             producer.getAllUndupMsgBody().size());
 
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(tagMessage.getAllTagMessageBody());
     }
 
@@ -125,11 +125,11 @@ public class MulTagSubIT extends BaseConf {
         Assert.assertEquals("Not all sent succeeded", msgSize * tags.length,
             producer.getAllUndupMsgBody().size());
 
-        consumer.getListner().waitForMessageConsume(
+        consumer.getListener().waitForMessageConsume(
             tagMessage.getMessageBodyByTag(tags[0], tags[1]), consumeTime);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody())).containsExactlyElementsIn(
+            consumer.getListener().getAllMsgBody())).containsExactlyElementsIn(
             tagMessage.getMessageBodyByTag(tags[0], tags[1]));
     }
 
@@ -150,7 +150,7 @@ public class MulTagSubIT extends BaseConf {
         TestUtils.waitForSeconds(5);
 
         assertThat(VerifyUtils
-            .getFilterdMessage(producer.getAllMsgBody(), consumer.getListner().getAllMsgBody())
+            .getFilterdMessage(producer.getAllMsgBody(), consumer.getListener().getAllMsgBody())
             .size()).isEqualTo(0);
     }
 }

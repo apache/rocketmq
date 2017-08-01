@@ -532,8 +532,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessages(messageExtBatch);
 
-        handlePutMessageResult(putMessageResult, response, request, messageExtBatch, responseHeader, sendMessageContext, ctx, queueIdInt);
-        return response;
+        return handlePutMessageResult(putMessageResult, response, request, messageExtBatch, responseHeader, sendMessageContext, ctx, queueIdInt);
     }
 
     public boolean hasConsumeMessageHook() {

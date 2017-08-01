@@ -59,9 +59,9 @@ public class OneWaySendWithMQIT extends BaseConf {
         producer.sendOneWay(msgSize, mq);
         producer.waitForResponse(5 * 1000);
 
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
 
         producer.clearMsg();
@@ -71,9 +71,9 @@ public class OneWaySendWithMQIT extends BaseConf {
         producer.asyncSend(msgSize, mq);
         producer.waitForResponse(5 * 1000);
 
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
 }

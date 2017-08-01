@@ -55,9 +55,9 @@ public class OneConsumerMulTopicIT extends BaseConf {
         producer.send(MQMessageFactory.getMsg(topic2, msgSize));
 
         Assert.assertEquals("Not all are sent", msgSize * 2, producer.getAllUndupMsgBody().size());
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
 
@@ -74,9 +74,9 @@ public class OneConsumerMulTopicIT extends BaseConf {
         producer.send(MQMessageFactory.getMsg(topic2, msgSize, tag));
 
         Assert.assertEquals("Not all are sent", msgSize * 2, producer.getAllUndupMsgBody().size());
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
 
@@ -96,9 +96,9 @@ public class OneConsumerMulTopicIT extends BaseConf {
         producer.send(MQMessageFactory.getMsg(topic2, msgSize, tag1));
 
         Assert.assertEquals("Not all are sent", msgSize * 2, producer.getAllUndupMsgBody().size());
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
 }
