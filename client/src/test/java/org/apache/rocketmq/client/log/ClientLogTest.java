@@ -17,10 +17,11 @@
 
 package org.apache.rocketmq.client.log;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.util.Date;
 
 public class ClientLogTest {
@@ -32,15 +33,19 @@ public class ClientLogTest {
         LOG_DIR = System.getProperty(CLIENT_LOG_ROOT, "${user.home}/logs/rocketmqlogs");
     }
 
+    // FIXME: Workarond for concret implementation for slf4j, is there any better solution for all slf4j implementations in one class ? 2017/8/1
     @Test
-    public void testLog4j2() throws IOException {
+    public void testLog4j2() throws IOException, NoSuchFieldException, IllegalAccessException {
+        ClientLogger.getLog();
         long seek = 0;
         boolean result = false;
         File file = new File(LOG_DIR + File.separator + "rocketmq_client.log");
         if (file.exists()) {
             seek = file.length();
         }
-        Class logClass = ClientLogger.getLogClass();
+        Field logClassField = ClientLogger.class.getDeclaredField("logClass");
+        logClassField.setAccessible(true);
+        Class logClass = (Class) logClassField.get(ClientLogger.class);
         Assert.assertEquals("org.apache.logging.slf4j.Log4jLoggerFactory", logClass.getName());
         for (int i = 0; i < 10; i++) {
             ClientLogger.getLog().info("testcase testLog4j2 " + new Date());
@@ -51,13 +56,13 @@ public class ClientLogTest {
         String line = randomAccessFile.readLine();
         int idx = 1;
         while (line != null) {
-            if (line.contains("testcase testLog4j2")) {
+            if (line.contains("testLog4j2")) {
                 result = true;
                 break;
             }
             line = randomAccessFile.readLine();
             idx++;
-            if (idx > 50) {
+            if (idx > 20) {
                 break;
             }
         }

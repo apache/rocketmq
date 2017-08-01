@@ -31,11 +31,7 @@ public class ClientLogger {
 
     private static Logger log;
 
-    public static Class logClass = null;
-
-    public static Class getLogClass() {
-        return logClass;
-    }
+    private static Class logClass = null;
 
     private static Logger createLogger(final String loggerName) {
         String logConfigFilePath =
