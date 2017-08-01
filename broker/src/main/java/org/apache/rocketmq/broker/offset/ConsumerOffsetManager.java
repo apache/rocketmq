@@ -49,6 +49,45 @@ public class ConsumerOffsetManager extends ConfigManager {
         this.brokerController = brokerController;
     }
 
+    public long computeMinPhysicalOffsetYetToConsume() {
+        Map<String, Map<Integer, Long>> offsets = new HashMap<>();
+        for (ConcurrentMap.Entry<String, ConcurrentMap<Integer, Long>> next : offsetTable.entrySet()) {
+            String[] segments = next.getKey().split("@");
+            if (!offsets.containsKey(segments[0])) {
+                offsets.put(segments[0], next.getValue());
+            } else {
+                Map<Integer, Long> queueOffsets = offsets.get(segments[0]);
+
+                ConcurrentMap<Integer, Long> otherOffsets = next.getValue();
+                for (Map.Entry<Integer, Long> row : otherOffsets.entrySet()) {
+                    if (queueOffsets.get(row.getKey()) > row.getValue()) {
+                        queueOffsets.put(row.getKey(), row.getValue());
+                    }
+                }
+            }
+        }
+
+        long minOffset = Long.MAX_VALUE;
+        for (Map.Entry<String, Map<Integer, Long>> next : offsets.entrySet()) {
+            String topic = next.getKey();
+            for (Map.Entry<Integer, Long> it : next.getValue().entrySet()) {
+                int queueId = it.getKey();
+                Long consumeOffset = it.getValue();
+                Long maxOffsetInQueue = brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
+                if (consumeOffset >= maxOffsetInQueue) {
+                    continue;
+                } else {
+                    long physicalOffset = brokerController.getMessageStore().getCommitLogOffsetInQueue(topic, queueId, consumeOffset);
+                    if (physicalOffset < minOffset) {
+                        minOffset = physicalOffset;
+                    }
+                }
+            }
+        }
+
+        return minOffset;
+    }
+
     public void scanUnsubscribedTopic() {
         Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
         while (it.hasNext()) {
