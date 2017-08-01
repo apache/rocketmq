@@ -77,7 +77,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     /**
      * Queue allocation algorithm
      */
-    private AllocateMessageQueueStrategy allocateMessageQueueStrategy = new AllocateMessageQueueAveragely();
+    private ThreadLocal<AllocateMessageQueueStrategy> allocateMessageQueueStrategyThreadLocal = new ThreadLocal<>();
     /**
      * Whether the unit of subscription group
      */
@@ -92,6 +92,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     public DefaultMQPullConsumer(final String consumerGroup, RPCHook rpcHook) {
         this.consumerGroup = consumerGroup;
         defaultMQPullConsumerImpl = new DefaultMQPullConsumerImpl(this, rpcHook);
+        allocateMessageQueueStrategyThreadLocal.set(new AllocateMessageQueueAveragely());
     }
 
     public DefaultMQPullConsumer(final String consumerGroup) {
@@ -145,11 +146,11 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     }
 
     public AllocateMessageQueueStrategy getAllocateMessageQueueStrategy() {
-        return allocateMessageQueueStrategy;
+        return allocateMessageQueueStrategyThreadLocal.get();
     }
 
     public void setAllocateMessageQueueStrategy(AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
-        this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
+        this.allocateMessageQueueStrategyThreadLocal.set(allocateMessageQueueStrategy);
     }
 
     public long getBrokerSuspendMaxTimeMillis() {

@@ -128,7 +128,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Queue allocation algorithm specifying how message queues are allocated to each consumer clients.
      */
-    private AllocateMessageQueueStrategy allocateMessageQueueStrategy;
+    private ThreadLocal<AllocateMessageQueueStrategy> allocateMessageQueueStrategyThreadLocal = new ThreadLocal<>();
 
     /**
      * Subscription relationship
@@ -229,7 +229,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook, AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
         this.consumerGroup = consumerGroup;
-        this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
+        this.allocateMessageQueueStrategyThreadLocal.set(allocateMessageQueueStrategy);
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
     }
 
@@ -302,11 +302,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     }
 
     public AllocateMessageQueueStrategy getAllocateMessageQueueStrategy() {
-        return allocateMessageQueueStrategy;
+        return allocateMessageQueueStrategyThreadLocal.get();
     }
 
     public void setAllocateMessageQueueStrategy(AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
-        this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
+        this.allocateMessageQueueStrategyThreadLocal.set(allocateMessageQueueStrategy);
     }
 
     public int getConsumeConcurrentlyMaxSpan() {
