@@ -81,13 +81,20 @@ public class SslHelper {
                     .trustManager(InsecureTrustManagerFactory.INSTANCE)
                     .build();
             } else {
-                return SslContextBuilder.forClient()
-                    .sslProvider(SslProvider.JDK)
-                    .trustManager(new File(properties.getProperty("client.trustManager")))
-                    .keyManager(
-                        properties.containsKey("client.keyCertChainFile") ? new File(properties.getProperty("client.keyCertChainFile")) : null,
-                        properties.containsKey("client.keyFile") ? new File(properties.getProperty("client.keyFile")) : null,
-                        properties.containsKey("client.password") ? properties.getProperty("client.password") : null)
+                SslContextBuilder sslContextBuilder = SslContextBuilder.forClient().sslProvider(SslProvider.JDK);
+
+                if ("false".equals(properties.getProperty("client.auth.server"))) {
+                    sslContextBuilder.trustManager(InsecureTrustManagerFactory.INSTANCE);
+                } else {
+                    if (properties.containsKey("client.trustManager")) {
+                        sslContextBuilder.trustManager(new File(properties.getProperty("client.trustManager")));
+                    }
+                }
+
+                return sslContextBuilder.keyManager(
+                    properties.containsKey("client.keyCertChainFile") ? new File(properties.getProperty("client.keyCertChainFile")) : null,
+                    properties.containsKey("client.keyFile") ? new File(properties.getProperty("client.keyFile")) : null,
+                    properties.containsKey("client.password") ? properties.getProperty("client.password") : null)
                     .build();
             }
         } else {
@@ -123,5 +130,4 @@ public class SslHelper {
 
         return ClientAuth.REQUIRE;
     }
-
 }
