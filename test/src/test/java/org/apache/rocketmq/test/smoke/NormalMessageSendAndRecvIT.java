@@ -54,9 +54,9 @@ public class NormalMessageSendAndRecvIT extends BaseConf {
         int msgSize = 10;
         producer.send(msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
 }

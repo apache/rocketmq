@@ -66,13 +66,13 @@ public class OrderMsgBroadCastIT extends BaseBroadCastIT {
         List<MessageQueue> mqs = producer.getMessageQueue();
         MessageQueueMsg mqMsgs = new MessageQueueMsg(mqs, msgSize);
         producer.send(mqMsgs.getMsgsWithMQ());
-
+      
         consumer1.getListner().waitForMessageConsume(producer.getAllMsgBody(), broadcastConsumeTime);
         consumer2.getListner().waitForMessageConsume(producer.getAllMsgBody(), broadcastConsumeTime);
 
-        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer1.getListner()).getMsgs()))
+        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer1.getListener()).getMsgs()))
             .isEqualTo(true);
-        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer2.getListner()).getMsgs()))
+        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer2.getListener()).getMsgs()))
             .isEqualTo(true);
     }
 }

@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -64,7 +65,7 @@ public class DefaultMessageStore implements MessageStore {
     // CommitLog
     private final CommitLog commitLog;
 
-    private final ConcurrentHashMap<String/* topic */, ConcurrentHashMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;
+    private final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;
 
     private final FlushConsumeQueueService flushConsumeQueueService;
 
@@ -140,9 +141,9 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public void truncateDirtyLogicFiles(long phyOffset) {
-        ConcurrentHashMap<String, ConcurrentHashMap<Integer, ConsumeQueue>> tables = DefaultMessageStore.this.consumeQueueTable;
+        ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueue>> tables = DefaultMessageStore.this.consumeQueueTable;
 
-        for (ConcurrentHashMap<Integer, ConsumeQueue> maps : tables.values()) {
+        for (ConcurrentMap<Integer, ConsumeQueue> maps : tables.values()) {
             for (ConsumeQueue logic : maps.values()) {
                 logic.truncateDirtyLogicFiles(phyOffset);
             }
@@ -267,7 +268,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public void destroyLogics() {
-        for (ConcurrentHashMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
+        for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
             for (ConsumeQueue logic : maps.values()) {
                 logic.destroy();
             }
@@ -885,13 +886,13 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public int cleanUnusedTopic(Set<String> topics) {
-        Iterator<Entry<String, ConcurrentHashMap<Integer, ConsumeQueue>>> it = this.consumeQueueTable.entrySet().iterator();
+        Iterator<Entry<String, ConcurrentMap<Integer, ConsumeQueue>>> it = this.consumeQueueTable.entrySet().iterator();
         while (it.hasNext()) {
-            Entry<String, ConcurrentHashMap<Integer, ConsumeQueue>> next = it.next();
+            Entry<String, ConcurrentMap<Integer, ConsumeQueue>> next = it.next();
             String topic = next.getKey();
 
             if (!topics.contains(topic) && !topic.equals(ScheduleMessageService.SCHEDULE_TOPIC)) {
-                ConcurrentHashMap<Integer, ConsumeQueue> queueTable = next.getValue();
+                ConcurrentMap<Integer, ConsumeQueue> queueTable = next.getValue();
                 for (ConsumeQueue cq : queueTable.values()) {
                     cq.destroy();
                     log.info("cleanUnusedTopic: {} {} ConsumeQueue cleaned", //
@@ -913,12 +914,12 @@ public class DefaultMessageStore implements MessageStore {
     public void cleanExpiredConsumerQueue() {
         long minCommitLogOffset = this.commitLog.getMinOffset();
 
-        Iterator<Entry<String, ConcurrentHashMap<Integer, ConsumeQueue>>> it = this.consumeQueueTable.entrySet().iterator();
+        Iterator<Entry<String, ConcurrentMap<Integer, ConsumeQueue>>> it = this.consumeQueueTable.entrySet().iterator();
         while (it.hasNext()) {
-            Entry<String, ConcurrentHashMap<Integer, ConsumeQueue>> next = it.next();
+            Entry<String, ConcurrentMap<Integer, ConsumeQueue>> next = it.next();
             String topic = next.getKey();
             if (!topic.equals(ScheduleMessageService.SCHEDULE_TOPIC)) {
-                ConcurrentHashMap<Integer, ConsumeQueue> queueTable = next.getValue();
+                ConcurrentMap<Integer, ConsumeQueue> queueTable = next.getValue();
                 Iterator<Entry<Integer, ConsumeQueue>> itQT = queueTable.entrySet().iterator();
                 while (itQT.hasNext()) {
                     Entry<Integer, ConsumeQueue> nextQT = itQT.next();
@@ -1061,10 +1062,10 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public ConsumeQueue findConsumeQueue(String topic, int queueId) {
-        ConcurrentHashMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
+        ConcurrentMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
         if (null == map) {
-            ConcurrentHashMap<Integer, ConsumeQueue> newMap = new ConcurrentHashMap<Integer, ConsumeQueue>(128);
-            ConcurrentHashMap<Integer, ConsumeQueue> oldMap = consumeQueueTable.putIfAbsent(topic, newMap);
+            ConcurrentMap<Integer, ConsumeQueue> newMap = new ConcurrentHashMap<Integer, ConsumeQueue>(128);
+            ConcurrentMap<Integer, ConsumeQueue> oldMap = consumeQueueTable.putIfAbsent(topic, newMap);
             if (oldMap != null) {
                 map = oldMap;
             } else {
@@ -1205,9 +1206,9 @@ public class DefaultMessageStore implements MessageStore {
     private void checkSelf() {
         this.commitLog.checkSelf();
 
-        Iterator<Entry<String, ConcurrentHashMap<Integer, ConsumeQueue>>> it = this.consumeQueueTable.entrySet().iterator();
+        Iterator<Entry<String, ConcurrentMap<Integer, ConsumeQueue>>> it = this.consumeQueueTable.entrySet().iterator();
         while (it.hasNext()) {
-            Entry<String, ConcurrentHashMap<Integer, ConsumeQueue>> next = it.next();
+            Entry<String, ConcurrentMap<Integer, ConsumeQueue>> next = it.next();
             Iterator<Entry<Integer, ConsumeQueue>> itNext = next.getValue().entrySet().iterator();
             while (itNext.hasNext()) {
                 Entry<Integer, ConsumeQueue> cq = itNext.next();
@@ -1280,7 +1281,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private void putConsumeQueue(final String topic, final int queueId, final ConsumeQueue consumeQueue) {
-        ConcurrentHashMap<Integer/* queueId */, ConsumeQueue> map = this.consumeQueueTable.get(topic);
+        ConcurrentMap<Integer/* queueId */, ConsumeQueue> map = this.consumeQueueTable.get(topic);
         if (null == map) {
             map = new ConcurrentHashMap<Integer/* queueId */, ConsumeQueue>();
             map.put(queueId, consumeQueue);
@@ -1291,7 +1292,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private void recoverConsumeQueue() {
-        for (ConcurrentHashMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
+        for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
             for (ConsumeQueue logic : maps.values()) {
                 logic.recover();
             }
@@ -1301,7 +1302,7 @@ public class DefaultMessageStore implements MessageStore {
     private void recoverTopicQueueTable() {
         HashMap<String/* topic-queueid */, Long/* offset */> table = new HashMap<String, Long>(1024);
         long minPhyOffset = this.commitLog.getMinOffset();
-        for (ConcurrentHashMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
+        for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
             for (ConsumeQueue logic : maps.values()) {
                 String key = logic.getTopic() + "-" + logic.getQueueId();
                 table.put(key, logic.getMaxOffsetInQueue());
@@ -1324,7 +1325,7 @@ public class DefaultMessageStore implements MessageStore {
         return runningFlags;
     }
 
-    public ConcurrentHashMap<String, ConcurrentHashMap<Integer, ConsumeQueue>> getConsumeQueueTable() {
+    public ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueue>> getConsumeQueueTable() {
         return consumeQueueTable;
     }
 
@@ -1375,7 +1376,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public ConsumeQueue getConsumeQueue(String topic, int queueId) {
-        ConcurrentHashMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
+        ConcurrentMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
         if (map == null) {
             return null;
         }
@@ -1442,7 +1443,7 @@ public class DefaultMessageStore implements MessageStore {
                 this.deleteExpiredFiles();
 
                 this.redeleteHangedFile();
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 DefaultMessageStore.log.warn(this.getServiceName() + " service has exception. ", e);
             }
         }
@@ -1582,7 +1583,7 @@ public class DefaultMessageStore implements MessageStore {
         public void run() {
             try {
                 this.deleteExpiredFiles();
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 DefaultMessageStore.log.warn(this.getServiceName() + " service has exception. ", e);
             }
         }
@@ -1594,9 +1595,9 @@ public class DefaultMessageStore implements MessageStore {
             if (minOffset > this.lastPhysicalMinOffset) {
                 this.lastPhysicalMinOffset = minOffset;
 
-                ConcurrentHashMap<String, ConcurrentHashMap<Integer, ConsumeQueue>> tables = DefaultMessageStore.this.consumeQueueTable;
+                ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueue>> tables = DefaultMessageStore.this.consumeQueueTable;
 
-                for (ConcurrentHashMap<Integer, ConsumeQueue> maps : tables.values()) {
+                for (ConcurrentMap<Integer, ConsumeQueue> maps : tables.values()) {
                     for (ConsumeQueue logic : maps.values()) {
                         int deleteCount = logic.deleteExpiredFile(minOffset);
 
@@ -1639,9 +1640,9 @@ public class DefaultMessageStore implements MessageStore {
                 logicsMsgTimestamp = DefaultMessageStore.this.getStoreCheckpoint().getLogicsMsgTimestamp();
             }
 
-            ConcurrentHashMap<String, ConcurrentHashMap<Integer, ConsumeQueue>> tables = DefaultMessageStore.this.consumeQueueTable;
+            ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueue>> tables = DefaultMessageStore.this.consumeQueueTable;
 
-            for (ConcurrentHashMap<Integer, ConsumeQueue> maps : tables.values()) {
+            for (ConcurrentMap<Integer, ConsumeQueue> maps : tables.values()) {
                 for (ConsumeQueue cq : maps.values()) {
                     boolean result = false;
                     for (int i = 0; i < retryTimes && !result; i++) {

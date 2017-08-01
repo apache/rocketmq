@@ -57,22 +57,22 @@ public class NormalMsgDynamicBalanceIT extends BaseConf {
 
         producer.send(msgSize);
 
-        MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer1.getListner(),
-            consumer2.getListner());
+        MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer1.getListener(),
+            consumer2.getListener());
         consumer2.shutdown();
 
         producer.send(msgSize);
         Assert.assertEquals("Not all are sent", msgSize * 2, producer.getAllUndupMsgBody().size());
 
         boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
-            consumer1.getListner(), consumer2.getListner());
+            consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
 
         boolean balance = VerifyUtils.verifyBalance(msgSize,
             VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-                consumer1.getListner().getAllUndupMsgBody()).size() - msgSize,
+                consumer1.getListener().getAllUndupMsgBody()).size() - msgSize,
             VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-                consumer2.getListner().getAllUndupMsgBody()).size());
+                consumer2.getListener().getAllUndupMsgBody()).size());
         assertThat(balance).isEqualTo(true);
     }
 
@@ -87,8 +87,8 @@ public class NormalMsgDynamicBalanceIT extends BaseConf {
 
         producer.send(msgSize);
 
-        MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer1.getListner(),
-            consumer2.getListner(), consumer3.getListner());
+        MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer1.getListener(),
+            consumer2.getListener(), consumer3.getListener());
         consumer3.shutdown();
         producer.clearMsg();
         consumer1.clearMsg();
@@ -98,14 +98,14 @@ public class NormalMsgDynamicBalanceIT extends BaseConf {
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
 
         boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
-            consumer1.getListner(), consumer2.getListner());
+            consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
 
         boolean balance = VerifyUtils.verifyBalance(msgSize,
             VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-                consumer1.getListner().getAllUndupMsgBody()).size(),
+                consumer1.getListener().getAllUndupMsgBody()).size(),
             VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-                consumer2.getListner().getAllUndupMsgBody()).size());
+                consumer2.getListener().getAllUndupMsgBody()).size());
         assertThat(balance).isEqualTo(true);
     }
 }

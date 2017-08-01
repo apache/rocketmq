@@ -60,14 +60,14 @@ public class BroadCastNormalMsgNotRecvIT extends BaseBroadCastIT {
         producer.send(msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
 
-        consumer1.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer1.getListner().getAllMsgBody()))
+            consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
 
         RMQBroadCastConsumer consumer2 = getBroadCastConsumer(nsAddr,
             consumer1.getConsumerGroup(), topic, "*", new RMQNormalListner(group + "_2"));
-        consumer2.getListner().waitForMessageConsume(producer.getAllMsgBody(), waitTime);
-        assertThat(consumer2.getListner().getAllMsgBody().size()).isEqualTo(0);
+        consumer2.getListener().waitForMessageConsume(producer.getAllMsgBody(), waitTime);
+        assertThat(consumer2.getListener().getAllMsgBody().size()).isEqualTo(0);
     }
 }

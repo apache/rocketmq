@@ -71,12 +71,12 @@ public class AsyncSendWithMessageQueueSelectorIT extends BaseConf {
         producer.waitForResponse(5 * 1000);
         assertThat(producer.getSuccessMsgCount()).isEqualTo(msgSize);
 
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
 
-        VerifyUtils.verifyMessageQueueId(queueId, consumer.getListner().getAllOriginMsg());
+        VerifyUtils.verifyMessageQueueId(queueId, consumer.getListener().getAllOriginMsg());
 
         producer.clearMsg();
         consumer.clearMsg();
@@ -96,11 +96,11 @@ public class AsyncSendWithMessageQueueSelectorIT extends BaseConf {
         producer.waitForResponse(5 * 1000);
         assertThat(producer.getSuccessMsgCount()).isEqualTo(msgSize);
 
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
 
-        VerifyUtils.verifyMessageQueueId(queueId, consumer.getListner().getAllOriginMsg());
+        VerifyUtils.verifyMessageQueueId(queueId, consumer.getListener().getAllOriginMsg());
     }
 }

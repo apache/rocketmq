@@ -65,14 +65,14 @@ public class BroadCastTwoConsumerFilterIT extends BaseBroadCastIT {
         producer.clearMsg();
         producer.send(tag1, msgSize);
 
-        consumer1.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
-        consumer2.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer2.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer1.getListner().getAllMsgBody()))
+            consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer2.getListner().getAllMsgBody()))
+            consumer2.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
 }

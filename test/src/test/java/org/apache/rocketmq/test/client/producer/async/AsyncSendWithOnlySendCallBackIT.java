@@ -55,9 +55,9 @@ public class AsyncSendWithOnlySendCallBackIT extends BaseConf {
         producer.waitForResponse(10 * 1000);
         assertThat(producer.getSuccessMsgCount()).isEqualTo(msgSize);
 
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
 
