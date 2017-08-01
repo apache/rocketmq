@@ -39,8 +39,7 @@ public class AbstractTestCase {
 
     @Before
     public void mockLoggerAppender() throws Exception {
-        DefaultMQProducer producer = new DefaultMQProducer("loggerAppender");
-        DefaultMQProducer defaultMQProducer = spy(producer);
+        DefaultMQProducer defaultMQProducer = spy(new DefaultMQProducer("loggerAppender"));
         doAnswer(new Answer<Void>() {
             @Override
             public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
@@ -55,19 +54,10 @@ public class AbstractTestCase {
     }
 
     public void clear() {
-//        messages.clear();
-    }
 
-    public void doMock() throws Exception {
-        mockLoggerAppender();
     }
 
     protected int consumeMessages(int count, final String key, int timeout) {
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
         final AtomicInteger cc = new AtomicInteger(0);
         for (Message message : messages) {
             String body = new String(message.getBody());

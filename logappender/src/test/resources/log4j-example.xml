@@ -36,15 +36,9 @@ limitations under the License.
         </layout>
     </appender>
 
-    <appender name="mqAsyncAppender1" class="org.apache.log4j.AsyncAppender">
-        <param name="BufferSize" value="1024" />
-        <param name="Blocking" value="false" />
-        <appender-ref ref="mqAppender1"/>
-    </appender>
-
     <logger name="testLogger" additivity="false">
         <level value="INFO" />
-        <appender-ref ref="mqAsyncAppender1" />
+        <appender-ref ref="mqAppender1" />
         <appender-ref ref="consoleAppender" />
     </logger>
 

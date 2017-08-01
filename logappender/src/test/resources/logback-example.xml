@@ -65,14 +65,6 @@
         </layout>
     </appender>
 
-    <appender name="mqAsyncAppender1" class="ch.qos.logback.classic.AsyncAppender">
-        <queueSize>1024</queueSize>
-        <discardingThreshold>80</discardingThreshold>
-        <maxFlushTime>2000</maxFlushTime>
-        <neverBlock>true</neverBlock>
-        <appender-ref ref="mqAppender1"/>
-    </appender>
-
     <root>
         <level value="debug"/>
         <appender-ref ref="consoleAppender"/>
@@ -83,7 +75,7 @@
     </logger>
 
     <logger name="testLogger" level="debug" additivity="false">
-        <appender-ref ref="mqAsyncAppender1"/>
+        <appender-ref ref="mqAppender1"/>
         <appender-ref ref="consoleAppender"/>
     </logger>
 </configuration>
