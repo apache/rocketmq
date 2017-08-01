@@ -255,19 +255,17 @@ public class MQClientInstance {
     }
 
     private void startScheduledTask() {
-        if (null == this.clientConfig.getNamesrvAddr()) {
-            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
-                @Override
-                public void run() {
-                    try {
-                        MQClientInstance.this.mQClientAPIImpl.fetchNameServerAddr();
-                    } catch (Exception e) {
-                        log.error("ScheduledTask fetchNameServerAddr exception", e);
-                    }
+            @Override
+            public void run() {
+                try {
+                    MQClientInstance.this.mQClientAPIImpl.fetchNameServerAddr();
+                } catch (Exception e) {
+                    log.error("ScheduledTask fetchNameServerAddr exception", e);
                 }
-            }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
-        }
+            }
+        }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -584,7 +582,8 @@ public class MQClientInstance {
         }
     }
 
-    public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault, DefaultMQProducer defaultMQProducer) {
+    public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
+        DefaultMQProducer defaultMQProducer) {
         try {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
@@ -719,7 +718,8 @@ public class MQClientInstance {
         return false;
     }
 
-    private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String fullClassName, final String topic,
+    private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String fullClassName,
+        final String topic,
         final String filterClassSource) throws UnsupportedEncodingException {
         byte[] classBody = null;
         int classCRC = 0;
