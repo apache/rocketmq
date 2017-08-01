@@ -83,7 +83,7 @@ public class UpdateTopicPermSubCommand implements SubCommand {
             topicConfig.setWriteQueueNums(queueData.getWriteQueueNums());
             topicConfig.setReadQueueNums(queueData.getReadQueueNums());
             topicConfig.setPerm(queueData.getPerm());
-            topicConfig.setTopicSysFlag(queueData.getTopicSynFlag());
+            topicConfig.setTopicSysFlag(queueData.getTopicSysFlag());
 
             //new perm
             int perm = Integer.parseInt(commandLine.getOptionValue('p').trim());
