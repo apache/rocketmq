@@ -1392,6 +1392,11 @@ public class DefaultMessageStore implements MessageStore {
         }, 6, TimeUnit.SECONDS);
     }
 
+    @Override
+    public void purge(int watermark, long consumedOffset, boolean force) {
+
+    }
+
     class CommitLogDispatcherBuildConsumeQueue implements CommitLogDispatcher {
 
         @Override

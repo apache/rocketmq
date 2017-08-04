@@ -322,4 +322,12 @@ public interface MessageStore {
      * @return Consume queue.
      */
     ConsumeQueue getConsumeQueue(String topic, int queueId);
+
+    /**
+     * Purge data.
+     * @param watermark Desirable watermark.
+     * @param consumedOffset Known position that has been consumed.
+     * @param force Purge forcefully or not.
+     */
+    void purge(int watermark, long consumedOffset, boolean force);
 }

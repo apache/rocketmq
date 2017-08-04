@@ -963,4 +963,10 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             brokerAddr, topic, queueId, index, count, consumerGroup, timeoutMillis
         );
     }
+
+    @Override
+    public void cleanCommitLog(String brokerAddress, int watermark, boolean force)
+        throws InterruptedException, RemotingTimeoutException, RemotingConnectException, MQClientException {
+        this.mqClientInstance.getMQClientAPIImpl().cleanCommitLog(brokerAddress, watermark, force, timeoutMillis);
+    }
 }

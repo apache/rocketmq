@@ -49,7 +49,7 @@ public class ConsumerOffsetManager extends ConfigManager {
         this.brokerController = brokerController;
     }
 
-    public long computeMinPhysicalOffsetYetToConsume() {
+    public long computeConsumedPhysicalOffset() {
         Map<String, Map<Integer, Long>> offsets = new HashMap<>();
         for (ConcurrentMap.Entry<String, ConcurrentMap<Integer, Long>> next : offsetTable.entrySet()) {
             String[] segments = next.getKey().split("@");

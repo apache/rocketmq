@@ -263,4 +263,7 @@ public interface MQAdminExt extends MQAdmin {
                                             final String topic, final int queueId,
                                             final long index, final int count, final String consumerGroup)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException;
+
+    void cleanCommitLog(final String brokerAddress, int watermark, boolean force)
+        throws InterruptedException, RemotingTimeoutException, RemotingConnectException, MQClientException;
 }

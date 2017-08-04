@@ -478,4 +478,10 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
             brokerAddr, topic, queueId, index, count, consumerGroup
         );
     }
+
+    @Override
+    public void cleanCommitLog(String brokerAddress, int watermark, boolean force)
+        throws InterruptedException, RemotingTimeoutException, RemotingConnectException, MQClientException {
+        this.defaultMQAdminExtImpl.cleanCommitLog(brokerAddress, watermark, force);
+    }
 }

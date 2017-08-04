@@ -89,6 +89,14 @@ public class UtilAllTest {
         assertThat(UtilAll.getDiskPartitionSpaceUsedPercent(tmpDir)).isNotCloseTo(-1, within(0.000001));
     }
 
+
+    @Test
+    public void testGetDiskPartitionSpaceUsedPercent4Home() {
+        String tmpDir = System.getProperty("user.home");
+        double percent = UtilAll.getDiskPartitionSpaceUsedPercent(tmpDir);
+        System.out.println(percent);
+    }
+
     @Test
     public void testIsBlank() {
         assertThat(UtilAll.isBlank("Hello ")).isFalse();

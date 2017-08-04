@@ -66,6 +66,7 @@ import org.apache.rocketmq.common.protocol.body.QueryCorrectionOffsetBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
+import org.apache.rocketmq.common.protocol.header.CleanCommitLogRequestHeader;
 import org.apache.rocketmq.common.protocol.header.CloneGroupOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.common.protocol.header.CreateTopicRequestHeader;
@@ -199,11 +200,27 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return fetchAllConsumeStatsInBroker(ctx, request);
             case RequestCode.QUERY_CONSUME_QUEUE:
                 return queryConsumeQueue(ctx, request);
+            case RequestCode.CLEAN_COMMIT_LOG:
+                return cleanCommitLog(ctx, request);
             default:
                 break;
         }
 
         return null;
+    }
+
+    private RemotingCommand cleanCommitLog(ChannelHandlerContext ctx, RemotingCommand request)
+        throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        final CleanCommitLogRequestHeader requestHeader = (CleanCommitLogRequestHeader)
+            request.decodeCommandCustomHeader(CleanCommitLogRequestHeader.class);
+
+        long consumedPhysicalOffset = brokerController.getConsumerOffsetManager().computeConsumedPhysicalOffset();
+        brokerController.getMessageStore().purge(requestHeader.getWatermark(), consumedPhysicalOffset, requestHeader.isForce());
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark("OK");
+        return response;
     }
 
     @Override

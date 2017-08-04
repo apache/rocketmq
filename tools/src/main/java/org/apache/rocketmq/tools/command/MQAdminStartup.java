@@ -31,6 +31,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.broker.BrokerConsumeStatsSubCommad;
 import org.apache.rocketmq.tools.command.broker.BrokerStatusSubCommand;
+import org.apache.rocketmq.tools.command.broker.CleanCommitLogSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanUnusedTopicCommand;
 import org.apache.rocketmq.tools.command.broker.GetBrokerConfigCommand;
@@ -178,6 +179,7 @@ public class MQAdminStartup {
         initCommand(new UpdateOrderConfCommand());
         initCommand(new CleanExpiredCQSubCommand());
         initCommand(new CleanUnusedTopicCommand());
+        initCommand(new CleanCommitLogSubCommand());
 
         initCommand(new StartMonitoringSubCommand());
         initCommand(new StatsAllSubCommand());
