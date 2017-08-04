@@ -1212,11 +1212,9 @@ public class MQClientAPIImpl {
             case ResponseCode.TOPIC_NOT_EXIST: {
                 if (allowTopicNotExist && !topic.equals(MixAll.DEFAULT_TOPIC)) {
                     log.warn("get Topic [{}] RouteInfoFromNameServer is not exist value", topic);
-                    break;
-                } else {
-                    // TODO LOG
-                    break;
                 }
+                // TODO :- Log when if condition is not satisfied
+                break;
             }
             case ResponseCode.SUCCESS: {
                 byte[] body = response.getBody();
