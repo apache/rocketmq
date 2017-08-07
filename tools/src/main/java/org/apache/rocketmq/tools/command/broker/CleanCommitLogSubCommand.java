@@ -17,12 +17,20 @@
 
 package org.apache.rocketmq.tools.command.broker;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
@@ -69,9 +77,29 @@ public class CleanCommitLogSubCommand implements SubCommand {
             boolean force = commandLine.hasOption("f");
 
             if (null != brokerAddress && !brokerAddress.isEmpty()) {
-
+                try {
+                    defaultMQAdminExt.cleanCommitLog(brokerAddress, watermark, force);
+                } catch (InterruptedException | RemotingTimeoutException | RemotingConnectException | RemotingSendRequestException e) {
+                    throw new SubCommandException("Failed to clean commit log", e);
+                }
             } else if (null != clusterName && !clusterName.isEmpty()) {
+                List<String> failedList = new ArrayList<>();
+                try {
+                    Set<String> masterSet = CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
+                    for (String address : masterSet) {
+                        try {
+                            defaultMQAdminExt.cleanCommitLog(address, watermark, force);
+                        } catch (Exception e) {
+                            failedList.add(address);
+                        }
+                    }
+                } catch (InterruptedException | RemotingConnectException | RemotingTimeoutException | RemotingSendRequestException | MQBrokerException e) {
+                    throw new SubCommandException("Failed to figure out addresses of brokers by cluster name", e);
+                }
 
+                if (!failedList.isEmpty()) {
+                    throw new SubCommandException("Failed to clean commit log files for some brokers: " + failedList.toString());
+                }
             } else {
                 // print help
                 throw new SubCommandException("Either brokerAddress or clusterName is required");
