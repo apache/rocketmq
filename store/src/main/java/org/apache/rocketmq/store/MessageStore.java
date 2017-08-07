@@ -326,8 +326,8 @@ public interface MessageStore {
     /**
      * Purge data.
      * @param watermark Desirable watermark.
-     * @param consumedOffset Known position that has been consumed.
+     * @param consumedPhysicalOffset Known position that has been consumed.
      * @param force Purge forcefully or not.
      */
-    void purge(int watermark, long consumedOffset, boolean force);
+    void purge(int watermark, long consumedPhysicalOffset, boolean force);
 }

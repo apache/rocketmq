@@ -134,6 +134,10 @@ public class CommitLog {
         return this.mappedFileQueue.deleteExpiredFileByTime(expiredTime, deleteFilesInterval, intervalForcibly, cleanImmediately);
     }
 
+    public int deleteExpiredFile(final double ratio, final long physicalOffset, final boolean force, int deleteFileInterval) {
+        return this.mappedFileQueue.deleteExpiredFileByGoal(ratio, physicalOffset, force, deleteFileInterval);
+    }
+
     /**
      * Read CommitLog data, use data replication
      */

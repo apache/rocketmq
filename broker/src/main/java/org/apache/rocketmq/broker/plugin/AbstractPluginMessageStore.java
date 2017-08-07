@@ -254,7 +254,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public void purge(int watermark, long consumedOffset, boolean force) {
+    public void purge(int watermark, long consumedPhysicalOffset, boolean force) {
 
     }
 }
