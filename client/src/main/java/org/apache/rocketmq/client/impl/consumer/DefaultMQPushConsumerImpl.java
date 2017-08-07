@@ -577,6 +577,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         default:
                             break;
                     }
+                    this.defaultMQPushConsumer.setOffsetStore(this.offsetStore);
                 }
                 this.offsetStore.load();
 

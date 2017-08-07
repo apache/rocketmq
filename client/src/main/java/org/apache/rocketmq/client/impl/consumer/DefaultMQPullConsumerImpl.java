@@ -569,6 +569,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                         default:
                             break;
                     }
+                    this.defaultMQPullConsumer.setOffsetStore(this.offsetStore);
                 }
 
                 this.offsetStore.load();

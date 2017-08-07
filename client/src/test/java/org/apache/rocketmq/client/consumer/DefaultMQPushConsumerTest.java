@@ -52,6 +52,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -152,6 +153,11 @@ public class DefaultMQPushConsumerTest {
     @After
     public void terminate() {
         pushConsumer.shutdown();
+    }
+
+    @Test
+    public void testOffsetShouldNotNUllAfterStart() {
+        Assert.assertNotNull(pushConsumer.getOffsetStore());
     }
 
     @Test
