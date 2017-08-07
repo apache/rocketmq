@@ -50,11 +50,19 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
     public long computeConsumedPhysicalOffset() {
-        Map<String, Map<Integer, Long>> offsets = new HashMap<>();
+
+        Map<String/* Topic */, Map<Integer/* Queue ID */, Long /* Minimum consumed physical offset */>> offsets = new HashMap<>();
+
+        Map<String/* Bar topic */, Map<Integer/* Queue ID */, String /* Bar consumer group */>> barTopicQueueConsumerGroup = new HashMap<>();
+
         for (ConcurrentMap.Entry<String, ConcurrentMap<Integer, Long>> next : offsetTable.entrySet()) {
             String[] segments = next.getKey().split("@");
             if (!offsets.containsKey(segments[0])) {
                 offsets.put(segments[0], next.getValue());
+                barTopicQueueConsumerGroup.put(segments[0], new HashMap<Integer, String>());
+                for (Map.Entry<Integer, Long> entry : next.getValue().entrySet()) {
+                    barTopicQueueConsumerGroup.get(segments[0]).put(entry.getKey(), segments[1]);
+                }
             } else {
                 Map<Integer, Long> queueOffsets = offsets.get(segments[0]);
 
@@ -62,28 +70,38 @@ public class ConsumerOffsetManager extends ConfigManager {
                 for (Map.Entry<Integer, Long> row : otherOffsets.entrySet()) {
                     if (queueOffsets.get(row.getKey()) > row.getValue()) {
                         queueOffsets.put(row.getKey(), row.getValue());
+                        barTopicQueueConsumerGroup.get(segments[0]).put(row.getKey(), segments[1]);
                     }
                 }
             }
         }
 
         long minOffset = Long.MAX_VALUE;
+
+        // The slowest topic and consumer group in terms of commit log.
+        String barTopic = null;
+        String barConsumerGroup = null;
+
         for (Map.Entry<String, Map<Integer, Long>> next : offsets.entrySet()) {
             String topic = next.getKey();
             for (Map.Entry<Integer, Long> it : next.getValue().entrySet()) {
                 int queueId = it.getKey();
                 Long consumeOffset = it.getValue();
                 Long maxOffsetInQueue = brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
-                if (consumeOffset >= maxOffsetInQueue) {
-                    continue;
-                } else {
+                if (consumeOffset < maxOffsetInQueue) {
                     long physicalOffset = brokerController.getMessageStore().getCommitLogOffsetInQueue(topic, queueId, consumeOffset);
                     if (physicalOffset < minOffset) {
                         minOffset = physicalOffset;
+                        barTopic = topic;
+                        barConsumerGroup = barTopicQueueConsumerGroup.get(topic).get(queueId);
                     }
+                } else {
+                    log.debug("Messages in Topic: {} and queue ID: {} are all consumed in time", topic, queueId);
                 }
             }
         }
+
+        log.info("Bar topic@ConsumerGroup is {}", barTopic + "@" + barConsumerGroup);
 
         return minOffset;
     }

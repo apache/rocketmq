@@ -579,20 +579,25 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     /**
-
+     * Return maximum consume offset in this consume queue.
+     * @param topic Topic name
+     * @param queueId Queue ID
+     * @return maximum consume offset.
      */
     public long getMaxOffsetInQueue(String topic, int queueId) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
-            long offset = logic.getMaxOffsetInQueue();
-            return offset;
+            return logic.getMaxOffsetInQueue();
         }
 
         return 0;
     }
 
     /**
-
+     * Return minimum consume offset in this consume queue.
+     * @param topic Topic name to query
+     * @param queueId Queue ID
+     * @return minimum consume offset.
      */
     public long getMinOffsetInQueue(String topic, int queueId) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
