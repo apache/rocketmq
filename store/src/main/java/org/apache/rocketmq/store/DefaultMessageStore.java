@@ -620,10 +620,10 @@ public class DefaultMessageStore implements MessageStore {
         return 0;
     }
 
-    public long getOffsetInQueueByTime(String topic, int queueId, long timestamp) {
+    public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, boolean isGetTimeLast) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
-            return logic.getOffsetInQueueByTime(timestamp);
+            return logic.getOffsetInQueueByTime(timestamp, isGetTimeLast);
         }
 
         return 0;

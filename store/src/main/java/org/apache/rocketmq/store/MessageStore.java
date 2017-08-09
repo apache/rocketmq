@@ -110,7 +110,7 @@ public interface MessageStore {
      * @param timestamp Timestamp to look up.
      * @return physical offset which matches.
      */
-    long getOffsetInQueueByTime(final String topic, final int queueId, final long timestamp);
+    long getOffsetInQueueByTime(final String topic, final int queueId, final long timestamp,boolean isGetTimeLast);
 
     /**
      * Look up the message by given commit log offset.

@@ -360,8 +360,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final SearchOffsetRequestHeader requestHeader =
             (SearchOffsetRequestHeader) request.decodeCommandCustomHeader(SearchOffsetRequestHeader.class);
 
+        boolean isGetTimeLast = requestHeader.getGetTimelast() != null ? requestHeader.getGetTimelast() : false;
+
         long offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(requestHeader.getTopic(), requestHeader.getQueueId(),
-            requestHeader.getTimestamp());
+            requestHeader.getTimestamp(), isGetTimeLast);
 
         responseHeader.setOffset(offset);
 

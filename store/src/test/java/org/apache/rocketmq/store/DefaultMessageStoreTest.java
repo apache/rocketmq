@@ -27,7 +27,6 @@ import java.util.Random;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import junit.framework.Assert;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -36,9 +35,10 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.Assert;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
+
 
 public class DefaultMessageStoreTest {
     private final String StoreMessage = "Once, there was a chance for me!";
@@ -68,7 +68,7 @@ public class DefaultMessageStoreTest {
         MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig());
 
         boolean load = master.load();
-        assertTrue(load);
+        Assert.assertTrue(load);
 
         master.start();
         try {
@@ -112,7 +112,7 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
         MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig());
         boolean load = master.load();
-        assertTrue(load);
+        Assert.assertTrue(load);
 
         master.start();
         try {
@@ -156,7 +156,7 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
         MessageStore master = new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("test"), new MyMessageArrivingListener(), new BrokerConfig());
         boolean load = master.load();
-        assertTrue(load);
+        Assert.assertTrue(load);
 
         master.start();
         try {
@@ -192,7 +192,7 @@ public class DefaultMessageStoreTest {
 
     @Test
     public void testQueueOffsetByTime() throws Exception {
-        long totalMsgs = 200;
+        long totalMsgs = 100;
         QUEUE_TOTAL = 1;
         String topic = "TimeTopic";
         String keys = "testQueryByTime";
@@ -204,14 +204,17 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMaxIndexNum(100 * 10);
         messageStoreConfig.setMapedFileSizeCommitLog(1024 * 1024);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
-        MessageStore master = new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("test"), new MyMessageArrivingListener(), new BrokerConfig());
+        DefaultMessageStore master = new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("test"), new MyMessageArrivingListener(), new BrokerConfig());
         boolean load = master.load();
-        assertTrue(load);
+        Assert.assertTrue(load);
 
         TreeMap<Long, AtomicInteger> sameTimeCountCache = new TreeMap<>();
         TreeMap<Long, AtomicInteger> sameTimeResultCache = new TreeMap<>();
         long hlTime = System.currentTimeMillis();
         long hlCount = 0;
+        long endTime = System.currentTimeMillis();
+        int endCount1 = 0;
+        int endCount2 = 0;
         long start = 0;
         master.start();
         try {
@@ -220,6 +223,9 @@ public class DefaultMessageStoreTest {
                     Thread.sleep(1000);
                     hlTime = System.currentTimeMillis();
                     Thread.sleep(500);
+                }
+                if (i == totalMsgs - 10) {
+                    endTime = System.currentTimeMillis();
                 }
                 MessageExtBrokerInner messageExtBrokerInner = new MessageExtBrokerInner();
                 messageExtBrokerInner.setBody(("time:" + System.currentTimeMillis() + " index:" + i).getBytes());
@@ -243,7 +249,7 @@ public class DefaultMessageStoreTest {
 
             Map.Entry<Long, AtomicInteger> timeCount = sameTimeCountCache.lastEntry();
             start = timeCount.getKey();
-            long offsetInQueueByTime = master.getOffsetInQueueByTime(topic, 0, start);
+            long offsetInQueueByTime = master.getOffsetInQueueByTime(topic, 0, start, false);
             GetMessageResult testQueryByTime = master.getMessage(consumerGroup, topic, 0, offsetInQueueByTime, 20, null);
 
             List<ByteBuffer> messageBufferList = testQueryByTime.getMessageBufferList();
@@ -258,10 +264,21 @@ public class DefaultMessageStoreTest {
             }
             testQueryByTime.release();
 
-            long hlOffset = master.getOffsetInQueueByTime(topic, 0, hlTime);
+            long hlOffset = master.getOffsetInQueueByTime(topic, 0, hlTime, false);
             GetMessageResult hlResult = master.getMessage(consumerGroup, topic, 0, hlOffset, 20, null);
             hlCount = hlResult.getMessageCount();
             hlResult.release();
+
+            long endOffset1 = master.getOffsetInQueueByTime(topic, 0, endTime, false);
+            GetMessageResult endResult1 = master.getMessage(consumerGroup, topic, 0, endOffset1, 20, null);
+            endCount1 = endResult1.getMessageCount();
+            endResult1.release();
+
+            long endOffset2 = master.getOffsetInQueueByTime(topic, 0, endTime, true);
+            GetMessageResult endResult2 = master.getMessage(consumerGroup, topic, 0, endOffset2, 20, null);
+            endCount2 = endResult2.getMessageCount();
+            endResult2.release();
+
         } finally {
             master.shutdown();
             master.destroy();
@@ -272,5 +289,6 @@ public class DefaultMessageStoreTest {
         AtomicInteger result = sameTimeResultCache.get(start);
         Assert.assertEquals(cc.get(), result.get());
         Assert.assertTrue(19 == hlCount || hlCount == 20);
+        Assert.assertTrue(endCount1 >= endCount2);
     }
 }

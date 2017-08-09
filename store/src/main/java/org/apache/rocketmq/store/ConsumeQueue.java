@@ -151,7 +151,7 @@ public class ConsumeQueue {
         }
     }
 
-    public long getOffsetInQueueByTime(final long timestamp) {
+    public long getOffsetInQueueByTime(final long timestamp, boolean isGetTimeLast) {
         MappedFile mappedFile = this.mappedFileQueue.getMappedFileByTime(timestamp);
         if (mappedFile != null) {
             long offset = 0;
@@ -206,12 +206,22 @@ public class ConsumeQueue {
                             if (phyOffset < minPhysicOffset) {
                                 break;
                             }
-                            long storeTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
-                            if (storeTime < timestamp) {
-                                break;
+                            if (!isGetTimeLast) {
+                                long storeTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
+                                if (storeTime < timestamp) {
+                                    break;
+                                } else {
+                                    candidateOffset = fixedOffset;
+                                    fixedOffset = candidateOffset - CQ_STORE_UNIT_SIZE;
+                                }
                             } else {
-                                candidateOffset = fixedOffset;
-                                fixedOffset = candidateOffset - CQ_STORE_UNIT_SIZE;
+                                long storeTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
+                                if (storeTime > timestamp) {
+                                    break;
+                                } else {
+                                    candidateOffset = fixedOffset;
+                                    fixedOffset = candidateOffset + CQ_STORE_UNIT_SIZE;
+                                }
                             }
                         }
                         offset = candidateOffset;
