@@ -85,7 +85,7 @@ public class DefaultMQPullConsumerTest {
     }
 
     @Test
-    public void testOffsetShouldNotNUllAfterStart() {
+    public void testStart_OffsetShouldNotNUllAfterStart() {
         Assert.assertNotNull(pullConsumer.getOffsetStore());
     }
 
