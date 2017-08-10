@@ -57,7 +57,7 @@ public class CleanCommitLogSubCommand implements SubCommand {
         Option watermarkOption = new Option("w", "watermark", true, "Watermark level in percent");
         options.addOption(watermarkOption);
 
-        Option forceOption = new Option("f", "force", false, "Force to clean commit log to meet watermark or not");
+        Option forceOption = new Option("f", "force", false, "Force to clean commit log to meet watermark or not. Warning: you are at risk of losing message if this option is specified");
         options.addOption(forceOption);
 
         return options;
