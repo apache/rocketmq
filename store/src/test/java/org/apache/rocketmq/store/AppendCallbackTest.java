@@ -25,11 +25,14 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -56,6 +59,11 @@ public class AppendCallbackTest {
         DefaultMessageStore messageStore = new DefaultMessageStore(messageStoreConfig, null, null, null);
         CommitLog commitLog = new CommitLog(messageStore);
         callback = commitLog.new DefaultAppendMessageCallback(1024);
+    }
+
+    @After
+    public void destroy(){
+        UtilAll.deleteFile(new File(System.getProperty("user.home") + File.separator + "unitteststore"));
     }
 
 
