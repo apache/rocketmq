@@ -490,7 +490,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             resetOffset = this.mqClientInstance.getMQClientAPIImpl().getMaxOffset(brokerAddr, queue.getTopic(), queue.getQueueId(), timeoutMillis);
         } else {
             resetOffset =
-                this.mqClientInstance.getMQClientAPIImpl().searchOffset(brokerAddr, queue.getTopic(), queue.getQueueId(), timestamp,
+                this.mqClientInstance.getMQClientAPIImpl().searchOffset(brokerAddr, queue.getTopic(), queue.getQueueId(), timestamp, false,
                     timeoutMillis);
         }
 
@@ -901,6 +901,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
         return this.mqClientInstance.getMQAdminImpl().searchOffset(mq, timestamp);
+    }
+
+    @Override
+    public long searchOffset(MessageQueue mq, long timestamp,boolean getTimeLast) throws MQClientException {
+        return this.mqClientInstance.getMQAdminImpl().doSearchOffset(mq, timestamp, getTimeLast);
     }
 
     @Override

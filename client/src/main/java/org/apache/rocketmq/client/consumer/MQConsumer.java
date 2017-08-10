@@ -64,4 +64,6 @@ public interface MQConsumer extends MQAdmin {
      * @throws MQClientException
      */
     Set<MessageQueue> fetchSubscribeMessageQueues(final String topic) throws MQClientException;
+
+    long searchOffset(final MessageQueue mq, final long timestamp, final boolean getTimeLast) throws MQClientException;
 }

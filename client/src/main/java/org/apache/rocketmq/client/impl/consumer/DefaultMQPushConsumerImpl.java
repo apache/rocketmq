@@ -908,7 +908,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
-        return this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
+        return this.searchOffset(mq, timestamp, false);
+    }
+
+    public long searchOffset(MessageQueue mq, long timestamp, boolean getTimeLast) throws MQClientException {
+        return this.mQClientFactory.getMQAdminImpl().doSearchOffset(mq, timestamp, getTimeLast);
     }
 
     @Override

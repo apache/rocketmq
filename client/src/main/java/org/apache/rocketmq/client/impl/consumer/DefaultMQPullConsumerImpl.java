@@ -471,8 +471,12 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
+        return this.searchOffset(mq, timestamp, false);
+    }
+
+    public long searchOffset(final MessageQueue mq, final long timestamp, final boolean getTimeLast) throws MQClientException {
         this.makeSureStateOK();
-        return this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
+        return this.mQClientFactory.getMQAdminImpl().doSearchOffset(mq, timestamp, getTimeLast);
     }
 
     public void sendMessageBack(MessageExt msg, int delayLevel, final String brokerName)

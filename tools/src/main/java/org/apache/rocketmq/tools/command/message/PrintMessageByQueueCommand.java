@@ -188,7 +188,7 @@ public class PrintMessageByQueueCommand implements SubCommand {
             if (commandLine.hasOption('e')) {
                 String timestampStr = commandLine.getOptionValue('e').trim();
                 long timeValue = timestampFormat(timestampStr);
-                maxOffset = consumer.searchOffset(mq, timeValue);
+                maxOffset = consumer.searchOffset(mq, timeValue, true);
             }
 
             final Map<String, AtomicLong> tagCalmap = new HashMap<String, AtomicLong>();

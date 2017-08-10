@@ -132,7 +132,7 @@ public class PrintMessageSubCommand implements SubCommand {
                 if (commandLine.hasOption('e')) {
                     String timestampStr = commandLine.getOptionValue('e').trim();
                     long timeValue = timestampFormat(timestampStr);
-                    maxOffset = consumer.searchOffset(mq, timeValue);
+                    maxOffset = consumer.searchOffset(mq, timeValue, true);
                 }
 
                 System.out.printf("minOffset=" + minOffset + ", maxOffset=" + maxOffset + ", " + mq);

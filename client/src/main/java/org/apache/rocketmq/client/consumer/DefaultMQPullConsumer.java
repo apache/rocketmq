@@ -118,6 +118,11 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     }
 
     @Override
+    public long searchOffset(MessageQueue mq, long timestamp, boolean getTimeLast) throws MQClientException {
+        return this.defaultMQPullConsumerImpl.searchOffset(mq, timestamp, getTimeLast);
+    }
+
+    @Override
     public long maxOffset(MessageQueue mq) throws MQClientException {
         return this.defaultMQPullConsumerImpl.maxOffset(mq);
     }
