@@ -96,8 +96,4 @@ public class ProducerInstance {
         }
     }
 
-    public static void setInstance(ProducerInstance instance1) {
-        instance = instance1;
-    }
-
 }

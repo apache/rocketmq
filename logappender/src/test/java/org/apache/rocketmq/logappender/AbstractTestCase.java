@@ -26,6 +26,7 @@ import org.mockito.stubbing.Answer;
 
 import static org.mockito.Mockito.*;
 
+import java.lang.reflect.Field;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -49,7 +50,9 @@ public class AbstractTestCase {
             }
         }).when(defaultMQProducer).sendOneway(any(Message.class));
         ProducerInstance spy = mock(ProducerInstance.class);
-        ProducerInstance.setInstance(spy);
+        Field instance = ProducerInstance.class.getDeclaredField("instance");
+        instance.setAccessible(true);
+        instance.set(ProducerInstance.class, spy);
         doReturn(defaultMQProducer).when(spy).getInstance(anyString(), anyString());
     }
 
