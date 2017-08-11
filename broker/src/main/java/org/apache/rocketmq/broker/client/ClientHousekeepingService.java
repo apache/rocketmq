@@ -45,8 +45,8 @@ public class ClientHousekeepingService implements ChannelEventListener {
             public void run() {
                 try {
                     ClientHousekeepingService.this.scanExceptionChannel();
-                } catch (Exception e) {
-                    log.error("", e);
+                } catch (Throwable e) {
+                    log.error("Error occurred when scan not active client channels.", e);
                 }
             }
         }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);

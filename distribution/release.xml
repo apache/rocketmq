@@ -21,6 +21,7 @@
     <formats>
         <format>dir</format>
         <format>tar.gz</format>
+        <format>zip</format>
     </formats>
     <fileSets>
         <fileSet>

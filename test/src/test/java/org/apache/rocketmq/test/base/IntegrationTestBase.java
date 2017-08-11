@@ -128,6 +128,7 @@ public class IntegrationTestBase {
         brokerConfig.setBrokerName(BROKER_NAME_PREFIX + BROKER_INDEX.getAndIncrement());
         brokerConfig.setBrokerIP1("127.0.0.1");
         brokerConfig.setNamesrvAddr(nsAddr);
+        brokerConfig.setEnablePropertyFilter(true);
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + SEP + "commitlog");
         storeConfig.setHaListenPort(8000 + random.nextInt(1000));
@@ -148,17 +149,17 @@ public class IntegrationTestBase {
         return brokerController;
     }
 
-    public static boolean initTopic(String topic, String nsAddr, String clusterName) {
+    public static boolean initTopic(String topic, String nsAddr, String clusterName,int queueNumbers){
         long startTime = System.currentTimeMillis();
         boolean createResult;
 
         while (true) {
-            createResult = MQAdmin.createTopic(nsAddr, clusterName, topic, 8);
+            createResult = MQAdmin.createTopic(nsAddr, clusterName, topic, queueNumbers);
             if (createResult) {
                 break;
             } else if (System.currentTimeMillis() - startTime > topicCreateTime) {
                 Assert.fail(String.format("topic[%s] is created failed after:%d ms", topic,
-                    System.currentTimeMillis() - startTime));
+                        System.currentTimeMillis() - startTime));
                 break;
             } else {
                 TestUtils.waitForMoment(500);
@@ -169,4 +170,23 @@ public class IntegrationTestBase {
         return createResult;
     }
 
+    public static boolean initTopic(String topic, String nsAddr, String clusterName) {
+        return initTopic(topic, nsAddr, clusterName,8);
+    }
+
+    public static void deleteFile(File file) {
+        if (!file.exists()) {
+            return;
+        }
+        if (file.isFile()) {
+            file.delete();
+        } else if (file.isDirectory()) {
+            File[] files = file.listFiles();
+            for (File file1 : files) {
+                deleteFile(file1);
+            }
+            file.delete();
+        }
+    }
+  
 }

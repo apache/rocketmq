@@ -59,7 +59,7 @@ public class MulConsumerMulTopicIT extends BaseConf {
         Assert.assertEquals("Not all sent succeeded", msgSize * 2, producer.getAllUndupMsgBody().size());
 
         boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
-            consumer1.getListner(), consumer2.getListner());
+            consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
     }
 
@@ -80,7 +80,7 @@ public class MulConsumerMulTopicIT extends BaseConf {
         Assert.assertEquals("Not all sent succeeded", msgSize * 2, producer.getAllUndupMsgBody().size());
 
         boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
-            consumer1.getListner(), consumer2.getListner());
+            consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
     }
 
@@ -102,7 +102,7 @@ public class MulConsumerMulTopicIT extends BaseConf {
         producer.send(MQMessageFactory.getMsg(topic2, msgSize, tag1));
 
         boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
-            consumer1.getListner(), consumer2.getListner());
+            consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
     }
 }

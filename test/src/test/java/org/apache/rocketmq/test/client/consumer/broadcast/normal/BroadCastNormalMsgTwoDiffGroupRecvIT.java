@@ -65,14 +65,14 @@ public class BroadCastNormalMsgTwoDiffGroupRecvIT extends BaseBroadCastIT {
         producer.send(msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
 
-        consumer1.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
-        consumer2.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer2.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer1.getListner().getAllMsgBody()))
+            consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer2.getListner().getAllMsgBody()))
+            consumer2.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
 }
