@@ -195,36 +195,7 @@ public class ConsumeQueue {
                     }
 
                     if (targetOffset != -1) {
-                        // Fix messages same store time,get best candidate offset
-                        int candidateOffset = targetOffset;
-                        int fixedLow = minLogicOffset > mappedFile.getFileFromOffset() ? (int) (minLogicOffset - mappedFile.getFileFromOffset()) : 0;
-                        int fixedOffset = candidateOffset;
-                        while (fixedOffset >= fixedLow) {
-                            byteBuffer.position(fixedOffset);
-                            long phyOffset = byteBuffer.getLong();
-                            int size = byteBuffer.getInt();
-                            if (phyOffset < minPhysicOffset) {
-                                break;
-                            }
-                            if (!isGetTimeLast) {
-                                long storeTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
-                                if (storeTime < timestamp) {
-                                    break;
-                                } else {
-                                    candidateOffset = fixedOffset;
-                                    fixedOffset = candidateOffset - CQ_STORE_UNIT_SIZE;
-                                }
-                            } else {
-                                long storeTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
-                                if (storeTime > timestamp) {
-                                    break;
-                                } else {
-                                    candidateOffset = fixedOffset;
-                                    fixedOffset = candidateOffset + CQ_STORE_UNIT_SIZE;
-                                }
-                            }
-                        }
-                        offset = candidateOffset;
+                        offset = fixCandidateTime(mappedFile,byteBuffer,targetOffset,isGetTimeLast,minPhysicOffset,timestamp);
                     } else {
                         if (leftIndexValue == -1) {
 
@@ -233,9 +204,13 @@ public class ConsumeQueue {
 
                             offset = leftOffset;
                         } else {
-                            offset =
-                                Math.abs(timestamp - leftIndexValue) > Math.abs(timestamp
-                                    - rightIndexValue) ? rightOffset - CQ_STORE_UNIT_SIZE : leftOffset + CQ_STORE_UNIT_SIZE;
+                            if (isGetTimeLast) {
+                                long fixedTimestamp = getStoreTimeStamp(byteBuffer, leftOffset);
+                                offset = fixCandidateTime(mappedFile, byteBuffer, leftOffset, true, minPhysicOffset, fixedTimestamp);
+                            } else {
+                                long fixedTimestamp = getStoreTimeStamp(byteBuffer, rightOffset);
+                                offset = fixCandidateTime(mappedFile, byteBuffer, rightOffset, false, minPhysicOffset, fixedTimestamp);
+                            }
                         }
                     }
 
@@ -246,6 +221,45 @@ public class ConsumeQueue {
             }
         }
         return 0;
+    }
+
+    private long getStoreTimeStamp(ByteBuffer byteBuffer, int targetOffset) {
+        byteBuffer.position(targetOffset);
+        long phyOffset = byteBuffer.getLong();
+        int size = byteBuffer.getInt();
+        return this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
+    }
+
+    private int fixCandidateTime(MappedFile mappedFile, ByteBuffer byteBuffer, int targetOffset, boolean isGetTimeLast, long minPhysicOffset, long timestamp) {
+        int candidateOffset = targetOffset;
+        int fixedLow = minLogicOffset > mappedFile.getFileFromOffset() ? (int) (minLogicOffset - mappedFile.getFileFromOffset()) : 0;
+        int fixedOffset = candidateOffset;
+        while (fixedOffset >= fixedLow) {
+            byteBuffer.position(fixedOffset);
+            long phyOffset = byteBuffer.getLong();
+            int size = byteBuffer.getInt();
+            if (phyOffset < minPhysicOffset) {
+                break;
+            }
+            if (!isGetTimeLast) {
+                long storeTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
+                if (storeTime < timestamp) {
+                    break;
+                } else {
+                    candidateOffset = fixedOffset;
+                    fixedOffset = candidateOffset - CQ_STORE_UNIT_SIZE;
+                }
+            } else {
+                long storeTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
+                if (storeTime > timestamp) {
+                    break;
+                } else {
+                    candidateOffset = fixedOffset;
+                    fixedOffset = candidateOffset + CQ_STORE_UNIT_SIZE;
+                }
+            }
+        }
+        return candidateOffset;
     }
 
     public void truncateDirtyLogicFiles(long phyOffet) {
