@@ -111,9 +111,7 @@ public class FilterServerManager {
         }
     }
 
-    /**
 
-     */
     public void scanNotActiveChannel() {
 
         Iterator<Entry<Channel, FilterServerInfo>> it = this.filterServerTable.entrySet().iterator();

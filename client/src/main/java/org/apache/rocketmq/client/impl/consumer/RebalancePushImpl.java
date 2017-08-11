@@ -74,8 +74,8 @@ public class RebalancePushImpl extends RebalanceImpl {
                         pq.getLockConsume().unlock();
                     }
                 } else {
-                    log.warn("[WRONG]mq is consuming, so can not unlock it, {}. maybe hanged for a while, {}", //
-                        mq, //
+                    log.warn("[WRONG]mq is consuming, so can not unlock it, {}. maybe hanged for a while, {}",
+                        mq,
                         pq.getTryUnlockTimes());
 
                     pq.incTryUnlockTimes();

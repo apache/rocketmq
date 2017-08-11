@@ -125,11 +125,11 @@ public class CommitLog {
         return this.mappedFileQueue.remainHowManyDataToFlush();
     }
 
-    public int deleteExpiredFile(//
-        final long expiredTime, //
-        final int deleteFilesInterval, //
-        final long intervalForcibly, //
-        final boolean cleanImmediately//
+    public int deleteExpiredFile(
+        final long expiredTime,
+        final int deleteFilesInterval,
+        final long intervalForcibly,
+        final boolean cleanImmediately
     ) {
         return this.mappedFileQueue.deleteExpiredFileByTime(expiredTime, deleteFilesInterval, intervalForcibly, cleanImmediately);
     }
@@ -244,43 +244,30 @@ public class CommitLog {
 
             byte[] bytesContent = new byte[totalSize];
 
-            // 3 BODYCRC
             int bodyCRC = byteBuffer.getInt();
 
-            // 4 QUEUEID
             int queueId = byteBuffer.getInt();
 
-            // 5 FLAG
             int flag = byteBuffer.getInt();
 
-            // 6 QUEUEOFFSET
             long queueOffset = byteBuffer.getLong();
 
-            // 7 PHYSICALOFFSET
             long physicOffset = byteBuffer.getLong();
 
-            // 8 SYSFLAG
             int sysFlag = byteBuffer.getInt();
 
-            // 9 BORNTIMESTAMP
             long bornTimeStamp = byteBuffer.getLong();
 
-            // 10
             ByteBuffer byteBuffer1 = byteBuffer.get(bytesContent, 0, 8);
 
-            // 11 STORETIMESTAMP
             long storeTimestamp = byteBuffer.getLong();
 
-            // 12
             ByteBuffer byteBuffer2 = byteBuffer.get(bytesContent, 0, 8);
 
-            // 13 RECONSUMETIMES
             int reconsumeTimes = byteBuffer.getInt();
 
-            // 14 Prepared Transaction Offset
             long preparedTransactionOffset = byteBuffer.getLong();
 
-            // 15 BODY
             int bodyLen = byteBuffer.getInt();
             if (bodyLen > 0) {
                 if (readBody) {
@@ -298,7 +285,6 @@ public class CommitLog {
                 }
             }
 
-            // 16 TOPIC
             byte topicLen = byteBuffer.get();
             byteBuffer.get(bytesContent, 0, topicLen);
             String topic = new String(bytesContent, 0, topicLen, MessageDecoder.CHARSET_UTF8);
@@ -307,7 +293,6 @@ public class CommitLog {
             String keys = "";
             String uniqKey = null;
 
-            // 17 properties
             short propertiesLength = byteBuffer.getShort();
             Map<String, String> propertiesMap = null;
             if (propertiesLength > 0) {
@@ -355,19 +340,19 @@ public class CommitLog {
                 return new DispatchRequest(totalSize, false/* success */);
             }
 
-            return new DispatchRequest(//
-                topic, // 1
-                queueId, // 2
-                physicOffset, // 3
-                totalSize, // 4
-                tagsCode, // 5
-                storeTimestamp, // 6
-                queueOffset, // 7
-                keys, // 8
-                uniqKey, //9
-                sysFlag, // 10
-                preparedTransactionOffset, // 11
-                propertiesMap // 12
+            return new DispatchRequest(
+                topic,
+                queueId,
+                physicOffset,
+                totalSize,
+                tagsCode,
+                storeTimestamp,
+                queueOffset,
+                keys,
+                uniqKey,
+                sysFlag,
+                preparedTransactionOffset,
+                propertiesMap
             );
         } catch (Exception e) {
         }
@@ -376,24 +361,23 @@ public class CommitLog {
     }
 
     private static int calMsgLength(int bodyLength, int topicLength, int propertiesLength) {
-        final int msgLen = 4 // 1 TOTALSIZE
-            + 4 // 2 MAGICCODE
-            + 4 // 3 BODYCRC
-            + 4 // 4 QUEUEID
-            + 4 // 5 FLAG
-            + 8 // 6 QUEUEOFFSET
-            + 8 // 7 PHYSICALOFFSET
-            + 4 // 8 SYSFLAG
-            + 8 // 9 BORNTIMESTAMP
-            + 8 // 10 BORNHOST
-            + 8 // 11 STORETIMESTAMP
-            + 8 // 12 STOREHOSTADDRESS
-            + 4 // 13 RECONSUMETIMES
-            + 8 // 14 Prepared Transaction Offset
-            + 4 + (bodyLength > 0 ? bodyLength : 0) // 14 BODY
-            + 1 + topicLength // 15 TOPIC
-            + 2 + (propertiesLength > 0 ? propertiesLength : 0) // 16
-            // propertiesLength
+        final int msgLen = 4 //TOTALSIZE
+            + 4 //MAGICCODE
+            + 4 //BODYCRC
+            + 4 //QUEUEID
+            + 4 //FLAG
+            + 8 //QUEUEOFFSET
+            + 8 //PHYSICALOFFSET
+            + 4 //SYSFLAG
+            + 8 //BORNTIMESTAMP
+            + 8 //BORNHOST
+            + 8 //STORETIMESTAMP
+            + 8 //STOREHOSTADDRESS
+            + 4 //RECONSUMETIMES
+            + 8 //Prepared Transaction Offset
+            + 4 + (bodyLength > 0 ? bodyLength : 0) //BODY
+            + 1 + topicLength //TOPIC
+            + 2 + (propertiesLength > 0 ? propertiesLength : 0) //propertiesLength
             + 0;
         return msgLen;
     }
@@ -500,18 +484,18 @@ public class CommitLog {
             return false;
         }
 
-        if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()//
+        if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()
             && this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
             if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestampIndex()) {
-                log.info("find check timestamp, {} {}", //
-                    storeTimestamp, //
+                log.info("find check timestamp, {} {}",
+                    storeTimestamp,
                     UtilAll.timeMillisToHumanString(storeTimestamp));
                 return true;
             }
         } else {
             if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestamp()) {
-                log.info("find check timestamp, {} {}", //
-                    storeTimestamp, //
+                log.info("find check timestamp, {} {}",
+                    storeTimestamp,
                     UtilAll.timeMillisToHumanString(storeTimestamp));
                 return true;
             }
@@ -547,7 +531,7 @@ public class CommitLog {
         int queueId = msg.getQueueId();
 
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
-        if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE//
+        if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             // Delay Delivery
             if (msg.getDelayTimeLevel() > 0) {
@@ -1270,8 +1254,6 @@ public class CommitLog {
                 // 2 MAGICCODE
                 this.msgStoreItemMemory.putInt(CommitLog.BLANK_MAGIC_CODE);
                 // 3 The remaining space may be any value
-                //
-
                 // Here the length of the specially set maxBlank
                 final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
                 byteBuffer.put(this.msgStoreItemMemory.array(), 0, maxBlank);
@@ -1391,7 +1373,6 @@ public class CommitLog {
                     // 2 MAGICCODE
                     this.msgStoreItemMemory.putInt(CommitLog.BLANK_MAGIC_CODE);
                     // 3 The remaining space may be any value
-                    //
                     //ignore previous read
                     messagesByteBuff.reset();
                     // Here the length of the specially set maxBlank

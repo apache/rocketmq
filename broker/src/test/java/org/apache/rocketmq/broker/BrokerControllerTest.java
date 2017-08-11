@@ -38,10 +38,10 @@ public class BrokerControllerTest {
     @Test
     public void testBrokerRestart() throws Exception {
         for (int i = 0; i < 2; i++) {
-            BrokerController brokerController = new BrokerController(//
-                new BrokerConfig(), //
-                new NettyServerConfig(), //
-                new NettyClientConfig(), //
+            BrokerController brokerController = new BrokerController(
+                new BrokerConfig(),
+                new NettyServerConfig(),
+                new NettyClientConfig(),
                 new MessageStoreConfig());
             assertThat(brokerController.initialize());
             brokerController.start();

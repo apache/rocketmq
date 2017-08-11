@@ -131,9 +131,9 @@ public class RouteInfoManager {
                 String oldAddr = brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
                 registerFirst = registerFirst || (null == oldAddr);
 
-                if (null != topicConfigWrapper //
+                if (null != topicConfigWrapper
                     && MixAll.MASTER_ID == brokerId) {
-                    if (this.isBrokerTopicConfigChanged(brokerAddr, topicConfigWrapper.getDataVersion())//
+                    if (this.isBrokerTopicConfigChanged(brokerAddr, topicConfigWrapper.getDataVersion())
                         || registerFirst) {
                         ConcurrentMap<String, TopicConfig> tcTable =
                             topicConfigWrapper.getTopicConfigTable();

@@ -116,6 +116,7 @@ import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 public class AdminBrokerProcessor implements NettyRequestProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
@@ -432,9 +433,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         LockBatchRequestBody requestBody = LockBatchRequestBody.decode(request.getBody(), LockBatchRequestBody.class);
 
-        Set<MessageQueue> lockOKMQSet = this.brokerController.getRebalanceLockManager().tryLockBatch(//
-            requestBody.getConsumerGroup(), //
-            requestBody.getMqSet(), //
+        Set<MessageQueue> lockOKMQSet = this.brokerController.getRebalanceLockManager().tryLockBatch(
+            requestBody.getConsumerGroup(),
+            requestBody.getMqSet(),
             requestBody.getClientId());
 
         LockBatchResponseBody responseBody = new LockBatchResponseBody();
@@ -450,9 +451,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         UnlockBatchRequestBody requestBody = UnlockBatchRequestBody.decode(request.getBody(), UnlockBatchRequestBody.class);
 
-        this.brokerController.getRebalanceLockManager().unlockBatch(//
-            requestBody.getConsumerGroup(), //
-            requestBody.getMqSet(), //
+        this.brokerController.getRebalanceLockManager().unlockBatch(
+            requestBody.getConsumerGroup(),
+            requestBody.getMqSet(),
             requestBody.getClientId());
 
         response.setCode(ResponseCode.SUCCESS);
@@ -657,14 +658,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 continue;
             }
 
-            /**
 
-             */
             {
                 SubscriptionData findSubscriptionData =
                     this.brokerController.getConsumerManager().findSubscriptionData(requestHeader.getConsumerGroup(), topic);
 
-                if (null == findSubscriptionData //
+                if (null == findSubscriptionData
                     && this.brokerController.getConsumerManager().findSubscriptionDataCount(requestHeader.getConsumerGroup()) > 0) {
                     log.warn("consumeStats, the consumer group[{}], topic[{}] not exist", requestHeader.getConsumerGroup(), topic);
                     continue;
@@ -683,9 +682,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 if (brokerOffset < 0)
                     brokerOffset = 0;
 
-                long consumerOffset = this.brokerController.getConsumerOffsetManager().queryOffset(//
-                    requestHeader.getConsumerGroup(), //
-                    topic, //
+                long consumerOffset = this.brokerController.getConsumerOffsetManager().queryOffset(
+                    requestHeader.getConsumerGroup(),
+                    topic,
                     i);
                 if (consumerOffset < 0)
                     consumerOffset = 0;
@@ -925,9 +924,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    /**
 
-     */
     private RemotingCommand getConsumerRunningInfo(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final GetConsumerRunningInfoRequestHeader requestHeader =
             (GetConsumerRunningInfoRequestHeader) request.decodeCommandCustomHeader(GetConsumerRunningInfoRequestHeader.class);
@@ -1007,9 +1004,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 continue;
             }
 
-            /**
 
-             */
             if (!requestHeader.isOffline()) {
 
                 SubscriptionData findSubscriptionData =
@@ -1107,13 +1102,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 if (isOrder && !topicConfig.isOrder()) {
                     continue;
                 }
-                /**
 
-                 */
                 {
                     SubscriptionData findSubscriptionData = this.brokerController.getConsumerManager().findSubscriptionData(group, topic);
 
-                    if (null == findSubscriptionData //
+                    if (null == findSubscriptionData
                         && this.brokerController.getConsumerManager().findSubscriptionDataCount(group) > 0) {
                         log.warn("consumeStats, the consumer group[{}], topic[{}] not exist", group, topic);
                         continue;
@@ -1129,9 +1122,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     long brokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
                     if (brokerOffset < 0)
                         brokerOffset = 0;
-                    long consumerOffset = this.brokerController.getConsumerOffsetManager().queryOffset(//
-                        group, //
-                        topic, //
+                    long consumerOffset = this.brokerController.getConsumerOffsetManager().queryOffset(
+                        group,
+                        topic,
                         i);
                     if (consumerOffset < 0)
                         consumerOffset = 0;
@@ -1215,10 +1208,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return runtimeInfo;
     }
 
-    private RemotingCommand callConsumer(//
-        final int requestCode, //
-        final RemotingCommand request, //
-        final String consumerGroup, //
+    private RemotingCommand callConsumer(
+        final int requestCode,
+        final RemotingCommand request,
+        final String consumerGroup,
         final String clientId) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         ClientChannelInfo clientChannelInfo = this.brokerController.getConsumerManager().findChannel(consumerGroup, clientId);
@@ -1231,8 +1224,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         if (clientChannelInfo.getVersion() < MQVersion.Version.V3_1_8_SNAPSHOT.ordinal()) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(String.format("The Consumer <%s> Version <%s> too low to finish, please upgrade it to V3_1_8_SNAPSHOT", //
-                clientId, //
+            response.setRemark(String.format("The Consumer <%s> Version <%s> too low to finish, please upgrade it to V3_1_8_SNAPSHOT",
+                clientId,
                 MQVersion.getVersionDesc(clientChannelInfo.getVersion())));
             return response;
         }

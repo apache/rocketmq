@@ -159,7 +159,7 @@ public class MQAdminImpl {
             }
         } catch (Exception e) {
             throw new MQClientException(
-                "Can not find Message Queue for this topic, " + topic + FAQUrl.suggestTodo(FAQUrl.MQLIST_NOT_EXIST), //
+                "Can not find Message Queue for this topic, " + topic + FAQUrl.suggestTodo(FAQUrl.MQLIST_NOT_EXIST),
                 e);
         }
 

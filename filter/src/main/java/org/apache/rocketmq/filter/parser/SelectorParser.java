@@ -56,7 +56,6 @@ public class SelectorParser implements SelectorParserConstants {
             //                convertStringExpressions = true;
             //                sql = sql.substring(CONVERT_STRING_EXPRESSIONS_PREFIX.length());
             //            }
-            //
             //            if( convertStringExpressions ) {
             //                ComparisonExpression.CONVERT_STRING_EXPRESSIONS.set(true);
             //            }

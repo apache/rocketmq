@@ -139,9 +139,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
         }
 
-        TopicConfig topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(//
-            newTopic, //
-            subscriptionGroupConfig.getRetryQueueNums(), //
+        TopicConfig topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
+            newTopic,
+            subscriptionGroupConfig.getRetryQueueNums(),
             PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
         if (null == topicConfig) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -175,13 +175,13 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
         }
 
-        if (msgExt.getReconsumeTimes() >= maxReconsumeTimes//
+        if (msgExt.getReconsumeTimes() >= maxReconsumeTimes
             || delayLevel < 0) {
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
             queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
 
-            topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic, //
-                DLQ_NUMS_PER_GROUP, //
+            topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
+                DLQ_NUMS_PER_GROUP,
                 PermName.PERM_WRITE, 0
             );
             if (null == topicConfig) {
@@ -268,8 +268,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             if (reconsumeTimes >= maxReconsumeTimes) {
                 newTopic = MixAll.getDLQTopic(groupName);
                 int queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
-                topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic, //
-                    DLQ_NUMS_PER_GROUP, //
+                topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
+                    DLQ_NUMS_PER_GROUP,
                     PermName.PERM_WRITE, 0
                 );
                 msg.setTopic(newTopic);
@@ -289,9 +289,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         return true;
     }
 
-    private RemotingCommand sendMessage(final ChannelHandlerContext ctx, //
-        final RemotingCommand request, //
-        final SendMessageContext sendMessageContext, //
+    private RemotingCommand sendMessage(final ChannelHandlerContext ctx,
+        final RemotingCommand request,
+        final SendMessageContext sendMessageContext,
         final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
@@ -464,9 +464,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
         return  response;
     }
-    private RemotingCommand sendBatchMessage(final ChannelHandlerContext ctx, //
-                                        final RemotingCommand request, //
-                                        final SendMessageContext sendMessageContext, //
+    private RemotingCommand sendBatchMessage(final ChannelHandlerContext ctx,
+                                        final RemotingCommand request,
+                                        final SendMessageContext sendMessageContext,
                                         final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);

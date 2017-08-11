@@ -285,32 +285,32 @@ public class MQClientAPIImpl {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
-    public SendResult sendMessage(//
-        final String addr, // 1
-        final String brokerName, // 2
-        final Message msg, // 3
-        final SendMessageRequestHeader requestHeader, // 4
-        final long timeoutMillis, // 5
-        final CommunicationMode communicationMode, // 6
-        final SendMessageContext context, // 7
-        final DefaultMQProducerImpl producer // 8
+    public SendResult sendMessage(
+        final String addr,
+        final String brokerName,
+        final Message msg,
+        final SendMessageRequestHeader requestHeader,
+        final long timeoutMillis,
+        final CommunicationMode communicationMode,
+        final SendMessageContext context,
+        final DefaultMQProducerImpl producer
     ) throws RemotingException, MQBrokerException, InterruptedException {
         return sendMessage(addr, brokerName, msg, requestHeader, timeoutMillis, communicationMode, null, null, null, 0, context, producer);
     }
 
-    public SendResult sendMessage(//
-        final String addr, // 1
-        final String brokerName, // 2
-        final Message msg, // 3
-        final SendMessageRequestHeader requestHeader, // 4
-        final long timeoutMillis, // 5
-        final CommunicationMode communicationMode, // 6
-        final SendCallback sendCallback, // 7
-        final TopicPublishInfo topicPublishInfo, // 8
-        final MQClientInstance instance, // 9
-        final int retryTimesWhenSendFailed, // 10
-        final SendMessageContext context, // 11
-        final DefaultMQProducerImpl producer // 12
+    public SendResult sendMessage(
+        final String addr,
+        final String brokerName,
+        final Message msg,
+        final SendMessageRequestHeader requestHeader,
+        final long timeoutMillis,
+        final CommunicationMode communicationMode,
+        final SendCallback sendCallback,
+        final TopicPublishInfo topicPublishInfo,
+        final MQClientInstance instance,
+        final int retryTimesWhenSendFailed,
+        final SendMessageContext context,
+        final DefaultMQProducerImpl producer
     ) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand request = null;
         if (sendSmartMsg || msg instanceof MessageBatch) {
@@ -341,31 +341,31 @@ public class MQClientAPIImpl {
         return null;
     }
 
-    private SendResult sendMessageSync(//
-        final String addr, //
-        final String brokerName, //
-        final Message msg, //
-        final long timeoutMillis, //
-        final RemotingCommand request//
+    private SendResult sendMessageSync(
+        final String addr,
+        final String brokerName,
+        final Message msg,
+        final long timeoutMillis,
+        final RemotingCommand request
     ) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         return this.processSendResponse(brokerName, msg, response);
     }
 
-    private void sendMessageAsync(//
-        final String addr, //
-        final String brokerName, //
-        final Message msg, //
-        final long timeoutMillis, //
-        final RemotingCommand request, //
-        final SendCallback sendCallback, //
-        final TopicPublishInfo topicPublishInfo, //
-        final MQClientInstance instance, //
-        final int retryTimesWhenSendFailed, //
-        final AtomicInteger times, //
-        final SendMessageContext context, //
-        final DefaultMQProducerImpl producer //
+    private void sendMessageAsync(
+        final String addr,
+        final String brokerName,
+        final Message msg,
+        final long timeoutMillis,
+        final RemotingCommand request,
+        final SendCallback sendCallback,
+        final TopicPublishInfo topicPublishInfo,
+        final MQClientInstance instance,
+        final int retryTimesWhenSendFailed,
+        final AtomicInteger times,
+        final SendMessageContext context,
+        final DefaultMQProducerImpl producer
     ) throws InterruptedException, RemotingException {
         this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
             @Override
@@ -380,7 +380,6 @@ public class MQClientAPIImpl {
                             context.getProducer().executeSendMessageHookAfter(context);
                         }
                     } catch (Throwable e) {
-                        //
                     }
 
                     producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), false);
@@ -428,19 +427,19 @@ public class MQClientAPIImpl {
         });
     }
 
-    private void onExceptionImpl(final String brokerName, //
-        final Message msg, //
-        final long timeoutMillis, //
-        final RemotingCommand request, //
-        final SendCallback sendCallback, //
-        final TopicPublishInfo topicPublishInfo, //
-        final MQClientInstance instance, //
-        final int timesTotal, //
-        final AtomicInteger curTimes, //
-        final Exception e, //
-        final SendMessageContext context, //
-        final boolean needRetry, //
-        final DefaultMQProducerImpl producer // 12
+    private void onExceptionImpl(final String brokerName,
+        final Message msg,
+        final long timeoutMillis,
+        final RemotingCommand request,
+        final SendCallback sendCallback,
+        final TopicPublishInfo topicPublishInfo,
+        final MQClientInstance instance,
+        final int timesTotal,
+        final AtomicInteger curTimes,
+        final Exception e,
+        final SendMessageContext context,
+        final boolean needRetry,
+        final DefaultMQProducerImpl producer
     ) {
         int tmp = curTimes.incrementAndGet();
         if (needRetry && tmp <= timesTotal) {
@@ -485,16 +484,15 @@ public class MQClientAPIImpl {
         }
     }
 
-    private SendResult processSendResponse(//
-        final String brokerName, //
-        final Message msg, //
-        final RemotingCommand response//
+    private SendResult processSendResponse(
+        final String brokerName,
+        final Message msg,
+        final RemotingCommand response
     ) throws MQBrokerException, RemotingCommandException {
         switch (response.getCode()) {
             case ResponseCode.FLUSH_DISK_TIMEOUT:
             case ResponseCode.FLUSH_SLAVE_TIMEOUT:
             case ResponseCode.SLAVE_NOT_AVAILABLE: {
-                // TODO LOG
             }
             case ResponseCode.SUCCESS: {
                 SendStatus sendStatus = SendStatus.SEND_OK;
@@ -553,12 +551,12 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public PullResult pullMessage(//
-        final String addr, //
-        final PullMessageRequestHeader requestHeader, //
-        final long timeoutMillis, //
-        final CommunicationMode communicationMode, //
-        final PullCallback pullCallback//
+    public PullResult pullMessage(
+        final String addr,
+        final PullMessageRequestHeader requestHeader,
+        final long timeoutMillis,
+        final CommunicationMode communicationMode,
+        final PullCallback pullCallback
     ) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
 
@@ -579,11 +577,11 @@ public class MQClientAPIImpl {
         return null;
     }
 
-    private void pullMessageAsync(//
-        final String addr, // 1
-        final RemotingCommand request, //
-        final long timeoutMillis, //
-        final PullCallback pullCallback//
+    private void pullMessageAsync(
+        final String addr,
+        final RemotingCommand request,
+        final long timeoutMillis,
+        final PullCallback pullCallback
     ) throws RemotingException, InterruptedException {
         this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
             @Override
@@ -611,10 +609,10 @@ public class MQClientAPIImpl {
         });
     }
 
-    private PullResult pullMessageSync(//
-        final String addr, // 1
-        final RemotingCommand request, // 2
-        final long timeoutMillis// 3
+    private PullResult pullMessageSync(
+        final String addr,
+        final RemotingCommand request,
+        final long timeoutMillis
     ) throws RemotingException, InterruptedException, MQBrokerException {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
@@ -720,9 +718,9 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public List<String> getConsumerIdListByGroup(//
-        final String addr, //
-        final String consumerGroup, //
+    public List<String> getConsumerIdListByGroup(
+        final String addr,
+        final String consumerGroup,
         final long timeoutMillis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
         MQBrokerException, InterruptedException {
         GetConsumerListByGroupRequestHeader requestHeader = new GetConsumerListByGroupRequestHeader();
@@ -796,10 +794,10 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public long queryConsumerOffset(//
-        final String addr, //
-        final QueryConsumerOffsetRequestHeader requestHeader, //
-        final long timeoutMillis//
+    public long queryConsumerOffset(
+        final String addr,
+        final QueryConsumerOffsetRequestHeader requestHeader,
+        final long timeoutMillis
     ) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_CONSUMER_OFFSET, requestHeader);
 
@@ -820,10 +818,10 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public void updateConsumerOffset(//
-        final String addr, //
-        final UpdateConsumerOffsetRequestHeader requestHeader, //
-        final long timeoutMillis//
+    public void updateConsumerOffset(
+        final String addr,
+        final UpdateConsumerOffsetRequestHeader requestHeader,
+        final long timeoutMillis
     ) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_CONSUMER_OFFSET, requestHeader);
 
@@ -841,10 +839,10 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public void updateConsumerOffsetOneway(//
-        final String addr, //
-        final UpdateConsumerOffsetRequestHeader requestHeader, //
-        final long timeoutMillis//
+    public void updateConsumerOffsetOneway(
+        final String addr,
+        final UpdateConsumerOffsetRequestHeader requestHeader,
+        final long timeoutMillis
     ) throws RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException,
         InterruptedException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_CONSUMER_OFFSET, requestHeader);
@@ -852,10 +850,10 @@ public class MQClientAPIImpl {
         this.remotingClient.invokeOneway(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr), request, timeoutMillis);
     }
 
-    public int sendHearbeat(//
-        final String addr, //
-        final HeartbeatData heartbeatData, //
-        final long timeoutMillis//
+    public int sendHearbeat(
+        final String addr,
+        final HeartbeatData heartbeatData,
+        final long timeoutMillis
     ) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
 
@@ -873,12 +871,12 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public void unregisterClient(//
-        final String addr, //
-        final String clientID, //
-        final String producerGroup, //
-        final String consumerGroup, //
-        final long timeoutMillis//
+    public void unregisterClient(
+        final String addr,
+        final String clientID,
+        final String producerGroup,
+        final String consumerGroup,
+        final long timeoutMillis
     ) throws RemotingException, MQBrokerException, InterruptedException {
         final UnregisterClientRequestHeader requestHeader = new UnregisterClientRequestHeader();
         requestHeader.setClientID(clientID);
@@ -899,11 +897,11 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public void endTransactionOneway(//
-        final String addr, //
-        final EndTransactionRequestHeader requestHeader, //
-        final String remark, //
-        final long timeoutMillis//
+    public void endTransactionOneway(
+        final String addr,
+        final EndTransactionRequestHeader requestHeader,
+        final String remark,
+        final long timeoutMillis
     ) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, requestHeader);
 
@@ -965,9 +963,9 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public Set<MessageQueue> lockBatchMQ(//
-        final String addr, //
-        final LockBatchRequestBody requestBody, //
+    public Set<MessageQueue> lockBatchMQ(
+        final String addr,
+        final LockBatchRequestBody requestBody,
         final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LOCK_BATCH_MQ, null);
 
@@ -987,11 +985,11 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public void unlockBatchMQ(//
-        final String addr, //
-        final UnlockBatchRequestBody requestBody, //
-        final long timeoutMillis, //
-        final boolean oneway//
+    public void unlockBatchMQ(
+        final String addr,
+        final UnlockBatchRequestBody requestBody,
+        final long timeoutMillis,
+        final boolean oneway
     ) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UNLOCK_BATCH_MQ, null);
 
@@ -1213,7 +1211,7 @@ public class MQClientAPIImpl {
                 if (allowTopicNotExist && !topic.equals(MixAll.DEFAULT_TOPIC)) {
                     log.warn("get Topic [{}] RouteInfoFromNameServer is not exist value", topic);
                 }
-                // TODO :- Log when if condition is not satisfied
+
                 break;
             }
             case ResponseCode.SUCCESS: {
@@ -1566,12 +1564,12 @@ public class MQClientAPIImpl {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
-    public void registerMessageFilterClass(final String addr, //
-        final String consumerGroup, //
-        final String topic, //
-        final String className, //
-        final int classCRC, //
-        final byte[] classBody, //
+    public void registerMessageFilterClass(final String addr,
+        final String consumerGroup,
+        final String topic,
+        final String className,
+        final int classCRC,
+        final byte[] classBody,
         final long timeoutMillis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
         InterruptedException, MQBrokerException {
         RegisterMessageFilterClassRequestHeader requestHeader = new RegisterMessageFilterClassRequestHeader();
@@ -1706,10 +1704,10 @@ public class MQClientAPIImpl {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
-    public ConsumeMessageDirectlyResult consumeMessageDirectly(final String addr, //
-        String consumerGroup, //
-        String clientId, //
-        String msgId, //
+    public ConsumeMessageDirectlyResult consumeMessageDirectly(final String addr,
+        String consumerGroup,
+        String clientId,
+        String msgId,
         final long timeoutMillis) throws RemotingException, MQClientException, InterruptedException {
         ConsumeMessageDirectlyResultRequestHeader requestHeader = new ConsumeMessageDirectlyResultRequestHeader();
         requestHeader.setConsumerGroup(consumerGroup);
@@ -1912,7 +1910,6 @@ public class MQClientAPIImpl {
     public Set<String> getClusterList(String topic,
         long timeoutMillis) throws MQClientException, RemotingConnectException,
         RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
-        // todo:jodie
         return Collections.EMPTY_SET;
     }
 

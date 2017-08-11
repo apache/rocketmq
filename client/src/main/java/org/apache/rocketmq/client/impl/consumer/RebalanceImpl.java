@@ -73,9 +73,9 @@ public abstract class RebalanceImpl {
 
             try {
                 this.mQClientFactory.getMQClientAPIImpl().unlockBatchMQ(findBrokerResult.getBrokerAddr(), requestBody, 1000, oneway);
-                log.warn("unlock messageQueue. group:{}, clientId:{}, mq:{}", //
-                    this.consumerGroup, //
-                    this.mQClientFactory.getClientId(), //
+                log.warn("unlock messageQueue. group:{}, clientId:{}, mq:{}",
+                    this.consumerGroup,
+                    this.mQClientFactory.getClientId(),
                     mq);
             } catch (Exception e) {
                 log.error("unlockBatchMQ exception, " + mq, e);
@@ -245,10 +245,10 @@ public abstract class RebalanceImpl {
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, mqSet, isOrder);
                     if (changed) {
                         this.messageQueueChanged(topic, mqSet, mqSet);
-                        log.info("messageQueueChanged {} {} {} {}", //
-                            consumerGroup, //
-                            topic, //
-                            mqSet, //
+                        log.info("messageQueueChanged {} {} {} {}",
+                            consumerGroup,
+                            topic,
+                            mqSet,
                             mqSet);
                     }
                 } else {
@@ -280,10 +280,10 @@ public abstract class RebalanceImpl {
 
                     List<MessageQueue> allocateResult = null;
                     try {
-                        allocateResult = strategy.allocate(//
-                            this.consumerGroup, //
-                            this.mQClientFactory.getClientId(), //
-                            mqAll, //
+                        allocateResult = strategy.allocate(
+                            this.consumerGroup,
+                            this.mQClientFactory.getClientId(),
+                            mqAll,
                             cidAll);
                     } catch (Throwable e) {
                         log.error("AllocateMessageQueueStrategy.allocate Exception. allocateMessageQueueStrategyName={}", strategy.getName(),

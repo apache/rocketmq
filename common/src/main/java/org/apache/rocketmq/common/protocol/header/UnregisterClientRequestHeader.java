@@ -57,7 +57,7 @@ public class UnregisterClientRequestHeader implements CommandCustomHeader {
 
     @Override
     public void checkFields() throws RemotingCommandException {
-        // TODO Auto-generated method stub
+
 
     }
 }

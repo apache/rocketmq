@@ -119,7 +119,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 if (!registerOK) {
                     this.serviceState = ServiceState.CREATE_JUST;
                     throw new MQClientException("The adminExt group[" + this.defaultMQAdminExt.getAdminExtGroup()
-                        + "] has created already, specifed another name please."//
+                        + "] has created already, specifed another name please."
                         + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL), null);
                 }
 
@@ -132,8 +132,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             case RUNNING:
             case START_FAILED:
             case SHUTDOWN_ALREADY:
-                throw new MQClientException("The AdminExt service state not OK, maybe started once, "//
-                    + this.serviceState//
+                throw new MQClientException("The AdminExt service state not OK, maybe started once, "
+                    + this.serviceState
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK), null);
             default:
                 break;
@@ -185,13 +185,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     @Override
     public SubscriptionGroupConfig examineSubscriptionGroupConfig(String addr, String group) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public TopicConfig examineTopicConfig(String addr, String topic) {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -344,8 +342,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     @Override
     public void putKVConfig(String namespace, String key, String value) {
-        // TODO Auto-generated method stub
-
     }
 
     @Override

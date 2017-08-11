@@ -188,7 +188,7 @@ public abstract class NettyRemotingAbstract {
                         log.error(cmd.toString());
 
                         if (!cmd.isOnewayRPC()) {
-                            final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, //
+                            final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
                                 RemotingHelper.exceptionSimpleDesc(e));
                             response.setOpaque(opaque);
                             ctx.writeAndFlush(response);
@@ -210,9 +210,9 @@ public abstract class NettyRemotingAbstract {
                 pair.getObject2().submit(requestTask);
             } catch (RejectedExecutionException e) {
                 if ((System.currentTimeMillis() % 10000) == 0) {
-                    log.warn(RemotingHelper.parseChannelRemoteAddr(ctx.channel()) //
-                        + ", too many requests and system thread pool busy, RejectedExecutionException " //
-                        + pair.getObject2().toString() //
+                    log.warn(RemotingHelper.parseChannelRemoteAddr(ctx.channel())
+                        + ", too many requests and system thread pool busy, RejectedExecutionException "
+                        + pair.getObject2().toString()
                         + " request code: " + cmd.getCode());
                 }
 
@@ -422,10 +422,10 @@ public abstract class NettyRemotingAbstract {
                 throw new RemotingTooMuchRequestException("invokeAsyncImpl invoke too fast");
             } else {
                 String info =
-                    String.format("invokeAsyncImpl tryAcquire semaphore timeout, %dms, waiting thread nums: %d semaphoreAsyncValue: %d", //
-                        timeoutMillis, //
-                        this.semaphoreAsync.getQueueLength(), //
-                        this.semaphoreAsync.availablePermits()//
+                    String.format("invokeAsyncImpl tryAcquire semaphore timeout, %dms, waiting thread nums: %d semaphoreAsyncValue: %d",
+                        timeoutMillis,
+                        this.semaphoreAsync.getQueueLength(),
+                        this.semaphoreAsync.availablePermits()
                     );
                 log.warn(info);
                 throw new RemotingTimeoutException(info);
@@ -459,10 +459,10 @@ public abstract class NettyRemotingAbstract {
                 throw new RemotingTooMuchRequestException("invokeOnewayImpl invoke too fast");
             } else {
                 String info = String.format(
-                    "invokeOnewayImpl tryAcquire semaphore timeout, %dms, waiting thread nums: %d semaphoreAsyncValue: %d", //
-                    timeoutMillis, //
-                    this.semaphoreOneway.getQueueLength(), //
-                    this.semaphoreOneway.availablePermits()//
+                    "invokeOnewayImpl tryAcquire semaphore timeout, %dms, waiting thread nums: %d semaphoreAsyncValue: %d",
+                    timeoutMillis,
+                    this.semaphoreOneway.getQueueLength(),
+                    this.semaphoreOneway.availablePermits()
                 );
                 log.warn(info);
                 throw new RemotingTimeoutException(info);

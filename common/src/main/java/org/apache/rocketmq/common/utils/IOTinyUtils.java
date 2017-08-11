@@ -114,9 +114,7 @@ public class IOTinyUtils {
         fileOrDir.delete();
     }
 
-    /**
 
-     */
     public static void cleanDirectory(File directory) throws IOException {
         if (!directory.exists()) {
             String message = directory + " does not exist";

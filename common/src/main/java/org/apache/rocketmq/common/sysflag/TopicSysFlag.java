@@ -16,11 +16,7 @@
  */
 package org.apache.rocketmq.common.sysflag;
 
-/**
 
- *
- *
- */
 public class TopicSysFlag {
 
     private final static int FLAG_UNIT = 0x1 << 0;

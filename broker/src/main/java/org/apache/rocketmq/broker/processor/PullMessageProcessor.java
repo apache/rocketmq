@@ -160,7 +160,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     assert consumerFilterData != null;
                 }
             } catch (Exception e) {
-                log.warn("Parse the consumer's subscription[{}] failed, group: {}", requestHeader.getSubscription(), //
+                log.warn("Parse the consumer's subscription[{}] failed, group: {}", requestHeader.getSubscription(),
                     requestHeader.getConsumerGroup());
                 response.setCode(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
                 response.setRemark("parse the consumer's subscription failed");
@@ -176,7 +176,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 return response;
             }
 
-            if (!subscriptionGroupConfig.isConsumeBroadcastEnable() //
+            if (!subscriptionGroupConfig.isConsumeBroadcastEnable()
                 && consumerGroupInfo.getMessageModel() == MessageModel.BROADCASTING) {
                 response.setCode(ResponseCode.NO_PERMISSION);
                 response.setRemark("the consumer group[" + requestHeader.getConsumerGroup() + "] can not consume by broadcast way");
@@ -285,12 +285,12 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                         response.setCode(ResponseCode.PULL_OFFSET_MOVED);
 
                         // XXX: warn and notify me
-                        log.info("the broker store no queue data, fix the request offset {} to {}, Topic: {} QueueId: {} Consumer Group: {}", //
-                                requestHeader.getQueueOffset(), //
-                                getMessageResult.getNextBeginOffset(), //
-                                requestHeader.getTopic(), //
-                                requestHeader.getQueueId(), //
-                                requestHeader.getConsumerGroup()//
+                        log.info("the broker store no queue data, fix the request offset {} to {}, Topic: {} QueueId: {} Consumer Group: {}",
+                                requestHeader.getQueueOffset(),
+                                getMessageResult.getNextBeginOffset(),
+                                requestHeader.getTopic(),
+                                requestHeader.getQueueId(),
+                                requestHeader.getConsumerGroup()
                         );
                     } else {
                         response.setCode(ResponseCode.PULL_NOT_FOUND);

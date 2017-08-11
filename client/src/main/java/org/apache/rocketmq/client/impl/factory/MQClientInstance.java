@@ -148,10 +148,10 @@ public class MQClientInstance {
 
         this.consumerStatsManager = new ConsumerStatsManager(this.scheduledExecutorService);
 
-        log.info("created a new client Instance, FactoryIndex: {} ClinetID: {} {} {}, serializeType={}", //
-            this.instanceIndex, //
-            this.clientId, //
-            this.clientConfig, //
+        log.info("created a new client Instance, FactoryIndex: {} ClinetID: {} {} {}, serializeType={}",
+            this.instanceIndex,
+            this.clientId,
+            this.clientConfig,
             MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION), RemotingCommand.getSerializeTypeConfigInThisServer());
     }
 
@@ -727,13 +727,13 @@ public class MQClientInstance {
             classBody = filterClassSource.getBytes(MixAll.DEFAULT_CHARSET);
             classCRC = UtilAll.crc32(classBody);
         } catch (Exception e1) {
-            log.warn("uploadFilterClassToAllFilterServer Exception, ClassName: {} {}", //
-                fullClassName, //
+            log.warn("uploadFilterClassToAllFilterServer Exception, ClassName: {} {}",
+                fullClassName,
                 RemotingHelper.exceptionSimpleDesc(e1));
         }
 
         TopicRouteData topicRouteData = this.topicRouteTable.get(topic);
-        if (topicRouteData != null //
+        if (topicRouteData != null
             && topicRouteData.getFilterServerTable() != null && !topicRouteData.getFilterServerTable().isEmpty()) {
             Iterator<Entry<String, List<String>>> it = topicRouteData.getFilterServerTable().entrySet().iterator();
             while (it.hasNext()) {
@@ -1006,10 +1006,10 @@ public class MQClientInstance {
         return null;
     }
 
-    public FindBrokerResult findBrokerAddressInSubscribe(//
-        final String brokerName, //
-        final long brokerId, //
-        final boolean onlyThisBroker//
+    public FindBrokerResult findBrokerAddressInSubscribe(
+        final String brokerName,
+        final long brokerId,
+        final boolean onlyThisBroker
     ) {
         String brokerAddr = null;
         boolean slave = false;
@@ -1102,7 +1102,6 @@ public class MQClientInstance {
             try {
                 TimeUnit.SECONDS.sleep(10);
             } catch (InterruptedException e) {
-                //
             }
 
             Iterator<MessageQueue> iterator = processQueueTable.keySet().iterator();
@@ -1171,8 +1170,8 @@ public class MQClientInstance {
         return topicRouteTable;
     }
 
-    public ConsumeMessageDirectlyResult consumeMessageDirectly(final MessageExt msg, //
-        final String consumerGroup, //
+    public ConsumeMessageDirectlyResult consumeMessageDirectly(final MessageExt msg,
+        final String consumerGroup,
         final String brokerName) {
         MQConsumerInner mqConsumerInner = this.consumerTable.get(consumerGroup);
         if (null != mqConsumerInner) {

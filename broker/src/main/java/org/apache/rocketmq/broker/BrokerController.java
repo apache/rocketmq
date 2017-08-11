@@ -135,11 +135,11 @@ public class BrokerController {
     private BrokerFastFailure brokerFastFailure;
     private Configuration configuration;
 
-    public BrokerController(//
-        final BrokerConfig brokerConfig, //
-        final NettyServerConfig nettyServerConfig, //
-        final NettyClientConfig nettyClientConfig, //
-        final MessageStoreConfig messageStoreConfig //
+    public BrokerController(
+        final BrokerConfig brokerConfig,
+        final NettyServerConfig nettyServerConfig,
+        final NettyClientConfig nettyClientConfig,
+        final MessageStoreConfig messageStoreConfig
     ) {
         this.brokerConfig = brokerConfig;
         this.nettyServerConfig = nettyServerConfig;
@@ -255,7 +255,6 @@ public class BrokerController {
 
             this.registerProcessor();
 
-            // TODO remove in future
             final long initialDelay = UtilAll.computNextMorningTimeMillis() - System.currentTimeMillis();
             final long period = 1000 * 60 * 60 * 24;
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
