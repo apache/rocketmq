@@ -24,6 +24,7 @@ import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
+import org.apache.rocketmq.client.consumer.policy.BoundedExponentialPullIntervalPolicy;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -175,6 +176,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     private long pullInterval = 0;
 
+    private PullIntervalPolicy pullIntervalPolicy;
+
     /**
      * Batch consumption size
      */
@@ -231,6 +234,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.consumerGroup = consumerGroup;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
+        this.pullIntervalPolicy = new BoundedExponentialPullIntervalPolicy(100, 300000);
     }
 
     /**
@@ -391,6 +395,14 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setPullInterval(long pullInterval) {
         this.pullInterval = pullInterval;
+    }
+
+    public PullIntervalPolicy getPullIntervalPolicy() {
+        return pullIntervalPolicy;
+    }
+
+    public void setPullIntervalPolicy(PullIntervalPolicy pullIntervalPolicy) {
+        this.pullIntervalPolicy = pullIntervalPolicy;
     }
 
     public int getPullThresholdForQueue() {

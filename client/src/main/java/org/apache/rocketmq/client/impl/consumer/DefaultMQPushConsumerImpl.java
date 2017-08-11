@@ -273,11 +273,24 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         final long beginTimestamp = System.currentTimeMillis();
 
         PullCallback pullCallback = new PullCallback() {
+
+            private void scheduleNextPull(PullResult pullResult) {
+                pullRequest.setNextOffset(pullResult.getNextBeginOffset());
+                correctTagsOffset(pullRequest);
+                if (defaultMQPushConsumer.getPullIntervalPolicy().getPullInterval() > 0) {
+                    executePullRequestLater(pullRequest, defaultMQPushConsumer.getPullIntervalPolicy().getPullInterval());
+                } else {
+                    DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
+                }
+            }
+
             @Override
             public void onSuccess(PullResult pullResult) {
                 if (pullResult != null) {
                     pullResult = DefaultMQPushConsumerImpl.this.pullAPIWrapper.processPullResult(pullRequest.getMessageQueue(), pullResult,
                         subscriptionData);
+
+                    defaultMQPushConsumer.getPullIntervalPolicy().update(pullResult.getPullStatus());
 
                     switch (pullResult.getPullStatus()) {
                         case FOUND:
@@ -296,19 +309,13 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                                 DefaultMQPushConsumerImpl.this.getConsumerStatsManager().incPullTPS(pullRequest.getConsumerGroup(),
                                     pullRequest.getMessageQueue().getTopic(), pullResult.getMsgFoundList().size());
 
-                                boolean dispathToConsume = processQueue.putMessage(pullResult.getMsgFoundList());
+                                boolean dispatchToConsume = processQueue.putMessage(pullResult.getMsgFoundList());
                                 DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest(//
                                     pullResult.getMsgFoundList(), //
                                     processQueue, //
                                     pullRequest.getMessageQueue(), //
-                                    dispathToConsume);
-
-                                if (DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval() > 0) {
-                                    DefaultMQPushConsumerImpl.this.executePullRequestLater(pullRequest,
-                                        DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval());
-                                } else {
-                                    DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
-                                }
+                                    dispatchToConsume);
+                                DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                             }
 
                             if (pullResult.getNextBeginOffset() < prevRequestOffset//
@@ -322,18 +329,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
                             break;
                         case NO_NEW_MSG:
-                            pullRequest.setNextOffset(pullResult.getNextBeginOffset());
-
-                            DefaultMQPushConsumerImpl.this.correctTagsOffset(pullRequest);
-
-                            DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
+                            scheduleNextPull(pullResult);
                             break;
                         case NO_MATCHED_MSG:
-                            pullRequest.setNextOffset(pullResult.getNextBeginOffset());
-
-                            DefaultMQPushConsumerImpl.this.correctTagsOffset(pullRequest);
-
-                            DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
+                            scheduleNextPull(pullResult);
                             break;
                         case OFFSET_ILLEGAL:
                             log.warn("the pull request offset illegal, {} {}", //
