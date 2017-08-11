@@ -25,6 +25,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
@@ -75,7 +76,7 @@ public class IntegrationTestBase {
                         }
                     }
                     for (File file : TMPE_FILES) {
-                        deleteFile(file);
+                        UtilAll.deleteFile(file);
                     }
                 } catch (Exception e){
                     logger.error("Shutdown error", e);
@@ -148,17 +149,17 @@ public class IntegrationTestBase {
         return brokerController;
     }
 
-    public static boolean initTopic(String topic, String nsAddr, String clusterName) {
+    public static boolean initTopic(String topic, String nsAddr, String clusterName,int queueNumbers){
         long startTime = System.currentTimeMillis();
         boolean createResult;
 
         while (true) {
-            createResult = MQAdmin.createTopic(nsAddr, clusterName, topic, 8);
+            createResult = MQAdmin.createTopic(nsAddr, clusterName, topic, queueNumbers);
             if (createResult) {
                 break;
             } else if (System.currentTimeMillis() - startTime > topicCreateTime) {
                 Assert.fail(String.format("topic[%s] is created failed after:%d ms", topic,
-                    System.currentTimeMillis() - startTime));
+                        System.currentTimeMillis() - startTime));
                 break;
             } else {
                 TestUtils.waitForMoment(500);
@@ -167,6 +168,10 @@ public class IntegrationTestBase {
         }
 
         return createResult;
+    }
+
+    public static boolean initTopic(String topic, String nsAddr, String clusterName) {
+        return initTopic(topic, nsAddr, clusterName,8);
     }
 
     public static void deleteFile(File file) {
@@ -183,5 +188,5 @@ public class IntegrationTestBase {
             file.delete();
         }
     }
-
+  
 }
