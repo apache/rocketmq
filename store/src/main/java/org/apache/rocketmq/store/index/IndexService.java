@@ -35,7 +35,9 @@ import org.slf4j.LoggerFactory;
 
 public class IndexService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-    /** Maximum times to attempt index file creation. */
+    /**
+     * Maximum times to attempt index file creation.
+     */
     private static final int MAX_TRY_IDX_CREATE = 3;
     private final DefaultMessageStore defaultMessageStore;
     private final int hashSlotNum;

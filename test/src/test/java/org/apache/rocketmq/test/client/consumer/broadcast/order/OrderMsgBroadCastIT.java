@@ -62,7 +62,6 @@ public class OrderMsgBroadCastIT extends BaseBroadCastIT {
             consumer1.getConsumerGroup(), topic, "*", new RMQOrderListener());
         TestUtils.waitForSeconds(waitTime);
 
-
         List<MessageQueue> mqs = producer.getMessageQueue();
         MessageQueueMsg mqMsgs = new MessageQueueMsg(mqs, msgSize);
         producer.send(mqMsgs.getMsgsWithMQ());

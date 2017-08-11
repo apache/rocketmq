@@ -56,7 +56,7 @@ public class DefaultMessageStoreTest {
         File file = new File(messageStoreConfig.getStorePathRootDir());
         UtilAll.deleteFile(file);
     }
-  
+
     public MessageStore buildMessageStore() throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMapedFileSizeCommitLog(1024 * 1024 * 10);
@@ -148,7 +148,6 @@ public class DefaultMessageStoreTest {
         String group = "simple";
         GetMessageResult getMessageResult32 = messageStore.getMessage(group, topic, 0, 0, 32, null);
         assertThat(getMessageResult32.getMessageBufferList().size()).isEqualTo(32);
-
 
         GetMessageResult getMessageResult20 = messageStore.getMessage(group, topic, 0, 0, 20, null);
         assertThat(getMessageResult20.getMessageBufferList().size()).isEqualTo(20);

@@ -60,7 +60,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
     }
 
     @Override
-    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand processRequest(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
         SendMessageContext mqtraceContext;
         switch (request.getCode()) {
             case RequestCode.CONSUMER_SEND_MSG_BACK:
@@ -245,8 +246,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         return response;
     }
 
-
-    private boolean handleRetryAndDLQ(SendMessageRequestHeader requestHeader, RemotingCommand response, RemotingCommand request,
+    private boolean handleRetryAndDLQ(SendMessageRequestHeader requestHeader, RemotingCommand response,
+        RemotingCommand request,
         MessageExt msg, TopicConfig topicConfig) {
         String newTopic = requestHeader.getTopic();
         if (null != newTopic && newTopic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -319,8 +320,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         final byte[] body = request.getBody();
 
-
-
         int queueIdInt = requestHeader.getQueueId();
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
 
@@ -361,13 +360,14 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
     }
 
-
-    private RemotingCommand handlePutMessageResult(PutMessageResult putMessageResult, RemotingCommand response, RemotingCommand request, MessageExt msg,
-        SendMessageResponseHeader responseHeader, SendMessageContext sendMessageContext, ChannelHandlerContext ctx, int queueIdInt) {
+    private RemotingCommand handlePutMessageResult(PutMessageResult putMessageResult, RemotingCommand response,
+        RemotingCommand request, MessageExt msg,
+        SendMessageResponseHeader responseHeader, SendMessageContext sendMessageContext, ChannelHandlerContext ctx,
+        int queueIdInt) {
         if (putMessageResult == null) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("store putMessage return null");
-            return  response;
+            return response;
         }
         boolean sendOK = false;
 
@@ -462,16 +462,16 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 sendMessageContext.setCommercialOwner(owner);
             }
         }
-        return  response;
+        return response;
     }
+
     private RemotingCommand sendBatchMessage(final ChannelHandlerContext ctx,
-                                        final RemotingCommand request,
-                                        final SendMessageContext sendMessageContext,
-                                        final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
+        final RemotingCommand request,
+        final SendMessageContext sendMessageContext,
+        final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
         final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader) response.readCustomHeader();
-
 
         response.setOpaque(request.getOpaque());
 
@@ -493,7 +493,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             return response;
         }
 
-
         int queueIdInt = requestHeader.getQueueId();
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
 
@@ -509,7 +508,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         if (requestHeader.getTopic() != null && requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
-            response.setRemark("batch request does not support retry group "  + requestHeader.getTopic());
+            response.setRemark("batch request does not support retry group " + requestHeader.getTopic());
             return response;
         }
         MessageExtBatch messageExtBatch = new MessageExtBatch();

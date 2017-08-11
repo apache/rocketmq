@@ -50,7 +50,7 @@ public class BrokerControllerTest {
     }
 
     @After
-    public void destory(){
+    public void destory() {
         UtilAll.deleteFile(new File(new MessageStoreConfig().getStorePathRootDir()));
     }
 }

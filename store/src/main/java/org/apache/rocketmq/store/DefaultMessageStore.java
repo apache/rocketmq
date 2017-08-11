@@ -218,7 +218,6 @@ public class DefaultMessageStore implements MessageStore {
         this.shutdown = false;
     }
 
-
     public void shutdown() {
         if (!this.shutdown) {
             this.shutdown = true;
@@ -577,7 +576,6 @@ public class DefaultMessageStore implements MessageStore {
         return getResult;
     }
 
-
     public long getMaxOffsetInQueue(String topic, int queueId) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
@@ -587,7 +585,6 @@ public class DefaultMessageStore implements MessageStore {
 
         return 0;
     }
-
 
     public long getMinOffsetInQueue(String topic, int queueId) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);

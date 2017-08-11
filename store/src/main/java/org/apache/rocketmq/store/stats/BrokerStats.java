@@ -38,7 +38,6 @@ public class BrokerStats {
         this.defaultMessageStore = defaultMessageStore;
     }
 
-
     public void record() {
         this.msgPutTotalYesterdayMorning = this.msgPutTotalTodayMorning;
         this.msgGetTotalYesterdayMorning = this.msgGetTotalTodayMorning;

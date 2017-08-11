@@ -85,7 +85,6 @@ public class HAService {
         return result;
     }
 
-
     public void notifyTransferSome(final long offset) {
         for (long value = this.push2SlaveMaxOffset.get(); offset > value; ) {
             boolean ok = this.push2SlaveMaxOffset.compareAndSet(value, offset);
@@ -180,7 +179,9 @@ public class HAService {
             this.serverSocketChannel.register(this.selector, SelectionKey.OP_ACCEPT);
         }
 
-        /** {@inheritDoc} */
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public void shutdown(final boolean interrupt) {
             super.shutdown(interrupt);
@@ -192,7 +193,9 @@ public class HAService {
             }
         }
 
-        /** {@inheritDoc} */
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public void run() {
             log.info(this.getServiceName() + " service started");
@@ -235,7 +238,9 @@ public class HAService {
             log.info(this.getServiceName() + " service end");
         }
 
-        /** {@inheritDoc} */
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public String getServiceName() {
             return AcceptSocketService.class.getSimpleName();
