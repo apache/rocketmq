@@ -66,7 +66,7 @@ public class RocketmqLog4jAppender extends AppenderSkeleton {
             return;
         }
         try {
-            producer = ProducerInstance.getInstance(nameServerAddress, producerGroup);
+            producer = ProducerInstance.getProducerInstance().getInstance(nameServerAddress, producerGroup);
         } catch (Exception e) {
             LogLog.error("activateOptions nameserver:" + nameServerAddress + " group:" + producerGroup + " " + e.getMessage());
         }
@@ -129,7 +129,7 @@ public class RocketmqLog4jAppender extends AppenderSkeleton {
         this.closed = true;
 
         try {
-            ProducerInstance.removeAndClose(this.nameServerAddress, this.producerGroup);
+            ProducerInstance.getProducerInstance().removeAndClose(this.nameServerAddress, this.producerGroup);
         } catch (Exception e) {
             LogLog.error("Closing RocketmqLog4jAppender [" + name + "] nameServerAddress:" + nameServerAddress + " group:" + producerGroup + " " + e.getMessage());
         }

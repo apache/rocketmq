@@ -63,10 +63,10 @@ public class MessageUserPropIT extends BaseConf {
         producer.send(msg, null);
         assertThat(producer.getAllMsgBody().size()).isEqualTo(1);
 
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
 
         Message sendMsg = (Message) producer.getFirstMsg();
-        Message recvMsg = (Message) consumer.getListner().getFirstMsg();
+        Message recvMsg = (Message) consumer.getListener().getFirstMsg();
         assertThat(recvMsg.getUserProperty(msgKey)).isEqualTo(sendMsg.getUserProperty(msgKey));
     }
 
@@ -85,10 +85,10 @@ public class MessageUserPropIT extends BaseConf {
         producer.send(msg, null);
         assertThat(producer.getAllMsgBody().size()).isEqualTo(1);
 
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
 
         Message sendMsg = (Message) producer.getFirstMsg();
-        Message recvMsg = (Message) consumer.getListner().getFirstMsg();
+        Message recvMsg = (Message) consumer.getListener().getFirstMsg();
         assertThat(recvMsg.getUserProperty(msgKey)).isEqualTo(sendMsg.getUserProperty(msgKey));
     }
 }

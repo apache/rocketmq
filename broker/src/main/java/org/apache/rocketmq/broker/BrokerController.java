@@ -210,7 +210,7 @@ public class BrokerController {
                 this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
             } catch (IOException e) {
                 result = false;
-                e.printStackTrace();
+                log.error("Failed to initialize", e);
             }
         }
 
@@ -296,7 +296,7 @@ public class BrokerController {
                 public void run() {
                     try {
                         BrokerController.this.protectBroker();
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         log.error("protectBroker error.", e);
                     }
                 }
@@ -307,7 +307,7 @@ public class BrokerController {
                 public void run() {
                     try {
                         BrokerController.this.printWaterMark();
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         log.error("printWaterMark error.", e);
                     }
                 }
@@ -421,7 +421,7 @@ public class BrokerController {
 
         this.fastRemotingServer.registerProcessor(RequestCode.HEART_BEAT, clientProcessor, this.clientManageExecutor);
         this.fastRemotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientProcessor, this.clientManageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.CHECK_CLIENT_CONFIG, clientProcessor, this.clientManageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.CHECK_CLIENT_CONFIG, clientProcessor, this.clientManageExecutor);
 
         /**
          * ConsumerManageProcessor

@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.store;
 
+import org.apache.rocketmq.common.UtilAll;
+import org.junit.After;
 import org.junit.Test;
 
 import java.io.File;
@@ -62,22 +64,6 @@ public class ConsumeQueueExtTest {
         return cqExtUnit;
     }
 
-    protected void deleteDirectory(String rootPath) {
-        File file = new File(rootPath);
-        deleteFile(file);
-    }
-
-    protected void deleteFile(File file) {
-        File[] subFiles = file.listFiles();
-        if (subFiles != null) {
-            for (File sub : subFiles) {
-                deleteFile(sub);
-            }
-        }
-
-        file.delete();
-    }
-
     protected void putSth(ConsumeQueueExt consumeQueueExt, boolean getAfterPut,
                           boolean unitSameSize, int unitCount) {
         for (int i = 0; i < unitCount; i++) {
@@ -111,7 +97,7 @@ public class ConsumeQueueExtTest {
             putSth(consumeQueueExt, true, false, unitCount);
         } finally {
             consumeQueueExt.destroy();
-            deleteDirectory(storePath);
+            UtilAll.deleteFile(new File(storePath));
         }
     }
 
@@ -139,7 +125,7 @@ public class ConsumeQueueExtTest {
             }
         } finally {
             consumeQueueExt.destroy();
-            deleteDirectory(storePath);
+            UtilAll.deleteFile(new File(storePath));
         }
     }
 
@@ -161,7 +147,7 @@ public class ConsumeQueueExtTest {
             assertThat(unit).isNull();
         } finally {
             consumeQueueExt.destroy();
-            deleteDirectory(storePath);
+            UtilAll.deleteFile(new File(storePath));
         }
     }
 
@@ -199,7 +185,7 @@ public class ConsumeQueueExtTest {
         } finally {
             putCqExt.destroy();
             loadCqExt.destroy();
-            deleteDirectory(storePath);
+            UtilAll.deleteFile(new File(storePath));
         }
     }
 
@@ -222,7 +208,7 @@ public class ConsumeQueueExtTest {
             assertThat(expectMinAddress).isEqualTo(minAddress);
         } finally {
             consumeQueueExt.destroy();
-            deleteDirectory(storePath);
+            UtilAll.deleteFile(new File(storePath));
         }
     }
 
@@ -245,7 +231,12 @@ public class ConsumeQueueExtTest {
             assertThat(expectMaxAddress).isEqualTo(maxAddress);
         } finally {
             consumeQueueExt.destroy();
-            deleteDirectory(storePath);
+            UtilAll.deleteFile(new File(storePath));
         }
+    }
+
+    @After
+    public void destroy(){
+        UtilAll.deleteFile(new File(storePath));
     }
 }

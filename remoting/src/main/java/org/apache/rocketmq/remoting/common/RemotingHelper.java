@@ -26,10 +26,14 @@ import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RemotingHelper {
     public static final String ROCKETMQ_REMOTING = "RocketmqRemoting";
     public static final String DEFAULT_CHARSET = "UTF-8";
+
+    private static final Logger log = LoggerFactory.getLogger(ROCKETMQ_REMOTING);
 
     public static String exceptionSimpleDesc(final Throwable e) {
         StringBuffer sb = new StringBuffer();
@@ -126,7 +130,7 @@ public class RemotingHelper {
                 byteBufferBody.flip();
                 return RemotingCommand.decode(byteBufferBody);
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error("invokeSync failure", e);
 
                 if (sendRequestOK) {
                     throw new RemotingTimeoutException(addr, timeoutMillis);

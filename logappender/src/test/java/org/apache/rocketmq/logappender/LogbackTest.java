@@ -44,11 +44,12 @@ public class LogbackTest extends AbstractTestCase{
 
     @Test
     public void testLogback() throws InterruptedException, MQClientException {
+        clear();
         Logger logger = LoggerFactory.getLogger("testLogger");
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 10; i++) {
             logger.info("logback test message " + i);
         }
-        int received = consumeMessages(30, "logback",30);
-        Assert.assertTrue(received>20);
+        int received = consumeMessages(10, "logback",10);
+        Assert.assertTrue(received>=5);
     }
 }

@@ -61,10 +61,10 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
             new RMQNormalListner(originMsgDCName, msgBodyDCName));
         producer.send(tag, msgSize);
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
-        consumer1.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer1.getListner().getAllMsgBody()))
+            consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
 
@@ -82,9 +82,9 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
             new RMQNormalListner(originMsgDCName, msgBodyDCName));
         TestUtils.waitForMoment(5);
 
-        consumer1.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer1.getListner().getAllMsgBody()))
+            consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
 
@@ -105,9 +105,9 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
         mqClients.remove(1);
         TestUtils.waitForMoment(5);
 
-        consumer1.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer1.getListner().getAllMsgBody()))
+            consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
 }

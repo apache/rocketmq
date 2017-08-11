@@ -34,11 +34,12 @@ public class log4j2Test extends AbstractTestCase{
 
     @Test
     public void testLog4j2() throws InterruptedException, MQClientException {
+        clear();
         Logger logger = LogManager.getLogger("test");
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 10; i++) {
             logger.info("log4j2 log message " + i);
         }
-        int received = consumeMessages(30, "log4j2",30);
-        Assert.assertTrue(received>20);
+        int received = consumeMessages(10, "log4j2",10);
+        Assert.assertTrue(received>5);
     }
 }
