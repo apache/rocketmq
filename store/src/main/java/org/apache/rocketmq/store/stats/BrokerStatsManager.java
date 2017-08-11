@@ -66,7 +66,7 @@ public class BrokerStatsManager {
         "BrokerStatsThread"));
     private final ScheduledExecutorService commercialExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "CommercialStatsThread"));
-    private final HashMap<String, StatsItemSet> statsTable = new HashMap<String, StatsItemSet>();
+    private final HashMap<String, StatsItemSet> statsTable = new HashMap<>();
     private final String clusterName;
     private final MomentStatsItemSet momentStatsItemSetFallSize = new MomentStatsItemSet(GROUP_GET_FALL_SIZE, scheduledExecutorService, log);
     private final MomentStatsItemSet momentStatsItemSetFallTime = new MomentStatsItemSet(GROUP_GET_FALL_TIME, scheduledExecutorService, log);

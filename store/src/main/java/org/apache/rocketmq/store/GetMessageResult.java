@@ -24,9 +24,9 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 public class GetMessageResult {
 
     private final List<SelectMappedBufferResult> messageMapedList =
-        new ArrayList<SelectMappedBufferResult>(100);
+            new ArrayList<>(100);
 
-    private final List<ByteBuffer> messageBufferList = new ArrayList<ByteBuffer>(100);
+    private final List<ByteBuffer> messageBufferList = new ArrayList<>(100);
 
     private GetMessageStatus status;
     private long nextBeginOffset;

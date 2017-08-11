@@ -36,14 +36,13 @@ public class ProducerManager {
     private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
     private final Lock groupChannelLock = new ReentrantLock();
     private final HashMap<String /* group name */, HashMap<Channel, ClientChannelInfo>> groupChannelTable =
-        new HashMap<String, HashMap<Channel, ClientChannelInfo>>();
+            new HashMap<>();
 
     public ProducerManager() {
     }
 
     public HashMap<String, HashMap<Channel, ClientChannelInfo>> getGroupChannelTable() {
-        HashMap<String /* group name */, HashMap<Channel, ClientChannelInfo>> newGroupChannelTable =
-            new HashMap<String, HashMap<Channel, ClientChannelInfo>>();
+        HashMap<String /* group name */, HashMap<Channel, ClientChannelInfo>> newGroupChannelTable = new HashMap<>();
         try {
             if (this.groupChannelLock.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {

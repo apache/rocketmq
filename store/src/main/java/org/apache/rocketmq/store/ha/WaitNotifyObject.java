@@ -26,7 +26,7 @@ public class WaitNotifyObject {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     protected final HashMap<Long/* thread id */, Boolean/* notified */> waitingThreadTable =
-        new HashMap<Long, Boolean>(16);
+            new HashMap<>(16);
 
     protected volatile boolean hasNotified = false;
 

@@ -95,7 +95,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
             if (commandLine.hasOption('g')) {
                 String consumerGroup = commandLine.getOptionValue('g').trim();
                 ConsumeStats consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
-                List<MessageQueue> mqList = new LinkedList<MessageQueue>();
+                List<MessageQueue> mqList = new LinkedList<>();
                 mqList.addAll(consumeStats.getOffsetTable().keySet());
                 Collections.sort(mqList);
                 Map<MessageQueue, String> messageQueueAllocationResult = getMessageQueueAllocationResult(defaultMQAdminExt, consumerGroup);

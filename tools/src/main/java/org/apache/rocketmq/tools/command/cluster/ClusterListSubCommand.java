@@ -113,7 +113,7 @@ public class ClusterListSubCommand implements SubCommand {
         while (itCluster.hasNext()) {
             Map.Entry<String, Set<String>> next = itCluster.next();
             String clusterName = next.getKey();
-            TreeSet<String> brokerNameSet = new TreeSet<String>();
+            TreeSet<String> brokerNameSet = new TreeSet<>();
             brokerNameSet.addAll(next.getValue());
 
             for (String brokerName : brokerNameSet) {
@@ -186,7 +186,7 @@ public class ClusterListSubCommand implements SubCommand {
         while (itCluster.hasNext()) {
             Map.Entry<String, Set<String>> next = itCluster.next();
             String clusterName = next.getKey();
-            TreeSet<String> brokerNameSet = new TreeSet<String>();
+            TreeSet<String> brokerNameSet = new TreeSet<>();
             brokerNameSet.addAll(next.getValue());
 
             for (String brokerName : brokerNameSet) {

@@ -102,7 +102,7 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
                     String group = entry.getKey();
                     List<ConsumeStats> consumeStatsArray = entry.getValue();
                     for (ConsumeStats consumeStats : consumeStatsArray) {
-                        List<MessageQueue> mqList = new LinkedList<MessageQueue>();
+                        List<MessageQueue> mqList = new LinkedList<>();
                         mqList.addAll(consumeStats.getOffsetTable().keySet());
                         Collections.sort(mqList);
                         for (MessageQueue mq : mqList) {

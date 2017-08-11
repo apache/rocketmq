@@ -38,7 +38,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     private static final String TOPIC_GROUP_SEPARATOR = "@";
 
     private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
-        new ConcurrentHashMap<String, ConcurrentMap<Integer, Long>>(512);
+            new ConcurrentHashMap<>(512);
 
     private transient BrokerController brokerController;
 
@@ -83,7 +83,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
     public Set<String> whichTopicByConsumer(final String group) {
-        Set<String> topics = new HashSet<String>();
+        Set<String> topics = new HashSet<>();
 
         Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
         while (it.hasNext()) {
@@ -101,7 +101,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
     public Set<String> whichGroupByTopic(final String topic) {
-        Set<String> groups = new HashSet<String>();
+        Set<String> groups = new HashSet<>();
 
         Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
         while (it.hasNext()) {
@@ -127,7 +127,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     private void commitOffset(final String clientHost, final String key, final int queueId, final long offset) {
         ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
         if (null == map) {
-            map = new ConcurrentHashMap<Integer, Long>(32);
+            map = new ConcurrentHashMap<>(32);
             map.put(queueId, offset);
             this.offsetTable.put(key, map);
         } else {
@@ -184,7 +184,7 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     public Map<Integer, Long> queryMinOffsetInAllGroup(final String topic, final String filterGroups) {
 
-        Map<Integer, Long> queueMinOffset = new HashMap<Integer, Long>();
+        Map<Integer, Long> queueMinOffset = new HashMap<>();
         Set<String> topicGroups = this.offsetTable.keySet();
         if (!UtilAll.isBlank(filterGroups)) {
             for (String group : filterGroups.split(",")) {
