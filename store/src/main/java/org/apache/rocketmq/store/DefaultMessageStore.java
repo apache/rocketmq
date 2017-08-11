@@ -580,20 +580,25 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     /**
-
+     * Return maximum consume offset in this consume queue.
+     * @param topic Topic name
+     * @param queueId Queue ID
+     * @return maximum consume offset.
      */
     public long getMaxOffsetInQueue(String topic, int queueId) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
-            long offset = logic.getMaxOffsetInQueue();
-            return offset;
+            return logic.getMaxOffsetInQueue();
         }
 
         return 0;
     }
 
     /**
-
+     * Return minimum consume offset in this consume queue.
+     * @param topic Topic name to query
+     * @param queueId Queue ID
+     * @return minimum consume offset.
      */
     public long getMinOffsetInQueue(String topic, int queueId) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
@@ -796,7 +801,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public void executeDeleteFilesManually() {
-        this.cleanCommitLogService.excuteDeleteFilesManualy();
+        this.cleanCommitLogService.executeDeleteFilesManually();
     }
 
     @Override
@@ -1389,6 +1394,14 @@ public class DefaultMessageStore implements MessageStore {
         }, 6, TimeUnit.SECONDS);
     }
 
+    @Override
+    public void purge(int watermark, long consumedPhysicalOffset, boolean force) {
+        cleanCommitLogService.setPurgeForcefullyWhenManual(force);
+        cleanCommitLogService.setDiskSpaceManuallyCleanRatio(watermark / 100.0);
+        cleanCommitLogService.setConsumedPhysicalOffset(consumedPhysicalOffset);
+        cleanCommitLogService.executeDeleteFilesManually();
+    }
+
     class CommitLogDispatcherBuildConsumeQueue implements CommitLogDispatcher {
 
         @Override
@@ -1419,18 +1432,24 @@ public class DefaultMessageStore implements MessageStore {
     class CleanCommitLogService {
 
         private final static int MAX_MANUAL_DELETE_FILE_TIMES = 20;
+
         private final double diskSpaceWarningLevelRatio =
             Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceWarningLevelRatio", "0.90"));
 
         private final double diskSpaceCleanForciblyRatio =
             Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceCleanForciblyRatio", "0.85"));
+
         private long lastRedeleteTimestamp = 0;
 
         private volatile int manualDeleteFileSeveralTimes = 0;
 
         private volatile boolean cleanImmediately = false;
 
-        public void excuteDeleteFilesManualy() {
+        private double diskSpaceManuallyCleanRatio = 1.0;
+        private long consumedPhysicalOffset;
+        private boolean purgeForcefullyWhenManual;
+
+        public void executeDeleteFilesManually() {
             this.manualDeleteFileSeveralTimes = MAX_MANUAL_DELETE_FILE_TIMES;
             DefaultMessageStore.log.info("executeDeleteFilesManually was invoked");
         }
@@ -1449,32 +1468,38 @@ public class DefaultMessageStore implements MessageStore {
             int deleteCount = 0;
             long fileReservedTime = DefaultMessageStore.this.getMessageStoreConfig().getFileReservedTime();
             int deletePhysicFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteCommitLogFilesInterval();
-            int destroyMapedFileIntervalForcibly = DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
+            int destroyMappedFileIntervalForcibly = DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
 
-            boolean timeup = this.isTimeToDelete();
-            boolean spacefull = this.isSpaceToDelete();
-            boolean manualDelete = this.manualDeleteFileSeveralTimes > 0;
+            boolean timeUp = this.isTimeToDelete();
+            boolean diskFull = this.isSpaceToDelete();
 
-            if (timeup || spacefull || manualDelete) {
+            if (manualDeleteFileSeveralTimes > 0) {
+                manualDeleteFileSeveralTimes--;
+                deleteCount = commitLog.deleteExpiredFile(diskSpaceManuallyCleanRatio, consumedPhysicalOffset,
+                    purgeForcefullyWhenManual, deletePhysicFilesInterval);
+                if (deleteCount <= 0) {
+                    log.warn("Try to purge commit log manually, but failed to delete any commit log file");
+                }
+                return;
+            }
 
-                if (manualDelete)
-                    this.manualDeleteFileSeveralTimes--;
+            if (timeUp || diskFull) {
 
                 boolean cleanAtOnce = DefaultMessageStore.this.getMessageStoreConfig().isCleanFileForciblyEnable() && this.cleanImmediately;
 
-                log.info("begin to delete before {} hours file. timeup: {} spacefull: {} manualDeleteFileSeveralTimes: {} cleanAtOnce: {}", //
+                log.info("begin to delete before {} hours file. timeUp: {} diskFull: {} manualDeleteFileSeveralTimes: {} cleanAtOnce: {}", //
                     fileReservedTime, //
-                    timeup, //
-                    spacefull, //
+                    timeUp, //
+                    diskFull, //
                     manualDeleteFileSeveralTimes, //
                     cleanAtOnce);
 
-                fileReservedTime *= 60 * 60 * 1000;
+                fileReservedTime *= 60L * 60 * 1000;
 
                 deleteCount = DefaultMessageStore.this.commitLog.deleteExpiredFile(fileReservedTime, deletePhysicFilesInterval,
-                    destroyMapedFileIntervalForcibly, cleanAtOnce);
+                    destroyMappedFileIntervalForcibly, cleanAtOnce);
                 if (deleteCount > 0) {
-                } else if (spacefull) {
+                } else if (diskFull) {
                     log.warn("disk space will be full soon, but delete file failed.");
                 }
             }
@@ -1485,9 +1510,9 @@ public class DefaultMessageStore implements MessageStore {
             long currentTimestamp = System.currentTimeMillis();
             if ((currentTimestamp - this.lastRedeleteTimestamp) > interval) {
                 this.lastRedeleteTimestamp = currentTimestamp;
-                int destroyMapedFileIntervalForcibly =
+                int destroyMappedFileIntervalForcibly =
                     DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
-                if (DefaultMessageStore.this.commitLog.retryDeleteFirstFile(destroyMapedFileIntervalForcibly)) {
+                if (DefaultMessageStore.this.commitLog.retryDeleteFirstFile(destroyMappedFileIntervalForcibly)) {
                 }
             }
         }
@@ -1515,8 +1540,8 @@ public class DefaultMessageStore implements MessageStore {
                 String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
                 double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
                 if (physicRatio > diskSpaceWarningLevelRatio) {
-                    boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
-                    if (diskok) {
+                    boolean diskOK = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
+                    if (diskOK) {
                         DefaultMessageStore.log.error("physic disk maybe full soon " + physicRatio + ", so mark disk full");
                     }
 
@@ -1524,8 +1549,8 @@ public class DefaultMessageStore implements MessageStore {
                 } else if (physicRatio > diskSpaceCleanForciblyRatio) {
                     cleanImmediately = true;
                 } else {
-                    boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskOK();
-                    if (!diskok) {
+                    boolean diskOK = DefaultMessageStore.this.runningFlags.getAndMakeDiskOK();
+                    if (!diskOK) {
                         DefaultMessageStore.log.info("physic disk space OK " + physicRatio + ", so mark disk ok");
                     }
                 }
@@ -1541,23 +1566,23 @@ public class DefaultMessageStore implements MessageStore {
                     .getStorePathConsumeQueue(DefaultMessageStore.this.getMessageStoreConfig().getStorePathRootDir());
                 double logicsRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogics);
                 if (logicsRatio > diskSpaceWarningLevelRatio) {
-                    boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
-                    if (diskok) {
-                        DefaultMessageStore.log.error("logics disk maybe full soon " + logicsRatio + ", so mark disk full");
+                    boolean diskOK = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
+                    if (diskOK) {
+                        DefaultMessageStore.log.error("Consume queue disk maybe full soon " + logicsRatio + ", so mark disk full");
                     }
 
                     cleanImmediately = true;
                 } else if (logicsRatio > diskSpaceCleanForciblyRatio) {
                     cleanImmediately = true;
                 } else {
-                    boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskOK();
-                    if (!diskok) {
-                        DefaultMessageStore.log.info("logics disk space OK " + logicsRatio + ", so mark disk ok");
+                    boolean diskOK = DefaultMessageStore.this.runningFlags.getAndMakeDiskOK();
+                    if (!diskOK) {
+                        DefaultMessageStore.log.info("Consume queue disk space OK " + logicsRatio + ", so mark disk ok");
                     }
                 }
 
                 if (logicsRatio < 0 || logicsRatio > ratio) {
-                    DefaultMessageStore.log.info("logics disk maybe full soon, so reclaim space, " + logicsRatio);
+                    DefaultMessageStore.log.info("Consume queue disk maybe full soon, so reclaim space, " + logicsRatio);
                     return true;
                 }
             }
@@ -1571,6 +1596,18 @@ public class DefaultMessageStore implements MessageStore {
 
         public void setManualDeleteFileSeveralTimes(int manualDeleteFileSeveralTimes) {
             this.manualDeleteFileSeveralTimes = manualDeleteFileSeveralTimes;
+        }
+
+        public void setDiskSpaceManuallyCleanRatio(double diskSpaceManuallyCleanRatio) {
+            this.diskSpaceManuallyCleanRatio = diskSpaceManuallyCleanRatio;
+        }
+
+        public void setConsumedPhysicalOffset(long consumedPhysicalOffset) {
+            this.consumedPhysicalOffset = consumedPhysicalOffset;
+        }
+
+        public void setPurgeForcefullyWhenManual(boolean purgeForcefullyWhenManual) {
+            this.purgeForcefullyWhenManual = purgeForcefullyWhenManual;
         }
     }
 
