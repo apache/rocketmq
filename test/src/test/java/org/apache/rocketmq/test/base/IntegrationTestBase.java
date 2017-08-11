@@ -148,17 +148,17 @@ public class IntegrationTestBase {
         return brokerController;
     }
 
-    public static boolean initTopic(String topic, String nsAddr, String clusterName) {
+    public static boolean initTopic(String topic, String nsAddr, String clusterName,int queueNumbers){
         long startTime = System.currentTimeMillis();
         boolean createResult;
 
         while (true) {
-            createResult = MQAdmin.createTopic(nsAddr, clusterName, topic, 8);
+            createResult = MQAdmin.createTopic(nsAddr, clusterName, topic, queueNumbers);
             if (createResult) {
                 break;
             } else if (System.currentTimeMillis() - startTime > topicCreateTime) {
                 Assert.fail(String.format("topic[%s] is created failed after:%d ms", topic,
-                    System.currentTimeMillis() - startTime));
+                        System.currentTimeMillis() - startTime));
                 break;
             } else {
                 TestUtils.waitForMoment(500);
@@ -167,6 +167,10 @@ public class IntegrationTestBase {
         }
 
         return createResult;
+    }
+
+    public static boolean initTopic(String topic, String nsAddr, String clusterName) {
+        return initTopic(topic, nsAddr, clusterName,8);
     }
 
     public static void deleteFile(File file) {

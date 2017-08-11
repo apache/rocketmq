@@ -1111,7 +1111,7 @@ public class DefaultMessageStore implements MessageStore {
             return false;
         }
 
-        if ((messageTotal + 1) >= maxMsgNums) {
+        if (maxMsgNums <= messageTotal) {
             return true;
         }
 
@@ -1120,7 +1120,7 @@ public class DefaultMessageStore implements MessageStore {
                 return true;
             }
 
-            if ((messageTotal + 1) > this.messageStoreConfig.getMaxTransferCountOnMessageInDisk()) {
+            if (messageTotal > this.messageStoreConfig.getMaxTransferCountOnMessageInDisk() - 1) {
                 return true;
             }
         } else {
@@ -1128,7 +1128,7 @@ public class DefaultMessageStore implements MessageStore {
                 return true;
             }
 
-            if ((messageTotal + 1) > this.messageStoreConfig.getMaxTransferCountOnMessageInMemory()) {
+            if (messageTotal > this.messageStoreConfig.getMaxTransferCountOnMessageInMemory() - 1) {
                 return true;
             }
         }
