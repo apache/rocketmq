@@ -97,7 +97,7 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
             return;
         }
         try {
-            producer = ProducerInstance.getInstance(nameServerAddress, producerGroup);
+            producer = ProducerInstance.getProducerInstance().getInstance(nameServerAddress, producerGroup);
         } catch (Exception e) {
             addError("Starting RocketmqLogbackAppender [" + this.getName()
                     + "] nameServerAddress:" + nameServerAddress + " group:" + producerGroup + " " + e.getMessage());
@@ -119,7 +119,7 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
         this.started = false;
 
         try {
-            ProducerInstance.removeAndClose(this.nameServerAddress, this.producerGroup);
+            ProducerInstance.getProducerInstance().removeAndClose(this.nameServerAddress, this.producerGroup);
         } catch (Exception e) {
             addError("Closeing RocketmqLogbackAppender [" + this.getName()
                     + "] nameServerAddress:" + nameServerAddress + " group:" + producerGroup + " " + e.getMessage());

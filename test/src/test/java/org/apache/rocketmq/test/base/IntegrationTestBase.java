@@ -25,6 +25,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
@@ -75,7 +76,7 @@ public class IntegrationTestBase {
                         }
                     }
                     for (File file : TMPE_FILES) {
-                        deleteFile(file);
+                        UtilAll.deleteFile(file);
                     }
                 } catch (Exception e){
                     logger.error("Shutdown error", e);
@@ -187,5 +188,5 @@ public class IntegrationTestBase {
             file.delete();
         }
     }
-
+  
 }

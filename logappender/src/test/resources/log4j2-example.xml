@@ -18,7 +18,7 @@
 
 <Configuration status="warn" name="Rocketmq">
 <Appenders>
-    <RocketMQ name="rocketmqAppender" producerGroup="log4j2" nameServerAddress="127.0.0.1:9876"
+    <RocketMQ name="rocketmqAppender" producerGroup="loggerAppender" nameServerAddress="127.0.0.1:9876"
          topic="TopicTest" tag="log">
         <PatternLayout pattern="%d [%p] hahahah %c %m%n"/>
     </RocketMQ>

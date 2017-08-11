@@ -81,7 +81,7 @@ public class RocketmqLog4j2Appender extends AbstractAppender {
         this.nameServerAddress = nameServerAddress;
         this.producerGroup = producerGroup;
         try {
-            this.producer = ProducerInstance.getInstance(this.nameServerAddress, this.producerGroup);
+            this.producer = ProducerInstance.getProducerInstance().getInstance(this.nameServerAddress, this.producerGroup);
         } catch (Exception e) {
             ErrorHandler handler = this.getHandler();
             if (handler != null) {
@@ -127,7 +127,7 @@ public class RocketmqLog4j2Appender extends AbstractAppender {
     public boolean stop(long timeout, TimeUnit timeUnit) {
         this.setStopping();
         try {
-            ProducerInstance.removeAndClose(this.nameServerAddress, this.producerGroup);
+            ProducerInstance.getProducerInstance().removeAndClose(this.nameServerAddress, this.producerGroup);
         } catch (Exception e) {
             ErrorHandler handler = this.getHandler();
             if (handler != null) {
