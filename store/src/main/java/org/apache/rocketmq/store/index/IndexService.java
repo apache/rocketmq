@@ -142,7 +142,7 @@ public class IndexService {
 
     public void destroy() {
         try {
-            this.readWriteLock.readLock().lock();
+            this.readWriteLock.writeLock().lock();
             for (IndexFile f : this.indexFileList) {
                 f.destroy(1000 * 3);
             }
@@ -150,7 +150,7 @@ public class IndexService {
         } catch (Exception e) {
             log.error("destroy exception", e);
         } finally {
-            this.readWriteLock.readLock().unlock();
+            this.readWriteLock.writeLock().unlock();
         }
     }
 
