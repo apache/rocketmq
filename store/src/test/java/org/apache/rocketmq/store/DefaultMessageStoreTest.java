@@ -65,7 +65,7 @@ public class DefaultMessageStoreTest {
         File file = new File(messageStoreConfig.getStorePathRootDir());
         UtilAll.deleteFile(file);
     }
-  
+
     public MessageStore buildMessageStore() throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMapedFileSizeCommitLog(1024 * 1024 * 10);
@@ -81,7 +81,6 @@ public class DefaultMessageStoreTest {
         long totalMsgs = 100;
         QUEUE_TOTAL = 1;
         MessageBody = StoreMessage.getBytes();
-
         for (long i = 0; i < totalMsgs; i++) {
             messageStore.putMessage(buildMessage());
         }
@@ -91,6 +90,7 @@ public class DefaultMessageStoreTest {
             assertThat(result).isNotNull();
             result.release();
         }
+        verifyThatMasterIsFunctional(totalMsgs, messageStore);
     }
 
     public MessageExtBrokerInner buildMessage() {
@@ -121,6 +121,19 @@ public class DefaultMessageStoreTest {
             GetMessageResult result = messageStore.getMessage("GROUP_A", "TOPIC_A", 0, i, 1024 * 1024, null);
             assertThat(result).isNotNull();
             result.release();
+        }
+        verifyThatMasterIsFunctional(totalMsgs, messageStore);
+    }
+
+    private void verifyThatMasterIsFunctional(long totalMsgs, MessageStore master) {
+        for (long i = 0; i < totalMsgs; i++) {
+            master.putMessage(buildMessage());
+        }
+
+        for (long i = 0; i < totalMsgs; i++) {
+            GetMessageResult result = master.getMessage("GROUP_A", "TOPIC_A", 0, i, 1024 * 1024, null);
+            assertThat(result).isNotNull();
+            result.release();
 
         }
     }
@@ -141,6 +154,9 @@ public class DefaultMessageStoreTest {
         GetMessageResult getMessageResult32 = messageStore.getMessage(group, topic, 0, 0, 32, null);
         assertThat(getMessageResult32.getMessageBufferList().size()).isEqualTo(32);
 
+        GetMessageResult getMessageResult20 = messageStore.getMessage(group, topic, 0, 0, 20, null);
+        assertThat(getMessageResult20.getMessageBufferList().size()).isEqualTo(20);
+
         GetMessageResult getMessageResult45 = messageStore.getMessage(group, topic, 0, 0, 10, null);
         assertThat(getMessageResult45.getMessageBufferList().size()).isEqualTo(10);
     }
@@ -148,7 +164,7 @@ public class DefaultMessageStoreTest {
     private class MyMessageArrivingListener implements MessageArrivingListener {
         @Override
         public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
-                             byte[] filterBitMap, Map<String, String> properties) {
+            byte[] filterBitMap, Map<String, String> properties) {
         }
     }
 }

@@ -71,7 +71,7 @@ public abstract class UnaryExpression implements Expression {
     }
 
     public static BooleanExpression createInExpression(PropertyExpression right, List<Object> elements,
-                                                       final boolean not) {
+        final boolean not) {
 
         // Use a HashSet if there are many elements.
         Collection<Object> t;
@@ -259,8 +259,6 @@ public abstract class UnaryExpression implements Expression {
     /**
      * Returns the symbol that represents this binary expression. For example,
      * addition is represented by "+"
-     *
-     * @return
      */
     public abstract String getExpressionSymbol();
 

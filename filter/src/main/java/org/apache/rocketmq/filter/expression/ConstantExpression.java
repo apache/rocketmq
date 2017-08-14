@@ -136,8 +136,6 @@ public class ConstantExpression implements Expression {
     /**
      * Encodes the value of string so that it looks like it would look like when
      * it was provided in a selector.
-     *
-     * @return
      */
     public static String encodeString(String s) {
         StringBuffer b = new StringBuffer();

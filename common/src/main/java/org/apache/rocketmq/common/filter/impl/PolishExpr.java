@@ -35,7 +35,6 @@ public class PolishExpr {
      * Shunting-yard algorithm <br/>
      * http://en.wikipedia.org/wiki/Shunting_yard_algorithm
      *
-     * @param tokens
      * @return the compute result of Shunting-yard algorithm
      */
     public static List<Op> reversePolish(List<Op> tokens) {

@@ -90,13 +90,7 @@ public class HttpTinyClient {
     }
 
     /**
-     * @param url
-     * @param headers
-     * @param paramValues
-     * @param encoding
-     * @param readTimeoutMs
      * @return the http response of given http post request
-     * @throws java.io.IOException
      */
     static public HttpResult httpPost(String url, List<String> headers, List<String> paramValues,
         String encoding, long readTimeoutMs) throws IOException {

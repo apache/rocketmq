@@ -61,7 +61,8 @@ public class ClusterListSubCommand implements SubCommand {
     }
 
     @Override
-    public void execute(final CommandLine commandLine, final Options options, RPCHook rpcHook) throws SubCommandException {
+    public void execute(final CommandLine commandLine, final Options options,
+        RPCHook rpcHook) throws SubCommandException {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
@@ -164,7 +165,8 @@ public class ClusterListSubCommand implements SubCommand {
         }
     }
 
-    private void printClusterBaseInfo(final DefaultMQAdminExt defaultMQAdminExt) throws RemotingConnectException, RemotingTimeoutException,
+    private void printClusterBaseInfo(
+        final DefaultMQAdminExt defaultMQAdminExt) throws RemotingConnectException, RemotingTimeoutException,
         RemotingSendRequestException, InterruptedException, MQBrokerException {
 
         ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
@@ -253,16 +255,16 @@ public class ClusterListSubCommand implements SubCommand {
                         }
 
                         System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s%n",
-                                clusterName,
-                                brokerName,
-                                next1.getKey(),
-                                next1.getValue(),
-                                version,
-                                String.format("%9.2f(%s,%sms)", in, sendThreadPoolQueueSize, sendThreadPoolQueueHeadWaitTimeMills),
-                                String.format("%9.2f(%s,%sms)", out, pullThreadPoolQueueSize, pullThreadPoolQueueHeadWaitTimeMills),
-                                pageCacheLockTimeMills,
-                                String.format("%2.2f", hour),
-                                String.format("%.4f", space)
+                            clusterName,
+                            brokerName,
+                            next1.getKey(),
+                            next1.getValue(),
+                            version,
+                            String.format("%9.2f(%s,%sms)", in, sendThreadPoolQueueSize, sendThreadPoolQueueHeadWaitTimeMills),
+                            String.format("%9.2f(%s,%sms)", out, pullThreadPoolQueueSize, pullThreadPoolQueueHeadWaitTimeMills),
+                            pageCacheLockTimeMills,
+                            String.format("%2.2f", hour),
+                            String.format("%.4f", space)
                         );
                     }
                 }

@@ -27,8 +27,6 @@ import org.apache.rocketmq.client.exception.MQClientException;
 public interface MQPushConsumer extends MQConsumer {
     /**
      * Start the consumer
-     *
-     * @throws MQClientException
      */
     void start() throws MQClientException;
 
@@ -39,8 +37,6 @@ public interface MQPushConsumer extends MQConsumer {
 
     /**
      * Register the message listener
-     *
-     * @param messageListener
      */
     @Deprecated
     void registerMessageListener(MessageListener messageListener);
@@ -52,22 +48,20 @@ public interface MQPushConsumer extends MQConsumer {
     /**
      * Subscribe some topic
      *
-     * @param topic
-     * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if null or * expression,meaning subscribe
+     * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
+     * null or * expression,meaning subscribe
      * all
-     * @throws MQClientException
      */
     void subscribe(final String topic, final String subExpression) throws MQClientException;
 
     /**
      * Subscribe some topic
      *
-     * @param topic
      * @param fullClassName full class name,must extend org.apache.rocketmq.common.filter. MessageFilter
      * @param filterClassSource class source code,used UTF-8 file encoding,must be responsible for your code safety
-     * @throws MQClientException
      */
-    void subscribe(final String topic, final String fullClassName, final String filterClassSource) throws MQClientException;
+    void subscribe(final String topic, final String fullClassName,
+        final String filterClassSource) throws MQClientException;
 
     /**
      * Subscribe some topic with selector.
@@ -84,9 +78,7 @@ public interface MQPushConsumer extends MQConsumer {
      * Choose SQL92: {@link MessageSelector#bySql(java.lang.String)}
      * </p>
      *
-     * @param topic
      * @param selector message selector({@link MessageSelector}), can be null.
-     * @throws MQClientException
      */
     void subscribe(final String topic, final MessageSelector selector) throws MQClientException;
 
@@ -99,8 +91,6 @@ public interface MQPushConsumer extends MQConsumer {
 
     /**
      * Update the consumer thread pool size Dynamically
-     *
-     * @param corePoolSize
      */
     void updateCorePoolSize(int corePoolSize);
 
