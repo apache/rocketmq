@@ -29,12 +29,14 @@ public interface MessageStore {
 
     /**
      * Load previously stored messages.
+     *
      * @return true if success; false otherwise.
      */
     boolean load();
 
     /**
      * Launch this message store.
+     *
      * @throws Exception if there is any error.
      */
     void start() throws Exception;
@@ -51,6 +53,7 @@ public interface MessageStore {
 
     /**
      * Store a message into store.
+     *
      * @param msg Message instance to store
      * @return result of store operation.
      */
@@ -58,6 +61,7 @@ public interface MessageStore {
 
     /**
      * Store a batch of messages.
+     *
      * @param messageExtBatch Message batch.
      * @return result of storing batch messages.
      */
@@ -80,6 +84,7 @@ public interface MessageStore {
 
     /**
      * Get maximum offset of the topic queue.
+     *
      * @param topic Topic name.
      * @param queueId Queue ID.
      * @return Maximum offset at present.
@@ -88,6 +93,7 @@ public interface MessageStore {
 
     /**
      * Get the minimum offset of the topic queue.
+     *
      * @param topic Topic name.
      * @param queueId Queue ID.
      * @return Minimum offset at present.
@@ -96,6 +102,7 @@ public interface MessageStore {
 
     /**
      * Get the offset of the message in the commit log, which is also known as physical offset.
+     *
      * @param topic Topic of the message to lookup.
      * @param queueId Queue ID.
      * @param consumeQueueOffset offset of consume queue.
@@ -105,6 +112,7 @@ public interface MessageStore {
 
     /**
      * Look up the physical offset of the message whose store timestamp is as specified.
+     *
      * @param topic Topic of the message.
      * @param queueId Queue ID.
      * @param timestamp Timestamp to look up.
@@ -114,6 +122,7 @@ public interface MessageStore {
 
     /**
      * Look up the message by given commit log offset.
+     *
      * @param commitLogOffset physical offset.
      * @return Message whose physical offset is as specified.
      */
@@ -121,6 +130,7 @@ public interface MessageStore {
 
     /**
      * Get one message from the specified commit log offset.
+     *
      * @param commitLogOffset commit log offset.
      * @return wrapped result of the message.
      */
@@ -128,6 +138,7 @@ public interface MessageStore {
 
     /**
      * Get one message from the specified commit log offset.
+     *
      * @param commitLogOffset commit log offset.
      * @param msgSize message size.
      * @return wrapped result of the message.
@@ -136,30 +147,35 @@ public interface MessageStore {
 
     /**
      * Get the running information of this store.
+     *
      * @return message store running info.
      */
     String getRunningDataInfo();
 
     /**
      * Message store runtime information, which should generally contains various statistical information.
+     *
      * @return runtime information of the message store in format of key-value pairs.
      */
     HashMap<String, String> getRuntimeInfo();
 
     /**
      * Get the maximum commit log offset.
+     *
      * @return maximum commit log offset.
      */
     long getMaxPhyOffset();
 
     /**
      * Get the minimum commit log offset.
+     *
      * @return minimum commit log offset.
      */
     long getMinPhyOffset();
 
     /**
      * Get the store time of the earliest message in the given queue.
+     *
      * @param topic Topic of the messages to query.
      * @param queueId Queue ID to find.
      * @return store time of the earliest message.
@@ -168,12 +184,14 @@ public interface MessageStore {
 
     /**
      * Get the store time of the earliest message in this store.
+     *
      * @return timestamp of the earliest message in this store.
      */
     long getEarliestMessageTime();
 
     /**
      * Get the store time of the message specified.
+     *
      * @param topic message topic.
      * @param queueId queue ID.
      * @param consumeQueueOffset consume queue offset.
@@ -183,6 +201,7 @@ public interface MessageStore {
 
     /**
      * Get the total number of the messages in the specified queue.
+     *
      * @param topic Topic
      * @param queueId Queue ID.
      * @return total number.
@@ -191,6 +210,7 @@ public interface MessageStore {
 
     /**
      * Get the raw commit log data starting from the given offset, which should used for replication purpose.
+     *
      * @param offset starting offset.
      * @return commit log data.
      */
@@ -198,6 +218,7 @@ public interface MessageStore {
 
     /**
      * Append data to commit log.
+     *
      * @param startOffset starting offset.
      * @param data data to append.
      * @return true if success; false otherwise.
@@ -211,36 +232,40 @@ public interface MessageStore {
 
     /**
      * Query messages by given key.
+     *
      * @param topic topic of the message.
      * @param key message key.
      * @param maxNum maximum number of the messages possible.
      * @param begin begin timestamp.
      * @param end end timestamp.
-     * @return
      */
     QueryMessageResult queryMessage(final String topic, final String key, final int maxNum, final long begin,
         final long end);
 
     /**
      * Update HA master address.
+     *
      * @param newAddr new address.
      */
     void updateHaMasterAddress(final String newAddr);
 
     /**
      * Return how much the slave falls behind.
+     *
      * @return number of bytes that slave falls behind.
      */
     long slaveFallBehindMuch();
 
     /**
      * Return the current timestamp of the store.
+     *
      * @return current time in milliseconds since 1970-01-01.
      */
     long now();
 
     /**
      * Clean unused topics.
+     *
      * @param topics all valid topics.
      * @return number of the topics deleted.
      */
@@ -253,6 +278,7 @@ public interface MessageStore {
 
     /**
      * Check if the given message has been swapped out of the memory.
+     *
      * @param topic topic.
      * @param queueId queue ID.
      * @param consumeOffset consume queue offset.
@@ -262,18 +288,21 @@ public interface MessageStore {
 
     /**
      * Get number of the bytes that have been stored in commit log and not yet dispatched to consume queue.
+     *
      * @return number of the bytes to dispatch.
      */
     long dispatchBehindBytes();
 
     /**
      * Flush the message store to persist all data.
+     *
      * @return maximum offset flushed to persistent storage device.
      */
     long flush();
 
     /**
      * Reset written offset.
+     *
      * @param phyOffset new offset.
      * @return true if success; false otherwise.
      */
@@ -281,42 +310,49 @@ public interface MessageStore {
 
     /**
      * Get confirm offset.
+     *
      * @return confirm offset.
      */
     long getConfirmOffset();
 
     /**
      * Set confirm offset.
+     *
      * @param phyOffset confirm offset to set.
      */
     void setConfirmOffset(long phyOffset);
 
     /**
      * Check if the operation system page cache is busy or not.
+     *
      * @return true if the OS page cache is busy; false otherwise.
      */
     boolean isOSPageCacheBusy();
 
     /**
      * Get lock time in milliseconds of the store by far.
+     *
      * @return lock time in milliseconds.
      */
     long lockTimeMills();
 
     /**
      * Check if the transient store pool is deficient.
+     *
      * @return true if the transient store pool is running out; false otherwise.
      */
     boolean isTransientStorePoolDeficient();
 
     /**
      * Get the dispatcher list.
+     *
      * @return list of the dispatcher.
      */
     LinkedList<CommitLogDispatcher> getDispatcherList();
 
     /**
      * Get consume queue of the topic/queue.
+     *
      * @param topic Topic.
      * @param queueId Queue ID.
      * @return Consume queue.

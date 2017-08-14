@@ -122,7 +122,7 @@ public class TokenMgrError extends Error {
      * Note: You can customize the lexical error message by modifying this method.
      */
     protected static String LexicalError(boolean eofSeen, int lexState, int errorLine, int errorColumn,
-                                         String errorAfter, char curChar) {
+        String errorAfter, char curChar) {
         return "Lexical error at line " +
             errorLine + ", column " +
             errorColumn + ".  Encountered: " +
@@ -167,7 +167,7 @@ public class TokenMgrError extends Error {
      * Full Constructor.
      */
     public TokenMgrError(boolean eofSeen, int lexState, int errorLine, int errorColumn, String errorAfter, char curChar,
-                         int reason) {
+        int reason) {
         this(LexicalError(eofSeen, lexState, errorLine, errorColumn, errorAfter, curChar), reason);
     }
 }

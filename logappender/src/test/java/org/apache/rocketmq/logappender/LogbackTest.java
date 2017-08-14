@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
-public class LogbackTest extends AbstractTestCase{
+public class LogbackTest extends AbstractTestCase {
 
     @Before
     public void init() throws JoranException {
@@ -41,7 +41,6 @@ public class LogbackTest extends AbstractTestCase{
         StatusPrinter.printInCaseOfErrorsOrWarnings(lc);
     }
 
-
     @Test
     public void testLogback() throws InterruptedException, MQClientException {
         clear();
@@ -49,7 +48,7 @@ public class LogbackTest extends AbstractTestCase{
         for (int i = 0; i < 10; i++) {
             logger.info("logback test message " + i);
         }
-        int received = consumeMessages(10, "logback",10);
-        Assert.assertTrue(received>=5);
+        int received = consumeMessages(10, "logback", 10);
+        Assert.assertTrue(received >= 5);
     }
 }

@@ -87,7 +87,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
 
     @Override
     public GetMessageResult getMessage(String group, String topic, int queueId, long offset,
-                                       int maxMsgNums, final MessageFilter messageFilter) {
+        int maxMsgNums, final MessageFilter messageFilter) {
         return next.getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter);
     }
 

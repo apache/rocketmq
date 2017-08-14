@@ -22,8 +22,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-
-public abstract class Log4jTest extends AbstractTestCase{
+public abstract class Log4jTest extends AbstractTestCase {
 
     @Before
     public abstract void init();
@@ -37,8 +36,8 @@ public abstract class Log4jTest extends AbstractTestCase{
         for (int i = 0; i < 10; i++) {
             logger.info("log4j " + this.getType() + " simple test message " + i);
         }
-        int received = consumeMessages(10, "log4j",10);
-        Assert.assertTrue(received>5);
+        int received = consumeMessages(10, "log4j", 10);
+        Assert.assertTrue(received > 5);
     }
 
 }

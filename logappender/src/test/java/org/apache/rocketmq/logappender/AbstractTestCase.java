@@ -30,7 +30,6 @@ import java.lang.reflect.Field;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
 /**
  * Basic test rocketmq broker and name server init
  */

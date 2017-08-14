@@ -66,23 +66,14 @@ public class DispatchRequest {
     }
 
     public DispatchRequest(int size) {
-        // 1
         this.topic = "";
-        // 2
         this.queueId = 0;
-        // 3
         this.commitLogOffset = 0;
-        // 4
         this.msgSize = size;
-        // 5
         this.tagsCode = 0;
-        // 6
         this.storeTimestamp = 0;
-        // 7
         this.consumeQueueOffset = 0;
-        // 8
         this.keys = "";
-        //9
         this.uniqKey = null;
         this.sysFlag = 0;
         this.preparedTransactionOffset = 0;
@@ -91,23 +82,14 @@ public class DispatchRequest {
     }
 
     public DispatchRequest(int size, boolean success) {
-        // 1
         this.topic = "";
-        // 2
         this.queueId = 0;
-        // 3
         this.commitLogOffset = 0;
-        // 4
         this.msgSize = size;
-        // 5
         this.tagsCode = 0;
-        // 6
         this.storeTimestamp = 0;
-        // 7
         this.consumeQueueOffset = 0;
-        // 8
         this.keys = "";
-        // 9
         this.uniqKey = null;
         this.sysFlag = 0;
         this.preparedTransactionOffset = 0;

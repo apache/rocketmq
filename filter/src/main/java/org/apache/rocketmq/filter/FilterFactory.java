@@ -38,8 +38,6 @@ public class FilterFactory {
      * <br>
      * Note:
      * <li>1. Filter registered will be used in broker server, so take care of it's reliability and performance.</li>
-     *
-     * @param filterSpi
      */
     public void register(FilterSpi filterSpi) {
         if (FILTER_SPI_HOLDER.containsKey(filterSpi.ofType())) {
@@ -51,9 +49,6 @@ public class FilterFactory {
 
     /**
      * Un register a filter.
-     *
-     * @param type
-     * @return
      */
     public FilterSpi unRegister(String type) {
         return FILTER_SPI_HOLDER.remove(type);
@@ -61,9 +56,6 @@ public class FilterFactory {
 
     /**
      * Get a filter registered, null if none exist.
-     *
-     * @param type
-     * @return
      */
     public FilterSpi get(String type) {
         return FILTER_SPI_HOLDER.get(type);

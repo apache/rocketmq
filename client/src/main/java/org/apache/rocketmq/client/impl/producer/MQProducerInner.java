@@ -28,9 +28,9 @@ public interface MQProducerInner {
 
     TransactionCheckListener checkListener();
 
-    void checkTransactionState(//
-        final String addr, //
-        final MessageExt msg, //
+    void checkTransactionState(
+        final String addr,
+        final MessageExt msg,
         final CheckTransactionStateRequestHeader checkRequestHeader);
 
     void updateTopicPublishInfo(final String topic, final TopicPublishInfo info);

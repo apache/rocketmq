@@ -59,7 +59,6 @@ public class RocketmqLog4jAppender extends AppenderSkeleton {
     public RocketmqLog4jAppender() {
     }
 
-
     public void activateOptions() {
         LogLog.debug("Getting initial context.");
         if (!checkEntryConditions()) {
@@ -72,11 +71,8 @@ public class RocketmqLog4jAppender extends AppenderSkeleton {
         }
     }
 
-
     /**
      * Info,error,warn,callback method implementation
-     *
-     * @param event
      */
     public void append(LoggingEvent event) {
         if (null == producer) {
@@ -95,7 +91,7 @@ public class RocketmqLog4jAppender extends AppenderSkeleton {
         } catch (Exception e) {
             String msg = new String(data);
             errorHandler.error("Could not send message in RocketmqLog4jAppender [" + name + "].Message is :" + msg, e,
-                    ErrorCode.GENERIC_FAILURE);
+                ErrorCode.GENERIC_FAILURE);
         }
     }
 
@@ -144,7 +140,6 @@ public class RocketmqLog4jAppender extends AppenderSkeleton {
     public String getTopic() {
         return topic;
     }
-
 
     public void setTopic(String topic) {
         this.topic = topic;

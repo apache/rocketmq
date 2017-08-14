@@ -55,7 +55,8 @@ public class IntegrationTestBase {
     static {
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override public void run() {
+            @Override
+            public void run() {
                 try {
                     for (BrokerController brokerController : BROKER_CONTROLLERS) {
                         if (brokerController != null) {
@@ -78,7 +79,7 @@ public class IntegrationTestBase {
                     for (File file : TMPE_FILES) {
                         UtilAll.deleteFile(file);
                     }
-                } catch (Exception e){
+                } catch (Exception e) {
                     logger.error("Shutdown error", e);
                 }
             }
@@ -149,7 +150,7 @@ public class IntegrationTestBase {
         return brokerController;
     }
 
-    public static boolean initTopic(String topic, String nsAddr, String clusterName,int queueNumbers){
+    public static boolean initTopic(String topic, String nsAddr, String clusterName, int queueNumbers) {
         long startTime = System.currentTimeMillis();
         boolean createResult;
 
@@ -159,7 +160,7 @@ public class IntegrationTestBase {
                 break;
             } else if (System.currentTimeMillis() - startTime > topicCreateTime) {
                 Assert.fail(String.format("topic[%s] is created failed after:%d ms", topic,
-                        System.currentTimeMillis() - startTime));
+                    System.currentTimeMillis() - startTime));
                 break;
             } else {
                 TestUtils.waitForMoment(500);
@@ -171,7 +172,7 @@ public class IntegrationTestBase {
     }
 
     public static boolean initTopic(String topic, String nsAddr, String clusterName) {
-        return initTopic(topic, nsAddr, clusterName,8);
+        return initTopic(topic, nsAddr, clusterName, 8);
     }
 
     public static void deleteFile(File file) {
@@ -188,5 +189,5 @@ public class IntegrationTestBase {
             file.delete();
         }
     }
-  
+
 }

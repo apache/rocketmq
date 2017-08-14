@@ -62,8 +62,6 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
 
     /**
      * Info,error,warn,callback method implementation
-     *
-     * @param event
      */
     @Override
     protected void append(ILoggingEvent event) {
@@ -100,7 +98,7 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
             producer = ProducerInstance.getProducerInstance().getInstance(nameServerAddress, producerGroup);
         } catch (Exception e) {
             addError("Starting RocketmqLogbackAppender [" + this.getName()
-                    + "] nameServerAddress:" + nameServerAddress + " group:" + producerGroup + " " + e.getMessage());
+                + "] nameServerAddress:" + nameServerAddress + " group:" + producerGroup + " " + e.getMessage());
         }
         if (producer != null) {
             super.start();
@@ -122,7 +120,7 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
             ProducerInstance.getProducerInstance().removeAndClose(this.nameServerAddress, this.producerGroup);
         } catch (Exception e) {
             addError("Closeing RocketmqLogbackAppender [" + this.getName()
-                    + "] nameServerAddress:" + nameServerAddress + " group:" + producerGroup + " " + e.getMessage());
+                + "] nameServerAddress:" + nameServerAddress + " group:" + producerGroup + " " + e.getMessage());
         }
 
         // Help garbage collection
@@ -144,7 +142,6 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
         }
     }
 
-
     public Layout getLayout() {
         return this.layout;
     }
@@ -159,7 +156,6 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
     public String getTag() {
         return tag;
     }
-
 
     public void setTag(String tag) {
         this.tag = tag;

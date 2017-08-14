@@ -297,10 +297,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                                     pullRequest.getMessageQueue().getTopic(), pullResult.getMsgFoundList().size());
 
                                 boolean dispathToConsume = processQueue.putMessage(pullResult.getMsgFoundList());
-                                DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest(//
-                                    pullResult.getMsgFoundList(), //
-                                    processQueue, //
-                                    pullRequest.getMessageQueue(), //
+                                DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest(
+                                    pullResult.getMsgFoundList(),
+                                    processQueue,
+                                    pullRequest.getMessageQueue(),
                                     dispathToConsume);
 
                                 if (DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval() > 0) {
@@ -311,12 +311,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                                 }
                             }
 
-                            if (pullResult.getNextBeginOffset() < prevRequestOffset//
+                            if (pullResult.getNextBeginOffset() < prevRequestOffset
                                 || firstMsgOffset < prevRequestOffset) {
                                 log.warn(
-                                    "[BUG] pull message result maybe data wrong, nextBeginOffset: {} firstMsgOffset: {} prevRequestOffset: {}", //
-                                    pullResult.getNextBeginOffset(), //
-                                    firstMsgOffset, //
+                                    "[BUG] pull message result maybe data wrong, nextBeginOffset: {} firstMsgOffset: {} prevRequestOffset: {}",
+                                    pullResult.getNextBeginOffset(),
+                                    firstMsgOffset,
                                     prevRequestOffset);
                             }
 
@@ -336,7 +336,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                             DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                             break;
                         case OFFSET_ILLEGAL:
-                            log.warn("the pull request offset illegal, {} {}", //
+                            log.warn("the pull request offset illegal, {} {}",
                                 pullRequest.toString(), pullResult.toString());
                             pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
@@ -396,26 +396,26 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             classFilter = sd.isClassFilterMode();
         }
 
-        int sysFlag = PullSysFlag.buildSysFlag(//
+        int sysFlag = PullSysFlag.buildSysFlag(
             commitOffsetEnable, // commitOffset
             true, // suspend
             subExpression != null, // subscription
             classFilter // class filter
         );
         try {
-            this.pullAPIWrapper.pullKernelImpl(//
-                pullRequest.getMessageQueue(), // 1
-                subExpression, // 2
-                subscriptionData.getExpressionType(), // 3
-                subscriptionData.getSubVersion(), // 4
-                pullRequest.getNextOffset(), // 5
-                this.defaultMQPushConsumer.getPullBatchSize(), // 6
-                sysFlag, // 7
-                commitOffsetValue, // 8
-                BROKER_SUSPEND_MAX_TIME_MILLIS, // 9
-                CONSUMER_TIMEOUT_MILLIS_WHEN_SUSPEND, // 10
-                CommunicationMode.ASYNC, // 11
-                pullCallback // 12
+            this.pullAPIWrapper.pullKernelImpl(
+                pullRequest.getMessageQueue(),
+                subExpression,
+                subscriptionData.getExpressionType(),
+                subscriptionData.getSubVersion(),
+                pullRequest.getNextOffset(),
+                this.defaultMQPushConsumer.getPullBatchSize(),
+                sysFlag,
+                commitOffsetValue,
+                BROKER_SUSPEND_MAX_TIME_MILLIS,
+                CONSUMER_TIMEOUT_MILLIS_WHEN_SUSPEND,
+                CommunicationMode.ASYNC,
+                pullCallback
             );
         } catch (Exception e) {
             log.error("pullKernelImpl exception", e);
@@ -425,8 +425,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     private void makeSureStateOK() throws MQClientException {
         if (this.serviceState != ServiceState.RUNNING) {
-            throw new MQClientException("The consumer service state not OK, "//
-                + this.serviceState//
+            throw new MQClientException("The consumer service state not OK, "
+                + this.serviceState
                 + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK),
                 null);
         }
@@ -608,8 +608,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             case RUNNING:
             case START_FAILED:
             case SHUTDOWN_ALREADY:
-                throw new MQClientException("The PushConsumer service state not OK, maybe started once, "//
-                    + this.serviceState//
+                throw new MQClientException("The PushConsumer service state not OK, maybe started once, "
+                    + this.serviceState
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK),
                     null);
             default:
@@ -764,7 +764,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 for (final Map.Entry<String, String> entry : sub.entrySet()) {
                     final String topic = entry.getKey();
                     final String subString = entry.getValue();
-                    SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(), //
+                    SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),
                         topic, subString);
                     this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
                 }
@@ -779,7 +779,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     break;
                 case CLUSTERING:
                     final String retryTopic = MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup());
-                    SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(), //
+                    SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),
                         retryTopic, SubscriptionData.SUB_ALL);
                     this.rebalanceImpl.getSubscriptionInner().put(retryTopic, subscriptionData);
                     break;
@@ -811,7 +811,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void subscribe(String topic, String subExpression) throws MQClientException {
         try {
-            SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(), //
+            SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),
                 topic, subExpression);
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
             if (this.mQClientFactory != null) {
@@ -824,7 +824,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void subscribe(String topic, String fullClassName, String filterClassSource) throws MQClientException {
         try {
-            SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(), //
+            SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),
                 topic, "*");
             subscriptionData.setSubString(fullClassName);
             subscriptionData.setClassFilterMode(true);

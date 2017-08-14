@@ -36,7 +36,7 @@ public class ClientLogger {
     private static Logger createLogger(final String loggerName) {
         String logConfigFilePath =
             System.getProperty("rocketmq.client.log.configFile",
-                    System.getenv("ROCKETMQ_CLIENT_LOG_CONFIGFILE"));
+                System.getenv("ROCKETMQ_CLIENT_LOG_CONFIGFILE"));
         Boolean isloadconfig =
             Boolean.parseBoolean(System.getProperty("rocketmq.client.log.loadconfig", "true"));
 

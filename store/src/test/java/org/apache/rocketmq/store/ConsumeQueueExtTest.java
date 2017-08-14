@@ -36,7 +36,6 @@ public class ConsumeQueueExtTest {
     private static final int cqExtFileSize = 10 * unitSizeWithBitMap;
     private static final int unitCount = 20;
 
-
     protected ConsumeQueueExt genExt() {
         return new ConsumeQueueExt(
             topic, queueId, storePath, cqExtFileSize, bitMapLength
@@ -65,7 +64,7 @@ public class ConsumeQueueExtTest {
     }
 
     protected void putSth(ConsumeQueueExt consumeQueueExt, boolean getAfterPut,
-                          boolean unitSameSize, int unitCount) {
+        boolean unitSameSize, int unitCount) {
         for (int i = 0; i < unitCount; i++) {
             ConsumeQueueExt.CqExtUnit putUnit =
                 unitSameSize ? genUnit(true) : genUnit(i % 2 == 0);
@@ -236,7 +235,7 @@ public class ConsumeQueueExtTest {
     }
 
     @After
-    public void destroy(){
+    public void destroy() {
         UtilAll.deleteFile(new File(storePath));
     }
 }
