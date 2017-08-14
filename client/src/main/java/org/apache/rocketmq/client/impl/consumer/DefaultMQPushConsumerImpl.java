@@ -697,8 +697,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         // consumeThreadMin
         if (this.defaultMQPushConsumer.getConsumeThreadMin() < 1
-            || this.defaultMQPushConsumer.getConsumeThreadMin() > 1000
-            || this.defaultMQPushConsumer.getConsumeThreadMin() > this.defaultMQPushConsumer.getConsumeThreadMax()) {
+            || this.defaultMQPushConsumer.getConsumeThreadMin() > 1000) {
             throw new MQClientException(
                 "consumeThreadMin Out of range [1, 1000]"
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL),
@@ -711,6 +710,14 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 "consumeThreadMax Out of range [1, 1000]"
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL),
                 null);
+        }
+
+        // consumeThreadMin can't be larger than consumeThreadMax
+        if (this.defaultMQPushConsumer.getConsumeThreadMin() > this.defaultMQPushConsumer.getConsumeThreadMax()) {
+            throw new MQClientException(
+                 "consumeThreadMin (" + this.defaultMQPushConsumer.getConsumeThreadMin() + ") "
+                     + "is larger than consumeThreadMax ("+this.defaultMQPushConsumer.getConsumeThreadMax()+")"),
+                    null);
         }
 
         // consumeConcurrentlyMaxSpan
