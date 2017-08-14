@@ -717,7 +717,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         if (this.defaultMQPushConsumer.getConsumeThreadMin() > this.defaultMQPushConsumer.getConsumeThreadMax()) {
             throw new MQClientException(
                  "consumeThreadMin (" + this.defaultMQPushConsumer.getConsumeThreadMin() + ") "
-                     + "is larger than consumeThreadMax ("+this.defaultMQPushConsumer.getConsumeThreadMax()+")"),
+                     + "is larger than consumeThreadMax (" + this.defaultMQPushConsumer.getConsumeThreadMax() + ")",
                     null);
         }
 
