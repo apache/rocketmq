@@ -30,7 +30,7 @@ import org.slf4j.Logger;
 /**
  * Consistent Hashing queue algorithm
  */
-public class AllocateMessageQueueConsistentHash  implements AllocateMessageQueueStrategy {
+public class AllocateMessageQueueConsistentHash implements AllocateMessageQueueStrategy {
     private final Logger log = ClientLogger.getLog();
 
     private final int virtualNodeCnt;
@@ -41,7 +41,7 @@ public class AllocateMessageQueueConsistentHash  implements AllocateMessageQueue
     }
 
     public AllocateMessageQueueConsistentHash(int virtualNodeCnt) {
-        this(virtualNodeCnt,null);
+        this(virtualNodeCnt, null);
     }
 
     public AllocateMessageQueueConsistentHash(int virtualNodeCnt, HashFunction customHashFunction) {
@@ -75,7 +75,6 @@ public class AllocateMessageQueueConsistentHash  implements AllocateMessageQueue
             return result;
         }
 
-
         Collection<ClientNode> cidNodes = new ArrayList<ClientNode>();
         for (String cid : cidAll) {
             cidNodes.add(new ClientNode(cid));
@@ -105,7 +104,6 @@ public class AllocateMessageQueueConsistentHash  implements AllocateMessageQueue
         return "CONSISTENT_HASH";
     }
 
-
     private static class ClientNode implements Node {
         private final String clientID;
 
@@ -118,7 +116,5 @@ public class AllocateMessageQueueConsistentHash  implements AllocateMessageQueue
             return clientID;
         }
     }
-
-
 
 }

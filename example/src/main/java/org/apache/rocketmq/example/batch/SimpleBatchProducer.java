@@ -24,8 +24,7 @@ import org.apache.rocketmq.common.message.Message;
 
 public class SimpleBatchProducer {
 
-
-    public static void main(String[] args) throws  Exception {
+    public static void main(String[] args) throws Exception {
         DefaultMQProducer producer = new DefaultMQProducer("BatchProducerGroupName");
         producer.start();
 

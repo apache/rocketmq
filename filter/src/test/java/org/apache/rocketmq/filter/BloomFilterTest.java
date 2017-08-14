@@ -107,9 +107,9 @@ public class BloomFilterTest {
 
     @Test
     public void testBloomFilterData() {
-        BloomFilterData bloomFilterData = new BloomFilterData(new int[]{1, 2, 3}, 128);
-        BloomFilterData bloomFilterData1 = new BloomFilterData(new int[]{1, 2, 3}, 128);
-        BloomFilterData bloomFilterData2 = new BloomFilterData(new int[]{1, 2, 3}, 129);
+        BloomFilterData bloomFilterData = new BloomFilterData(new int[] {1, 2, 3}, 128);
+        BloomFilterData bloomFilterData1 = new BloomFilterData(new int[] {1, 2, 3}, 128);
+        BloomFilterData bloomFilterData2 = new BloomFilterData(new int[] {1, 2, 3}, 129);
 
         assertThat(bloomFilterData).isEqualTo(bloomFilterData1);
         assertThat(bloomFilterData2).isNotEqualTo(bloomFilterData);
@@ -127,7 +127,7 @@ public class BloomFilterTest {
 
         assertThat(bloomFilterData).isEqualTo(bloomFilterData2);
 
-        bloomFilterData2.setBitPos(new int[]{1, 2, 3, 4});
+        bloomFilterData2.setBitPos(new int[] {1, 2, 3, 4});
 
         assertThat(bloomFilterData).isNotEqualTo(bloomFilterData2);
 

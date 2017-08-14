@@ -52,7 +52,6 @@ public class ProducerInstance {
         return nameServerAddress + "_" + group;
     }
 
-
     public MQProducer getInstance(String nameServerAddress, String group) throws MQClientException {
         if (StringUtils.isBlank(group)) {
             group = DEFAULT_GROUP;
@@ -74,7 +73,6 @@ public class ProducerInstance {
         defaultMQProducer.start();
         return defaultMQProducer;
     }
-
 
     public void removeAndClose(String nameServerAddress, String group) {
         if (group == null) {

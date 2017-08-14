@@ -21,5 +21,6 @@ package org.apache.rocketmq.store;
  */
 public interface PutMessageLock {
     void lock();
+
     void unlock();
 }

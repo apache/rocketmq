@@ -98,7 +98,6 @@ public class MessageDecoder {
      * Just decode properties from msg buffer.
      *
      * @param byteBuffer msg commit log buffer.
-     * @return
      */
     public static Map<String, String> decodeProperties(java.nio.ByteBuffer byteBuffer) {
         int topicLengthPosition = BODY_SIZE_POSITION + 4 + byteBuffer.getInt(BODY_SIZE_POSITION);
@@ -238,8 +237,6 @@ public class MessageDecoder {
 
         return byteBuffer.array();
     }
-
-
 
     public static MessageExt decode(
         java.nio.ByteBuffer byteBuffer, final boolean readBody, final boolean deCompressBody) {
@@ -414,7 +411,6 @@ public class MessageDecoder {
         return map;
     }
 
-
     public static byte[] encodeMessage(Message message) {
         //only need flag, body, properties
         byte[] body = message.getBody();
@@ -488,9 +484,9 @@ public class MessageDecoder {
 
     public static byte[] encodeMessages(List<Message> messages) {
         //TO DO refactor, accumulate in one buffer, avoid copies
-        List<byte[]>  encodedMessages = new ArrayList<byte[]>(messages.size());
+        List<byte[]> encodedMessages = new ArrayList<byte[]>(messages.size());
         int allSize = 0;
-        for (Message message: messages) {
+        for (Message message : messages) {
             byte[] tmp = encodeMessage(message);
             encodedMessages.add(tmp);
             allSize += tmp.length;
@@ -503,7 +499,6 @@ public class MessageDecoder {
         }
         return allBytes;
     }
-
 
     public static List<Message> decodeMessages(ByteBuffer byteBuffer) throws Exception {
         //TO DO add a callback for processing,  avoid creating lists
