@@ -193,16 +193,6 @@ public class ConsumeQueueTest {
 
     }
 
-    private Method getMethodByName(Object obj, String methodName) {
-        Method[] methods = obj.getClass().getMethods();
-        for (Method method : methods) {
-            String mn = method.getName();
-            if (mn.equals(methodName)) {
-                return method;
-            }
-        }
-        return null;
-    }
 
     @Test
     public void testConsumeQueueWithExtendData() {
