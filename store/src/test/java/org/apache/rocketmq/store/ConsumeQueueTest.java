@@ -17,19 +17,19 @@
 
 package org.apache.rocketmq.store;
 
-import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.stats.BrokerStatsManager;
-import org.junit.Test;
-
 import java.io.File;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Map;
+import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -82,9 +82,8 @@ public class ConsumeQueueTest {
         return msg;
     }
 
-
     public MessageStoreConfig buildStoreConfig(int commitLogFileSize, int cqFileSize,
-                                               boolean enableCqExt, int cqExtFileSize) {
+        boolean enableCqExt, int cqExtFileSize) {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMapedFileSizeCommitLog(commitLogFileSize);
         messageStoreConfig.setMapedFileSizeConsumeQueue(cqFileSize);
@@ -111,7 +110,7 @@ public class ConsumeQueueTest {
             new MessageArrivingListener() {
                 @Override
                 public void arriving(String topic, int queueId, long logicOffset, long tagsCode,
-                                     long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
+                    long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
                 }
             }
             , brokerConfig);
@@ -145,6 +144,64 @@ public class ConsumeQueueTest {
         }
 
         file.delete();
+    }
+
+    @Test
+    public void test_putMessagePositionInfo_build_consume_queue_idempotent() {
+        DefaultMessageStore messageStore = null;
+        try {
+
+            messageStore = gen();
+
+            int totalMessages = 10;
+
+            for (int i = 0; i < totalMessages; i++) {
+                putMsg(messageStore);
+            }
+
+            Thread.sleep(5);
+            ConsumeQueue cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
+
+            Method method = cq.getClass().getDeclaredMethod("putMessagePositionInfo", long.class, int.class, long.class, long.class);
+
+            assertThat(method).isNotNull();
+
+            method.setAccessible(true);
+
+            SelectMappedBufferResult result = messageStore.getCommitLog().getData(0);
+            assertThat(result != null).isTrue();
+
+            DispatchRequest dispatchRequest = messageStore.getCommitLog().checkMessageAndReturnSize(result.getByteBuffer(), false, false);
+
+            assertThat(cq).isNotNull();
+
+            Object dispatchResult = method.invoke(cq, dispatchRequest.getCommitLogOffset(),
+                dispatchRequest.getMsgSize(), dispatchRequest.getTagsCode(), dispatchRequest.getConsumeQueueOffset());
+
+            assertThat(Boolean.parseBoolean(dispatchResult.toString())).isTrue();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            assertThat(Boolean.FALSE).isTrue();
+        } finally {
+            if (messageStore != null) {
+                messageStore.shutdown();
+                messageStore.destroy();
+            }
+            deleteDirectory(storePath);
+        }
+
+    }
+
+    private Method getMethodByName(Object obj, String methodName) {
+        Method[] methods = obj.getClass().getMethods();
+        for (Method method : methods) {
+            String mn = method.getName();
+            if (mn.equals(methodName)) {
+                return method;
+            }
+        }
+        return null;
     }
 
     @Test
