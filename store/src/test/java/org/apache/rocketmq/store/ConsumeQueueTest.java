@@ -158,10 +158,9 @@ public class ConsumeQueueTest {
             for (int i = 0; i < totalMessages; i++) {
                 putMsg(messageStore);
             }
-
             Thread.sleep(5);
-            ConsumeQueue cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
 
+            ConsumeQueue cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
             Method method = cq.getClass().getDeclaredMethod("putMessagePositionInfo", long.class, int.class, long.class, long.class);
 
             assertThat(method).isNotNull();
