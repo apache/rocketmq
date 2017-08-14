@@ -94,15 +94,18 @@ public class SendMessageProcessorTest {
         List<SendMessageHook> sendMessageHookList = new ArrayList<>();
         final SendMessageContext[] sendMessageContext = new SendMessageContext[1];
         SendMessageHook sendMessageHook = new SendMessageHook() {
-            @Override public String hookName() {
+            @Override
+            public String hookName() {
                 return null;
             }
 
-            @Override public void sendMessageBefore(SendMessageContext context) {
+            @Override
+            public void sendMessageBefore(SendMessageContext context) {
                 sendMessageContext[0] = context;
             }
 
-            @Override public void sendMessageAfter(SendMessageContext context) {
+            @Override
+            public void sendMessageAfter(SendMessageContext context) {
 
             }
         };
@@ -114,7 +117,6 @@ public class SendMessageProcessorTest {
         assertThat(sendMessageContext[0].getTopic()).isEqualTo(topic);
         assertThat(sendMessageContext[0].getProducerGroup()).isEqualTo(group);
     }
-
 
     @Test
     public void testProcessRequest_FlushTimeOut() throws RemotingCommandException {
@@ -210,7 +212,8 @@ public class SendMessageProcessorTest {
         final RemotingCommand request = createSendMsgCommand(RequestCode.SEND_MESSAGE);
         final RemotingCommand[] response = new RemotingCommand[1];
         doAnswer(new Answer() {
-            @Override public Object answer(InvocationOnMock invocation) throws Throwable {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
                 response[0] = invocation.getArgument(0);
                 return null;
             }

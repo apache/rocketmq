@@ -58,7 +58,8 @@ public class MixAll {
     public static final String DEFAULT_NAMESRV_ADDR_LOOKUP = "jmenv.tbsite.net";
     public static final String WS_DOMAIN_NAME = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);
     public static final String WS_DOMAIN_SUBGROUP = System.getProperty("rocketmq.namesrv.domain.subgroup", "nsaddr");
-//    // http://jmenv.tbsite.net:8080/rocketmq/nsaddr
+
+    // http://jmenv.tbsite.net:8080/rocketmq/nsaddr
     public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + ":8080/rocketmq/" + WS_DOMAIN_SUBGROUP;
     public static final String DEFAULT_TOPIC = "TBW102";
     public static final String BENCHMARK_TOPIC = "BenchmarkTest";
@@ -169,7 +170,6 @@ public class MixAll {
         file.renameTo(new File(fileName));
     }
 
-
     public static void string2FileNotSafe(final String str, final String fileName) throws IOException {
         File file = new File(fileName);
         File fileParent = file.getParentFile();
@@ -250,7 +250,8 @@ public class MixAll {
         printObjectProperties(logger, object, false);
     }
 
-    public static void printObjectProperties(final Logger logger, final Object object, final boolean onlyImportantField) {
+    public static void printObjectProperties(final Logger logger, final Object object,
+        final boolean onlyImportantField) {
         Field[] fields = object.getClass().getDeclaredFields();
         for (Field field : fields) {
             if (!Modifier.isStatic(field.getModifiers())) {

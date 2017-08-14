@@ -20,6 +20,9 @@ package org.apache.rocketmq.test.client.consumer.filter;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.test.base.BaseConf;
+import org.apache.rocketmq.test.client.consumer.broadcast.BaseBroadCastIT;
+import org.apache.rocketmq.test.client.consumer.broadcast.normal.NormalMsgTwoSameGroupConsumerIT;
+import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.client.rmq.RMQSqlConsumer;
 import org.apache.rocketmq.test.factory.ConsumerFactory;
@@ -64,7 +67,7 @@ public class SqlFilterIT extends BaseConf {
         consumer.getListener().waitForMessageConsume(msgSize * 2, consumeTime);
         assertThat(producer.getAllMsgBody())
             .containsAllIn(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListener().getAllMsgBody()));
+                consumer.getListener().getAllMsgBody()));
 
         assertThat(consumer.getListener().getAllMsgBody().size()).isEqualTo(msgSize * 2);
     }

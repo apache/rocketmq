@@ -20,7 +20,11 @@
  */
 package org.apache.rocketmq.store;
 
+import java.io.File;
 import java.io.IOException;
+
+import org.apache.rocketmq.common.UtilAll;
+import org.junit.After;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,5 +45,11 @@ public class StoreCheckpointTest {
         storeCheckpoint = new StoreCheckpoint("target/checkpoint_test/0000");
         assertThat(storeCheckpoint.getPhysicMsgTimestamp()).isEqualTo(physicMsgTimestamp);
         assertThat(storeCheckpoint.getLogicsMsgTimestamp()).isEqualTo(logicsMsgTimestamp);
+    }
+
+    @After
+    public void destory() {
+        File file = new File("target/checkpoint_test");
+        UtilAll.deleteFile(file);
     }
 }

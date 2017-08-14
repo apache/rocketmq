@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+  -->
+
+<!DOCTYPE xml>
+<Configuration status="warn" name="RocketmqClient">
+    <Appenders>
+        <Console name="STDOUT-APPENDER">
+            <PatternLayout pattern="%-5p %c{2} , %m%n"/>
+        </Console>
+        <RollingFile name="RocketmqClientAppender" fileName="${sys:client.logRoot}/rocketmq_client.log"
+                     filePattern="${sys:client.logRoot}/rocketmq_client-%d{yyyy-MM-dd}-%i.log">
+            <PatternLayout pattern="%d{yyy-MM-dd HH\:mm\:ss,SSS} %p %c{1}(%L) - %m%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="1 GB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="${sys:client.logFileMaxIndex}"/>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <logger name="RocketmqClient" level="${sys:client.logLevel}" additivity="false">
+            <appender-ref ref="RocketmqClientAppender"/>
+        </logger>
+
+        <logger name="RocketmqCommon" level="${sys:client.logLevel}" additivity="false">
+            <appender-ref ref="RocketmqClientAppender"/>
+        </logger>
+
+        <logger name="RocketmqRemoting" level="${sys:client.logLevel}" additivity="false">
+            <appender-ref ref="RocketmqClientAppender"/>
+        </logger>
+    </Loggers>
+</Configuration>

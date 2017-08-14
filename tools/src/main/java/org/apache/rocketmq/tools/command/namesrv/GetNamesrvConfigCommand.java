@@ -46,7 +46,8 @@ public class GetNamesrvConfigCommand implements SubCommand {
     }
 
     @Override
-    public void execute(final CommandLine commandLine, final Options options, final RPCHook rpcHook) throws SubCommandException {
+    public void execute(final CommandLine commandLine, final Options options,
+        final RPCHook rpcHook) throws SubCommandException {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         try {

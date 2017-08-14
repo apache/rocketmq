@@ -73,7 +73,8 @@ public class MappedFile extends ReferenceResource {
         init(fileName, fileSize);
     }
 
-    public MappedFile(final String fileName, final int fileSize, final TransientStorePool transientStorePool) throws IOException {
+    public MappedFile(final String fileName, final int fileSize,
+        final TransientStorePool transientStorePool) throws IOException {
         init(fileName, fileSize, transientStorePool);
     }
 
@@ -142,7 +143,8 @@ public class MappedFile extends ReferenceResource {
         return TOTAL_MAPPED_VIRTUAL_MEMORY.get();
     }
 
-    public void init(final String fileName, final int fileSize, final TransientStorePool transientStorePool) throws IOException {
+    public void init(final String fileName, final int fileSize,
+        final TransientStorePool transientStorePool) throws IOException {
         init(fileName, fileSize);
         this.writeBuffer = transientStorePool.borrowBuffer();
         this.transientStorePool = transientStorePool;
@@ -209,7 +211,7 @@ public class MappedFile extends ReferenceResource {
             if (messageExt instanceof MessageExtBrokerInner) {
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBrokerInner) messageExt);
             } else if (messageExt instanceof MessageExtBatch) {
-                result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBatch)messageExt);
+                result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBatch) messageExt);
             } else {
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
             }
@@ -217,15 +219,13 @@ public class MappedFile extends ReferenceResource {
             this.storeTimestamp = result.getStoreTimestamp();
             return result;
         }
-        log.error("MappedFile.appendMessage return null, wrotePosition: {} fileSize: {}", currentPos,  this.fileSize);
+        log.error("MappedFile.appendMessage return null, wrotePosition: {} fileSize: {}", currentPos, this.fileSize);
         return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
     }
-
 
     public long getFileFromOffset() {
         return this.fileFromOffset;
     }
-
 
     public boolean appendMessage(final byte[] data) {
         int currentPos = this.wrotePosition.get();
@@ -247,10 +247,8 @@ public class MappedFile extends ReferenceResource {
     /**
      * Content of data from offset to offset + length will be wrote to file.
      *
-     * @param data
      * @param offset The offset of the subarray to be used.
      * @param length The length of the subarray to be used.
-     * @return
      */
     public boolean appendMessage(final byte[] data, final int offset, final int length) {
         int currentPos = this.wrotePosition.get();
@@ -270,7 +268,6 @@ public class MappedFile extends ReferenceResource {
     }
 
     /**
-     * @param flushLeastPages
      * @return The current flushed position
      */
     public int flush(final int flushLeastPages) {
@@ -404,9 +401,6 @@ public class MappedFile extends ReferenceResource {
         return null;
     }
 
-    /**
-
-     */
     public SelectMappedBufferResult selectMappedBuffer(int pos) {
         int readPosition = getReadPosition();
         if (pos < readPosition && pos >= 0) {

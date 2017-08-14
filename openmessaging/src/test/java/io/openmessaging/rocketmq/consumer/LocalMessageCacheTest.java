@@ -75,7 +75,7 @@ public class LocalMessageCacheTest {
 
     @Test
     public void testSubmitConsumeRequest() throws Exception {
-        byte [] body = new byte[]{'1', '2', '3'};
+        byte[] body = new byte[] {'1', '2', '3'};
         MessageExt consumedMsg = new MessageExt();
         consumedMsg.setMsgId("NewMsgId");
         consumedMsg.setBody(body);
