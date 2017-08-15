@@ -716,9 +716,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         // consumeThreadMin can't be larger than consumeThreadMax
         if (this.defaultMQPushConsumer.getConsumeThreadMin() > this.defaultMQPushConsumer.getConsumeThreadMax()) {
             throw new MQClientException(
-                 "consumeThreadMin (" + this.defaultMQPushConsumer.getConsumeThreadMin() + ") "
-                     + "is larger than consumeThreadMax (" + this.defaultMQPushConsumer.getConsumeThreadMax() + ")",
-                    null);
+                "consumeThreadMin (" + this.defaultMQPushConsumer.getConsumeThreadMin() + ") "
+                    + "is larger than consumeThreadMax (" + this.defaultMQPushConsumer.getConsumeThreadMax() + ")",
+                null);
         }
 
         // consumeConcurrentlyMaxSpan
@@ -882,10 +882,16 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         this.consumeMessageService.updateCorePoolSize(corePoolSize);
     }
 
+<<<<<<<HEAD
+
     public MessageExt viewMessage(String msgId)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
-    }
+=======
+        public MessageExt viewMessage (
+            String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+>>>>>>>76 c14fc74a05a78be67581b67612128b02d4a508
+            return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
+        }
 
     public RebalanceImpl getRebalanceImpl() {
         return rebalanceImpl;
