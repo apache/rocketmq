@@ -882,16 +882,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         this.consumeMessageService.updateCorePoolSize(corePoolSize);
     }
 
-<<<<<<<HEAD
-
     public MessageExt viewMessage(String msgId)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-=======
-        public MessageExt viewMessage (
-            String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
->>>>>>>76 c14fc74a05a78be67581b67612128b02d4a508
-            return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
-        }
+        return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
+    }
 
     public RebalanceImpl getRebalanceImpl() {
         return rebalanceImpl;
