@@ -24,14 +24,28 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class DefaultMQPushConsumerImplTest {
-    @Test(expected = MQClientException.class)
-    public void checkConfigTest() throws Exception {
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
+    @Test
+    public void checkConfigTest() throws MQClientException {
+
+        //test type
+        thrown.expect(MQClientException.class);
+
+        //test message
+        thrown.expectMessage("consumeThreadMin (10) is larger than consumeThreadMax (9)");
+
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("test_consumer_group");
 
-        consumer.setConsumeThreadMax(10);
+        consumer.setConsumeThreadMin(10);
+        consumer.setConsumeThreadMax(9);
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
