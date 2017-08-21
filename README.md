@@ -26,11 +26,11 @@ It offers a variety of features:
 ----------
 
 ## Learn it & Contact us
-* Mailing Lists: <http://rocketmq.incubator.apache.org/about/contact/>
+* Mailing Lists: <https://rocketmq.incubator.apache.org/about/contact/>
 * Home: <https://rocketmq.incubator.apache.org>
-* Wiki: <https://cwiki.apache.org/confluence/display/ROCKETMQ/Apache+RocketMQ+Home>
+* Docs: <https://rocketmq.incubator.apache.org/docs/quick-start/>
 * Issues: <https://issues.apache.org/jira/browse/RocketMQ>
-* Ask: <http://stackoverflow.com/questions/tagged/rocketmq> or <https://www.quora.com/topic/RocketMQ>
+* Ask: <https://stackoverflow.com/questions/tagged/rocketmq>
  
 
 ----------
@@ -41,7 +41,7 @@ It offers a variety of features:
 ----------
 
 ## Contributing
-We always welcome new contributions, whether for trivial cleanups, big new features or other material rewards. more details see [here](CONTRIBUTING.md) 
+We always welcome new contributions, whether for trivial cleanups, big new features or other material rewards, more details see [here](CONTRIBUTING.md) 
  
 ----------
 ## License
