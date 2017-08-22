@@ -20,6 +20,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
@@ -150,7 +151,9 @@ public class BrokerOuterAPI {
         requestHeader.setHaServerAddr(haServerAddr);
         requestHeader.setCompressed(true);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.REGISTER_BROKER, requestHeader);
-
+        if (request.getVersion() <= 0) {
+            request.setVersion(MQVersion.CURRENT_VERSION);
+        }
         RegisterBrokerBody requestBody = new RegisterBrokerBody();
         requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper);
         requestBody.setFilterServerList(filterServerList);

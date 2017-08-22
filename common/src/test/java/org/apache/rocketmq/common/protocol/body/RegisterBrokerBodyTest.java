@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.junit.Assert;
 import org.junit.Test;
 

@@ -63,7 +63,7 @@ public class RegisterBrokerBody extends RemotingSerializable {
         if (!compress) {
             return encode();
         }
-
+        long start = System.currentTimeMillis();
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         DeflaterOutputStream outputStream = new DeflaterOutputStream(byteArrayOutputStream, new Deflater(Deflater.BEST_COMPRESSION));
         DataVersion dataVersion = topicConfigSerializeWrapper.getDataVersion();
@@ -97,6 +97,10 @@ public class RegisterBrokerBody extends RemotingSerializable {
             outputStream.write(buffer);
 
             outputStream.finish();
+            long interval = System.currentTimeMillis() - start;
+            if (interval > 50) {
+                LOGGER.info("Compressing takes {}ms", interval);
+            }
             return byteArrayOutputStream.toByteArray();
         } catch (IOException e) {
             LOGGER.error("Failed to compress RegisterBrokerBody object", e);
@@ -109,7 +113,7 @@ public class RegisterBrokerBody extends RemotingSerializable {
         if (!compressed) {
             return RegisterBrokerBody.decode(data, RegisterBrokerBody.class);
         }
-
+        long start = System.currentTimeMillis();
         InflaterInputStream inflaterInputStream = new InflaterInputStream(new ByteArrayInputStream(data));
         int dataVersionLength = readInt(inflaterInputStream);
         byte[] dataVersionBytes = readBytes(inflaterInputStream, dataVersionLength);
@@ -139,6 +143,10 @@ public class RegisterBrokerBody extends RemotingSerializable {
         String filterServerListJson = new String(filterServerListBuffer, MixAll.DEFAULT_CHARSET);
         List<String> filterServerList = JSON.parseArray(filterServerListJson, String.class);
         registerBrokerBody.setFilterServerList(filterServerList);
+        long interval = System.currentTimeMillis() - start;
+        if (interval > 50) {
+            LOGGER.info("Decompressing takes {}ms", interval);
+        }
         return registerBrokerBody;
     }
 
