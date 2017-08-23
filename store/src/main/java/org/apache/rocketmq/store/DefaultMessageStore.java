@@ -389,12 +389,8 @@ public class DefaultMessageStore implements MessageStore {
         long begin = this.getCommitLog().getBeginTimeInLock();
         long diff = this.systemClock.now() - begin;
 
-        if (diff < 10000000
-            && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills()) {
-            return true;
-        }
-
-        return false;
+        return (diff < 10000000
+                && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills());
     }
 
     @Override
@@ -1094,34 +1090,15 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private boolean isTheBatchFull(int sizePy, int maxMsgNums, int bufferTotal, int messageTotal, boolean isInDisk) {
-
-        if (0 == bufferTotal || 0 == messageTotal) {
-            return false;
-        }
-
-        if (maxMsgNums <= messageTotal) {
-            return true;
-        }
-
-        if (isInDisk) {
-            if ((bufferTotal + sizePy) > this.messageStoreConfig.getMaxTransferBytesOnMessageInDisk()) {
-                return true;
-            }
-
-            if (messageTotal > this.messageStoreConfig.getMaxTransferCountOnMessageInDisk() - 1) {
-                return true;
-            }
-        } else {
-            if ((bufferTotal + sizePy) > this.messageStoreConfig.getMaxTransferBytesOnMessageInMemory()) {
-                return true;
-            }
-
-            if (messageTotal > this.messageStoreConfig.getMaxTransferCountOnMessageInMemory() - 1) {
-                return true;
-            }
-        }
-
-        return false;
+        return   (0 != bufferTotal && 0 != messageTotal)
+                &&(
+                      (maxMsgNums <= messageTotal)
+                    ||(isInDisk 
+                        && (bufferTotal + sizePy) > this.messageStoreConfig.getMaxTransferBytesOnMessageInDisk()
+                        && (messageTotal > this.messageStoreConfig.getMaxTransferCountOnMessageInDisk() - 1))
+                    ||((!isInDisk)
+                        && (bufferTotal + sizePy) > this.messageStoreConfig.getMaxTransferBytesOnMessageInMemory()
+                        && (messageTotal > this.messageStoreConfig.getMaxTransferCountOnMessageInMemory() - 1)));
     }
 
     private void deleteFile(final String fileName) {
