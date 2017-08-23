@@ -447,7 +447,7 @@ public class ConsumeQueue {
             if (cqOffset != 0) {
                 long currentLogicOffset = mappedFile.getWrotePosition() + mappedFile.getFileFromOffset();
 
-                if (cqOffset < currentLogicOffset) {
+                if (expectLogicOffset < currentLogicOffset) {
                     log.warn("build consume queue idempotent, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
                         expectLogicOffset, currentLogicOffset, this.topic, this.queueId, expectLogicOffset - currentLogicOffset);
                     return true;
