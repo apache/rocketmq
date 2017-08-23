@@ -81,7 +81,7 @@ public class CommandUtilTest {
         clusterAddrTable.put("default-cluster", brokerSet);
         clusterInfo.setBrokerAddrTable(brokerAddrTable);
         clusterInfo.setClusterAddrTable(clusterAddrTable);
-        when(mQClientAPIImpl.getBrokerClusterInfo(anyLong())).thenReturn(clusterInfo);
+        when(mQClientAPIImpl.getBrokerClusterInfo(anyString(), anyLong())).thenReturn(clusterInfo);
         when(mQClientAPIImpl.cleanExpiredConsumeQueue(anyString(), anyLong())).thenReturn(true);
     }
 

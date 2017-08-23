@@ -31,6 +31,7 @@ import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.RegisterBrokerBody;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.common.protocol.header.GetClusterListRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetTopicsByClusterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.DeleteTopicInNamesrvRequestHeader;
@@ -302,10 +303,10 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand getBrokerClusterInfo(ChannelHandlerContext ctx, RemotingCommand request) {
+    private RemotingCommand getBrokerClusterInfo(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-
-        byte[] content = this.namesrvController.getRouteInfoManager().getAllClusterInfo();
+        GetClusterListRequestHeader requestHeader = (GetClusterListRequestHeader)request.decodeCommandCustomHeader(GetClusterListRequestHeader.class);
+        byte[] content = this.namesrvController.getRouteInfoManager().getAllClusterInfo(requestHeader.getCluster());
         response.setBody(content);
 
         response.setCode(ResponseCode.SUCCESS);

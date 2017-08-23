@@ -270,9 +270,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public ClusterInfo examineBrokerClusterInfo() throws InterruptedException, MQBrokerException, RemotingTimeoutException,
+    public ClusterInfo examineBrokerClusterInfo(String cluster) throws InterruptedException, MQBrokerException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException {
-        return this.mqClientInstance.getMQClientAPIImpl().getBrokerClusterInfo(timeoutMillis);
+        return this.mqClientInstance.getMQClientAPIImpl().getBrokerClusterInfo(cluster,timeoutMillis);
     }
 
     @Override
@@ -626,7 +626,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         RemotingTimeoutException, MQClientException, InterruptedException {
         boolean result = false;
         try {
-            ClusterInfo clusterInfo = examineBrokerClusterInfo();
+            ClusterInfo clusterInfo = examineBrokerClusterInfo(cluster);
             if (null == cluster || "".equals(cluster)) {
                 for (String targetCluster : clusterInfo.retrieveAllClusterNames()) {
                     result = cleanExpiredConsumerQueueByCluster(clusterInfo, targetCluster);
@@ -666,7 +666,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         RemotingTimeoutException, MQClientException, InterruptedException {
         boolean result = false;
         try {
-            ClusterInfo clusterInfo = examineBrokerClusterInfo();
+            ClusterInfo clusterInfo = examineBrokerClusterInfo(cluster);
             if (null == cluster || "".equals(cluster)) {
                 for (String targetCluster : clusterInfo.retrieveAllClusterNames()) {
                     result = cleanUnusedTopicByCluster(clusterInfo, targetCluster);
@@ -832,7 +832,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
         ConsumeStats cstats = this.examineConsumeStats(group);
 
-        ClusterInfo ci = this.examineBrokerClusterInfo();
+        ClusterInfo ci = this.examineBrokerClusterInfo(null);
 
         Iterator<Entry<MessageQueue, OffsetWrapper>> it = cstats.getOffsetTable().entrySet().iterator();
         while (it.hasNext()) {
@@ -894,7 +894,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         final String topic) throws InterruptedException, MQBrokerException, MQClientException,
         RemotingException {
         Set<String> clusterSet = new HashSet<String>();
-        ClusterInfo clusterInfo = examineBrokerClusterInfo();
+        ClusterInfo clusterInfo = examineBrokerClusterInfo(null);
         TopicRouteData topicRouteData = examineTopicRouteInfo(topic);
         BrokerData brokerData = topicRouteData.getBrokerDatas().get(0);
         String brokerName = brokerData.getBrokerName();

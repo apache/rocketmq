@@ -57,6 +57,10 @@ public class ClusterListSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("c", "cluster", true, "specify cluster to get only this cluster");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -74,6 +78,12 @@ public class ClusterListSubCommand implements SubCommand {
             printInterval = Long.parseLong(commandLine.getOptionValue('i')) * 1000;
         }
 
+        String cluster = null;
+        boolean hasCluster = commandLine.hasOption('c');
+        if (hasCluster) {
+            cluster = commandLine.getOptionValue('c');
+        }
+
         try {
             defaultMQAdminExt.start();
             long i = 0;
@@ -83,9 +93,9 @@ public class ClusterListSubCommand implements SubCommand {
                     Thread.sleep(printInterval);
                 }
                 if (commandLine.hasOption('m')) {
-                    this.printClusterMoreStats(defaultMQAdminExt);
+                    this.printClusterMoreStats(cluster, defaultMQAdminExt);
                 } else {
-                    this.printClusterBaseInfo(defaultMQAdminExt);
+                    this.printClusterBaseInfo(cluster, defaultMQAdminExt);
                 }
             }
             while (enableInterval);
@@ -96,10 +106,10 @@ public class ClusterListSubCommand implements SubCommand {
         }
     }
 
-    private void printClusterMoreStats(final DefaultMQAdminExt defaultMQAdminExt) throws RemotingConnectException,
+    private void printClusterMoreStats(final String cluster,final DefaultMQAdminExt defaultMQAdminExt) throws RemotingConnectException,
         RemotingTimeoutException, RemotingSendRequestException, InterruptedException, MQBrokerException {
 
-        ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
+        ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo(cluster);
 
         System.out.printf("%-16s  %-32s %14s %14s %14s %14s%n",
             "#Cluster Name",
@@ -165,11 +175,11 @@ public class ClusterListSubCommand implements SubCommand {
         }
     }
 
-    private void printClusterBaseInfo(
+    private void printClusterBaseInfo(final String cluster,
         final DefaultMQAdminExt defaultMQAdminExt) throws RemotingConnectException, RemotingTimeoutException,
         RemotingSendRequestException, InterruptedException, MQBrokerException {
 
-        ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
+        ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo(cluster);
 
         System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s%n",
             "#Cluster Name",

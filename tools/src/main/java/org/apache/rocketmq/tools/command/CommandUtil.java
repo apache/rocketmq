@@ -42,7 +42,7 @@ public class CommandUtil {
         MQBrokerException {
         Map<String, List<String>> masterAndSlaveMap = new HashMap<String, List<String>>(4);
 
-        ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
+        ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo(clusterName);
         Set<String> brokerNameSet = clusterInfoSerializeWrapper.getClusterAddrTable().get(clusterName);
 
         if (brokerNameSet == null) {
@@ -79,7 +79,7 @@ public class CommandUtil {
         RemotingSendRequestException, MQBrokerException {
         Set<String> masterSet = new HashSet<String>();
 
-        ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
+        ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo(clusterName);
 
         Set<String> brokerNameSet = clusterInfoSerializeWrapper.getClusterAddrTable().get(clusterName);
 
@@ -107,7 +107,7 @@ public class CommandUtil {
         RemotingSendRequestException, MQBrokerException {
         Set<String> masterSet = new HashSet<String>();
 
-        ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
+        ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo(clusterName);
 
         Set<String> brokerNameSet = clusterInfoSerializeWrapper.getClusterAddrTable().get(clusterName);
 
@@ -129,7 +129,7 @@ public class CommandUtil {
 
     public static Set<String> fetchBrokerNameByClusterName(final MQAdminExt adminExt, final String clusterName)
         throws Exception {
-        ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
+        ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo(clusterName);
         Set<String> brokerNameSet = clusterInfoSerializeWrapper.getClusterAddrTable().get(clusterName);
         if (brokerNameSet.isEmpty()) {
             throw new Exception(
@@ -139,7 +139,7 @@ public class CommandUtil {
     }
 
     public static String fetchBrokerNameByAddr(final MQAdminExt adminExt, final String addr) throws Exception {
-        ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
+        ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo(null);
         HashMap<String/* brokerName */, BrokerData> brokerAddrTable =
             clusterInfoSerializeWrapper.getBrokerAddrTable();
         Iterator<Map.Entry<String, BrokerData>> it = brokerAddrTable.entrySet().iterator();

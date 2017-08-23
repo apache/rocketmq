@@ -144,7 +144,7 @@ public class DefaultMQAdminExtTest {
         brokerAddrTable.put("broker-test", new BrokerData());
         clusterInfo.setBrokerAddrTable(brokerAddrTable);
         clusterInfo.setClusterAddrTable(new HashMap<String, Set<String>>());
-        when(mQClientAPIImpl.getBrokerClusterInfo(anyLong())).thenReturn(clusterInfo);
+        when(mQClientAPIImpl.getBrokerClusterInfo(anyString(), anyLong())).thenReturn(clusterInfo);
         when(mQClientAPIImpl.cleanExpiredConsumeQueue(anyString(), anyLong())).thenReturn(true);
 
         Set<String> clusterList = new HashSet<>();
@@ -257,7 +257,7 @@ public class DefaultMQAdminExtTest {
 
     @Test
     public void testExamineBrokerClusterInfo() throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
+        ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo(null);
         HashMap<String, BrokerData> brokerList = clusterInfo.getBrokerAddrTable();
         assertThat(brokerList.get("default-broker").getBrokerName()).isEqualTo("default-broker");
         assertThat(brokerList.containsKey("broker-test")).isTrue();

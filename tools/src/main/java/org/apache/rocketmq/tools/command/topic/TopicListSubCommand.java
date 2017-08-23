@@ -65,7 +65,7 @@ public class TopicListSubCommand implements SubCommand {
         try {
             defaultMQAdminExt.start();
             if (commandLine.hasOption('c')) {
-                ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
+                ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo(null);
 
                 System.out.printf("%-20s  %-48s  %-48s%n",
                     "#Cluster Name",

@@ -107,7 +107,7 @@ public class MQAdmin {
         ClusterInfo clusterInfo = null;
         try {
             mqAdminExt.start();
-            clusterInfo = mqAdminExt.examineBrokerClusterInfo();
+            clusterInfo = mqAdminExt.examineBrokerClusterInfo(null);
         } catch (Exception e) {
             e.printStackTrace();
         }
