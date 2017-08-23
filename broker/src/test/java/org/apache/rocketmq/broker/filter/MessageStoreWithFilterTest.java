@@ -238,7 +238,7 @@ public class MessageStoreWithFilterTest {
 
             // sleep to wait for consume queue has been constructed.
             try {
-                Thread.sleep(2000);
+                Thread.sleep(2001);
             } catch (InterruptedException e) {
                 e.printStackTrace();
                 assertThat(true).isFalse();
