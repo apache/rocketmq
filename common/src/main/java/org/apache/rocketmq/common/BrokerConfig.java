@@ -62,6 +62,8 @@ public class BrokerConfig {
     private int clientManageThreadPoolNums = 32;
     private int consumerManageThreadPoolNums = 32;
 
+    private int queryTrackTimeThreadPoolNums = 2;
+
     private int flushConsumerOffsetInterval = 1000 * 5;
 
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
@@ -126,6 +128,9 @@ public class BrokerConfig {
     // whether do filter when retry.
     private boolean filterSupportRetry = false;
     private boolean enablePropertyFilter = false;
+
+
+    private volatile boolean enableTracerTime = true;
 
     public boolean isTraceOn() {
         return traceOn;
@@ -559,5 +564,21 @@ public class BrokerConfig {
 
     public void setEnablePropertyFilter(boolean enablePropertyFilter) {
         this.enablePropertyFilter = enablePropertyFilter;
+    }
+
+    public boolean isEnableTracerTime() {
+        return enableTracerTime;
+    }
+
+    public void setEnableTracerTime(boolean enableTracerTime) {
+        this.enableTracerTime = enableTracerTime;
+    }
+
+    public int getQueryTrackTimeThreadPoolNums() {
+        return queryTrackTimeThreadPoolNums;
+    }
+
+    public void setQueryTrackTimeThreadPoolNums(int queryTrackTimeThreadPoolNums) {
+        this.queryTrackTimeThreadPoolNums = queryTrackTimeThreadPoolNums;
     }
 }

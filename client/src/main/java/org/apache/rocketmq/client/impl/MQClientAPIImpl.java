@@ -16,16 +16,18 @@
  */
 package org.apache.rocketmq.client.impl;
 
+import io.netty.channel.Channel;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.Iterator;
-import java.util.Collections;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.PullCallback;
@@ -45,16 +47,18 @@ import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.TracerTime;
+import org.apache.rocketmq.common.ClientTracerTimeUtil;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageBatch;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.namesrv.TopAddressing;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -112,6 +116,7 @@ import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHea
 import org.apache.rocketmq.common.protocol.header.QueryCorrectionOffsetHeader;
 import org.apache.rocketmq.common.protocol.header.QueryMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryTopicConsumeByWhoRequestHeader;
+import org.apache.rocketmq.common.protocol.header.QueryTracerTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
@@ -318,6 +323,8 @@ public class MQClientAPIImpl {
             request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
         }
 
+        tracerTimeIfNecessary(msg, MessageConst.MESSAGE_SEND_TIME,addr,request);
+
         request.setBody(msg.getBody());
 
         switch (communicationMode) {
@@ -337,6 +344,29 @@ public class MQClientAPIImpl {
         }
 
         return null;
+    }
+
+    private void tracerTimeIfNecessary(Message msg, String propertyKey) {
+        tracerTimeIfNecessary(msg, propertyKey, null, null);
+    }
+
+    private void tracerTimeIfNecessary(Message msg, String propertyKey, String address,
+        RemotingCommand sendMessageRequest) {
+        if (ClientTracerTimeUtil.isEnableTracerTime()) {
+            try {
+                Method putPropertyMethod = msg.getClass().getDeclaredMethod("putProperty", String.class, String.class);
+                putPropertyMethod.setAccessible(true);
+                putPropertyMethod.invoke(msg, propertyKey, String.valueOf(System.currentTimeMillis()));
+
+                if (address != null && !msg.getProperties().containsKey(MessageConst.MESSAGE_TRACER_TIME_ID) && sendMessageRequest != null) {
+                    Method getAndCreateChannelMethod = this.remotingClient.getClass().getDeclaredMethod("getAndCreateChannel", String.class);
+                    getAndCreateChannelMethod.setAccessible(true);
+                    Channel channel = (Channel) getAndCreateChannelMethod.invoke(this.remotingClient, address);
+                    putPropertyMethod.invoke(msg, MessageConst.MESSAGE_TRACER_TIME_ID, MessageDecoder.createMessageId(channel.localAddress(), sendMessageRequest.getOpaque()));
+                }
+            } catch (Exception e) {
+            }
+        }
     }
 
     private SendResult sendMessageSync(//
@@ -513,6 +543,9 @@ public class MQClientAPIImpl {
                         assert false;
                         break;
                 }
+
+                tracerTimeIfNecessary(msg, MessageConst.RECEIVE_SEND_ACK_TIME);
+
 
                 SendMessageResponseHeader responseHeader =
                     (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
@@ -2048,6 +2081,30 @@ public class MQClientAPIImpl {
 
         if (ResponseCode.SUCCESS == response.getCode()) {
             return QueryConsumeQueueResponseBody.decode(response.getBody(), QueryConsumeQueueResponseBody.class);
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+    public TracerTime queryTracerTime(final String brokerAddr, final String messageTracerTimeId,
+        final long timeoutMillis) throws InterruptedException,
+        RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
+
+        QueryTracerTimeRequestHeader requestHeader = new QueryTracerTimeRequestHeader();
+        requestHeader.setMessageTracerTimeId(messageTracerTimeId);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_TRACER_TIME, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), brokerAddr), request, timeoutMillis);
+
+        assert response != null;
+
+        if (ResponseCode.SUCCESS == response.getCode()) {
+            if (response.getBody() != null) {
+                return TracerTime.decode(response.getBody(), TracerTime.class);
+            }else {
+                return null;
+            }
         }
 
         throw new MQClientException(response.getCode(), response.getRemark());

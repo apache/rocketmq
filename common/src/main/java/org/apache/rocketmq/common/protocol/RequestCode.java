@@ -166,4 +166,8 @@ public class RequestCode {
     public static final int SEND_BATCH_MESSAGE = 320;
 
     public static final int QUERY_CONSUME_QUEUE = 321;
+
+    public static final int QUERY_TRACER_TIME = 322;
+
+
 }

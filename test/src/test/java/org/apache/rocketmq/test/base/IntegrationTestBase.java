@@ -19,12 +19,16 @@ package org.apache.rocketmq.test.base;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.TracerTime;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
@@ -77,7 +81,7 @@ public class IntegrationTestBase {
                     for (File file : TMPE_FILES) {
                         deleteFile(file);
                     }
-                } catch (Exception e){
+                } catch (Exception e) {
                     logger.error("Shutdown error", e);
                 }
             }
@@ -86,7 +90,7 @@ public class IntegrationTestBase {
     }
 
     private static String createBaseDir() {
-        String baseDir = System.getProperty("user.home") + SEP + "unitteststore-" + UUID.randomUUID();
+        String baseDir = System.getProperty("user.home") + SEP + "unitteststore" +SEP+DateFormatUtils.format(new Date(),"yyyy-mm-dd")+SEP+ UUID.randomUUID();
         final File file = new File(baseDir);
         if (file.exists()) {
             logger.info(String.format("[%s] has already existed, please back up and remove it for integration tests", baseDir));
@@ -182,6 +186,11 @@ public class IntegrationTestBase {
             }
             file.delete();
         }
+    }
+
+    public static TracerTime queryTracerTime(String nameSrvAddr, String clusterName, String topic,
+        String messageTracerTimeId) {
+        return MQAdmin.queryTracerTime(nameSrvAddr, clusterName, topic, messageTracerTimeId);
     }
 
 }

@@ -20,6 +20,7 @@ package org.apache.rocketmq.test.util;
 import java.util.HashMap;
 import java.util.Set;
 import org.apache.log4j.Logger;
+import org.apache.rocketmq.common.TracerTime;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
@@ -158,6 +159,26 @@ public class MQAdmin {
             e.printStackTrace();
         }
         mqAdminExt.shutdown();
+    }
+
+    public static TracerTime queryTracerTime(String nameSrvAddr, String clusterName, String topic,
+        String messageTracerTimeId) {
+        DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
+        mqAdminExt.setNamesrvAddr(nameSrvAddr);
+        try {
+            mqAdminExt.start();
+            Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(mqAdminExt,
+                clusterName);
+            for (String brokerAddr : masterSet) {
+                TracerTime tracerTime = mqAdminExt.queryTracerTime(brokerAddr, topic, messageTracerTimeId);
+                if (tracerTime != null) {
+                    return tracerTime;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 }
