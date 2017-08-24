@@ -667,7 +667,7 @@ public class CommitLog {
                     service.putRequest(request);
                     service.getWaitNotifyObject().wakeupAll();
                     boolean flushOK =
-                        request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
+                        request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncSlaveTimeout());
                     if (!flushOK) {
                         log.error("do sync transfer other node, wait return, but failed, topic: " + messageExt.getTopic() + " tags: "
                             + messageExt.getTags() + " client address: " + messageExt.getBornHostNameString());
