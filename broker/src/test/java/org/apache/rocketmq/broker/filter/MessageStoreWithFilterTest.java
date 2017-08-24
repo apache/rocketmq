@@ -215,7 +215,7 @@ public class MessageStoreWithFilterTest {
     }
 
     @Test
-    public void testGetMessage_withFilterBitMapAndConsumerChanged() {
+    public void testGetMessage_withFilterBitMapAndConsumerChanged() throws Exception {
         int topicCount = 10, msgPerTopic = 10;
         ConsumerFilterManager filterManager = ConsumerFilterManagerTest.gen(topicCount, msgPerTopic);
 
@@ -237,12 +237,7 @@ public class MessageStoreWithFilterTest {
             }
 
             // sleep to wait for consume queue has been constructed.
-            try {
-                Thread.sleep(2001);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                assertThat(true).isFalse();
-            }
+           Thread.sleep(2001);
 
             // reset consumer;
             String topic = "topic" + 0;

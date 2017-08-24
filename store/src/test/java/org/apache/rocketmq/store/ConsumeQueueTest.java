@@ -148,7 +148,7 @@ public class ConsumeQueueTest {
     }
 
     @Test
-    public void test_putMessagePositionInfo_build_consume_queue_idempotent() {
+    public void test_putMessagePositionInfo_build_consume_queue_idempotent() throws Exception {
         DefaultMessageStore messageStore = null;
         try {
 
@@ -180,9 +180,6 @@ public class ConsumeQueueTest {
 
             assertThat(Boolean.parseBoolean(dispatchResult.toString())).isTrue();
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            assertThat(Boolean.FALSE).isTrue();
         } finally {
             if (messageStore != null) {
                 messageStore.shutdown();
