@@ -1090,15 +1090,34 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private boolean isTheBatchFull(int sizePy, int maxMsgNums, int bufferTotal, int messageTotal, boolean isInDisk) {
-        return    (0 != bufferTotal && 0 != messageTotal)
-                && (
-                       (maxMsgNums <= messageTotal)
-                    || (isInDisk 
-                         && (bufferTotal + sizePy) > this.messageStoreConfig.getMaxTransferBytesOnMessageInDisk()
-                         && (messageTotal > this.messageStoreConfig.getMaxTransferCountOnMessageInDisk() - 1))
-                    || ((!isInDisk)
-                         && (bufferTotal + sizePy) > this.messageStoreConfig.getMaxTransferBytesOnMessageInMemory()
-                         && (messageTotal > this.messageStoreConfig.getMaxTransferCountOnMessageInMemory() - 1)));
+
+        if (0 == bufferTotal || 0 == messageTotal) {
+            return false;
+        }
+
+        if (maxMsgNums <= messageTotal) {
+            return true;
+        }
+
+        if (isInDisk) {
+            if ((bufferTotal + sizePy) > this.messageStoreConfig.getMaxTransferBytesOnMessageInDisk()) {
+                return true;
+            }
+
+            if (messageTotal > this.messageStoreConfig.getMaxTransferCountOnMessageInDisk() - 1) {
+                return true;
+            }
+        } else {
+            if ((bufferTotal + sizePy) > this.messageStoreConfig.getMaxTransferBytesOnMessageInMemory()) {
+                return true;
+            }
+
+            if (messageTotal > this.messageStoreConfig.getMaxTransferCountOnMessageInMemory() - 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void deleteFile(final String fileName) {
