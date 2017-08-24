@@ -409,31 +409,9 @@ public class MixAll {
             return addr.getHostAddress();
         } catch (Throwable e) {
             try {
-                List<String> candidatesHost = new ArrayList<String>();
-                Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
-
-                while (enumeration.hasMoreElements()) {
-                    NetworkInterface networkInterface = enumeration.nextElement();
-                    if (networkInterface.isUp()) {
-                        Enumeration<InetAddress> addrs = networkInterface.getInetAddresses();
-                        while (addrs.hasMoreElements()) {
-                            InetAddress address = addrs.nextElement();
-                            if (address.isLoopbackAddress()) {
-                                continue;
-                            }
-                            //ip4 highter priority
-                            if (address instanceof Inet6Address) {
-                                candidatesHost.add(address.getHostAddress());
-                                continue;
-                            }
-                            return address.getHostAddress();
-                        }
-                    }
-                }
-
-                if (!candidatesHost.isEmpty()) {
-                    return candidatesHost.get(0);
-                }
+                String candidatesHost = getLocalhostByNetworkInterface();
+                if (candidatesHost != null)
+                    return candidatesHost;
 
             } catch (Exception ignored) {
             }
@@ -442,6 +420,36 @@ public class MixAll {
                 + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION),
                 e);
         }
+    }
+
+    private static String getLocalhostByNetworkInterface() throws SocketException {
+        List<String> candidatesHost = new ArrayList<String>();
+        Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
+
+        while (enumeration.hasMoreElements()) {
+            NetworkInterface networkInterface = enumeration.nextElement();
+            if ("docker0".equals(networkInterface.getName()) || !networkInterface.isUp()) {
+                continue;
+            }
+            Enumeration<InetAddress> addrs = networkInterface.getInetAddresses();
+            while (addrs.hasMoreElements()) {
+                InetAddress address = addrs.nextElement();
+                if (address.isLoopbackAddress()) {
+                    continue;
+                }
+                //ip4 highter priority
+                if (address instanceof Inet6Address) {
+                    candidatesHost.add(address.getHostAddress());
+                    continue;
+                }
+                return address.getHostAddress();
+            }
+        }
+
+        if (!candidatesHost.isEmpty()) {
+            return candidatesHost.get(0);
+        }
+        return null;
     }
 
     public static boolean compareAndIncreaseOnly(final AtomicLong target, final long value) {
