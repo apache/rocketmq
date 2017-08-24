@@ -148,7 +148,7 @@ public class ConsumeQueueTest {
     }
 
     @Test
-    public void test_putMessagePositionInfo_build_consume_queue_idempotent() throws Exception {
+    public void testPutMessagePositionInfo_buildCQRepeatedly() throws Exception {
         DefaultMessageStore messageStore = null;
         try {
 
