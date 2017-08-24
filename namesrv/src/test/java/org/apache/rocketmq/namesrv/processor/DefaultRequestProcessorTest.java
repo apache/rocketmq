@@ -29,7 +29,9 @@ import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.common.protocol.header.GetClusterListRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.GetKVConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.GetKVConfigResponseHeader;
@@ -76,7 +78,9 @@ public class DefaultRequestProcessorTest {
         field.set(namesrvController, routeInfoManager);
         defaultRequestProcessor = new DefaultRequestProcessor(namesrvController);
 
-        registerRouteInfoManager();
+        for (int i = 10; i < 15; i++) {
+            registerRouteInfoManager("a" + i, i);
+        }
 
         logger = mock(Logger.class);
         when(logger.isInfoEnabled()).thenReturn(false);
@@ -257,20 +261,45 @@ public class DefaultRequestProcessorTest {
         field.set(null, newValue);
     }
 
-    private void registerRouteInfoManager() {
+    private void registerRouteInfoManager(String prefix, int id) {
+
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
         ConcurrentHashMap<String, TopicConfig> topicConfigConcurrentHashMap = new ConcurrentHashMap<>();
         TopicConfig topicConfig = new TopicConfig();
         topicConfig.setWriteQueueNums(8);
-        topicConfig.setTopicName("unit-test");
+        topicConfig.setTopicName("unit-test_" + prefix);
         topicConfig.setPerm(6);
         topicConfig.setReadQueueNums(8);
         topicConfig.setOrder(false);
         topicConfigConcurrentHashMap.put("unit-test", topicConfig);
         topicConfigSerializeWrapper.setTopicConfigTable(topicConfigConcurrentHashMap);
+
         Channel channel = mock(Channel.class);
-        RegisterBrokerResult registerBrokerResult = routeInfoManager.registerBroker("default-cluster", "127.0.0.1:10911", "default-broker", 1234, "127.0.0.1:1001",
+        RegisterBrokerResult registerBrokerResult = routeInfoManager.registerBroker("default-cluster_" + prefix, "127.0.0.1:120" + id, "default-broker_" + prefix, 1236 + id, "127.0.0.1:100" + id,
             topicConfigSerializeWrapper, new ArrayList<String>(), channel);
 
+    }
+
+    private static RemotingCommand genClusterListCmd(String cluster) {
+        GetClusterListRequestHeader header = new GetClusterListRequestHeader();
+        header.setCluster(cluster);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_CLUSTER_INFO, header);
+        return request;
+    }
+
+    @Test
+    public void testClusterInfo() throws RemotingCommandException {
+        testClusterInfo(null, 5);
+        testClusterInfo("default-cluster_a10", 1);
+    }
+
+    public void testClusterInfo(String cluster, int want) throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand response = defaultRequestProcessor.processRequest(ctx, genClusterListCmd(cluster));
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(response.getRemark()).isNull();
+        ClusterInfo info = ClusterInfo.decode(response.getBody(), ClusterInfo.class);
+        assertThat(info.getClusterAddrTable().size() == want);
     }
 }
