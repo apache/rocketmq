@@ -19,8 +19,13 @@ package org.apache.rocketmq.broker;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileLock;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.cli.CommandLine;
@@ -37,8 +42,10 @@ import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.NettySystemConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
+import org.apache.rocketmq.store.MappedFile;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +61,11 @@ public class BrokerStartup {
 
     public static BrokerController start(BrokerController controller) {
         try {
+
+            checkMQAlreadyStart(controller.getMessageStoreConfig().getStorePathRootDir());
+
             controller.start();
+
             String tip = "The broker[" + controller.getBrokerConfig().getBrokerName() + ", "
                 + controller.getBrokerAddr() + "] boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
 
@@ -242,7 +253,7 @@ public class BrokerStartup {
         System.setProperty("rocketmq.namesrv.domain.subgroup", rmqAddressServerSubGroup);
     }
 
-    public static Options buildCommandlineOptions(final Options options) {
+    private static Options buildCommandlineOptions(final Options options) {
         Option opt = new Option("c", "configFile", true, "Broker config properties file");
         opt.setRequired(false);
         options.addOption(opt);
@@ -256,5 +267,29 @@ public class BrokerStartup {
         options.addOption(opt);
 
         return options;
+    }
+
+    private static void checkMQAlreadyStart(String storePathRootDir) throws IOException {
+        File file = new File(StorePathConfigHelper.getLockFile(storePathRootDir));
+        MappedFile.ensureDirOK(file.getParent());
+
+        final RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw");
+        FileLock lock = randomAccessFile.getChannel().tryLock(0, 1, false);
+        if (lock == null || lock.isShared() || !lock.isValid()) {
+            throw new RuntimeException("Lock failed,MQ already started");
+        }
+
+        randomAccessFile.getChannel().write(ByteBuffer.wrap("lock".getBytes()));
+        randomAccessFile.getChannel().force(true);
+
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                try {
+                    randomAccessFile.close();
+                } catch (Exception e) {
+                }
+            }
+        });
     }
 }
