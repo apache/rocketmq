@@ -19,10 +19,9 @@ package org.apache.rocketmq.client.producer;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.TestUtil;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.hook.SendMessageContext;
@@ -35,8 +34,6 @@ import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.After;
@@ -191,29 +188,7 @@ public class DefaultMQProducerTest {
     }
 
     public static TopicRouteData createTopicRoute() {
-        TopicRouteData topicRouteData = new TopicRouteData();
-
-        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
-        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
-        BrokerData brokerData = new BrokerData();
-        brokerData.setBrokerName("BrokerA");
-        brokerData.setCluster("DefaultCluster");
-        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
-        brokerAddrs.put(0L, "127.0.0.1:10911");
-        brokerData.setBrokerAddrs(brokerAddrs);
-        brokerDataList.add(brokerData);
-        topicRouteData.setBrokerDatas(brokerDataList);
-
-        List<QueueData> queueDataList = new ArrayList<QueueData>();
-        QueueData queueData = new QueueData();
-        queueData.setBrokerName("BrokerA");
-        queueData.setPerm(6);
-        queueData.setReadQueueNums(3);
-        queueData.setWriteQueueNums(4);
-        queueData.setTopicSynFlag(0);
-        queueDataList.add(queueData);
-        topicRouteData.setQueueDatas(queueDataList);
-        return topicRouteData;
+        return TestUtil.createTestTopicRouteData();
     }
 
     private SendResult createSendResult(SendStatus sendStatus) {

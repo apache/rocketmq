@@ -963,11 +963,16 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     @Override
     public void updateTopicSubscribeInfo(String topic, Set<MessageQueue> info) {
-        Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
-        if (subTable != null) {
-            if (subTable.containsKey(topic)) {
-                this.rebalanceImpl.topicSubscribeInfoTable.put(topic, info);
+        if (info != null) {
+            Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
+            if (subTable != null) {
+                if (subTable.containsKey(topic)) {
+                    this.rebalanceImpl.topicSubscribeInfoTable.put(topic, info);
+                }
             }
+        } else {
+            Set<MessageQueue> prev = this.rebalanceImpl.topicSubscribeInfoTable.remove(topic);
+            log.info("instanceName={}, group={}, topicSubscribeInfoTable of topic {} is removed, {}, prev = {}", defaultMQPushConsumer.getInstanceName(), defaultMQPushConsumer.getConsumerGroup(), topic, prev);
         }
     }
 
@@ -1075,9 +1080,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         List<QueueTimeSpan> queueTimeSpan = new ArrayList<QueueTimeSpan>();
         TopicRouteData routeData = this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(topic, 3000);
-        for (BrokerData brokerData : routeData.getBrokerDatas()) {
-            String addr = brokerData.selectBrokerAddr();
-            queueTimeSpan.addAll(this.mQClientFactory.getMQClientAPIImpl().queryConsumeTimeSpan(addr, topic, groupName(), 3000));
+        if (routeData != null) {
+            for (BrokerData brokerData : routeData.getBrokerDatas()) {
+                String addr = brokerData.selectBrokerAddr();
+                queueTimeSpan.addAll(this.mQClientFactory.getMQClientAPIImpl().queryConsumeTimeSpan(addr, topic, groupName(), 3000));
+            }
         }
 
         return queueTimeSpan;

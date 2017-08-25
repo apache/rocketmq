@@ -324,11 +324,16 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     @Override
     public void updateTopicSubscribeInfo(String topic, Set<MessageQueue> info) {
-        Map<String, SubscriptionData> subTable = this.rebalanceImpl.getSubscriptionInner();
-        if (subTable != null) {
-            if (subTable.containsKey(topic)) {
-                this.rebalanceImpl.getTopicSubscribeInfoTable().put(topic, info);
+        if (info != null) {
+            Map<String, SubscriptionData> subTable = this.rebalanceImpl.getSubscriptionInner();
+            if (subTable != null) {
+                if (subTable.containsKey(topic)) {
+                    this.rebalanceImpl.getTopicSubscribeInfoTable().put(topic, info);
+                }
             }
+        } else {
+            Set<MessageQueue> prev = this.rebalanceImpl.getTopicSubscribeInfoTable().remove(topic);
+            log.info("instanceName={}, group={}, topicSubscribeInfoTable of topic {} is removed, {}, prev = {}", defaultMQPullConsumer.getInstanceName(), defaultMQPullConsumer.getConsumerGroup(), topic, prev);
         }
     }
 

@@ -16,57 +16,62 @@
  */
 package org.apache.rocketmq.client.impl.factory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.lang.reflect.Field;
 import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.TestUtil;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
 import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.consumer.MQConsumerInner;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MQClientInstanceTest {
+    @Spy
     private MQClientInstance mqClientInstance =  MQClientManager.getInstance().getAndCreateMQClientInstance(new ClientConfig());
     private String topic = "FooBar";
     private String group = "FooBarGroup";
 
+
+    @Test
+    public void testUpdateTopicRouteInfo() throws Exception {
+        //mock
+        MQClientAPIImpl mqClientAPI = mock(MQClientAPIImpl.class);
+
+        doReturn(TestUtil.createTestTopicRouteData())
+            .doReturn(null)// second time, it will return null
+            .when(mqClientAPI).getTopicRouteInfoFromNameServer(topic, 3000);
+
+        //use spy api impl
+        Field field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        field.setAccessible(true);
+        field.set(mqClientInstance, mqClientAPI);
+
+        //firstly, update data from name server
+        mqClientInstance.updateTopicRouteInfoFromNameServer(topic);
+        assertThat(mqClientInstance.getTopicRouteTable().get(topic)).isNotNull();
+
+
+        //update again, the data should be null, assert that the topicRouteInfo is set to empty
+        mqClientInstance.updateTopicRouteInfoFromNameServer(topic);
+        assertThat(mqClientInstance.getTopicRouteTable().get(topic)).isNull();
+    }
+
     @Test
     public void testTopicRouteData2TopicPublishInfo() {
-        TopicRouteData topicRouteData = new TopicRouteData();
-
-        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
-        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
-        BrokerData brokerData = new BrokerData();
-        brokerData.setBrokerName("BrokerA");
-        brokerData.setCluster("DefaultCluster");
-        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
-        brokerAddrs.put(0L, "127.0.0.1:10911");
-        brokerData.setBrokerAddrs(brokerAddrs);
-        brokerDataList.add(brokerData);
-        topicRouteData.setBrokerDatas(brokerDataList);
-
-        List<QueueData> queueDataList = new ArrayList<QueueData>();
-        QueueData queueData = new QueueData();
-        queueData.setBrokerName("BrokerA");
-        queueData.setPerm(6);
-        queueData.setReadQueueNums(3);
-        queueData.setWriteQueueNums(4);
-        queueData.setTopicSynFlag(0);
-        queueDataList.add(queueData);
-        topicRouteData.setQueueDatas(queueDataList);
+        TopicRouteData topicRouteData = TestUtil.createTestTopicRouteData();
 
         TopicPublishInfo topicPublishInfo = MQClientInstance.topicRouteData2TopicPublishInfo(topic, topicRouteData);
 
