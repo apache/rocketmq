@@ -166,9 +166,16 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private int consumeConcurrentlyMaxSpan = 2000;
 
     /**
-     * Flow control threshold
+     * Flow control threshold on queue level
      */
     private int pullThresholdForQueue = 1000;
+
+    /**
+     * Introduced since 4.1.x
+     * Flow control threshold on topic level.The value should be greater or equals than pullThresholdForQueue otherwise flow control for topic will always come first before flow control on queue.
+     * By default, it is set to max value of Integer.MAX_VALUE, which means flow control for topic is disable.
+     */
+    private int pullThresholdForTopic = Integer.MAX_VALUE;
 
     /**
      * Message pull Interval
@@ -399,6 +406,14 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setPullThresholdForQueue(int pullThresholdForQueue) {
         this.pullThresholdForQueue = pullThresholdForQueue;
+    }
+
+    public int getPullThresholdForTopic() {
+        return pullThresholdForTopic;
+    }
+
+    public void setPullThresholdForTopic(int pullThresholdForTopic) {
+        this.pullThresholdForTopic = pullThresholdForTopic;
     }
 
     public Map<String, String> getSubscription() {
