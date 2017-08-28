@@ -96,7 +96,6 @@ public class MixAllTest {
         Method method = MixAll.class.getDeclaredMethod("getLocalhostByNetworkInterface");
         method.setAccessible(true);
         Object invoke = method.invoke(null);
-        System.out.println(invoke);
         assertThat(invoke).isNotNull();
     }
 }
