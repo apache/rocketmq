@@ -42,7 +42,8 @@ public class ConsumeQueueTest {
     private static final int queueId = 0;
     private static final String storePath = "." + File.separator + "unit_test_store";
     private static final int commitLogFileSize = 1024 * 8;
-    private static final int cqFileSize = 10 * 20;
+    private static int messagecount = 10;
+    private static final int cqFileSize = messagecount * 20;
     private static final int cqExtFileSize = 10 * (ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE + 64);
 
     private static SocketAddress BornHost;
@@ -124,9 +125,8 @@ public class ConsumeQueueTest {
     }
 
     protected void putMsg(DefaultMessageStore master) throws Exception {
-        long totalMsgs = 200;
 
-        for (long i = 0; i < totalMsgs; i++) {
+        for (long i = 0; i < messagecount; i++) {
             master.putMessage(buildMessage());
         }
     }
@@ -171,7 +171,7 @@ public class ConsumeQueueTest {
             try {
                 putMsg(master);
                 // wait build consume queue
-                Thread.sleep(1000);
+                Thread.sleep(2000);
             } catch (Exception e) {
                 e.printStackTrace();
                 assertThat(Boolean.FALSE).isTrue();
@@ -222,5 +222,33 @@ public class ConsumeQueueTest {
             master.destroy();
             deleteDirectory(storePath);
         }
+    }
+
+    @Test
+    public void test_checkCommitLogAndConsumeQueueConsistent() throws Exception {
+        DefaultMessageStore master = null;
+        try {
+            master = gen();
+        } catch (Exception e) {
+            e.printStackTrace();
+            assertThat(Boolean.FALSE).isTrue();
+        }
+
+        master.getDispatcherList().addFirst(new CommitLogDispatcher() {
+
+            @Override
+            public void dispatch(DispatchRequest request) {
+                runCount++;
+            }
+
+            private int runCount = 0;
+        });
+
+        putMsg(master);
+        // wait build consume queue
+        Thread.sleep(2000);
+
+        ConsumeQueue cq = master.getConsumeQueueTable().get(topic).get(queueId);
+        cq.checkCommitLogAndConsumeQueueConsistent();
     }
 }

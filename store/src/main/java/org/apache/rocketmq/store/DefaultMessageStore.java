@@ -1295,6 +1295,7 @@ public class DefaultMessageStore implements MessageStore {
         for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
             for (ConsumeQueue logic : maps.values()) {
                 logic.recover();
+                logic.checkCommitLogAndConsumeQueueConsistent();
             }
         }
     }

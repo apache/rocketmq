@@ -84,6 +84,59 @@ public class ConsumeQueue {
         return result;
     }
 
+    public void checkCommitLogAndConsumeQueueConsistent() {
+
+        String queueDir = this.storePath
+            + File.separator + topic
+            + File.separator + queueId + File.separator;
+
+        long maxOffsetInQueue = getMaxOffsetInQueue();
+
+        if (maxOffsetInQueue == 0) {
+            return ;
+        }
+
+        SelectMappedBufferResult consumeQueueBuffer = getIndexBuffer(maxOffsetInQueue-1);
+
+        if (consumeQueueBuffer == null) {
+            String errorMsg = String.format("Can't find consume queue mappedBuffer by offset %s,queueDir %s", maxOffsetInQueue, queueDir);
+            log.error(errorMsg);
+            throw new IllegalStateException(errorMsg);
+        }
+
+        //position latest consume queue offset,
+        long offsetPy = consumeQueueBuffer.getByteBuffer().getLong();
+        int sizePy = consumeQueueBuffer.getByteBuffer().getInt();
+        consumeQueueBuffer.getByteBuffer().getLong();
+
+        SelectMappedBufferResult commitLogBuffer = this.defaultMessageStore.getCommitLog().getMessage(offsetPy, sizePy);
+
+        if (commitLogBuffer == null) {
+            String errorMsg = String.format("Can't find commit log mappedBuffer by offset %s,size %s,queueDir %s", offsetPy, sizePy, queueDir);
+            log.error(errorMsg);
+            throw new IllegalStateException(errorMsg);
+        }
+
+        DispatchRequest dispatchRequest = this.defaultMessageStore.getCommitLog().checkMessageAndReturnSize(commitLogBuffer.getByteBuffer(), false, false);
+
+        if (!dispatchRequest.isSuccess()) {
+            String errorMsg = String.format("Can't build DispatchRequest from commit log  by offset %s,size %s,queueDir %s",offsetPy, sizePy, queueDir);
+            log.error(errorMsg);
+            throw new IllegalStateException(errorMsg);
+        }
+
+        //commit log's  consume offset begin 0,so add 1
+        long consumeQueueOffset = (dispatchRequest.getConsumeQueueOffset() + 1);
+
+        if (consumeQueueOffset == maxOffsetInQueue) {
+            log.info("Commit log and Consume Queue logic consistent,consume queue file name {} ,queueDir {}", mappedFileQueue, queueDir);
+        } else {
+            String errorMsg = String.format("Commit log (offsetPy %s) and Consume Queue logic (cq offset %s) inconsistent, queueDir %s,please delete %s and restart", maxOffsetInQueue - 1, offsetPy, queueDir, queueDir);
+            log.warn(errorMsg);
+            throw new IllegalStateException(errorMsg);
+        }
+    }
+
     public void recover() {
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
