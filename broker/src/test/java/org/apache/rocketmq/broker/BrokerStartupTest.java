@@ -17,13 +17,18 @@
 
 package org.apache.rocketmq.broker;
 
+import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.channels.OverlappingFileLockException;
 import java.util.Properties;
+import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class BrokerStartupTest {
+
+    private String storePathRootDir = ".";
 
     @Test
     public void testProperties2SystemEnv() throws NoSuchMethodException, InvocationTargetException,
@@ -35,6 +40,28 @@ public class BrokerStartupTest {
         System.setProperty("rocketmq.namesrv.domain", "value");
         method.invoke(null, properties);
         Assert.assertEquals("value", System.getProperty("rocketmq.namesrv.domain"));
+    }
+
+
+    @Test
+    public void test_checkMQAlreadyStart() throws Exception {
+
+        File file = new File(StorePathConfigHelper.getLockFile(storePathRootDir));
+        if (file.exists()) {
+            file.delete();
+        }
+        BrokerStartup brokerStartup = new BrokerStartup();
+        Method method = brokerStartup.getClass().getDeclaredMethod("checkMQAlreadyStart", String.class);
+        method.setAccessible(true);
+
+        method.invoke(brokerStartup, storePathRootDir);
+
+        try {
+            method.invoke(brokerStartup, storePathRootDir);
+        } catch (Exception e) {
+            Assert.assertEquals(true, e.getCause() instanceof OverlappingFileLockException);
+        }
+
     }
 
 }
