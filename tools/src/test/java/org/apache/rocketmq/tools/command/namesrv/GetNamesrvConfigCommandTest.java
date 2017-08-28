@@ -81,7 +81,7 @@ public class GetNamesrvConfigCommandTest {
         defaultMQAdminExt.shutdown();
     }
 
-//    @Ignore
+    //    @Ignore
     @Test
     public void testExecute() throws SubCommandException {
         GetNamesrvConfigCommand cmd = new GetNamesrvConfigCommand();

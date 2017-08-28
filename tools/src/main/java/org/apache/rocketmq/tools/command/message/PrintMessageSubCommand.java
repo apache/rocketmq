@@ -51,7 +51,6 @@ public class PrintMessageSubCommand implements SubCommand {
                 System.out.printf("MSGID: %s %s BODY: %s%n", msg.getMsgId(), msg.toString(),
                     printBody ? new String(msg.getBody(), charsetName) : "NOT PRINT BODY");
             } catch (UnsupportedEncodingException e) {
-                //
             }
         }
     }
@@ -108,10 +107,10 @@ public class PrintMessageSubCommand implements SubCommand {
         try {
             String topic = commandLine.getOptionValue('t').trim();
 
-            String charsetName = //
+            String charsetName =
                 !commandLine.hasOption('c') ? "UTF-8" : commandLine.getOptionValue('c').trim();
 
-            String subExpression = //
+            String subExpression =
                 !commandLine.hasOption('s') ? "*" : commandLine.getOptionValue('s').trim();
 
             boolean printBody = !commandLine.hasOption('d') || Boolean.parseBoolean(commandLine.getOptionValue('d').trim());

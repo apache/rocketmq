@@ -77,7 +77,7 @@ public class DefaultPromise<V> implements Promise<V> {
             } else {
                 long waitTime = timeout - (System.currentTimeMillis() - createTime);
                 if (waitTime > 0) {
-                    for (;; ) {
+                    for (; ; ) {
                         try {
                             lock.wait(waitTime);
                         } catch (InterruptedException e) {

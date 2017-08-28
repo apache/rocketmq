@@ -30,9 +30,7 @@ package org.apache.rocketmq.filter.expression;
 public interface BooleanExpression extends Expression {
 
     /**
-     * @param context
      * @return true if the expression evaluates to Boolean.TRUE.
-     * @throws Exception
      */
     boolean matches(EvaluationContext context) throws Exception;
 

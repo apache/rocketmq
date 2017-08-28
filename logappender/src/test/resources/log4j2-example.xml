@@ -17,25 +17,25 @@
   -->
 
 <Configuration status="warn" name="Rocketmq">
-<Appenders>
-    <RocketMQ name="rocketmqAppender" producerGroup="log4j2" nameServerAddress="127.0.0.1:9876"
-         topic="TopicTest" tag="log">
-        <PatternLayout pattern="%d [%p] hahahah %c %m%n"/>
-    </RocketMQ>
+    <Appenders>
+        <RocketMQ name="rocketmqAppender" producerGroup="loggerAppender" nameServerAddress="127.0.0.1:9876"
+                  topic="TopicTest" tag="log">
+            <PatternLayout pattern="%d [%p] hahahah %c %m%n"/>
+        </RocketMQ>
 
-    <Console name="Console" target="SYSTEM_OUT">
-        <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
-    </Console>
-</Appenders>
-<Loggers>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </Console>
+    </Appenders>
+    <Loggers>
 
-    <Logger name="rocketmqLogger" level="info">
-        <AppenderRef ref="rocketmqAppender"/>
-    </Logger>
+        <Logger name="rocketmqLogger" level="info">
+            <AppenderRef ref="rocketmqAppender"/>
+        </Logger>
 
-    <Root level="debug">
-        <AppenderRef ref="Console"/>
-        <AppenderRef ref="rocketmqAppender"/>
-    </Root>
-</Loggers>
+        <Root level="debug">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="rocketmqAppender"/>
+        </Root>
+    </Loggers>
 </Configuration>

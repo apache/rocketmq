@@ -52,9 +52,9 @@ public class RebalanceLockManager {
                         lockEntry = new LockEntry();
                         lockEntry.setClientId(clientId);
                         groupValue.put(mq, lockEntry);
-                        log.info("tryLock, message queue not locked, I got it. Group: {} NewClientId: {} {}", //
-                            group, //
-                            clientId, //
+                        log.info("tryLock, message queue not locked, I got it. Group: {} NewClientId: {} {}",
+                            group,
+                            clientId,
                             mq);
                     }
 
@@ -69,19 +69,19 @@ public class RebalanceLockManager {
                         lockEntry.setClientId(clientId);
                         lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
                         log.warn(
-                            "tryLock, message queue lock expired, I got it. Group: {} OldClientId: {} NewClientId: {} {}", //
-                            group, //
-                            oldClientId, //
-                            clientId, //
+                            "tryLock, message queue lock expired, I got it. Group: {} OldClientId: {} NewClientId: {} {}",
+                            group,
+                            oldClientId,
+                            clientId,
                             mq);
                         return true;
                     }
 
                     log.warn(
-                        "tryLock, message queue locked by other client. Group: {} OtherClientId: {} NewClientId: {} {}", //
-                        group, //
-                        oldClientId, //
-                        clientId, //
+                        "tryLock, message queue locked by other client. Group: {} OtherClientId: {} NewClientId: {} {}",
+                        group,
+                        oldClientId,
+                        clientId,
                         mq);
                     return false;
                 } finally {
@@ -144,9 +144,9 @@ public class RebalanceLockManager {
                             lockEntry.setClientId(clientId);
                             groupValue.put(mq, lockEntry);
                             log.info(
-                                "tryLockBatch, message queue not locked, I got it. Group: {} NewClientId: {} {}", //
-                                group, //
-                                clientId, //
+                                "tryLockBatch, message queue not locked, I got it. Group: {} NewClientId: {} {}",
+                                group,
+                                clientId,
                                 mq);
                         }
 
@@ -162,20 +162,20 @@ public class RebalanceLockManager {
                             lockEntry.setClientId(clientId);
                             lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
                             log.warn(
-                                "tryLockBatch, message queue lock expired, I got it. Group: {} OldClientId: {} NewClientId: {} {}", //
-                                group, //
-                                oldClientId, //
-                                clientId, //
+                                "tryLockBatch, message queue lock expired, I got it. Group: {} OldClientId: {} NewClientId: {} {}",
+                                group,
+                                oldClientId,
+                                clientId,
                                 mq);
                             lockedMqs.add(mq);
                             continue;
                         }
 
                         log.warn(
-                            "tryLockBatch, message queue locked by other client. Group: {} OtherClientId: {} NewClientId: {} {}", //
-                            group, //
-                            oldClientId, //
-                            clientId, //
+                            "tryLockBatch, message queue locked by other client. Group: {} OtherClientId: {} NewClientId: {} {}",
+                            group,
+                            oldClientId,
+                            clientId,
                             mq);
                     }
                 } finally {

@@ -60,7 +60,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
     }
 
     @Override
-    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand processRequest(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
         SendMessageContext mqtraceContext;
         switch (request.getCode()) {
             case RequestCode.CONSUMER_SEND_MSG_BACK:
@@ -139,9 +140,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
         }
 
-        TopicConfig topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(//
-            newTopic, //
-            subscriptionGroupConfig.getRetryQueueNums(), //
+        TopicConfig topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
+            newTopic,
+            subscriptionGroupConfig.getRetryQueueNums(),
             PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
         if (null == topicConfig) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -175,13 +176,13 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
         }
 
-        if (msgExt.getReconsumeTimes() >= maxReconsumeTimes//
+        if (msgExt.getReconsumeTimes() >= maxReconsumeTimes
             || delayLevel < 0) {
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
             queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
 
-            topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic, //
-                DLQ_NUMS_PER_GROUP, //
+            topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
+                DLQ_NUMS_PER_GROUP,
                 PermName.PERM_WRITE, 0
             );
             if (null == topicConfig) {
@@ -245,8 +246,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         return response;
     }
 
-
-    private boolean handleRetryAndDLQ(SendMessageRequestHeader requestHeader, RemotingCommand response, RemotingCommand request,
+    private boolean handleRetryAndDLQ(SendMessageRequestHeader requestHeader, RemotingCommand response,
+        RemotingCommand request,
         MessageExt msg, TopicConfig topicConfig) {
         String newTopic = requestHeader.getTopic();
         if (null != newTopic && newTopic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -268,8 +269,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             if (reconsumeTimes >= maxReconsumeTimes) {
                 newTopic = MixAll.getDLQTopic(groupName);
                 int queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
-                topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic, //
-                    DLQ_NUMS_PER_GROUP, //
+                topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
+                    DLQ_NUMS_PER_GROUP,
                     PermName.PERM_WRITE, 0
                 );
                 msg.setTopic(newTopic);
@@ -289,9 +290,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         return true;
     }
 
-    private RemotingCommand sendMessage(final ChannelHandlerContext ctx, //
-        final RemotingCommand request, //
-        final SendMessageContext sendMessageContext, //
+    private RemotingCommand sendMessage(final ChannelHandlerContext ctx,
+        final RemotingCommand request,
+        final SendMessageContext sendMessageContext,
         final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
@@ -318,8 +319,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
 
         final byte[] body = request.getBody();
-
-
 
         int queueIdInt = requestHeader.getQueueId();
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
@@ -361,13 +360,14 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
     }
 
-
-    private RemotingCommand handlePutMessageResult(PutMessageResult putMessageResult, RemotingCommand response, RemotingCommand request, MessageExt msg,
-        SendMessageResponseHeader responseHeader, SendMessageContext sendMessageContext, ChannelHandlerContext ctx, int queueIdInt) {
+    private RemotingCommand handlePutMessageResult(PutMessageResult putMessageResult, RemotingCommand response,
+        RemotingCommand request, MessageExt msg,
+        SendMessageResponseHeader responseHeader, SendMessageContext sendMessageContext, ChannelHandlerContext ctx,
+        int queueIdInt) {
         if (putMessageResult == null) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("store putMessage return null");
-            return  response;
+            return response;
         }
         boolean sendOK = false;
 
@@ -462,16 +462,16 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 sendMessageContext.setCommercialOwner(owner);
             }
         }
-        return  response;
+        return response;
     }
-    private RemotingCommand sendBatchMessage(final ChannelHandlerContext ctx, //
-                                        final RemotingCommand request, //
-                                        final SendMessageContext sendMessageContext, //
-                                        final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
+
+    private RemotingCommand sendBatchMessage(final ChannelHandlerContext ctx,
+        final RemotingCommand request,
+        final SendMessageContext sendMessageContext,
+        final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
         final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader) response.readCustomHeader();
-
 
         response.setOpaque(request.getOpaque());
 
@@ -493,7 +493,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             return response;
         }
 
-
         int queueIdInt = requestHeader.getQueueId();
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
 
@@ -509,7 +508,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         if (requestHeader.getTopic() != null && requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
-            response.setRemark("batch request does not support retry group "  + requestHeader.getTopic());
+            response.setRemark("batch request does not support retry group " + requestHeader.getTopic());
             return response;
         }
         MessageExtBatch messageExtBatch = new MessageExtBatch();
