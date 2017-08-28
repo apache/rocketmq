@@ -17,6 +17,9 @@
 
 package org.apache.rocketmq.client.log;
 
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.UtilAll;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -33,9 +36,14 @@ public class ClientLogTest {
         LOG_DIR = System.getProperty(CLIENT_LOG_ROOT, "${user.home}/logs/rocketmqlogs");
     }
 
+    @After
+    public void cleanFiles() {
+        UtilAll.deleteFile(new File(LOG_DIR));
+    }
+
     // FIXME: Workarond for concret implementation for slf4j, is there any better solution for all slf4j implementations in one class ? 2017/8/1
     @Test
-    public void testLog4j2() throws IOException, NoSuchFieldException, IllegalAccessException {
+    public void testLog4j2() throws IOException, NoSuchFieldException, IllegalAccessException, InterruptedException {
         ClientLogger.getLog();
         long seek = 0;
         boolean result = false;
@@ -50,6 +58,7 @@ public class ClientLogTest {
         for (int i = 0; i < 10; i++) {
             ClientLogger.getLog().info("testcase testLog4j2 " + new Date());
         }
+        Thread.sleep(500L);
 
         RandomAccessFile randomAccessFile = new RandomAccessFile(file, "r");
         randomAccessFile.seek(seek);
@@ -62,7 +71,7 @@ public class ClientLogTest {
             }
             line = randomAccessFile.readLine();
             idx++;
-            if (idx > 20) {
+            if (idx > 100) {
                 break;
             }
         }
