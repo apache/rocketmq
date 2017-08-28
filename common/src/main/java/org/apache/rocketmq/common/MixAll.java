@@ -26,6 +26,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
@@ -407,10 +408,48 @@ public class MixAll {
             InetAddress addr = InetAddress.getLocalHost();
             return addr.getHostAddress();
         } catch (Throwable e) {
+            try {
+                String candidatesHost = getLocalhostByNetworkInterface();
+                if (candidatesHost != null)
+                    return candidatesHost;
+
+            } catch (Exception ignored) {
+            }
+
             throw new RuntimeException("InetAddress java.net.InetAddress.getLocalHost() throws UnknownHostException"
                 + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION),
                 e);
         }
+    }
+
+    private static String getLocalhostByNetworkInterface() throws SocketException {
+        List<String> candidatesHost = new ArrayList<String>();
+        Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
+
+        while (enumeration.hasMoreElements()) {
+            NetworkInterface networkInterface = enumeration.nextElement();
+            if ("docker0".equals(networkInterface.getName()) || !networkInterface.isUp()) {
+                continue;
+            }
+            Enumeration<InetAddress> addrs = networkInterface.getInetAddresses();
+            while (addrs.hasMoreElements()) {
+                InetAddress address = addrs.nextElement();
+                if (address.isLoopbackAddress()) {
+                    continue;
+                }
+                //ip4 highter priority
+                if (address instanceof Inet6Address) {
+                    candidatesHost.add(address.getHostAddress());
+                    continue;
+                }
+                return address.getHostAddress();
+            }
+        }
+
+        if (!candidatesHost.isEmpty()) {
+            return candidatesHost.get(0);
+        }
+        return null;
     }
 
     public static boolean compareAndIncreaseOnly(final AtomicLong target, final long value) {

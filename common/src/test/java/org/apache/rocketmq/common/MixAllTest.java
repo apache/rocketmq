@@ -20,11 +20,8 @@ package org.apache.rocketmq.common;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
-import java.nio.ByteOrder;
-import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Test;
@@ -92,5 +89,13 @@ public class MixAllTest {
         String fileName = System.getProperty("java.io.tmpdir") + File.separator + "MixAllTest" + System.currentTimeMillis();
         MixAll.string2File("MixAll_testString2File", fileName);
         assertThat(MixAll.file2String(fileName)).isEqualTo("MixAll_testString2File");
+    }
+
+    @Test
+    public void test_getLocalhostByNetworkInterface() throws Exception {
+        Method method = MixAll.class.getDeclaredMethod("getLocalhostByNetworkInterface");
+        method.setAccessible(true);
+        Object invoke = method.invoke(null);
+        assertThat(invoke).isNotNull();
     }
 }
