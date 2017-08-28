@@ -93,10 +93,10 @@ public class ConsumeQueue {
         long maxOffsetInQueue = getMaxOffsetInQueue();
 
         if (maxOffsetInQueue == 0) {
-            return ;
+            return;
         }
 
-        SelectMappedBufferResult consumeQueueBuffer = getIndexBuffer(maxOffsetInQueue-1);
+        SelectMappedBufferResult consumeQueueBuffer = getIndexBuffer(maxOffsetInQueue -1 );
 
         if (consumeQueueBuffer == null) {
             String errorMsg = String.format("Can't find consume queue mappedBuffer by offset %s,queueDir %s", maxOffsetInQueue, queueDir);
@@ -126,7 +126,7 @@ public class ConsumeQueue {
         }
 
         //commit log's  consume offset begin 0,so add 1
-        long consumeQueueOffset = (dispatchRequest.getConsumeQueueOffset() + 1);
+        long consumeQueueOffset = dispatchRequest.getConsumeQueueOffset() + 1;
 
         if (consumeQueueOffset == maxOffsetInQueue) {
             log.info("Commit log and Consume Queue logic consistent,consume queue file name {} ,queueDir {}", mappedFileQueue, queueDir);
