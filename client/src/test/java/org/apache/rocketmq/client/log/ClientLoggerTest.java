@@ -43,9 +43,10 @@ public class ClientLoggerTest {
 
     // FIXME: Workaround for concrete implementation for slf4j, is there any better solution for all slf4j implementations in one class ? 2017/8/1
     @Test
-    public void testLog4j() throws Exception {
+    public void testLog4j2() throws Exception {
         Logger logger = ClientLogger.getLog();
 
+        System.out.println(logger);
         assertEquals("org.apache.logging.slf4j.Log4jLogger", logger.getClass().getName());
     }
 }

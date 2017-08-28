@@ -98,7 +98,6 @@ public class ClientLogger {
                         initialize.invoke(joranConfigurator, "log4j2", logConfigFilePath);
                     }
                 }
-                //logClass = classType;
             } catch (Exception e) {
                 System.err.println(e);
             }
