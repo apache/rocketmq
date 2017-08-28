@@ -92,9 +92,9 @@ public class AllocateMessageQueueConsitentHashTest {
 
     @Test
     public void testRun100RandomCase() {
-        for (int i = 0; i < 100; i++) {
-            int consumerSize = new Random().nextInt(200) + 1;//1-200
-            int queueSize = new Random().nextInt(100) + 1;//1-100
+        for (int i = 0; i < 10; i++) {
+            int consumerSize = new Random().nextInt(20) + 1;//1-20
+            int queueSize = new Random().nextInt(20) + 1;//1-20
             testAllocate(queueSize, consumerSize);
             try {
                 Thread.sleep(1);
