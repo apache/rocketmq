@@ -569,6 +569,6 @@ public class ConsumeQueue {
      * Check {@code tagsCode} is address of extend file or tags code.
      */
     public boolean isExtAddr(long tagsCode) {
-        return isExtReadEnable() && this.consumeQueueExt.isExtAddr(tagsCode);
+        return ConsumeQueueExt.isExtAddr(tagsCode);
     }
 }
