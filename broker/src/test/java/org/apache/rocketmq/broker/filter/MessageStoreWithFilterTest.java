@@ -79,24 +79,17 @@ public class MessageStoreWithFilterTest {
         try {
             StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         } catch (UnknownHostException e) {
-            e.printStackTrace();
         }
         try {
             BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
         } catch (UnknownHostException e) {
-            e.printStackTrace();
         }
     }
 
     @Before
-    public void init() {
+    public void init() throws Exception {
         filterManager = ConsumerFilterManagerTest.gen(topicCount, msgPerTopic);
-        try {
-            master = gen(filterManager);
-        } catch (Exception e) {
-            e.printStackTrace();
-            assertThat(true).isFalse();
-        }
+        master = gen(filterManager);
     }
 
     @After
@@ -227,22 +220,10 @@ public class MessageStoreWithFilterTest {
     }
 
     @Test
-    public void testGetMessage_withFilterBitMapAndConsumerChanged() {
-        List<MessageExtBrokerInner> msgs = null;
-        try {
-            msgs = putMsg(master, topicCount, msgPerTopic);
-        } catch (Exception e) {
-            e.printStackTrace();
-            assertThat(true).isFalse();
-        }
+    public void testGetMessage_withFilterBitMapAndConsumerChanged() throws Exception {
+        List<MessageExtBrokerInner> msgs = putMsg(master, topicCount, msgPerTopic);
 
-        // sleep to wait for consume queue has been constructed.
-        try {
-            Thread.sleep(200);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            assertThat(true).isFalse();
-        }
+        Thread.sleep(200);
 
         // reset consumer;
         String topic = "topic" + 0;
@@ -301,16 +282,10 @@ public class MessageStoreWithFilterTest {
     }
 
     @Test
-    public void testGetMessage_withFilterBitMap() {
-        List<MessageExtBrokerInner> msgs = null;
-        try {
-            msgs = putMsg(master, topicCount, msgPerTopic);
-            // sleep to wait for consume queue has been constructed.
-            Thread.sleep(200);
-        } catch (Exception e) {
-            e.printStackTrace();
-            assertThat(true).isFalse();
-        }
+    public void testGetMessage_withFilterBitMap() throws Exception {
+        List<MessageExtBrokerInner> msgs = putMsg(master, topicCount, msgPerTopic);
+
+        Thread.sleep(100);
 
         for (int i = 0; i < topicCount; i++) {
             String realTopic = topic + i;
@@ -369,14 +344,10 @@ public class MessageStoreWithFilterTest {
     }
 
     @Test
-    public void testGetMessage_withFilter_checkTagsCode() {
-        try {
-            putMsg(master, topicCount, msgPerTopic);
-            // sleep to wait for consume queue has been constructed.
-            Thread.sleep(200);
-        } catch (Exception e) {
-            assertThat(true).isFalse();
-        }
+    public void testGetMessage_withFilter_checkTagsCode() throws Exception {
+        putMsg(master, topicCount, msgPerTopic);
+
+        Thread.sleep(200);
 
         for (int i = 0; i < topicCount; i++) {
             String realTopic = topic + i;
