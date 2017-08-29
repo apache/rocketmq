@@ -31,7 +31,7 @@ abstract public class UnaryInExpression extends UnaryExpression implements Boole
     private Collection inList;
 
     public UnaryInExpression(Expression left, UnaryType unaryType,
-                             Collection inList, boolean not) {
+        Collection inList, boolean not) {
         super(left, unaryType);
         this.setInList(inList);
         this.setNot(not);

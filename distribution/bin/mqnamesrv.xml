@@ -16,28 +16,30 @@
   -->
 
 <java>
-	<debug>false</debug>
+    <debug>false</debug>
 
-	<javahome>${JAVA_HOME}</javahome>
+    <javahome>${JAVA_HOME}</javahome>
 
-	<jvmtype>server</jvmtype>
+    <jvmtype>server</jvmtype>
 
-	<mainclass>org.apache.rocketmq.namesrv.NamesrvStartup</mainclass>
+    <mainclass>org.apache.rocketmq.namesrv.NamesrvStartup</mainclass>
 
-	<properties>
-		<java.ext.dirs>${cpd}/../lib</java.ext.dirs>
-		<rocketmq.home.dir>${cpd}/..</rocketmq.home.dir>
-	</properties>
+    <properties>
+        <java.ext.dirs>${cpd}/../lib</java.ext.dirs>
+        <rocketmq.home.dir>${cpd}/..</rocketmq.home.dir>
+    </properties>
 
-	<classpaths>
-	</classpaths>
+    <classpaths>
+    </classpaths>
 
-	<options>
-		<-Xms512m></-Xms512m>
-		<-Xmx1g></-Xmx1g>
-		<-XX:NewSize>256M</-XX:NewSize>
-		<-XX:MaxNewSize>512M</-XX:MaxNewSize>
-		<-XX:PermSize>128M</-XX:PermSize>
-		<-XX:MaxPermSize>128M</-XX:MaxPermSize>
-	</options>
-</java>
+    <options>
+        <-Xms512m>
+    </-Xms512m>
+    <-Xmx1g>
+</-Xmx1g>
+<-XX:NewSize>256M</-XX:NewSize>
+<-XX:MaxNewSize>512M</-XX:MaxNewSize>
+<-XX:PermSize>128M</-XX:PermSize>
+<-XX:MaxPermSize>128M</-XX:MaxPermSize>
+    </options>
+    </java>

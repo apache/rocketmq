@@ -111,8 +111,8 @@ public class BitsArrayTest {
 
     @Test
     public void testOr() {
-        BitsArray b1 = BitsArray.create(new byte[]{(byte) 0xff, 0x00});
-        BitsArray b2 = BitsArray.create(new byte[]{0x00, (byte) 0xff});
+        BitsArray b1 = BitsArray.create(new byte[] {(byte) 0xff, 0x00});
+        BitsArray b2 = BitsArray.create(new byte[] {0x00, (byte) 0xff});
 
         b1.or(b2);
 

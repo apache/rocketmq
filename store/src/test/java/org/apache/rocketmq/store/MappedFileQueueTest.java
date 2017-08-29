@@ -17,8 +17,13 @@
 
 package org.apache.rocketmq.store;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.junit.After;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -175,5 +180,11 @@ public class MappedFileQueueTest {
 
         mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();
+    }
+
+    @After
+    public void destory() {
+        File file = new File("target/unit_test_store");
+        UtilAll.deleteFile(file);
     }
 }
