@@ -24,12 +24,14 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.CommitLogDispatcher;
+import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageArrivingListener;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -107,7 +109,7 @@ public class MessageStoreWithFilterTest {
     public MessageExtBrokerInner buildMessage() {
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
         msg.setTopic(topic);
-        msg.setTags("TAG1");
+        msg.setTags(System.currentTimeMillis() + "TAG");
         msg.setKeys("Hello");
         msg.setBody(msgBody);
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
@@ -125,7 +127,7 @@ public class MessageStoreWithFilterTest {
     }
 
     public MessageStoreConfig buildStoreConfig(int commitLogFileSize, int cqFileSize,
-        boolean enableCqExt, int cqExtFileSize) {
+                                               boolean enableCqExt, int cqExtFileSize) {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMapedFileSizeCommitLog(commitLogFileSize);
         messageStoreConfig.setMapedFileSizeConsumeQueue(cqFileSize);
@@ -155,9 +157,7 @@ public class MessageStoreWithFilterTest {
             new MessageArrivingListener() {
                 @Override
                 public void arriving(String topic, int queueId, long logicOffset, long tagsCode,
-                    long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
-//                    System.out.println(String.format("Msg coming: %s, %d, %d, %d",
-//                        topic, queueId, logicOffset, tagsCode));
+                                     long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
                 }
             }
             , brokerConfig);
@@ -166,8 +166,6 @@ public class MessageStoreWithFilterTest {
             @Override
             public void dispatch(DispatchRequest request) {
                 try {
-//                    System.out.println(String.format("offset:%d, bitMap:%s", request.getCommitLogOffset(),
-//                        BitsArray.create(request.getBitMap()).toString()));
                 } catch (Throwable e) {
                     e.printStackTrace();
                 }
@@ -183,7 +181,7 @@ public class MessageStoreWithFilterTest {
     }
 
     protected List<MessageExtBrokerInner> putMsg(DefaultMessageStore master, int topicCount,
-        int msgCountPerTopic) throws Exception {
+                                                 int msgCountPerTopic) throws Exception {
         List<MessageExtBrokerInner> msgs = new ArrayList<MessageExtBrokerInner>();
         for (int i = 0; i < topicCount; i++) {
             String realTopic = topic + i;
@@ -367,6 +365,38 @@ public class MessageStoreWithFilterTest {
                     getMessageResult.release();
                 }
             }
+        }
+    }
+
+    @Test
+    public void testGetMessage_withFilter_checkTagsCode() {
+        try {
+            putMsg(master, topicCount, msgPerTopic);
+            // sleep to wait for consume queue has been constructed.
+            Thread.sleep(200);
+        } catch (Exception e) {
+            assertThat(true).isFalse();
+        }
+
+        for (int i = 0; i < topicCount; i++) {
+            String realTopic = topic + i;
+
+            GetMessageResult getMessageResult = master.getMessage("test", realTopic, queueId, 0, 10000,
+                new MessageFilter() {
+                    @Override
+                    public boolean isMatchedByConsumeQueue(Long tagsCode, ConsumeQueueExt.CqExtUnit cqExtUnit) {
+                        if (tagsCode != null && tagsCode <= ConsumeQueueExt.MAX_ADDR) {
+                            return false;
+                        }
+                        return true;
+                    }
+
+                    @Override
+                    public boolean isMatchedByCommitLog(ByteBuffer msgBuffer, Map<String, String> properties) {
+                        return true;
+                    }
+                });
+            assertThat(getMessageResult.getMessageCount()).isEqualTo(msgPerTopic);
         }
     }
 }
