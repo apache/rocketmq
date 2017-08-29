@@ -96,7 +96,7 @@ public class ConsumeQueue {
             return;
         }
 
-        SelectMappedBufferResult consumeQueueBuffer = getIndexBuffer(lastRecordOffset );
+        SelectMappedBufferResult consumeQueueBuffer = getIndexBuffer(lastRecordOffset);
 
         if (consumeQueueBuffer == null) {
             String errorMsg = String.format("Can't find consume queue mappedBuffer by offset %s,queueDir %s", lastRecordOffset, queueDir);
