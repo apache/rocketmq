@@ -90,16 +90,16 @@ public class ConsumeQueue {
             + File.separator + topic
             + File.separator + queueId + File.separator;
 
-        long maxOffsetInQueue = getMaxOffsetInQueue();
+        long lastRecordOffset = Math.max(getMaxOffsetInQueue() - 1, 0);
 
-        if (maxOffsetInQueue == 0) {
+        if (lastRecordOffset == 0) {
             return;
         }
 
-        SelectMappedBufferResult consumeQueueBuffer = getIndexBuffer(maxOffsetInQueue - 1);
+        SelectMappedBufferResult consumeQueueBuffer = getIndexBuffer(lastRecordOffset );
 
         if (consumeQueueBuffer == null) {
-            String errorMsg = String.format("Can't find consume queue mappedBuffer by offset %s,queueDir %s", maxOffsetInQueue, queueDir);
+            String errorMsg = String.format("Can't find consume queue mappedBuffer by offset %s,queueDir %s", lastRecordOffset, queueDir);
             log.error(errorMsg);
             throw new IllegalStateException(errorMsg);
         }
@@ -125,13 +125,12 @@ public class ConsumeQueue {
             throw new IllegalStateException(errorMsg);
         }
 
-        //commit log's  consume offset begin 0,so add 1
-        long consumeQueueOffset = dispatchRequest.getConsumeQueueOffset() + 1;
+        long consumeQueueOffset = dispatchRequest.getConsumeQueueOffset() ;
 
-        if (consumeQueueOffset == maxOffsetInQueue) {
+        if (consumeQueueOffset == lastRecordOffset) {
             log.info("Commit log and Consume Queue logic consistent,consume queue file name {} ,queueDir {}", mappedFileQueue, queueDir);
         } else {
-            String errorMsg = String.format("Commit log (offsetPy %s) and Consume Queue logic (cq offset %s) inconsistent, queueDir %s,please delete %s and restart", maxOffsetInQueue - 1, offsetPy, queueDir, queueDir);
+            String errorMsg = String.format("Commit log (offsetPy %s) and Consume Queue logic (cq offset %s) inconsistent, queueDir %s,please delete %s and restart", lastRecordOffset, offsetPy, queueDir, queueDir);
             log.warn(errorMsg);
             throw new IllegalStateException(errorMsg);
         }
