@@ -27,17 +27,11 @@ public interface FilterSpi {
 
     /**
      * Compile.
-     *
-     * @param expr
-     * @return
-     * @throws org.apache.rocketmq.filter.expression.MQFilterException
      */
     Expression compile(final String expr) throws MQFilterException;
 
     /**
      * Which type.
-     *
-     * @return
      */
     String ofType();
 }

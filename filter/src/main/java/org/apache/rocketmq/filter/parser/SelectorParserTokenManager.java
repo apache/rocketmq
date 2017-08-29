@@ -385,7 +385,7 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
         int i = 1;
         jjstateSet[0] = startState;
         int kind = 0x7fffffff;
-        for (;;) {
+        for (; ; ) {
             if (++jjround == 0x7fffffff)
                 ReInitRounds();
             if (curChar < 64) {
@@ -586,7 +586,8 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
                         default:
                             break;
                     }
-                } while (i != startsAt);
+                }
+                while (i != startsAt);
             } else if (curChar < 128) {
                 long l = 1L << (curChar & 077);
                 do {
@@ -631,7 +632,8 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
                         default:
                             break;
                     }
-                } while (i != startsAt);
+                }
+                while (i != startsAt);
             } else {
                 int hiByte = (int) (curChar >> 8);
                 int i1 = hiByte >> 6;
@@ -660,7 +662,8 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
                         default:
                             break;
                     }
-                } while (i != startsAt);
+                }
+                while (i != startsAt);
             }
             if (kind != 0x7fffffff) {
                 jjmatchedKind = kind;
@@ -834,7 +837,7 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
         int curPos = 0;
 
         EOFLoop:
-        for (;;) {
+        for (; ; ) {
             try {
                 curChar = inputStream.BeginToken();
             } catch (java.io.IOException e) {
@@ -902,7 +905,8 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
     private void jjAddStates(int start, int end) {
         do {
             jjstateSet[jjnewStateCnt++] = JJ_NEXT_STATES[start];
-        } while (start++ != end);
+        }
+        while (start++ != end);
     }
 
     private void jjCheckNAddTwoStates(int state1, int state2) {
@@ -913,7 +917,8 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
     private void jjCheckNAddStates(int start, int end) {
         do {
             jjCheckNAdd(JJ_NEXT_STATES[start]);
-        } while (start++ != end);
+        }
+        while (start++ != end);
     }
 
 }

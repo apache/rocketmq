@@ -41,7 +41,7 @@ public class ExpressionMessageFilter implements MessageFilter {
     protected final boolean bloomDataValid;
 
     public ExpressionMessageFilter(SubscriptionData subscriptionData, ConsumerFilterData consumerFilterData,
-                                   ConsumerFilterManager consumerFilterManager) {
+        ConsumerFilterManager consumerFilterManager) {
         this.subscriptionData = subscriptionData;
         this.consumerFilterData = consumerFilterData;
         this.consumerFilterManager = consumerFilterManager;

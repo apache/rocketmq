@@ -26,7 +26,7 @@ import org.apache.rocketmq.common.message.Message;
 
 public class SplitBatchProducer {
 
-    public static void main(String[] args) throws  Exception {
+    public static void main(String[] args) throws Exception {
 
         DefaultMQProducer producer = new DefaultMQProducer("BatchProducerGroupName");
         producer.start();
@@ -41,25 +41,29 @@ public class SplitBatchProducer {
         //split the large batch into small ones:
         ListSplitter splitter = new ListSplitter(messages);
         while (splitter.hasNext()) {
-            List<Message>  listItem = splitter.next();
+            List<Message> listItem = splitter.next();
             producer.send(listItem);
         }
     }
 
 }
 
-
 class ListSplitter implements Iterator<List<Message>> {
     private int sizeLimit = 1000 * 1000;
     private final List<Message> messages;
     private int currIndex;
+
     public ListSplitter(List<Message> messages) {
         this.messages = messages;
     }
-    @Override public boolean hasNext() {
+
+    @Override
+    public boolean hasNext() {
         return currIndex < messages.size();
     }
-    @Override public List<Message> next() {
+
+    @Override
+    public List<Message> next() {
         int nextIndex = currIndex;
         int totalSize = 0;
         for (; nextIndex < messages.size(); nextIndex++) {
@@ -91,7 +95,8 @@ class ListSplitter implements Iterator<List<Message>> {
         return subList;
     }
 
-    @Override public void remove() {
+    @Override
+    public void remove() {
         throw new UnsupportedOperationException("Not allowed to remove");
     }
 }

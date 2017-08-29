@@ -242,7 +242,7 @@ class StatsBenchmarkProducer {
     private final AtomicLong sendMessageMaxRT = new AtomicLong(0L);
 
     public Long[] createSnapshot() {
-        Long[] snap = new Long[]{
+        Long[] snap = new Long[] {
             System.currentTimeMillis(),
             this.sendRequestSuccessCount.get(),
             this.sendRequestFailedCount.get(),

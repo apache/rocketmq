@@ -56,7 +56,6 @@ public class SelectorParser implements SelectorParserConstants {
             //                convertStringExpressions = true;
             //                sql = sql.substring(CONVERT_STRING_EXPRESSIONS_PREFIX.length());
             //            }
-            //
             //            if( convertStringExpressions ) {
             //                ComparisonExpression.CONVERT_STRING_EXPRESSIONS.set(true);
             //            }
@@ -997,12 +996,13 @@ public class SelectorParser implements SelectorParserConstants {
     }
 
     private static void jj_la1_init_0() {
-        jjLa10 = new int[]{0x400, 0x200, 0xc10000, 0xc00000, 0x10000, 0xf001900, 0x20000000, 0x20000000, 0xf000800,
+        jjLa10 = new int[] {
+            0x400, 0x200, 0xc10000, 0xc00000, 0x10000, 0xf001900, 0x20000000, 0x20000000, 0xf000800,
             0x1000, 0x1036e100, 0x1036e000, 0x16e000};
     }
 
     private static void jj_la1_init_1() {
-        jjLa11 = new int[]{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0};
+        jjLa11 = new int[] {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0};
     }
 
     final private JJCalls[] jj2Rtns = new JJCalls[4];
@@ -1323,7 +1323,8 @@ public class SelectorParser implements SelectorParserConstants {
                         }
                     }
                     p = p.next;
-                } while (p != null);
+                }
+                while (p != null);
             } catch (LookaheadSuccess ls) {
             }
         }

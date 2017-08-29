@@ -17,17 +17,14 @@
 
 package org.apache.rocketmq.common;
 
+import org.junit.Test;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
-import java.nio.ByteOrder;
-import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -92,5 +89,11 @@ public class MixAllTest {
         String fileName = System.getProperty("java.io.tmpdir") + File.separator + "MixAllTest" + System.currentTimeMillis();
         MixAll.string2File("MixAll_testString2File", fileName);
         assertThat(MixAll.file2String(fileName)).isEqualTo("MixAll_testString2File");
+    }
+
+    @Test
+    public void testGetLocalhostByNetworkInterface() throws Exception {
+        assertThat(MixAll.LOCALHOST).isNotNull();
+        assertThat(MixAll.getLocalhostByNetworkInterface()).isNotNull();
     }
 }

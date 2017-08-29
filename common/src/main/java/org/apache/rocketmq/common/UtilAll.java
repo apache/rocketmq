@@ -209,7 +209,6 @@ public class UtilAll {
         return -1;
     }
 
-
     public static int crc32(byte[] array) {
         if (array != null) {
             return crc32(array, 0, array.length);
@@ -217,7 +216,6 @@ public class UtilAll {
 
         return 0;
     }
-
 
     public static int crc32(byte[] array, int offset, int length) {
         CRC32 crc32 = new CRC32();
@@ -503,6 +501,21 @@ public class UtilAll {
             }
         } catch (Exception e) {
             throw new RuntimeException("Can not get local ip", e);
+        }
+    }
+
+    public static void deleteFile(File file) {
+        if (!file.exists()) {
+            return;
+        }
+        if (file.isFile()) {
+            file.delete();
+        } else if (file.isDirectory()) {
+            File[] files = file.listFiles();
+            for (File file1 : files) {
+                deleteFile(file1);
+            }
+            file.delete();
         }
     }
 }

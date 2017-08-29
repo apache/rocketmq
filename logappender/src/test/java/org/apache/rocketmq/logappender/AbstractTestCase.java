@@ -16,31 +16,18 @@
  */
 package org.apache.rocketmq.logappender;
 
-import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
-import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.MQVersion;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.namesrv.NamesrvConfig;
-import org.apache.rocketmq.logappender.common.ProducerInstance;
-import org.apache.rocketmq.namesrv.NamesrvController;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
 
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.common.message.*;
+import org.apache.rocketmq.logappender.common.ProducerInstance;
+import org.junit.Before;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
+import static org.mockito.Mockito.*;
+
+import java.lang.reflect.Field;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -48,107 +35,38 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class AbstractTestCase {
 
-    private static String nameServer = "localhost:9876";
+    private static CopyOnWriteArrayList<Message> messages = new CopyOnWriteArrayList<>();
 
-    private static NamesrvController namesrvController;
-
-    private static BrokerController brokerController;
-
-    private static String topic = "TopicTest";
-
-    @BeforeClass
-    public static void startRocketmqService() throws Exception {
-
-        startNamesrv();
-
-        startBroker();
-    }
-
-    /**
-     * Start rocketmq name server
-     * @throws Exception
-     */
-    private static void startNamesrv() throws Exception {
-
-        NamesrvConfig namesrvConfig = new NamesrvConfig();
-        NettyServerConfig nettyServerConfig = new NettyServerConfig();
-        nettyServerConfig.setListenPort(9876);
-
-        namesrvController = new NamesrvController(namesrvConfig, nettyServerConfig);
-        boolean initResult = namesrvController.initialize();
-        if (!initResult) {
-            namesrvController.shutdown();
-            throw new Exception();
-        }
-        namesrvController.start();
-    }
-
-    /**
-     * Start rocketmq broker service
-     * @throws Exception
-     */
-    private static void startBroker() throws Exception {
-
-        System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
-
-        BrokerConfig brokerConfig = new BrokerConfig();
-        brokerConfig.setNamesrvAddr(nameServer);
-        brokerConfig.setBrokerId(MixAll.MASTER_ID);
-        NettyServerConfig nettyServerConfig = new NettyServerConfig();
-        nettyServerConfig.setListenPort(10911);
-        NettyClientConfig nettyClientConfig = new NettyClientConfig();
-        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-
-        brokerController = new BrokerController(brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig);
-        boolean initResult = brokerController.initialize();
-        if (!initResult) {
-            brokerController.shutdown();
-            throw new Exception();
-        }
-        brokerController.start();
-    }
-
-    @AfterClass
-    public static void stop() {
-        ProducerInstance.closeAll();
-        if (brokerController != null) {
-            brokerController.shutdown();
-        }
-
-        if (namesrvController != null) {
-            namesrvController.shutdown();
-        }
-    }
-
-    protected int consumeMessages(int count,final String key,int timeout) throws MQClientException, InterruptedException {
-
-        final AtomicInteger cc = new AtomicInteger(0);
-        final CountDownLatch countDownLatch = new CountDownLatch(count);
-
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("hello");
-        consumer.setNamesrvAddr(nameServer);
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-        consumer.subscribe(topic, "*");
-
-        consumer.registerMessageListener(new MessageListenerConcurrently() {
-
+    @Before
+    public void mockLoggerAppender() throws Exception {
+        DefaultMQProducer defaultMQProducer = spy(new DefaultMQProducer("loggerAppender"));
+        doAnswer(new Answer<Void>() {
             @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                                                            ConsumeConcurrentlyContext context) {
-                for (MessageExt msg : msgs) {
-                    String body = new String(msg.getBody());
-                    if(key==null||body.contains(key)){
-                        countDownLatch.countDown();
-                        cc.incrementAndGet();
-                        continue;
-                    }
-                }
-                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Message message = (Message) invocationOnMock.getArgument(0);
+                messages.add(message);
+                return null;
             }
-        });
-        consumer.start();
-        countDownLatch.await(timeout, TimeUnit.SECONDS);
-        consumer.shutdown();
+        }).when(defaultMQProducer).sendOneway(any(Message.class));
+        ProducerInstance spy = mock(ProducerInstance.class);
+        Field instance = ProducerInstance.class.getDeclaredField("instance");
+        instance.setAccessible(true);
+        instance.set(ProducerInstance.class, spy);
+        doReturn(defaultMQProducer).when(spy).getInstance(anyString(), anyString());
+    }
+
+    public void clear() {
+
+    }
+
+    protected int consumeMessages(int count, final String key, int timeout) {
+        final AtomicInteger cc = new AtomicInteger(0);
+        for (Message message : messages) {
+            String body = new String(message.getBody());
+            if (body.contains(key)) {
+                cc.incrementAndGet();
+            }
+        }
         return cc.get();
     }
 }
