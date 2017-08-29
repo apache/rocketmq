@@ -122,7 +122,7 @@
         <module name="StaticVariableName"/>
         <module name="TypeName"/>
         <!--Checks that there are no import statements that use the * notation-->
-        <!--<module name="AvoidStarImport"/>-->
+        <module name="AvoidStarImport"/>
 
         <!--whitespace-->
         <module name="GenericWhitespace"/>
