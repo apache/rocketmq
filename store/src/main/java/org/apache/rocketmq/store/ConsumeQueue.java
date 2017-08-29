@@ -120,12 +120,12 @@ public class ConsumeQueue {
         DispatchRequest dispatchRequest = this.defaultMessageStore.getCommitLog().checkMessageAndReturnSize(commitLogBuffer.getByteBuffer(), false, false);
 
         if (!dispatchRequest.isSuccess()) {
-            String errorMsg = String.format("Can't build DispatchRequest from commit log  by offset %s,size %s,queueDir %s",offsetPy, sizePy, queueDir);
+            String errorMsg = String.format("Can't build DispatchRequest from commit log  by offset %s,size %s,queueDir %s", offsetPy, sizePy, queueDir);
             log.error(errorMsg);
             throw new IllegalStateException(errorMsg);
         }
 
-        long consumeQueueOffset = dispatchRequest.getConsumeQueueOffset() ;
+        long consumeQueueOffset = dispatchRequest.getConsumeQueueOffset();
 
         if (consumeQueueOffset == lastRecordOffset) {
             log.info("Commit log and Consume Queue logic consistent,consume queue file name {} ,queueDir {}", mappedFileQueue, queueDir);
