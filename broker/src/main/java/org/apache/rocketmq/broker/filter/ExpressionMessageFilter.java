@@ -70,7 +70,7 @@ public class ExpressionMessageFilter implements MessageFilter {
         // by tags code.
         if (ExpressionType.isTagType(subscriptionData.getExpressionType())) {
 
-            if (tagsCode == null || tagsCode < 0L) {
+            if (tagsCode == null) {
                 return true;
             }
 
