@@ -107,7 +107,6 @@ public class ConsumeQueue {
         //position latest consume queue offset,
         long offsetPy = consumeQueueBuffer.getByteBuffer().getLong();
         int sizePy = consumeQueueBuffer.getByteBuffer().getInt();
-        consumeQueueBuffer.getByteBuffer().getLong();
 
         SelectMappedBufferResult commitLogBuffer = this.defaultMessageStore.getCommitLog().getMessage(offsetPy, sizePy);
 
