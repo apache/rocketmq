@@ -2102,7 +2102,7 @@ public class MQClientAPIImpl {
         if (ResponseCode.SUCCESS == response.getCode()) {
             if (response.getBody() != null) {
                 return TracerTime.decode(response.getBody(), TracerTime.class);
-            }else {
+            } else {
                 return null;
             }
         }
