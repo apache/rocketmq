@@ -50,8 +50,8 @@ public class Message implements Serializable {
 
         this.setWaitStoreMsgOK(waitStoreMsgOK);
 
-        if(ClientTracerTimeUtil.isEnableTracerTime()){
-            putProperty(MessageConst.MESSAGE_CREATE_TIME,String.valueOf(System.currentTimeMillis()));
+        if (ClientTracerTimeUtil.isEnableTracerTime()) {
+            putProperty(MessageConst.MESSAGE_CREATE_TIME, String.valueOf(System.currentTimeMillis()));
         }
     }
 
