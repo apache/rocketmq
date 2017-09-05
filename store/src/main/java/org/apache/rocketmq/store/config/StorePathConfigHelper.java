@@ -40,6 +40,10 @@ public class StorePathConfigHelper {
         return rootDir + File.separator + "abort";
     }
 
+    public static String getLockFile(final String rootDir) {
+        return rootDir + File.separator + "lock";
+    }
+
     public static String getDelayOffsetStorePath(final String rootDir) {
         return rootDir + File.separator + "config" + File.separator + "delayOffset.json";
     }
