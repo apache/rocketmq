@@ -221,10 +221,6 @@ public class MessageStoreWithFilterTest {
 
     @Test
     public void testGetMessage_withFilterBitMapAndConsumerChanged() throws Exception {
-
-        int topicCount = 10, msgPerTopic = 10;
-        ConsumerFilterManager filterManager = ConsumerFilterManagerTest.gen(topicCount, msgPerTopic);
-
         List<MessageExtBrokerInner> msgs = putMsg(master, topicCount, msgPerTopic);
 
         Thread.sleep(200);
@@ -248,10 +244,6 @@ public class MessageStoreWithFilterTest {
 
             GetMessageResult resetGetResult = master.getMessage(resetGroup, topic, queueId, 0, 1000,
                 new ExpressionMessageFilter(resetSubData, resetFilterData, filterManager));
-
-
-            // sleep to wait for consume queue has been constructed.
-           Thread.sleep(2001);
 
             try {
                 assertThat(resetGetResult).isNotNull();
