@@ -95,7 +95,7 @@ public class ConsumeQueueExt {
      * Just test {@code address} is less than 0.
      * </p>
      */
-    public boolean isExtAddr(final long address) {
+    public static boolean isExtAddr(final long address) {
         return address <= MAX_ADDR;
     }
 
