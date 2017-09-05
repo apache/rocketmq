@@ -28,7 +28,6 @@ public class RunningFlags {
 
     private static final int DISK_FULL_BIT = 1 << 4;
 
-
     private volatile int flagBits = 0;
 
     public RunningFlags() {

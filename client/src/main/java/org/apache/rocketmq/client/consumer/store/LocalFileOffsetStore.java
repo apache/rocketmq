@@ -52,9 +52,9 @@ public class LocalFileOffsetStore implements OffsetStore {
     public LocalFileOffsetStore(MQClientInstance mQClientFactory, String groupName) {
         this.mQClientFactory = mQClientFactory;
         this.groupName = groupName;
-        this.storePath = LOCAL_OFFSET_STORE_DIR + File.separator + //
-            this.mQClientFactory.getClientId() + File.separator + //
-            this.groupName + File.separator + //
+        this.storePath = LOCAL_OFFSET_STORE_DIR + File.separator +
+            this.mQClientFactory.getClientId() + File.separator +
+            this.groupName + File.separator +
             "offsets.json";
     }
 
@@ -217,8 +217,8 @@ public class LocalFileOffsetStore implements OffsetStore {
                     OffsetSerializeWrapper.fromJson(content, OffsetSerializeWrapper.class);
             } catch (Exception e) {
                 log.warn("readLocalOffset Exception", e);
-                throw new MQClientException("readLocalOffset Exception, maybe fastjson version too low" //
-                    + FAQUrl.suggestTodo(FAQUrl.LOAD_JSON_EXCEPTION), //
+                throw new MQClientException("readLocalOffset Exception, maybe fastjson version too low"
+                    + FAQUrl.suggestTodo(FAQUrl.LOAD_JSON_EXCEPTION),
                     e);
             }
             return offsetSerializeWrapper;

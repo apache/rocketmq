@@ -233,7 +233,7 @@
             <maxIndex>10</maxIndex>
         </rollingPolicy>
         <triggeringPolicy
-                class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -350,8 +350,8 @@
     </logger>
 
     <logger name="RocketmqConsole" additivity="false">
-        <level value="INFO" />
-        <appender-ref ref="STDOUT" />
+        <level value="INFO"/>
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <root>

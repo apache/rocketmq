@@ -67,7 +67,7 @@ public class SqlFilterIT extends BaseConf {
         consumer.getListener().waitForMessageConsume(msgSize * 2, consumeTime);
         assertThat(producer.getAllMsgBody())
             .containsAllIn(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListener().getAllMsgBody()));
+                consumer.getListener().getAllMsgBody()));
 
         assertThat(consumer.getListener().getAllMsgBody().size()).isEqualTo(msgSize * 2);
     }
