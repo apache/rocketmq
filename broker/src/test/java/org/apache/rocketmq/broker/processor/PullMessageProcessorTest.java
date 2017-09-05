@@ -142,15 +142,18 @@ public class PullMessageProcessorTest {
         List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
         final ConsumeMessageContext[] messageContext = new ConsumeMessageContext[1];
         ConsumeMessageHook consumeMessageHook = new ConsumeMessageHook() {
-            @Override public String hookName() {
+            @Override
+            public String hookName() {
                 return "TestHook";
             }
 
-            @Override public void consumeMessageBefore(ConsumeMessageContext context) {
+            @Override
+            public void consumeMessageBefore(ConsumeMessageContext context) {
                 messageContext[0] = context;
             }
 
-            @Override public void consumeMessageAfter(ConsumeMessageContext context) {
+            @Override
+            public void consumeMessageAfter(ConsumeMessageContext context) {
             }
         };
         consumeMessageHookList.add(consumeMessageHook);

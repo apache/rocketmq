@@ -58,19 +58,11 @@
     <appender name="mqAppender1" class="org.apache.rocketmq.logappender.logback.RocketmqLogbackAppender">
         <tag>log1</tag>
         <topic>TopicTest</topic>
-        <producerGroup>logback</producerGroup>
+        <producerGroup>loggerAppender</producerGroup>
         <nameServerAddress>127.0.0.1:9876</nameServerAddress>
         <layout>
             <pattern>%date %p %t - %m%n</pattern>
         </layout>
-    </appender>
-
-    <appender name="mqAsyncAppender1" class="ch.qos.logback.classic.AsyncAppender">
-        <queueSize>1024</queueSize>
-        <discardingThreshold>80</discardingThreshold>
-        <maxFlushTime>2000</maxFlushTime>
-        <neverBlock>true</neverBlock>
-        <appender-ref ref="mqAppender1"/>
     </appender>
 
     <root>
@@ -83,7 +75,7 @@
     </logger>
 
     <logger name="testLogger" level="debug" additivity="false">
-        <appender-ref ref="mqAsyncAppender1"/>
+        <appender-ref ref="mqAppender1"/>
         <appender-ref ref="consoleAppender"/>
     </logger>
 </configuration>

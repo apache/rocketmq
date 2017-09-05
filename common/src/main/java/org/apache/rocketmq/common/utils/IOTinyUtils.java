@@ -60,7 +60,7 @@ public class IOTinyUtils {
         BufferedReader reader = toBufferedReader(input);
         List<String> list = new ArrayList<String>();
         String line;
-        for (;;) {
+        for (; ; ) {
             line = reader.readLine();
             if (null != line) {
                 list.add(line);
@@ -114,9 +114,6 @@ public class IOTinyUtils {
         fileOrDir.delete();
     }
 
-    /**
-
-     */
     public static void cleanDirectory(File directory) throws IOException {
         if (!directory.exists()) {
             String message = directory + " does not exist";
