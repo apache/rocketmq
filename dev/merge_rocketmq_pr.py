@@ -146,8 +146,10 @@ def merge_pr(pr_num, target_ref, title, body, pr_repo_desc):
 
     merge_message_flags = []
 
-    title = raw_input("Modify commit log [%s]: " % title)
-    merge_message_flags += ["-m", title]
+    modified_title = raw_input("Modify commit log [%s]: " % title)
+    if modified_title == "":
+        modified_title = title
+    merge_message_flags += ["-m", modified_title]
 
     authors = "\n".join(["Author: %s" % a for a in distinct_authors])
 

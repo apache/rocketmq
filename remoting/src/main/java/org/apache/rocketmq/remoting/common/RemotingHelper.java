@@ -17,17 +17,18 @@
 package org.apache.rocketmq.remoting.common;
 
 import io.netty.channel.Channel;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 
 public class RemotingHelper {
     public static final String ROCKETMQ_REMOTING = "RocketmqRemoting";
@@ -168,17 +169,6 @@ public class RemotingHelper {
         return "";
     }
 
-    public static String parseChannelRemoteName(final Channel channel) {
-        if (null == channel) {
-            return "";
-        }
-        final InetSocketAddress remote = (InetSocketAddress) channel.remoteAddress();
-        if (remote != null) {
-            return remote.getAddress().getHostName();
-        }
-        return "";
-    }
-
     public static String parseSocketAddressAddr(SocketAddress socketAddress) {
         if (socketAddress != null) {
             final String addr = socketAddress.toString();
@@ -186,15 +176,6 @@ public class RemotingHelper {
             if (addr.length() > 0) {
                 return addr.substring(1);
             }
-        }
-        return "";
-    }
-
-    public static String parseSocketAddressName(SocketAddress socketAddress) {
-
-        final InetSocketAddress addrs = (InetSocketAddress) socketAddress;
-        if (addrs != null) {
-            return addrs.getAddress().getHostName();
         }
         return "";
     }
