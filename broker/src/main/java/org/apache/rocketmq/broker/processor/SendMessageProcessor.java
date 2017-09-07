@@ -73,14 +73,13 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     return null;
                 }
 
-
                 Map<String, String> properties = MessageDecoder.string2messageProperties(requestHeader.getProperties());
-                String messageTracerTimeId = properties.get(MessageConst.MESSAGE_TRACER_TIME_ID);
+                String messageTracerTimeId = properties.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
                 if (brokerController.getBrokerConfig().isEnableTracerTime() && properties.containsKey(MessageConst.MESSAGE_CREATE_TIME)) {
-                    ServerTracerTimeUtil.addMessageCreateTime(messageTracerTimeId,properties.get(MessageConst.MESSAGE_CREATE_TIME));
-                    ServerTracerTimeUtil.addMessageSendTime(messageTracerTimeId,properties.get(MessageConst.MESSAGE_SEND_TIME));
-                    ServerTracerTimeUtil.addMessageArriveBrokerTime(messageTracerTimeId,System.currentTimeMillis());
-                    ServerTracerTimeUtil.addMessageBeginSaveTime(messageTracerTimeId,System.currentTimeMillis());
+                    ServerTracerTimeUtil.addMessageCreateTime(messageTracerTimeId, properties.get(MessageConst.MESSAGE_CREATE_TIME));
+                    ServerTracerTimeUtil.addMessageSendTime(messageTracerTimeId, properties.get(MessageConst.MESSAGE_SEND_TIME));
+                    ServerTracerTimeUtil.addMessageArriveBrokerTime(messageTracerTimeId, System.currentTimeMillis());
+                    ServerTracerTimeUtil.addMessageBeginSaveTime(messageTracerTimeId, System.currentTimeMillis());
                 }
 
 

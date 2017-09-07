@@ -48,7 +48,6 @@ public class MessageConst {
     public static final String MESSAGE_SAVE_END_TIME = "MESSAGE_SAVE_END_TIME";
     public static final String BROKER_SEND_ACK_TIME = "BROKER_SEND_ACK_TIME";
     public static final String RECEIVE_SEND_ACK_TIME = "RECEIVE_SEND_ACK_TIME";
-    public static final String MESSAGE_TRACER_TIME_ID = "MESSAGE_TRACER_TIME_ID";
 
     public static final String KEY_SEPARATOR = " ";
 
@@ -84,6 +83,5 @@ public class MessageConst {
         STRING_HASH_SET.add(MESSAGE_SAVE_END_TIME);
         STRING_HASH_SET.add(BROKER_SEND_ACK_TIME);
         STRING_HASH_SET.add(RECEIVE_SEND_ACK_TIME);
-        STRING_HASH_SET.add(MESSAGE_TRACER_TIME_ID);
     }
 }
