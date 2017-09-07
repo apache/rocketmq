@@ -9,6 +9,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.log4j.Logger;
+import org.apache.rocketmq.client.hook.TracerTimeSendMessageHook;
 import org.apache.rocketmq.common.ClientTracerTimeUtil;
 import org.apache.rocketmq.common.TracerTime;
 import org.apache.rocketmq.common.message.Message;
@@ -50,6 +51,8 @@ public class TracerTimeSendMessageTest extends BaseConf {
         List<Object> messageList = MQMessageFactory.getMsg(topic, msgSize, "tag");
 
         Message message = (Message) messageList.get(0);
+
+        producer.getProducer().getDefaultMQProducerImpl().registerSendMessageHook(new TracerTimeSendMessageHook());
 
         producer.send(message);
 
