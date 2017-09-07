@@ -164,4 +164,6 @@ public class RMQNormalProducer extends AbstractMQProducer {
         }
         return mqs;
     }
+
+
 }
