@@ -40,7 +40,7 @@ public class BaseConf {
     protected static String clusterName;
     protected static int brokerNum;
     protected static int waitTime = 5;
-    protected static int consumeTime = 1 * 60 * 1000;
+    protected static int consumeTime = 5 * 60 * 1000;
     protected static NamesrvController namesrvController;
     protected static BrokerController brokerController1;
     protected static BrokerController brokerController2;

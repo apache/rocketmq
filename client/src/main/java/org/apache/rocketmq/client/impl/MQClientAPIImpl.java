@@ -358,6 +358,7 @@ public class MQClientAPIImpl {
         }
     }
 
+
     private SendResult sendMessageSync(
         final String addr,
         final String brokerName,

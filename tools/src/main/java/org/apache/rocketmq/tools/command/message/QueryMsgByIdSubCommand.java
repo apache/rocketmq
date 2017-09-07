@@ -262,7 +262,8 @@ public class QueryMsgByIdSubCommand implements SubCommand {
         }
     }
 
-    private void pushMsg(final DefaultMQAdminExt defaultMQAdminExt, final String consumerGroup, final String clientId, final String msgId) {
+    private void pushMsg(final DefaultMQAdminExt defaultMQAdminExt, final String consumerGroup, final String clientId,
+        final String msgId) {
         try {
             ConsumeMessageDirectlyResult result =
                 defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, msgId);

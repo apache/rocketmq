@@ -63,7 +63,7 @@ public abstract class ServiceThread implements Runnable {
             this.thread.join(this.getJointime());
             long eclipseTime = System.currentTimeMillis() - beginTime;
             log.info("join thread " + this.getServiceName() + " eclipse time(ms) " + eclipseTime + " "
-                    + this.getJointime());
+                + this.getJointime());
         } catch (InterruptedException e) {
             log.error("Interrupted", e);
         }
@@ -71,61 +71,6 @@ public abstract class ServiceThread implements Runnable {
 
     public long getJointime() {
         return JOIN_TIME;
-    }
-
-    public void stop() {
-        this.stop(false);
-    }
-
-    public void stop(final boolean interrupt) {
-        this.stopped = true;
-        log.info("stop thread " + this.getServiceName() + " interrupt " + interrupt);
-        synchronized (this) {
-            if (!this.hasNotified) {
-                this.hasNotified = true;
-                this.notify();
-            }
-        }
-
-        if (interrupt) {
-            this.thread.interrupt();
-        }
-    }
-
-    public void makeStop() {
-        this.stopped = true;
-        log.info("makestop thread " + this.getServiceName());
-    }
-
-    public void wakeup() {
-        synchronized (this) {
-            if (!this.hasNotified) {
-                this.hasNotified = true;
-                this.notify();
-            }
-        }
-    }
-
-    protected void waitForRunning(long interval) {
-        synchronized (this) {
-            if (this.hasNotified) {
-                this.hasNotified = false;
-                this.onWaitEnd();
-                return;
-            }
-
-            try {
-                this.wait(interval);
-            } catch (InterruptedException e) {
-                log.error("Interrupted", e);
-            } finally {
-                this.hasNotified = false;
-                this.onWaitEnd();
-            }
-        }
-    }
-
-    protected void onWaitEnd() {
     }
 
     public boolean isStopped() {
