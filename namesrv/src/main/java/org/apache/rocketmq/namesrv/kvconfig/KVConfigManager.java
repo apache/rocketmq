@@ -72,10 +72,10 @@ public class KVConfigManager {
 
                 final String prev = kvTable.put(key, value);
                 if (null != prev) {
-                    log.info("putKVConfig update config item, Namespace: {} Key: {} Value: {}", //
+                    log.info("putKVConfig update config item, Namespace: {} Key: {} Value: {}",
                         namespace, key, value);
                 } else {
-                    log.info("putKVConfig create new config item, Namespace: {} Key: {} Value: {}", //
+                    log.info("putKVConfig create new config item, Namespace: {} Key: {} Value: {}",
                         namespace, key, value);
                 }
             } finally {
@@ -119,7 +119,7 @@ public class KVConfigManager {
                 HashMap<String, String> kvTable = this.configTable.get(namespace);
                 if (null != kvTable) {
                     String value = kvTable.remove(key);
-                    log.info("deleteKVConfig delete a config item, Namespace: {} Key: {} Value: {}", //
+                    log.info("deleteKVConfig delete a config item, Namespace: {} Key: {} Value: {}",
                         namespace, key, value);
                 }
             } finally {

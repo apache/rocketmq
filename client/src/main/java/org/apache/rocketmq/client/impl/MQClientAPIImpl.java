@@ -156,6 +156,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.slf4j.Logger;
 
+
 public class MQClientAPIImpl {
 
     private final static Logger log = ClientLogger.getLog();
@@ -982,9 +983,9 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public Set<MessageQueue> lockBatchMQ(
-        final String addr,
-        final LockBatchRequestBody requestBody,
+    public Set<MessageQueue> lockBatchMQ(//
+        final String addr, //
+        final LockBatchRequestBody requestBody, //
         final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LOCK_BATCH_MQ, null);
 
@@ -1004,11 +1005,11 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public void unlockBatchMQ(
-        final String addr,
-        final UnlockBatchRequestBody requestBody,
-        final long timeoutMillis,
-        final boolean oneway
+    public void unlockBatchMQ(//
+        final String addr, //
+        final UnlockBatchRequestBody requestBody, //
+        final long timeoutMillis, //
+        final boolean oneway//
     ) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UNLOCK_BATCH_MQ, null);
 
@@ -1031,8 +1032,7 @@ public class MQClientAPIImpl {
         }
     }
 
-    public TopicStatsTable getTopicStatsInfo(final String addr, final String topic,
-        final long timeoutMillis) throws InterruptedException,
+    public TopicStatsTable getTopicStatsInfo(final String addr, final String topic, final long timeoutMillis) throws InterruptedException,
         RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         GetTopicStatsInfoRequestHeader requestHeader = new GetTopicStatsInfoRequestHeader();
         requestHeader.setTopic(topic);
@@ -1059,8 +1059,7 @@ public class MQClientAPIImpl {
         return getConsumeStats(addr, consumerGroup, null, timeoutMillis);
     }
 
-    public ConsumeStats getConsumeStats(final String addr, final String consumerGroup, final String topic,
-        final long timeoutMillis)
+    public ConsumeStats getConsumeStats(final String addr, final String consumerGroup, final String topic, final long timeoutMillis)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException,
         MQBrokerException {
         GetConsumeStatsRequestHeader requestHeader = new GetConsumeStatsRequestHeader();
@@ -1083,8 +1082,7 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public ProducerConnection getProducerConnectionList(final String addr, final String producerGroup,
-        final long timeoutMillis)
+    public ProducerConnection getProducerConnectionList(final String addr, final String producerGroup, final long timeoutMillis)
         throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException,
         MQBrokerException {
         GetProducerConnectionListRequestHeader requestHeader = new GetProducerConnectionListRequestHeader();
@@ -1186,8 +1184,7 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public ClusterInfo getBrokerClusterInfo(
-        final long timeoutMillis) throws InterruptedException, RemotingTimeoutException,
+    public ClusterInfo getBrokerClusterInfo(final long timeoutMillis) throws InterruptedException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_CLUSTER_INFO, null);
 
@@ -1536,8 +1533,7 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public List<QueueTimeSpan> queryConsumeTimeSpan(final String addr, final String topic, final String group,
-        final long timeoutMillis)
+    public List<QueueTimeSpan> queryConsumeTimeSpan(final String addr, final String topic, final String group, final long timeoutMillis)
         throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException,
         MQBrokerException {
         QueryConsumeTimeSpanRequestHeader requestHeader = new QueryConsumeTimeSpanRequestHeader();
@@ -1877,8 +1873,7 @@ public class MQClientAPIImpl {
     }
 
     public void cloneGroupOffset(final String addr, final String srcGroup, final String destGroup, final String topic,
-        final boolean isOffline,
-        final long timeoutMillis) throws RemotingException, MQClientException, InterruptedException {
+        final boolean isOffline, final long timeoutMillis) throws RemotingException, MQClientException, InterruptedException {
         CloneGroupOffsetRequestHeader requestHeader = new CloneGroupOffsetRequestHeader();
         requestHeader.setSrcGroup(srcGroup);
         requestHeader.setDestGroup(destGroup);

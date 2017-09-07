@@ -405,7 +405,6 @@ public class MappedFileQueue {
                     break;
                 }
 
-                // TODO: Externalize this hardcoded value
                 if (destroy && mappedFile.destroy(1000 * 60)) {
                     files.add(mappedFile);
                     deleteCount++;

@@ -59,24 +59,20 @@ public class RocketmqLog4jAppender extends AppenderSkeleton {
     public RocketmqLog4jAppender() {
     }
 
-
     public void activateOptions() {
         LogLog.debug("Getting initial context.");
         if (!checkEntryConditions()) {
             return;
         }
         try {
-            producer = ProducerInstance.getInstance(nameServerAddress, producerGroup);
+            producer = ProducerInstance.getProducerInstance().getInstance(nameServerAddress, producerGroup);
         } catch (Exception e) {
             LogLog.error("activateOptions nameserver:" + nameServerAddress + " group:" + producerGroup + " " + e.getMessage());
         }
     }
 
-
     /**
      * Info,error,warn,callback method implementation
-     *
-     * @param event
      */
     public void append(LoggingEvent event) {
         if (null == producer) {
@@ -95,7 +91,7 @@ public class RocketmqLog4jAppender extends AppenderSkeleton {
         } catch (Exception e) {
             String msg = new String(data);
             errorHandler.error("Could not send message in RocketmqLog4jAppender [" + name + "].Message is :" + msg, e,
-                    ErrorCode.GENERIC_FAILURE);
+                ErrorCode.GENERIC_FAILURE);
         }
     }
 
@@ -129,7 +125,7 @@ public class RocketmqLog4jAppender extends AppenderSkeleton {
         this.closed = true;
 
         try {
-            ProducerInstance.removeAndClose(this.nameServerAddress, this.producerGroup);
+            ProducerInstance.getProducerInstance().removeAndClose(this.nameServerAddress, this.producerGroup);
         } catch (Exception e) {
             LogLog.error("Closing RocketmqLog4jAppender [" + name + "] nameServerAddress:" + nameServerAddress + " group:" + producerGroup + " " + e.getMessage());
         }
@@ -144,7 +140,6 @@ public class RocketmqLog4jAppender extends AppenderSkeleton {
     public String getTopic() {
         return topic;
     }
-
 
     public void setTopic(String topic) {
         this.topic = topic;

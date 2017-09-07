@@ -46,19 +46,23 @@ public class PullConsumerImplTest {
 
     @Mock
     private DefaultMQPullConsumer rocketmqPullConsumer;
-    private LocalMessageCache localMessageCache =
-        spy(new LocalMessageCache(rocketmqPullConsumer, new ClientConfig()));
+    private LocalMessageCache localMessageCache = null;
 
     @Before
     public void init() throws NoSuchFieldException, IllegalAccessException {
         final MessagingAccessPoint messagingAccessPoint = MessagingAccessPointFactory
             .getMessagingAccessPoint("openmessaging:rocketmq://IP1:9876,IP2:9876/namespace");
+
         consumer = messagingAccessPoint.createPullConsumer(queueName,
             OMS.newKeyValue().put(NonStandardKeys.CONSUMER_GROUP, "TestGroup"));
 
         Field field = PullConsumerImpl.class.getDeclaredField("rocketmqPullConsumer");
         field.setAccessible(true);
         field.set(consumer, rocketmqPullConsumer); //Replace
+
+        ClientConfig clientConfig = new ClientConfig();
+        clientConfig.setOmsOperationTimeout(200);
+        localMessageCache = spy(new LocalMessageCache(rocketmqPullConsumer, clientConfig));
 
         field = PullConsumerImpl.class.getDeclaredField("localMessageCache");
         field.setAccessible(true);

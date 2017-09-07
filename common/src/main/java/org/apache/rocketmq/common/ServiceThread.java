@@ -65,7 +65,7 @@ public abstract class ServiceThread implements Runnable {
             }
             long eclipseTime = System.currentTimeMillis() - beginTime;
             log.info("join thread " + this.getServiceName() + " eclipse time(ms) " + eclipseTime + " "
-                    + this.getJointime());
+                + this.getJointime());
         } catch (InterruptedException e) {
             log.error("Interrupted", e);
         }

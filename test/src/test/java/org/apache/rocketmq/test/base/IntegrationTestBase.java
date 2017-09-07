@@ -28,6 +28,7 @@ import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.TracerTime;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.namesrv.NamesrvController;
@@ -58,7 +59,8 @@ public class IntegrationTestBase {
     static {
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override public void run() {
+            @Override
+            public void run() {
                 try {
                     for (BrokerController brokerController : BROKER_CONTROLLERS) {
                         if (brokerController != null) {
@@ -79,7 +81,7 @@ public class IntegrationTestBase {
                         }
                     }
                     for (File file : TMPE_FILES) {
-                        deleteFile(file);
+                        UtilAll.deleteFile(file);
                     }
                 } catch (Exception e) {
                     logger.error("Shutdown error", e);
@@ -90,7 +92,7 @@ public class IntegrationTestBase {
     }
 
     private static String createBaseDir() {
-        String baseDir = System.getProperty("user.home") + SEP + "unitteststore" +SEP+DateFormatUtils.format(new Date(),"yyyy-mm-dd")+SEP+ UUID.randomUUID();
+        String baseDir = System.getProperty("user.home") + SEP + "unitteststore-" + UUID.randomUUID();
         final File file = new File(baseDir);
         if (file.exists()) {
             logger.info(String.format("[%s] has already existed, please back up and remove it for integration tests", baseDir));
@@ -152,12 +154,12 @@ public class IntegrationTestBase {
         return brokerController;
     }
 
-    public static boolean initTopic(String topic, String nsAddr, String clusterName) {
+    public static boolean initTopic(String topic, String nsAddr, String clusterName, int queueNumbers) {
         long startTime = System.currentTimeMillis();
         boolean createResult;
 
         while (true) {
-            createResult = MQAdmin.createTopic(nsAddr, clusterName, topic, 8);
+            createResult = MQAdmin.createTopic(nsAddr, clusterName, topic, queueNumbers);
             if (createResult) {
                 break;
             } else if (System.currentTimeMillis() - startTime > topicCreateTime) {
@@ -171,6 +173,10 @@ public class IntegrationTestBase {
         }
 
         return createResult;
+    }
+
+    public static boolean initTopic(String topic, String nsAddr, String clusterName) {
+        return initTopic(topic, nsAddr, clusterName, 8);
     }
 
     public static void deleteFile(File file) {
