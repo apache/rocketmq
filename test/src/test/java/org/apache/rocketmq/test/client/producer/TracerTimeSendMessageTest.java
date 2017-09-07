@@ -1,5 +1,6 @@
 package org.apache.rocketmq.test.client.producer;
 
+import static com.google.common.truth.Truth.assertThat;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,8 +22,6 @@ import org.apache.rocketmq.tools.command.stats.QueryTracerTimeCommand;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static com.google.common.truth.Truth.assertThat;
 
 public class TracerTimeSendMessageTest extends BaseConf {
 
@@ -55,7 +54,7 @@ public class TracerTimeSendMessageTest extends BaseConf {
         producer.send(message);
 
         Map<String, String> properties = message.getProperties();
-        String messageTraceTimeId = properties.get(MessageConst.MESSAGE_TRACER_TIME_ID);
+        String messageTraceTimeId = properties.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
         assertThat(properties.containsKey(MessageConst.MESSAGE_CREATE_TIME)).isTrue();
         assertThat(properties.containsKey(MessageConst.MESSAGE_SEND_TIME)).isTrue();
         assertThat(properties.containsKey(MessageConst.RECEIVE_SEND_ACK_TIME)).isTrue();
@@ -83,7 +82,7 @@ public class TracerTimeSendMessageTest extends BaseConf {
         producer.send(message);
 
         Map<String, String> properties = message.getProperties();
-        String messageTraceTimeId = properties.get(MessageConst.MESSAGE_TRACER_TIME_ID);
+        String messageTraceTimeId = properties.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
 
         List<String> args = new ArrayList<>();
         args.add("-b");
