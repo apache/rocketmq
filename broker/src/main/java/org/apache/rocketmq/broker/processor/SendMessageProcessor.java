@@ -19,9 +19,7 @@ package org.apache.rocketmq.broker.processor;
 import io.netty.channel.ChannelHandlerContext;
 import java.net.SocketAddress;
 import java.util.List;
-import java.util.Map;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.ServerTracerTimeUtil;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
@@ -74,16 +72,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     return null;
                 }
 
-                Map<String, String> properties = MessageDecoder.string2messageProperties(requestHeader.getProperties());
-                String messageTracerTimeId = properties.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
-                if (brokerController.getBrokerConfig().isEnableTracerTime() && properties.containsKey(MessageConst.MESSAGE_CREATE_TIME)) {
-                    ServerTracerTimeUtil.addMessageCreateTime(messageTracerTimeId, properties.get(MessageConst.MESSAGE_CREATE_TIME));
-                    ServerTracerTimeUtil.addMessageSendTime(messageTracerTimeId, properties.get(MessageConst.MESSAGE_SEND_TIME));
-                    ServerTracerTimeUtil.addMessageArriveBrokerTime(messageTracerTimeId, System.currentTimeMillis());
-                    ServerTracerTimeUtil.addMessageBeginSaveTime(messageTracerTimeId, System.currentTimeMillis());
-                }
-
-
                 mqtraceContext = buildMsgContext(ctx, requestHeader);
                 this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
 
@@ -94,16 +82,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     response = this.sendMessage(ctx, request, mqtraceContext, requestHeader);
                 }
 
-                if (brokerController.getBrokerConfig().isEnableTracerTime() && properties.containsKey(MessageConst.MESSAGE_CREATE_TIME)) {
-                    ServerTracerTimeUtil.addMessageSaveEndTime(messageTracerTimeId,System.currentTimeMillis());
-                    ServerTracerTimeUtil.addBrokerSendAckTime(messageTracerTimeId,System.currentTimeMillis());
-                }
-
                 this.executeSendMessageHookAfter(response, mqtraceContext);
-
-                if (brokerController.getBrokerConfig().isEnableTracerTime() && properties.containsKey(MessageConst.MESSAGE_CREATE_TIME)) {
-                    ServerTracerTimeUtil.addBrokerSendAckTime(messageTracerTimeId,System.currentTimeMillis());
-                }
                 return response;
         }
     }
