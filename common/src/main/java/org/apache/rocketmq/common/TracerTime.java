@@ -123,4 +123,18 @@ public class TracerTime extends RemotingSerializable {
         result = 31 * result + (int) (receiveSendAckTime ^ (receiveSendAckTime >>> 32));
         return result;
     }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("TracerTime{");
+        sb.append("messageCreateTime=").append(messageCreateTime);
+        sb.append(", messageSendTime=").append(messageSendTime);
+        sb.append(", messageArriveBrokerTime=").append(messageArriveBrokerTime);
+        sb.append(", messageBeginSaveTime=").append(messageBeginSaveTime);
+        sb.append(", messageSaveEndTime=").append(messageSaveEndTime);
+        sb.append(", brokerSendAckTime=").append(brokerSendAckTime);
+        sb.append(", receiveSendAckTime=").append(receiveSendAckTime);
+        sb.append('}');
+        return sb.toString();
+    }
 }
