@@ -31,7 +31,7 @@ public class TrackerTimeSendMessageHook implements SendMessageHook {
 
     @Override
     public void sendMessageBefore(SendMessageContext context) {
-        //TODO: brokerController.getBrokerConfig().isEnableTracerTime()
+        // brokerController.getBrokerConfig().isEnableTracerTime()
         String props = context.getMsgProps();
         if (props != null && props.length() > 1) {
             Map<String, String> properties = MessageDecoder.string2messageProperties(props);
