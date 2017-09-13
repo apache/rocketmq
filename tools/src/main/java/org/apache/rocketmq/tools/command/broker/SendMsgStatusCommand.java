@@ -54,7 +54,7 @@ public class SendMsgStatusCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("b", "brokerName", true, "Broker Name");
+        Option opt = new Option("t", "topicName", true, "Topic Name");
         opt.setRequired(true);
         options.addOption(opt);
 
@@ -76,15 +76,15 @@ public class SendMsgStatusCommand implements SubCommand {
 
         try {
             producer.start();
-            String brokerName = commandLine.getOptionValue('b').trim();
+            String topicName = commandLine.getOptionValue('t').trim();
             int messageSize = commandLine.hasOption('s') ? Integer.parseInt(commandLine.getOptionValue('s')) : 128;
             int count = commandLine.hasOption('c') ? Integer.parseInt(commandLine.getOptionValue('c')) : 50;
 
-            producer.send(buildMessage(brokerName, 16));
+            producer.send(buildMessage(topicName, 16));
 
             for (int i = 0; i < count; i++) {
                 long begin = System.currentTimeMillis();
-                SendResult result = producer.send(buildMessage(brokerName, messageSize));
+                SendResult result = producer.send(buildMessage(topicName, messageSize));
                 System.out.printf("rt:" + (System.currentTimeMillis() - begin) + "ms, SendResult=" + result);
             }
         } catch (Exception e) {
