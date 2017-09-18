@@ -16,13 +16,19 @@
  */
 package org.apache.rocketmq.common;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import org.apache.rocketmq.common.annotation.ImportantField;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class BrokerConfig {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+
     private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
     @ImportantField
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
@@ -47,6 +53,10 @@ public class BrokerConfig {
     private boolean autoCreateSubscriptionGroup = true;
     private String messageStorePlugIn = "";
 
+    /**
+     * thread numbers for send message thread pool, since spin lock will be used by default since 4.0.x, the default
+     * value is 1.
+     */
     private int sendMessageThreadPoolNums = 1; //16 + Runtime.getRuntime().availableProcessors() * 4;
     private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int adminBrokerThreadPoolNums = 16;
@@ -99,15 +109,24 @@ public class BrokerConfig {
 
     private boolean traceOn = true;
 
-    public static String localHostName() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
+    // Switch of filter bit map calculation.
+    // If switch on:
+    // 1. Calculate filter bit map when construct queue.
+    // 2. Filter bit map will be saved to consume queue extend file if allowed.
+    private boolean enableCalcFilterBitMap = false;
 
-        return "DEFAULT_BROKER";
-    }
+    // Expect num of consumers will use filter.
+    private int expectConsumerNumUseFilter = 32;
+
+    // Error rate of bloom filter, 1~100.
+    private int maxErrorRateOfBloomFilter = 20;
+
+    //how long to clean filter data after dead.Default: 24h
+    private long filterDataCleanTimeSpan = 24 * 3600 * 1000;
+
+    // whether do filter when retry.
+    private boolean filterSupportRetry = false;
+    private boolean enablePropertyFilter = false;
 
     public boolean isTraceOn() {
         return traceOn;
@@ -155,6 +174,16 @@ public class BrokerConfig {
 
     public void setSlaveReadEnable(final boolean slaveReadEnable) {
         this.slaveReadEnable = slaveReadEnable;
+    }
+
+    public static String localHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            log.error("Failed to obtain the host name", e);
+        }
+
+        return "DEFAULT_BROKER";
     }
 
     public int getRegisterBrokerTimeoutMills() {
@@ -483,5 +512,53 @@ public class BrokerConfig {
 
     public void setCommercialBaseCount(int commercialBaseCount) {
         this.commercialBaseCount = commercialBaseCount;
+    }
+
+    public boolean isEnableCalcFilterBitMap() {
+        return enableCalcFilterBitMap;
+    }
+
+    public void setEnableCalcFilterBitMap(boolean enableCalcFilterBitMap) {
+        this.enableCalcFilterBitMap = enableCalcFilterBitMap;
+    }
+
+    public int getExpectConsumerNumUseFilter() {
+        return expectConsumerNumUseFilter;
+    }
+
+    public void setExpectConsumerNumUseFilter(int expectConsumerNumUseFilter) {
+        this.expectConsumerNumUseFilter = expectConsumerNumUseFilter;
+    }
+
+    public int getMaxErrorRateOfBloomFilter() {
+        return maxErrorRateOfBloomFilter;
+    }
+
+    public void setMaxErrorRateOfBloomFilter(int maxErrorRateOfBloomFilter) {
+        this.maxErrorRateOfBloomFilter = maxErrorRateOfBloomFilter;
+    }
+
+    public long getFilterDataCleanTimeSpan() {
+        return filterDataCleanTimeSpan;
+    }
+
+    public void setFilterDataCleanTimeSpan(long filterDataCleanTimeSpan) {
+        this.filterDataCleanTimeSpan = filterDataCleanTimeSpan;
+    }
+
+    public boolean isFilterSupportRetry() {
+        return filterSupportRetry;
+    }
+
+    public void setFilterSupportRetry(boolean filterSupportRetry) {
+        this.filterSupportRetry = filterSupportRetry;
+    }
+
+    public boolean isEnablePropertyFilter() {
+        return enablePropertyFilter;
+    }
+
+    public void setEnablePropertyFilter(boolean enablePropertyFilter) {
+        this.enablePropertyFilter = enablePropertyFilter;
     }
 }

@@ -35,10 +35,12 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
 import org.apache.rocketmq.tools.command.SubCommand;
+import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class QueryMsgByUniqueKeySubCommand implements SubCommand {
 
-    public static void queryById(final DefaultMQAdminExt admin, final String topic, final String msgId) throws MQClientException,
+    public static void queryById(final DefaultMQAdminExt admin, final String topic,
+        final String msgId) throws MQClientException,
         RemotingException, MQBrokerException, InterruptedException, IOException {
         MessageExt msg = admin.viewMessage(topic, msgId);
 
@@ -179,7 +181,7 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
     }
 
     @Override
-    public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
+    public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
@@ -198,7 +200,7 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
                 queryById(defaultMQAdminExt, topic, msgId);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
             defaultMQAdminExt.shutdown();
         }

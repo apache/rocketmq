@@ -16,8 +16,11 @@
  */
 package org.apache.rocketmq.remoting.protocol;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.junit.Test;
 
@@ -29,7 +32,7 @@ public class RemotingCommandTest {
         int source = 261;
         SerializeType type = SerializeType.JSON;
         byte[] result = RemotingCommand.markProtocolType(source, type);
-        assertThat(result).isEqualTo(new byte[]{0, 0, 1, 5});
+        assertThat(result).isEqualTo(new byte[] {0, 0, 1, 5});
     }
 
     @Test
@@ -37,7 +40,7 @@ public class RemotingCommandTest {
         int source = 16777215;
         SerializeType type = SerializeType.ROCKETMQ;
         byte[] result = RemotingCommand.markProtocolType(source, type);
-        assertThat(result).isEqualTo(new byte[]{1, -1, -1, -1});
+        assertThat(result).isEqualTo(new byte[] {1, -1, -1, -1});
     }
 
     @Test
@@ -58,7 +61,7 @@ public class RemotingCommandTest {
 
         int code = RemotingSysResponseCode.SUCCESS;
         String remark = "Sample remark";
-        RemotingCommand cmd = RemotingCommand.createResponseCommand(code ,remark, SampleCommandCustomHeader.class);
+        RemotingCommand cmd = RemotingCommand.createResponseCommand(code, remark, SampleCommandCustomHeader.class);
         assertThat(cmd.getCode()).isEqualTo(code);
         assertThat(cmd.getVersion()).isEqualTo(2333);
         assertThat(cmd.getRemark()).isEqualTo(remark);
@@ -71,7 +74,7 @@ public class RemotingCommandTest {
 
         int code = RemotingSysResponseCode.SUCCESS;
         String remark = "Sample remark";
-        RemotingCommand cmd = RemotingCommand.createResponseCommand(code ,remark);
+        RemotingCommand cmd = RemotingCommand.createResponseCommand(code, remark);
         assertThat(cmd.getCode()).isEqualTo(code);
         assertThat(cmd.getVersion()).isEqualTo(2333);
         assertThat(cmd.getRemark()).isEqualTo(remark);
@@ -84,7 +87,7 @@ public class RemotingCommandTest {
 
         int code = RemotingSysResponseCode.SUCCESS;
         String remark = "Sample remark";
-        RemotingCommand cmd = RemotingCommand.createResponseCommand(code ,remark, CommandCustomHeader.class);
+        RemotingCommand cmd = RemotingCommand.createResponseCommand(code, remark, CommandCustomHeader.class);
         assertThat(cmd).isNull();
     }
 
@@ -128,7 +131,7 @@ public class RemotingCommandTest {
         int code = 103; //org.apache.rocketmq.common.protocol.RequestCode.REGISTER_BROKER
         CommandCustomHeader header = new SampleCommandCustomHeader();
         RemotingCommand cmd = RemotingCommand.createRequestCommand(code, header);
-        cmd.setBody(new byte[] { 0, 1, 2, 3, 4});
+        cmd.setBody(new byte[] {0, 1, 2, 3, 4});
 
         ByteBuffer buffer = cmd.encode();
 
@@ -141,7 +144,7 @@ public class RemotingCommandTest {
         RemotingCommand decodedCommand = RemotingCommand.decode(buffer);
 
         assertThat(decodedCommand.getSerializeTypeCurrentRPC()).isEqualTo(SerializeType.JSON);
-        assertThat(decodedCommand.getBody()).isEqualTo(new byte[]{ 0, 1, 2, 3, 4});
+        assertThat(decodedCommand.getBody()).isEqualTo(new byte[] {0, 1, 2, 3, 4});
     }
 
     @Test
@@ -179,6 +182,32 @@ public class RemotingCommandTest {
         assertThat(((ExtFieldsHeader) decodedHeader).isBooleanValue()).isEqualTo(true);
         assertThat(((ExtFieldsHeader) decodedHeader).getDoubleValue()).isBetween(0.617, 0.619);
     }
+
+    @Test
+    public void testNotNullField() throws Exception {
+        RemotingCommand remotingCommand = new RemotingCommand();
+        Method method = RemotingCommand.class.getDeclaredMethod("isFieldNullable", Field.class);
+        method.setAccessible(true);
+
+        Field nullString = FieldTestClass.class.getDeclaredField("nullString");
+        assertThat(method.invoke(remotingCommand, nullString)).isEqualTo(false);
+
+        Field nullableString = FieldTestClass.class.getDeclaredField("nullable");
+        assertThat(method.invoke(remotingCommand, nullableString)).isEqualTo(true);
+
+        Field value = FieldTestClass.class.getDeclaredField("value");
+        assertThat(method.invoke(remotingCommand, value)).isEqualTo(false);
+    }
+}
+
+class FieldTestClass {
+    @CFNotNull
+    String nullString = null;
+
+    String nullable = null;
+
+    @CFNotNull
+    String value = "NotNull";
 }
 
 class SampleCommandCustomHeader implements CommandCustomHeader {

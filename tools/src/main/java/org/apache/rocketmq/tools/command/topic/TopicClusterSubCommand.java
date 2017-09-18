@@ -23,6 +23,7 @@ import org.apache.commons.cli.Options;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
+import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class TopicClusterSubCommand implements SubCommand {
 
@@ -45,7 +46,8 @@ public class TopicClusterSubCommand implements SubCommand {
     }
 
     @Override
-    public void execute(final CommandLine commandLine, final Options options, RPCHook rpcHook) {
+    public void execute(final CommandLine commandLine, final Options options,
+        RPCHook rpcHook) throws SubCommandException {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         String topic = commandLine.getOptionValue('t').trim();
@@ -56,7 +58,7 @@ public class TopicClusterSubCommand implements SubCommand {
                 System.out.printf("%s%n", value);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
             defaultMQAdminExt.shutdown();
         }

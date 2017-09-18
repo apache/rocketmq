@@ -81,6 +81,14 @@ public class Message implements Serializable {
             throw new RuntimeException(String.format(
                 "The Property<%s> is used by system, input another please", name));
         }
+
+        if (value == null || value.trim().isEmpty()
+            || name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException(
+                "The name or value of property can not be null or blank string!"
+            );
+        }
+
         this.putProperty(name, value);
     }
 

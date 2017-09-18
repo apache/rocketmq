@@ -36,6 +36,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.command.SubCommand;
+import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class PrintMessageByQueueCommand implements SubCommand {
 
@@ -51,7 +52,8 @@ public class PrintMessageByQueueCommand implements SubCommand {
         return timestamp;
     }
 
-    private static void calculateByTag(final List<MessageExt> msgs, final Map<String, AtomicLong> tagCalmap, final boolean calByTag) {
+    private static void calculateByTag(final List<MessageExt> msgs, final Map<String, AtomicLong> tagCalmap,
+        final boolean calByTag) {
         if (!calByTag)
             return;
 
@@ -84,7 +86,8 @@ public class PrintMessageByQueueCommand implements SubCommand {
         }
     }
 
-    public static void printMessage(final List<MessageExt> msgs, final String charsetName, boolean printMsg, boolean printBody) {
+    public static void printMessage(final List<MessageExt> msgs, final String charsetName, boolean printMsg,
+        boolean printBody) {
         if (!printMsg)
             return;
 
@@ -154,18 +157,18 @@ public class PrintMessageByQueueCommand implements SubCommand {
     }
 
     @Override
-    public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
+    public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
         DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(MixAll.TOOLS_CONSUMER_GROUP, rpcHook);
 
         try {
             String charsetName =
                 !commandLine.hasOption('c') ? "UTF-8" : commandLine.getOptionValue('c').trim();
             boolean printMsg =
-                    commandLine.hasOption('p') && Boolean.parseBoolean(commandLine.getOptionValue('p').trim());
+                commandLine.hasOption('p') && Boolean.parseBoolean(commandLine.getOptionValue('p').trim());
             boolean printBody =
-                    commandLine.hasOption('d') && Boolean.parseBoolean(commandLine.getOptionValue('d').trim());
+                commandLine.hasOption('d') && Boolean.parseBoolean(commandLine.getOptionValue('d').trim());
             boolean calByTag =
-                    commandLine.hasOption('f') && Boolean.parseBoolean(commandLine.getOptionValue('f').trim());
+                commandLine.hasOption('f') && Boolean.parseBoolean(commandLine.getOptionValue('f').trim());
             String subExpression =
                 !commandLine.hasOption('s') ? "*" : commandLine.getOptionValue('s').trim();
 
@@ -214,7 +217,7 @@ public class PrintMessageByQueueCommand implements SubCommand {
 
             printCalculateByTag(tagCalmap, calByTag);
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
             consumer.shutdown();
         }

@@ -28,7 +28,7 @@ public class MessageFilterImpl implements MessageFilter {
         String property = msg.getProperty("SequenceId");
         if (property != null) {
             int id = Integer.parseInt(property);
-            if (((id % 10) == 0) && //
+            if (((id % 10) == 0) &&
                 (id > 100)) {
                 return true;
             }

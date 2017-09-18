@@ -46,24 +46,14 @@ public class TopicConfig {
 
     public String encode() {
         StringBuilder sb = new StringBuilder();
-
-        // 1
         sb.append(this.topicName);
         sb.append(SEPARATOR);
-
-        // 2
         sb.append(this.readQueueNums);
         sb.append(SEPARATOR);
-
-        // 3
         sb.append(this.writeQueueNums);
         sb.append(SEPARATOR);
-
-        // 4
         sb.append(this.perm);
         sb.append(SEPARATOR);
-
-        // 5
         sb.append(this.topicFilterType);
 
         return sb.toString();

@@ -147,7 +147,7 @@ public class IndexFile {
                     try {
                         fileLock.release();
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        log.error("Failed to release the lock", e);
                     }
                 }
             }
@@ -208,9 +208,8 @@ public class IndexFile {
 
                 if (slotValue <= invalidIndex || slotValue > this.indexHeader.getIndexCount()
                     || this.indexHeader.getIndexCount() <= 1) {
-                    // TODO NOTFOUND
                 } else {
-                    for (int nextIndexToRead = slotValue;;) {
+                    for (int nextIndexToRead = slotValue; ; ) {
                         if (phyOffsets.size() >= maxNum) {
                             break;
                         }
@@ -254,7 +253,7 @@ public class IndexFile {
                     try {
                         fileLock.release();
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        log.error("Failed to release the lock", e);
                     }
                 }
 

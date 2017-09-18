@@ -29,7 +29,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>4.1.0-incubating-SNAPSHOT</version>
+    <version>4.2.0-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.incubator.apache.org/</url>
@@ -43,8 +43,8 @@
         <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-rocketmq.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-rocketmq.git
         </developerConnection>
-      <tag>HEAD</tag>
-  </scm>
+        <tag>HEAD</tag>
+    </scm>
 
     <mailingLists>
         <mailingList>
@@ -69,66 +69,9 @@
 
     <developers>
         <developer>
-            <id>vintagewang</id>
-            <name>vintagewang</name>
-            <roles>
-                <role>architect</role>
-                <role>committer</role>
-            </roles>
-            <email>vintagewang@apache.org</email>
-            <url>https://github.com/vintagewang</url>
-            <timezone>8</timezone>
-        </developer>
-        <developer>
-            <id>vongosling@apache.org</id>
-            <name>vongosling@apache.org</name>
-            <roles>
-                <role>architect</role>
-                <role>committer</role>
-            </roles>
-            <email>vongosling@apache.org</email>
-            <url>https://github.com/vongosling@apache.org</url>
-            <timezone>+8</timezone>
-        </developer>
-        <developer>
-            <id>yukon</id>
-            <name>Xinyu Zhou</name>
-            <email>yukon@@apache.org</email>
-            <url>https://github.com/zhouxinyu</url>
-            <roles>
-                <role>committer</role>
-            </roles>
-            <timezone>+8</timezone>
-        </developer>
-        <developer>
-            <id>stevenschew</id>
-            <name>Wei Zhou</name>
-            <email>stevenschew@@apache.org</email>
-            <url>https://github.com/stevenschew</url>
-            <roles>
-                <role>committer</role>
-            </roles>
-            <timezone>+8</timezone>
-        </developer>
-        <developer>
-            <id>lollipop</id>
-            <name>Jixiang Jin</name>
-            <email>lollipop@apache.org</email>
-            <url>https://github.com/lollipopjin</url>
-            <roles>
-                <role>committer</role>
-            </roles>
-            <timezone>+8</timezone>
-        </developer>
-        <developer>
-            <id>lizhanhui</id>
-            <name>Zhanhui Li</name>
-            <email>lizhanhui@apache.org</email>
-            <url>https://github.com/lizhanhui</url>
-            <roles>
-                <role>committer</role>
-            </roles>
-            <timezone>+8</timezone>
+            <id>Apache RocketMQ</id>
+            <name>Apache RocketMQ of ASF</name>
+            <url>https://rocketmq.apache.org/</url>
         </developer>
     </developers>
 
@@ -161,10 +104,10 @@
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
-        <!-- URL of the ASF SonarQube server -->
-        <sonar.host.url>https://builds.apache.org/analysis</sonar.host.url>
         <!-- Exclude all generated code -->
-        <sonar.exclusions>file:**/generated-sources/**</sonar.exclusions>
+        <sonar.jacoco.itReportPath>${project.basedir}/../test/target/jacoco-it.exec</sonar.jacoco.itReportPath>
+        <sonar.exclusions>file:**/generated-sources/**,**/test/**</sonar.exclusions>
+
     </properties>
 
     <modules>
@@ -175,10 +118,14 @@
         <module>store</module>
         <module>namesrv</module>
         <module>remoting</module>
+        <module>logappender</module>
         <module>example</module>
         <module>filtersrv</module>
         <module>srvutil</module>
+        <module>filter</module>
         <module>test</module>
+        <module>distribution</module>
+        <module>openmessaging</module>
     </modules>
 
     <build>
@@ -379,7 +326,32 @@
                 <artifactId>sonar-maven-plugin</artifactId>
                 <version>3.0.2</version>
             </plugin>
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>2.19.1</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/NormalMsgDelayIT.java</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
+
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.0.0</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
 
     <profiles>
@@ -439,39 +411,6 @@
             </build>
         </profile>
         <profile>
-            <id>release-all</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <version>2.6</version>
-                        <configuration>
-                            <finalName>apache-rocketmq</finalName>
-                            <descriptors>
-                                <descriptor>release.xml</descriptor>
-                            </descriptors>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>release-client</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <configuration>
-                            <finalName>apache-rocketmq</finalName>
-                            <descriptors>
-                                <descriptor>release-client.xml</descriptor>
-                            </descriptors>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
             <id>it-test</id>
             <build>
                 <plugins>
@@ -479,15 +418,9 @@
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <version>2.19.1</version>
                         <configuration>
-                            <forkCount>1</forkCount>
-                            <reuseForks>true</reuseForks>
                             <argLine>@{failsafeArgLine}</argLine>
                             <excludes>
                                 <exclude>**/NormalMsgDelayIT.java</exclude>
-                                <exclude>**/BroadCastNormalMsgNotRecvIT.java</exclude>
-                                <exclude>**/TagMessageWithSameGroupConsumerIT.java</exclude>
-                                <exclude>**/AsyncSendWithMessageQueueSelectorIT.java</exclude>
-                                <exclude>**/AsyncSendWithMessageQueueIT.java</exclude>
                             </excludes>
                         </configuration>
                         <executions>
@@ -501,6 +434,13 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <profile>
+            <id>sonar-apache</id>
+            <properties>
+                <!-- URL of the ASF SonarQube server -->
+                <sonar.host.url>https://builds.apache.org/analysis</sonar.host.url>
+            </properties>
         </profile>
     </profiles>
 
@@ -578,9 +518,19 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-filter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-example</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>1.7.5</version>
+                <version>1.7.7</version>
             </dependency>
             <dependency>
                 <groupId>ch.qos.logback</groupId>
@@ -621,6 +571,31 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>3.4</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>19.0</version>
+            </dependency>
+            <dependency>
+                <groupId>io.openmessaging</groupId>
+                <artifactId>openmessaging-api</artifactId>
+                <version>0.1.0-alpha</version>
+            </dependency>
+            <dependency>
+                <groupId>log4j</groupId>
+                <artifactId>log4j</artifactId>
+                <version>1.2.17</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>2.7</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-slf4j-impl</artifactId>
+                <version>2.7</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

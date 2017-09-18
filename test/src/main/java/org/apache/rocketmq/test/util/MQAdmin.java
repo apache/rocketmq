@@ -45,14 +45,13 @@ public class MQAdmin {
             mqAdminExt.start();
             mqAdminExt.createTopic(clusterName, topic, queueNum);
         } catch (Exception e) {
-            e.printStackTrace();
         }
 
         long startTime = System.currentTimeMillis();
         while (!createResult) {
             createResult = checkTopicExist(mqAdminExt, topic);
             if (System.currentTimeMillis() - startTime < waitTimeSec * 1000) {
-                TestUtils.waitForMonment(100);
+                TestUtils.waitForMoment(100);
             } else {
                 log.error(String.format("timeout,but create topic[%s] failed!", topic));
                 break;

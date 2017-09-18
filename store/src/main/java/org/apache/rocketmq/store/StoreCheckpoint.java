@@ -71,7 +71,7 @@ public class StoreCheckpoint {
         try {
             this.fileChannel.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Failed to properly close the channel", e);
         }
     }
 
@@ -105,7 +105,6 @@ public class StoreCheckpoint {
     public long getMinTimestamp() {
         long min = Math.min(this.physicMsgTimestamp, this.logicsMsgTimestamp);
 
-        // fixed https://github.org/apache/rocketmqissues/467
         min -= 1000 * 3;
         if (min < 0)
             min = 0;

@@ -27,6 +27,7 @@ public class RunningFlags {
     private static final int WRITE_INDEX_FILE_ERROR_BIT = 1 << 3;
 
     private static final int DISK_FULL_BIT = 1 << 4;
+
     private volatile int flagBits = 0;
 
     public RunningFlags() {
@@ -70,6 +71,15 @@ public class RunningFlags {
 
     public boolean isWriteable() {
         if ((this.flagBits & (NOT_WRITEABLE_BIT | WRITE_LOGICS_QUEUE_ERROR_BIT | DISK_FULL_BIT | WRITE_INDEX_FILE_ERROR_BIT)) == 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    //for consume queue, just ignore the DISK_FULL_BIT
+    public boolean isCQWriteable() {
+        if ((this.flagBits & (NOT_WRITEABLE_BIT | WRITE_LOGICS_QUEUE_ERROR_BIT | WRITE_INDEX_FILE_ERROR_BIT)) == 0) {
             return true;
         }
 
