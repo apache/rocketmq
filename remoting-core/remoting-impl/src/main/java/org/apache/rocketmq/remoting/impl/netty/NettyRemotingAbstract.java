@@ -25,7 +25,6 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -98,7 +97,7 @@ public abstract class NettyRemotingAbstract implements RemotingService {
             clientConfig.getClientAsyncCallbackExecutorThreads(),
             60,
             TimeUnit.SECONDS,
-            new ArrayBlockingQueue<Runnable>(10000),
+            new LinkedBlockingQueue<Runnable>(10000),
             "PublicExecutor", true);
         this.remotingCommandFactory = new RemotingCommandFactoryImpl(remotingCommandFactoryMeta);
     }

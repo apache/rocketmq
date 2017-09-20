@@ -21,11 +21,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.remoting.api.AsyncHandler;
 import org.apache.rocketmq.remoting.api.RemotingService;
@@ -68,12 +68,20 @@ public abstract class RpcProxyCommon {
     public RpcProxyCommon(RpcCommonConfig rpcCommonConfig) {
         this.rpcCommonConfig = rpcCommonConfig;
         this.serviceStats = new ServiceStats();
-        this.promiseExecutorService = ThreadUtils.newThreadPoolExecutor(rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
-            rpcCommonConfig.getClientAsyncCallbackExecutorThreads(), rpcCommonConfig.getServiceThreadKeepAliveTime(),
-            TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(rpcCommonConfig.getServiceThreadBlockQueueSize()), "promiseExecutorService", true);
-        this.callServiceThreadPool = ThreadUtils.newThreadPoolExecutor(rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
-            rpcCommonConfig.getClientAsyncCallbackExecutorThreads(), rpcCommonConfig.getServiceThreadKeepAliveTime(),
-            TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(rpcCommonConfig.getServiceThreadBlockQueueSize()), "callServiceThread", true);
+        this.promiseExecutorService = ThreadUtils.newThreadPoolExecutor(
+            rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
+            rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
+            rpcCommonConfig.getServiceThreadKeepAliveTime(),
+            TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<Runnable>(rpcCommonConfig.getServiceThreadBlockQueueSize()),
+            "promiseExecutorService", true);
+        this.callServiceThreadPool = ThreadUtils.newThreadPoolExecutor(
+            rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
+            rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
+            rpcCommonConfig.getServiceThreadKeepAliveTime(),
+            TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<Runnable>(rpcCommonConfig.getServiceThreadBlockQueueSize()),
+            "callServiceThread", true);
     }
 
     private RemotingCommand createRemoteRequest(RemoteService serviceExport, Method method, Object[] args,

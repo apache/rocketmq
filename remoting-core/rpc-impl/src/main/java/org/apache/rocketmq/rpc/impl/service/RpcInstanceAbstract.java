@@ -17,8 +17,8 @@
 
 package org.apache.rocketmq.rpc.impl.service;
 
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.remoting.external.ThreadUtils;
@@ -45,9 +45,13 @@ public abstract class RpcInstanceAbstract extends RpcProxyCommon {
         this.rpcCommonConfig = rpcCommonConfig;
         this.rpcRequestProcessor = new RpcRequestProcessor(this.threadLocalProviderContext, this, serviceStats);
 
-        this.invokeServiceThreadPool = new ThreadPoolExecutor(rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
-            rpcCommonConfig.getClientAsyncCallbackExecutorThreads(), 60, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<Runnable>(rpcCommonConfig.getServiceThreadBlockQueueSize()), newThreadFactory("rpcInvokeServiceThread", true));
+        this.invokeServiceThreadPool = new ThreadPoolExecutor(
+            rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
+            rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
+            60,
+            TimeUnit.SECONDS,
+            new LinkedBlockingQueue<Runnable>(rpcCommonConfig.getServiceThreadBlockQueueSize()),
+            newThreadFactory("rpcInvokeServiceThread", true));
 
     }
 
