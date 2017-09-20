@@ -44,7 +44,7 @@ public class Decoder extends ByteToMessageDecoder {
             return;
         }
 
-        NettyByteBufferWrapper wrapper = new NettyByteBufferWrapper(in, ctx.channel());
+        NettyByteBufferWrapper wrapper = new NettyByteBufferWrapper(in);
 
         Object msg = this.decode(ctx, wrapper);
         if (msg != null) {

@@ -77,7 +77,7 @@ public abstract class NettyRemotingAbstract implements RemotingService {
     private final Semaphore semaphoreAsync;
     private final Map<Integer, ResponseResult> ackTables = new ConcurrentHashMap<Integer, ResponseResult>(256);
     private final Map<String, Pair<RequestProcessor, ExecutorService>> processorTables = new ConcurrentHashMap<String, Pair<RequestProcessor, ExecutorService>>();
-    private final AtomicLong count = new AtomicLong(0);
+    private final AtomicLong responseCounter = new AtomicLong(0);
     private final RemotingCommandFactory remotingCommandFactory;
     private final String remotingInstanceId = UIDGenerator.instance().createUID();
 
@@ -93,8 +93,13 @@ public abstract class NettyRemotingAbstract implements RemotingService {
     NettyRemotingAbstract(RemotingConfig clientConfig, RemotingCommandFactoryMeta remotingCommandFactoryMeta) {
         this.semaphoreOneway = new Semaphore(clientConfig.getClientOnewayInvokeSemaphore(), true);
         this.semaphoreAsync = new Semaphore(clientConfig.getClientAsyncInvokeSemaphore(), true);
-        this.publicExecutor = ThreadUtils.newThreadPoolExecutor(clientConfig.getClientAsyncCallbackExecutorThreads(), clientConfig.getClientAsyncCallbackExecutorThreads(), 60,
-            TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(10000), "PublicExecutor", true);
+        this.publicExecutor = ThreadUtils.newThreadPoolExecutor(
+            clientConfig.getClientAsyncCallbackExecutorThreads(),
+            clientConfig.getClientAsyncCallbackExecutorThreads(),
+            60,
+            TimeUnit.SECONDS,
+            new ArrayBlockingQueue<Runnable>(10000),
+            "PublicExecutor", true);
         this.remotingCommandFactory = new RemotingCommandFactoryImpl(remotingCommandFactoryMeta);
     }
 
@@ -237,9 +242,10 @@ public abstract class NettyRemotingAbstract implements RemotingService {
 
             long time = System.currentTimeMillis();
             ackTables.remove(cmd.requestID());
-            if (count.incrementAndGet() % 5000 == 0)
-                LOG.warn("REQUEST ID:{}, cost time:{}, ackTables.size:{}", cmd.requestID(), time - responseResult.getBeginTimestamp(),
+            if (responseCounter.incrementAndGet() % 5000 == 0) {
+                LOG.info("REQUEST ID:{}, cost time:{}, ackTables.size:{}", cmd.requestID(), time - responseResult.getBeginTimestamp(),
                     ackTables.size());
+            }
             if (responseResult.getAsyncHandler() != null) {
                 boolean sameThread = false;
                 ExecutorService executor = this.getCallbackExecutor();

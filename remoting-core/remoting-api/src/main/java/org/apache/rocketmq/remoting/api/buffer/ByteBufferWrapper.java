@@ -20,37 +20,37 @@ package org.apache.rocketmq.remoting.api.buffer;
 import java.nio.ByteBuffer;
 
 public interface ByteBufferWrapper {
-    void writeByte(int index, byte data);
-
     void writeByte(byte data);
 
-    byte readByte();
-
-    void writeInt(int data);
+    void writeByte(int index, byte data);
 
     void writeBytes(byte[] data);
 
     void writeBytes(ByteBuffer data);
 
-    int readableBytes();
+    void writeInt(int data);
 
-    int readInt();
+    void writeShort(short value);
+
+    void writeLong(long id);
+
+    byte readByte();
 
     void readBytes(byte[] dst);
 
     void readBytes(ByteBuffer dst);
 
+    short readShort();
+
+    int readInt();
+
+    long readLong();
+
+    int readableBytes();
+
     int readerIndex();
 
     void setReaderIndex(int readerIndex);
 
-    void writeLong(long id);
-
-    long readLong();
-
     void ensureCapacity(int capacity);
-
-    short readShort();
-
-    void writeShort(short value);
 }

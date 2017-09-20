@@ -18,39 +18,27 @@
 package org.apache.rocketmq.remoting.impl.buffer;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.Channel;
 import java.nio.ByteBuffer;
 import org.apache.rocketmq.remoting.api.buffer.ByteBufferWrapper;
 
 public class NettyByteBufferWrapper implements ByteBufferWrapper {
     private final ByteBuf buffer;
-    private final Channel channel;
 
     public NettyByteBufferWrapper(ByteBuf buffer) {
-        this(buffer, null);
-    }
-
-    public NettyByteBufferWrapper(ByteBuf buffer, Channel channel) {
-        this.channel = channel;
         this.buffer = buffer;
     }
 
-    public void writeByte(int index, byte data) {
-        buffer.writeByte(data);
-    }
-
+    @Override
     public void writeByte(byte data) {
         buffer.writeByte(data);
     }
 
-    public byte readByte() {
-        return buffer.readByte();
+    @Override
+    public void writeByte(int index, byte data) {
+        buffer.writeByte(data);
     }
 
-    public void writeInt(int data) {
-        buffer.writeInt(data);
-    }
-
+    @Override
     public void writeBytes(byte[] data) {
         buffer.writeBytes(data);
     }
@@ -60,29 +48,14 @@ public class NettyByteBufferWrapper implements ByteBufferWrapper {
         buffer.writeBytes(data);
     }
 
-    public int readableBytes() {
-        return buffer.readableBytes();
-    }
-
-    public int readInt() {
-        return buffer.readInt();
-    }
-
-    public void readBytes(byte[] dst) {
-        buffer.readBytes(dst);
+    @Override
+    public void writeShort(final short value) {
+        buffer.writeShort(value);
     }
 
     @Override
-    public void readBytes(final ByteBuffer dst) {
-        buffer.readBytes(dst);
-    }
-
-    public int readerIndex() {
-        return buffer.readerIndex();
-    }
-
-    public void setReaderIndex(int index) {
-        buffer.setIndex(index, buffer.writerIndex());
+    public void writeInt(int data) {
+        buffer.writeInt(data);
     }
 
     @Override
@@ -91,13 +64,18 @@ public class NettyByteBufferWrapper implements ByteBufferWrapper {
     }
 
     @Override
-    public long readLong() {
-        return buffer.readLong();
+    public byte readByte() {
+        return buffer.readByte();
     }
 
     @Override
-    public void ensureCapacity(int capacity) {
-        buffer.capacity(capacity);
+    public void readBytes(final ByteBuffer dst) {
+        buffer.readBytes(dst);
+    }
+
+    @Override
+    public void readBytes(byte[] dst) {
+        buffer.readBytes(dst);
     }
 
     @Override
@@ -106,8 +84,33 @@ public class NettyByteBufferWrapper implements ByteBufferWrapper {
     }
 
     @Override
-    public void writeShort(final short value) {
-        buffer.writeShort(value);
+    public int readInt() {
+        return buffer.readInt();
+    }
+
+    @Override
+    public long readLong() {
+        return buffer.readLong();
+    }
+
+    @Override
+    public int readableBytes() {
+        return buffer.readableBytes();
+    }
+
+    @Override
+    public int readerIndex() {
+        return buffer.readerIndex();
+    }
+
+    @Override
+    public void setReaderIndex(int index) {
+        buffer.setIndex(index, buffer.writerIndex());
+    }
+
+    @Override
+    public void ensureCapacity(int capacity) {
+        buffer.capacity(capacity);
     }
 }
 
