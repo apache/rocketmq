@@ -18,8 +18,6 @@
 package org.apache.rocketmq.rpc.impl.service;
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.remoting.external.ThreadUtils;
 import org.apache.rocketmq.rpc.impl.command.RpcRequestCode;
@@ -29,15 +27,13 @@ import org.apache.rocketmq.rpc.impl.metrics.DefaultServiceAPIImpl;
 import org.apache.rocketmq.rpc.impl.metrics.ThreadStats;
 import org.apache.rocketmq.rpc.impl.processor.RpcRequestProcessor;
 
-import static org.apache.rocketmq.remoting.external.ThreadUtils.newThreadFactory;
-
 public abstract class RpcInstanceAbstract extends RpcProxyCommon {
     protected final RpcRequestProcessor rpcRequestProcessor;
     protected final ThreadLocal<RpcProviderContext> threadLocalProviderContext = new ThreadLocal<RpcProviderContext>();
     protected final RpcCommonConfig rpcCommonConfig;
     protected ThreadStats threadStats;
     private DefaultServiceAPIImpl defaultServiceAPI;
-    private ThreadPoolExecutor invokeServiceThreadPool;
+    private ExecutorService invokeServiceThreadPool;
 
     public RpcInstanceAbstract(RpcCommonConfig rpcCommonConfig) {
         super(rpcCommonConfig);
@@ -45,13 +41,9 @@ public abstract class RpcInstanceAbstract extends RpcProxyCommon {
         this.rpcCommonConfig = rpcCommonConfig;
         this.rpcRequestProcessor = new RpcRequestProcessor(this.threadLocalProviderContext, this, serviceStats);
 
-        this.invokeServiceThreadPool = new ThreadPoolExecutor(
+        this.invokeServiceThreadPool = ThreadUtils.newFixedThreadPool(
             rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
-            rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
-            60,
-            TimeUnit.SECONDS,
-            new LinkedBlockingQueue<Runnable>(rpcCommonConfig.getServiceThreadBlockQueueSize()),
-            newThreadFactory("rpcInvokeServiceThread", true));
+            rpcCommonConfig.getServiceThreadBlockQueueSize(),"RPC-InvokeServiceThread", true);
 
     }
 
@@ -81,11 +73,11 @@ public abstract class RpcInstanceAbstract extends RpcProxyCommon {
 
     public abstract void registerServiceListener();
 
-    public ThreadPoolExecutor getInvokeServiceThreadPool() {
+    public ExecutorService getInvokeServiceThreadPool() {
         return invokeServiceThreadPool;
     }
 
-    public void setInvokeServiceThreadPool(ThreadPoolExecutor invokeServiceThreadPool) {
+    public void setInvokeServiceThreadPool(ExecutorService invokeServiceThreadPool) {
         this.invokeServiceThreadPool = invokeServiceThreadPool;
     }
 

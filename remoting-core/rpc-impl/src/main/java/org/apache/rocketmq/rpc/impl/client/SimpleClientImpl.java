@@ -19,7 +19,6 @@ package org.apache.rocketmq.rpc.impl.client;
 
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.remoting.api.RemotingClient;
 import org.apache.rocketmq.remoting.api.RemotingService;
@@ -48,13 +47,10 @@ public class SimpleClientImpl extends RpcInstanceAbstract implements SimpleClien
         super(rpcCommonConfig);
         this.remotingClient = remotingClient;
         this.rpcCommonConfig = rpcCommonConfig;
-        this.callServiceThreadPool = ThreadUtils.newThreadPoolExecutor(
+        this.callServiceThreadPool = ThreadUtils.newFixedThreadPool(
             rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
-            rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
-            rpcCommonConfig.getServiceThreadKeepAliveTime(),
-            TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>(rpcCommonConfig.getServiceThreadBlockQueueSize()),
-            "clientCallServiceThread", true);
+            rpcCommonConfig.getServiceThreadBlockQueueSize(),
+            "RPC-ClientCallServiceThread", true);
     }
 
     public void initialize() {

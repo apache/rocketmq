@@ -92,13 +92,9 @@ public abstract class NettyRemotingAbstract implements RemotingService {
     NettyRemotingAbstract(RemotingConfig clientConfig, RemotingCommandFactoryMeta remotingCommandFactoryMeta) {
         this.semaphoreOneway = new Semaphore(clientConfig.getClientOnewayInvokeSemaphore(), true);
         this.semaphoreAsync = new Semaphore(clientConfig.getClientAsyncInvokeSemaphore(), true);
-        this.publicExecutor = ThreadUtils.newThreadPoolExecutor(
+        this.publicExecutor = ThreadUtils.newFixedThreadPool(
             clientConfig.getClientAsyncCallbackExecutorThreads(),
-            clientConfig.getClientAsyncCallbackExecutorThreads(),
-            60,
-            TimeUnit.SECONDS,
-            new LinkedBlockingQueue<Runnable>(10000),
-            "PublicExecutor", true);
+            10000, "Remoting-PublicExecutor", true);
         this.remotingCommandFactory = new RemotingCommandFactoryImpl(remotingCommandFactoryMeta);
     }
 

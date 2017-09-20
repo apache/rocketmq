@@ -19,7 +19,6 @@ package org.apache.rocketmq.rpc.impl.server;
 
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.remoting.api.RemotingServer;
 import org.apache.rocketmq.remoting.api.RemotingService;
@@ -40,13 +39,10 @@ public class SimpleServerImpl extends RpcInstanceAbstract implements SimpleServe
     public SimpleServerImpl(final RpcCommonConfig remotingConfig) {
         this(remotingConfig, RemotingBootstrapFactory.createRemotingServer(remotingConfig));
         this.rpcCommonConfig = remotingConfig;
-        this.callServiceThreadPool = ThreadUtils.newThreadPoolExecutor(
+        this.callServiceThreadPool = ThreadUtils.newFixedThreadPool(
             rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
-            rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
-            rpcCommonConfig.getServiceThreadKeepAliveTime(),
-            TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>(remotingConfig.getServiceThreadBlockQueueSize()),
-            "serverCallServiceThread", true);
+            remotingConfig.getServiceThreadBlockQueueSize(),
+            "RPC-ServerCallServiceThread", true);
     }
 
     public SimpleServerImpl(final RpcCommonConfig remotingConfig, final RemotingServer remotingServer) {

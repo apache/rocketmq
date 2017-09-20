@@ -20,6 +20,7 @@ package org.apache.rocketmq.remoting.external;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -43,25 +44,32 @@ public final class ThreadUtils {
         int maximumPoolSize,
         long keepAliveTime,
         TimeUnit unit,
-        BlockingQueue<Runnable> workQueue, String processName, boolean isDaemon) {
-        return new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, newThreadFactory(processName, isDaemon));
+        BlockingQueue<Runnable> workQueue,
+        String processName, boolean isDaemon) {
+        return new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, newGenericThreadFactory(processName, isDaemon));
+    }
+
+    public static ExecutorService newFixedThreadPool(int nThreads, int workQueueCapacity, String processName, boolean isDaemon) {
+        return new ThreadPoolExecutor(
+            nThreads,
+            nThreads,
+            0,
+            TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<Runnable>(workQueueCapacity),
+            newGenericThreadFactory(processName, isDaemon));
     }
 
     public static ExecutorService newSingleThreadExecutor(String processName, boolean isDaemon) {
-        return Executors.newSingleThreadExecutor(newThreadFactory(processName, isDaemon));
+        return Executors.newSingleThreadExecutor(newGenericThreadFactory(processName, isDaemon));
     }
 
     public static ScheduledExecutorService newSingleThreadScheduledExecutor(String processName, boolean isDaemon) {
-        return Executors.newSingleThreadScheduledExecutor(newThreadFactory(processName, isDaemon));
+        return Executors.newSingleThreadScheduledExecutor(newGenericThreadFactory(processName, isDaemon));
     }
 
     public static ScheduledExecutorService newFixedThreadScheduledPool(int nThreads, String processName,
         boolean isDaemon) {
-        return Executors.newScheduledThreadPool(nThreads, newThreadFactory(processName, isDaemon));
-    }
-
-    public static ThreadFactory newThreadFactory(String processName, boolean isDaemon) {
-        return newGenericThreadFactory("Remoting-" + processName, isDaemon);
+        return Executors.newScheduledThreadPool(nThreads, newGenericThreadFactory(processName, isDaemon));
     }
 
     public static ThreadFactory newGenericThreadFactory(String processName) {

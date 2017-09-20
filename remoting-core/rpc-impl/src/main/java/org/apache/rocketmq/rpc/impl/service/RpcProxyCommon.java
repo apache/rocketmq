@@ -25,7 +25,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.remoting.api.AsyncHandler;
 import org.apache.rocketmq.remoting.api.RemotingService;
@@ -68,20 +67,14 @@ public abstract class RpcProxyCommon {
     public RpcProxyCommon(RpcCommonConfig rpcCommonConfig) {
         this.rpcCommonConfig = rpcCommonConfig;
         this.serviceStats = new ServiceStats();
-        this.promiseExecutorService = ThreadUtils.newThreadPoolExecutor(
+        this.promiseExecutorService = ThreadUtils.newFixedThreadPool(
             rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
+            rpcCommonConfig.getServiceThreadBlockQueueSize(),
+            "Remoting-PromiseExecutorService", true);
+        this.callServiceThreadPool = ThreadUtils.newFixedThreadPool(
             rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
-            rpcCommonConfig.getServiceThreadKeepAliveTime(),
-            TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>(rpcCommonConfig.getServiceThreadBlockQueueSize()),
-            "promiseExecutorService", true);
-        this.callServiceThreadPool = ThreadUtils.newThreadPoolExecutor(
-            rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
-            rpcCommonConfig.getClientAsyncCallbackExecutorThreads(),
-            rpcCommonConfig.getServiceThreadKeepAliveTime(),
-            TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>(rpcCommonConfig.getServiceThreadBlockQueueSize()),
-            "callServiceThread", true);
+            rpcCommonConfig.getServiceThreadBlockQueueSize(),
+            "Remoting-CallServiceThread", true);
     }
 
     private RemotingCommand createRemoteRequest(RemoteService serviceExport, Method method, Object[] args,
