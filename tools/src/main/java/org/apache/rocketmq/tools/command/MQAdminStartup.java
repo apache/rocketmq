@@ -117,7 +117,6 @@ public class MQAdminStartup {
                             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options),
                                 new PosixParser());
                         if (null == commandLine) {
-                            System.exit(-1);
                             return;
                         }
 
