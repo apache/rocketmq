@@ -169,7 +169,7 @@ public class UpdateTopicSubCommand implements SubCommand {
                     }
                     defaultMQAdminExt.createOrUpdateOrderConf(topicConfig.getTopicName(),
                         orderConf.toString(), true);
-                    System.out.printf(String.format("set cluster orderConf. isOrder=%s, orderConf=[%s]",
+                    System.out.printf("%s", String.format("set cluster orderConf. isOrder=%s, orderConf=[%s]",
                         isOrder, orderConf.toString()));
                 }
 
