@@ -1532,7 +1532,7 @@ public class DefaultMessageStore implements MessageStore {
          * @return <code>True</code> if cleaning is needed, otherwise <code>false</code>.
          */
         private boolean needCleaning(double usageRatio, double allowedRatio) {
-            if (usageRatio == -1)
+            if (usageRatio < 0)
                 return false;
 
             if (usageRatio > diskSpaceWarningLevelRatio) {

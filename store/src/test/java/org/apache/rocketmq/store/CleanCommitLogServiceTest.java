@@ -55,6 +55,7 @@ public class CleanCommitLogServiceTest {
 
     @After
     public void tearDown() throws Exception {
+        messageStore.shutdown();
     }
 
     @Test
@@ -67,49 +68,37 @@ public class CleanCommitLogServiceTest {
 
     @Test
     public void isSpaceToDeleteWithCommitLogNoQueue() throws Exception {
-        try {
-            messageStore.start();
-            messageStore.load();
+        messageStore.start();
+        messageStore.load();
 
-            Method m = clazz.getDeclaredMethod("isSpaceToDelete");
-            m.setAccessible(true);
+        Method m = clazz.getDeclaredMethod("isSpaceToDelete");
+        m.setAccessible(true);
 
-            Assert.assertFalse((boolean) m.invoke(cleanCommitLogService));
-        } finally {
-            messageStore.shutdown();
-        }
+        Assert.assertFalse((boolean) m.invoke(cleanCommitLogService));
     }
 
     @Test
     public void isSpaceToDeleteWithCommitLogDiskFull() throws Exception {
-        try {
-            messageStore.start();
-            messageStore.load();
+        messageStore.start();
+        messageStore.load();
 
-            Method m = clazz.getDeclaredMethod("isSpaceToDelete");
-            m.setAccessible(true);
+        Method m = clazz.getDeclaredMethod("isSpaceToDelete");
+        m.setAccessible(true);
 
-            when(cleanCommitLogService.getDiskUsageRatio()).thenReturn(0.9);
-            Assert.assertTrue((boolean) m.invoke(cleanCommitLogService));
-        } finally {
-            messageStore.shutdown();
-        }
+        when(cleanCommitLogService.getDiskUsageRatio()).thenReturn(0.9);
+        Assert.assertTrue((boolean) m.invoke(cleanCommitLogService));
     }
 
     @Test
     public void isSpaceToDeleteWithCommitLogQueueFull() throws Exception {
-        try {
-            messageStore.start();
-            messageStore.load();
+        messageStore.start();
+        messageStore.load();
 
-            Method m = clazz.getDeclaredMethod("isSpaceToDelete");
-            m.setAccessible(true);
+        Method m = clazz.getDeclaredMethod("isSpaceToDelete");
+        m.setAccessible(true);
 
-            when(cleanCommitLogService.getDiskUsageRatio()).thenReturn(0.1);
-            when(cleanCommitLogService.getQueueSpace()).thenReturn(0.9);
-            Assert.assertTrue((boolean) m.invoke(cleanCommitLogService));
-        } finally {
-            messageStore.shutdown();
-        }
+        when(cleanCommitLogService.getDiskUsageRatio()).thenReturn(0.1);
+        when(cleanCommitLogService.getQueueSpace()).thenReturn(0.9);
+        Assert.assertTrue((boolean) m.invoke(cleanCommitLogService));
     }
 }
