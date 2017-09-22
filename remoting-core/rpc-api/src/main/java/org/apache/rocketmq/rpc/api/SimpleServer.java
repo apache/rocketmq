@@ -25,9 +25,9 @@ import org.apache.rocketmq.remoting.api.channel.RemotingChannel;
 public interface SimpleServer extends ObjectLifecycle {
     <T> T bind(final Class<T> service, final RemotingChannel channel, final Properties properties);
 
-    AdvancedServer advancedServer();
-
     void publish(final Object service);
 
-    void publish(Object service, ExecutorService executorService);
+    void publish(final Object service, final ExecutorService executorService);
+
+    AdvancedServer advancedServer();
 }

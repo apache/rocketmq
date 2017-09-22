@@ -17,19 +17,19 @@
 package org.apache.rocketmq.rpc.api;
 
 public interface AdvancedClient {
-    <T> T callSync(String address,
+    <T> T callSync(final String address,
         final String serviceCode,
         final String version,
         final Object[] parameter,
         final Class<T> responseType) throws Exception;
 
-    <T> Promise<T> callAsync(String address,
+    <T> Promise<T> callAsync(final String address,
         final String serviceCode,
         final String version,
         final Object[] parameter,
         final Class<T> responseType) throws Exception;
 
-    void callOneway(String address,
+    void callOneway(final String address,
         final String serviceCode,
         final String version,
         final Object[] parameter) throws Exception;

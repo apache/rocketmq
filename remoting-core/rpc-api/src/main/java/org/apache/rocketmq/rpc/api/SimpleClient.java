@@ -22,11 +22,11 @@ import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.remoting.api.ObjectLifecycle;
 
 public interface SimpleClient extends ObjectLifecycle {
-    <T> T bind(Class<T> service, String address, Properties properties); //keyValue
+    <T> T bind(final Class<T> service, final String address, final Properties properties);
 
-    void publish(Object service);
+    void publish(final Object service);
 
-    void publish(Object service, ExecutorService executorService);
+    void publish(final Object service, final ExecutorService executorService);
 
     AdvancedClient advancedClient();
 }
