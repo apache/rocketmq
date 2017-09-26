@@ -150,8 +150,7 @@ public class DefaultMessageStoreTest {
             messageStore.putMessage(messageExtBrokerInner);
         }
         // wait for consume queue build
-        // the sleep time should be great than
-        // commit log flush interval plus consume queue flush interval
+        // the sleep time should be great than consume queue flush interval
         Thread.sleep(100);
         String group = "simple";
         GetMessageResult getMessageResult32 = messageStore.getMessage(group, topic, 0, 0, 32, null);
