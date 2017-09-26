@@ -22,17 +22,12 @@ import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 
-public class SelectMessageQueueByRandoom implements MessageQueueSelector {
+public class SelectMessageQueueByRandom implements MessageQueueSelector {
     private Random random = new Random(System.currentTimeMillis());
 
     @Override
     public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
-        int value = random.nextInt();
-        if (value < 0) {
-            value = Math.abs(value);
-        }
-
-        value = value % mqs.size();
+        int value = random.nextInt(mqs.size());
         return mqs.get(value);
     }
 }
