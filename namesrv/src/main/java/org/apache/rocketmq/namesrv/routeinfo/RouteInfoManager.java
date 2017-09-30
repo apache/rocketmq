@@ -152,7 +152,7 @@ public class RouteInfoManager {
                         channel,
                         haServerAddr));
                 if (null == prevBrokerLiveInfo) {
-                    log.info("new broker registerd, {} HAServer: {}", brokerAddr, haServerAddr);
+                    log.info("new broker registered, {} HAServer: {}", brokerAddr, haServerAddr);
                 }
 
                 if (filterServerList != null) {
