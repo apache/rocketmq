@@ -1,9 +1,9 @@
-## Apache RocketMQ [![Build Status](https://travis-ci.org/apache/incubator-rocketmq.svg?branch=master)](https://travis-ci.org/apache/incubator-rocketmq) [![Coverage Status](https://coveralls.io/repos/github/apache/incubator-rocketmq/badge.svg?branch=master)](https://coveralls.io/github/apache/incubator-rocketmq?branch=master)
+## Apache RocketMQ [![Build Status](https://travis-ci.org/apache/rocketmq.svg?branch=master)](https://travis-ci.org/apache/rocketmq) [![Coverage Status](https://coveralls.io/repos/github/apache/rocketmq/badge.svg?branch=master)](https://coveralls.io/github/apache/rocketmq?branch=master)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.apache.rocketmq/rocketmq-all/badge.svg)](http://search.maven.org/#search%7Cga%7C1%7Corg.apache.rocketmq)
 [![GitHub release](https://img.shields.io/badge/release-download-orange.svg)](https://rocketmq.apache.org/dowloading/releases)
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
-**[Apache RocketMQ](https://rocketmq.incubator.apache.org) is a distributed messaging and streaming platform with low latency, high performance and reliability, trillion-level capacity and flexible scalability.**
+**[Apache RocketMQ](https://rocketmq.apache.org) is a distributed messaging and streaming platform with low latency, high performance and reliability, trillion-level capacity and flexible scalability.**
 
 It offers a variety of features:
 
@@ -26,9 +26,9 @@ It offers a variety of features:
 ----------
 
 ## Learn it & Contact us
-* Mailing Lists: <https://rocketmq.incubator.apache.org/about/contact/>
-* Home: <https://rocketmq.incubator.apache.org>
-* Docs: <https://rocketmq.incubator.apache.org/docs/quick-start/>
+* Mailing Lists: <https://rocketmq.apache.org/about/contact/>
+* Home: <https://rocketmq.apache.org>
+* Docs: <https://rocketmq.apache.org/docs/quick-start/>
 * Issues: <https://issues.apache.org/jira/browse/RocketMQ>
 * Ask: <https://stackoverflow.com/questions/tagged/rocketmq>
  
@@ -36,7 +36,7 @@ It offers a variety of features:
 ----------
 
 ## Apache RocketMQ Community
-* [RocketMQ Community Projects](https://github.com/apache/incubator-rocketmq-externals)
+* [RocketMQ Community Projects](https://github.com/apache/rocketmq-externals)
 
 ----------
 
