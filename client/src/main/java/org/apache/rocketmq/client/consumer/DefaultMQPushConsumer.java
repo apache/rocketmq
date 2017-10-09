@@ -66,7 +66,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * load balance. It's required and needs to be globally unique.
      * </p>
      *
-     * See <a href="http://rocketmq.incubator.apache.org/docs/core-concept/">here</a> for further discussion.
+     * See <a href="http://rocketmq.apache.org/docs/core-concept/">here</a> for further discussion.
      */
     private String consumerGroup;
 
