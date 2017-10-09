@@ -252,6 +252,7 @@
                         <exclude>.travis.yml</exclude>
                         <exclude>CONTRIBUTING.md</exclude>
                         <exclude>bin/README.md</exclude>
+                        <exclude>PULL_REQUEST_TEMPLATE.md</exclude>
                     </excludes>
                 </configuration>
             </plugin>
