@@ -134,7 +134,7 @@ public class PrintMessageSubCommand implements SubCommand {
                     maxOffset = consumer.searchOffset(mq, timeValue);
                 }
 
-                System.out.printf("minOffset=" + minOffset + ", maxOffset=" + maxOffset + ", " + mq);
+                System.out.printf("minOffset=%s, maxOffset=%s, %s", minOffset, maxOffset, mq);
 
                 READQ:
                 for (long offset = minOffset; offset < maxOffset; ) {
@@ -146,11 +146,11 @@ public class PrintMessageSubCommand implements SubCommand {
                                 printMessage(pullResult.getMsgFoundList(), charsetName, printBody);
                                 break;
                             case NO_MATCHED_MSG:
-                                System.out.printf(mq + " no matched msg. status=" + pullResult.getPullStatus() + ", offset=" + offset);
+                                System.out.printf(mq + " no matched msg. status=%s, offset=%s", pullResult.getPullStatus(), offset);
                                 break;
                             case NO_NEW_MSG:
                             case OFFSET_ILLEGAL:
-                                System.out.printf(mq + " print msg finished. status=" + pullResult.getPullStatus() + ", offset=" + offset);
+                                System.out.printf(mq + " print msg finished. status=%s, offset=%s", pullResult.getPullStatus(), offset);
                                 break READQ;
                         }
                     } catch (Exception e) {
