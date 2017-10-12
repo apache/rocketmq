@@ -212,46 +212,30 @@ public class DefaultMessageStoreTest {
         String keys = "testQueryByTime";
         long now = System.currentTimeMillis();
         MessageBody = StoreMessage.getBytes();
-        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 16);
-        messageStoreConfig.setMaxHashSlotNum(100);
-        messageStoreConfig.setMaxIndexNum(100 * 10);
-        messageStoreConfig.setMapedFileSizeCommitLog(1024 * 1024);
-        messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
-        MessageStore master = new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("test"), new MyMessageArrivingListener(), new BrokerConfig());
-        boolean load = master.load();
-        Assert.assertTrue(load);
-
-        master.start();
-        try {
-            for (int i = 0; i < totalMsgs; i++) {
-                MessageExtBrokerInner messageExtBrokerInner = new MessageExtBrokerInner();
-                messageExtBrokerInner.setBody(("time:" + System.currentTimeMillis() + " index:" + i).getBytes());
-                messageExtBrokerInner.setTopic(topic);
-                messageExtBrokerInner.setKeys(keys);
-                messageExtBrokerInner.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
-                messageExtBrokerInner.setBornTimestamp(System.currentTimeMillis());
-                messageExtBrokerInner.setStoreHost(StoreHost);
-                messageExtBrokerInner.setBornHost(BornHost);
-                messageExtBrokerInner.setPropertiesString(MessageDecoder.messageProperties2String(messageExtBrokerInner.getProperties()));
-                PutMessageResult putMessageResult = master.putMessage(messageExtBrokerInner);
-                if (i == randomIndex) {
-                    now = putMessageResult.getAppendMessageResult().getStoreTimestamp();
-                }
+        for (int i = 0; i < totalMsgs; i++) {
+            MessageExtBrokerInner messageExtBrokerInner = new MessageExtBrokerInner();
+            messageExtBrokerInner.setBody(("time:" + System.currentTimeMillis() + " index:" + i).getBytes());
+            messageExtBrokerInner.setTopic(topic);
+            messageExtBrokerInner.setKeys(keys);
+            messageExtBrokerInner.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+            messageExtBrokerInner.setBornTimestamp(System.currentTimeMillis());
+            messageExtBrokerInner.setStoreHost(StoreHost);
+            messageExtBrokerInner.setBornHost(BornHost);
+            messageExtBrokerInner.setPropertiesString(MessageDecoder.messageProperties2String(messageExtBrokerInner.getProperties()));
+            PutMessageResult putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+            if (i == randomIndex) {
+                now = putMessageResult.getAppendMessageResult().getStoreTimestamp();
             }
-            Thread.sleep(2000L);
-            long end = System.currentTimeMillis();
-            QueryMessageResult result = master.queryMessage(topic, keys, totalMsgs, now, end);
-            for (ByteBuffer byteBuffer : result.getMessageBufferList()) {
-                MessageExt messageExt = MessageDecoder.decode(byteBuffer);
-            }
-            int bufferTotalSize = result.getMessageBufferList().size();
-            result.release();
-            Assert.assertTrue(totalMsgs - randomIndex - 1 <= bufferTotalSize);
-        } finally {
-            master.shutdown();
-            master.destroy();
         }
+        Thread.sleep(2000L);
+        long end = System.currentTimeMillis();
+        QueryMessageResult result = messageStore.queryMessage(topic, keys, totalMsgs, now, end);
+        for (ByteBuffer byteBuffer : result.getMessageBufferList()) {
+            MessageExt messageExt = MessageDecoder.decode(byteBuffer);
+        }
+        int bufferTotalSize = result.getMessageBufferList().size();
+        result.release();
+        Assert.assertTrue(totalMsgs - randomIndex - 1 <= bufferTotalSize);
     }
 
     @Test
@@ -262,15 +246,6 @@ public class DefaultMessageStoreTest {
         String keys = "testQueryByTime";
         String consumerGroup = "testQueryByTime";
         MessageBody = StoreMessage.getBytes();
-        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 16);
-        messageStoreConfig.setMaxHashSlotNum(100);
-        messageStoreConfig.setMaxIndexNum(100 * 10);
-        messageStoreConfig.setMapedFileSizeCommitLog(1024 * 1024);
-        messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
-        DefaultMessageStore master = new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("test"), new MyMessageArrivingListener(), new BrokerConfig());
-        boolean load = master.load();
-        Assert.assertTrue(load);
 
         TreeMap<Long, AtomicInteger> sameTimeCountCache = new TreeMap<>();
         TreeMap<Long, AtomicInteger> sameTimeResultCache = new TreeMap<>();
@@ -280,74 +255,67 @@ public class DefaultMessageStoreTest {
         int endCount1 = 0;
         int endCount2 = 0;
         long start = 0;
-        master.start();
-        try {
-            for (long i = 0; i < totalMsgs; i++) {
-                if (i == totalMsgs - 20) {
-                    Thread.sleep(1000);
-                    hlTime = System.currentTimeMillis();
-                    Thread.sleep(500);
-                }
-                if (i == totalMsgs - 10) {
-                    endTime = System.currentTimeMillis();
-                }
-                MessageExtBrokerInner messageExtBrokerInner = new MessageExtBrokerInner();
-                messageExtBrokerInner.setBody(("time:" + System.currentTimeMillis() + " index:" + i).getBytes());
-                messageExtBrokerInner.setTopic(topic);
-                messageExtBrokerInner.setKeys(keys);
-                messageExtBrokerInner.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
-                messageExtBrokerInner.setBornTimestamp(System.currentTimeMillis());
-                messageExtBrokerInner.setStoreHost(StoreHost);
-                messageExtBrokerInner.setBornHost(BornHost);
-                messageExtBrokerInner.setPropertiesString(MessageDecoder.messageProperties2String(messageExtBrokerInner.getProperties()));
-                PutMessageResult putMessageResult = master.putMessage(messageExtBrokerInner);
-                long storeTimestamp = putMessageResult.getAppendMessageResult().getStoreTimestamp();
-                AtomicInteger count = sameTimeCountCache.get(storeTimestamp);
-                if (count == null) {
-                    count = new AtomicInteger(0);
-                    sameTimeCountCache.put(storeTimestamp, count);
-                }
-                count.incrementAndGet();
+
+        for (long i = 0; i < totalMsgs; i++) {
+            if (i == totalMsgs - 20) {
+                Thread.sleep(1000);
+                hlTime = System.currentTimeMillis();
+                Thread.sleep(500);
             }
-            Thread.sleep(2000L);
-
-            Map.Entry<Long, AtomicInteger> timeCount = sameTimeCountCache.lastEntry();
-            start = timeCount.getKey();
-            long offsetInQueueByTime = master.getOffsetInQueueByTime(topic, 0, start, false);
-            GetMessageResult testQueryByTime = master.getMessage(consumerGroup, topic, 0, offsetInQueueByTime, 20, null);
-
-            List<ByteBuffer> messageBufferList = testQueryByTime.getMessageBufferList();
-            for (ByteBuffer byteBuffer : messageBufferList) {
-                MessageExt messageExt = MessageDecoder.decode(byteBuffer);
-                AtomicInteger cc = sameTimeResultCache.get(messageExt.getStoreTimestamp());
-                if (cc == null) {
-                    cc = new AtomicInteger(0);
-                    sameTimeResultCache.put(messageExt.getStoreTimestamp(), cc);
-                }
-                cc.incrementAndGet();
+            if (i == totalMsgs - 10) {
+                endTime = System.currentTimeMillis();
             }
-            testQueryByTime.release();
-
-            long hlOffset = master.getOffsetInQueueByTime(topic, 0, hlTime, false);
-            GetMessageResult hlResult = master.getMessage(consumerGroup, topic, 0, hlOffset, 20, null);
-            hlCount = hlResult.getMessageCount();
-            hlResult.release();
-
-            long endOffset1 = master.getOffsetInQueueByTime(topic, 0, endTime, false);
-            GetMessageResult endResult1 = master.getMessage(consumerGroup, topic, 0, endOffset1, 20, null);
-            endCount1 = endResult1.getMessageCount();
-            endResult1.release();
-
-            long endOffset2 = master.getOffsetInQueueByTime(topic, 0, endTime, true);
-            GetMessageResult endResult2 = master.getMessage(consumerGroup, topic, 0, endOffset2, 20, null);
-            endCount2 = endResult2.getMessageCount();
-            endResult2.release();
-
-        } finally {
-            master.shutdown();
-            master.destroy();
+            MessageExtBrokerInner messageExtBrokerInner = new MessageExtBrokerInner();
+            messageExtBrokerInner.setBody(("time:" + System.currentTimeMillis() + " index:" + i).getBytes());
+            messageExtBrokerInner.setTopic(topic);
+            messageExtBrokerInner.setKeys(keys);
+            messageExtBrokerInner.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+            messageExtBrokerInner.setBornTimestamp(System.currentTimeMillis());
+            messageExtBrokerInner.setStoreHost(StoreHost);
+            messageExtBrokerInner.setBornHost(BornHost);
+            messageExtBrokerInner.setPropertiesString(MessageDecoder.messageProperties2String(messageExtBrokerInner.getProperties()));
+            PutMessageResult putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+            long storeTimestamp = putMessageResult.getAppendMessageResult().getStoreTimestamp();
+            AtomicInteger count = sameTimeCountCache.get(storeTimestamp);
+            if (count == null) {
+                count = new AtomicInteger(0);
+                sameTimeCountCache.put(storeTimestamp, count);
+            }
+            count.incrementAndGet();
         }
+        Thread.sleep(2000L);
 
+        Map.Entry<Long, AtomicInteger> timeCount = sameTimeCountCache.lastEntry();
+        start = timeCount.getKey();
+        long offsetInQueueByTime = messageStore.getOffsetInQueueByTime(topic, 0, start, false);
+        GetMessageResult testQueryByTime = messageStore.getMessage(consumerGroup, topic, 0, offsetInQueueByTime, 20, null);
+
+        List<ByteBuffer> messageBufferList = testQueryByTime.getMessageBufferList();
+        for (ByteBuffer byteBuffer : messageBufferList) {
+            MessageExt messageExt = MessageDecoder.decode(byteBuffer);
+            AtomicInteger cc = sameTimeResultCache.get(messageExt.getStoreTimestamp());
+            if (cc == null) {
+                cc = new AtomicInteger(0);
+                sameTimeResultCache.put(messageExt.getStoreTimestamp(), cc);
+            }
+            cc.incrementAndGet();
+        }
+        testQueryByTime.release();
+
+        long hlOffset = messageStore.getOffsetInQueueByTime(topic, 0, hlTime, false);
+        GetMessageResult hlResult = messageStore.getMessage(consumerGroup, topic, 0, hlOffset, 20, null);
+        hlCount = hlResult.getMessageCount();
+        hlResult.release();
+
+        long endOffset1 = messageStore.getOffsetInQueueByTime(topic, 0, endTime, false);
+        GetMessageResult endResult1 = messageStore.getMessage(consumerGroup, topic, 0, endOffset1, 20, null);
+        endCount1 = endResult1.getMessageCount();
+        endResult1.release();
+
+        long endOffset2 = messageStore.getOffsetInQueueByTime(topic, 0, endTime, true);
+        GetMessageResult endResult2 = messageStore.getMessage(consumerGroup, topic, 0, endOffset2, 20, null);
+        endCount2 = endResult2.getMessageCount();
+        endResult2.release();
         Assert.assertTrue(start > 0);
         AtomicInteger cc = sameTimeCountCache.get(start);
         AtomicInteger result = sameTimeResultCache.get(start);

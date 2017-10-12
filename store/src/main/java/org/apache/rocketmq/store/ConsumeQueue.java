@@ -205,11 +205,9 @@ public class ConsumeQueue {
                             offset = leftOffset;
                         } else {
                             if (isGetTimeLast) {
-                                long fixedTimestamp = getStoreTimeStamp(byteBuffer, leftOffset);
-                                offset = fixCandidateTime(mappedFile, byteBuffer, leftOffset, true, minPhysicOffset, fixedTimestamp);
+                                offset = leftOffset;
                             } else {
-                                long fixedTimestamp = getStoreTimeStamp(byteBuffer, rightOffset);
-                                offset = fixCandidateTime(mappedFile, byteBuffer, rightOffset, false, minPhysicOffset, fixedTimestamp);
+                                offset = rightOffset;
                             }
                         }
                     }

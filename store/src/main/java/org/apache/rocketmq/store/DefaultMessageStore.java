@@ -637,6 +637,10 @@ public class DefaultMessageStore implements MessageStore {
         return 0;
     }
 
+    /**
+     * As there is many msgs in one timestamp,so add isGetTimeLast parameter to specify.
+     * if isGetTimeLast is true,return the last offset of this timestamp,else return the first offset.
+     */
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, boolean isGetTimeLast) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
