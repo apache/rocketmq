@@ -67,7 +67,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * For non-transactional messages, it does not matter as long as it's unique per process.
      * </p>
      *
-     * See {@linktourl http://rocketmq.incubator.apache.org/docs/core-concept/} for more discussion.
+     * See {@linktourl http://rocketmq.apache.org/docs/core-concept/} for more discussion.
      */
     private String producerGroup;
 

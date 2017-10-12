@@ -114,7 +114,7 @@ public class ConsumerSubCommand implements SubCommand {
                             String result =
                                 ConsumerRunningInfo.analyzeProcessQueue(next.getKey(), next.getValue());
                             if (result.length() > 0) {
-                                System.out.printf(result);
+                                System.out.printf("%s", result);
                             }
                         }
                     } else {

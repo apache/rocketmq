@@ -92,7 +92,7 @@ public class FiltersrvStartup {
                     Properties properties = new Properties();
                     properties.load(in);
                     MixAll.properties2Object(properties, filtersrvConfig);
-                    System.out.printf("load config properties file OK, " + file + "%n");
+                    System.out.printf("load config properties file OK, %s%n", file);
                     in.close();
 
                     String port = properties.getProperty("listenPort");
@@ -116,8 +116,7 @@ public class FiltersrvStartup {
 
             MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), filtersrvConfig);
             if (null == filtersrvConfig.getRocketmqHome()) {
-                System.out.printf("Please set the " + MixAll.ROCKETMQ_HOME_ENV
-                    + " variable in your environment to match the location of the RocketMQ installation%n");
+                System.out.printf("Please set the %s variable in your environment to match the location of the RocketMQ installation%n", MixAll.ROCKETMQ_HOME_ENV);
                 System.exit(-2);
             }
 

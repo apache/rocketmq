@@ -1,7 +1,7 @@
 notifications:
   email:
     recipients:
-      - dev@rocketmq.incubator.apache.org
+      - dev@rocketmq.apache.org
   on_success: change
   on_failure: always
 
@@ -14,25 +14,12 @@ matrix:
   # On Linux, run with specific JDKs only.
   - os: linux
     env: CUSTOM_JDK="oraclejdk8"
-  - os: linux
-    env: CUSTOM_JDK="oraclejdk7"
-  - os: linux
-    env: CUSTOM_JDK="openjdk7"
 
 before_install:
   - echo 'MAVEN_OPTS="$MAVEN_OPTS -Xmx1024m -XX:MaxPermSize=512m -XX:+BytecodeVerificationLocal"' >> ~/.mavenrc
   - cat ~/.mavenrc
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then export JAVA_HOME=$(/usr/libexec/java_home); fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then jdk_switcher use "$CUSTOM_JDK"; fi
-
-#os:
-#  - linux
-#  - osx
-#jdk:
-#  - oraclejdk8
-#  - oraclejdk7
-#  - openjdk7
-
 
 script:
   - travis_retry mvn -B clean apache-rat:check

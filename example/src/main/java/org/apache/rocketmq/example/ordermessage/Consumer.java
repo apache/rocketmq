@@ -41,7 +41,7 @@ public class Consumer {
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context) {
                 context.setAutoCommit(false);
-                System.out.printf(Thread.currentThread().getName() + " Receive New Messages: " + msgs + "%n");
+                System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
                 this.consumeTimes.incrementAndGet();
                 if ((this.consumeTimes.get() % 2) == 0) {
                     return ConsumeOrderlyStatus.SUCCESS;
