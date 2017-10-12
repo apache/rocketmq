@@ -26,7 +26,7 @@ import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.consumer.tag.TagMessageWith1ConsumerIT;
 import org.apache.rocketmq.test.client.rmq.RMQAsyncSendProducer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
-import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListner;
+import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -48,14 +48,14 @@ public class AsyncSendWithMessageQueueSelectorIT extends BaseConf {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test
     public void testSendWithSelector() {
         int msgSize = 20;
         final int queueId = 0;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListner());
+        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
 
         producer.asyncSend(msgSize, new MessageQueueSelector() {
             @Override

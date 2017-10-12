@@ -47,7 +47,7 @@ public class OrderMsgWithTagIT extends BaseConf {
 
     @After
     public void tearDown() {
-        shutDown();
+        shutdown();
     }
 
     @Test

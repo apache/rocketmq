@@ -25,24 +25,24 @@ import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.test.listener.AbstractListener;
 
-public class RMQNormalListner extends AbstractListener implements MessageListenerConcurrently {
+public class RMQNormalListener extends AbstractListener implements MessageListenerConcurrently {
     private ConsumeConcurrentlyStatus consumeStatus = ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
     private AtomicInteger msgIndex = new AtomicInteger(0);
 
-    public RMQNormalListner() {
+    public RMQNormalListener() {
         super();
     }
 
-    public RMQNormalListner(String listnerName) {
-        super(listnerName);
+    public RMQNormalListener(String listenerName) {
+        super(listenerName);
     }
 
-    public RMQNormalListner(ConsumeConcurrentlyStatus consumeStatus) {
+    public RMQNormalListener(ConsumeConcurrentlyStatus consumeStatus) {
         super();
         this.consumeStatus = consumeStatus;
     }
 
-    public RMQNormalListner(String originMsgCollector, String msgBodyCollector) {
+    public RMQNormalListener(String originMsgCollector, String msgBodyCollector) {
         super(originMsgCollector, msgBodyCollector);
     }
 
@@ -51,7 +51,7 @@ public class RMQNormalListner extends AbstractListener implements MessageListene
         for (MessageExt msg : msgs) {
             msgIndex.getAndIncrement();
             if (isDebug) {
-                if (listenerName != null && listenerName != "") {
+                if (listenerName != null && !listenerName.isEmpty()) {
                     logger.info(listenerName + ":" + msgIndex.get() + ":"
                         + String.format("msgid:%s broker:%s queueId:%s offset:%s",
                         msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(),
