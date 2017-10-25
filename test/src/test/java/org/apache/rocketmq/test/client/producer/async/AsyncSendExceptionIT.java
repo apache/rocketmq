@@ -50,7 +50,7 @@ public class AsyncSendExceptionIT extends BaseConf {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test

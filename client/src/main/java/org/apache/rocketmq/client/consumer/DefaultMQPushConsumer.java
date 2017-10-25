@@ -166,9 +166,41 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private int consumeConcurrentlyMaxSpan = 2000;
 
     /**
-     * Flow control threshold
+     * Flow control threshold on queue level, each message queue will cache at most 1000 messages by default,
+     * Consider the {@code pullBatchSize}, the instantaneous value may exceed the limit
      */
     private int pullThresholdForQueue = 1000;
+
+    /**
+     * Limit the cached message size on queue level, each message queue will cache at most 100 MiB messages by default,
+     * Consider the {@code pullBatchSize}, the instantaneous value may exceed the limit
+     *
+     * <p>
+     * The size of a message only measured by message body, so it's not accurate
+     */
+    private int pullThresholdSizeForQueue = 100;
+
+    /**
+     * Flow control threshold on topic level, default value is -1(Unlimited)
+     * <p>
+     * The value of {@code pullThresholdForQueue} will be overwrote and calculated based on
+     * {@code pullThresholdForTopic} if it is't unlimited
+     * <p>
+     * For example, if the value of pullThresholdForTopic is 1000 and 10 message queues are assigned to this consumer,
+     * then pullThresholdForQueue will be set to 100
+     */
+    private int pullThresholdForTopic = -1;
+
+    /**
+     * Limit the cached message size on topic level, default value is -1 MiB(Unlimited)
+     * <p>
+     * The value of {@code pullThresholdSizeForQueue} will be overwrote and calculated based on
+     * {@code pullThresholdSizeForTopic} if it is't unlimited
+     * <p>
+     * For example, if the value of pullThresholdSizeForTopic is 1000 MiB and 10 message queues are
+     * assigned to this consumer, then pullThresholdSizeForQueue will be set to 100 MiB
+     */
+    private int pullThresholdSizeForTopic = -1;
 
     /**
      * Message pull Interval
@@ -405,6 +437,30 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setPullThresholdForQueue(int pullThresholdForQueue) {
         this.pullThresholdForQueue = pullThresholdForQueue;
+    }
+
+    public int getPullThresholdForTopic() {
+        return pullThresholdForTopic;
+    }
+
+    public void setPullThresholdForTopic(final int pullThresholdForTopic) {
+        this.pullThresholdForTopic = pullThresholdForTopic;
+    }
+
+    public int getPullThresholdSizeForQueue() {
+        return pullThresholdSizeForQueue;
+    }
+
+    public void setPullThresholdSizeForQueue(final int pullThresholdSizeForQueue) {
+        this.pullThresholdSizeForQueue = pullThresholdSizeForQueue;
+    }
+
+    public int getPullThresholdSizeForTopic() {
+        return pullThresholdSizeForTopic;
+    }
+
+    public void setPullThresholdSizeForTopic(final int pullThresholdSizeForTopic) {
+        this.pullThresholdSizeForTopic = pullThresholdSizeForTopic;
     }
 
     public Map<String, String> getSubscription() {

@@ -23,7 +23,7 @@ import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.factory.MQMessageFactory;
-import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListner;
+import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -47,14 +47,14 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test
     public void testTagSmoke() {
         String tag = "jueyin";
         int msgSize = 10;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, tag, new RMQNormalListner());
+        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, tag, new RMQNormalListener());
         producer.send(tag, msgSize);
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
@@ -68,7 +68,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         String subExprress = "*";
         int msgSize = 10;
         RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExprress,
-            new RMQNormalListner());
+            new RMQNormalListener());
         producer.send(msgSize);
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
@@ -84,7 +84,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         String subExpress = "*";
         int msgSize = 10;
         RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
-            new RMQNormalListner());
+            new RMQNormalListener());
         producer.send(tag, msgSize);
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
@@ -100,7 +100,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         String subExpress = "*";
         int msgSize = 10;
         RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
-            new RMQNormalListner());
+            new RMQNormalListener());
         producer.send(tag, msgSize);
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
@@ -116,7 +116,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         String subExpress = null;
         int msgSize = 10;
         RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
-            new RMQNormalListner());
+            new RMQNormalListener());
         producer.send(tag, msgSize);
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
@@ -133,7 +133,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         String subExpress = "*";
         int msgSize = 10;
         RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
-            new RMQNormalListner());
+            new RMQNormalListener());
 
         List<Object> tag1Msgs = MQMessageFactory.getRMQMessage(tag1, topic, msgSize);
         List<Object> tag2Msgs = MQMessageFactory.getRMQMessage(tag2, topic, msgSize);
@@ -156,7 +156,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         String subExpress = null;
         int msgSize = 10;
         RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
-            new RMQNormalListner());
+            new RMQNormalListener());
 
         List<Object> tag1Msgs = MQMessageFactory.getRMQMessage(tag1, topic, msgSize);
         List<Object> tag2Msgs = MQMessageFactory.getRMQMessage(tag2, topic, msgSize);
@@ -178,7 +178,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         String subExpress = tag2;
         int msgSize = 10;
         RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
-            new RMQNormalListner());
+            new RMQNormalListener());
 
         List<Object> tag1Msgs = MQMessageFactory.getRMQMessage(tag1, topic, msgSize);
         List<Object> tag2Msgs = MQMessageFactory.getRMQMessage(tag2, topic, msgSize);

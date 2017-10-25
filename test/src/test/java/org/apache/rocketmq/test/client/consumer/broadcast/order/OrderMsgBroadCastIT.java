@@ -49,7 +49,7 @@ public class OrderMsgBroadCastIT extends BaseBroadCastIT {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test

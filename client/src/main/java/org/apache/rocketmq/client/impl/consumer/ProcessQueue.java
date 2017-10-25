@@ -45,6 +45,7 @@ public class ProcessQueue {
     private final ReadWriteLock lockTreeMap = new ReentrantReadWriteLock();
     private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<Long, MessageExt>();
     private final AtomicLong msgCount = new AtomicLong();
+    private final AtomicLong msgSize = new AtomicLong();
     private final Lock lockConsume = new ReentrantLock();
     private final TreeMap<Long, MessageExt> msgTreeMapTemp = new TreeMap<Long, MessageExt>();
     private final AtomicLong tryUnlockTimes = new AtomicLong(0);
@@ -129,6 +130,7 @@ public class ProcessQueue {
                     if (null == old) {
                         validMsgCnt++;
                         this.queueOffsetMax = msg.getQueueOffset();
+                        msgSize.addAndGet(msg.getBody().length);
                     }
                 }
                 msgCount.addAndGet(validMsgCnt);
@@ -189,6 +191,7 @@ public class ProcessQueue {
                         MessageExt prev = msgTreeMap.remove(msg.getQueueOffset());
                         if (prev != null) {
                             removedCnt--;
+                            msgSize.addAndGet(0 - msg.getBody().length);
                         }
                     }
                     msgCount.addAndGet(removedCnt);
@@ -213,6 +216,10 @@ public class ProcessQueue {
 
     public AtomicLong getMsgCount() {
         return msgCount;
+    }
+
+    public AtomicLong getMsgSize() {
+        return msgSize;
     }
 
     public boolean isDropped() {
@@ -250,7 +257,10 @@ public class ProcessQueue {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
                 Long offset = this.msgTreeMapTemp.lastKey();
-                msgCount.addAndGet(this.msgTreeMapTemp.size() * (-1));
+                msgCount.addAndGet(0 - this.msgTreeMapTemp.size());
+                for (MessageExt msg : this.msgTreeMapTemp.values()) {
+                    msgSize.addAndGet(0 - msg.getBody().length);
+                }
                 this.msgTreeMapTemp.clear();
                 if (offset != null) {
                     return offset + 1;
@@ -334,6 +344,7 @@ public class ProcessQueue {
                 this.msgTreeMap.clear();
                 this.msgTreeMapTemp.clear();
                 this.msgCount.set(0);
+                this.msgSize.set(0);
                 this.queueOffsetMax = 0L;
             } finally {
                 this.lockTreeMap.writeLock().unlock();
@@ -387,6 +398,7 @@ public class ProcessQueue {
                 info.setCachedMsgMinOffset(this.msgTreeMap.firstKey());
                 info.setCachedMsgMaxOffset(this.msgTreeMap.lastKey());
                 info.setCachedMsgCount(this.msgTreeMap.size());
+                info.setCachedMsgSizeInMiB((int) (this.msgSize.get() / (1024 * 1024)));
             }
 
             if (!this.msgTreeMapTemp.isEmpty()) {
