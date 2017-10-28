@@ -31,6 +31,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -121,7 +122,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             producer.getCheckThreadPoolMaxSize(),
             1000 * 60,
             TimeUnit.MILLISECONDS,
-            this.checkRequestQueue);
+            this.checkRequestQueue,new ThreadFactoryImpl("CheckRequestThread_"));
     }
 
     public void destroyTransactionEnv() {
