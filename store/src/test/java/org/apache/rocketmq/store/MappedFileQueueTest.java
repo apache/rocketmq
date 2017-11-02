@@ -20,9 +20,7 @@ package org.apache.rocketmq.store;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Test;
 
@@ -47,7 +45,7 @@ public class MappedFileQueueTest {
     }
 
     @Test
-    public void test_findMappedFileByOffset() {
+    public void testFindMappedFileByOffset() {
         // four-byte string.
         final String fixedMsg = "abcd";
 
@@ -92,6 +90,28 @@ public class MappedFileQueueTest {
 
         mappedFile = mappedFileQueue.findMappedFileByOffset(1024 * 4 + 100);
         assertThat(mappedFile).isNull();
+
+        mappedFileQueue.shutdown(1000);
+        mappedFileQueue.destroy();
+    }
+
+    @Test
+    public void testFindMappedFileByOffset_StartOffsetIsNonZero() {
+        MappedFileQueue mappedFileQueue =
+            new MappedFileQueue("target/unit_test_store/b/", 1024, null);
+
+        //Start from a non-zero offset
+        MappedFile mappedFile = mappedFileQueue.getLastMappedFile(1024);
+        assertThat(mappedFile).isNotNull();
+
+        assertThat(mappedFileQueue.findMappedFileByOffset(1025)).isEqualTo(mappedFile);
+
+        assertThat(mappedFileQueue.findMappedFileByOffset(0)).isNull();
+        assertThat(mappedFileQueue.findMappedFileByOffset(123, false)).isNull();
+        assertThat(mappedFileQueue.findMappedFileByOffset(123, true)).isEqualTo(mappedFile);
+
+        assertThat(mappedFileQueue.findMappedFileByOffset(0, false)).isNull();
+        assertThat(mappedFileQueue.findMappedFileByOffset(0, true)).isEqualTo(mappedFile);
 
         mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();
