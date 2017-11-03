@@ -1,0 +1,36 @@
+allprojects  {
+  apply plugin: 'maven'
+
+  group = 'org.apache.rocketmq'
+  version = '2.0.0-SNAPSHOT'
+}
+
+subprojects {
+  apply plugin: 'java'
+  sourceCompatibility = 1.7
+  targetCompatibility = 1.7
+  tasks.withType(JavaCompile) {
+  	options.encoding = 'UTF-8'
+  }
+
+  task packageSources(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+  }
+  artifacts.archives packageSources
+  repositories {
+    mavenLocal()
+    
+    maven { url "http://mvnrepo.alibaba-inc.com/mvn/repository" }
+  }
+
+  configurations.all {
+  }
+
+  dependencies {
+      testCompile group: 'junit', name: 'junit', version:'4.11'
+      testCompile group: 'org.assertj', name: 'assertj-core', version:'2.6.0'
+      testCompile group: 'org.mockito', name: 'mockito-core', version:'2.6.3'
+  }
+
+}

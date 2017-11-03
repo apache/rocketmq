@@ -1,0 +1,7 @@
+
+description = ''
+dependencies {
+  compile group: 'com.google.guava', name: 'guava', version:'19.0'
+  compile project(':remoting-core:rpc-api')
+  compile project(':remoting-core:remoting-impl')
+}

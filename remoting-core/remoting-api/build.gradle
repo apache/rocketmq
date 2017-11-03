@@ -1,0 +1,6 @@
+
+description = ''
+dependencies {
+    compile group: 'org.apache.commons', name: 'commons-lang3', version:'3.4'
+    compile group: 'org.jetbrains', name: 'annotations', version:'15.0'
+}

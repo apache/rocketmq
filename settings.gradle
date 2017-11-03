@@ -1,0 +1,14 @@
+rootProject.name = 'rocketmq5-all'
+include ':remoting-core:remoting-api'
+include ':remoting-core:remoting-impl'
+include ':remoting-core:rpc-api'
+include ':remoting-core:rpc-impl'
+include ':remoting-core'
+include ':example'
+
+project(':remoting-core:remoting-api').projectDir = "$rootDir/remoting-core/remoting-api" as File
+project(':remoting-core:remoting-impl').projectDir = "$rootDir/remoting-core/remoting-impl" as File
+project(':remoting-core:rpc-api').projectDir = "$rootDir/remoting-core/rpc-api" as File
+project(':remoting-core:rpc-impl').projectDir = "$rootDir/remoting-core/rpc-impl" as File
+project(':remoting-core').projectDir = "$rootDir/remoting-core" as File
+project(':example').projectDir = "$rootDir/example" as File

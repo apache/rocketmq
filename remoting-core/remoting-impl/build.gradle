@@ -1,0 +1,11 @@
+
+description = ''
+dependencies {
+    compile group: 'io.netty', name: 'netty-all', version:'4.1.15.Final'
+    compile group: 'com.alibaba', name: 'fastjson', version:'1.2.29'
+    compile group: 'org.msgpack', name: 'msgpack', version:'0.6.12'
+    compile group: 'com.esotericsoftware', name: 'kryo', version:'3.0.3'
+    compile group: 'io.netty', name: 'netty-tcnative-boringssl-static', version:'1.1.33.Fork22'
+    compile project(':remoting-core:remoting-api')
+    compile group: 'org.slf4j', name: 'slf4j-api', version:'1.7.6'
+}
