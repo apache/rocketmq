@@ -446,6 +446,13 @@ public class ConsumeQueue {
 
             if (cqOffset != 0) {
                 long currentLogicOffset = mappedFile.getWrotePosition() + mappedFile.getFileFromOffset();
+
+                if (expectLogicOffset < currentLogicOffset) {
+                    log.warn("Build  consume queue repeatedly, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
+                        expectLogicOffset, currentLogicOffset, this.topic, this.queueId, expectLogicOffset - currentLogicOffset);
+                    return true;
+                }
+
                 if (expectLogicOffset != currentLogicOffset) {
                     LOG_ERROR.warn(
                         "[BUG]logic queue order maybe wrong, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
@@ -569,6 +576,6 @@ public class ConsumeQueue {
      * Check {@code tagsCode} is address of extend file or tags code.
      */
     public boolean isExtAddr(long tagsCode) {
-        return isExtReadEnable() && this.consumeQueueExt.isExtAddr(tagsCode);
+        return ConsumeQueueExt.isExtAddr(tagsCode);
     }
 }

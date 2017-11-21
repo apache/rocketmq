@@ -21,6 +21,7 @@ import java.io.File;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.channels.OverlappingFileLockException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -54,6 +55,31 @@ public class DefaultMessageStoreTest {
         boolean load = messageStore.load();
         assertTrue(load);
         messageStore.start();
+    }
+
+    @Test(expected = OverlappingFileLockException.class)
+    public void test_repate_restart() throws Exception {
+        long totalMsgs = 100;
+        QUEUE_TOTAL = 1;
+        MessageBody = StoreMessage.getBytes();
+
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setMapedFileSizeCommitLog(1024 * 8);
+        messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 4);
+        messageStoreConfig.setMaxHashSlotNum(100);
+        messageStoreConfig.setMaxIndexNum(100 * 10);
+        MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig());
+
+        boolean load = master.load();
+        assertTrue(load);
+
+        try {
+            master.start();
+            master.start();
+        } finally {
+            master.shutdown();
+            master.destroy();
+        }
     }
 
     @After
@@ -164,7 +190,7 @@ public class DefaultMessageStoreTest {
     private class MyMessageArrivingListener implements MessageArrivingListener {
         @Override
         public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
-            byte[] filterBitMap, Map<String, String> properties) {
+                             byte[] filterBitMap, Map<String, String> properties) {
         }
     }
 }
