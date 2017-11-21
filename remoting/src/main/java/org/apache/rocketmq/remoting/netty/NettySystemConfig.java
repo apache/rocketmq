@@ -57,7 +57,7 @@ public class NettySystemConfig {
      * </ol>
      */
     public static SslMode sslMode = //
-        SslMode.parse(System.getProperty(ORG_APACHE_ROCKETMQ_REMOTING_SSL_MODE, "disabled"));
+        SslMode.parse(System.getProperty(ORG_APACHE_ROCKETMQ_REMOTING_SSL_MODE, "permissive"));
 
     public static String sslConfigFile = //
         System.getProperty(ORG_APACHE_ROCKETMQ_REMOTING_SSL_CONFIG_FILE, "/etc/rocketmq/ssl.properties");

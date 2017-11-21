@@ -98,7 +98,7 @@ public class BrokerStartup {
             final BrokerConfig brokerConfig = new BrokerConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
             final NettyClientConfig nettyClientConfig = new NettyClientConfig();
-            nettyClientConfig.setUseTLS(NettySystemConfig.sslMode != SslMode.DISABLED);
+            nettyClientConfig.setUseTLS(NettySystemConfig.sslMode == SslMode.ENFORCING);
             nettyServerConfig.setListenPort(10911);
             final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
 
