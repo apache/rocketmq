@@ -21,8 +21,12 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.FileRegion;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.activemq.artemis.jlibaio.SubmitInfo;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
@@ -57,10 +61,13 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.store.AccessDiskStrategy;
 import org.apache.rocketmq.store.GetMessageResult;
+import org.apache.rocketmq.store.MappedFile;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.slf4j.Logger;
@@ -375,14 +382,15 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                         getMessageResult.getBufferTotalSize());
 
                     this.brokerController.getBrokerStatsManager().incBrokerGetNums(getMessageResult.getMessageCount());
-                    if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
+                    if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()
+                        || AccessDiskStrategy.HEAP == getMessageResult.getAccessDiskStrategy()) {
                         final long beginTimeMills = this.brokerController.getMessageStore().now();
                         final byte[] r = this.readGetMessageResult(getMessageResult, requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
                         this.brokerController.getBrokerStatsManager().incGroupGetLatency(requestHeader.getConsumerGroup(),
                             requestHeader.getTopic(), requestHeader.getQueueId(),
                             (int) (this.brokerController.getMessageStore().now() - beginTimeMills));
                         response.setBody(r);
-                    } else {
+                    } else if (getMessageResult.getAccessDiskStrategy() == AccessDiskStrategy.MMAP) {
                         try {
                             FileRegion fileRegion =
                                 new ManyMessageTransfer(response.encodeHeader(getMessageResult.getBufferTotalSize()), getMessageResult);
@@ -400,6 +408,67 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                             getMessageResult.release();
                         }
 
+                        response = null;
+                    } else {
+                        final List<SelectMappedBufferResult> selectMappedBufferResults = getMessageResult.getMessageMappedList();
+                        final FileRegion fileRegion = new ManyMessageTransfer(response.encodeHeader(getMessageResult.getBufferTotalSize()), getMessageResult);
+                        final int opaque = request.getOpaque();
+
+                        // IO completion callback.
+                        SubmitInfo submitInfo = new SubmitInfo() {
+                            private AtomicInteger count = new AtomicInteger(selectMappedBufferResults.size());
+
+                            private AtomicBoolean failed = new AtomicBoolean(false);
+
+                            @Override
+                            public void onError(int errno, String message) {
+                                log.error("AIO error. Error Number: {}, Msg: {}", errno, message);
+                                failed.set(true);
+                                count.decrementAndGet();
+                            }
+
+                            @Override
+                            public void done() {
+                                count.decrementAndGet();
+
+                                if (count.get() == 0) {
+                                    if (!failed.get()) {
+                                        try {
+                                            channel.writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
+                                                @Override
+                                                public void operationComplete(ChannelFuture future) throws Exception {
+                                                    getMessageResult.release();
+                                                    if (!future.isSuccess()) {
+                                                        log.error("transfer many message by pagecache failed, {}", channel.remoteAddress(), future.cause());
+                                                    }
+                                                }
+                                            });
+                                        } catch (Throwable e) {
+                                            log.error("transfer many message by pagecache exception", e);
+                                            getMessageResult.release();
+                                        }
+                                    } else {
+                                        // Error handling.
+                                        RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
+                                        response.setCode(ResponseCode.SYSTEM_ERROR);
+                                        response.setOpaque(opaque);
+                                        channel.writeAndFlush(response);
+                                    }
+                                }
+                            }
+                        };
+
+                        // Submit asynchronous IO request through Linux AIO system call interface.
+                        for (SelectMappedBufferResult selectMappedBufferResult : selectMappedBufferResults) {
+                            MappedFile mappedFile = selectMappedBufferResult.getMappedFile();
+                            try {
+                                mappedFile.getLibaioFile().read(selectMappedBufferResult.getStartOffset(),
+                                    selectMappedBufferResult.getSize(), selectMappedBufferResult.getByteBuffer(),
+                                    submitInfo);
+                            } catch (IOException e) {
+
+                            }
+                        }
                         response = null;
                     }
                     break;

@@ -35,6 +35,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.activemq.artemis.jlibaio.LibaioContext;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
@@ -110,6 +111,8 @@ public class DefaultMessageStore implements MessageStore {
 
     private FileLock lock;
 
+    private LibaioContext libaioContext;
+
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig) throws IOException {
         this.messageArrivingListener = messageArrivingListener;
@@ -148,6 +151,10 @@ public class DefaultMessageStore implements MessageStore {
         File file = new File(StorePathConfigHelper.getLockFile(messageStoreConfig.getStorePathRootDir()));
         MappedFile.ensureDirOK(file.getParent());
         lockFile = new RandomAccessFile(file, "rw");
+
+        if (System.getProperty("os.name").equalsIgnoreCase("linux") && messageStoreConfig.isEnableAIO()) {
+            libaioContext = new LibaioContext(1048576, true, true);
+        }
     }
 
     public void truncateDirtyLogicFiles(long phyOffset) {
@@ -504,6 +511,10 @@ public class DefaultMessageStore implements MessageStore {
                             }
 
                             boolean isInDisk = checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
+
+                            if (isInDisk) {
+                                getResult.setAccessDiskStrategy(null == libaioContext ? AccessDiskStrategy.HEAP : AccessDiskStrategy.AIO);
+                            }
 
                             if (this.isTheBatchFull(sizePy, maxMsgNums, getResult.getBufferTotalSize(), getResult.getMessageCount(),
                                 isInDisk)) {
@@ -1402,6 +1413,10 @@ public class DefaultMessageStore implements MessageStore {
                 mappedFile.munlock();
             }
         }, 6, TimeUnit.SECONDS);
+    }
+
+    public LibaioContext getLibaioContext() {
+        return libaioContext;
     }
 
     class CommitLogDispatcherBuildConsumeQueue implements CommitLogDispatcher {

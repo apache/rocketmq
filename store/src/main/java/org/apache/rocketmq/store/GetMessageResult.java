@@ -23,8 +23,7 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 public class GetMessageResult {
 
-    private final List<SelectMappedBufferResult> messageMapedList =
-        new ArrayList<SelectMappedBufferResult>(100);
+    private final List<SelectMappedBufferResult> messageMappedList = new ArrayList<SelectMappedBufferResult>(100);
 
     private final List<ByteBuffer> messageBufferList = new ArrayList<ByteBuffer>(100);
 
@@ -39,7 +38,10 @@ public class GetMessageResult {
 
     private int msgCount4Commercial = 0;
 
+    private AccessDiskStrategy accessDiskStrategy;
+
     public GetMessageResult() {
+        accessDiskStrategy = AccessDiskStrategy.MMAP;
     }
 
     public GetMessageStatus getStatus() {
@@ -74,8 +76,8 @@ public class GetMessageResult {
         this.maxOffset = maxOffset;
     }
 
-    public List<SelectMappedBufferResult> getMessageMapedList() {
-        return messageMapedList;
+    public List<SelectMappedBufferResult> getMessageMappedList() {
+        return messageMappedList;
     }
 
     public List<ByteBuffer> getMessageBufferList() {
@@ -83,15 +85,14 @@ public class GetMessageResult {
     }
 
     public void addMessage(final SelectMappedBufferResult mapedBuffer) {
-        this.messageMapedList.add(mapedBuffer);
+        this.messageMappedList.add(mapedBuffer);
         this.messageBufferList.add(mapedBuffer.getByteBuffer());
         this.bufferTotalSize += mapedBuffer.getSize();
-        this.msgCount4Commercial += (int) Math.ceil(
-            mapedBuffer.getSize() / BrokerStatsManager.SIZE_PER_COUNT);
+        this.msgCount4Commercial += (int) Math.ceil(mapedBuffer.getSize() / BrokerStatsManager.SIZE_PER_COUNT);
     }
 
     public void release() {
-        for (SelectMappedBufferResult select : this.messageMapedList) {
+        for (SelectMappedBufferResult select : this.messageMappedList) {
             select.release();
         }
     }
@@ -105,7 +106,7 @@ public class GetMessageResult {
     }
 
     public int getMessageCount() {
-        return this.messageMapedList.size();
+        return this.messageMappedList.size();
     }
 
     public boolean isSuggestPullingFromSlave() {
@@ -122,6 +123,14 @@ public class GetMessageResult {
 
     public void setMsgCount4Commercial(int msgCount4Commercial) {
         this.msgCount4Commercial = msgCount4Commercial;
+    }
+
+    public AccessDiskStrategy getAccessDiskStrategy() {
+        return accessDiskStrategy;
+    }
+
+    public void setAccessDiskStrategy(AccessDiskStrategy accessDiskStrategy) {
+        this.accessDiskStrategy = accessDiskStrategy;
     }
 
     @Override
