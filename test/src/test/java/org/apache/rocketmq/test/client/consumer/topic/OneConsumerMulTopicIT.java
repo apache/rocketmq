@@ -21,7 +21,7 @@ import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.factory.MQMessageFactory;
-import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListner;
+import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -40,7 +40,7 @@ public class OneConsumerMulTopicIT extends BaseConf {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test
@@ -48,7 +48,7 @@ public class OneConsumerMulTopicIT extends BaseConf {
         int msgSize = 10;
         String topic1 = initTopic();
         String topic2 = initTopic();
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic1, "*", new RMQNormalListner());
+        RMQNormalConsumer consumer = getConsumer(nsAddr, topic1, "*", new RMQNormalListener());
         consumer.subscribe(topic2, "*");
 
         producer.send(MQMessageFactory.getMsg(topic1, msgSize));
@@ -67,7 +67,7 @@ public class OneConsumerMulTopicIT extends BaseConf {
         String topic1 = initTopic();
         String topic2 = initTopic();
         String tag = "jueyin_tag";
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic1, "*", new RMQNormalListner());
+        RMQNormalConsumer consumer = getConsumer(nsAddr, topic1, "*", new RMQNormalListener());
         consumer.subscribe(topic2, tag);
 
         producer.send(MQMessageFactory.getMsg(topic1, msgSize));
@@ -87,7 +87,7 @@ public class OneConsumerMulTopicIT extends BaseConf {
         String topic2 = initTopic();
         String tag1 = "jueyin_tag_1";
         String tag2 = "jueyin_tag_2";
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic1, "*", new RMQNormalListner());
+        RMQNormalConsumer consumer = getConsumer(nsAddr, topic1, "*", new RMQNormalListener());
         consumer.subscribe(topic2, tag1);
 
         producer.send(MQMessageFactory.getMsg(topic2, msgSize, tag2));

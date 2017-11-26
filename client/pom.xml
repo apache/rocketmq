@@ -36,6 +36,12 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-common</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-tcnative</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

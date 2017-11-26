@@ -27,10 +27,16 @@ public class ConsumerFactory {
 
     public static RMQNormalConsumer getRMQNormalConsumer(String nsAddr, String consumerGroup,
         String topic, String subExpression,
-        AbstractListener listner) {
+        AbstractListener listener) {
+        return getRMQNormalConsumer(nsAddr, consumerGroup, topic, subExpression, listener, false);
+    }
+
+    public static RMQNormalConsumer getRMQNormalConsumer(String nsAddr, String consumerGroup,
+        String topic, String subExpression,
+        AbstractListener listener, boolean useTLS) {
         RMQNormalConsumer consumer = new RMQNormalConsumer(nsAddr, topic, subExpression,
-            consumerGroup, listner);
-        consumer.create();
+            consumerGroup, listener);
+        consumer.create(useTLS);
         consumer.start();
         return consumer;
     }

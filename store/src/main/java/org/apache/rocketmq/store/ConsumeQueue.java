@@ -121,7 +121,7 @@ public class ConsumeQueue {
                     index++;
                     if (index >= mappedFiles.size()) {
 
-                        log.info("recover last consume queue file over, last maped file "
+                        log.info("recover last consume queue file over, last mapped file "
                             + mappedFile.getFileName());
                         break;
                     } else {

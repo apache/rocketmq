@@ -21,7 +21,7 @@ import org.apache.log4j.Logger;
 import org.apache.rocketmq.test.client.consumer.broadcast.BaseBroadCastIT;
 import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
-import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListner;
+import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.TestUtils;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
@@ -45,7 +45,7 @@ public class BroadCastTwoConsumerFilterIT extends BaseBroadCastIT {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test
@@ -55,9 +55,9 @@ public class BroadCastTwoConsumerFilterIT extends BaseBroadCastIT {
         String tag2 = "jueyin_tag_2";
 
         RMQBroadCastConsumer consumer1 = getBroadCastConsumer(nsAddr, topic, tag1,
-            new RMQNormalListner());
+            new RMQNormalListener());
         RMQBroadCastConsumer consumer2 = getBroadCastConsumer(nsAddr,
-            consumer1.getConsumerGroup(), topic, tag1, new RMQNormalListner());
+            consumer1.getConsumerGroup(), topic, tag1, new RMQNormalListener());
         TestUtils.waitForSeconds(waitTime);
 
         producer.send(tag2, msgSize);

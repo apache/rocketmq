@@ -85,7 +85,7 @@ public class SendMsgStatusCommand implements SubCommand {
             for (int i = 0; i < count; i++) {
                 long begin = System.currentTimeMillis();
                 SendResult result = producer.send(buildMessage(brokerName, messageSize));
-                System.out.printf("rt:" + (System.currentTimeMillis() - begin) + "ms, SendResult=" + result);
+                System.out.printf("rt:" + (System.currentTimeMillis() - begin) + "ms, SendResult=%s", result);
             }
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
