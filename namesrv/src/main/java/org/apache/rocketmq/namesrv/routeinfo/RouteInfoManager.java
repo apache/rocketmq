@@ -183,7 +183,7 @@ public class RouteInfoManager {
         return result;
     }
 
-    private boolean isBrokerTopicConfigChanged(final String brokerAddr, final DataVersion dataVersion) {
+    public boolean isBrokerTopicConfigChanged(final String brokerAddr, final DataVersion dataVersion) {
         BrokerLiveInfo prev = this.brokerLiveTable.get(brokerAddr);
         if (null == prev || !prev.getDataVersion().equals(dataVersion)) {
             return true;
