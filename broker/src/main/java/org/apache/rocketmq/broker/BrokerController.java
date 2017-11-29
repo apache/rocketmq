@@ -721,7 +721,7 @@ public class BrokerController {
             this.brokerConfig.getBrokerName(),
             this.brokerConfig.getBrokerId(),
             this.brokerConfig.getRegisterBrokerTimeoutMills())) {
-            RegisterBrokerResult registerBrokerResult = this.brokerOuterAPI.registerBrokerAll(
+            List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
                 this.brokerConfig.getBrokerClusterName(),
                 this.getBrokerAddr(),
                 this.brokerConfig.getBrokerName(),
@@ -730,17 +730,21 @@ public class BrokerController {
                 topicConfigWrapper,
                 this.filterServerManager.buildNewFilterServerList(),
                 oneway,
-                this.brokerConfig.getRegisterBrokerTimeoutMills());
+                this.brokerConfig.getRegisterBrokerTimeoutMills(),
+                this.brokerConfig.isCompressedRegister());
 
-            if (registerBrokerResult != null) {
-                if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
-                    this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
-                }
+            if (registerBrokerResultList.size() > 0) {
+                RegisterBrokerResult registerBrokerResult = registerBrokerResultList.get(0);
+                if (registerBrokerResult != null) {
+                    if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
+                        this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
+                    }
 
-                this.slaveSynchronize.setMasterAddr(registerBrokerResult.getMasterAddr());
+                    this.slaveSynchronize.setMasterAddr(registerBrokerResult.getMasterAddr());
 
-                if (checkOrderConfig) {
-                    this.getTopicConfigManager().updateOrderTopicConfig(registerBrokerResult.getKvTable());
+                    if (checkOrderConfig) {
+                        this.getTopicConfigManager().updateOrderTopicConfig(registerBrokerResult.getKvTable());
+                    }
                 }
             }
         }
