@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.out;
 
+import com.google.common.collect.Lists;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
@@ -107,7 +108,7 @@ public class BrokerOuterAPI {
         this.remotingClient.updateNameServerAddressList(lst);
     }
 
-    public RegisterBrokerResult registerBrokerAll(
+    public List<RegisterBrokerResult> registerBrokerAll(
         final String clusterName,
         final String brokerAddr,
         final String brokerName,
@@ -116,27 +117,41 @@ public class BrokerOuterAPI {
         final TopicConfigSerializeWrapper topicConfigWrapper,
         final List<String> filterServerList,
         final boolean oneway,
-        final int timeoutMills) {
-        RegisterBrokerResult registerBrokerResult = null;
+        final int timeoutMills,
+        final boolean compressed) {
 
+        final List<RegisterBrokerResult> registerBrokerResultList = Lists.newArrayList();
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
-        if (nameServerAddressList != null) {
-            for (String namesrvAddr : nameServerAddressList) {
-                try {
-                    RegisterBrokerResult result = this.registerBroker(namesrvAddr, clusterName, brokerAddr, brokerName, brokerId,
-                        haServerAddr, topicConfigWrapper, filterServerList, oneway, timeoutMills);
-                    if (result != null) {
-                        registerBrokerResult = result;
-                    }
+        if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
+            final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
+            for (final String namesrvAddr : nameServerAddressList) {
+                brokerOuterExecutor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            RegisterBrokerResult result = registerBroker(namesrvAddr, clusterName, brokerAddr, brokerName, brokerId,
+                                haServerAddr, topicConfigWrapper, filterServerList, oneway, timeoutMills, compressed);
+                            if (result != null) {
+                                registerBrokerResultList.add(result);
+                            }
 
-                    log.info("register broker to name server {} OK", namesrvAddr);
-                } catch (Exception e) {
-                    log.warn("registerBroker Exception, {}", namesrvAddr, e);
-                }
+                            log.info("register broker to name server {} OK", namesrvAddr);
+                        } catch (Exception e) {
+                            log.warn("registerBroker Exception, {}", namesrvAddr, e);
+                        } finally {
+                            countDownLatch.countDown();
+                        }
+                    }
+                });
+            }
+
+            try {
+                countDownLatch.await(timeoutMills, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
             }
         }
 
-        return registerBrokerResult;
+        return registerBrokerResultList;
     }
 
     private RegisterBrokerResult registerBroker(
@@ -149,7 +164,8 @@ public class BrokerOuterAPI {
         final TopicConfigSerializeWrapper topicConfigWrapper,
         final List<String> filterServerList,
         final boolean oneway,
-        final int timeoutMills
+        final int timeoutMills,
+        final boolean compressed
     ) throws RemotingCommandException, MQBrokerException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
         InterruptedException {
         RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
@@ -158,12 +174,13 @@ public class BrokerOuterAPI {
         requestHeader.setBrokerName(brokerName);
         requestHeader.setClusterName(clusterName);
         requestHeader.setHaServerAddr(haServerAddr);
+        requestHeader.setCompressed(compressed);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.REGISTER_BROKER, requestHeader);
 
         RegisterBrokerBody requestBody = new RegisterBrokerBody();
         requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper);
         requestBody.setFilterServerList(filterServerList);
-        request.setBody(requestBody.encode());
+        request.setBody(requestBody.encode(requestHeader.isCompressed()));
 
         if (oneway) {
             try {

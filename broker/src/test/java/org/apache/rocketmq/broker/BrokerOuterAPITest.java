@@ -26,9 +26,11 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.header.namesrv.QueryDataVersionResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
@@ -126,6 +128,57 @@ public class BrokerOuterAPITest {
 
         assertEquals(true, success);
 
+    }
+
+    @Test
+    public void test_register_normal() throws Exception {
+        init();
+        brokerOuterAPI.start();
+
+        final RemotingCommand response = RemotingCommand.createResponseCommand(RegisterBrokerResponseHeader.class);
+        final RegisterBrokerResponseHeader responseHeader = (RegisterBrokerResponseHeader) response.readCustomHeader();
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+
+        TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
+
+        when(nettyRemotingClient.getNameServerAddressList()).thenReturn(Lists.asList(nameserver1, nameserver2, new String[] {nameserver3}));
+        when(nettyRemotingClient.invokeSync(anyString(), any(RemotingCommand.class), anyLong())).thenReturn(response);
+        List<RegisterBrokerResult> registerBrokerResultList = brokerOuterAPI.registerBrokerAll(clusterName, brokerAddr, brokerName, brokerId, "hasServerAddr", topicConfigSerializeWrapper, Lists.<String>newArrayList(), false, timeOut, true);
+
+        assertEquals(3, registerBrokerResultList.size());
+    }
+
+    @Test
+    public void test_register_timeout() throws Exception {
+        init();
+        brokerOuterAPI.start();
+
+        final RemotingCommand response = RemotingCommand.createResponseCommand(RegisterBrokerResponseHeader.class);
+        final RegisterBrokerResponseHeader responseHeader = (RegisterBrokerResponseHeader) response.readCustomHeader();
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+
+        TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
+
+        when(nettyRemotingClient.getNameServerAddressList()).thenReturn(Lists.asList(nameserver1, nameserver2, new String[] {nameserver3}));
+        when(nettyRemotingClient.invokeSync(anyString(), any(RemotingCommand.class), anyLong())).thenAnswer(new Answer<RemotingCommand>() {
+            @Override
+            public RemotingCommand answer(InvocationOnMock invocation) throws Throwable {
+                if (invocation.getArgument(0) == nameserver1) {
+                    return response;
+                } else if (invocation.getArgument(0) == nameserver2) {
+                    return response;
+                } else if (invocation.getArgument(0) == nameserver3) {
+                    TimeUnit.MILLISECONDS.sleep(timeOut + 20);
+                    return response;
+                }
+                return response;
+            }
+        });
+        List<RegisterBrokerResult> registerBrokerResultList = brokerOuterAPI.registerBrokerAll(clusterName, brokerAddr, brokerName, brokerId, "hasServerAddr", topicConfigSerializeWrapper, Lists.<String>newArrayList(), false, timeOut, true);
+
+        assertEquals(2, registerBrokerResultList.size());
     }
 
     private RemotingCommand buildResponse(Boolean changed) {
