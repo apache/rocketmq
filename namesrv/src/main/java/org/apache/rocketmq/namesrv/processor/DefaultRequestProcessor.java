@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MQVersion.Version;
 import org.apache.rocketmq.common.MixAll;
@@ -234,8 +235,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final QueryDataVersionResponseHeader responseHeader = (QueryDataVersionResponseHeader) response.readCustomHeader();
         final QueryDataVersionRequestHeader requestHeader =
             (QueryDataVersionRequestHeader) request.decodeCommandCustomHeader(QueryDataVersionRequestHeader.class);
+        DataVersion dataVersion = DataVersion.decode(request.getBody(), DataVersion.class);
 
-        Boolean changed = this.namesrvController.getRouteInfoManager().isBrokerTopicConfigChanged(requestHeader.getBrokerAddr(), requestHeader.getDataVersion());
+        Boolean changed = this.namesrvController.getRouteInfoManager().isBrokerTopicConfigChanged(requestHeader.getBrokerAddr(), dataVersion);
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         responseHeader.setChanged(changed);
