@@ -134,6 +134,8 @@ public class BrokerConfig {
 
     private boolean compressedRegister = false;
 
+    private boolean forceRegister = false;
+
     public boolean isTraceOn() {
         return traceOn;
     }
@@ -606,5 +608,13 @@ public class BrokerConfig {
 
     public void setCompressedRegister(boolean compressedRegister) {
         this.compressedRegister = compressedRegister;
+    }
+
+    public boolean isForceRegister() {
+        return forceRegister;
+    }
+
+    public void setForceRegister(boolean forceRegister) {
+        this.forceRegister = forceRegister;
     }
 }

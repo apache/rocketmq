@@ -26,6 +26,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -282,6 +283,7 @@ public class BrokerOuterAPI {
                             RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_DATA_VERSION, requestHeader);
                             request.setBody(topicConfigWrapper.getDataVersion().encode());
                             RemotingCommand response = remotingClient.invokeSync(namesrvAddr, request, timeoutMills);
+                            DataVersion nameServerDataVersion = null;
                             assert response != null;
                             Boolean changed = false;
                             switch (response.getCode()) {
@@ -289,6 +291,13 @@ public class BrokerOuterAPI {
                                     QueryDataVersionResponseHeader queryDataVersionResponseHeader =
                                         (QueryDataVersionResponseHeader) response.decodeCommandCustomHeader(QueryDataVersionResponseHeader.class);
                                     changed = queryDataVersionResponseHeader.getChanged();
+                                    byte[] body = response.getBody();
+                                    if (body != null) {
+                                        nameServerDataVersion = DataVersion.decode(body, DataVersion.class);
+                                        if (!topicConfigWrapper.getDataVersion().equals(nameServerDataVersion)) {
+                                            changed = true;
+                                        }
+                                    }
                                     if (changed == null || changed) {
                                         changedList.add(Boolean.TRUE);
                                     }
@@ -296,7 +305,7 @@ public class BrokerOuterAPI {
                                 default:
                                     break;
                             }
-                            log.info("query data version from name server {} OK , changed {}", namesrvAddr, changed);
+                            log.info("query data version from name server {} OK ,changed {} broker data version {},namesever data version{}", namesrvAddr, changed, topicConfigWrapper.getDataVersion(), nameServerDataVersion == null ? "" : nameServerDataVersion);
                         } catch (Exception e) {
                             log.warn("query data version from name server {}  Exception, {}", namesrvAddr, e);
                         } finally {
