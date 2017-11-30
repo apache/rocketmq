@@ -155,7 +155,6 @@ public class BrokerOuterAPITest {
         brokerOuterAPI.start();
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(RegisterBrokerResponseHeader.class);
-        final RegisterBrokerResponseHeader responseHeader = (RegisterBrokerResponseHeader) response.readCustomHeader();
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
 

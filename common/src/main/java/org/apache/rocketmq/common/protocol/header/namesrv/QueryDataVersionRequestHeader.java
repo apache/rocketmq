@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.common.protocol.header.namesrv;
 
-import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -29,8 +28,6 @@ public class QueryDataVersionRequestHeader implements CommandCustomHeader {
     private String brokerAddr;
     @CFNotNull
     private String clusterName;
-    @CFNotNull
-    private DataVersion dataVersion;
     @CFNotNull
     private Long brokerId;
 
@@ -61,14 +58,6 @@ public class QueryDataVersionRequestHeader implements CommandCustomHeader {
 
     public void setClusterName(String clusterName) {
         this.clusterName = clusterName;
-    }
-
-    public DataVersion getDataVersion() {
-        return dataVersion;
-    }
-
-    public void setDataVersion(DataVersion dataVersion) {
-        this.dataVersion = dataVersion;
     }
 
     public Long getBrokerId() {
