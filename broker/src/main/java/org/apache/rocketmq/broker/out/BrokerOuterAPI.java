@@ -283,11 +283,12 @@ public class BrokerOuterAPI {
                             request.setBody(topicConfigWrapper.getDataVersion().encode());
                             RemotingCommand response = remotingClient.invokeSync(namesrvAddr, request, timeoutMills);
                             assert response != null;
+                            Boolean changed = false;
                             switch (response.getCode()) {
                                 case ResponseCode.SUCCESS: {
                                     QueryDataVersionResponseHeader queryDataVersionResponseHeader =
                                         (QueryDataVersionResponseHeader) response.decodeCommandCustomHeader(QueryDataVersionResponseHeader.class);
-                                    Boolean changed = queryDataVersionResponseHeader.getChanged();
+                                    changed = queryDataVersionResponseHeader.getChanged();
                                     if (changed == null || changed) {
                                         changedList.add(Boolean.TRUE);
                                     }
@@ -295,7 +296,7 @@ public class BrokerOuterAPI {
                                 default:
                                     break;
                             }
-                            log.info("query data version from name server {} OK", namesrvAddr);
+                            log.info("query data version from name server {} OK , changed {}", namesrvAddr, changed);
                         } catch (Exception e) {
                             log.warn("query data version from name server {}  Exception, {}", namesrvAddr, e);
                         } finally {
