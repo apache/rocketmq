@@ -570,6 +570,11 @@ public class MappedFile extends ReferenceResource {
         log.info("munlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
     }
 
+    //testable
+    File getFile() {
+        return this.file;
+    }
+
     @Override
     public String toString() {
         return this.fileName;
