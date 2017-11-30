@@ -84,7 +84,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             case RequestCode.DELETE_KV_CONFIG:
                 return this.deleteKVConfig(ctx, request);
             case RequestCode.QUERY_DATA_VERSION:
-                return isBrokerTopicConfigChanged(ctx, request);
+                return queryBrokerTopicConfig(ctx, request);
             case RequestCode.REGISTER_BROKER:
                 Version brokerVersion = MQVersion.value2Version(request.getVersion());
                 if (brokerVersion.ordinal() >= MQVersion.Version.V3_0_11.ordinal()) {
@@ -229,7 +229,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    public RemotingCommand isBrokerTopicConfigChanged(ChannelHandlerContext ctx,
+    public RemotingCommand queryBrokerTopicConfig(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(QueryDataVersionResponseHeader.class);
         final QueryDataVersionResponseHeader responseHeader = (QueryDataVersionResponseHeader) response.readCustomHeader();
@@ -238,8 +238,12 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         DataVersion dataVersion = DataVersion.decode(request.getBody(), DataVersion.class);
 
         Boolean changed = this.namesrvController.getRouteInfoManager().isBrokerTopicConfigChanged(requestHeader.getBrokerAddr(), dataVersion);
+        DataVersion nameSeverDataVersion = this.namesrvController.getRouteInfoManager().queryBrokerTopicConfig(requestHeader.getBrokerAddr());
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
+        if (nameSeverDataVersion != null) {
+            response.setBody(nameSeverDataVersion.encode());
+        }
         responseHeader.setChanged(changed);
         return response;
     }

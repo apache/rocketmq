@@ -184,12 +184,16 @@ public class RouteInfoManager {
     }
 
     public boolean isBrokerTopicConfigChanged(final String brokerAddr, final DataVersion dataVersion) {
-        BrokerLiveInfo prev = this.brokerLiveTable.get(brokerAddr);
-        if (null == prev || !prev.getDataVersion().equals(dataVersion)) {
-            return true;
-        }
+        DataVersion prev = queryBrokerTopicConfig(brokerAddr);
+        return null == prev || !prev.equals(dataVersion);
+    }
 
-        return false;
+    public DataVersion queryBrokerTopicConfig(final String brokerAddr) {
+        BrokerLiveInfo prev = this.brokerLiveTable.get(brokerAddr);
+        if (prev != null) {
+            return prev.getDataVersion();
+        }
+        return null;
     }
 
     private void createAndUpdateQueueData(final String brokerName, final TopicConfig topicConfig) {
