@@ -1205,11 +1205,17 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         runtimeInfo.put("pullThreadPoolQueueCapacity",
             String.valueOf(this.brokerController.getBrokerConfig().getPullThreadPoolQueueCapacity()));
 
+        runtimeInfo.put("queryThreadPoolQueueSize", String.valueOf(this.brokerController.getQueryThreadPoolQueue().size()));
+        runtimeInfo.put("queryThreadPoolQueueCapacity",
+            String.valueOf(this.brokerController.getBrokerConfig().getQueryThreadPoolQueueCapacity()));
+
         runtimeInfo.put("dispatchBehindBytes", String.valueOf(this.brokerController.getMessageStore().dispatchBehindBytes()));
         runtimeInfo.put("pageCacheLockTimeMills", String.valueOf(this.brokerController.getMessageStore().lockTimeMills()));
 
         runtimeInfo.put("sendThreadPoolQueueHeadWaitTimeMills", String.valueOf(this.brokerController.headSlowTimeMills4SendThreadPoolQueue()));
         runtimeInfo.put("pullThreadPoolQueueHeadWaitTimeMills", String.valueOf(this.brokerController.headSlowTimeMills4PullThreadPoolQueue()));
+        runtimeInfo.put("queryThreadPoolQueueHeadWaitTimeMills", String.valueOf(this.brokerController.headSlowTimeMills4QueryThreadPoolQueue()));
+
         runtimeInfo.put("earliestMessageTimeStamp", String.valueOf(this.brokerController.getMessageStore().getEarliestMessageTime()));
         runtimeInfo.put("startAcceptSendRequestTimeStamp", String.valueOf(this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp()));
         if (this.brokerController.getMessageStore() instanceof DefaultMessageStore) {
