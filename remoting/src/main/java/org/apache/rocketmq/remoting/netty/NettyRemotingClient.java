@@ -87,6 +87,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final Lock lockNamesrvChannel = new ReentrantLock();
 
     private final ExecutorService publicExecutor;
+
+    /**
+     * Invoke the callback methods in this executor when process response.
+     */
+    private ExecutorService callbackExecutor;
     private final ChannelEventListener channelEventListener;
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
     private RPCHook rpcHook;
@@ -582,7 +587,12 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     @Override
     public ExecutorService getCallbackExecutor() {
-        return this.publicExecutor;
+        return callbackExecutor != null ? callbackExecutor : publicExecutor;
+    }
+
+    @Override
+    public void setCallbackExecutor(final ExecutorService callbackExecutor) {
+        this.callbackExecutor = callbackExecutor;
     }
 
     static class ChannelWrapper {
