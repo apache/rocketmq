@@ -26,7 +26,11 @@ import org.apache.rocketmq.store.SelectMappedBufferResult;
 public class OneMessageTransfer extends AbstractReferenceCounted implements FileRegion {
     private final ByteBuffer byteBufferHeader;
     private final SelectMappedBufferResult selectMappedBufferResult;
-    private long transfered; // the bytes which was transfered already
+
+    /**
+     * Bytes which were transferred already.
+     */
+    private long transferred;
 
     public OneMessageTransfer(ByteBuffer byteBufferHeader, SelectMappedBufferResult selectMappedBufferResult) {
         this.byteBufferHeader = byteBufferHeader;
@@ -40,7 +44,7 @@ public class OneMessageTransfer extends AbstractReferenceCounted implements File
 
     @Override
     public long transfered() {
-        return transfered;
+        return transferred;
     }
 
     @Override
@@ -51,11 +55,11 @@ public class OneMessageTransfer extends AbstractReferenceCounted implements File
     @Override
     public long transferTo(WritableByteChannel target, long position) throws IOException {
         if (this.byteBufferHeader.hasRemaining()) {
-            transfered += target.write(this.byteBufferHeader);
-            return transfered;
+            transferred += target.write(this.byteBufferHeader);
+            return transferred;
         } else if (this.selectMappedBufferResult.getByteBuffer().hasRemaining()) {
-            transfered += target.write(this.selectMappedBufferResult.getByteBuffer());
-            return transfered;
+            transferred += target.write(this.selectMappedBufferResult.getByteBuffer());
+            return transferred;
         }
 
         return 0;

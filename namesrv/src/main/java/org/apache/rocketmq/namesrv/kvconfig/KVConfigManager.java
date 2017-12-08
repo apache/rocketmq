@@ -43,7 +43,12 @@ public class KVConfigManager {
     }
 
     public void load() {
-        String content = MixAll.file2String(this.namesrvController.getNamesrvConfig().getKvConfigPath());
+        String content = null;
+        try {
+            content = MixAll.file2String(this.namesrvController.getNamesrvConfig().getKvConfigPath());
+        } catch (IOException e) {
+            log.warn("Load KV config table exception", e);
+        }
         if (content != null) {
             KVConfigSerializeWrapper kvConfigSerializeWrapper =
                 KVConfigSerializeWrapper.fromJson(content, KVConfigSerializeWrapper.class);
@@ -67,10 +72,10 @@ public class KVConfigManager {
 
                 final String prev = kvTable.put(key, value);
                 if (null != prev) {
-                    log.info("putKVConfig update config item, Namespace: {} Key: {} Value: {}", //
+                    log.info("putKVConfig update config item, Namespace: {} Key: {} Value: {}",
                         namespace, key, value);
                 } else {
-                    log.info("putKVConfig create new config item, Namespace: {} Key: {} Value: {}", //
+                    log.info("putKVConfig create new config item, Namespace: {} Key: {} Value: {}",
                         namespace, key, value);
                 }
             } finally {
@@ -114,7 +119,7 @@ public class KVConfigManager {
                 HashMap<String, String> kvTable = this.configTable.get(namespace);
                 if (null != kvTable) {
                     String value = kvTable.remove(key);
-                    log.info("deleteKVConfig delete a config item, Namespace: {} Key: {} Value: {}", //
+                    log.info("deleteKVConfig delete a config item, Namespace: {} Key: {} Value: {}",
                         namespace, key, value);
                 }
             } finally {

@@ -34,6 +34,13 @@ public class MessageStoreConfig {
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
     // ConsumeQueue file size,default is 30W
     private int mapedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
+    // enable consume queue ext
+    private boolean enableConsumeQueueExt = false;
+    // ConsumeQueue extend file size, 48M
+    private int mappedFileSizeConsumeQueueExt = 48 * 1024 * 1024;
+    // Bit count of filter bit map.
+    // this will be set by pipe of calculate filter bit map.
+    private int bitMapLengthConsumeQueueExt = 64;
 
     // CommitLog flush interval
     // flush data to disk
@@ -45,6 +52,10 @@ public class MessageStoreConfig {
     @ImportantField
     private int commitIntervalCommitLog = 200;
 
+    /**
+     * introduced since 4.0.x. Determine whether to use mutex reentrantLock when putting message.<br/>
+     * By default it is set to false indicating using spin lock when putting message.
+     */
     private boolean useReentrantLockWhenPutMessage = false;
 
     // Whether schedule flush,default is real-time
@@ -188,6 +199,30 @@ public class MessageStoreConfig {
 
     public void setMapedFileSizeConsumeQueue(int mapedFileSizeConsumeQueue) {
         this.mapedFileSizeConsumeQueue = mapedFileSizeConsumeQueue;
+    }
+
+    public boolean isEnableConsumeQueueExt() {
+        return enableConsumeQueueExt;
+    }
+
+    public void setEnableConsumeQueueExt(boolean enableConsumeQueueExt) {
+        this.enableConsumeQueueExt = enableConsumeQueueExt;
+    }
+
+    public int getMappedFileSizeConsumeQueueExt() {
+        return mappedFileSizeConsumeQueueExt;
+    }
+
+    public void setMappedFileSizeConsumeQueueExt(int mappedFileSizeConsumeQueueExt) {
+        this.mappedFileSizeConsumeQueueExt = mappedFileSizeConsumeQueueExt;
+    }
+
+    public int getBitMapLengthConsumeQueueExt() {
+        return bitMapLengthConsumeQueueExt;
+    }
+
+    public void setBitMapLengthConsumeQueueExt(int bitMapLengthConsumeQueueExt) {
+        this.bitMapLengthConsumeQueueExt = bitMapLengthConsumeQueueExt;
     }
 
     public int getFlushIntervalCommitLog() {
@@ -569,7 +604,8 @@ public class MessageStoreConfig {
     }
 
     /**
-     * Enable transient commitLog store poll only if transientStorePoolEnable is true and the FlushDiskType is ASYNC_FLUSH
+     * Enable transient commitLog store poll only if transientStorePoolEnable is true and the FlushDiskType is
+     * ASYNC_FLUSH
      *
      * @return <tt>true</tt> or <tt>false</tt>
      */
@@ -629,4 +665,5 @@ public class MessageStoreConfig {
     public void setCommitCommitLogThoroughInterval(final int commitCommitLogThoroughInterval) {
         this.commitCommitLogThoroughInterval = commitCommitLogThoroughInterval;
     }
+
 }

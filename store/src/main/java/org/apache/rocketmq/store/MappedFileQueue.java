@@ -121,7 +121,7 @@ public class MappedFileQueue {
         this.deleteExpiredFile(willRemoveFiles);
     }
 
-    private void deleteExpiredFile(List<MappedFile> files) {
+    void deleteExpiredFile(List<MappedFile> files) {
 
         if (!files.isEmpty()) {
 
@@ -405,7 +405,6 @@ public class MappedFileQueue {
                     break;
                 }
 
-                // TODO: Externalize this hardcoded value
                 if (destroy && mappedFile.destroy(1000 * 60)) {
                     files.add(mappedFile);
                     deleteCount++;

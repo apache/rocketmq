@@ -32,7 +32,7 @@ public class ClientConfig {
     /**
      * Pulling topic information interval from the named server
      */
-    private int pollNameServerInteval = 1000 * 30;
+    private int pollNameServerInterval = 1000 * 30;
     /**
      * Heartbeat interval in microseconds with message broker
      */
@@ -86,7 +86,7 @@ public class ClientConfig {
         this.clientIP = cc.clientIP;
         this.instanceName = cc.instanceName;
         this.clientCallbackExecutorThreads = cc.clientCallbackExecutorThreads;
-        this.pollNameServerInteval = cc.pollNameServerInteval;
+        this.pollNameServerInterval = cc.pollNameServerInterval;
         this.heartbeatBrokerInterval = cc.heartbeatBrokerInterval;
         this.persistConsumerOffsetInterval = cc.persistConsumerOffsetInterval;
         this.unitMode = cc.unitMode;
@@ -100,7 +100,7 @@ public class ClientConfig {
         cc.clientIP = clientIP;
         cc.instanceName = instanceName;
         cc.clientCallbackExecutorThreads = clientCallbackExecutorThreads;
-        cc.pollNameServerInteval = pollNameServerInteval;
+        cc.pollNameServerInterval = pollNameServerInterval;
         cc.heartbeatBrokerInterval = heartbeatBrokerInterval;
         cc.persistConsumerOffsetInterval = persistConsumerOffsetInterval;
         cc.unitMode = unitMode;
@@ -125,12 +125,12 @@ public class ClientConfig {
         this.clientCallbackExecutorThreads = clientCallbackExecutorThreads;
     }
 
-    public int getPollNameServerInteval() {
-        return pollNameServerInteval;
+    public int getPollNameServerInterval() {
+        return pollNameServerInterval;
     }
 
-    public void setPollNameServerInteval(int pollNameServerInteval) {
-        this.pollNameServerInteval = pollNameServerInteval;
+    public void setPollNameServerInterval(int pollNameServerInterval) {
+        this.pollNameServerInterval = pollNameServerInterval;
     }
 
     public int getHeartbeatBrokerInterval() {
@@ -176,7 +176,7 @@ public class ClientConfig {
     @Override
     public String toString() {
         return "ClientConfig [namesrvAddr=" + namesrvAddr + ", clientIP=" + clientIP + ", instanceName=" + instanceName
-            + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInteval=" + pollNameServerInteval
+            + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInterval=" + pollNameServerInterval
             + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval + ", persistConsumerOffsetInterval="
             + persistConsumerOffsetInterval + ", unitMode=" + unitMode + ", unitName=" + unitName + ", vipChannelEnabled="
             + vipChannelEnabled + "]";

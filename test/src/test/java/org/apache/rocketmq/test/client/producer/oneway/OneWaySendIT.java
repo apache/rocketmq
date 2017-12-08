@@ -56,9 +56,9 @@ public class OneWaySendIT extends BaseConf {
         producer.waitForResponse(5 * 1000);
         assertThat(producer.getAllMsgBody().size()).isEqualTo(msgSize);
 
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
 }

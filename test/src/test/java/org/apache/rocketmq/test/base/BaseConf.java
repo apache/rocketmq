@@ -41,8 +41,7 @@ public class BaseConf {
     protected static String clusterName;
     protected static int brokerNum;
     protected static int waitTime = 5;
-    protected static int consumeTime = 1 * 60 * 1000;
-    protected static int topicCreateTime = 30 * 1000;
+    protected static int consumeTime = 5 * 60 * 1000;
     protected static NamesrvController namesrvController;
     protected static BrokerController brokerController1;
     protected static BrokerController brokerController2;
@@ -66,22 +65,8 @@ public class BaseConf {
     }
 
     public static String initTopic() {
-        long startTime = System.currentTimeMillis();
         String topic = MQRandomUtils.getRandomTopic();
-        boolean createResult = false;
-        while (true) {
-            createResult = MQAdmin.createTopic(nsAddr, clusterName, topic, 8);
-            if (createResult) {
-                break;
-            } else if (System.currentTimeMillis() - startTime > topicCreateTime) {
-                Assert.fail(String.format("topic[%s] is created failed after:%d ms", topic,
-                    System.currentTimeMillis() - startTime));
-                break;
-            } else {
-                TestUtils.waitForMonment(500);
-                continue;
-            }
-        }
+        IntegrationTestBase.initTopic(topic, nsAddr, clusterName);
 
         return topic;
     }

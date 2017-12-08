@@ -16,37 +16,36 @@
  */
 package org.apache.rocketmq.client.log;
 
-import java.lang.reflect.Method;
-import java.net.URL;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.slf4j.ILoggerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Method;
+import java.net.URL;
+
 public class ClientLogger {
     public static final String CLIENT_LOG_ROOT = "rocketmq.client.logRoot";
     public static final String CLIENT_LOG_MAXINDEX = "rocketmq.client.logFileMaxIndex";
     public static final String CLIENT_LOG_LEVEL = "rocketmq.client.logLevel";
+
     private static Logger log;
 
-    static {
-        log = createLogger(LoggerName.CLIENT_LOGGER_NAME);
-    }
-
     private static Logger createLogger(final String loggerName) {
-        String logConfigFilePath =
-            System.getProperty("rocketmq.client.log.configFile",
-                System.getenv("ROCKETMQ_CLIENT_LOG_CONFIGFILE"));
+        String logConfigFilePath = System.getProperty("rocketmq.client.log.configFile", System.getenv("ROCKETMQ_CLIENT_LOG_CONFIGFILE"));
         Boolean isloadconfig =
-            Boolean.parseBoolean(System.getProperty("rocketmq.client.log.loadconfig", "true"));
+                Boolean.parseBoolean(System.getProperty("rocketmq.client.log.loadconfig", "true"));
 
         final String log4JResourceFile =
-            System.getProperty("rocketmq.client.log4j.resource.fileName", "log4j_rocketmq_client.xml");
+                System.getProperty("rocketmq.client.log4j.resource.fileName", "log4j_rocketmq_client.xml");
 
         final String logbackResourceFile =
-            System.getProperty("rocketmq.client.logback.resource.fileName", "logback_rocketmq_client.xml");
+                System.getProperty("rocketmq.client.logback.resource.fileName", "logback_rocketmq_client.xml");
 
-        String clientLogRoot = System.getProperty(CLIENT_LOG_ROOT, "${user.home}/logs/rocketmqlogs");
+        final String log4J2ResourceFile =
+                System.getProperty("rocketmq.client.log4j2.resource.fileName", "log4j2_rocketmq_client.xml");
+
+        String clientLogRoot = System.getProperty(CLIENT_LOG_ROOT, System.getProperty("user.home") + "/logs/rocketmqlogs");
         System.setProperty("client.logRoot", clientLogRoot);
         String clientLogLevel = System.getProperty(CLIENT_LOG_LEVEL, "INFO");
         System.setProperty("client.logLevel", clientLogLevel);
@@ -82,14 +81,22 @@ public class ClientLogger {
                     if (null == logConfigFilePath) {
                         URL url = ClientLogger.class.getClassLoader().getResource(logbackResourceFile);
                         Method doConfigure =
-                            joranConfiguratoroObj.getClass().getMethod("doConfigure", URL.class);
+                                joranConfiguratoroObj.getClass().getMethod("doConfigure", URL.class);
                         doConfigure.invoke(joranConfiguratoroObj, url);
                     } else {
                         Method doConfigure =
-                            joranConfiguratoroObj.getClass().getMethod("doConfigure", String.class);
+                                joranConfiguratoroObj.getClass().getMethod("doConfigure", String.class);
                         doConfigure.invoke(joranConfiguratoroObj, logConfigFilePath);
                     }
 
+                } else if (classType.getName().equals("org.apache.logging.slf4j.Log4jLoggerFactory")) {
+                    Class<?> joranConfigurator = Class.forName("org.apache.logging.log4j.core.config.Configurator");
+                    Method initialize = joranConfigurator.getDeclaredMethod("initialize", String.class, String.class);
+                    if (null == logConfigFilePath) {
+                        initialize.invoke(joranConfigurator, "log4j2", log4J2ResourceFile);
+                    } else {
+                        initialize.invoke(joranConfigurator, "log4j2", logConfigFilePath);
+                    }
                 }
             } catch (Exception e) {
                 System.err.println(e);
@@ -99,7 +106,12 @@ public class ClientLogger {
     }
 
     public static Logger getLog() {
-        return log;
+        if (log == null) {
+            log = createLogger(LoggerName.CLIENT_LOGGER_NAME);
+            return log;
+        } else {
+            return log;
+        }
     }
 
     public static void setLog(Logger log) {

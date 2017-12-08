@@ -23,6 +23,7 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
+import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class TopicRouteSubCommand implements SubCommand {
 
@@ -46,7 +47,8 @@ public class TopicRouteSubCommand implements SubCommand {
     }
 
     @Override
-    public void execute(final CommandLine commandLine, final Options options, RPCHook rpcHook) {
+    public void execute(final CommandLine commandLine, final Options options,
+        RPCHook rpcHook) throws SubCommandException {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
@@ -59,7 +61,7 @@ public class TopicRouteSubCommand implements SubCommand {
             String json = topicRouteData.toJson(true);
             System.out.printf("%s%n", json);
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
             defaultMQAdminExt.shutdown();
         }

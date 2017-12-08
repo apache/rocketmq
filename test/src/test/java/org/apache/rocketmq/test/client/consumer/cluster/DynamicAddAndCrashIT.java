@@ -65,11 +65,11 @@ public class DynamicAddAndCrashIT extends BaseConf {
 
         asyncDefaultMQProducer.waitSendAll(waitTime * 6);
 
-        MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer1.getListner(),
-            consumer2.getListner());
+        MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer1.getListener(),
+            consumer2.getListener());
 
         boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
-            consumer1.getListner(), consumer2.getListner());
+            consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
     }
 
@@ -93,11 +93,11 @@ public class DynamicAddAndCrashIT extends BaseConf {
 
         asyncDefaultMQProducer.waitSendAll(waitTime * 6);
 
-        MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer1.getListner(),
-            consumer2.getListner(), consumer3.getListner());
+        MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer1.getListener(),
+            consumer2.getListener(), consumer3.getListener());
 
         boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
-            consumer1.getListner(), consumer2.getListner(), consumer3.getListner());
+            consumer1.getListener(), consumer2.getListener(), consumer3.getListener());
         assertThat(recvAll).isEqualTo(true);
     }
 }

@@ -46,7 +46,8 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
     }
 
     @Override
-    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand processRequest(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final EndTransactionRequestHeader requestHeader =
             (EndTransactionRequestHeader) request.decodeCommandCustomHeader(EndTransactionRequestHeader.class);
@@ -157,7 +158,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     // Failed
                     case CREATE_MAPEDFILE_FAILED:
                         response.setCode(ResponseCode.SYSTEM_ERROR);
-                        response.setRemark("create maped file failed.");
+                        response.setRemark("create mapped file failed.");
                         break;
                     case MESSAGE_ILLEGAL:
                     case PROPERTIES_SIZE_EXCEEDED:

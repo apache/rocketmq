@@ -69,12 +69,12 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         this.consumerGroup = this.defaultMQPushConsumer.getConsumerGroup();
         this.consumeRequestQueue = new LinkedBlockingQueue<Runnable>();
 
-        this.consumeExecutor = new ThreadPoolExecutor(//
-            this.defaultMQPushConsumer.getConsumeThreadMin(), //
-            this.defaultMQPushConsumer.getConsumeThreadMax(), //
-            1000 * 60, //
-            TimeUnit.MILLISECONDS, //
-            this.consumeRequestQueue, //
+        this.consumeExecutor = new ThreadPoolExecutor(
+            this.defaultMQPushConsumer.getConsumeThreadMin(),
+            this.defaultMQPushConsumer.getConsumeThreadMax(),
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            this.consumeRequestQueue,
             new ThreadFactoryImpl("ConsumeMessageThread_"));
 
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_"));
@@ -100,8 +100,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
     @Override
     public void updateCorePoolSize(int corePoolSize) {
-        if (corePoolSize > 0 //
-            && corePoolSize <= Short.MAX_VALUE //
+        if (corePoolSize > 0
+            && corePoolSize <= Short.MAX_VALUE
             && corePoolSize < this.defaultMQPushConsumer.getConsumeThreadMax()) {
             this.consumeExecutor.setCorePoolSize(corePoolSize);
         }
@@ -115,11 +115,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         // this.consumeExecutor.setCorePoolSize(this.consumeExecutor.getCorePoolSize()
         // + 1);
         // }
-        //
         // log.info("incCorePoolSize Concurrently from {} to {}, ConsumerGroup:
-        // {}", //
-        // corePoolSize,//
-        // this.consumeExecutor.getCorePoolSize(),//
+        // {}",
+        // corePoolSize,
+        // this.consumeExecutor.getCorePoolSize(),
         // this.consumerGroup);
     }
 
@@ -131,11 +130,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         // this.consumeExecutor.setCorePoolSize(this.consumeExecutor.getCorePoolSize()
         // - 1);
         // }
-        //
         // log.info("decCorePoolSize Concurrently from {} to {}, ConsumerGroup:
-        // {}", //
-        // corePoolSize,//
-        // this.consumeExecutor.getCorePoolSize(),//
+        // {}",
+        // corePoolSize,
+        // this.consumeExecutor.getCorePoolSize(),
         // this.consumerGroup);
     }
 
@@ -185,10 +183,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             result.setConsumeResult(CMResult.CR_THROW_EXCEPTION);
             result.setRemark(RemotingHelper.exceptionSimpleDesc(e));
 
-            log.warn(String.format("consumeMessageDirectly exception: %s Group: %s Msgs: %s MQ: %s", //
-                RemotingHelper.exceptionSimpleDesc(e), //
-                ConsumeMessageConcurrentlyService.this.consumerGroup, //
-                msgs, //
+            log.warn(String.format("consumeMessageDirectly exception: %s Group: %s Msgs: %s MQ: %s",
+                RemotingHelper.exceptionSimpleDesc(e),
+                ConsumeMessageConcurrentlyService.this.consumerGroup,
+                msgs,
                 mq), e);
         }
 
@@ -200,10 +198,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     }
 
     @Override
-    public void submitConsumeRequest(//
-        final List<MessageExt> msgs, //
-        final ProcessQueue processQueue, //
-        final MessageQueue messageQueue, //
+    public void submitConsumeRequest(
+        final List<MessageExt> msgs,
+        final ProcessQueue processQueue,
+        final MessageQueue messageQueue,
         final boolean dispatchToConsume) {
         final int consumeBatchSize = this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize();
         if (msgs.size() <= consumeBatchSize) {
@@ -258,10 +256,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         }
     }
 
-    public void processConsumeResult(//
-        final ConsumeConcurrentlyStatus status, //
-        final ConsumeConcurrentlyContext context, //
-        final ConsumeRequest consumeRequest//
+    public void processConsumeResult(
+        final ConsumeConcurrentlyStatus status,
+        final ConsumeConcurrentlyContext context,
+        final ConsumeRequest consumeRequest
     ) {
         int ackIndex = context.getAckIndex();
 
@@ -338,10 +336,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         return false;
     }
 
-    private void submitConsumeRequestLater(//
-        final List<MessageExt> msgs, //
-        final ProcessQueue processQueue, //
-        final MessageQueue messageQueue//
+    private void submitConsumeRequestLater(
+        final List<MessageExt> msgs,
+        final ProcessQueue processQueue,
+        final MessageQueue messageQueue
     ) {
 
         this.scheduledExecutorService.schedule(new Runnable() {
@@ -353,7 +351,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         }, 5000, TimeUnit.MILLISECONDS);
     }
 
-    private void submitConsumeRequestLater(final ConsumeRequest consumeRequest//
+    private void submitConsumeRequestLater(final ConsumeRequest consumeRequest
     ) {
 
         this.scheduledExecutorService.schedule(new Runnable() {
@@ -419,7 +417,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 status = listener.consumeMessage(Collections.unmodifiableList(msgs), context);
             } catch (Throwable e) {
                 log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",
-                    RemotingHelper.exceptionSimpleDesc(e), //
+                    RemotingHelper.exceptionSimpleDesc(e),
                     ConsumeMessageConcurrentlyService.this.consumerGroup,
                     msgs,
                     messageQueue);
