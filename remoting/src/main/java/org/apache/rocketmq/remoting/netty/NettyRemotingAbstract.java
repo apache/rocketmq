@@ -257,14 +257,13 @@ public abstract class NettyRemotingAbstract {
         if (responseFuture != null) {
             responseFuture.setResponseCommand(cmd);
 
-            responseFuture.release();
-
             responseTable.remove(opaque);
 
             if (responseFuture.getInvokeCallback() != null) {
                 executeInvokeCallback(responseFuture);
             } else {
                 responseFuture.putResponse(cmd);
+                responseFuture.release();
             }
         } else {
             log.warn("receive response, but not matched any request, " + RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
@@ -287,6 +286,8 @@ public abstract class NettyRemotingAbstract {
                             responseFuture.executeInvokeCallback();
                         } catch (Throwable e) {
                             log.warn("execute callback in executor exception, and callback throw", e);
+                        } finally {
+                            responseFuture.release();
                         }
                     }
                 });
@@ -303,6 +304,8 @@ public abstract class NettyRemotingAbstract {
                 responseFuture.executeInvokeCallback();
             } catch (Throwable e) {
                 log.warn("executeInvokeCallback Exception", e);
+            } finally {
+                responseFuture.release();
             }
         }
     }
