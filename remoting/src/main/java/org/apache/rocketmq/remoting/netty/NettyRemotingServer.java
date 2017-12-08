@@ -37,6 +37,7 @@ import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.cert.CertificateException;
 import java.util.NoSuchElementException;
@@ -46,7 +47,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.net.ssl.SSLException;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -148,7 +148,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 log.info("SSLContext created for server");
             } catch (CertificateException e) {
                 log.error("Failed to create SSLContext for server", e);
-            } catch (SSLException e) {
+            } catch (IOException e) {
                 log.error("Failed to create SSLContext for server", e);
             }
         }

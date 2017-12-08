@@ -31,16 +31,40 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.cert.CertificateException;
 import java.util.Properties;
-import javax.net.ssl.SSLException;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SslHelper {
 
+    public interface DecryptionStrategy {
+        /**
+         * Decrypt the target encrpted private key file.
+         *
+         * @param privateKeyEncryptPath A pathname string
+         * @param forClient tells whether it's a client-side key file
+         * @return An input stream for a decrypted key file
+         * @throws IOException if an I/O error has occurred
+         */
+        InputStream decryptPrivateKey(String privateKeyEncryptPath, boolean forClient) throws IOException;
+    }
+
     private static final Logger LOGGER = LoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
-    public static SslContext buildSslContext(boolean forClient) throws SSLException, CertificateException {
+    private static DecryptionStrategy decryptionStrategy = new DecryptionStrategy() {
+        @Override
+        public InputStream decryptPrivateKey(final String privateKeyEncryptPath,
+            final boolean forClient) throws IOException {
+            return new FileInputStream(privateKeyEncryptPath);
+        }
+    };
+
+
+    public static void registerDecryptionStrategy(final DecryptionStrategy decryptionStrategy) {
+        SslHelper.decryptionStrategy = decryptionStrategy;
+    }
+
+    public static SslContext buildSslContext(boolean forClient) throws IOException, CertificateException {
 
         File configFile = new File(NettySystemConfig.sslConfigFile);
         boolean testMode = !(configFile.exists() && configFile.isFile() && configFile.canRead());
@@ -92,8 +116,8 @@ public class SslHelper {
                 }
 
                 return sslContextBuilder.keyManager(
-                    properties.containsKey("client.keyCertChainFile") ? new File(properties.getProperty("client.keyCertChainFile")) : null,
-                    properties.containsKey("client.keyFile") ? new File(properties.getProperty("client.keyFile")) : null,
+                    properties.containsKey("client.keyCertChainFile") ? new FileInputStream(properties.getProperty("client.keyCertChainFile")) : null,
+                    properties.containsKey("client.keyFile") ? decryptionStrategy.decryptPrivateKey(properties.getProperty("client.keyFile"), true) : null,
                     properties.containsKey("client.password") ? properties.getProperty("client.password") : null)
                     .build();
             }
@@ -108,8 +132,8 @@ public class SslHelper {
                     .build();
             } else {
                 return SslContextBuilder.forServer(
-                    properties.containsKey("server.keyCertChainFile") ? new File(properties.getProperty("server.keyCertChainFile")) : null,
-                    properties.containsKey("server.keyFile") ? new File(properties.getProperty("server.keyFile")) : null,
+                    properties.containsKey("server.keyCertChainFile") ? new FileInputStream(properties.getProperty("server.keyCertChainFile")) : null,
+                    properties.containsKey("server.keyFile") ? decryptionStrategy.decryptPrivateKey(properties.getProperty("server.keyFile"), false) : null,
                     properties.containsKey("server.password") ? properties.getProperty("server.password") : null)
                     .sslProvider(provider)
                     .trustManager(new File(properties.getProperty("server.trustManager")))
