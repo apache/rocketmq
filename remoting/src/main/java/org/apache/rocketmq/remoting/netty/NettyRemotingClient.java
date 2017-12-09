@@ -131,7 +131,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         if (nettyClientConfig.isUseTLS()) {
             try {
-                sslContext = SslHelper.buildSslContext(true);
+                sslContext = TlsHelper.buildSslContext(true);
                 log.info("SSL enabled for client");
             } catch (IOException e) {
                 log.error("Failed to create SSLContext", e);

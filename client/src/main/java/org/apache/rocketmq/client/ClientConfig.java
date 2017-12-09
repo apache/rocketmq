@@ -19,6 +19,7 @@ package org.apache.rocketmq.client;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 
 /**
  * Client Common configuration
@@ -45,7 +46,7 @@ public class ClientConfig {
     private String unitName;
     private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "true"));
 
-    private boolean useTLS;
+    private boolean useTLS = TlsSystemConfig.tlsEnable;
 
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
