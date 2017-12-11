@@ -160,6 +160,7 @@ public class TlsHelper {
     private static void extractTlsConfigFromFile(final File configFile) {
         if (!(configFile.exists() && configFile.isFile() && configFile.canRead())) {
             LOGGER.info("Tls config file doesn't exist, skip it");
+            return;
         }
 
         Properties properties;
