@@ -1060,6 +1060,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             this.defaultMQProducer.getSendMsgTimeout());
     }
 
+    public void setCallbackExecutor(final ExecutorService callbackExecutor) {
+        this.mQClientFactory.getMQClientAPIImpl().getRemotingClient().setCallbackExecutor(callbackExecutor);
+    }
+
     public SendResult send(Message msg,
         long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.sendDefaultImpl(msg, CommunicationMode.SYNC, null, timeout);
