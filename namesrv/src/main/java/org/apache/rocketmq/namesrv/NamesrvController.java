@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.namesrv;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -30,8 +31,11 @@ import org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor;
 import org.apache.rocketmq.namesrv.routeinfo.BrokerHousekeepingService;
 import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import org.apache.rocketmq.remoting.RemotingServer;
+import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
+import org.apache.rocketmq.srvutil.FileWatchService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +58,7 @@ public class NamesrvController {
     private ExecutorService remotingExecutor;
 
     private Configuration configuration;
+    private FileWatchService fileWatchService;
 
     public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
         this.namesrvConfig = namesrvConfig;
@@ -95,6 +100,22 @@ public class NamesrvController {
             }
         }, 1, 10, TimeUnit.MINUTES);
 
+        if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
+            // Register a listener to reload SslContext
+            try {
+                fileWatchService = new FileWatchService(
+                    new String[] {TlsSystemConfig.tlsServerCertPath, TlsSystemConfig.tlsServerKeyPath},
+                    new FileWatchService.Listener() {
+                        @Override
+                        public void onChanged() {
+                            ((NettyRemotingServer) remotingServer).loadSslContext();
+                        }
+                    });
+            } catch (IOException e) {
+                log.warn("FileWatchService created error, can't load the certificate dynamically");
+            }
+        }
+
         return true;
     }
 
@@ -111,12 +132,20 @@ public class NamesrvController {
 
     public void start() throws Exception {
         this.remotingServer.start();
+
+        if (this.fileWatchService != null) {
+            this.fileWatchService.start();
+        }
     }
 
     public void shutdown() {
         this.remotingServer.shutdown();
         this.remotingExecutor.shutdown();
         this.scheduledExecutorService.shutdown();
+
+        if (this.fileWatchService != null) {
+            this.fileWatchService.shutdown();
+        }
     }
 
     public NamesrvConfig getNamesrvConfig() {
