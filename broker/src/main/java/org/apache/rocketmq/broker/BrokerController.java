@@ -73,11 +73,14 @@ import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.stats.MomentStatsItem;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingServer;
+import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.RequestTask;
+import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
+import org.apache.rocketmq.srvutil.FileWatchService;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageArrivingListener;
 import org.apache.rocketmq.store.MessageStore;
@@ -136,6 +139,7 @@ public class BrokerController {
     private InetSocketAddress storeHost;
     private BrokerFastFailure brokerFastFailure;
     private Configuration configuration;
+    private FileWatchService fileWatchService;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -387,6 +391,23 @@ public class BrokerController {
                     }
                 }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
             }
+
+            if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
+                // Register a listener to reload SslContext
+                try {
+                    fileWatchService = new FileWatchService(
+                        new String[] {TlsSystemConfig.tlsServerCertPath, TlsSystemConfig.tlsServerKeyPath},
+                        new FileWatchService.Listener() {
+                            @Override
+                            public void onChanged() {
+                                ((NettyRemotingServer) remotingServer).loadSslContext();
+                                ((NettyRemotingServer) fastRemotingServer).loadSslContext();
+                            }
+                        });
+                } catch (IOException e) {
+                    log.warn("FileWatchService created error, can't load the certificate dynamically");
+                }
+            }
         }
 
         return result;
@@ -594,6 +615,10 @@ public class BrokerController {
             this.fastRemotingServer.shutdown();
         }
 
+        if (this.fileWatchService != null) {
+            this.fileWatchService.shutdown();
+        }
+
         if (this.messageStore != null) {
             this.messageStore.shutdown();
         }
@@ -660,6 +685,10 @@ public class BrokerController {
 
         if (this.fastRemotingServer != null) {
             this.fastRemotingServer.start();
+        }
+
+        if (this.fileWatchService != null) {
+            this.fileWatchService.start();
         }
 
         if (this.brokerOuterAPI != null) {
