@@ -179,11 +179,11 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         if (msgExt.getReconsumeTimes() >= maxReconsumeTimes
             || delayLevel < 0) {
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
-            queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
+            queueIdInt = Math.abs(this.random.nextInt() % 99999999) % this.brokerController.getBrokerConfig().getDlqNumsPerGroup();
 
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
-                DLQ_NUMS_PER_GROUP,
-                PermName.PERM_WRITE, 0
+                this.brokerController.getBrokerConfig().getDlqNumsPerGroup(),
+                this.brokerController.getBrokerConfig().getDlqPerm(), 0
             );
             if (null == topicConfig) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -268,10 +268,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             int reconsumeTimes = requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes();
             if (reconsumeTimes >= maxReconsumeTimes) {
                 newTopic = MixAll.getDLQTopic(groupName);
-                int queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
+                int queueIdInt = Math.abs(this.random.nextInt() % 99999999) % this.brokerController.getBrokerConfig().getDlqNumsPerGroup();
                 topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
-                    DLQ_NUMS_PER_GROUP,
-                    PermName.PERM_WRITE, 0
+                    this.brokerController.getBrokerConfig().getDlqNumsPerGroup(),
+                    this.brokerController.getBrokerConfig().getDlqPerm(), 0
                 );
                 msg.setTopic(newTopic);
                 msg.setQueueId(queueIdInt);
