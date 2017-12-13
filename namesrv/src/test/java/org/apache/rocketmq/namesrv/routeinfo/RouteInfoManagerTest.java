@@ -49,7 +49,7 @@ public class RouteInfoManagerTest {
 
     @Test
     public void testGetAllClusterInfo() {
-        byte[] clusterInfo = routeInfoManager.getAllClusterInfo(null);
+        byte[] clusterInfo = routeInfoManager.getAllClusterInfo();
         assertThat(clusterInfo).isNotNull();
     }
 

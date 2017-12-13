@@ -29,7 +29,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -65,18 +64,14 @@ public class RouteInfoManager {
         this.filterServerTable = new HashMap<String, List<String>>(256);
     }
 
-    public byte[] getAllClusterInfo(String cluster) {
-        if (StringUtils.isNotBlank(cluster)) {
-            return getOneClusterInfo(cluster);
-        } else {
-            ClusterInfo clusterInfoSerializeWrapper = new ClusterInfo();
-            clusterInfoSerializeWrapper.setBrokerAddrTable(this.brokerAddrTable);
-            clusterInfoSerializeWrapper.setClusterAddrTable(this.clusterAddrTable);
-            return clusterInfoSerializeWrapper.encode();
-        }
+    public byte[] getAllClusterInfo() {
+        ClusterInfo clusterInfoSerializeWrapper = new ClusterInfo();
+        clusterInfoSerializeWrapper.setBrokerAddrTable(this.brokerAddrTable);
+        clusterInfoSerializeWrapper.setClusterAddrTable(this.clusterAddrTable);
+        return clusterInfoSerializeWrapper.encode();
     }
 
-    private byte[] getOneClusterInfo(String cluster) {
+    public byte[] getOneClusterInfo(String cluster) {
         HashMap<String, Set<String>> clusterAddr = new HashMap<>();
         HashMap<String, BrokerData> brokerAddr = new HashMap<>();
 

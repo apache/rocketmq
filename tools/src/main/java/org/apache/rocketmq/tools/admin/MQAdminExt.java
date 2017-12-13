@@ -100,6 +100,9 @@ public interface MQAdminExt extends MQAdmin {
     ClusterInfo examineBrokerClusterInfo(String cluster) throws InterruptedException, MQBrokerException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException;
 
+    ClusterInfo examineBrokerClusterInfo() throws InterruptedException, MQBrokerException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException;
+
     TopicRouteData examineTopicRouteInfo(
         final String topic) throws RemotingException, MQClientException, InterruptedException;
 
