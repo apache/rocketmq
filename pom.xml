@@ -39,9 +39,9 @@
     </prerequisites>
 
     <scm>
-        <url>https://github.com/apache/rocketmq.git</url>
-        <connection>scm:git:https://github.com/apache/rocketmq.git</connection>
-        <developerConnection>scm:git:https://github.com/apache/rocketmq.git</developerConnection>
+        <url>git@github.com:apache/rocketmq.git</url>
+        <connection>scm:git:git@github.com:apache/rocketmq.git</connection>
+        <developerConnection>scm:git:git@github.com:apache/rocketmq.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
