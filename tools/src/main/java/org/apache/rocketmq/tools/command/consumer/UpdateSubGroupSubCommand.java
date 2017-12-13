@@ -16,12 +16,23 @@
  */
 package org.apache.rocketmq.tools.command.consumer;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.QueueData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
@@ -89,6 +100,32 @@ public class UpdateSubGroupSubCommand implements SubCommand {
         return options;
     }
 
+
+    private void updateRetryTopicQueueNums(DefaultMQAdminExt defaultMQAdminExt, String topic, String addr, Map<String, BrokerData> brokerAddrMap, Map<String, QueueData> queueDataMap, int retryQueueNums) {
+        BrokerData brokerData = brokerAddrMap.get(addr);
+        if (brokerAddrMap == null) {
+            return;
+        }
+
+        QueueData queueData = queueDataMap.get(brokerData.getBrokerName());
+        if (queueData == null) {
+            return;
+        }
+
+        if (retryQueueNums != queueData.getWriteQueueNums()) {
+            TopicConfig topicConfig = new TopicConfig();
+            topicConfig.setTopicName(topic);
+            topicConfig.setPerm(queueData.getPerm());
+            topicConfig.setWriteQueueNums(retryQueueNums);
+            topicConfig.setReadQueueNums(retryQueueNums);
+            try {
+                defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
+            } catch (Exception e) {
+                System.out.print("update subscription retry topic " + topic + " queue nums to " + addr + " failed\r\n");
+            }
+        }
+    }
+
     @Override
     public void execute(final CommandLine commandLine, final Options options,
         RPCHook rpcHook) throws SubCommandException {
@@ -98,6 +135,7 @@ public class UpdateSubGroupSubCommand implements SubCommand {
 
         try {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+            int defaultRetryQueueNums = subscriptionGroupConfig.getRetryQueueNums();
             subscriptionGroupConfig.setConsumeBroadcastEnable(false);
             subscriptionGroupConfig.setConsumeFromMinEnable(false);
 
@@ -151,12 +189,45 @@ public class UpdateSubGroupSubCommand implements SubCommand {
                     .getOptionValue('a').trim()));
             }
 
+
+            boolean needCheckAndUpdate = false;
+            String topic = MixAll.getRetryTopic(subscriptionGroupConfig.getGroupName());
+            HashMap<String, BrokerData> brokerAddrMap = new HashMap<>();
+            HashMap<String, QueueData> queueDataMap = new HashMap<>();
+            int retryQueueNums = subscriptionGroupConfig.getRetryQueueNums();
+            if (retryQueueNums != defaultRetryQueueNums) {
+                needCheckAndUpdate = true;
+                TopicRouteData topicRouteData = null;
+                try {
+                    topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
+                } catch (Exception e) {
+                    System.out.print("get subscription retry topic route info null " + e.getClass() + ":" + e.getMessage() + "\r\n");
+                }
+                if (topicRouteData != null) {
+                    List<BrokerData> brokerDatas = topicRouteData.getBrokerDatas();
+                    for (BrokerData brokerData : brokerDatas) {
+                        brokerAddrMap.put(brokerData.getBrokerAddrs().get(MixAll.MASTER_ID), brokerData);
+                    }
+
+                    List<QueueData> queueDatas = topicRouteData.getQueueDatas();
+                    for (QueueData queueData : queueDatas) {
+                        String brokerName = queueData.getBrokerName();
+                        queueDataMap.put(brokerName, queueData);
+                    }
+                }
+            }
+
             if (commandLine.hasOption('b')) {
                 String addr = commandLine.getOptionValue('b').trim();
 
                 defaultMQAdminExt.start();
 
                 defaultMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, subscriptionGroupConfig);
+
+                if(needCheckAndUpdate){
+                    updateRetryTopicQueueNums(defaultMQAdminExt,topic,addr,brokerAddrMap,queueDataMap,subscriptionGroupConfig.getRetryQueueNums());
+                }
+
                 System.out.printf("create subscription group to %s success.%n", addr);
                 System.out.printf("%s", subscriptionGroupConfig);
                 return;
@@ -165,12 +236,15 @@ public class UpdateSubGroupSubCommand implements SubCommand {
                 String clusterName = commandLine.getOptionValue('c').trim();
 
                 defaultMQAdminExt.start();
-                Set<String> masterSet =
-                    CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
+                Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
                 for (String addr : masterSet) {
                     try {
                         defaultMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, subscriptionGroupConfig);
                         System.out.printf("create subscription group to %s success.%n", addr);
+
+                        if(needCheckAndUpdate){
+                            updateRetryTopicQueueNums(defaultMQAdminExt,topic,addr,brokerAddrMap,queueDataMap,subscriptionGroupConfig.getRetryQueueNums());
+                        }
                     } catch (Exception e) {
                         e.printStackTrace();
                         Thread.sleep(1000 * 1);

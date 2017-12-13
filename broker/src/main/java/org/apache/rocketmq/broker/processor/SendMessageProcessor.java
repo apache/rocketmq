@@ -133,7 +133,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
 
         String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
-        int queueIdInt = Math.abs(this.random.nextInt() % 99999999) % subscriptionGroupConfig.getRetryQueueNums();
+        int queueIdInt = Math.abs(this.random.nextInt() % 99999999) % fixedCandidateQueueNums(newTopic, subscriptionGroupConfig.getRetryQueueNums());
 
         int topicSysFlag = 0;
         if (requestHeader.isUnitMode()) {
@@ -179,7 +179,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         if (msgExt.getReconsumeTimes() >= maxReconsumeTimes
             || delayLevel < 0) {
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
-            queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
+            queueIdInt = Math.abs(this.random.nextInt() % 99999999) % fixedCandidateQueueNums(newTopic, DLQ_NUMS_PER_GROUP);
 
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
                 DLQ_NUMS_PER_GROUP,
@@ -246,6 +246,17 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         return response;
     }
 
+    private int fixedCandidateQueueNums(String topic, int defaultQueueNums) {
+        if (topic == null) {
+            return defaultQueueNums;
+        }
+        TopicConfig topicConfig = this.brokerController.getTopicConfigManager().getTopicConfigTable().get(topic);
+        if (topicConfig != null) {
+            return topicConfig.getWriteQueueNums();
+        }
+        return defaultQueueNums;
+    }
+
     private boolean handleRetryAndDLQ(SendMessageRequestHeader requestHeader, RemotingCommand response,
         RemotingCommand request,
         MessageExt msg, TopicConfig topicConfig) {
@@ -268,7 +279,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             int reconsumeTimes = requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes();
             if (reconsumeTimes >= maxReconsumeTimes) {
                 newTopic = MixAll.getDLQTopic(groupName);
-                int queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
+                int queueIdInt = Math.abs(this.random.nextInt() % 99999999) % fixedCandidateQueueNums(newTopic, DLQ_NUMS_PER_GROUP);
                 topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
                     DLQ_NUMS_PER_GROUP,
                     PermName.PERM_WRITE, 0
