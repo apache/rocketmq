@@ -37,6 +37,7 @@ import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.cert.CertificateException;
 import java.util.NoSuchElementException;
@@ -46,7 +47,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.net.ssl.SSLException;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -54,7 +54,7 @@ import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.common.Pair;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
-import org.apache.rocketmq.remoting.common.SslMode;
+import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
@@ -139,16 +139,16 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             });
         }
 
-        SslMode sslMode = NettySystemConfig.sslMode;
-        log.info("Server is running in TLS {} mode", sslMode.getName());
+        TlsMode tlsMode = TlsSystemConfig.tlsMode;
+        log.info("Server is running in TLS {} mode", tlsMode.getName());
 
-        if (sslMode != SslMode.DISABLED) {
+        if (tlsMode != TlsMode.DISABLED) {
             try {
-                sslContext = SslHelper.buildSslContext(false);
+                sslContext = TlsHelper.buildSslContext(false);
                 log.info("SSLContext created for server");
             } catch (CertificateException e) {
                 log.error("Failed to create SSLContext for server", e);
-            } catch (SSLException e) {
+            } catch (IOException e) {
                 log.error("Failed to create SSLContext for server", e);
             }
         }
@@ -189,7 +189,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     public void initChannel(SocketChannel ch) throws Exception {
                         ch.pipeline()
                             .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME,
-                                new HandshakeHandler(NettySystemConfig.sslMode))
+                                new HandshakeHandler(TlsSystemConfig.tlsMode))
                             .addLast(defaultEventExecutorGroup,
                                 new NettyEncoder(),
                                 new NettyDecoder(),
@@ -326,12 +326,12 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     class HandshakeHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
-        private final SslMode sslMode;
+        private final TlsMode tlsMode;
 
         private static final byte HANDSHAKE_MAGIC_CODE = 0x16;
 
-        HandshakeHandler(SslMode sslMode) {
-            this.sslMode = sslMode;
+        HandshakeHandler(TlsMode tlsMode) {
+            this.tlsMode = tlsMode;
         }
 
         @Override
@@ -344,7 +344,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             byte b = msg.getByte(0);
 
             if (b == HANDSHAKE_MAGIC_CODE) {
-                switch (sslMode) {
+                switch (tlsMode) {
                     case DISABLED:
                         ctx.close();
                         log.warn("Clients intend to establish a SSL connection while this server is running in SSL disabled mode");
@@ -366,7 +366,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                         log.warn("Unknown TLS mode");
                         break;
                 }
-            } else if (sslMode == SslMode.ENFORCING) {
+            } else if (tlsMode == TlsMode.ENFORCING) {
                 ctx.close();
                 log.warn("Clients intend to establish an insecure connection while this server is running in SSL enforcing mode");
             }
