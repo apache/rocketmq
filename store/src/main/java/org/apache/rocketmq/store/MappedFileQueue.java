@@ -367,6 +367,9 @@ public class MappedFileQueue {
                     } else {
                         break;
                     }
+                } else {
+                    //avoid deleting files in the middle
+                    break;
                 }
             }
         }
