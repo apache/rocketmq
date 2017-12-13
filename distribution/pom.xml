@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>4.2.0-SNAPSHOT</version>
+        <version>4.2.0</version>
     </parent>
     <artifactId>rocketmq-distribution</artifactId>
     <name>rocketmq-distribution ${project.version}</name>
