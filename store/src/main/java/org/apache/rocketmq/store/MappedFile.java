@@ -31,6 +31,8 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.activemq.artemis.jlibaio.LibaioContext;
+import org.apache.activemq.artemis.jlibaio.LibaioFile;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -66,6 +68,8 @@ public class MappedFile extends ReferenceResource {
     private volatile long storeTimestamp = 0;
     private boolean firstCreateInQueue = false;
 
+    private LibaioFile libaioFile;
+
     public MappedFile() {
     }
 
@@ -74,8 +78,8 @@ public class MappedFile extends ReferenceResource {
     }
 
     public MappedFile(final String fileName, final int fileSize,
-        final TransientStorePool transientStorePool) throws IOException {
-        init(fileName, fileSize, transientStorePool);
+        final TransientStorePool transientStorePool, final LibaioContext libaioContext) throws IOException {
+        init(fileName, fileSize, transientStorePool, libaioContext);
     }
 
     public static void ensureDirOK(final String dirName) {
@@ -144,10 +148,13 @@ public class MappedFile extends ReferenceResource {
     }
 
     public void init(final String fileName, final int fileSize,
-        final TransientStorePool transientStorePool) throws IOException {
+        final TransientStorePool transientStorePool, final LibaioContext libaioContext) throws IOException {
         init(fileName, fileSize);
         this.writeBuffer = transientStorePool.borrowBuffer();
         this.transientStorePool = transientStorePool;
+        if (null != libaioContext) {
+            libaioFile = libaioContext.openFile(new File(fileName), true);
+        }
     }
 
     private void init(final String fileName, final int fileSize) throws IOException {
@@ -456,6 +463,14 @@ public class MappedFile extends ReferenceResource {
                 log.warn("close file channel " + this.fileName + " Failed. ", e);
             }
 
+            if (null != libaioFile) {
+                try {
+                    libaioFile.close();
+                } catch (IOException e) {
+                    log.error("Error while close LibAIO file", e);
+                }
+            }
+
             return true;
         } else {
             log.warn("destroy mapped file[REF:" + this.getRefCount() + "] " + this.fileName
@@ -568,6 +583,14 @@ public class MappedFile extends ReferenceResource {
         Pointer pointer = new Pointer(address);
         int ret = LibC.INSTANCE.munlock(pointer, new NativeLong(this.fileSize));
         log.info("munlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
+    }
+
+    public LibaioFile getLibaioFile() {
+        return libaioFile;
+    }
+
+    public void setLibaioFile(LibaioFile libaioFile) {
+        this.libaioFile = libaioFile;
     }
 
     @Override

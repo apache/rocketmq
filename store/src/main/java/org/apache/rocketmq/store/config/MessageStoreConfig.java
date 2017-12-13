@@ -143,6 +143,8 @@ public class MessageStoreConfig {
     private int transientStorePoolSize = 5;
     private boolean fastFailIfNoBufferInStorePool = false;
 
+    private boolean enableAIO = true;
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -666,4 +668,11 @@ public class MessageStoreConfig {
         this.commitCommitLogThoroughInterval = commitCommitLogThoroughInterval;
     }
 
+    public boolean isEnableAIO() {
+        return enableAIO;
+    }
+
+    public void setEnableAIO(boolean enableAIO) {
+        this.enableAIO = enableAIO;
+    }
 }
