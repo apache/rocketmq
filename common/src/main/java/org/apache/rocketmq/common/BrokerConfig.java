@@ -131,6 +131,8 @@ public class BrokerConfig {
     private boolean filterSupportRetry = false;
     private boolean enablePropertyFilter = false;
 
+    private int autoCreateRetryTopicQueueNums = 1;
+
     public boolean isTraceOn() {
         return traceOn;
     }
@@ -579,5 +581,13 @@ public class BrokerConfig {
 
     public void setEnablePropertyFilter(boolean enablePropertyFilter) {
         this.enablePropertyFilter = enablePropertyFilter;
+    }
+
+    public int getAutoCreateRetryTopicQueueNums() {
+        return autoCreateRetryTopicQueueNums;
+    }
+
+    public void setAutoCreateRetryTopicQueueNums(int autoCreateRetryTopicQueueNums) {
+        this.autoCreateRetryTopicQueueNums = autoCreateRetryTopicQueueNums;
     }
 }
