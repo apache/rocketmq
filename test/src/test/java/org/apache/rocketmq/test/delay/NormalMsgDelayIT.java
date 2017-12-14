@@ -47,7 +47,7 @@ public class NormalMsgDelayIT extends DelayConf {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test

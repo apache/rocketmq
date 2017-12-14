@@ -454,9 +454,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             String[] brokersSent = new String[timesTotal];
             for (; times < timesTotal; times++) {
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
-                MessageQueue tmpmq = this.selectOneMessageQueue(topicPublishInfo, lastBrokerName);
-                if (tmpmq != null) {
-                    mq = tmpmq;
+                MessageQueue mqSelected = this.selectOneMessageQueue(topicPublishInfo, lastBrokerName);
+                if (mqSelected != null) {
+                    mq = mqSelected;
                     brokersSent[times] = mq.getBrokerName();
                     try {
                         beginTimestampPrev = System.currentTimeMillis();
@@ -1058,6 +1058,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         String remark = localException != null ? ("executeLocalTransactionBranch exception: " + localException.toString()) : null;
         this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(brokerAddr, requestHeader, remark,
             this.defaultMQProducer.getSendMsgTimeout());
+    }
+
+    public void setCallbackExecutor(final ExecutorService callbackExecutor) {
+        this.mQClientFactory.getMQClientAPIImpl().getRemotingClient().setCallbackExecutor(callbackExecutor);
     }
 
     public SendResult send(Message msg,

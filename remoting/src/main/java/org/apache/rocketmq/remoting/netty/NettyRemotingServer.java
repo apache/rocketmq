@@ -17,6 +17,7 @@
 package org.apache.rocketmq.remoting.netty;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
@@ -36,7 +37,10 @@ import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.security.cert.CertificateException;
+import java.util.NoSuchElementException;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
@@ -50,6 +54,7 @@ import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.common.Pair;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
@@ -73,6 +78,10 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private RPCHook rpcHook;
 
     private int port = 0;
+
+    private static final String HANDSHAKE_HANDLER_NAME = "handshakeHandler";
+    private static final String TLS_HANDLER_NAME = "sslHandler";
+    private static final String FILE_REGION_ENCODER_NAME = "fileRegionEncoder";
 
     public NettyRemotingServer(final NettyServerConfig nettyServerConfig) {
         this(nettyServerConfig, null);
@@ -129,6 +138,20 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 }
             });
         }
+
+        TlsMode tlsMode = TlsSystemConfig.tlsMode;
+        log.info("Server is running in TLS {} mode", tlsMode.getName());
+
+        if (tlsMode != TlsMode.DISABLED) {
+            try {
+                sslContext = TlsHelper.buildSslContext(false);
+                log.info("SSLContext created for server");
+            } catch (CertificateException e) {
+                log.error("Failed to create SSLContext for server", e);
+            } catch (IOException e) {
+                log.error("Failed to create SSLContext for server", e);
+            }
+        }
     }
 
     private boolean useEpoll() {
@@ -164,13 +187,16 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) throws Exception {
-                        ch.pipeline().addLast(
-                            defaultEventExecutorGroup,
-                            new NettyEncoder(),
-                            new NettyDecoder(),
-                            new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
-                            new NettyConnectManageHandler(),
-                            new NettyServerHandler());
+                        ch.pipeline()
+                            .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME,
+                                new HandshakeHandler(TlsSystemConfig.tlsMode))
+                            .addLast(defaultEventExecutorGroup,
+                                new NettyEncoder(),
+                                new NettyDecoder(),
+                                new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
+                                new NettyConnectManageHandler(),
+                                new NettyServerHandler()
+                            );
                     }
                 });
 
@@ -296,6 +322,68 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     @Override
     public ExecutorService getCallbackExecutor() {
         return this.publicExecutor;
+    }
+
+    class HandshakeHandler extends SimpleChannelInboundHandler<ByteBuf> {
+
+        private final TlsMode tlsMode;
+
+        private static final byte HANDSHAKE_MAGIC_CODE = 0x16;
+
+        HandshakeHandler(TlsMode tlsMode) {
+            this.tlsMode = tlsMode;
+        }
+
+        @Override
+        protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
+
+            // mark the current position so that we can peek the first byte to determine if the content is starting with
+            // TLS handshake
+            msg.markReaderIndex();
+
+            byte b = msg.getByte(0);
+
+            if (b == HANDSHAKE_MAGIC_CODE) {
+                switch (tlsMode) {
+                    case DISABLED:
+                        ctx.close();
+                        log.warn("Clients intend to establish a SSL connection while this server is running in SSL disabled mode");
+                        break;
+                    case PERMISSIVE:
+                    case ENFORCING:
+                        if (null != sslContext) {
+                            ctx.pipeline()
+                                .addAfter(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, TLS_HANDLER_NAME, sslContext.newHandler(ctx.channel().alloc()))
+                                .addAfter(defaultEventExecutorGroup, TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
+                            log.info("Handlers prepended to channel pipeline to establish SSL connection");
+                        } else {
+                            ctx.close();
+                            log.error("Trying to establish a SSL connection but sslContext is null");
+                        }
+                        break;
+
+                    default:
+                        log.warn("Unknown TLS mode");
+                        break;
+                }
+            } else if (tlsMode == TlsMode.ENFORCING) {
+                ctx.close();
+                log.warn("Clients intend to establish an insecure connection while this server is running in SSL enforcing mode");
+            }
+
+            // reset the reader index so that handshake negotiation may proceed as normal.
+            msg.resetReaderIndex();
+
+            try {
+                // Remove this handler
+                ctx.pipeline().remove(this);
+            } catch (NoSuchElementException e) {
+                log.error("Error while removing HandshakeHandler", e);
+            }
+
+            // Hand over this message to the next .
+            ctx.fireChannelRead(msg.retain());
+        }
     }
 
     class NettyServerHandler extends SimpleChannelInboundHandler<RemotingCommand> {

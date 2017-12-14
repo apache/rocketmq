@@ -22,6 +22,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -39,6 +41,7 @@ import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -193,6 +196,22 @@ public class DefaultMQProducerTest {
         if (assertionErrors[0] != null) {
             throw assertionErrors[0];
         }
+    }
+
+    @Test
+    public void testSetCallbackExecutor() throws MQClientException {
+        String producerGroupTemp = producerGroupPrefix + System.currentTimeMillis();
+        producer = new DefaultMQProducer(producerGroupTemp);
+        producer.setNamesrvAddr("127.0.0.1:9876");
+        producer.start();
+
+        ExecutorService customized = Executors.newCachedThreadPool();
+        producer.setCallbackExecutor(customized);
+
+        NettyRemotingClient remotingClient = (NettyRemotingClient) producer.getDefaultMQProducerImpl()
+            .getmQClientFactory().getMQClientAPIImpl().getRemotingClient();
+
+        assertThat(remotingClient.getCallbackExecutor()).isEqualTo(customized);
     }
 
     public static TopicRouteData createTopicRoute() {

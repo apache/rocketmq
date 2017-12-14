@@ -18,6 +18,7 @@ package org.apache.rocketmq.client.producer;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
@@ -34,6 +35,7 @@ import org.apache.rocketmq.common.message.MessageId;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 
 /**
  * This class is the entry point for applications intending to send messages.
@@ -628,6 +630,16 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public SendResult send(Collection<Message> msgs, MessageQueue messageQueue,
         long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.defaultMQProducerImpl.send(batch(msgs), messageQueue, timeout);
+    }
+
+    /**
+     * Sets an Executor to be used for executing callback methods.
+     * If the Executor is not set, {@link NettyRemotingClient#publicExecutor} will be used.
+     *
+     * @param callbackExecutor the instance of Executor
+     */
+    public void setCallbackExecutor(final ExecutorService callbackExecutor) {
+        this.defaultMQProducerImpl.setCallbackExecutor(callbackExecutor);
     }
 
     private MessageBatch batch(Collection<Message> msgs) throws MQClientException {

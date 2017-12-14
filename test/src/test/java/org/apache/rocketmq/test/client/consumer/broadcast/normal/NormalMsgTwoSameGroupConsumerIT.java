@@ -21,7 +21,7 @@ import org.apache.log4j.Logger;
 import org.apache.rocketmq.test.client.consumer.broadcast.BaseBroadCastIT;
 import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
-import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListner;
+import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.TestUtils;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
@@ -47,7 +47,7 @@ public class NormalMsgTwoSameGroupConsumerIT extends BaseBroadCastIT {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test
@@ -56,9 +56,9 @@ public class NormalMsgTwoSameGroupConsumerIT extends BaseBroadCastIT {
 
         String group = initConsumerGroup();
         RMQBroadCastConsumer consumer1 = getBroadCastConsumer(nsAddr, group, topic, "*",
-            new RMQNormalListner(group + "_1"));
+            new RMQNormalListener(group + "_1"));
         RMQBroadCastConsumer consumer2 = getBroadCastConsumer(nsAddr,
-            consumer1.getConsumerGroup(), topic, "*", new RMQNormalListner(group + "_2"));
+            consumer1.getConsumerGroup(), topic, "*", new RMQNormalListener(group + "_2"));
         TestUtils.waitForSeconds(waitTime);
 
         producer.send(msgSize);

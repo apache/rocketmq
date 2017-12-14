@@ -59,6 +59,8 @@ public class BrokerConfig {
      */
     private int sendMessageThreadPoolNums = 1; //16 + Runtime.getRuntime().availableProcessors() * 4;
     private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
+    private int queryMessageThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors();
+
     private int adminBrokerThreadPoolNums = 16;
     private int clientManageThreadPoolNums = 32;
     private int consumerManageThreadPoolNums = 32;
@@ -73,6 +75,7 @@ public class BrokerConfig {
     private boolean fetchNamesrvAddrByAddressServer = false;
     private int sendThreadPoolQueueCapacity = 10000;
     private int pullThreadPoolQueueCapacity = 100000;
+    private int queryThreadPoolQueueCapacity = 20000;
     private int clientManagerThreadPoolQueueCapacity = 1000000;
     private int consumerManagerThreadPoolQueueCapacity = 1000000;
 
@@ -103,7 +106,9 @@ public class BrokerConfig {
     private boolean disableConsumeIfConsumerReadSlowly = false;
     private long consumerFallbehindThreshold = 1024L * 1024 * 1024 * 16;
 
+    private boolean brokerFastFailureEnable = true;
     private long waitTimeMillsInSendQueue = 200;
+    private long waitTimeMillsInPullQueue = 5 * 1000;
 
     private long startAcceptSendRequestTimeStamp = 0L;
 
@@ -158,6 +163,22 @@ public class BrokerConfig {
 
     public void setConsumerFallbehindThreshold(final long consumerFallbehindThreshold) {
         this.consumerFallbehindThreshold = consumerFallbehindThreshold;
+    }
+
+    public boolean isBrokerFastFailureEnable() {
+        return brokerFastFailureEnable;
+    }
+
+    public void setBrokerFastFailureEnable(final boolean brokerFastFailureEnable) {
+        this.brokerFastFailureEnable = brokerFastFailureEnable;
+    }
+
+    public long getWaitTimeMillsInPullQueue() {
+        return waitTimeMillsInPullQueue;
+    }
+
+    public void setWaitTimeMillsInPullQueue(final long waitTimeMillsInPullQueue) {
+        this.waitTimeMillsInPullQueue = waitTimeMillsInPullQueue;
     }
 
     public boolean isDisableConsumeIfConsumerReadSlowly() {
@@ -306,6 +327,14 @@ public class BrokerConfig {
         this.pullMessageThreadPoolNums = pullMessageThreadPoolNums;
     }
 
+    public int getQueryMessageThreadPoolNums() {
+        return queryMessageThreadPoolNums;
+    }
+
+    public void setQueryMessageThreadPoolNums(final int queryMessageThreadPoolNums) {
+        this.queryMessageThreadPoolNums = queryMessageThreadPoolNums;
+    }
+
     public int getAdminBrokerThreadPoolNums() {
         return adminBrokerThreadPoolNums;
     }
@@ -392,6 +421,14 @@ public class BrokerConfig {
 
     public void setPullThreadPoolQueueCapacity(int pullThreadPoolQueueCapacity) {
         this.pullThreadPoolQueueCapacity = pullThreadPoolQueueCapacity;
+    }
+
+    public int getQueryThreadPoolQueueCapacity() {
+        return queryThreadPoolQueueCapacity;
+    }
+
+    public void setQueryThreadPoolQueueCapacity(final int queryThreadPoolQueueCapacity) {
+        this.queryThreadPoolQueueCapacity = queryThreadPoolQueueCapacity;
     }
 
     public boolean isBrokerTopicEnable() {

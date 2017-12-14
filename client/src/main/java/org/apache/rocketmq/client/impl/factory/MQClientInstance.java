@@ -127,6 +127,7 @@ public class MQClientInstance {
         this.instanceIndex = instanceIndex;
         this.nettyClientConfig = new NettyClientConfig();
         this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());
+        this.nettyClientConfig.setUseTLS(clientConfig.isUseTLS());
         this.clientRemotingProcessor = new ClientRemotingProcessor(this);
         this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor, rpcHook, clientConfig);
 
@@ -974,7 +975,6 @@ public class MQClientInstance {
 
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
-            FOR_SEG:
             for (Map.Entry<Long, String> entry : map.entrySet()) {
                 Long id = entry.getKey();
                 brokerAddr = entry.getValue();
@@ -982,7 +982,6 @@ public class MQClientInstance {
                     found = true;
                     if (MixAll.MASTER_ID == id) {
                         slave = false;
-                        break FOR_SEG;
                     } else {
                         slave = true;
                     }

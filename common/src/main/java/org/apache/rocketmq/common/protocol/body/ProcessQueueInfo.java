@@ -25,6 +25,7 @@ public class ProcessQueueInfo {
     private long cachedMsgMinOffset;
     private long cachedMsgMaxOffset;
     private int cachedMsgCount;
+    private int cachedMsgSizeInMiB;
 
     private long transactionMsgMinOffset;
     private long transactionMsgMaxOffset;
@@ -142,16 +143,24 @@ public class ProcessQueueInfo {
         this.lastConsumeTimestamp = lastConsumeTimestamp;
     }
 
+    public int getCachedMsgSizeInMiB() {
+        return cachedMsgSizeInMiB;
+    }
+
+    public void setCachedMsgSizeInMiB(final int cachedMsgSizeInMiB) {
+        this.cachedMsgSizeInMiB = cachedMsgSizeInMiB;
+    }
+
     @Override
     public String toString() {
         return "ProcessQueueInfo [commitOffset=" + commitOffset + ", cachedMsgMinOffset="
-            + cachedMsgMinOffset + ", cachedMsgMaxOffset=" + cachedMsgMaxOffset + ", cachedMsgCount="
-            + cachedMsgCount + ", transactionMsgMinOffset=" + transactionMsgMinOffset
+            + cachedMsgMinOffset + ", cachedMsgMaxOffset=" + cachedMsgMaxOffset
+            + ", cachedMsgCount=" + cachedMsgCount + ", cachedMsgSizeInMiB=" + cachedMsgSizeInMiB
+            + ", transactionMsgMinOffset=" + transactionMsgMinOffset
             + ", transactionMsgMaxOffset=" + transactionMsgMaxOffset + ", transactionMsgCount="
             + transactionMsgCount + ", locked=" + locked + ", tryUnlockTimes=" + tryUnlockTimes
             + ", lastLockTimestamp=" + UtilAll.timeMillisToHumanString(lastLockTimestamp) + ", droped="
             + droped + ", lastPullTimestamp=" + UtilAll.timeMillisToHumanString(lastPullTimestamp)
             + ", lastConsumeTimestamp=" + UtilAll.timeMillisToHumanString(lastConsumeTimestamp) + "]";
-
     }
 }
