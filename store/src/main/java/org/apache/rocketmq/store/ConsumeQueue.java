@@ -151,8 +151,47 @@ public class ConsumeQueue {
         }
     }
 
+    private MappedFile getConsumeQueueMappedFileByStoreTime(long messageStoreTime) {
+        long commitLogMinOffset = this.defaultMessageStore.getMinPhyOffset();
+        List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
+        for (MappedFile mappedFile : mappedFiles) {
+            SelectMappedBufferResult sbr = mappedFile.selectMappedBuffer(0);
+            if (sbr != null) {
+                try {
+                    ByteBuffer byteBuffer = sbr.getByteBuffer();
+                    int max = byteBuffer.limit() - CQ_STORE_UNIT_SIZE;
+                    int min = minLogicOffset > mappedFile.getFileFromOffset() ? (int) (minLogicOffset - mappedFile.getFileFromOffset()) : 0;
+                    byteBuffer.position(min);
+                    long minPhyOffset = byteBuffer.getLong();
+                    int minSize = byteBuffer.getInt();
+
+                    byteBuffer.position(max);
+                    long maxPhyOffset = byteBuffer.getLong();
+                    if (maxPhyOffset < commitLogMinOffset) {
+                        continue;
+                    }
+                    int maxSize = byteBuffer.getInt();
+
+                    long minStoreTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(minPhyOffset, minSize);
+                    if (messageStoreTime < minStoreTime) {
+                        return null;
+                    }
+
+                    long maxStoreTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(maxPhyOffset, maxSize);
+                    if (maxStoreTime < messageStoreTime) {
+                        continue;
+                    }
+                    return mappedFile;
+                } finally {
+                    sbr.release();
+                }
+            }
+        }
+        return null;
+    }
+
     public long getOffsetInQueueByTime(final long timestamp, boolean isGetTimeLast) {
-        MappedFile mappedFile = this.mappedFileQueue.getMappedFileByTime(timestamp);
+        MappedFile mappedFile = getConsumeQueueMappedFileByStoreTime(timestamp);
         if (mappedFile != null) {
             long offset = 0;
             int low = minLogicOffset > mappedFile.getFileFromOffset() ? (int) (minLogicOffset - mappedFile.getFileFromOffset()) : 0;
@@ -176,8 +215,7 @@ public class ConsumeQueue {
                             continue;
                         }
 
-                        long storeTime =
-                            this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
+                        long storeTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
                         if (storeTime < 0) {
                             return 0;
                         } else if (storeTime == timestamp) {
