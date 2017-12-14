@@ -20,6 +20,7 @@ package org.apache.rocketmq.srvutil;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.NoSuchFileException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import org.junit.Rule;
@@ -29,6 +30,7 @@ import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Java6Assertions.failBecauseExceptionWasNotThrown;
 
 @RunWith(MockitoJUnitRunner.class)
 public class FileWatchServiceTest {
@@ -36,7 +38,7 @@ public class FileWatchServiceTest {
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
     @Test
-    public void watchSingleFile() throws IOException, InterruptedException {
+    public void watchSingleFile() throws Exception {
         File file = tempFolder.newFile();
         final Semaphore waitSemaphore = new Semaphore(0);
         FileWatchService fileWatchService = new FileWatchService(new String[] {file.getAbsolutePath()}, new FileWatchService.Listener() {
@@ -47,13 +49,49 @@ public class FileWatchServiceTest {
         });
         fileWatchService.start();
         modifyFile(file);
-        boolean result = waitSemaphore.tryAcquire(1, 100, TimeUnit.MILLISECONDS);
+        boolean result = waitSemaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS);
         assertThat(result).isTrue();
-
     }
 
     @Test
-    public void watchTwoFiles_ModifyOne() throws IOException, InterruptedException {
+    public void watchSingleFile_NotExits() throws Exception {
+        File file = tempFolder.newFile();
+        final Semaphore waitSemaphore = new Semaphore(0);
+        try {
+            FileWatchService fileWatchService = new FileWatchService(new String[] {file.getAbsolutePath() + 123}, new FileWatchService.Listener() {
+                @Override
+                public void onChanged() {
+                    waitSemaphore.release();
+                }
+            });
+            failBecauseExceptionWasNotThrown(NoSuchFileException.class);
+        } catch (Exception e) {
+            assertThat(e).isInstanceOf(NoSuchFileException.class);
+        }
+    }
+
+    @Test
+    public void watchSingleFile_FileDeleted() throws Exception {
+        File file = tempFolder.newFile();
+        final Semaphore waitSemaphore = new Semaphore(0);
+        FileWatchService fileWatchService = new FileWatchService(new String[] {file.getAbsolutePath()}, new FileWatchService.Listener() {
+            @Override
+            public void onChanged() {
+                waitSemaphore.release();
+            }
+        });
+        fileWatchService.start();
+        file.delete();
+        boolean result = waitSemaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS);
+        assertThat(result).isFalse();
+        file.createNewFile();
+        modifyFile(file);
+        result = waitSemaphore.tryAcquire(1, 2000, TimeUnit.MILLISECONDS);
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    public void watchTwoFiles_ModifyOne() throws Exception {
         File fileA = tempFolder.newFile();
         File fileB = tempFolder.newFile();
         final Semaphore waitSemaphore = new Semaphore(0);
@@ -67,12 +105,12 @@ public class FileWatchServiceTest {
         });
         fileWatchService.start();
         modifyFile(fileA);
-        boolean result = waitSemaphore.tryAcquire(1, 100, TimeUnit.MILLISECONDS);
+        boolean result = waitSemaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS);
         assertThat(result).isFalse();
     }
 
     @Test
-    public void watchTwoFiles() throws IOException, InterruptedException {
+    public void watchTwoFiles() throws Exception {
         File fileA = tempFolder.newFile();
         File fileB = tempFolder.newFile();
         final Semaphore waitSemaphore = new Semaphore(0);
@@ -87,14 +125,14 @@ public class FileWatchServiceTest {
         fileWatchService.start();
         modifyFile(fileA);
         modifyFile(fileB);
-        boolean result = waitSemaphore.tryAcquire(1, 100, TimeUnit.MILLISECONDS);
+        boolean result = waitSemaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS);
         assertThat(result).isTrue();
     }
 
     private static void modifyFile(File file) {
         try {
             PrintWriter out = new PrintWriter(file);
-            out.println(System.currentTimeMillis());
+            out.println(System.nanoTime());
             out.flush();
             out.close();
         } catch (IOException ignore) {

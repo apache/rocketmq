@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.namesrv;
 
-import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -111,7 +110,7 @@ public class NamesrvController {
                             ((NettyRemotingServer) remotingServer).loadSslContext();
                         }
                     });
-            } catch (IOException e) {
+            } catch (Exception e) {
                 log.warn("FileWatchService created error, can't load the certificate dynamically");
             }
         }

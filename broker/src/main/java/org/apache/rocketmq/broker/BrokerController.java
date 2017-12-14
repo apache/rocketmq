@@ -404,7 +404,7 @@ public class BrokerController {
                                 ((NettyRemotingServer) fastRemotingServer).loadSslContext();
                             }
                         });
-                } catch (IOException e) {
+                } catch (Exception e) {
                     log.warn("FileWatchService created error, can't load the certificate dynamically");
                 }
             }

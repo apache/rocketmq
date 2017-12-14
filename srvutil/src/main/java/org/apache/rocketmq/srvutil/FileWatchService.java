@@ -17,12 +17,14 @@
 
 package org.apache.rocketmq.srvutil;
 
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
-import com.google.common.io.Files;
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import org.apache.rocketmq.common.ServiceThread;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,23 +32,23 @@ import org.slf4j.LoggerFactory;
 public class FileWatchService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
-    private String [] watchFiles;
-    private boolean [] isFileChangedFlag;
-    private HashCode [] fileCurrentHash;
-    private Listener listener;
-    private static final int WATCH_INTERVAL = 100;
-
+    private final String [] watchFiles;
+    private final boolean [] isFileChangedFlag;
+    private final String [] fileCurrentHash;
+    private final Listener listener;
+    private static final int WATCH_INTERVAL = 500;
+    private MessageDigest md = MessageDigest.getInstance("MD5");
 
     public FileWatchService(final String [] watchFiles,
-        final Listener listener) throws IOException {
+        final Listener listener) throws Exception {
         this.watchFiles = watchFiles;
         this.listener = listener;
         this.isFileChangedFlag = new boolean[watchFiles.length];
-        this.fileCurrentHash = new HashCode[watchFiles.length];
+        this.fileCurrentHash = new String[watchFiles.length];
 
         for (int i = 0; i < watchFiles.length; i++) {
             isFileChangedFlag[i] = false;
-            fileCurrentHash[i] = Files.hash(new File(watchFiles[i]), Hashing.md5());
+            fileCurrentHash[i] = hash(watchFiles[i]);
         }
     }
 
@@ -65,7 +67,7 @@ public class FileWatchService extends ServiceThread {
 
                 boolean allFileChanged = true;
                 for (int i = 0; i < watchFiles.length; i++) {
-                    HashCode newHash = Files.hash(new File(watchFiles[i]), Hashing.md5());
+                    String newHash = hash(watchFiles[i]);
                     if (!newHash.equals(fileCurrentHash[i])) {
                         isFileChangedFlag[i] = true;
                         fileCurrentHash[i] = newHash;
@@ -84,6 +86,13 @@ public class FileWatchService extends ServiceThread {
             }
         }
         log.info(this.getServiceName() + " service end");
+    }
+
+    private String hash(String filePath) throws IOException, NoSuchAlgorithmException {
+        Path path = Paths.get(filePath);
+        md.update(Files.readAllBytes(path));
+        byte[] hash = md.digest();
+        return UtilAll.bytes2string(hash);
     }
 
     public interface Listener {
