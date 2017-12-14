@@ -25,7 +25,7 @@ package org.apache.rocketmq.remoting.common;
  *     <li><strong>enforcing:</strong> SSL is required, aka, non SSL connection will be rejected.</li>
  * </ol>
  */
-public enum SslMode {
+public enum TlsMode {
 
     DISABLED("disabled"),
     PERMISSIVE("permissive"),
@@ -33,14 +33,14 @@ public enum SslMode {
 
     private String name;
 
-    SslMode(String name) {
+    TlsMode(String name) {
         this.name = name;
     }
 
-    public static SslMode parse(String mode) {
-        for (SslMode sslMode: SslMode.values()) {
-            if (sslMode.name.equals(mode)) {
-                return sslMode;
+    public static TlsMode parse(String mode) {
+        for (TlsMode tlsMode : TlsMode.values()) {
+            if (tlsMode.name.equals(mode)) {
+                return tlsMode;
             }
         }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.latency;
 
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +28,10 @@ import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * BrokerFastFailure will cover {@link BrokerController#sendThreadPoolQueue} and
+ * {@link BrokerController#pullThreadPoolQueue}
+ */
 public class BrokerFastFailure {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
@@ -52,7 +57,9 @@ public class BrokerFastFailure {
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                cleanExpiredRequest();
+                if (brokerController.getBrokerConfig().isBrokerFastFailureEnable()) {
+                    cleanExpiredRequest();
+                }
             }
         }, 1000, 10, TimeUnit.MILLISECONDS);
     }
@@ -75,10 +82,18 @@ public class BrokerFastFailure {
             }
         }
 
+        cleanExpiredRequestInQueue(this.brokerController.getSendThreadPoolQueue(),
+            this.brokerController.getBrokerConfig().getWaitTimeMillsInSendQueue());
+
+        cleanExpiredRequestInQueue(this.brokerController.getPullThreadPoolQueue(),
+            this.brokerController.getBrokerConfig().getWaitTimeMillsInPullQueue());
+    }
+
+    void cleanExpiredRequestInQueue(final BlockingQueue<Runnable> blockingQueue, final long maxWaitTimeMillsInQueue) {
         while (true) {
             try {
-                if (!this.brokerController.getSendThreadPoolQueue().isEmpty()) {
-                    final Runnable runnable = this.brokerController.getSendThreadPoolQueue().peek();
+                if (!blockingQueue.isEmpty()) {
+                    final Runnable runnable = blockingQueue.peek();
                     if (null == runnable) {
                         break;
                     }
@@ -88,10 +103,10 @@ public class BrokerFastFailure {
                     }
 
                     final long behind = System.currentTimeMillis() - rt.getCreateTimestamp();
-                    if (behind >= this.brokerController.getBrokerConfig().getWaitTimeMillsInSendQueue()) {
-                        if (this.brokerController.getSendThreadPoolQueue().remove(runnable)) {
+                    if (behind >= maxWaitTimeMillsInQueue) {
+                        if (blockingQueue.remove(runnable)) {
                             rt.setStopRun(true);
-                            rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, String.format("[TIMEOUT_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms, size of queue: %d", behind, this.brokerController.getSendThreadPoolQueue().size()));
+                            rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, String.format("[TIMEOUT_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms, size of queue: %d", behind, blockingQueue.size()));
                         }
                     } else {
                         break;
