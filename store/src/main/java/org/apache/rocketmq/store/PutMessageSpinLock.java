@@ -17,25 +17,86 @@
 package org.apache.rocketmq.store;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Spin lock Implementation to put message, suggest using this with low race conditions
+ * Spin lock Implementation to put message
  */
 public class PutMessageSpinLock implements PutMessageLock {
-    //true: Can lock, false : in lock.
-    private AtomicBoolean putMessageSpinLock = new AtomicBoolean(true);
+
+    static final class Node {
+        /**
+         * True: Wait signal, false : In lock.
+         */
+        private final AtomicBoolean waitStatus = new AtomicBoolean(true);
+
+        /**
+         * Link to predecessor node that current node/thread relies on
+         * for checking waitStatus.
+         */
+        volatile Node prev;
+
+        Node() { }
+    }
+
+    /**
+     * Tail of the wait queue
+     */
+    private  final AtomicReference<Node> tail = new AtomicReference<>();
+
+    /**
+     * Head of the wait queue
+     */
+    private  final AtomicReference<Node> head = new AtomicReference<>();
+
+    /**
+     * Inserts node into queue, initializing if necessary
+     * @param node the node to insert
+     * @return node's predecessor
+     */
+    private Node enq(final Node node) {
+        for (;;) {
+            Node t = tail.get();
+            if (t == null) { // Must initialize
+                Node initNode = new Node();
+                initNode.waitStatus.set(false);
+                if (head.compareAndSet(null, initNode)) {
+                    tail.set(initNode);
+                }
+            } else {
+                node.prev = t;
+                if (tail.compareAndSet(t, node)) {
+                    return t;
+                }
+            }
+        }
+    }
+
+    /**
+     * Sets head of queue to be node, thus dequeuing.
+     * Also nulls out unused fields for sake of GC
+     * @param node the node
+     */
+    private void setHead(Node node) {
+        head.set(node);
+        node.prev = null;
+    }
 
     @Override
     public void lock() {
-        boolean flag;
-        do {
-            flag = this.putMessageSpinLock.compareAndSet(true, false);
+        Node node = new Node();
+        Node pred = enq(node);
+        for (;;) {
+            if (!pred.waitStatus.get()) {
+                setHead(node);
+                return;
+            }
         }
-        while (!flag);
     }
 
     @Override
     public void unlock() {
-        this.putMessageSpinLock.compareAndSet(false, true);
+        Node h = head.get();
+        h.waitStatus.compareAndSet(true, false);
     }
 }
