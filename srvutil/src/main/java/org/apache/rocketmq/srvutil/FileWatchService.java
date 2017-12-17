@@ -17,12 +17,16 @@
 
 package org.apache.rocketmq.srvutil;
 
+import com.google.common.base.Strings;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -32,23 +36,23 @@ import org.slf4j.LoggerFactory;
 public class FileWatchService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
-    private final String [] watchFiles;
-    private final boolean [] isFileChangedFlag;
-    private final String [] fileCurrentHash;
+    private final List<String> watchFiles;
+    private final List<String> fileCurrentHash;
     private final Listener listener;
     private static final int WATCH_INTERVAL = 500;
     private MessageDigest md = MessageDigest.getInstance("MD5");
 
-    public FileWatchService(final String [] watchFiles,
+    public FileWatchService(final String[] watchFiles,
         final Listener listener) throws Exception {
-        this.watchFiles = watchFiles;
         this.listener = listener;
-        this.isFileChangedFlag = new boolean[watchFiles.length];
-        this.fileCurrentHash = new String[watchFiles.length];
+        this.watchFiles = new ArrayList<>();
+        this.fileCurrentHash = new ArrayList<>();
 
         for (int i = 0; i < watchFiles.length; i++) {
-            isFileChangedFlag[i] = false;
-            fileCurrentHash[i] = hash(watchFiles[i]);
+            if (!Strings.isNullOrEmpty(watchFiles[i]) && new File(watchFiles[i]).exists()) {
+                this.watchFiles.add(watchFiles[i]);
+                this.fileCurrentHash.add(hash(watchFiles[i]));
+            }
         }
     }
 
@@ -65,20 +69,17 @@ public class FileWatchService extends ServiceThread {
             try {
                 this.waitForRunning(WATCH_INTERVAL);
 
-                boolean allFileChanged = true;
-                for (int i = 0; i < watchFiles.length; i++) {
-                    String newHash = hash(watchFiles[i]);
-                    if (!newHash.equals(fileCurrentHash[i])) {
-                        isFileChangedFlag[i] = true;
-                        fileCurrentHash[i] = newHash;
+                for (int i = 0; i < watchFiles.size(); i++) {
+                    String newHash;
+                    try {
+                        newHash = hash(watchFiles.get(i));
+                    } catch (Exception ignored) {
+                        log.warn(this.getServiceName() + " service has exception when calculate the file hash. ", ignored);
+                        continue;
                     }
-                    allFileChanged = allFileChanged && isFileChangedFlag[i];
-                }
-
-                if (allFileChanged) {
-                    listener.onChanged();
-                    for (int i = 0; i < isFileChangedFlag.length; i++) {
-                        isFileChangedFlag[i] = false;
+                    if (!newHash.equals(fileCurrentHash.get(i))) {
+                        fileCurrentHash.set(i, newHash);
+                        listener.onChanged(watchFiles.get(i));
                     }
                 }
             } catch (Exception e) {
@@ -98,7 +99,8 @@ public class FileWatchService extends ServiceThread {
     public interface Listener {
         /**
          * Will be called when the target files are changed
+         * @param path the changed file path
          */
-        void onChanged();
+        void onChanged(String path);
     }
 }
