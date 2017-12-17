@@ -113,6 +113,7 @@ public class NamesrvController {
                         @Override
                         public void onChanged(String path) {
                             if (path.equals(TlsSystemConfig.tlsServerTrustCertPath)) {
+                                log.info("The trust certificate changed, reload the ssl context");
                                 reloadServerSslContext();
                             }
                             if (path.equals(TlsSystemConfig.tlsServerCertPath)) {
@@ -122,8 +123,8 @@ public class NamesrvController {
                                 keyChanged = true;
                             }
                             if (certChanged && keyChanged) {
-                                certChanged = false;
-                                keyChanged = false;
+                                log.info("The certificate and private key changed, reload the ssl context");
+                                certChanged = keyChanged = false;
                                 reloadServerSslContext();
                             }
                         }
