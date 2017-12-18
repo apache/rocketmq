@@ -106,7 +106,9 @@ public class BrokerConfig {
     private boolean disableConsumeIfConsumerReadSlowly = false;
     private long consumerFallbehindThreshold = 1024L * 1024 * 1024 * 16;
 
+    private boolean brokerFastFailureEnable = true;
     private long waitTimeMillsInSendQueue = 200;
+    private long waitTimeMillsInPullQueue = 5 * 1000;
 
     private long startAcceptSendRequestTimeStamp = 0L;
 
@@ -161,6 +163,22 @@ public class BrokerConfig {
 
     public void setConsumerFallbehindThreshold(final long consumerFallbehindThreshold) {
         this.consumerFallbehindThreshold = consumerFallbehindThreshold;
+    }
+
+    public boolean isBrokerFastFailureEnable() {
+        return brokerFastFailureEnable;
+    }
+
+    public void setBrokerFastFailureEnable(final boolean brokerFastFailureEnable) {
+        this.brokerFastFailureEnable = brokerFastFailureEnable;
+    }
+
+    public long getWaitTimeMillsInPullQueue() {
+        return waitTimeMillsInPullQueue;
+    }
+
+    public void setWaitTimeMillsInPullQueue(final long waitTimeMillsInPullQueue) {
+        this.waitTimeMillsInPullQueue = waitTimeMillsInPullQueue;
     }
 
     public boolean isDisableConsumeIfConsumerReadSlowly() {

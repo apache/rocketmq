@@ -110,6 +110,8 @@ public class DefaultMessageStore implements MessageStore {
 
     private FileLock lock;
 
+    boolean shutDownNormal = false;
+
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig) throws IOException {
         this.messageArrivingListener = messageArrivingListener;
@@ -265,8 +267,9 @@ public class DefaultMessageStore implements MessageStore {
             this.storeCheckpoint.flush();
             this.storeCheckpoint.shutdown();
 
-            if (this.runningFlags.isWriteable()) {
+            if (this.runningFlags.isWriteable() && dispatchBehindBytes() == 0) {
                 this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
+                shutDownNormal = true;
             } else {
                 log.warn("the store may be wrong, so shutdown abnormally, and keep abort file.");
             }
