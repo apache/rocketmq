@@ -72,7 +72,7 @@ public class NamesrvStartup {
 
                     namesrvConfig.setConfigStorePath(file);
 
-                    System.out.printf("load config properties file OK, " + file + "%n");
+                    System.out.printf("load config properties file OK, %s%n", file);
                     in.close();
                 }
             }
