@@ -253,6 +253,7 @@
                         <exclude>CONTRIBUTING.md</exclude>
                         <exclude>bin/README.md</exclude>
                         <exclude>PULL_REQUEST_TEMPLATE.md</exclude>
+                        <exclude>src/test/resources/certs/*</exclude>
                     </excludes>
                 </configuration>
             </plugin>
