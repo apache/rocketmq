@@ -72,7 +72,7 @@ public class NamesrvStartup {
 
                     namesrvConfig.setConfigStorePath(file);
 
-                    System.out.printf("load config properties file OK, " + file + "%n");
+                    System.out.printf("load config properties file OK, %s%n", file);
                     in.close();
                 }
             }
@@ -123,7 +123,7 @@ public class NamesrvStartup {
 
             String tip = "The Name Server boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
             log.info(tip);
-            System.out.printf(tip + "%n");
+            System.out.printf("%s%n", tip);
 
             return controller;
         } catch (Throwable e) {
