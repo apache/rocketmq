@@ -25,6 +25,7 @@ import java.io.PrintWriter;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.TlsHelper;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -134,6 +135,9 @@ public class TlsTest {
             clientConfig.setUseTLS(false);
         } else if ("serverRejectsSSLClient".equals(name.getMethodName())) {
             tlsMode = TlsMode.DISABLED;
+        } else if ("reloadSslContextForServer".equals(name.getMethodName())) {
+            tlsClientAuthServer = false;
+            tlsServerNeedClientAuth = "none";
         }
 
         remotingServer = RemotingServerTest.createRemotingServer();
@@ -154,6 +158,26 @@ public class TlsTest {
     @Test
     public void basicClientServerIntegrationTest() throws Exception {
         requestThenAssertResponse();
+    }
+
+    @Test
+    public void reloadSslContextForServer() throws Exception {
+        requestThenAssertResponse();
+
+        //Use new cert and private key
+        tlsClientKeyPath = getCertsPath("badClient.key");
+        tlsClientCertPath = getCertsPath("badClient.pem");
+
+        ((NettyRemotingServer) remotingServer).loadSslContext();
+
+        //Request Again
+        requestThenAssertResponse();
+
+        //Start another client
+        NettyClientConfig clientConfig = new NettyClientConfig();
+        clientConfig.setUseTLS(true);
+        RemotingClient remotingClient = RemotingServerTest.createRemotingClient(clientConfig);
+        requestThenAssertResponse(remotingClient);
     }
 
     @Test
@@ -289,6 +313,10 @@ public class TlsTest {
     }
 
     private void requestThenAssertResponse() throws Exception {
+        requestThenAssertResponse(remotingClient);
+    }
+
+    private void requestThenAssertResponse(RemotingClient remotingClient) throws Exception {
         RemotingCommand response = remotingClient.invokeSync("localhost:8888", createRequest(), 1000 * 3);
         assertTrue(response != null);
         assertThat(response.getLanguage()).isEqualTo(LanguageCode.JAVA);
