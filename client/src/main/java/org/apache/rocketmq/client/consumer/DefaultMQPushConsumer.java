@@ -19,6 +19,8 @@ package org.apache.rocketmq.client.consumer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadPoolExecutor;
+
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
@@ -693,5 +695,10 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setConsumeTimeout(final long consumeTimeout) {
         this.consumeTimeout = consumeTimeout;
+    }
+
+    @Override
+    public void subscribe(String topic, String subExpression, ThreadPoolExecutor consumeExecutor) throws MQClientException {
+        this.defaultMQPushConsumerImpl.subscribe(topic, subExpression, consumeExecutor);
     }
 }

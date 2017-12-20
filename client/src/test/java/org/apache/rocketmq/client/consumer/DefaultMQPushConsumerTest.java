@@ -18,12 +18,16 @@ package org.apache.rocketmq.client.consumer;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -38,6 +42,7 @@ import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.consumer.ConsumeMessageConcurrentlyService;
 import org.apache.rocketmq.client.impl.consumer.ConsumeMessageOrderlyService;
+import org.apache.rocketmq.client.impl.consumer.ConsumeMessageService;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import org.apache.rocketmq.client.impl.consumer.ProcessQueue;
 import org.apache.rocketmq.client.impl.consumer.PullAPIWrapper;
@@ -46,6 +51,7 @@ import org.apache.rocketmq.client.impl.consumer.PullRequest;
 import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.impl.consumer.RebalancePushImpl;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -85,6 +91,12 @@ public class DefaultMQPushConsumerTest {
     private RebalancePushImpl rebalancePushImpl;
     private DefaultMQPushConsumer pushConsumer;
 
+    private boolean listenerCalled = false;
+
+    private boolean isConsumeThreadOk = false;
+
+    private ThreadPoolExecutor consumeExecutor = null;
+
     @Before
     public void init() throws Exception {
         consumerGroup = "FooBarGroup" + System.currentTimeMillis();
@@ -96,6 +108,14 @@ public class DefaultMQPushConsumerTest {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                 ConsumeConcurrentlyContext context) {
+                for (MessageExt msg : msgs) {
+                    if(msg.getTopic().equals(topic)){
+                        if(Thread.currentThread().getName().startsWith("MyConsumeThread_")){
+                            isConsumeThreadOk = true;
+                        }
+                    }
+                }
+                listenerCalled = true;
                 return null;
             }
         });
@@ -105,7 +125,11 @@ public class DefaultMQPushConsumerTest {
         Field field = DefaultMQPushConsumerImpl.class.getDeclaredField("rebalanceImpl");
         field.setAccessible(true);
         field.set(pushConsumerImpl, rebalancePushImpl);
-        pushConsumer.subscribe(topic, "*");
+
+        consumeExecutor = new ThreadPoolExecutor(5, 5, 1000 * 60, TimeUnit.MILLISECONDS,
+            new LinkedBlockingDeque<Runnable>(), new ThreadFactoryImpl("MyConsumeThread_"));
+        pushConsumer.subscribe(topic, "*", consumeExecutor);
+
         pushConsumer.start();
 
         mQClientFactory = spy(pushConsumerImpl.getmQClientFactory());
@@ -247,6 +271,27 @@ public class DefaultMQPushConsumerTest {
             failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
             assertThat(e).hasMessageContaining("pullThresholdSizeForTopic Out of range [1, 102400]");
+        }
+    }
+
+    @Test
+    public void testConsumeThread() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        if(listenerCalled&&isConsumeThreadOk){
+            return;
+        }else{
+            ConsumeMessageService consumeMessageService = pushConsumer.getDefaultMQPushConsumerImpl().getConsumeMessageService();
+            Method getConsumeExecutorMethod = null;
+            if(consumeMessageService instanceof ConsumeMessageConcurrentlyService){
+                ConsumeMessageConcurrentlyService cs = (ConsumeMessageConcurrentlyService)consumeMessageService;
+                getConsumeExecutorMethod = ConsumeMessageConcurrentlyService.class.getDeclaredMethod("getConsumeExecutor",MessageQueue.class);
+            }else {
+                getConsumeExecutorMethod = ConsumeMessageOrderlyService.class.getDeclaredMethod("getConsumeExecutor",MessageQueue.class);
+            }
+            getConsumeExecutorMethod.setAccessible(true);
+            MessageQueue messageQueue = new MessageQueue();
+            messageQueue.setTopic(topic);
+            ThreadPoolExecutor executor = (ThreadPoolExecutor)getConsumeExecutorMethod.invoke(consumeMessageService, messageQueue);
+            assertThat(executor).isEqualTo(consumeExecutor);
         }
     }
 

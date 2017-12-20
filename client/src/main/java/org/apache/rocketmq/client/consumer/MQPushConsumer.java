@@ -21,6 +21,8 @@ import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import org.apache.rocketmq.client.exception.MQClientException;
 
+import java.util.concurrent.ThreadPoolExecutor;
+
 /**
  * Push consumer
  */
@@ -53,6 +55,14 @@ public interface MQPushConsumer extends MQConsumer {
      * all
      */
     void subscribe(final String topic, final String subExpression) throws MQClientException;
+
+    /**
+     *  Subscribe some topic
+     * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
+     * null or * expression,meaning subscribe all
+     * @param consumeExecutor consume listener callback threadexecutor
+     */
+    void subscribe(final String topic, final String subExpression, ThreadPoolExecutor consumeExecutor) throws MQClientException;
 
     /**
      * Subscribe some topic

@@ -27,6 +27,8 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ThreadPoolExecutor;
+
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -108,6 +110,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private ConsumeMessageService consumeMessageService;
     private long queueFlowControlTimes = 0;
     private long queueMaxSpanFlowControlTimes = 0;
+
+    private final Map<String, ThreadPoolExecutor> topicConsumeExecutorMap = new HashMap<String, ThreadPoolExecutor>();
 
     public DefaultMQPushConsumerImpl(DefaultMQPushConsumer defaultMQPushConsumer, RPCHook rpcHook) {
         this.defaultMQPushConsumer = defaultMQPushConsumer;
@@ -603,6 +607,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         new ConsumeMessageConcurrentlyService(this, (MessageListenerConcurrently) this.getMessageListenerInner());
                 }
 
+                Set<Entry<String, ThreadPoolExecutor>> topicConsumeExecutors = this.topicConsumeExecutorMap.entrySet();
+                for (Entry<String, ThreadPoolExecutor> topicConsumeExecutor : topicConsumeExecutors) {
+                    this.consumeMessageService.setConsumeThreadPoolExecutor(topicConsumeExecutor.getKey(),topicConsumeExecutor.getValue());
+                }
+
                 this.consumeMessageService.start();
 
                 boolean registerOK = mQClientFactory.registerConsumer(this.defaultMQPushConsumer.getConsumerGroup(), this);
@@ -868,6 +877,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         } catch (Exception e) {
             throw new MQClientException("subscription exception", e);
         }
+    }
+
+    public void subscribe(String topic, String subExpression, ThreadPoolExecutor consumeExecutor) throws MQClientException {
+        this.subscribe(topic,subExpression);
+        this.topicConsumeExecutorMap.put(topic,consumeExecutor);
     }
 
     public void subscribe(String topic, String fullClassName, String filterClassSource) throws MQClientException {
@@ -1137,6 +1151,5 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void setConsumeMessageService(ConsumeMessageService consumeMessageService) {
         this.consumeMessageService = consumeMessageService;
-
     }
 }
