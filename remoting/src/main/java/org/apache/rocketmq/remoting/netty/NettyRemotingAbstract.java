@@ -93,7 +93,7 @@ public abstract class NettyRemotingAbstract {
     /**
      * SSL context via which to create {@link SslHandler}.
      */
-    protected SslContext sslContext;
+    protected volatile SslContext sslContext;
 
     /**
      * Constructor, specifying capacity of one-way and asynchronous semaphores.
