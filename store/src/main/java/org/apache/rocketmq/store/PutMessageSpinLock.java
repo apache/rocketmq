@@ -26,9 +26,9 @@ public class PutMessageSpinLock implements PutMessageLock {
 
     static final class Node {
         /**
-         * True: Wait signal, false : In lock.
+         * True: Signal, false : Wait.
          */
-        private final AtomicBoolean waitStatus = new AtomicBoolean(true);
+        private final AtomicBoolean waitStatus = new AtomicBoolean(false);
 
         /**
          * Link to predecessor node that current node/thread relies on
@@ -50,6 +50,11 @@ public class PutMessageSpinLock implements PutMessageLock {
     private  final AtomicReference<Node> head = new AtomicReference<>();
 
     /**
+     * true: can acquire, false: can not acquire
+     */
+    private final AtomicBoolean status = new AtomicBoolean(true);
+
+    /**
      * Inserts node into queue, initializing if necessary
      * @param node the node to insert
      * @return node's predecessor
@@ -59,7 +64,7 @@ public class PutMessageSpinLock implements PutMessageLock {
             Node t = tail.get();
             if (t == null) { // Must initialize
                 Node initNode = new Node();
-                initNode.waitStatus.set(false);
+                initNode.waitStatus.set(true);
                 if (head.compareAndSet(null, initNode)) {
                     tail.set(initNode);
                 }
@@ -70,6 +75,25 @@ public class PutMessageSpinLock implements PutMessageLock {
                 }
             }
         }
+    }
+
+    /**
+     * Creates and enqueues node for current thread and given mode.
+     *
+     * @return the new node
+     */
+    private Node addWaiter() {
+        Node node = new Node();
+        // Try the fast path of enq; backup to full enq on failure
+        Node pred = tail.get();
+        if (pred != null) {
+            node.prev = pred;
+            if (tail.compareAndSet(pred, node)) {
+                return node;
+            }
+        }
+        enq(node);
+        return node;
     }
 
     /**
@@ -84,19 +108,26 @@ public class PutMessageSpinLock implements PutMessageLock {
 
     @Override
     public void lock() {
-        Node node = new Node();
-        Node pred = enq(node);
-        for (;;) {
-            if (!pred.waitStatus.get()) {
-                setHead(node);
-                return;
+        if (!status.compareAndSet(true, false)) {
+            Node node = addWaiter();
+            Node pred = node.prev;
+            AtomicBoolean preStatus = pred.waitStatus;
+            for (;;) {
+                if (preStatus.get() && status.compareAndSet(true, false)) {
+                    setHead(node);
+                    return;
+                }
             }
         }
     }
 
     @Override
     public void unlock() {
+        status.set(true);
         Node h = head.get();
-        h.waitStatus.compareAndSet(true, false);
+        if (h != null) {
+            AtomicBoolean headStatus = h.waitStatus;
+            headStatus.set(true);
+        }
     }
 }
