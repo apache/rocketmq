@@ -78,7 +78,7 @@ public class PutMessageSpinLock implements PutMessageLock {
     }
 
     /**
-     * Creates and enqueues node for current thread and given mode.
+     * Creates and enqueues node for current thread.
      *
      * @return the new node
      */
@@ -126,6 +126,9 @@ public class PutMessageSpinLock implements PutMessageLock {
         status.set(true);
         Node h = head.get();
         if (h != null) {
+            /**
+             * notify next waiter node
+             */
             AtomicBoolean headStatus = h.waitStatus;
             headStatus.set(true);
         }
