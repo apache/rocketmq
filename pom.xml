@@ -29,7 +29,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>4.2.0-SNAPSHOT</version>
+    <version>4.3.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.apache.org/</url>
@@ -39,9 +39,9 @@
     </prerequisites>
 
     <scm>
-        <url>https://github.com/apache/rocketmq.git</url>
-        <connection>scm:git:https://github.com/apache/rocketmq.git</connection>
-        <developerConnection>scm:git:https://github.com/apache/rocketmq.git</developerConnection>
+        <url>git@github.com:apache/rocketmq.git</url>
+        <connection>scm:git:git@github.com:apache/rocketmq.git</connection>
+        <developerConnection>scm:git:git@github.com:apache/rocketmq.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
@@ -252,7 +252,8 @@
                         <exclude>.travis.yml</exclude>
                         <exclude>CONTRIBUTING.md</exclude>
                         <exclude>bin/README.md</exclude>
-                        <exclude>PULL_REQUEST_TEMPLATE.md</exclude>
+                        <exclude>.github/*</exclude>
+                        <exclude>src/test/resources/certs/*</exclude>
                     </excludes>
                 </configuration>
             </plugin>
