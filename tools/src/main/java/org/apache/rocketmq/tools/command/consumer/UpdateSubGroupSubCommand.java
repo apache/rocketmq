@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -40,6 +41,8 @@ import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class UpdateSubGroupSubCommand implements SubCommand {
+
+    private DefaultMQAdminExt defaultMQAdminExt;
 
     @Override
     public String commandName() {
@@ -126,12 +129,19 @@ public class UpdateSubGroupSubCommand implements SubCommand {
         }
     }
 
+    private DefaultMQAdminExt getMQAdminExt(RPCHook rpcHook) {
+        if (this.defaultMQAdminExt != null) {
+            return defaultMQAdminExt;
+        }
+        defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+        return defaultMQAdminExt;
+    }
+
     @Override
     public void execute(final CommandLine commandLine, final Options options,
-        RPCHook rpcHook) throws SubCommandException {
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
-
-        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+                        RPCHook rpcHook) throws SubCommandException {
+        DefaultMQAdminExt defaultMQAdminExt = getMQAdminExt(rpcHook);
 
         try {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
@@ -224,8 +234,8 @@ public class UpdateSubGroupSubCommand implements SubCommand {
 
                 defaultMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, subscriptionGroupConfig);
 
-                if(needCheckAndUpdate){
-                    updateRetryTopicQueueNums(defaultMQAdminExt,topic,addr,brokerAddrMap,queueDataMap,subscriptionGroupConfig.getRetryQueueNums());
+                if (needCheckAndUpdate) {
+                    updateRetryTopicQueueNums(defaultMQAdminExt, topic, addr, brokerAddrMap, queueDataMap, subscriptionGroupConfig.getRetryQueueNums());
                 }
 
                 System.out.printf("create subscription group to %s success.%n", addr);
@@ -242,8 +252,8 @@ public class UpdateSubGroupSubCommand implements SubCommand {
                         defaultMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, subscriptionGroupConfig);
                         System.out.printf("create subscription group to %s success.%n", addr);
 
-                        if(needCheckAndUpdate){
-                            updateRetryTopicQueueNums(defaultMQAdminExt,topic,addr,brokerAddrMap,queueDataMap,subscriptionGroupConfig.getRetryQueueNums());
+                        if (needCheckAndUpdate) {
+                            updateRetryTopicQueueNums(defaultMQAdminExt, topic, addr, brokerAddrMap, queueDataMap, subscriptionGroupConfig.getRetryQueueNums());
                         }
                     } catch (Exception e) {
                         e.printStackTrace();

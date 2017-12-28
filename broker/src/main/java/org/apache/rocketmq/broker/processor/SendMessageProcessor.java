@@ -247,9 +247,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
     }
 
     private int fixedCandidateQueueNums(String topic, int defaultQueueNums) {
-        if (topic == null) {
-            return defaultQueueNums;
-        }
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().getTopicConfigTable().get(topic);
         if (topicConfig != null) {
             return topicConfig.getWriteQueueNums();
