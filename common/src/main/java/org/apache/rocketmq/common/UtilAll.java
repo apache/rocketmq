@@ -472,7 +472,7 @@ public class UtilAll {
 
     public static byte[] getIP() {
         try {
-            Enumeration allNetInterfaces = NetworkInterface.getNetworkInterfaces();
+            Enumeration allNetInterfaces = MixAll.NETWORK_INTERFACES;
             InetAddress ip = null;
             byte[] internalIP = null;
             while (allNetInterfaces.hasMoreElements()) {

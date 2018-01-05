@@ -16,6 +16,12 @@
  */
 package org.apache.rocketmq.common;
 
+import org.apache.rocketmq.common.annotation.ImportantField;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.help.FAQUrl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,11 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.rocketmq.common.annotation.ImportantField;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.help.FAQUrl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MixAll {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
@@ -75,6 +76,7 @@ public class MixAll {
     public static final String CID_ONSAPI_PULL_GROUP = "CID_ONSAPI_PULL";
     public static final String CID_RMQ_SYS_PREFIX = "CID_RMQ_SYS_";
 
+    public static final Enumeration<NetworkInterface> NETWORK_INTERFACES = getNetworkInterfaces();
     public static final List<String> LOCAL_INET_ADDRESS = getLocalInetAddress();
     public static final String LOCALHOST = localhost();
     public static final String DEFAULT_CHARSET = "UTF-8";
@@ -358,21 +360,24 @@ public class MixAll {
         return p1.equals(p2);
     }
 
-    public static List<String> getLocalInetAddress() {
-        List<String> inetAddressList = new ArrayList<String>();
+    public static Enumeration<NetworkInterface> getNetworkInterfaces() {
         try {
-            Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
-            while (enumeration.hasMoreElements()) {
-                NetworkInterface networkInterface = enumeration.nextElement();
-                Enumeration<InetAddress> addrs = networkInterface.getInetAddresses();
-                while (addrs.hasMoreElements()) {
-                    inetAddressList.add(addrs.nextElement().getHostAddress());
-                }
-            }
+            return NetworkInterface.getNetworkInterfaces();
         } catch (SocketException e) {
             throw new RuntimeException("get local inet address fail", e);
         }
+    }
 
+    public static List<String> getLocalInetAddress() {
+        List<String> inetAddressList = new ArrayList<String>();
+        Enumeration<NetworkInterface> enumeration = NETWORK_INTERFACES;
+        while (enumeration.hasMoreElements()) {
+            NetworkInterface networkInterface = enumeration.nextElement();
+            Enumeration<InetAddress> addrs = networkInterface.getInetAddresses();
+            while (addrs.hasMoreElements()) {
+                inetAddressList.add(addrs.nextElement().getHostAddress());
+            }
+        }
         return inetAddressList;
     }
 
@@ -395,7 +400,7 @@ public class MixAll {
     //Reverse logic comparing to RemotingUtil method, consider refactor in RocketMQ 5.0
     public static String getLocalhostByNetworkInterface() throws SocketException {
         List<String> candidatesHost = new ArrayList<String>();
-        Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
+        Enumeration<NetworkInterface> enumeration = NETWORK_INTERFACES;
 
         while (enumeration.hasMoreElements()) {
             NetworkInterface networkInterface = enumeration.nextElement();
