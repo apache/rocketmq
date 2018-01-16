@@ -461,26 +461,38 @@ public class MappedFileQueue {
      */
     public MappedFile findMappedFileByOffset(final long offset, final boolean returnFirstOnNotFound) {
         try {
-            MappedFile mappedFile = this.getFirstMappedFile();
-            if (mappedFile != null) {
-                int index = (int) ((offset / this.mappedFileSize) - (mappedFile.getFileFromOffset() / this.mappedFileSize));
+            MappedFile firstMappedFile = this.getFirstMappedFile();
+            if (firstMappedFile != null) {
+                int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
                 if (index < 0 || index >= this.mappedFiles.size()) {
-                    LOG_ERROR.warn("Offset for {} not matched. Request offset: {}, index: {}, " +
-                            "mappedFileSize: {}, mappedFiles count: {}",
-                        mappedFile,
+                    LOG_ERROR.warn("Offset for {} not matched. Request offset: {}, index: {}, mappedFileSize: {}, mappedFiles count: {}",
+                        firstMappedFile,
                         offset,
                         index,
                         this.mappedFileSize,
                         this.mappedFiles.size());
+                } else {
+                    MappedFile targetFile = null;
+                    try {
+                        targetFile = this.mappedFiles.get(index);
+                    } catch (Exception ignored) {
+                    }
+
+                    if (targetFile != null && offset >= targetFile.getFileFromOffset()
+                        && offset < targetFile.getFileFromOffset() + this.mappedFileSize) {
+                        return targetFile;
+                    }
+
+                    for (MappedFile tmpMappedFile : this.mappedFiles) {
+                        if (offset >= tmpMappedFile.getFileFromOffset()
+                            && offset < tmpMappedFile.getFileFromOffset() + this.mappedFileSize) {
+                            return tmpMappedFile;
+                        }
+                    }
                 }
 
-                try {
-                    return this.mappedFiles.get(index);
-                } catch (Exception e) {
-                    if (returnFirstOnNotFound) {
-                        return mappedFile;
-                    }
-                    LOG_ERROR.warn("findMappedFileByOffset failure. ", e);
+                if (returnFirstOnNotFound) {
+                    return firstMappedFile;
                 }
             }
         } catch (Exception e) {
