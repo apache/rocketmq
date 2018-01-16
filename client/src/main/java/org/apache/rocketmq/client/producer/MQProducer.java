@@ -38,11 +38,9 @@ public interface MQProducer extends MQAdmin {
     SendResult send(final Message msg, final long timeout) throws MQClientException,
         RemotingException, MQBrokerException, InterruptedException;
 
-    void send(final Message msg, final SendCallback sendCallback) throws MQClientException,
-        RemotingException, InterruptedException;
+    void send(final Message msg, final SendCallback sendCallback);
 
-    void send(final Message msg, final SendCallback sendCallback, final long timeout)
-        throws MQClientException, RemotingException, InterruptedException;
+    void send(final Message msg, final SendCallback sendCallback, final long timeout);
 
     void sendOneway(final Message msg) throws MQClientException, RemotingException,
         InterruptedException;
@@ -53,11 +51,9 @@ public interface MQProducer extends MQAdmin {
     SendResult send(final Message msg, final MessageQueue mq, final long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException;
 
-    void send(final Message msg, final MessageQueue mq, final SendCallback sendCallback)
-        throws MQClientException, RemotingException, InterruptedException;
+    void send(final Message msg, final MessageQueue mq, final SendCallback sendCallback);
 
-    void send(final Message msg, final MessageQueue mq, final SendCallback sendCallback, long timeout)
-        throws MQClientException, RemotingException, InterruptedException;
+    void send(final Message msg, final MessageQueue mq, final SendCallback sendCallback, long timeout);
 
     void sendOneway(final Message msg, final MessageQueue mq) throws MQClientException,
         RemotingException, InterruptedException;
@@ -70,12 +66,10 @@ public interface MQProducer extends MQAdmin {
         InterruptedException;
 
     void send(final Message msg, final MessageQueueSelector selector, final Object arg,
-        final SendCallback sendCallback) throws MQClientException, RemotingException,
-        InterruptedException;
+        final SendCallback sendCallback);
 
     void send(final Message msg, final MessageQueueSelector selector, final Object arg,
-        final SendCallback sendCallback, final long timeout) throws MQClientException, RemotingException,
-        InterruptedException;
+        final SendCallback sendCallback, final long timeout);
 
     void sendOneway(final Message msg, final MessageQueueSelector selector, final Object arg)
         throws MQClientException, RemotingException, InterruptedException;
