@@ -462,16 +462,17 @@ public class MappedFileQueue {
     public MappedFile findMappedFileByOffset(final long offset, final boolean returnFirstOnNotFound) {
         try {
             MappedFile firstMappedFile = this.getFirstMappedFile();
-            if (firstMappedFile != null) {
-                int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
-                if (index < 0 || index >= this.mappedFiles.size()) {
-                    LOG_ERROR.warn("Offset for {} not matched. Request offset: {}, index: {}, mappedFileSize: {}, mappedFiles count: {}",
-                        firstMappedFile,
+            MappedFile lastMappedFile = this.getLastMappedFile();
+            if (firstMappedFile != null && lastMappedFile != null) {
+                if (offset < firstMappedFile.getFileFromOffset() || offset >= lastMappedFile.getFileFromOffset() + this.mappedFileSize) {
+                    LOG_ERROR.warn("Offset not matched. Request offset: {}, firstOffset: {}, lastOffset: {}, mappedFileSize: {}, mappedFiles count: {}",
                         offset,
-                        index,
+                        firstMappedFile.getFileFromOffset(),
+                        lastMappedFile.getFileFromOffset() + this.mappedFileSize,
                         this.mappedFileSize,
                         this.mappedFiles.size());
                 } else {
+                    int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
                     MappedFile targetFile = null;
                     try {
                         targetFile = this.mappedFiles.get(index);
