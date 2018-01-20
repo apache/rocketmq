@@ -116,7 +116,7 @@ public class PutMessageSpinLock implements PutMessageLock {
     }
 
 
-    public boolean isLocked() { return status.get() == false; }
+    public boolean isLocked() { return !status.get(); }
 
     /**
      * Queries whether any threads are waiting to acquire.
