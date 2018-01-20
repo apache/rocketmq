@@ -31,12 +31,20 @@ public class PutMessageSpinLock implements PutMessageLock {
         private final AtomicBoolean waitStatus = new AtomicBoolean(false);
 
         /**
+         * The thread that enqueued this node.  Initialized on
+         * construction and nulled out after use.
+         *
+         * Only for test and trace
+         */
+        volatile Thread thread;
+
+        /**
          * Link to predecessor node that current node/thread relies on
          * for checking waitStatus.
          */
         volatile Node prev;
 
-        Node() { }
+        Node(Thread thread) { this.thread = thread; }
     }
 
     /**
@@ -63,7 +71,7 @@ public class PutMessageSpinLock implements PutMessageLock {
         for (;;) {
             Node t = tail.get();
             if (t == null) { // Must initialize
-                Node initNode = new Node();
+                Node initNode = new Node(Thread.currentThread());
                 initNode.waitStatus.set(true);
                 if (head.compareAndSet(null, initNode)) {
                     tail.set(initNode);
@@ -83,7 +91,7 @@ public class PutMessageSpinLock implements PutMessageLock {
      * @return the new node
      */
     private Node addWaiter() {
-        Node node = new Node();
+        Node node = new Node(Thread.currentThread());
         // Try the fast path of enq; backup to full enq on failure
         Node pred = tail.get();
         if (pred != null) {
@@ -104,6 +112,45 @@ public class PutMessageSpinLock implements PutMessageLock {
     private void setHead(Node node) {
         head.set(node);
         node.prev = null;
+        node.thread = null;
+    }
+
+
+    public boolean isLocked() { return status.get() == false; }
+
+    /**
+     * Queries whether any threads are waiting to acquire.
+     *
+     * @return {@code true} if there may be other threads waiting to acquire
+     */
+    public final boolean hasQueuedThreads() {
+        return head.get() != tail.get();
+    }
+
+    /**
+     * Queries whether any threads have ever contended to acquire this
+     * synchronizer
+     *
+     * @return {@code true} if there has ever been contention
+     */
+    public final boolean hasContended() {
+        return head.get() != null;
+    }
+
+    /**
+     * Returns true if the given thread is currently queued.
+     *
+     * @param thread the thread
+     * @return {@code true} if the given thread is on the queue
+     * @throws NullPointerException if the thread is null
+     */
+    public final boolean isQueued(Thread thread) {
+        if (thread == null)
+            throw new NullPointerException();
+        for (Node p = tail.get(); p != null; p = p.prev)
+            if (p.thread == thread)
+                return true;
+        return false;
     }
 
     @Override
