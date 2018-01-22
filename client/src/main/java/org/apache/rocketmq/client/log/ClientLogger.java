@@ -87,7 +87,7 @@ public class ClientLogger {
                     }
 
                 } else if (classType.getName().equals("org.apache.logging.slf4j.Log4jLoggerFactory")) {
-                    Log4j2Helper.addClientLogger(clientLogRoot,clientLogLevel,clientLogMaxIndex,true);
+                    Log4j2Helper.addClientLogger(clientLogRoot, clientLogLevel, clientLogMaxIndex, true);
                 }
             } catch (Exception e) {
                 System.err.println(e);
