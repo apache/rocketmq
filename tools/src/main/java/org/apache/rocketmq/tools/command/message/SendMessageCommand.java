@@ -48,7 +48,7 @@ public class SendMessageCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("b", "body", true, "message body string utf-8 format");
+        opt = new Option("b", "body", true, "utf-8 string format of the message body");
         opt.setRequired(true);
         options.addOption(opt);
 
@@ -60,7 +60,7 @@ public class SendMessageCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("q", "qbroker", true, "send message to which broker");
+        opt = new Option("o", "qbroker", true, "send message to which broker");
         opt.setRequired(false);
         options.addOption(opt);
 

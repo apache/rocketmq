@@ -105,7 +105,7 @@ public class SendMessageCommandTest {
             ServerUtil.parseCmdLine("mqadmin " + sendMessageCommand.commandName(), subargs, sendMessageCommand.buildCommandlineOptions(options), new PosixParser());
         sendMessageCommand.execute(commandLine, options, null);
 
-        subargs = new String[] {"-t mytopic","-b 'send message test'","-g tagA","-k order-16546745756","-q brokera","-i 1"};
+        subargs = new String[] {"-t mytopic","-b 'send message test'","-g tagA","-k order-16546745756","-o brokera","-i 1"};
         commandLine = ServerUtil.parseCmdLine("mqadmin " + sendMessageCommand.commandName(), subargs, sendMessageCommand.buildCommandlineOptions(options), new PosixParser());
         sendMessageCommand.execute(commandLine, options, null);
         System.setOut(out);
