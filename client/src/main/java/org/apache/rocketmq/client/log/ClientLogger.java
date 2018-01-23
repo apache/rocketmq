@@ -83,7 +83,7 @@ public class ClientLogger {
         realLogger.addAppender(rocketmqClientAppender);
         realLogger.setLevel(Level.toLevel(clientLogLevel));
 
-        InternalLoggerFactory.clearLoggerContext();
+        InternalLoggerFactory.setLoggerContext(InnerLoggerFactory.DEFAULT_LOG_CONTEXT);
         return logger;
     }
 

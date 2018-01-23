@@ -36,7 +36,7 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
         return LOG_CONTEXT_INTERNAL;
     }
 
-    public static class InnerLogger extends InternalLogger {
+    public static class InnerLogger implements InternalLogger {
 
         private Logger logger;
 

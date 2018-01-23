@@ -17,158 +17,67 @@
 
 package org.apache.rocketmq.remoting.log;
 
-import org.slf4j.Logger;
-import org.slf4j.Marker;
+public interface InternalLogger {
 
-public abstract class InternalLogger implements Logger {
+    String getName();
 
-    @Override
-    public void trace(Marker marker, String s, Throwable throwable) {
+    boolean isTraceEnabled();
 
-    }
+    void trace(String var1);
 
-    @Override
-    public void trace(Marker marker, String s) {
+    void trace(String var1, Object var2);
 
-    }
+    void trace(String var1, Object var2, Object var3);
 
-    @Override
-    public void trace(Marker marker, String s, Object o) {
+    void trace(String var1, Object... var2);
 
-    }
+    void trace(String var1, Throwable var2);
 
-    @Override
-    public void trace(Marker marker, String s, Object o, Object o1) {
+    boolean isDebugEnabled();
 
-    }
+    void debug(String var1);
 
-    @Override
-    public void trace(Marker marker, String s, Object... objects) {
+    void debug(String var1, Object var2);
 
-    }
+    void debug(String var1, Object var2, Object var3);
 
-    @Override
-    public void debug(Marker marker, String s) {
+    void debug(String var1, Object... var2);
 
-    }
+    void debug(String var1, Throwable var2);
 
-    @Override
-    public void debug(Marker marker, String s, Object o) {
+    boolean isInfoEnabled();
 
-    }
+    void info(String var1);
 
-    @Override
-    public void debug(Marker marker, String s, Object o, Object o1) {
+    void info(String var1, Object var2);
 
-    }
+    void info(String var1, Object var2, Object var3);
 
-    @Override
-    public void debug(Marker marker, String s, Object... objects) {
+    void info(String var1, Object... var2);
 
-    }
+    void info(String var1, Throwable var2);
 
-    @Override
-    public void debug(Marker marker, String s, Throwable throwable) {
+    boolean isWarnEnabled();
 
-    }
+    void warn(String var1);
 
-    @Override
-    public void error(Marker marker, String s, Throwable throwable) {
+    void warn(String var1, Object var2);
 
-    }
+    void warn(String var1, Object... var2);
 
-    @Override
-    public void error(Marker marker, String s) {
+    void warn(String var1, Object var2, Object var3);
 
-    }
+    void warn(String var1, Throwable var2);
 
-    @Override
-    public void error(Marker marker, String s, Object o) {
+    boolean isErrorEnabled();
 
-    }
+    void error(String var1);
 
-    @Override
-    public void error(Marker marker, String s, Object o, Object o1) {
+    void error(String var1, Object var2);
 
-    }
+    void error(String var1, Object var2, Object var3);
 
-    @Override
-    public void error(Marker marker, String s, Object... objects) {
+    void error(String var1, Object... var2);
 
-    }
-
-    @Override
-    public void warn(Marker marker, String s, Throwable throwable) {
-
-    }
-
-    @Override
-    public void warn(Marker marker, String s) {
-
-    }
-
-    @Override
-    public void warn(Marker marker, String s, Object o) {
-
-    }
-
-    @Override
-    public void warn(Marker marker, String s, Object o, Object o1) {
-
-    }
-
-    @Override
-    public void warn(Marker marker, String s, Object... objects) {
-
-    }
-
-    @Override
-    public void info(Marker marker, String s, Throwable throwable) {
-
-    }
-
-    @Override
-    public void info(Marker marker, String s) {
-
-    }
-
-    @Override
-    public void info(Marker marker, String s, Object o) {
-
-    }
-
-    @Override
-    public void info(Marker marker, String s, Object o, Object o1) {
-
-    }
-
-    @Override
-    public void info(Marker marker, String s, Object... objects) {
-
-    }
-
-    @Override
-    public boolean isInfoEnabled(Marker marker) {
-        return false;
-    }
-
-    @Override
-    public boolean isDebugEnabled(Marker marker) {
-        return false;
-    }
-
-    @Override
-    public boolean isTraceEnabled(Marker marker) {
-        return false;
-    }
-
-    @Override
-    public boolean isWarnEnabled(Marker marker) {
-        return false;
-    }
-
-    @Override
-    public boolean isErrorEnabled(Marker marker) {
-        return false;
-    }
+    void error(String var1, Throwable var2);
 }
