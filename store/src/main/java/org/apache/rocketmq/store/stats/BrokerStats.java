@@ -17,12 +17,12 @@
 package org.apache.rocketmq.store.stats;
 
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.remoting.log.InternalLogger;
+import org.apache.rocketmq.remoting.log.InternalLoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BrokerStats {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     private final DefaultMessageStore defaultMessageStore;
 

@@ -30,16 +30,17 @@ import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.remoting.log.InternalLogger;
+import org.apache.rocketmq.remoting.log.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.NettySystemConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.srvutil.ShutdownHookThread;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FiltersrvStartup {
-    public static Logger log;
+    public static InternalLogger log;
 
     public static void main(String[] args) {
         start(createController(args));
@@ -125,7 +126,7 @@ public class FiltersrvStartup {
             configurator.setContext(lc);
             lc.reset();
             configurator.doConfigure(filtersrvConfig.getRocketmqHome() + "/conf/logback_filtersrv.xml");
-            log = LoggerFactory.getLogger(LoggerName.FILTERSRV_LOGGER_NAME);
+            log = InternalLoggerFactory.getLogger(LoggerName.FILTERSRV_LOGGER_NAME);
 
             final FiltersrvController controller =
                 new FiltersrvController(filtersrvConfig, nettyServerConfig);

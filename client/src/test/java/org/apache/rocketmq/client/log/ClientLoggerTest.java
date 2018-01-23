@@ -19,12 +19,8 @@ package org.apache.rocketmq.client.log;
 
 import org.apache.rocketmq.common.UtilAll;
 import org.junit.After;
-import org.junit.Test;
-import org.slf4j.Logger;
-
 import java.io.File;
 
-import static org.junit.Assert.assertEquals;
 
 public class ClientLoggerTest {
 
@@ -41,12 +37,4 @@ public class ClientLoggerTest {
         UtilAll.deleteFile(new File(LOG_DIR));
     }
 
-    // FIXME: Workaround for concrete implementation for slf4j, is there any better solution for all slf4j implementations in one class ? 2017/8/1
-    @Test
-    public void testLog4j2() throws Exception {
-        Logger logger = ClientLogger.getLog();
-
-        System.out.println(logger);
-        assertEquals("org.apache.logging.slf4j.Log4jLogger", logger.getClass().getName());
-    }
 }

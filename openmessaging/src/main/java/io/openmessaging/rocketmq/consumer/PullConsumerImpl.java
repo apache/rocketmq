@@ -34,9 +34,9 @@ import org.apache.rocketmq.client.consumer.PullTaskContext;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.ProcessQueue;
 import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.remoting.log.InternalLogger;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.slf4j.Logger;
 
 public class PullConsumerImpl implements PullConsumer {
     private final DefaultMQPullConsumer rocketmqPullConsumer;
@@ -47,7 +47,7 @@ public class PullConsumerImpl implements PullConsumer {
     private final LocalMessageCache localMessageCache;
     private final ClientConfig clientConfig;
 
-    final static Logger log = ClientLogger.getLog();
+    final static InternalLogger log = ClientLogger.getLog();
 
     public PullConsumerImpl(final String queueName, final KeyValue properties) {
         this.properties = properties;
