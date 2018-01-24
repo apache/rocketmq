@@ -1265,6 +1265,10 @@ public class LoggingBuilder {
         }
     }
 
+
+    /**
+     * %d{yyy-MM-dd HH:mm:ss,SSS} %p %c{1}%L - %m%n
+     */
     public static class DefaultLayout extends Layout {
         @Override
         public String format(LoggingEvent event) {
@@ -1276,9 +1280,8 @@ public class LoggingBuilder {
             sb.append(" ");
             sb.append(event.getLevel());
             sb.append(" ");
-            sb.append(event.getThreadName());
-            sb.append(" ");
-
+            sb.append(event.getLoggerName());
+            sb.append(" - ");
             sb.append(event.getMessage());
             String[] throwableStr = event.getThrowableStr();
             if (throwableStr != null) {

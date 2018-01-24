@@ -25,6 +25,7 @@ import org.apache.rocketmq.logging.inner.Layout;
 import org.apache.rocketmq.logging.inner.Level;
 import org.apache.rocketmq.logging.inner.Logger;
 import org.apache.rocketmq.logging.inner.LoggingBuilder;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class ClientLogger {
 
@@ -36,12 +37,16 @@ public class ClientLogger {
     public static final String CLIENT_LOG_ASYNC_QUEUESIZE = "rocketmq.client.logAsyncQueueSize";
     public static final String ROCKETMQ_CLIENT_APPENDER_NAME = "RocketmqClientAppender";
 
-    private static InternalLogger log;
+    private static final InternalLogger log;
 
     private static Appender rocketmqClientAppender = null;
 
     static {
         InternalLoggerFactory.setCurrentLoggerType(InnerLoggerFactory.LOGGER_INNER);
+        log = createLogger(LoggerName.CLIENT_LOGGER_NAME);
+        createLogger(LoggerName.COMMON_LOGGER_NAME);
+        createLogger(LoggerName.CLIENT_LOGGER_NAME);
+        createLogger(RemotingHelper.ROCKETMQ_REMOTING);
     }
 
     private static synchronized void createClientAppender() {
@@ -61,6 +66,8 @@ public class ClientLogger {
         rocketmqClientAppender = LoggingBuilder.newAppenderBuilder()
             .withRollingFileAppender(logFileName, maxFileSize, maxFileIndex)
             .withAsync(false, queueSize).withName(ROCKETMQ_CLIENT_APPENDER_NAME).withLayout(layout).build();
+
+        Logger.getRootLogger().addAppender(rocketmqClientAppender);
     }
 
     private static InternalLogger createLogger(final String loggerName) {
@@ -79,15 +86,6 @@ public class ClientLogger {
     }
 
     public static InternalLogger getLog() {
-        if (log == null) {
-            log = createLogger(LoggerName.CLIENT_LOGGER_NAME);
-            return log;
-        } else {
-            return log;
-        }
-    }
-
-    public static void setLog(InternalLogger log) {
-        ClientLogger.log = log;
+        return log;
     }
 }
