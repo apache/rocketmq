@@ -22,8 +22,6 @@ import org.apache.rocketmq.logging.inner.Logger;
 import org.apache.rocketmq.logging.inner.LoggingEvent;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -31,7 +29,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-@RunWith(JUnit4.class)
 public class BasicloggerTest {
 
     protected Logger logger = Logger.getLogger("test");
