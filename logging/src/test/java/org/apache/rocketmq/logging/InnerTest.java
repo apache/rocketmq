@@ -34,11 +34,11 @@ import java.io.PrintStream;
 import java.util.Date;
 
 @RunWith(JUnit4.class)
-public class InnerTest extends BasicloggerTest{
+public class InnerTest extends BasicloggerTest {
 
 
     @Before
-    public void init(){
+    public void init() {
         InternalLoggerFactory.setCurrentLoggerType(InnerLoggerFactory.LOGGER_INNER);
     }
 
@@ -57,21 +57,33 @@ public class InnerTest extends BasicloggerTest{
 
         InternalLogger consoleLogger1 = InternalLoggerFactory.getLogger("ConsoleLogger");
         consoleLogger1.info("console info Message");
-        consoleLogger1.error("console error Message",new RuntimeException());
+        consoleLogger1.error("console error Message", new RuntimeException());
         consoleLogger1.debug("console debug message");
+
+        consoleLogger1.info("console {} test", "simple");
+        consoleLogger1.info("[WATERMARK] Send Queue Size: {} SlowTimeMills: {}", 1, 300);
+        consoleLogger1.info("new consumer connected, group: {} {} {} channel: {}", "mygroup", "orderly",
+            "broudcast", new RuntimeException("simple object"));
+
         System.setOut(out);
         consoleAppender.close();
 
         String result = new String(byteArrayOutputStream.toByteArray());
 
+        System.out.println(result);
+
         Assert.assertTrue(result.contains("info"));
         Assert.assertTrue(result.contains("RuntimeException"));
+        Assert.assertTrue(result.contains("WATERMARK"));
+        Assert.assertTrue(result.contains("consumer"));
+        Assert.assertTrue(result.contains("broudcast"));
+        Assert.assertTrue(result.contains("simple test"));
         Assert.assertTrue(!result.contains("debug"));
     }
 
     @Test
     public void testInnerFileLogger() throws IOException {
-        String file = loggingDir+"/inner.log";
+        String file = loggingDir + "/inner.log";
 
         Logger fileLogger = Logger.getLogger("innerLogger");
 
@@ -86,7 +98,7 @@ public class InnerTest extends BasicloggerTest{
         InternalLogger innerLogger = InternalLoggerFactory.getLogger("innerLogger");
 
         innerLogger.info("fileLogger info Message");
-        innerLogger.error("fileLogger error Message",new RuntimeException());
+        innerLogger.error("fileLogger error Message", new RuntimeException());
         innerLogger.debug("fileLogger debug message");
 
         myappender.close();
@@ -101,7 +113,7 @@ public class InnerTest extends BasicloggerTest{
     }
 
     @After
-    public void close(){
+    public void close() {
         InternalLoggerFactory.setCurrentLoggerType(null);
     }
 }
