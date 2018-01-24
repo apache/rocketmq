@@ -219,7 +219,6 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
 
 
     private static class FormattingTuple {
-        public static FormattingTuple NULL = new FormattingTuple((String) null);
         private String message;
         private Throwable throwable;
         private Object[] argArray;
@@ -299,8 +298,8 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
                 int i = 0;
                 StringBuilder sbuf = new StringBuilder(messagePattern.length() + 50);
 
-                int L;
-                for (L = 0; L < argArray.length; ++L) {
+                int len;
+                for (len = 0; len < argArray.length; ++len) {
                     int j = messagePattern.indexOf("{}", i);
                     if (j == -1) {
                         if (i == 0) {
@@ -313,24 +312,24 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
 
                     if (isEscapedDelimeter(messagePattern, j)) {
                         if (!isDoubleEscaped(messagePattern, j)) {
-                            --L;
+                            --len;
                             sbuf.append(messagePattern.substring(i, j - 1));
                             sbuf.append('{');
                             i = j + 1;
                         } else {
                             sbuf.append(messagePattern.substring(i, j - 1));
-                            deeplyAppendParameter(sbuf, argArray[L], new HashMap());
+                            deeplyAppendParameter(sbuf, argArray[len], new HashMap());
                             i = j + 2;
                         }
                     } else {
                         sbuf.append(messagePattern.substring(i, j));
-                        deeplyAppendParameter(sbuf, argArray[L], new HashMap());
+                        deeplyAppendParameter(sbuf, argArray[len], new HashMap());
                         i = j + 2;
                     }
                 }
 
                 sbuf.append(messagePattern.substring(i, messagePattern.length()));
-                if (L < argArray.length - 1) {
+                if (len < argArray.length - 1) {
                     return new FormattingTuple(sbuf.toString(), argArray, throwableCandidate);
                 } else {
                     return new FormattingTuple(sbuf.toString(), argArray, (Throwable) null);
