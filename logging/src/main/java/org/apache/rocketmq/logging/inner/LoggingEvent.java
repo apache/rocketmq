@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.common.logging.internal;
+package org.apache.rocketmq.logging.inner;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;

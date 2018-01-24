@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.log;
+package org.apache.rocketmq.logging;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,8 +23,8 @@ import org.slf4j.LoggerFactory;
 public class Slf4jLoggerFactory extends InternalLoggerFactory {
 
     @Override
-    protected String getContext() {
-        return InternalLoggerFactory.DEFAULT_LOG_CONTEXT;
+    protected String getLoggerType() {
+        return InternalLoggerFactory.LOGGER_SLF4J;
     }
 
     @Override

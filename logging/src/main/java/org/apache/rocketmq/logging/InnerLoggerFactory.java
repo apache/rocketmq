@@ -15,16 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.common.logging;
+package org.apache.rocketmq.logging;
 
-
-import org.apache.rocketmq.common.logging.internal.Logger;
-import org.apache.rocketmq.remoting.log.InternalLogger;
-import org.apache.rocketmq.remoting.log.InternalLoggerFactory;
+import org.apache.rocketmq.logging.inner.Logger;
 
 public class InnerLoggerFactory extends InternalLoggerFactory {
-
-    public static final String LOG_CONTEXT_INTERNAL = "internal";
 
     @Override
     protected InternalLogger doGetLogger(String name) {
@@ -32,8 +27,8 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
     }
 
     @Override
-    protected String getContext() {
-        return LOG_CONTEXT_INTERNAL;
+    protected String getLoggerType() {
+        return LOGGER_INNER;
     }
 
     public static class InnerLogger implements InternalLogger {

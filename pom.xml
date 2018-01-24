@@ -125,6 +125,7 @@
         <module>test</module>
         <module>distribution</module>
         <module>openmessaging</module>
+        <module>logging</module>
     </modules>
 
     <build>
@@ -501,6 +502,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-remoting</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-logging</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

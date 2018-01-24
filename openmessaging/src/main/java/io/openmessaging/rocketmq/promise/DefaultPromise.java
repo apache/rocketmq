@@ -19,8 +19,8 @@ package io.openmessaging.rocketmq.promise;
 import io.openmessaging.Promise;
 import io.openmessaging.PromiseListener;
 import io.openmessaging.exception.OMSRuntimeException;
-import org.apache.rocketmq.remoting.log.InternalLogger;
-import org.apache.rocketmq.remoting.log.InternalLoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;

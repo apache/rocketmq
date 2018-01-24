@@ -17,8 +17,8 @@
 package org.apache.rocketmq.remoting.common;
 
 
-import org.apache.rocketmq.remoting.log.InternalLogger;
-import org.apache.rocketmq.remoting.log.InternalLoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 /**
  * Base class for background thread

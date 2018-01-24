@@ -45,8 +45,8 @@ import org.apache.rocketmq.remoting.common.ServiceThread;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
-import org.apache.rocketmq.remoting.log.InternalLogger;
-import org.apache.rocketmq.remoting.log.InternalLoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 
@@ -94,6 +94,10 @@ public abstract class NettyRemotingAbstract {
      * SSL context via which to create {@link SslHandler}.
      */
     protected volatile SslContext sslContext;
+
+    static {
+        NettyLogger.initNettyLogger();
+    }
 
     /**
      * Constructor, specifying capacity of one-way and asynchronous semaphores.

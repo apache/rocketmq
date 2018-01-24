@@ -17,15 +17,14 @@
 package org.apache.rocketmq.client.log;
 
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.logging.InnerLoggerFactory;
-import org.apache.rocketmq.remoting.log.InternalLogger;
-import org.apache.rocketmq.remoting.log.InternalLoggerFactory;
-import org.apache.rocketmq.common.logging.internal.Appender;
-import org.apache.rocketmq.common.logging.internal.Layout;
-import org.apache.rocketmq.common.logging.internal.Level;
-import org.apache.rocketmq.common.logging.internal.Logger;
-import org.apache.rocketmq.common.logging.internal.LoggingBuilder;
-
+import org.apache.rocketmq.logging.InnerLoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.inner.Appender;
+import org.apache.rocketmq.logging.inner.Layout;
+import org.apache.rocketmq.logging.inner.Level;
+import org.apache.rocketmq.logging.inner.Logger;
+import org.apache.rocketmq.logging.inner.LoggingBuilder;
 
 public class ClientLogger {
 
@@ -42,11 +41,7 @@ public class ClientLogger {
     private static Appender rocketmqClientAppender = null;
 
     static {
-        try {
-            new InnerLoggerFactory();
-        } catch (Throwable e) {
-            //ignore
-        }
+        InternalLoggerFactory.setCurrentLoggerType(InnerLoggerFactory.LOGGER_INNER);
     }
 
     private static synchronized void createClientAppender() {
@@ -70,8 +65,6 @@ public class ClientLogger {
 
     private static InternalLogger createLogger(final String loggerName) {
         String clientLogLevel = System.getProperty(CLIENT_LOG_LEVEL, "INFO");
-        InternalLoggerFactory.setLoggerContext(InnerLoggerFactory.LOG_CONTEXT_INTERNAL);
-
         InternalLogger logger = InternalLoggerFactory.getLogger(loggerName);
         InnerLoggerFactory.InnerLogger innerLogger = (InnerLoggerFactory.InnerLogger) logger;
         Logger realLogger = innerLogger.getLogger();
@@ -82,8 +75,6 @@ public class ClientLogger {
 
         realLogger.addAppender(rocketmqClientAppender);
         realLogger.setLevel(Level.toLevel(clientLogLevel));
-
-        InternalLoggerFactory.setLoggerContext(InnerLoggerFactory.DEFAULT_LOG_CONTEXT);
         return logger;
     }
 

@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.srvutil;
 
-import org.apache.rocketmq.remoting.log.InternalLogger;
+import org.apache.rocketmq.logging.InternalLogger;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;

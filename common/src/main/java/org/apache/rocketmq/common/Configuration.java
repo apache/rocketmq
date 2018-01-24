@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.common;
 
-import org.apache.rocketmq.remoting.log.InternalLogger;
+import org.apache.rocketmq.logging.InternalLogger;
 
 import java.io.IOException;
 import java.lang.reflect.Field;

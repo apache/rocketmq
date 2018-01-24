@@ -25,7 +25,7 @@ import java.util.Properties;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.remoting.log.InternalLogger;
+import org.apache.rocketmq.logging.InternalLogger;
 
 public final class BeanUtils {
     final static InternalLogger log = ClientLogger.getLog();

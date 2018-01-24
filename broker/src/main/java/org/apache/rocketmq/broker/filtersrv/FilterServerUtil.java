@@ -18,7 +18,7 @@
 package org.apache.rocketmq.broker.filtersrv;
 
 
-import org.apache.rocketmq.remoting.log.InternalLogger;
+import org.apache.rocketmq.logging.InternalLogger;
 
 public class FilterServerUtil {
     public static void callShell(final String shellString, final InternalLogger log) {

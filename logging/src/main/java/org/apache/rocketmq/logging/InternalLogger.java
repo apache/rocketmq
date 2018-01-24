@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.log;
+package org.apache.rocketmq.logging;
 
 public interface InternalLogger {
 

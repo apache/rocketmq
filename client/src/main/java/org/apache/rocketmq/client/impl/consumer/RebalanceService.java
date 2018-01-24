@@ -19,7 +19,7 @@ package org.apache.rocketmq.client.impl.consumer;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.ServiceThread;
-import org.apache.rocketmq.remoting.log.InternalLogger;
+import org.apache.rocketmq.logging.InternalLogger;
 
 public class RebalanceService extends ServiceThread {
     private static long waitInterval =

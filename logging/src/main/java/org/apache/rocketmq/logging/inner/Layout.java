@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.common.logging.internal;
+package org.apache.rocketmq.logging.inner;
 
 public abstract class Layout {
 
