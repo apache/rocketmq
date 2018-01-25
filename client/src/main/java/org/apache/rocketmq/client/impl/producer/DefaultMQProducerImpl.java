@@ -101,7 +101,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     private MQFaultStrategy mqFaultStrategy = new MQFaultStrategy();
 
-    private final Semaphore asyncSendSemphore = new Semaphore(65536);
+    private Semaphore asyncSendSemphore = null;
 
     public DefaultMQProducerImpl(final DefaultMQProducer defaultMQProducer) {
         this(defaultMQProducer, null);
@@ -149,6 +149,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 this.serviceState = ServiceState.START_FAILED;
 
                 this.checkConfig();
+
+                if (asyncSendSemphore == null) {
+                    asyncSendSemphore = new Semaphore(defaultMQProducer.getAsyncSendSemaphore());
+                }
 
                 if (!this.defaultMQProducer.getProducerGroup().equals(MixAll.CLIENT_INNER_PRODUCER_GROUP)) {
                     this.defaultMQProducer.changeInstanceNameToPID();
@@ -254,7 +258,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     @Override
     public void checkTransactionState(final String addr, final MessageExt msg,
-                                      final CheckTransactionStateRequestHeader header) {
+        final CheckTransactionStateRequestHeader header) {
         Runnable request = new Runnable() {
             private final String brokerAddr = addr;
             private final MessageExt message = msg;
