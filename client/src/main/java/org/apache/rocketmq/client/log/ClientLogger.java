@@ -29,6 +29,7 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class ClientLogger {
 
+    public static final String CLIENT_LOG_USESLF4J = "rocketmq.client.logUseSlf4j";
     public static final String CLIENT_LOG_ROOT = "rocketmq.client.logRoot";
     public static final String CLIENT_LOG_MAXINDEX = "rocketmq.client.logFileMaxIndex";
     public static final String CLIENT_LOG_FILESIZE = "rocketmq.client.logFileMaxSize";
@@ -39,14 +40,20 @@ public class ClientLogger {
 
     private static final InternalLogger log;
 
+    private static final boolean clientLogUseSlf4j;
+
     private static Appender rocketmqClientAppender = null;
 
     static {
-        InternalLoggerFactory.setCurrentLoggerType(InnerLoggerFactory.LOGGER_INNER);
-        log = createLogger(LoggerName.CLIENT_LOGGER_NAME);
-        createLogger(LoggerName.COMMON_LOGGER_NAME);
-        createLogger(LoggerName.CLIENT_LOGGER_NAME);
-        createLogger(RemotingHelper.ROCKETMQ_REMOTING);
+        clientLogUseSlf4j = Boolean.parseBoolean(System.getProperty(CLIENT_LOG_USESLF4J, "false"));
+        if (!clientLogUseSlf4j) {
+            InternalLoggerFactory.setCurrentLoggerType(InnerLoggerFactory.LOGGER_INNER);
+            log = createLogger(LoggerName.CLIENT_LOGGER_NAME);
+            createLogger(LoggerName.COMMON_LOGGER_NAME);
+            createLogger(RemotingHelper.ROCKETMQ_REMOTING);
+        } else {
+            log = InternalLoggerFactory.getLogger(LoggerName.CLIENT_LOGGER_NAME);
+        }
     }
 
     private static synchronized void createClientAppender() {
