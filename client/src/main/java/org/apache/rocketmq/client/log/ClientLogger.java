@@ -40,13 +40,13 @@ public class ClientLogger {
 
     private static final InternalLogger log;
 
-    private static final boolean clientLogUseSlf4j;
+    private static final boolean CLIENT_USE_SLF4J;
 
     private static Appender rocketmqClientAppender = null;
 
     static {
-        clientLogUseSlf4j = Boolean.parseBoolean(System.getProperty(CLIENT_LOG_USESLF4J, "false"));
-        if (!clientLogUseSlf4j) {
+        CLIENT_USE_SLF4J = Boolean.parseBoolean(System.getProperty(CLIENT_LOG_USESLF4J, "false"));
+        if (!CLIENT_USE_SLF4J) {
             InternalLoggerFactory.setCurrentLoggerType(InnerLoggerFactory.LOGGER_INNER);
             log = createLogger(LoggerName.CLIENT_LOGGER_NAME);
             createLogger(LoggerName.COMMON_LOGGER_NAME);
