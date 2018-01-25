@@ -261,9 +261,6 @@ public class DefaultMQProducerTest {
         countDownLatch.await(1000L, TimeUnit.MILLISECONDS);
 
         assertThat(cc.get()).isEqualTo(6);
-//        producer.sendOneway(new Message());
-//        producer.sendOneway(new Message(),new MessageQueue());
-//        producer.sendOneway(new Message(),messageQueueSelector,null);
     }
 
     public static TopicRouteData createTopicRoute() {

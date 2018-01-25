@@ -95,6 +95,13 @@ public abstract class NettyRemotingAbstract {
      */
     protected volatile SslContext sslContext;
 
+    protected ThreadLocal<Boolean> asynclockAcquired = new ThreadLocal<Boolean>() {
+        @Override
+        protected Boolean initialValue() {
+            return Boolean.FALSE;
+        }
+    };
+
     /**
      * Constructor, specifying capacity of one-way and asynchronous semaphores.
      *
@@ -271,6 +278,29 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+    protected void executeAsyncCallback(Runnable runnable) {
+        boolean runInThisThread = false;
+        ExecutorService executor = this.getCallbackExecutor();
+        if (executor != null) {
+            try {
+                executor.submit(runnable);
+            } catch (Exception e) {
+                runInThisThread = true;
+                log.warn("execute async callback in executor exception, maybe executor busy", e);
+            }
+        } else {
+            runInThisThread = true;
+        }
+
+        if (runInThisThread) {
+            try {
+                runnable.run();
+            } catch (Throwable e) {
+                log.warn("executeAsyncCallback Exception", e);
+            }
+        }
+    }
+
     /**
      * Execute callback in callback executor. If callback executor is null, run directly in current thread
      */
@@ -400,7 +430,10 @@ public abstract class NettyRemotingAbstract {
         final InvokeCallback invokeCallback)
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         final int opaque = request.getOpaque();
-        boolean acquired = this.semaphoreAsync.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);
+        boolean acquired = asynclockAcquired.get();
+        if (!acquired) {
+            acquired = this.semaphoreAsync.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);
+        }
         if (acquired) {
             final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreAsync);
 

@@ -75,6 +75,7 @@ import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHe
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.remoting.DoAsyncCallback;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
@@ -415,19 +416,30 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public void send(final Message msg, final SendCallback sendCallback, final long timeout) {
-        this.getCallbackExecutor().submit(new Runnable() {
+        this.mQClientFactory.getMQClientAPIImpl().getRemotingClient().doAsyncSend(new DoAsyncCallback() {
             @Override
-            public void run() {
+            public long getTimeout() {
+                return timeout;
+            }
+
+            @Override
+            public void onSuccess() throws RemotingException {
                 try {
                     sendDefaultImpl(msg, CommunicationMode.ASYNC, sendCallback, timeout);
                 } catch (Exception e) {
                     handleCallbackException(e, sendCallback);
+                    throw new RemotingException("client send check exception",e);
                 }
+            }
+
+            @Override
+            public void onFailed(Throwable e) {
+                handleCallbackException(e, sendCallback);
             }
         });
     }
 
-    private void handleCallbackException(Exception e, SendCallback sendCallback) {
+    private void handleCallbackException(Throwable e, SendCallback sendCallback) {
         if (sendCallback != null) {
             if (e instanceof MQBrokerException) {
                 sendCallback.onException(new MQClientException("unknown exception", e));
@@ -863,9 +875,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public void send(final Message msg, final MessageQueue mq, final SendCallback sendCallback, final long timeout) {
-        this.getCallbackExecutor().submit(new Runnable() {
+        this.mQClientFactory.getMQClientAPIImpl().getRemotingClient().doAsyncSend(new DoAsyncCallback() {
             @Override
-            public void run() {
+            public long getTimeout() {
+                return timeout;
+            }
+
+            @Override
+            public void onSuccess() throws RemotingException {
                 try {
                     makeSureStateOK();
                     Validators.checkMessage(msg, defaultMQProducer);
@@ -876,7 +893,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     sendKernelImpl(msg, mq, CommunicationMode.ASYNC, sendCallback, null, timeout);
                 } catch (Exception e) {
                     handleCallbackException(e, sendCallback);
+                    throw new RemotingException("client send check exception",e);
                 }
+            }
+
+            @Override
+            public void onFailed(Throwable e) {
+                handleCallbackException(e, sendCallback);
             }
         });
     }
@@ -946,14 +969,25 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public void send(final Message msg, final MessageQueueSelector selector, final Object arg, final SendCallback sendCallback, final long timeout) {
-        this.getCallbackExecutor().submit(new Runnable() {
+        this.mQClientFactory.getMQClientAPIImpl().getRemotingClient().doAsyncSend(new DoAsyncCallback() {
             @Override
-            public void run() {
+            public long getTimeout() {
+                return timeout;
+            }
+
+            @Override
+            public void onSuccess() throws RemotingException {
                 try {
                     sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, sendCallback, timeout);
                 } catch (Exception e) {
                     handleCallbackException(e, sendCallback);
+                    throw new RemotingException("client send check exception",e);
                 }
+            }
+
+            @Override
+            public void onFailed(Throwable e) {
+                handleCallbackException(e, sendCallback);
             }
         });
     }
