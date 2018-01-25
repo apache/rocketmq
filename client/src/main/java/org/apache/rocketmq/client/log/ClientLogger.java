@@ -38,7 +38,7 @@ public class ClientLogger {
     public static final String CLIENT_LOG_ASYNC_QUEUESIZE = "rocketmq.client.logAsyncQueueSize";
     public static final String ROCKETMQ_CLIENT_APPENDER_NAME = "RocketmqClientAppender";
 
-    private static final InternalLogger log;
+    private static final InternalLogger CLIENT_LOGGER;
 
     private static final boolean CLIENT_USE_SLF4J;
 
@@ -48,11 +48,11 @@ public class ClientLogger {
         CLIENT_USE_SLF4J = Boolean.parseBoolean(System.getProperty(CLIENT_LOG_USESLF4J, "false"));
         if (!CLIENT_USE_SLF4J) {
             InternalLoggerFactory.setCurrentLoggerType(InnerLoggerFactory.LOGGER_INNER);
-            log = createLogger(LoggerName.CLIENT_LOGGER_NAME);
+            CLIENT_LOGGER = createLogger(LoggerName.CLIENT_LOGGER_NAME);
             createLogger(LoggerName.COMMON_LOGGER_NAME);
             createLogger(RemotingHelper.ROCKETMQ_REMOTING);
         } else {
-            log = InternalLoggerFactory.getLogger(LoggerName.CLIENT_LOGGER_NAME);
+            CLIENT_LOGGER = InternalLoggerFactory.getLogger(LoggerName.CLIENT_LOGGER_NAME);
         }
     }
 
@@ -93,6 +93,6 @@ public class ClientLogger {
     }
 
     public static InternalLogger getLog() {
-        return log;
+        return CLIENT_LOGGER;
     }
 }
