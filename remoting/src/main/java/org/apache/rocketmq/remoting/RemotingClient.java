@@ -39,6 +39,8 @@ public interface RemotingClient extends RemotingService {
         final InvokeCallback invokeCallback) throws InterruptedException, RemotingConnectException,
         RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException;
 
+    void doAsyncSend(DoAsyncCallback callback);
+
     void invokeOneway(final String addr, final RemotingCommand request, final long timeoutMillis)
         throws InterruptedException, RemotingConnectException, RemotingTooMuchRequestException,
         RemotingTimeoutException, RemotingSendRequestException;
@@ -47,6 +49,8 @@ public interface RemotingClient extends RemotingService {
         final ExecutorService executor);
 
     void setCallbackExecutor(final ExecutorService callbackExecutor);
+
+    ExecutorService getCallbackExecutor();
 
     boolean isChannelWritable(final String addr);
 }

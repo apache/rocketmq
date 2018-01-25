@@ -53,6 +53,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.apache.rocketmq.remoting.DoAsyncCallback;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -61,6 +63,7 @@ import org.apache.rocketmq.remoting.common.Pair;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
@@ -505,6 +508,54 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
 
         return null;
+    }
+
+    @Override
+    public void doAsyncSend(final DoAsyncCallback callback) {
+        try {
+            boolean acquired = this.semaphoreAsync.tryAcquire(1, TimeUnit.MILLISECONDS);
+            if (acquired) {
+                asynclockAcquired.set(Boolean.TRUE);
+                executeAsyncCallback(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            callback.onSuccess();
+                        } catch (Throwable e) {
+                            semaphoreAsync.release();
+                            asynclockAcquired.set(Boolean.FALSE);
+                            if (e instanceof RemotingException) {
+                                // ignore
+                            } else {
+                                log.error("doAsyncSendBeforeNetwork call onSuccess failed", e);
+                            }
+                        }
+                    }
+                });
+            } else {
+                executeAsyncCallback(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            callback.onFailed(null);
+                        } catch (Throwable e) {
+                            log.error("doAsyncSendBeforeNetwork call onFailed failed", e);
+                        }
+                    }
+                });
+            }
+        } catch (final Throwable e) {
+            executeAsyncCallback(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        callback.onFailed(e);
+                    } catch (Throwable e) {
+                        log.error("doAsyncSendBeforeNetwork call onFailed failed", e);
+                    }
+                }
+            });
+        }
     }
 
     @Override
