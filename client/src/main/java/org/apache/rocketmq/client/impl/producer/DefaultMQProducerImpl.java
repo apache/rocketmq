@@ -426,14 +426,20 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         @Override
         public void onSuccess(SendResult sendResult) {
-            semaphore.release();
-            realSendCallback.onSuccess(sendResult);
+            try {
+                realSendCallback.onSuccess(sendResult);
+            } finally {
+                semaphore.release();
+            }
         }
 
         @Override
         public void onException(Throwable e) {
-            semaphore.release();
-            realSendCallback.onException(e);
+            try {
+                realSendCallback.onException(e);
+            } finally {
+                semaphore.release();
+            }
         }
     }
 
