@@ -25,10 +25,12 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.srvutil.ServerUtil;
+import org.apache.rocketmq.tools.command.MQAdminStartup;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.apache.rocketmq.tools.command.message.SendMessageCommand;
 import org.junit.After;
@@ -42,8 +44,10 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
+import java.net.URL;
 
 import static org.mockito.Mockito.doAnswer;
 
@@ -113,5 +117,20 @@ public class SendMessageCommandTest {
         Assert.assertTrue(s.contains("SEND_OK"));
     }
 
+    @Test
+    public void testSendMessageCommandAdd() {
+        URL resource = SendMessageCommandTest.class.getClassLoader().getResource("conf/logback_tools.xml");
+        String file = resource.getFile();
+        File file1 = new File(file);
+        String path = file1.getParentFile().getParentFile().getPath();
+        System.setProperty(MixAll.ROCKETMQ_HOME_PROPERTY, path);
+        PrintStream out = System.out;
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(bos));
+        MQAdminStartup.main(new String[]{"sendMessage"});
+        System.setOut(out);
+        String s = new String(bos.toByteArray());
+        Assert.assertTrue(s.contains("utf-8 string format of the message body"));
+    }
 
 }
