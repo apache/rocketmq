@@ -181,7 +181,13 @@ public class BrokerOuterAPI {
         RegisterBrokerBody requestBody = new RegisterBrokerBody();
         requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper);
         requestBody.setFilterServerList(filterServerList);
-        request.setBody(requestBody.encode(requestHeader.isCompressed()));
+        final byte[] encode = requestBody.encode();
+        if (requestHeader.isCompressed()) {
+            request.setBody(requestBody.gzipEncode(encode));
+        } else {
+            request.setBody(encode);
+        }
+        requestHeader.setLength(encode.length);
 
         if (oneway) {
             try {
