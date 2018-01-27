@@ -311,7 +311,7 @@ public class BrokerOuterAPI {
                                 default:
                                     break;
                             }
-                            log.info("query data version from name server {} OK,changed {}, broker {},name server {}", namesrvAddr, changed, topicConfigWrapper.getDataVersion(), nameServerDataVersion == null ? "" : nameServerDataVersion);
+                            log.warn("query data version from name server {} OK,changed {}, broker {},name server {}", namesrvAddr, changed, topicConfigWrapper.getDataVersion(), nameServerDataVersion == null ? "" : nameServerDataVersion);
                         } catch (Exception e) {
                             log.warn("query data version from name server {}  Exception, {}", namesrvAddr, e);
                         } finally {
