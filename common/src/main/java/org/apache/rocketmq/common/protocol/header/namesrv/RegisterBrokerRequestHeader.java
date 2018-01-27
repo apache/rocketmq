@@ -38,7 +38,7 @@ public class RegisterBrokerRequestHeader implements CommandCustomHeader {
 
     private boolean compressed;
 
-    private Integer length;
+    private Integer length = 0;
 
     @Override
     public void checkFields() throws RemotingCommandException {

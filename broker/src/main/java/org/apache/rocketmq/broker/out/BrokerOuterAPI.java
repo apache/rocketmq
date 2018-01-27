@@ -184,10 +184,10 @@ public class BrokerOuterAPI {
         final byte[] encode = requestBody.encode();
         if (requestHeader.isCompressed()) {
             request.setBody(requestBody.gzipEncode(encode));
+            requestHeader.setLength(encode.length);
         } else {
             request.setBody(encode);
         }
-        requestHeader.setLength(encode.length);
 
         if (oneway) {
             try {
