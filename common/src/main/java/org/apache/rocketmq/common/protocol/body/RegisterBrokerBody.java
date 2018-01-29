@@ -20,7 +20,6 @@ package org.apache.rocketmq.common.protocol.body;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.Deflater;
@@ -83,12 +82,6 @@ public class RegisterBrokerBody extends RemotingSerializable {
             }
         }
         return buffer;
-    }
-
-    private static int readInt(InflaterInputStream inflaterInputStream) throws IOException {
-        byte[] buffer = readBytes(inflaterInputStream, 4);
-        ByteBuffer byteBuffer = ByteBuffer.wrap(buffer);
-        return byteBuffer.getInt();
     }
 
     public TopicConfigSerializeWrapper getTopicConfigSerializeWrapper() {
