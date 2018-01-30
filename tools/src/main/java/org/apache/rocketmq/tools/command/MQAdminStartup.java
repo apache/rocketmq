@@ -16,10 +16,6 @@
  */
 package org.apache.rocketmq.tools.command;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
-import ch.qos.logback.core.joran.spi.JoranException;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +24,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.utils.LogUtils;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
@@ -72,6 +69,7 @@ import org.apache.rocketmq.tools.command.topic.TopicStatusSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateOrderConfCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicPermSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand;
+import org.slf4j.ILoggerFactory;
 import org.slf4j.LoggerFactory;
 
 public class MQAdminStartup {
@@ -89,7 +87,7 @@ public class MQAdminStartup {
         initCommand();
 
         try {
-            initLogback();
+            initLog();
             switch (args.length) {
                 case 0:
                     printHelp();
@@ -195,14 +193,23 @@ public class MQAdminStartup {
         initCommand(new QueryConsumeQueueCommand());
     }
 
-    private static void initLogback() throws JoranException {
-        String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
-
-        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-        JoranConfigurator configurator = new JoranConfigurator();
-        configurator.setContext(lc);
-        lc.reset();
-        configurator.doConfigure(rocketmqHome + "/conf/logback_tools.xml");
+    private static void initLog() {
+        try {
+            String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+            ILoggerFactory iLoggerFactory = LoggerFactory.getILoggerFactory();
+            Class classType = iLoggerFactory.getClass();
+            if (classType.getName().equals("org.slf4j.impl.Log4jLoggerFactory")) {
+                final String logfjConfigPath = rocketmqHome + "/distribution/conf/log4j_tools.xml";
+                LogUtils.configLog4j(logfjConfigPath, null);
+            } else if (classType.getName().equals("ch.qos.logback.classic.LoggerContext")) {
+                final String logbackConfigPath = rocketmqHome + "/distribution/conf/logback_tools.xml";
+                LogUtils.configLogback(logbackConfigPath, null, iLoggerFactory);
+            } else {
+                System.out.printf("No Logback or Log4j implementations are detected, ignore dynamical logging config.%n");
+            }
+        } catch (Exception e) {
+            System.err.println(e);
+        }
     }
 
     private static void printHelp() {

@@ -16,13 +16,12 @@
  */
 package org.apache.rocketmq.client.log;
 
+
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.slf4j.ILoggerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import static org.apache.rocketmq.common.utils.LogUtils.loadLoggerConfig;
 
-import java.lang.reflect.Method;
-import java.net.URL;
 
 public class ClientLogger {
     public static final String CLIENT_LOG_ROOT = "rocketmq.client.logRoot";
@@ -54,56 +53,14 @@ public class ClientLogger {
 
         if (isloadconfig) {
             try {
-                ILoggerFactory iLoggerFactory = LoggerFactory.getILoggerFactory();
-                Class classType = iLoggerFactory.getClass();
-                if (classType.getName().equals("org.slf4j.impl.Log4jLoggerFactory")) {
-                    Class<?> domconfigurator;
-                    Object domconfiguratorobj;
-                    domconfigurator = Class.forName("org.apache.log4j.xml.DOMConfigurator");
-                    domconfiguratorobj = domconfigurator.newInstance();
-                    if (null == logConfigFilePath) {
-                        Method configure = domconfiguratorobj.getClass().getMethod("configure", URL.class);
-                        URL url = ClientLogger.class.getClassLoader().getResource(log4JResourceFile);
-                        configure.invoke(domconfiguratorobj, url);
-                    } else {
-                        Method configure = domconfiguratorobj.getClass().getMethod("configure", String.class);
-                        configure.invoke(domconfiguratorobj, logConfigFilePath);
-                    }
-
-                } else if (classType.getName().equals("ch.qos.logback.classic.LoggerContext")) {
-                    Class<?> joranConfigurator;
-                    Class<?> context = Class.forName("ch.qos.logback.core.Context");
-                    Object joranConfiguratoroObj;
-                    joranConfigurator = Class.forName("ch.qos.logback.classic.joran.JoranConfigurator");
-                    joranConfiguratoroObj = joranConfigurator.newInstance();
-                    Method setContext = joranConfiguratoroObj.getClass().getMethod("setContext", context);
-                    setContext.invoke(joranConfiguratoroObj, iLoggerFactory);
-                    if (null == logConfigFilePath) {
-                        URL url = ClientLogger.class.getClassLoader().getResource(logbackResourceFile);
-                        Method doConfigure =
-                                joranConfiguratoroObj.getClass().getMethod("doConfigure", URL.class);
-                        doConfigure.invoke(joranConfiguratoroObj, url);
-                    } else {
-                        Method doConfigure =
-                                joranConfiguratoroObj.getClass().getMethod("doConfigure", String.class);
-                        doConfigure.invoke(joranConfiguratoroObj, logConfigFilePath);
-                    }
-
-                } else if (classType.getName().equals("org.apache.logging.slf4j.Log4jLoggerFactory")) {
-                    Class<?> joranConfigurator = Class.forName("org.apache.logging.log4j.core.config.Configurator");
-                    Method initialize = joranConfigurator.getDeclaredMethod("initialize", String.class, String.class);
-                    if (null == logConfigFilePath) {
-                        initialize.invoke(joranConfigurator, "log4j2", log4J2ResourceFile);
-                    } else {
-                        initialize.invoke(joranConfigurator, "log4j2", logConfigFilePath);
-                    }
-                }
+                loadLoggerConfig(logConfigFilePath, log4JResourceFile, log4J2ResourceFile, logbackResourceFile);
             } catch (Exception e) {
                 System.err.println(e);
             }
         }
         return LoggerFactory.getLogger(LoggerName.CLIENT_LOGGER_NAME);
     }
+
 
     public static Logger getLog() {
         if (log == null) {
