@@ -38,9 +38,6 @@ public class RegisterBrokerRequestHeader implements CommandCustomHeader {
 
     private boolean compressed;
 
-    private Integer length = 0;
-
-    @Override
     public void checkFields() throws RemotingCommandException {
     }
 
@@ -90,13 +87,5 @@ public class RegisterBrokerRequestHeader implements CommandCustomHeader {
 
     public void setCompressed(boolean compressed) {
         this.compressed = compressed;
-    }
-
-    public Integer getLength() {
-        return length;
-    }
-
-    public void setLength(Integer length) {
-        this.length = length;
     }
 }

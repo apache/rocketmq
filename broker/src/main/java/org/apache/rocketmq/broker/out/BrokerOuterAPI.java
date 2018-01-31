@@ -181,13 +181,7 @@ public class BrokerOuterAPI {
         RegisterBrokerBody requestBody = new RegisterBrokerBody();
         requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper);
         requestBody.setFilterServerList(filterServerList);
-        final byte[] encode = requestBody.encode();
-        if (requestHeader.isCompressed()) {
-            request.setBody(requestBody.gzipEncode(encode));
-            requestHeader.setLength(encode.length);
-        } else {
-            request.setBody(encode);
-        }
+        request.setBody(requestBody.encode(requestHeader.isCompressed()));
 
         if (oneway) {
             try {
@@ -314,7 +308,7 @@ public class BrokerOuterAPI {
                             log.warn("query data version from name server {} OK,changed {}, broker {},name server {}", namesrvAddr, changed, topicConfigWrapper.getDataVersion(), nameServerDataVersion == null ? "" : nameServerDataVersion);
                         } catch (Exception e) {
                             changedList.add(Boolean.TRUE);
-                            log.warn("query data version from name server {}  Exception, {}", namesrvAddr, e);
+                            log.error("query data version from name server {}  Exception, {}", namesrvAddr, e);
                         } finally {
                             countDownLatch.countDown();
                         }
