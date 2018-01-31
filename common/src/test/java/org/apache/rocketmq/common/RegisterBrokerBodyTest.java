@@ -33,7 +33,7 @@ public class RegisterBrokerBodyTest {
         registerBrokerBody.setTopicConfigSerializeWrapper(topicConfigSerializeWrapper);
         
         ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<String, TopicConfig>();
-        for (int i = 0; i < 1500000; i++) {
+        for (int i = 0; i < 10000; i++) {
             topicConfigTable.put(String.valueOf(i), new TopicConfig(String.valueOf(i)));
         }
 
