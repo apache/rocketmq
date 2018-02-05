@@ -285,6 +285,15 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 break;
         }
 
+        for (int i = 0; i < consumeRequest.getMsgs().size(); i++) {
+            MessageExt messageExt = consumeRequest.getMsgs().get(i);
+            if (i > ackIndex) {
+                this.getConsumerStatsManager().incConsumeTimeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), messageExt.getReconsumeTimes());
+            } else {
+                this.getConsumerStatsManager().incConsumeTimeOkTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), messageExt.getReconsumeTimes());
+            }
+        }
+
         switch (this.defaultMQPushConsumer.getMessageModel()) {
             case BROADCASTING:
                 for (int i = ackIndex + 1; i < consumeRequest.getMsgs().size(); i++) {
