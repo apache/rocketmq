@@ -18,11 +18,13 @@ package org.apache.rocketmq.namesrv;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
+
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.Callable;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -39,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class NamesrvStartup {
+
     public static Properties properties = null;
     public static CommandLine commandLine = null;
 
@@ -85,16 +88,22 @@ public class NamesrvStartup {
 
             MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), namesrvConfig);
 
+            //设置ROCKETMQ_HOME属性
+            String dir = System.getProperty("user.dir");
+            dir = dir.substring(0, dir.indexOf("rocketmq") + 8) + "\\distribution";
+            namesrvConfig.setRocketmqHome(dir);
+
             if (null == namesrvConfig.getRocketmqHome()) {
-                System.out.printf("Please set the %s variable in your environment to match the location of the RocketMQ installation%n", MixAll.ROCKETMQ_HOME_ENV);
+                System.out.printf("Please set the %s variable in your environment to match the location of the RocketMQ installation%n",
+                    MixAll.ROCKETMQ_HOME_ENV);
                 System.exit(-2);
             }
 
-            LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+            LoggerContext lc = (LoggerContext)LoggerFactory.getILoggerFactory();
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
             lc.reset();
-            //设置ROCKETMQ_HOME属性
+
             configurator.doConfigure(namesrvConfig.getRocketmqHome() + "/conf/logback_namesrv.xml");
             final Logger log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
