@@ -315,6 +315,7 @@
                 <configuration>
                     <forkCount>1</forkCount>
                     <reuseForks>true</reuseForks>
+                    <skipTests>true</skipTests>
                 </configuration>
             </plugin>
             <plugin>
