@@ -42,7 +42,7 @@ public class Message implements Serializable {
         this.body = body;
 
         if (tag != null && tag.length() > 0)
-            this.setTag(tag);
+            this.setTags(tag);
 
         if (keys != null && keys.length() > 0)
             this.setKeys(keys);
@@ -112,11 +112,11 @@ public class Message implements Serializable {
         this.topic = topic;
     }
 
-    public String getTag() {
+    public String getTags() {
         return this.getProperty(MessageConst.PROPERTY_TAGS);
     }
 
-    public void setTag(String tag) {
+    public void setTags(String tag) {
         this.putProperty(MessageConst.PROPERTY_TAGS, tag);
     }
 
