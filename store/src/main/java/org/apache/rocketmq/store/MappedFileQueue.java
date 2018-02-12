@@ -460,34 +460,80 @@ public class MappedFileQueue {
      * @return Mapped file or null (when not found and returnFirstOnNotFound is <code>false</code>).
      */
     public MappedFile findMappedFileByOffset(final long offset, final boolean returnFirstOnNotFound) {
-        try {
-            MappedFile mappedFile = this.getFirstMappedFile();
-            if (mappedFile != null) {
-                int index = (int) ((offset / this.mappedFileSize) - (mappedFile.getFileFromOffset() / this.mappedFileSize));
-                if (index < 0 || index >= this.mappedFiles.size()) {
-                    LOG_ERROR.warn("Offset for {} not matched. Request offset: {}, index: {}, " +
-                            "mappedFileSize: {}, mappedFiles count: {}",
-                        mappedFile,
-                        offset,
-                        index,
-                        this.mappedFileSize,
-                        this.mappedFiles.size());
-                }
-
-                try {
-                    return this.mappedFiles.get(index);
-                } catch (Exception e) {
-                    if (returnFirstOnNotFound) {
-                        return mappedFile;
+        MappedFile targetMappedFile;
+        for (int i = 0; i < 3; i++) {
+            try {
+                MappedFile firstMappedFile = this.getFirstMappedFile();
+                targetMappedFile = null;
+                if (firstMappedFile != null) {
+                    if (firstMappedFile.getFileFromOffset() > offset) {
+                        return returnFirstOnNotFound ? firstMappedFile : null;
                     }
-                    LOG_ERROR.warn("findMappedFileByOffset failure. ", e);
+                    int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
+                    long mfSize = this.mappedFiles.size();
+                    if (index < 0 || index >= mfSize) {
+                        LOG_ERROR.warn("Offset for {} not matched. Request offset: {}, index: {}, " +
+                                        "mappedFileSize: {}, mappedFiles count: {}",
+                                firstMappedFile,
+                                offset,
+                                index,
+                                this.mappedFileSize,
+                                mfSize);
+                    } else {
+                        try {
+                            targetMappedFile = this.mappedFiles.get(index);
+                        } catch (IndexOutOfBoundsException e) {
+                            //IGNORE.
+                        } catch (Exception e) {
+                            LOG_ERROR.warn("findMappedFileByOffset failure. offset={}" + e.getMessage(), offset);
+                        }
+                        //find the right MappedFile
+                        if (targetMappedFile != null && offset >= targetMappedFile.getFileFromOffset()
+                                && offset < targetMappedFile.getFileFromOffset() + this.mappedFileSize) {
+                            return targetMappedFile;
+                        }
+                    }
+
+                    MappedFile newFirstMappedFile = getFirstMappedFile();
+                    if (firstMappedFile != newFirstMappedFile) {
+                        //retry
+                        log.info("firstMappedFiles changed during findMappedFileByOffset. DO RETRY. OLD:{},NEW:{}," +
+                                        "offset={}.index={},mfSize={},curMFSize={}",
+                                firstMappedFile, newFirstMappedFile, offset, index, mfSize, this.mappedFiles.size());
+                    } else { //no mapped files deleted.
+                        if (targetMappedFile != null) {
+                            // should not happen, do a retry.
+                            LOG_ERROR.error("[NOTIFY ME] findMappedFileByOffset failed, offset not match. target:{}, offset:{}",
+                                    targetMappedFile, offset);
+                        } else {
+                            return returnFirstOnNotFound ? firstMappedFile : null;
+                        }
+                    }
+                } else {
+                    //mappedFiles is empty
+                    return null;
                 }
+            } catch (Exception e) {
+                LOG_ERROR.error("findMappedFileByOffset Exception, offset={}", offset, e);
+                return null;
             }
-        } catch (Exception e) {
-            log.error("findMappedFileByOffset Exception", e);
         }
 
-        return null;
+        targetMappedFile = null;
+        for (MappedFile tmpMappedFile : mappedFiles) {
+            if (offset >= tmpMappedFile.getFileFromOffset()
+                    && offset < tmpMappedFile.getFileFromOffset() + this.mappedFileSize) {
+                targetMappedFile = tmpMappedFile;
+                break;
+            }
+        }
+        log.warn("[NOTIFY ME] findMappedFileByOffset using iteration after 3 retries. result={}, offset={}",
+                targetMappedFile, offset);
+        if (targetMappedFile != null) {
+            return targetMappedFile;
+        } else {
+            return returnFirstOnNotFound ? this.getFirstMappedFile() : null;
+        }
     }
 
     public MappedFile getFirstMappedFile() {
