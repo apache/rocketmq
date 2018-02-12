@@ -20,7 +20,11 @@ package org.apache.rocketmq.store;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.rocketmq.common.UtilAll;
+import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.Test;
 
@@ -228,6 +232,71 @@ public class MappedFileQueueTest {
         mappedFileQueue.deleteExpiredFileByTime(expiredTime, 0, 0, false);
         assertThat(mappedFileQueue.getMappedFiles().size()).isEqualTo(45);
     }
+
+    @Test
+    public void testFindMappedFileByOffsetConcurrently() throws Exception {
+        final byte[] data = new byte[256];
+        final long testDataSize = data.length * 400000;
+        final MappedFileQueue mappedFileQueue =
+                new MappedFileQueue("target/unit_test_store/g", 1024, null);
+        final AtomicLong offset = new AtomicLong(0);
+        final AtomicBoolean running = new AtomicBoolean(true);
+        Thread ct = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (offset.get() < testDataSize) {
+                    if (mappedFileQueue.getMappedFiles().size() < 50) {
+                        MappedFile mappedFile = mappedFileQueue.getLastMappedFile(offset.get());
+                        assertThat(mappedFile).isNotNull();
+                        assertThat(mappedFile.appendMessage(data)).isTrue();
+                        offset.addAndGet(data.length);
+                    }
+                }
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                running.set(false);
+            }
+        });
+        ct.start();
+
+        final AtomicLong readOffsetAL = new AtomicLong(0);
+        Thread dt = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (running.get()) {
+                    if (mappedFileQueue.getMappedFiles().size() > 30) {
+                        MappedFile mf = mappedFileQueue.getFirstMappedFile();
+                        assertThat(mf).isNotNull();
+                        if (mf.getFileFromOffset() + mappedFileQueue.getMappedFileSize() <= readOffsetAL.get()) {
+                            assertThat(mf.destroy(120 * 1000)).isTrue();
+                            mappedFileQueue.deleteExpiredFile(Lists.newArrayList(mf));
+                        }
+                    }
+                }
+            }
+        });
+        dt.start();
+
+        while (running.get()) {
+            long readOffset = readOffsetAL.get();
+            if (readOffset < offset.get()) {
+                MappedFile mf = mappedFileQueue.findMappedFileByOffset(readOffset);
+                assertThat(mf).isNotNull();
+                assertThat(mf.getFileFromOffset() <= readOffset
+                        && mf.getFileFromOffset() + mappedFileQueue.getMappedFileSize() > readOffset).isTrue();
+                readOffsetAL.getAndAdd(data.length);
+            }
+        }
+
+        ct.join();
+        dt.join();
+        mappedFileQueue.shutdown(1000);
+        mappedFileQueue.destroy();
+    }
+
 
     @After
     public void destory() {
