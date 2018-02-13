@@ -249,6 +249,7 @@ public class MappedFileQueueTest {
                         MappedFile mappedFile = mappedFileQueue.getLastMappedFile(offset.get());
                         assertThat(mappedFile).isNotNull();
                         assertThat(mappedFile.appendMessage(data)).isTrue();
+                        mappedFile.commit(4);
                         offset.addAndGet(data.length);
                     }
                 }
@@ -297,6 +298,26 @@ public class MappedFileQueueTest {
         mappedFileQueue.destroy();
     }
 
+    @Test
+    public void testFindMappedFileByOffsetWithIteration() {
+        MappedFileQueue mappedFileQueue =
+                new MappedFileQueue("target/unit_test_store/h/", 1024, null);
+
+        //Start from a non-zero offset
+        MappedFile mappedFile = mappedFileQueue.getLastMappedFile(1024);
+        assertThat(mappedFile).isNotNull();
+
+        assertThat(mappedFileQueue.findMappedFileByOffsetWithIteration(1025,false)).isEqualTo(mappedFile);
+
+        assertThat(mappedFileQueue.findMappedFileByOffsetWithIteration(123, false)).isNull();
+        assertThat(mappedFileQueue.findMappedFileByOffsetWithIteration(123, true)).isEqualTo(mappedFile);
+
+        assertThat(mappedFileQueue.findMappedFileByOffsetWithIteration(0, false)).isNull();
+        assertThat(mappedFileQueue.findMappedFileByOffsetWithIteration(0, true)).isEqualTo(mappedFile);
+
+        mappedFileQueue.shutdown(1000);
+        mappedFileQueue.destroy();
+    }
 
     @After
     public void destory() {

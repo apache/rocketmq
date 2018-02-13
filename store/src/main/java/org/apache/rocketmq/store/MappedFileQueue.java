@@ -460,11 +460,10 @@ public class MappedFileQueue {
      * @return Mapped file or null (when not found and returnFirstOnNotFound is <code>false</code>).
      */
     public MappedFile findMappedFileByOffset(final long offset, final boolean returnFirstOnNotFound) {
-        MappedFile targetMappedFile;
         for (int i = 0; i < 3; i++) {
             try {
                 MappedFile firstMappedFile = this.getFirstMappedFile();
-                targetMappedFile = null;
+                MappedFile targetMappedFile = null;
                 if (firstMappedFile != null) {
                     if (firstMappedFile.getFileFromOffset() > offset) {
                         return returnFirstOnNotFound ? firstMappedFile : null;
@@ -518,8 +517,11 @@ public class MappedFileQueue {
                 return null;
             }
         }
+        return findMappedFileByOffsetWithIteration(offset, returnFirstOnNotFound);
+    }
 
-        targetMappedFile = null;
+    public MappedFile findMappedFileByOffsetWithIteration(final long offset, final boolean returnFirstOnNotFound) {
+        MappedFile targetMappedFile = null;
         for (MappedFile tmpMappedFile : mappedFiles) {
             if (offset >= tmpMappedFile.getFileFromOffset()
                     && offset < tmpMappedFile.getFileFromOffset() + this.mappedFileSize) {
@@ -527,14 +529,14 @@ public class MappedFileQueue {
                 break;
             }
         }
-        log.warn("[NOTIFY ME] findMappedFileByOffset using iteration after 3 retries. result={}, offset={}",
-                targetMappedFile, offset);
+        log.warn("[NOTIFY ME] findMappedFileByOffsetWithIteration. result={}, offset={}", targetMappedFile, offset);
         if (targetMappedFile != null) {
             return targetMappedFile;
         } else {
             return returnFirstOnNotFound ? this.getFirstMappedFile() : null;
         }
     }
+
 
     public MappedFile getFirstMappedFile() {
         MappedFile mappedFileFirst = null;
