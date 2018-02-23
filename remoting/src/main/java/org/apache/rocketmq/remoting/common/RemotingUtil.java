@@ -135,6 +135,58 @@ public class RemotingUtil {
         return null;
     }
 
+    public static String getMultipleLocalAddress() {
+        try {
+            // Traversal Network interface to get all non-loopback and non-private address
+            Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
+            ArrayList<String> ipv4Result = new ArrayList<String>();
+            ArrayList<String> ipv6Result = new ArrayList<String>();
+            while (enumeration.hasMoreElements()) {
+                final NetworkInterface networkInterface = enumeration.nextElement();
+                final Enumeration<InetAddress> en = networkInterface.getInetAddresses();
+                while (en.hasMoreElements()) {
+                    final InetAddress address = en.nextElement();
+                    if (!address.isLoopbackAddress()) {
+                        if (address instanceof Inet6Address) {
+                            ipv6Result.add(normalizeHostAddress(address));
+                        } else {
+                            ipv4Result.add(normalizeHostAddress(address));
+                        }
+                    }
+                }
+            }
+
+            StringBuilder sb = new StringBuilder();
+            String delimiter = "";
+            // prefer ipv4
+            if (!ipv4Result.isEmpty()) {
+                for (String ip : ipv4Result) {
+                    sb.append(delimiter);
+                    delimiter = ";";
+                    sb.append(ip);
+                }
+
+                return sb.toString();
+            } else if (!ipv6Result.isEmpty()) {
+                for (String ip : ipv6Result) {
+                    sb.append(delimiter);
+                    delimiter = ";";
+                    sb.append(ip);
+                }
+
+                return sb.toString();
+            }
+            //If failed to find,fall back to localhost
+            final InetAddress localHost = InetAddress.getLocalHost();
+            return normalizeHostAddress(localHost);
+        } catch (Exception e) {
+            //log.error("Failed to obtain local address", e);
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
     public static String normalizeHostAddress(final InetAddress localHost) {
         if (localHost instanceof Inet6Address) {
             return "[" + localHost.getHostAddress() + "]";
