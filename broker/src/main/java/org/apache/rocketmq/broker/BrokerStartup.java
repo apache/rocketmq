@@ -16,13 +16,14 @@
  */
 package org.apache.rocketmq.broker;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.joran.JoranConfigurator;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -47,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_ENABLE;
 
 public class BrokerStartup {
+
     public static Properties properties = null;
     public static CommandLine commandLine = null;
     public static String configFile = null;
@@ -58,7 +60,6 @@ public class BrokerStartup {
 
     public static BrokerController start(BrokerController controller) {
         try {
-
             controller.start();
 
             String tip = "The broker[" + controller.getBrokerConfig().getBrokerName() + ", "
@@ -133,6 +134,11 @@ public class BrokerStartup {
 
             MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
 
+            //设置ROCKETMQ_HOME属性
+            String dir = System.getProperty("user.dir");
+            dir = dir.substring(0, dir.indexOf("rocketmq") + 8) + "\\distribution";
+            brokerConfig.setRocketmqHome(dir);
+
             if (null == brokerConfig.getRocketmqHome()) {
                 System.out.printf("Please set the " + MixAll.ROCKETMQ_HOME_ENV
                     + " variable in your environment to match the location of the RocketMQ installation");
@@ -171,7 +177,7 @@ public class BrokerStartup {
             }
 
             messageStoreConfig.setHaListenPort(nettyServerConfig.getListenPort() + 1);
-            LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+            LoggerContext lc = (LoggerContext)LoggerFactory.getILoggerFactory();
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
             lc.reset();
