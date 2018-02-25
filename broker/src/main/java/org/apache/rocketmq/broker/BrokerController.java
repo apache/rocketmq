@@ -729,7 +729,7 @@ public class BrokerController {
             brokerIP = this.getBrokerAddr();
             haServerIP = this.getHAServerAddr();
         }
-        
+
         RegisterBrokerResult registerBrokerResult = this.brokerOuterAPI.registerBrokerAll(
             this.brokerConfig.getBrokerClusterName(),
             brokerIP,
