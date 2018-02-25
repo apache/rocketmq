@@ -51,29 +51,36 @@ public class MultipleAddrConvertor {
         List<BrokerData> brokerDatas = topicRouteData.getBrokerDatas();
 
         for (BrokerData brokerData : brokerDatas) {
-            HashMap<Long, String> brokerIdAddr = brokerData.getBrokerAddrs();
-            for (Long brokerId : brokerIdAddr.keySet()) {
+            convert(brokerData);
+        }
+        return topicRouteData;
+    }
 
-                String multipleAddr = brokerIdAddr.get(brokerId);
-                if (multipleAddr == null) {
+    public static BrokerData convert(BrokerData brokerData) {
+
+        HashMap<Long, String> brokerIdAddr = brokerData.getBrokerAddrs();
+        for (Long brokerId : brokerIdAddr.keySet()) {
+
+            String multipleAddr = brokerIdAddr.get(brokerId);
+            if (multipleAddr == null) {
+            } else {
+                String[] addrs = multipleAddr.split(";");
+                if (addrs.length <= 1) {
                 } else {
-                    String[] addrs = multipleAddr.split(";");
-                    if (addrs.length <= 1) {
+                    if (chosenAddrCache.get(multipleAddr) != null) {
+                        brokerIdAddr.put(brokerId, chosenAddrCache.get(multipleAddr));
                     } else {
-                        if (chosenAddrCache.get(multipleAddr) != null) {
-                            brokerIdAddr.put(brokerId, chosenAddrCache.get(multipleAddr));
-                        } else {
-                            String addr = convert(multipleAddr);
-                            if (addr != null) {
-                                chosenAddrCache.put(multipleAddr, addr);
-                            }
-                            brokerIdAddr.put(brokerId, convert(addr));
+                        String addr = convert(multipleAddr);
+                        if (addr != null) {
+                            chosenAddrCache.put(multipleAddr, addr);
                         }
+                        brokerIdAddr.put(brokerId, convert(addr));
                     }
                 }
             }
         }
-        return topicRouteData;
+
+        return brokerData;
     }
 
     public static String convert(String multipleAddr) {
@@ -81,34 +88,41 @@ public class MultipleAddrConvertor {
         if (multipleAddr == null || multipleAddr.length() < 8) {
             return multipleAddr;
         }
-        String[] addrs = multipleAddr.split(";");
-        if (addrs.length <= 1) {
+        String[] ipsPort = multipleAddr.split(":");
+        if (ipsPort.length != 2) {
+            return null;
+        } else {
+            try {
+                Integer.parseInt(ipsPort[1]);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        final String portNum = ipsPort[1];
+        String[] ips = ipsPort[0].split(";");
+        if (ips.length <= 1) {
             return multipleAddr;
         }
 
         final List<String> availableAddrs = new ArrayList<String>();
 
-        for (final String addr : addrs) {
-            final String[] ipPort = addr.split(":");
-            if (ipPort == null || ipPort.length < 2) {
-                continue;
-            }
+        for (final String aip : ips) {
             ExecutorService executor = Executors.newSingleThreadExecutor();
 
             executor.submit(new Runnable() {
                 @Override public void run() {
                     try {
-                        InetSocketAddress socketAddress = new InetSocketAddress(InetAddress.getByName(ipPort[0]), Integer.parseInt(ipPort[1]));
+                        InetSocketAddress socketAddress = new InetSocketAddress(InetAddress.getByName(aip), Integer.parseInt(portNum));
                         SocketChannel sc = SocketChannel.open();
                         sc.configureBlocking(true);
 
                         if (sc.connect(socketAddress)) {
-                            availableAddrs.add(addr);
+                            availableAddrs.add(aip + ":" + portNum);
                             sc.close();
                         }
 
                     } catch (Exception e) {
-                        log.info("Exception when host detecting " + ipPort[0]);
+                        log.info("Exception when host detecting " + aip + ":" + portNum);
                     }
                 }
             });
@@ -119,7 +133,7 @@ public class MultipleAddrConvertor {
                     executor.shutdownNow();
                 }
             } catch (InterruptedException e) {
-                log.info("Exception when waiting host detecting for " + ipPort[0]);
+                log.info("Exception when waiting host detecting for " + aip + ":" + portNum);
                 e.printStackTrace();
             }
         }

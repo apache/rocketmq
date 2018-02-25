@@ -29,7 +29,7 @@ public class MultipleAddrConvertorTest {
 
     @Test
     public void testConvertAddr() {
-        String multiTestAddr = "100.81.249.108:10911;127.0.0.1:80;127.0.0.1:22";
+        String multiTestAddr = "100.81.249.108;127.0.0.1;127.0.0.1:10911";
         String availableAddress = MultipleAddrConvertor.convert(multiTestAddr);
         if (availableAddress != null) {
             String[] addrs = availableAddress.split(";");
@@ -43,7 +43,7 @@ public class MultipleAddrConvertorTest {
     public void testConvertTopicRouteData() {
 
         HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
-        brokerAddrs.put(0L, "100.81.249.108:10911;127.0.0.1:80;127.0.0.1:22");
+        brokerAddrs.put(0L, "100.81.249.108;127.0.0.1;127.0.0.1:10911");
         brokerAddrs.put(1L, "100.81.249.108:10911");
 
         BrokerData brokerData1 = new BrokerData();

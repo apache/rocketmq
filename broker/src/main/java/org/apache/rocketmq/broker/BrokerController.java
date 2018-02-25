@@ -649,6 +649,10 @@ public class BrokerController {
         return this.brokerConfig.getBrokerIP1() + ":" + this.nettyServerConfig.getListenPort();
     }
 
+    public String getBrokerMultipleAddr() {
+        return this.brokerConfig.getBrokerMultopleIP() + ":" + this.nettyServerConfig.getListenPort();
+    }
+
     public void start() throws Exception {
         if (this.messageStore != null) {
             this.messageStore.start();
@@ -716,12 +720,22 @@ public class BrokerController {
             topicConfigWrapper.setTopicConfigTable(topicConfigTable);
         }
 
+        String brokerIP;
+        String haServerIP;
+        if (brokerConfig.isEnableMultipleNICSupport()) {
+            brokerIP = this.getBrokerMultipleAddr();
+            haServerIP = this.getBrokerMultipleAddr();
+        } else {
+            brokerIP = this.getBrokerAddr();
+            haServerIP = this.getHAServerAddr();
+        }
+        
         RegisterBrokerResult registerBrokerResult = this.brokerOuterAPI.registerBrokerAll(
             this.brokerConfig.getBrokerClusterName(),
-            this.getBrokerAddr(),
+            brokerIP,
             this.brokerConfig.getBrokerName(),
             this.brokerConfig.getBrokerId(),
-            this.getHAServerAddr(),
+            haServerIP,
             topicConfigWrapper,
             this.filterServerManager.buildNewFilterServerList(),
             oneway,
@@ -750,6 +764,10 @@ public class BrokerController {
 
     public String getHAServerAddr() {
         return this.brokerConfig.getBrokerIP2() + ":" + this.messageStoreConfig.getHaListenPort();
+    }
+
+    public String getHAServerMultipleAddr() {
+        return this.brokerConfig.getBrokerMultopleIP() + ":" + this.messageStoreConfig.getHaListenPort();
     }
 
     public RebalanceLockManager getRebalanceLockManager() {

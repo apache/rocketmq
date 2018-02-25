@@ -33,8 +33,9 @@ public class BrokerConfig {
     @ImportantField
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
     @ImportantField
-    private String brokerIP1 = RemotingUtil.getMultipleLocalAddress();
-    private String brokerIP2 = RemotingUtil.getMultipleLocalAddress();
+    private String brokerIP1 = RemotingUtil.getLocalAddress();
+    private String brokerIP2 = RemotingUtil.getLocalAddress();
+    private String multipleIp = RemotingUtil.getMultipleLocalAddress();
     @ImportantField
     private String brokerName = localHostName();
     @ImportantField
@@ -132,6 +133,8 @@ public class BrokerConfig {
     // whether do filter when retry.
     private boolean filterSupportRetry = false;
     private boolean enablePropertyFilter = false;
+
+    private boolean enableMultipleNICSupport = true;
 
     public boolean isTraceOn() {
         return traceOn;
@@ -305,6 +308,10 @@ public class BrokerConfig {
 
     public String getBrokerIP2() {
         return brokerIP2;
+    }
+
+    public String getBrokerMultopleIP() {
+        return multipleIp;
     }
 
     public void setBrokerIP2(String brokerIP2) {
@@ -597,5 +604,13 @@ public class BrokerConfig {
 
     public void setEnablePropertyFilter(boolean enablePropertyFilter) {
         this.enablePropertyFilter = enablePropertyFilter;
+    }
+
+    public boolean isEnableMultipleNICSupport() {
+        return enableMultipleNICSupport;
+    }
+
+    public void setEnableMultipleNICSupport(boolean enableMultipleNICSupport) {
+        this.enableMultipleNICSupport = enableMultipleNICSupport;
     }
 }
