@@ -190,13 +190,60 @@ public class ConsumeQueue {
         return null;
     }
 
+
+    private MappedFile getLastConsumeQueueMappedFileByStoreTime(long messageStoreTime) {
+        long commitLogMinOffset = this.defaultMessageStore.getMinPhyOffset();
+        List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
+        MappedFile lastFile = null;
+        for (MappedFile mappedFile : mappedFiles) {
+            SelectMappedBufferResult sbr = mappedFile.selectMappedBuffer(0);
+            if (sbr != null) {
+                try {
+                    ByteBuffer byteBuffer = sbr.getByteBuffer();
+                    int max = byteBuffer.limit() - CQ_STORE_UNIT_SIZE;
+                    int min = minLogicOffset > mappedFile.getFileFromOffset() ? (int) (minLogicOffset - mappedFile.getFileFromOffset()) : 0;
+                    byteBuffer.position(min);
+                    long minPhyOffset = byteBuffer.getLong();
+                    int minSize = byteBuffer.getInt();
+
+                    byteBuffer.position(max);
+                    long maxPhyOffset = byteBuffer.getLong();
+                    if (maxPhyOffset < commitLogMinOffset) {
+                        continue;
+                    }
+                    int maxSize = byteBuffer.getInt();
+
+                    long minStoreTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(minPhyOffset, minSize);
+                    if (messageStoreTime < minStoreTime) {
+                        return lastFile;
+                    }
+
+                    long maxStoreTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(maxPhyOffset, maxSize);
+                    if (maxStoreTime < messageStoreTime) {
+                        continue;
+                    }
+                    lastFile = mappedFile;
+                } finally {
+                    sbr.release();
+                }
+            }
+        }
+        return lastFile;
+    }
+
     public long getOffsetInQueueByTime(final long timestamp, boolean isGetTimeLast) {
-        MappedFile mappedFile = getConsumeQueueMappedFileByStoreTime(timestamp);
+        MappedFile mappedFile = null;
+        if (isGetTimeLast) {
+            mappedFile = getLastConsumeQueueMappedFileByStoreTime(timestamp);
+        } else {
+            mappedFile = getConsumeQueueMappedFileByStoreTime(timestamp);
+        }
         if (mappedFile != null) {
             long offset = 0;
             int low = minLogicOffset > mappedFile.getFileFromOffset() ? (int) (minLogicOffset - mappedFile.getFileFromOffset()) : 0;
             int high = 0;
             int midOffset = -1, targetOffset = -1, leftOffset = -1, rightOffset = -1;
+            long lastTime = 0;
             long leftIndexValue = -1L, rightIndexValue = -1L;
             long minPhysicOffset = this.defaultMessageStore.getMinPhyOffset();
             SelectMappedBufferResult sbr = mappedFile.selectMappedBuffer(0);
@@ -216,6 +263,7 @@ public class ConsumeQueue {
                         }
 
                         long storeTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
+                        lastTime = storeTime;
                         if (storeTime < 0) {
                             return 0;
                         } else if (storeTime == timestamp) {
@@ -248,6 +296,7 @@ public class ConsumeQueue {
                                 offset = rightOffset;
                             }
                         }
+                        offset = fixCandidateTime(mappedFile,byteBuffer,(int)offset,!isGetTimeLast,minPhysicOffset,lastTime);
                     }
 
                     return (mappedFile.getFileFromOffset() + offset) / CQ_STORE_UNIT_SIZE;
