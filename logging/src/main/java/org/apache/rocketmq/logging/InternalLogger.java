@@ -21,18 +21,6 @@ public interface InternalLogger {
 
     String getName();
 
-    boolean isTraceEnabled();
-
-    void trace(String var1);
-
-    void trace(String var1, Object var2);
-
-    void trace(String var1, Object var2, Object var3);
-
-    void trace(String var1, Object... var2);
-
-    void trace(String var1, Throwable var2);
-
     boolean isDebugEnabled();
 
     void debug(String var1);

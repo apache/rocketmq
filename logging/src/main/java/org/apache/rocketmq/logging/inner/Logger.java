@@ -317,34 +317,6 @@ public class Logger implements Appender.AppenderPipeline {
         }
     }
 
-
-    public void trace(Object message) {
-        if (getRepository().isDisabled(Level.TRACE_INT)) {
-            return;
-        }
-
-        if (Level.TRACE.isGreaterOrEqual(this.getEffectiveLevel())) {
-            forcedLog(FQCN, Level.TRACE, message, null);
-        }
-    }
-
-    public void trace(Object message, Throwable t) {
-        if (getRepository().isDisabled(Level.TRACE_INT)) {
-            return;
-        }
-
-        if (Level.TRACE.isGreaterOrEqual(this.getEffectiveLevel())) {
-            forcedLog(FQCN, Level.TRACE, message, t);
-        }
-    }
-
-    public boolean isTraceEnabled() {
-        if (getRepository().isDisabled(Level.TRACE_INT)) {
-            return false;
-        }
-        return Level.TRACE.isGreaterOrEqual(this.getEffectiveLevel());
-    }
-
     public interface LoggerRepository {
 
         boolean isDisabled(int level);

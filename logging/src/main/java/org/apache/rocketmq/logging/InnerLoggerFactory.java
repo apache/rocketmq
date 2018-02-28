@@ -48,21 +48,6 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
         }
 
         @Override
-        public boolean isTraceEnabled() {
-            return logger.isTraceEnabled();
-        }
-
-        @Override
-        public void trace(String var1) {
-            logger.trace(var1);
-        }
-
-        @Override
-        public void trace(String var1, Throwable var2) {
-            logger.trace(var1, var2);
-        }
-
-        @Override
         public boolean isDebugEnabled() {
             return logger.isDebugEnabled();
         }
@@ -120,24 +105,6 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
         @Override
         public void error(String var1, Throwable var2) {
             logger.error(var1, var2);
-        }
-
-        @Override
-        public void trace(String var1, Object var2) {
-            FormattingTuple format = MessageFormatter.format(var1, var2);
-            logger.trace(format.getMessage(), format.getThrowable());
-        }
-
-        @Override
-        public void trace(String var1, Object var2, Object var3) {
-            FormattingTuple format = MessageFormatter.format(var1, var2, var3);
-            logger.trace(format.getMessage(), format.getThrowable());
-        }
-
-        @Override
-        public void trace(String var1, Object... var2) {
-            FormattingTuple format = MessageFormatter.arrayFormat(var1, var2);
-            logger.trace(format.getMessage(), format.getThrowable());
         }
 
         @Override

@@ -46,36 +46,6 @@ public class Slf4jLoggerFactory extends InternalLoggerFactory {
         }
 
         @Override
-        public boolean isTraceEnabled() {
-            return logger.isTraceEnabled();
-        }
-
-        @Override
-        public void trace(String s) {
-            logger.trace(s);
-        }
-
-        @Override
-        public void trace(String s, Object o) {
-            logger.trace(s, o);
-        }
-
-        @Override
-        public void trace(String s, Object o, Object o1) {
-            logger.trace(s, o, o1);
-        }
-
-        @Override
-        public void trace(String s, Object... objects) {
-            logger.trace(s, objects);
-        }
-
-        @Override
-        public void trace(String s, Throwable throwable) {
-            logger.trace(s, throwable);
-        }
-
-        @Override
         public boolean isDebugEnabled() {
             return logger.isDebugEnabled();
         }
