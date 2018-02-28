@@ -30,4 +30,6 @@ package org.apache.rocketmq.logging.inner;
  7. RollingFileAppender
  8. DailyRollingFileAppender
  9. ConsoleAppender
+
+ For more information abount Apache Log4j, please go to https://github.com/apache/log4j.
  */
