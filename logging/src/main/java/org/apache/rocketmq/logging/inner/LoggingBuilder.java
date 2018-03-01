@@ -31,11 +31,11 @@ import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -47,7 +47,7 @@ public class LoggingBuilder {
     public static final String SYSTEM_ERR = "System.err";
 
     public static final String LOGGING_ENCODING = "rocketmq.logging.inner.encoding";
-    public static final String ENCODING = System.getProperty(LOGGING_ENCODING,"UTF-8");
+    public static final String ENCODING = System.getProperty(LOGGING_ENCODING, "UTF-8");
 
     public static AppenderBuilder newAppenderBuilder() {
         return new AppenderBuilder();
@@ -146,7 +146,7 @@ public class LoggingBuilder {
 
         private final List<LoggingEvent> buffer = new ArrayList<LoggingEvent>();
 
-        private final Map<String,DiscardSummary> discardMap = new HashMap<String,DiscardSummary>();
+        private final Map<String, DiscardSummary> discardMap = new HashMap<String, DiscardSummary>();
 
         private int bufferSize = DEFAULT_BUFFER_SIZE;
 
@@ -212,7 +212,7 @@ public class LoggingBuilder {
                     }
                     if (discard) {
                         String loggerName = event.getLoggerName();
-                        DiscardSummary summary =  discardMap.get(loggerName);
+                        DiscardSummary summary = discardMap.get(loggerName);
 
                         if (summary == null) {
                             summary = new DiscardSummary(event);
@@ -357,12 +357,12 @@ public class LoggingBuilder {
 
             private final List<LoggingEvent> buffer;
 
-            private final Map discardMap;
+            private final Map<String, DiscardSummary> discardMap;
 
             private final AppenderPipelineImpl appenderPipeline;
 
             public Dispatcher(
-                final AsyncAppender parent, final List<LoggingEvent> buffer, final Map discardMap,
+                final AsyncAppender parent, final List<LoggingEvent> buffer, final Map<String, DiscardSummary> discardMap,
                 final AppenderPipelineImpl appenderPipeline) {
 
                 this.parent = parent;
@@ -393,11 +393,9 @@ public class LoggingBuilder {
                                 buffer.toArray(events);
 
                                 int index = bufferSize;
-
-                                for (
-                                    Iterator iter = discardMap.values().iterator();
-                                    iter.hasNext(); ) {
-                                    events[index++] = ((DiscardSummary) iter.next()).createEvent();
+                                Collection<DiscardSummary> values = discardMap.values();
+                                for (DiscardSummary value : values) {
+                                    events[index++] = value.createEvent();
                                 }
 
                                 buffer.clear();
@@ -407,9 +405,9 @@ public class LoggingBuilder {
                             }
                         }
                         if (events != null) {
-                            for (int i = 0; i < events.length; i++) {
+                            for (LoggingEvent event : events) {
                                 synchronized (appenderPipeline) {
-                                    appenderPipeline.appendLoopOnAppenders(events[i]);
+                                    appenderPipeline.appendLoopOnAppenders(event);
                                 }
                             }
                         }
@@ -427,6 +425,7 @@ public class LoggingBuilder {
 
         public QuietWriter(Writer writer, Appender appender) {
             super(writer);
+            this.appender = appender;
         }
 
         public void write(String string) {

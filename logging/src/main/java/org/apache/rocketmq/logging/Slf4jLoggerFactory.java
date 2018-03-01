@@ -32,6 +32,11 @@ public class Slf4jLoggerFactory extends InternalLoggerFactory {
         return new Slf4jLogger(name);
     }
 
+    @Override
+    protected void shutdown() {
+
+    }
+
     private static class Slf4jLogger implements InternalLogger {
 
         private Logger logger = null;

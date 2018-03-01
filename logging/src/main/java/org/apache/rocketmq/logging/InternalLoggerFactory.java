@@ -85,6 +85,8 @@ public abstract class InternalLoggerFactory {
         loggerFactoryCache.put(loggerType, this);
     }
 
+    protected abstract void shutdown();
+
     protected abstract InternalLogger getLoggerInstance(String name);
 
     protected abstract String getLoggerType();

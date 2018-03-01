@@ -34,6 +34,11 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
         return LOGGER_INNER;
     }
 
+    @Override
+    protected void shutdown() {
+        Logger.getRepository().shutdown();
+    }
+
     public static class InnerLogger implements InternalLogger {
 
         private Logger logger;
