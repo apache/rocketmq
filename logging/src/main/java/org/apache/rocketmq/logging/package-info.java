@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.logging.inner;
+package org.apache.rocketmq.logging;
 
 /*
  This package is a minimal logger on the basis of Apache Log4j without
