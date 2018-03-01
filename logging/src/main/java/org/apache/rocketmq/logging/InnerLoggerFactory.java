@@ -25,7 +25,7 @@ import java.util.Map;
 public class InnerLoggerFactory extends InternalLoggerFactory {
 
     @Override
-    protected InternalLogger doGetLogger(String name) {
+    protected InternalLogger getLoggerInstance(String name) {
         return new InnerLogger(name);
     }
 
@@ -48,11 +48,6 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
         }
 
         @Override
-        public boolean isDebugEnabled() {
-            return logger.isDebugEnabled();
-        }
-
-        @Override
         public void debug(String var1) {
             logger.debug(var1);
         }
@@ -60,11 +55,6 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
         @Override
         public void debug(String var1, Throwable var2) {
             logger.debug(var1, var2);
-        }
-
-        @Override
-        public boolean isInfoEnabled() {
-            return logger.isInfoEnabled();
         }
 
         @Override
@@ -78,11 +68,6 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
         }
 
         @Override
-        public boolean isWarnEnabled() {
-            return logger.isWarnEnabled();
-        }
-
-        @Override
         public void warn(String var1) {
             logger.warn(var1);
         }
@@ -90,11 +75,6 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
         @Override
         public void warn(String var1, Throwable var2) {
             logger.warn(var1, var2);
-        }
-
-        @Override
-        public boolean isErrorEnabled() {
-            return logger.isErrorEnabled();
         }
 
         @Override
@@ -185,13 +165,13 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
     }
 
 
-    private static class FormattingTuple {
+    public static class FormattingTuple {
         private String message;
         private Throwable throwable;
         private Object[] argArray;
 
         public FormattingTuple(String message) {
-            this(message, (Object[]) null, (Throwable) null);
+            this(message, null, null);
         }
 
         public FormattingTuple(String message, Object[] argArray, Throwable throwable) {
@@ -229,24 +209,20 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
         }
     }
 
-    private static class MessageFormatter {
-        static final char DELIM_START = '{';
-        static final char DELIM_STOP = '}';
-        static final String DELIM_STR = "{}";
-        private static final char ESCAPE_CHAR = '\\';
+    public static class MessageFormatter {
 
         public MessageFormatter() {
         }
 
-        public static final FormattingTuple format(String messagePattern, Object arg) {
+        public static FormattingTuple format(String messagePattern, Object arg) {
             return arrayFormat(messagePattern, new Object[]{arg});
         }
 
-        public static final FormattingTuple format(String messagePattern, Object arg1, Object arg2) {
+        public static FormattingTuple format(String messagePattern, Object arg1, Object arg2) {
             return arrayFormat(messagePattern, new Object[]{arg1, arg2});
         }
 
-        static final Throwable getThrowableCandidate(Object[] argArray) {
+        static Throwable getThrowableCandidate(Object[] argArray) {
             if (argArray != null && argArray.length != 0) {
                 Object lastEntry = argArray[argArray.length - 1];
                 return lastEntry instanceof Throwable ? (Throwable) lastEntry : null;
@@ -255,10 +231,10 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
             }
         }
 
-        public static final FormattingTuple arrayFormat(String messagePattern, Object[] argArray) {
+        public static FormattingTuple arrayFormat(String messagePattern, Object[] argArray) {
             Throwable throwableCandidate = getThrowableCandidate(argArray);
             if (messagePattern == null) {
-                return new FormattingTuple((String) null, argArray, throwableCandidate);
+                return new FormattingTuple(null, argArray, throwableCandidate);
             } else if (argArray == null) {
                 return new FormattingTuple(messagePattern);
             } else {
@@ -285,12 +261,12 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
                             i = j + 1;
                         } else {
                             sbuf.append(messagePattern.substring(i, j - 1));
-                            deeplyAppendParameter(sbuf, argArray[len], new HashMap());
+                            deeplyAppendParameter(sbuf, argArray[len], null);
                             i = j + 2;
                         }
                     } else {
                         sbuf.append(messagePattern.substring(i, j));
-                        deeplyAppendParameter(sbuf, argArray[len], new HashMap());
+                        deeplyAppendParameter(sbuf, argArray[len], null);
                         i = j + 2;
                     }
                 }
@@ -299,12 +275,12 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
                 if (len < argArray.length - 1) {
                     return new FormattingTuple(sbuf.toString(), argArray, throwableCandidate);
                 } else {
-                    return new FormattingTuple(sbuf.toString(), argArray, (Throwable) null);
+                    return new FormattingTuple(sbuf.toString(), argArray, null);
                 }
             }
         }
 
-        static final boolean isEscapedDelimeter(String messagePattern, int delimeterStartIndex) {
+        static boolean isEscapedDelimeter(String messagePattern, int delimeterStartIndex) {
             if (delimeterStartIndex == 0) {
                 return false;
             } else {
@@ -313,7 +289,7 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
             }
         }
 
-        static final boolean isDoubleEscaped(String messagePattern, int delimeterStartIndex) {
+        static boolean isDoubleEscaped(String messagePattern, int delimeterStartIndex) {
             return delimeterStartIndex >= 2 && messagePattern.charAt(delimeterStartIndex - 2) == 92;
         }
 
@@ -324,23 +300,23 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
                 if (!o.getClass().isArray()) {
                     safeObjectAppend(sbuf, o);
                 } else if (o instanceof boolean[]) {
-                    booleanArrayAppend(sbuf, (boolean[]) ((boolean[]) o));
+                    booleanArrayAppend(sbuf, (boolean[]) o);
                 } else if (o instanceof byte[]) {
-                    byteArrayAppend(sbuf, (byte[]) ((byte[]) o));
+                    byteArrayAppend(sbuf, (byte[]) o);
                 } else if (o instanceof char[]) {
-                    charArrayAppend(sbuf, (char[]) ((char[]) o));
+                    charArrayAppend(sbuf, (char[]) o);
                 } else if (o instanceof short[]) {
-                    shortArrayAppend(sbuf, (short[]) ((short[]) o));
+                    shortArrayAppend(sbuf, (short[]) o);
                 } else if (o instanceof int[]) {
-                    intArrayAppend(sbuf, (int[]) ((int[]) o));
+                    intArrayAppend(sbuf, (int[]) o);
                 } else if (o instanceof long[]) {
-                    longArrayAppend(sbuf, (long[]) ((long[]) o));
+                    longArrayAppend(sbuf, (long[]) o);
                 } else if (o instanceof float[]) {
-                    floatArrayAppend(sbuf, (float[]) ((float[]) o));
+                    floatArrayAppend(sbuf, (float[]) o);
                 } else if (o instanceof double[]) {
-                    doubleArrayAppend(sbuf, (double[]) ((double[]) o));
+                    doubleArrayAppend(sbuf, (double[]) o);
                 } else {
-                    objectArrayAppend(sbuf, (Object[]) ((Object[]) o), seenMap);
+                    objectArrayAppend(sbuf, (Object[]) o, seenMap);
                 }
 
             }
@@ -351,7 +327,7 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
                 String t = o.toString();
                 sbuf.append(t);
             } catch (Throwable var3) {
-                System.err.println("SLF4J: Failed toString() invocation on an object of type [" + o.getClass().getName() + "]");
+                System.err.println("RocketMQ InnerLogger: Failed toString() invocation on an object of type [" + o.getClass().getName() + "]");
                 var3.printStackTrace();
                 sbuf.append("[FAILED toString()]");
             }
@@ -359,9 +335,12 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
         }
 
         private static void objectArrayAppend(StringBuilder sbuf, Object[] a, Map<Object[], Object> seenMap) {
+            if (seenMap == null) {
+                seenMap = new HashMap<Object[], Object>();
+            }
             sbuf.append('[');
             if (!seenMap.containsKey(a)) {
-                seenMap.put(a, (Object) null);
+                seenMap.put(a, null);
                 int len = a.length;
 
                 for (int i = 0; i < len; ++i) {

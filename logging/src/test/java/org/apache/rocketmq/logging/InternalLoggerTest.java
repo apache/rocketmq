@@ -21,20 +21,21 @@ import org.apache.rocketmq.logging.inner.Appender;
 import org.apache.rocketmq.logging.inner.Level;
 import org.apache.rocketmq.logging.inner.Logger;
 import org.apache.rocketmq.logging.inner.LoggingBuilder;
+import org.apache.rocketmq.logging.inner.SysLogger;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.PrintStream;
 
-@RunWith(JUnit4.class)
-public class LoggerTest extends BasicloggerTest{
+
+public class InternalLoggerTest {
+
 
     @Test
-    public void testInnerConsole(){
+    public void testInternalLogger() {
+        SysLogger.setQuietMode(false);
+        SysLogger.setInternalDebugging(true);
         PrintStream out = System.out;
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         System.setOut(new PrintStream(byteArrayOutputStream));
@@ -43,51 +44,29 @@ public class LoggerTest extends BasicloggerTest{
             .withConsoleAppender(LoggingBuilder.SYSTEM_OUT)
             .withLayout(LoggingBuilder.newLayoutBuilder().withDefaultLayout().build()).build();
 
+
         Logger consoleLogger = Logger.getLogger("ConsoleLogger");
+        consoleLogger.setAdditivity(false);
         consoleLogger.addAppender(consoleAppender);
         consoleLogger.setLevel(Level.INFO);
 
+        Logger.getRootLogger().addAppender(consoleAppender);
 
-        Logger.getLogger("ConsoleLogger").info("console info Message");
-        Logger.getLogger("ConsoleLogger").error("console error Message",new RuntimeException());
-        Logger.getLogger("ConsoleLogger").debug("console debug message");
+        InternalLoggerFactory.setCurrentLoggerType(InternalLoggerFactory.LOGGER_INNER);
+        InternalLogger logger = InternalLoggerFactory.getLogger(InternalLoggerTest.class);
+        InternalLogger consoleLogger1 = InternalLoggerFactory.getLogger("ConsoleLogger");
+
+        consoleLogger1.warn("simple warn {}", 14555);
+
+        logger.info("testInternalLogger");
+        consoleLogger1.info("consoleLogger1");
+
         System.setOut(out);
         consoleAppender.close();
 
         String result = new String(byteArrayOutputStream.toByteArray());
-
-        Assert.assertTrue(result.contains("info"));
-        Assert.assertTrue(result.contains("RuntimeException"));
-        Assert.assertTrue(!result.contains("debug"));
+        Assert.assertTrue(result.contains("consoleLogger1"));
+        Assert.assertTrue(result.contains("testInternalLogger"));
     }
 
-    @Test
-    public void testInnerFile() throws IOException {
-        String file = loggingDir+"/logger.log";
-
-        Logger fileLogger = Logger.getLogger("fileLogger");
-
-        Appender myappender = LoggingBuilder.newAppenderBuilder()
-            .withDailyFileRollingAppender(file, "'.'yyyy-MM-dd")
-            .withName("myappender")
-            .withLayout(LoggingBuilder.newLayoutBuilder().withDefaultLayout().build()).build();
-
-        fileLogger.addAppender(myappender);
-
-        Logger.getLogger("fileLogger").setLevel(Level.INFO);
-
-        Logger.getLogger("fileLogger").info("fileLogger info Message");
-        Logger.getLogger("fileLogger").error("fileLogger error Message",new RuntimeException());
-        Logger.getLogger("fileLogger").debug("fileLogger debug message");
-
-        myappender.close();
-
-        String content = readFile(file);
-
-        System.out.println(content);
-
-        Assert.assertTrue(content.contains("info"));
-        Assert.assertTrue(content.contains("RuntimeException"));
-        Assert.assertTrue(!content.contains("debug"));
-    }
 }

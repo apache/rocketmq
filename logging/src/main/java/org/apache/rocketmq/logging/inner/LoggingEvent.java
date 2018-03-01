@@ -96,11 +96,12 @@ public class LoggingEvent implements java.io.Serializable {
         try {
             throwable.printStackTrace(pw);
         } catch (RuntimeException ex) {
+            SysLogger.warn("InnerLogger print stack trace error", ex);
         }
         pw.flush();
         LineNumberReader reader = new LineNumberReader(
             new StringReader(sw.toString()));
-        ArrayList lines = new ArrayList();
+        ArrayList<String> lines = new ArrayList<String>();
         try {
             String line = reader.readLine();
             while (line != null) {

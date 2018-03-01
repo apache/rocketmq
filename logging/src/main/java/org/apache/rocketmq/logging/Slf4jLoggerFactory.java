@@ -28,7 +28,7 @@ public class Slf4jLoggerFactory extends InternalLoggerFactory {
     }
 
     @Override
-    protected InternalLogger doGetLogger(String name) {
+    protected InternalLogger getLoggerInstance(String name) {
         return new Slf4jLogger(name);
     }
 
@@ -43,11 +43,6 @@ public class Slf4jLoggerFactory extends InternalLoggerFactory {
         @Override
         public String getName() {
             return logger.getName();
-        }
-
-        @Override
-        public boolean isDebugEnabled() {
-            return logger.isDebugEnabled();
         }
 
         @Override
@@ -76,11 +71,6 @@ public class Slf4jLoggerFactory extends InternalLoggerFactory {
         }
 
         @Override
-        public boolean isInfoEnabled() {
-            return logger.isInfoEnabled();
-        }
-
-        @Override
         public void info(String s) {
             logger.info(s);
         }
@@ -106,11 +96,6 @@ public class Slf4jLoggerFactory extends InternalLoggerFactory {
         }
 
         @Override
-        public boolean isWarnEnabled() {
-            return logger.isWarnEnabled();
-        }
-
-        @Override
         public void warn(String s) {
             logger.warn(s);
         }
@@ -133,11 +118,6 @@ public class Slf4jLoggerFactory extends InternalLoggerFactory {
         @Override
         public void warn(String s, Throwable throwable) {
             logger.warn(s, throwable);
-        }
-
-        @Override
-        public boolean isErrorEnabled() {
-            return logger.isErrorEnabled();
         }
 
         @Override

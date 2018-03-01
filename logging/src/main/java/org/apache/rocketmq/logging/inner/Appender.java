@@ -24,7 +24,6 @@ import java.util.Vector;
 
 public abstract class Appender {
 
-    public static final int CODE_GENERIC_FAILURE = 0;
     public static final int CODE_WRITE_FAILURE = 1;
     public static final int CODE_FLUSH_FAILURE = 2;
     public static final int CODE_CLOSE_FAILURE = 3;
@@ -46,6 +45,11 @@ public abstract class Appender {
     abstract protected void append(LoggingEvent event);
 
     public void finalize() {
+        try {
+            super.finalize();
+        } catch (Throwable throwable) {
+            SysLogger.error("Finalizing appender named [" + name + "]. error", throwable);
+        }
         if (this.closed) {
             return;
         }
@@ -80,18 +84,12 @@ public abstract class Appender {
 
     public abstract void close();
 
-    public abstract boolean requiresLayout();
-
     public void handleError(String message, Exception e, int errorCode) {
-        handleError(message, e, errorCode, null);
-    }
-
-    public void handleError(String message, Exception e, int errorCode, LoggingEvent event) {
         if (e instanceof InterruptedIOException || e instanceof InterruptedException) {
             Thread.currentThread().interrupt();
         }
         if (firstTime) {
-            SysLogger.error(message, e);
+            SysLogger.error(message + " code:" + errorCode, e);
             firstTime = false;
         }
     }
@@ -125,7 +123,7 @@ public abstract class Appender {
     public static class AppenderPipelineImpl implements AppenderPipeline {
 
 
-        protected Vector appenderList;
+        protected Vector<Appender> appenderList;
 
         public void addAppender(Appender newAppender) {
             if (newAppender == null) {
@@ -133,7 +131,7 @@ public abstract class Appender {
             }
 
             if (appenderList == null) {
-                appenderList = new Vector(1);
+                appenderList = new Vector<Appender>(1);
             }
             if (!appenderList.contains(newAppender)) {
                 appenderList.addElement(newAppender);
@@ -147,7 +145,7 @@ public abstract class Appender {
             if (appenderList != null) {
                 size = appenderList.size();
                 for (int i = 0; i < size; i++) {
-                    appender = (Appender) appenderList.elementAt(i);
+                    appender = appenderList.elementAt(i);
                     appender.doAppend(event);
                 }
             }
@@ -170,7 +168,7 @@ public abstract class Appender {
             int size = appenderList.size();
             Appender appender;
             for (int i = 0; i < size; i++) {
-                appender = (Appender) appenderList.elementAt(i);
+                appender = appenderList.elementAt(i);
                 if (name.equals(appender.getName())) {
                     return appender;
                 }
@@ -186,7 +184,7 @@ public abstract class Appender {
             int size = appenderList.size();
             Appender a;
             for (int i = 0; i < size; i++) {
-                a = (Appender) appenderList.elementAt(i);
+                a = appenderList.elementAt(i);
                 if (a == appender) {
                     return true;
                 }
@@ -198,7 +196,7 @@ public abstract class Appender {
             if (appenderList != null) {
                 int len = appenderList.size();
                 for (int i = 0; i < len; i++) {
-                    Appender a = (Appender) appenderList.elementAt(i);
+                    Appender a = appenderList.elementAt(i);
                     a.close();
                 }
                 appenderList.removeAllElements();
@@ -219,7 +217,7 @@ public abstract class Appender {
             }
             int size = appenderList.size();
             for (int i = 0; i < size; i++) {
-                if (name.equals(((Appender) appenderList.elementAt(i)).getName())) {
+                if (name.equals((appenderList.elementAt(i)).getName())) {
                     appenderList.removeElementAt(i);
                     break;
                 }

@@ -24,40 +24,41 @@ import ch.qos.logback.core.joran.spi.JoranException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 import org.slf4j.ILoggerFactory;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URL;
 
-@RunWith(JUnit4.class)
-public class Slf4jTest extends BasicloggerTest{
+public class Slf4jLoggerFactoryTest extends BasicloggerTest {
 
     public static final String LOGGER = "Slf4jTestLogger";
 
     @Before
     public void initLogback() throws JoranException {
-        System.setProperty("loggingDir",loggingDir);
+        System.setProperty("loggingDir", loggingDir);
         ILoggerFactory iLoggerFactory = LoggerFactory.getILoggerFactory();
         JoranConfigurator joranConfigurator = new JoranConfigurator();
-        joranConfigurator.setContext((Context)iLoggerFactory);
-        URL resource = Slf4jTest.class.getClassLoader().getResource("logback_test.xml");
-        joranConfigurator.doConfigure(resource);
+        joranConfigurator.setContext((Context) iLoggerFactory);
+        URL logbackConfigFile = Slf4jLoggerFactoryTest.class.getClassLoader().getResource("logback_test.xml");
+        if (logbackConfigFile == null) {
+            throw new RuntimeException("can't find logback_test.xml");
+        } else {
+            joranConfigurator.doConfigure(logbackConfigFile);
+        }
     }
 
     @Test
     public void testSlf4j() throws IOException {
         InternalLogger logger = InternalLoggerFactory.getLogger(LOGGER);
-        String file = loggingDir+"/logback_test.log";
+        String file = loggingDir + "/logback_test.log";
 
         logger.info("logback slf4j info Message");
-        logger.error("logback slf4j error Message",new RuntimeException());
+        logger.error("logback slf4j error Message", new RuntimeException());
         logger.debug("logback slf4j debug message");
 
         ILoggerFactory iLoggerFactory = LoggerFactory.getILoggerFactory();
-        LoggerContext context = (LoggerContext)iLoggerFactory;
+        LoggerContext context = (LoggerContext) iLoggerFactory;
         context.getLogger(LOGGER).detachAndStopAllAppenders();
 
         String content = readFile(file);

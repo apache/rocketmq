@@ -15,25 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.logging;
+package org.apache.rocketmq.logging.inner;
 
-import org.apache.rocketmq.logging.inner.Appender;
-import org.apache.rocketmq.logging.inner.LoggingBuilder;
+import org.apache.rocketmq.logging.BasicloggerTest;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.PrintStream;
 
-@RunWith(JUnit4.class)
-public class AppenderTest extends BasicloggerTest{
+public class LoggingBuilderTest extends BasicloggerTest {
 
     @Test
-    public void testConsole(){
+    public void testConsole() {
         PrintStream out = System.out;
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         System.setOut(new PrintStream(byteArrayOutputStream));
@@ -61,7 +57,7 @@ public class AppenderTest extends BasicloggerTest{
         rollingFileAppender.close();
 
         File file = new File(logFile);
-        Assert.assertTrue(file.length()>0);
+        Assert.assertTrue(file.length() > 0);
     }
 
     @Test
@@ -79,24 +75,24 @@ public class AppenderTest extends BasicloggerTest{
 
         int cc = 0;
         for (int i = 0; i < 5; i++) {
-            File file = null;
-            if(i==0){
+            File file;
+            if (i == 0) {
                 file = new File(rollingFile);
-            }else{
-                file = new File(rollingFile+"."+i);
+            } else {
+                file = new File(rollingFile + "." + i);
             }
-            if(file.exists()&&file.length()>0){
-                cc+=1;
+            if (file.exists() && file.length() > 0) {
+                cc += 1;
             }
         }
-        Assert.assertTrue(cc>=2);
+        Assert.assertTrue(cc >= 2);
     }
 
     @Test
     public void testDailyRollingFileAppender() throws InterruptedException {
-        String rollingFile = loggingDir + "/daily-rolling.log";
+        String rollingFile = loggingDir + "/daily-rolling--222.log";
         Appender rollingFileAppender = LoggingBuilder.newAppenderBuilder().withAsync(false, 1024)
-            .withDailyFileRollingAppender(rollingFile,"'.'yyyy-MM-dd_HH-mm-ss-SSS")
+            .withDailyFileRollingAppender(rollingFile, "'.'yyyy-MM-dd_HH-mm-ss-SSS")
             .withLayout(LoggingBuilder.newLayoutBuilder().withDefaultLayout().build()).build();
 
         for (int i = 0; i < 100; i++) {
@@ -109,9 +105,9 @@ public class AppenderTest extends BasicloggerTest{
         String[] list = file.list(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
-                return name.startsWith("daily-rolling.log.");
+                return name.startsWith("daily-rolling--222.log");
             }
         });
-        Assert.assertTrue(list.length>0);
+        Assert.assertTrue(list.length > 0);
     }
 }

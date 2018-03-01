@@ -15,26 +15,22 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.logging;
+package org.apache.rocketmq.logging.inner;
 
-import org.apache.rocketmq.logging.inner.Appender;
-import org.apache.rocketmq.logging.inner.Level;
-import org.apache.rocketmq.logging.inner.Logger;
-import org.apache.rocketmq.logging.inner.LoggingBuilder;
+import org.apache.rocketmq.logging.BasicloggerTest;
+import org.apache.rocketmq.logging.InnerLoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Date;
 
-@RunWith(JUnit4.class)
-public class InnerTest extends BasicloggerTest {
+public class LoggerTest extends BasicloggerTest {
 
 
     @Before

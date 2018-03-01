@@ -21,8 +21,6 @@ public interface InternalLogger {
 
     String getName();
 
-    boolean isDebugEnabled();
-
     void debug(String var1);
 
     void debug(String var1, Object var2);
@@ -32,8 +30,6 @@ public interface InternalLogger {
     void debug(String var1, Object... var2);
 
     void debug(String var1, Throwable var2);
-
-    boolean isInfoEnabled();
 
     void info(String var1);
 
@@ -45,8 +41,6 @@ public interface InternalLogger {
 
     void info(String var1, Throwable var2);
 
-    boolean isWarnEnabled();
-
     void warn(String var1);
 
     void warn(String var1, Object var2);
@@ -56,8 +50,6 @@ public interface InternalLogger {
     void warn(String var1, Object var2, Object var3);
 
     void warn(String var1, Throwable var2);
-
-    boolean isErrorEnabled();
 
     void error(String var1);
 

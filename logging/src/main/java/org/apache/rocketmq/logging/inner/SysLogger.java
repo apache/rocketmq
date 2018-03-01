@@ -27,7 +27,7 @@ public class SysLogger {
     private static final String ERR_PREFIX = "RocketMQLog:ERROR ";
     private static final String WARN_PREFIX = "RocketMQLog:WARN ";
 
-    static public void setInternalDebugging(boolean enabled) {
+    public static void setInternalDebugging(boolean enabled) {
         debugEnabled = enabled;
     }
 

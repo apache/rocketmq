@@ -26,7 +26,6 @@ public class Level implements Serializable {
     transient int syslogEquivalent;
 
     public final static int OFF_INT = Integer.MAX_VALUE;
-    public final static int FATAL_INT = 50000;
     public final static int ERROR_INT = 40000;
     public final static int WARN_INT = 30000;
     public final static int INFO_INT = 20000;
@@ -36,8 +35,6 @@ public class Level implements Serializable {
 
     private static final String ALL_NAME = "ALL";
 
-    private static final String TRACE_NAME = "TRACE";
-
     private static final String DEBUG_NAME = "DEBUG";
 
     private static final String INFO_NAME = "INFO";
@@ -46,15 +43,9 @@ public class Level implements Serializable {
 
     private static final String ERROR_NAME = "ERROR";
 
-    private static final String FATAL_NAME = "FATAL";
-
     private static final String OFF_NAME = "OFF";
 
-    public static final int TRACE_INT = 5000;
-
     final static public Level OFF = new Level(OFF_INT, OFF_NAME, 0);
-
-    final static public Level FATAL = new Level(FATAL_INT, FATAL_NAME, 0);
 
     final static public Level ERROR = new Level(ERROR_INT, ERROR_NAME, 3);
 
@@ -63,8 +54,6 @@ public class Level implements Serializable {
     final static public Level INFO = new Level(INFO_INT, INFO_NAME, 6);
 
     final static public Level DEBUG = new Level(DEBUG_INT, DEBUG_NAME, 7);
-
-    public static final Level TRACE = new Level(TRACE_INT, TRACE_NAME, 7);
 
     final static public Level ALL = new Level(ALL_INT, ALL_NAME, 7);
 
@@ -96,12 +85,8 @@ public class Level implements Serializable {
                 return Level.WARN;
             case ERROR_INT:
                 return Level.ERROR;
-            case FATAL_INT:
-                return Level.FATAL;
             case OFF_INT:
                 return OFF;
-            case TRACE_INT:
-                return Level.TRACE;
             default:
                 return defaultLevel;
         }
@@ -128,14 +113,8 @@ public class Level implements Serializable {
         if (s.equals(ERROR_NAME)) {
             return Level.ERROR;
         }
-        if (s.equals(FATAL_NAME)) {
-            return Level.FATAL;
-        }
         if (s.equals(OFF_NAME)) {
             return Level.OFF;
-        }
-        if (s.equals(TRACE_NAME)) {
-            return Level.TRACE;
         }
 
         if (s.equals(INFO_NAME)) {

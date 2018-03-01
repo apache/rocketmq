@@ -17,19 +17,24 @@
 
 package org.apache.rocketmq.logging.inner;
 
-/*
- This package is a minimal logger on the basis of Apache Log4j without
- file configuration and pattern layout configuration. Main forked files are
- followed as below:
- 1. LoggingEvent
- 2. Logger
- 3. Layout
- 4. Level
- 5. AsyncAppender
- 6. FileAppender
- 7. RollingFileAppender
- 8. DailyRollingFileAppender
- 9. ConsoleAppender
 
- For more information about Apache Log4j, please go to https://github.com/apache/log4j.
- */
+import org.apache.rocketmq.logging.InnerLoggerFactory;
+import org.junit.Assert;
+import org.junit.Test;
+
+public class MessageFormatterTest {
+
+    @Test
+    public void formatTest(){
+        InnerLoggerFactory.FormattingTuple logging = InnerLoggerFactory.MessageFormatter.format("this is {},and {}", "logging", 6546);
+        String message = logging.getMessage();
+        Assert.assertTrue(message.contains("logging"));
+
+        InnerLoggerFactory.FormattingTuple format = InnerLoggerFactory.MessageFormatter.format("cause exception {}", 143545, new RuntimeException());
+        String message1 = format.getMessage();
+        Throwable throwable = format.getThrowable();
+        System.out.println(message1);
+        Assert.assertTrue(throwable != null);
+    }
+
+}

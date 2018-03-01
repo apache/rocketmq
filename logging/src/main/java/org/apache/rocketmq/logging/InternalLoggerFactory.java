@@ -36,7 +36,7 @@ public abstract class InternalLoggerFactory {
     }
 
     public static InternalLogger getLogger(String name) {
-        return getLoggerFactory().doGetLogger(name);
+        return getLoggerFactory().getLoggerInstance(name);
     }
 
     private static InternalLoggerFactory getLoggerFactory() {
@@ -85,7 +85,7 @@ public abstract class InternalLoggerFactory {
         loggerFactoryCache.put(loggerType, this);
     }
 
-    protected abstract InternalLogger doGetLogger(String name);
+    protected abstract InternalLogger getLoggerInstance(String name);
 
     protected abstract String getLoggerType();
 }
