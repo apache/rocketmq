@@ -37,7 +37,7 @@ public class Slf4jLoggerFactory extends InternalLoggerFactory {
 
     }
 
-    private static class Slf4jLogger implements InternalLogger {
+    public static class Slf4jLogger implements InternalLogger {
 
         private Logger logger = null;
 
