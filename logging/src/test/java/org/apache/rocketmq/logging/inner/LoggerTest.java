@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.logging.inner;
 
-import org.apache.rocketmq.logging.BasicloggerTest;
+import org.apache.rocketmq.logging.BasicLoggerTest;
 import org.apache.rocketmq.logging.InnerLoggerFactory;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -30,7 +30,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 
-public class LoggerTest extends BasicloggerTest {
+public class LoggerTest extends BasicLoggerTest {
 
 
     @Before

@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.logging.inner;
 
-import org.apache.rocketmq.logging.BasicloggerTest;
+import org.apache.rocketmq.logging.BasicLoggerTest;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -25,7 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 
-public class AppenderTest extends BasicloggerTest {
+public class AppenderTest extends BasicLoggerTest {
 
     @Test
     public void testConsole() {

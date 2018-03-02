@@ -258,7 +258,7 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
                         return new FormattingTuple(sbuf.toString(), argArray, throwableCandidate);
                     }
 
-                    if (isEscapedDelimeter(messagePattern, j)) {
+                    if (isEscapeDelimeter(messagePattern, j)) {
                         if (!isDoubleEscaped(messagePattern, j)) {
                             --len;
                             sbuf.append(messagePattern.substring(i, j - 1));
@@ -285,7 +285,7 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
             }
         }
 
-        static boolean isEscapedDelimeter(String messagePattern, int delimeterStartIndex) {
+        static boolean isEscapeDelimeter(String messagePattern, int delimeterStartIndex) {
             if (delimeterStartIndex == 0) {
                 return false;
             } else {

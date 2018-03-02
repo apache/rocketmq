@@ -17,11 +17,11 @@
 
 package org.apache.rocketmq.logging.inner;
 
-import org.apache.rocketmq.logging.BasicloggerTest;
+import org.apache.rocketmq.logging.BasicLoggerTest;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class LayoutTest extends BasicloggerTest {
+public class LayoutTest extends BasicLoggerTest {
 
     @Test
     public void testSimpleLayout() {

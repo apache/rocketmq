@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URL;
 
-public class Slf4jLoggerFactoryTest extends BasicloggerTest {
+public class Slf4jLoggerFactoryTest extends BasicLoggerTest {
 
     public static final String LOGGER = "Slf4jTestLogger";
 

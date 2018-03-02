@@ -17,13 +17,13 @@
 
 package org.apache.rocketmq.logging.inner;
 
-import org.apache.rocketmq.logging.BasicloggerTest;
+import org.apache.rocketmq.logging.BasicLoggerTest;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Enumeration;
 
-public class LoggerRepositoryTest extends BasicloggerTest{
+public class LoggerRepositoryTest extends BasicLoggerTest {
 
     @Test
     public void testLoggerRepository() {

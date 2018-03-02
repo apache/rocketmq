@@ -29,7 +29,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-public class BasicloggerTest {
+public class BasicLoggerTest {
 
     protected Logger logger = Logger.getLogger("test");
 

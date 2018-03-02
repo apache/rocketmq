@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.logging.inner;
 
-import org.apache.rocketmq.logging.BasicloggerTest;
+import org.apache.rocketmq.logging.BasicLoggerTest;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -26,7 +26,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.PrintStream;
 
-public class LoggingBuilderTest extends BasicloggerTest {
+public class LoggingBuilderTest extends BasicLoggerTest {
 
     @Test
     public void testConsole() {
