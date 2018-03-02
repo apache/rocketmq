@@ -21,10 +21,12 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -37,6 +39,8 @@ import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.RegisterBrokerBody;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.common.protocol.header.namesrv.QueryDataVersionRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.QueryDataVersionResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
@@ -146,10 +150,6 @@ public class BrokerOuterAPI {
                 countDownLatch.await(timeoutMills, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
             }
-
-            if (registerBrokerResultList.size() != nameServerAddressList.size()) {
-                throw new IllegalStateException("the number of register nameserver operation not match nameserver instances");
-            }
         }
 
         return registerBrokerResultList;
@@ -257,6 +257,72 @@ public class BrokerOuterAPI {
         }
 
         throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public List<Boolean> needRegister(
+        final String clusterName,
+        final String brokerAddr,
+        final String brokerName,
+        final long brokerId,
+        final TopicConfigSerializeWrapper topicConfigWrapper,
+        final int timeoutMills) {
+        final List<Boolean> changedList = new CopyOnWriteArrayList<>();
+        List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
+        if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
+            final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
+            for (final String namesrvAddr : nameServerAddressList) {
+                brokerOuterExecutor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            QueryDataVersionRequestHeader requestHeader = new QueryDataVersionRequestHeader();
+                            requestHeader.setBrokerAddr(brokerAddr);
+                            requestHeader.setBrokerId(brokerId);
+                            requestHeader.setBrokerName(brokerName);
+                            requestHeader.setClusterName(clusterName);
+                            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_DATA_VERSION, requestHeader);
+                            request.setBody(topicConfigWrapper.getDataVersion().encode());
+                            RemotingCommand response = remotingClient.invokeSync(namesrvAddr, request, timeoutMills);
+                            DataVersion nameServerDataVersion = null;
+                            assert response != null;
+                            Boolean changed = false;
+                            switch (response.getCode()) {
+                                case ResponseCode.SUCCESS: {
+                                    QueryDataVersionResponseHeader queryDataVersionResponseHeader =
+                                        (QueryDataVersionResponseHeader) response.decodeCommandCustomHeader(QueryDataVersionResponseHeader.class);
+                                    changed = queryDataVersionResponseHeader.getChanged();
+                                    byte[] body = response.getBody();
+                                    if (body != null) {
+                                        nameServerDataVersion = DataVersion.decode(body, DataVersion.class);
+                                        if (!topicConfigWrapper.getDataVersion().equals(nameServerDataVersion)) {
+                                            changed = true;
+                                        }
+                                    }
+                                    if (changed == null || changed) {
+                                        changedList.add(Boolean.TRUE);
+                                    }
+                                }
+                                default:
+                                    break;
+                            }
+                            log.warn("query data version from name server {} OK,changed {}, broker {},name server {}", namesrvAddr, changed, topicConfigWrapper.getDataVersion(), nameServerDataVersion == null ? "" : nameServerDataVersion);
+                        } catch (Exception e) {
+                            changedList.add(Boolean.TRUE);
+                            log.error("query data version from name server {}  Exception, {}", namesrvAddr, e);
+                        } finally {
+                            countDownLatch.countDown();
+                        }
+                    }
+                });
+
+            }
+            try {
+                countDownLatch.await(timeoutMills, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                log.error("query dataversion from nameserver countDownLatch await Exception", e);
+            }
+        }
+        return changedList;
     }
 
     public TopicConfigSerializeWrapper getAllTopicConfig(

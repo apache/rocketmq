@@ -245,7 +245,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         topicConfig.setTopicSysFlag(requestHeader.getTopicSysFlag() == null ? 0 : requestHeader.getTopicSysFlag());
 
         this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
-        this.brokerController.registerBrokerAll(false, true, true);
+        this.brokerController.registerBrokerAll(false, true,true);
 
         return null;
     }
@@ -311,7 +311,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     this.brokerController.getConfiguration().update(properties);
                     if (properties.containsKey("brokerPermission")) {
                         this.brokerController.getTopicConfigManager().getDataVersion().nextVersion();
-                        this.brokerController.registerBrokerAll(false, false, true);
+                        this.brokerController.registerBrokerAll(false, false,true);
                     }
                 } else {
                     log.error("string2Properties error");
