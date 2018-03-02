@@ -28,6 +28,8 @@ public class NettyLogger {
 
     private static AtomicBoolean nettyLoggerSeted = new AtomicBoolean(false);
 
+    private static InternalLogLevel nettyLogLevel = InternalLogLevel.ERROR;
+
     public static void initNettyLogger() {
         if (!nettyLoggerSeted.get()) {
             try {
@@ -61,22 +63,7 @@ public class NettyLogger {
 
         @Override
         public boolean isEnabled(InternalLogLevel internalLogLevel) {
-            if (internalLogLevel.equals(InternalLogLevel.DEBUG)) {
-                return logger.isDebugEnabled();
-            }
-            if (internalLogLevel.equals(InternalLogLevel.TRACE)) {
-                return logger.isTraceEnabled();
-            }
-            if (internalLogLevel.equals(InternalLogLevel.INFO)) {
-                return logger.isInfoEnabled();
-            }
-            if (internalLogLevel.equals(InternalLogLevel.WARN)) {
-                return logger.isWarnEnabled();
-            }
-            if (internalLogLevel.equals(InternalLogLevel.ERROR)) {
-                return logger.isErrorEnabled();
-            }
-            return false;
+            return nettyLogLevel.ordinal()<=internalLogLevel.ordinal();
         }
 
         @Override
@@ -85,7 +72,7 @@ public class NettyLogger {
                 logger.debug(s);
             }
             if (internalLogLevel.equals(InternalLogLevel.TRACE)) {
-                logger.trace(s);
+                logger.info(s);
             }
             if (internalLogLevel.equals(InternalLogLevel.INFO)) {
                 logger.info(s);
@@ -104,7 +91,7 @@ public class NettyLogger {
                 logger.debug(s, o);
             }
             if (internalLogLevel.equals(InternalLogLevel.TRACE)) {
-                logger.trace(s, o);
+                logger.info(s, o);
             }
             if (internalLogLevel.equals(InternalLogLevel.INFO)) {
                 logger.info(s, o);
@@ -123,7 +110,7 @@ public class NettyLogger {
                 logger.debug(s, o, o1);
             }
             if (internalLogLevel.equals(InternalLogLevel.TRACE)) {
-                logger.trace(s, o, o1);
+                logger.info(s, o, o1);
             }
             if (internalLogLevel.equals(InternalLogLevel.INFO)) {
                 logger.info(s, o, o1);
@@ -142,7 +129,7 @@ public class NettyLogger {
                 logger.debug(s, objects);
             }
             if (internalLogLevel.equals(InternalLogLevel.TRACE)) {
-                logger.trace(s, objects);
+                logger.info(s, objects);
             }
             if (internalLogLevel.equals(InternalLogLevel.INFO)) {
                 logger.info(s, objects);
@@ -161,7 +148,7 @@ public class NettyLogger {
                 logger.debug(s, throwable);
             }
             if (internalLogLevel.equals(InternalLogLevel.TRACE)) {
-                logger.trace(s, throwable);
+                logger.info(s, throwable);
             }
             if (internalLogLevel.equals(InternalLogLevel.INFO)) {
                 logger.info(s, throwable);
@@ -176,37 +163,37 @@ public class NettyLogger {
 
         @Override
         public boolean isTraceEnabled() {
-            return logger.isTraceEnabled();
+            return isEnabled(InternalLogLevel.TRACE);
         }
 
         @Override
         public void trace(String var1) {
-            logger.trace(var1);
+            logger.info(var1);
         }
 
         @Override
         public void trace(String var1, Object var2) {
-            logger.trace(var1, var2);
+            logger.info(var1, var2);
         }
 
         @Override
         public void trace(String var1, Object var2, Object var3) {
-            logger.trace(var1, var2, var3);
+            logger.info(var1, var2, var3);
         }
 
         @Override
         public void trace(String var1, Object... var2) {
-            logger.trace(var1, var2);
+            logger.info(var1, var2);
         }
 
         @Override
         public void trace(String var1, Throwable var2) {
-            logger.trace(var1, var2);
+            logger.info(var1, var2);
         }
 
         @Override
         public boolean isDebugEnabled() {
-            return logger.isDebugEnabled();
+            return isEnabled(InternalLogLevel.DEBUG);
         }
 
         @Override
@@ -236,7 +223,7 @@ public class NettyLogger {
 
         @Override
         public boolean isInfoEnabled() {
-            return logger.isInfoEnabled();
+            return isEnabled(InternalLogLevel.INFO);
         }
 
         @Override
@@ -266,7 +253,7 @@ public class NettyLogger {
 
         @Override
         public boolean isWarnEnabled() {
-            return logger.isWarnEnabled();
+            return isEnabled(InternalLogLevel.WARN);
         }
 
         @Override
@@ -296,7 +283,7 @@ public class NettyLogger {
 
         @Override
         public boolean isErrorEnabled() {
-            return logger.isErrorEnabled();
+            return isEnabled(InternalLogLevel.ERROR);
         }
 
         @Override
