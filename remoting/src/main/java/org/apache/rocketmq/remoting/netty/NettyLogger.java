@@ -61,7 +61,6 @@ public class NettyLogger {
             return logger.getName();
         }
 
-        // FIXME: 2018/3/2 
         @Override
         public boolean isEnabled(InternalLogLevel internalLogLevel) {
             return nettyLogLevel.ordinal() <= internalLogLevel.ordinal();
