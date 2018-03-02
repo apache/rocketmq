@@ -22,6 +22,11 @@ import org.slf4j.LoggerFactory;
 
 public class Slf4jLoggerFactory extends InternalLoggerFactory {
 
+    public Slf4jLoggerFactory() {
+        LoggerFactory.getILoggerFactory();
+        doRegister();
+    }
+
     @Override
     protected String getLoggerType() {
         return InternalLoggerFactory.LOGGER_SLF4J;

@@ -63,7 +63,7 @@ public class NettyLogger {
 
         @Override
         public boolean isEnabled(InternalLogLevel internalLogLevel) {
-            return nettyLogLevel.ordinal()<=internalLogLevel.ordinal();
+            return nettyLogLevel.ordinal() <= internalLogLevel.ordinal();
         }
 
         @Override

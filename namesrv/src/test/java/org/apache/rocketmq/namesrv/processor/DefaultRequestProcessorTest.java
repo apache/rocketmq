@@ -79,7 +79,6 @@ public class DefaultRequestProcessorTest {
         registerRouteInfoManager();
 
         logger = mock(InternalLogger.class);
-        when(logger.isInfoEnabled()).thenReturn(false);
         setFinalStatic(DefaultRequestProcessor.class.getDeclaredField("log"), logger);
     }
 

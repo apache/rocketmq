@@ -395,9 +395,7 @@ public class RouteInfoManager {
             log.error("pickupTopicRouteData Exception", e);
         }
 
-        if (log.isDebugEnabled()) {
-            log.debug("pickupTopicRouteData {} {}", topic, topicRouteData);
-        }
+        log.debug("pickupTopicRouteData {} {}", topic, topicRouteData);
 
         if (foundBrokerData && foundQueueData) {
             return topicRouteData;
