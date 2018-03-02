@@ -62,6 +62,7 @@ import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.Configuration;
+import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
@@ -136,6 +137,7 @@ public class BrokerController {
     private InetSocketAddress storeHost;
     private BrokerFastFailure brokerFastFailure;
     private Configuration configuration;
+    private volatile DataVersion preDataVersion;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -716,56 +718,53 @@ public class BrokerController {
             topicConfigWrapper.setTopicConfigTable(topicConfigTable);
         }
 
-        if (forceRegister || needRegister(this.brokerConfig.getBrokerClusterName(),
-            this.getBrokerAddr(),
-            this.brokerConfig.getBrokerName(),
-            this.brokerConfig.getBrokerId(),
-            this.brokerConfig.getRegisterBrokerTimeoutMills())) {
-            List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
-                this.brokerConfig.getBrokerClusterName(),
-                this.getBrokerAddr(),
-                this.brokerConfig.getBrokerName(),
-                this.brokerConfig.getBrokerId(),
-                this.getHAServerAddr(),
-                topicConfigWrapper,
-                this.filterServerManager.buildNewFilterServerList(),
-                oneway,
-                this.brokerConfig.getRegisterBrokerTimeoutMills(),
-                this.brokerConfig.isCompressedRegister());
+        if (forceRegister || needRegister()) {
+            try {
+                List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
+                    this.brokerConfig.getBrokerClusterName(),
+                    this.getBrokerAddr(),
+                    this.brokerConfig.getBrokerName(),
+                    this.brokerConfig.getBrokerId(),
+                    this.getHAServerAddr(),
+                    topicConfigWrapper,
+                    this.filterServerManager.buildNewFilterServerList(),
+                    oneway,
+                    this.brokerConfig.getRegisterBrokerTimeoutMills(),
+                    this.brokerConfig.isCompressedRegister());
 
-            if (registerBrokerResultList.size() > 0) {
-                RegisterBrokerResult registerBrokerResult = registerBrokerResultList.get(0);
-                if (registerBrokerResult != null) {
-                    if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
-                        this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
-                    }
+                preDataVersion = topicConfigWrapper.getDataVersion();
 
-                    this.slaveSynchronize.setMasterAddr(registerBrokerResult.getMasterAddr());
+                if (registerBrokerResultList.size() > 0) {
+                    RegisterBrokerResult registerBrokerResult = registerBrokerResultList.get(0);
+                    if (registerBrokerResult != null) {
+                        if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
+                            this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
+                        }
 
-                    if (checkOrderConfig) {
-                        this.getTopicConfigManager().updateOrderTopicConfig(registerBrokerResult.getKvTable());
+                        this.slaveSynchronize.setMasterAddr(registerBrokerResult.getMasterAddr());
+
+                        if (checkOrderConfig) {
+                            this.getTopicConfigManager().updateOrderTopicConfig(registerBrokerResult.getKvTable());
+                        }
                     }
                 }
+            } catch (Exception e) {
+                log.error("registerBroker Exception", e);
+
             }
         }
     }
 
-    private boolean needRegister(final String clusterName,
-        final String brokerAddr,
-        final String brokerName,
-        final long brokerId,
-        final int timeoutMills) {
+    private boolean needRegister() {
+
+        if (preDataVersion == null) {
+            return true;
+        }
 
         TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
-        List<Boolean> changeList = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigWrapper, timeoutMills);
-        boolean needRegister = false;
-        for (Boolean changed : changeList) {
-            if (changed) {
-                needRegister = true;
-                break;
-            }
-        }
-        return needRegister;
+        DataVersion currentVersion = topicConfigWrapper.getDataVersion();
+
+        return !preDataVersion.equals(currentVersion);
     }
 
     public TopicConfigManager getTopicConfigManager() {

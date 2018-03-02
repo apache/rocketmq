@@ -196,13 +196,6 @@ public class RouteInfoManager {
         return null;
     }
 
-    public void updateBrokerInfoUpdateTimestamp(final String brokerAddr) {
-        BrokerLiveInfo prev = this.brokerLiveTable.get(brokerAddr);
-        if (prev != null) {
-            prev.setLastUpdateTimestamp(System.currentTimeMillis());
-        }
-    }
-
     private void createAndUpdateQueueData(final String brokerName, final TopicConfig topicConfig) {
         QueueData queueData = new QueueData();
         queueData.setBrokerName(brokerName);

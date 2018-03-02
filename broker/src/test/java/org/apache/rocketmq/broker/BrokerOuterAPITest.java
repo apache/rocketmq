@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.broker;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.netty.channel.ChannelHandlerContext;
 import java.lang.reflect.Field;
@@ -80,57 +78,6 @@ public class BrokerOuterAPITest {
     }
 
     @Test
-    public void test_needRegister_normal() throws Exception {
-        init();
-        brokerOuterAPI.start();
-        final RemotingCommand response = buildResponse(Boolean.TRUE);
-
-        TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
-
-        when(nettyRemotingClient.getNameServerAddressList()).thenReturn(Lists.asList(nameserver1, nameserver2, new String[] {nameserver3}));
-        when(nettyRemotingClient.invokeSync(anyString(), any(RemotingCommand.class), anyLong())).thenReturn(response);
-        List<Boolean> booleanList = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigSerializeWrapper, timeOut);
-        assertEquals(3, booleanList.size());
-        assertEquals(false, booleanList.contains(Boolean.FALSE));
-    }
-
-    @Test
-    public void test_needRegister_timeout() throws Exception {
-        init();
-        brokerOuterAPI.start();
-
-        TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
-
-        when(nettyRemotingClient.getNameServerAddressList()).thenReturn(Lists.asList(nameserver1, nameserver2, new String[] {nameserver3}));
-
-        when(nettyRemotingClient.invokeSync(anyString(), any(RemotingCommand.class), anyLong())).thenAnswer(new Answer<RemotingCommand>() {
-            @Override
-            public RemotingCommand answer(InvocationOnMock invocation) throws Throwable {
-                if (invocation.getArgument(0) == nameserver1) {
-                    return buildResponse(Boolean.TRUE);
-                } else if (invocation.getArgument(0) == nameserver2) {
-                    return buildResponse(Boolean.FALSE);
-                } else if (invocation.getArgument(0) == nameserver3) {
-                    TimeUnit.MILLISECONDS.sleep(timeOut + 20);
-                    return buildResponse(Boolean.TRUE);
-                }
-                return buildResponse(Boolean.TRUE);
-            }
-        });
-        List<Boolean> booleanList = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigSerializeWrapper, timeOut);
-        assertEquals(2, booleanList.size());
-        boolean success = Iterables.any(booleanList,
-            new Predicate<Boolean>() {
-                public boolean apply(Boolean input) {
-                    return input ? true : false;
-                }
-            });
-
-        assertEquals(true, success);
-
-    }
-
-    @Test
     public void test_register_normal() throws Exception {
         init();
         brokerOuterAPI.start();
@@ -149,7 +96,7 @@ public class BrokerOuterAPITest {
         assertEquals(3, registerBrokerResultList.size());
     }
 
-    @Test
+    @Test(expected = java.lang.IllegalStateException.class)
     public void test_register_timeout() throws Exception {
         init();
         brokerOuterAPI.start();
