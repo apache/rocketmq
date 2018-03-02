@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class NettyLogger {
 
     private static AtomicBoolean nettyLoggerSeted = new AtomicBoolean(false);
-
+    
     private static InternalLogLevel nettyLogLevel = InternalLogLevel.ERROR;
 
     public static void initNettyLogger() {
@@ -61,6 +61,7 @@ public class NettyLogger {
             return logger.getName();
         }
 
+        // FIXME: 2018/3/2 
         @Override
         public boolean isEnabled(InternalLogLevel internalLogLevel) {
             return nettyLogLevel.ordinal() <= internalLogLevel.ordinal();
