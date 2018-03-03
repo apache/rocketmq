@@ -78,8 +78,9 @@ public class NamesrvStartup {
             }
 
             if (commandLine.hasOption('p')) {
-                MixAll.printObjectProperties(null, namesrvConfig);
-                MixAll.printObjectProperties(null, nettyServerConfig);
+                Logger console = LoggerFactory.getLogger(LoggerName.NAMESRV_CONSOLE_NAME);
+                MixAll.printObjectProperties(console, namesrvConfig);
+                MixAll.printObjectProperties(console, nettyServerConfig);
                 System.exit(0);
             }
 
