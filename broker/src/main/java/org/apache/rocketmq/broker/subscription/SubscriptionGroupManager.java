@@ -123,6 +123,7 @@ public class SubscriptionGroupManager extends ConfigManager {
             if (brokerController.getBrokerConfig().isAutoCreateSubscriptionGroup() || MixAll.isSysConsumerGroup(group)) {
                 subscriptionGroupConfig = new SubscriptionGroupConfig();
                 subscriptionGroupConfig.setGroupName(group);
+                subscriptionGroupConfig.setRetryQueueNums(brokerController.getBrokerConfig().getAutoCreateRetryTopicQueueNums());
                 SubscriptionGroupConfig preConfig = this.subscriptionGroupTable.putIfAbsent(group, subscriptionGroupConfig);
                 if (null == preConfig) {
                     log.info("auto create a subscription group, {}", subscriptionGroupConfig.toString());
