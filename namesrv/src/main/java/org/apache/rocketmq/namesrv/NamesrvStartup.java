@@ -47,6 +47,7 @@ public class NamesrvStartup {
     }
 
     public static NamesrvController main0(String[] args) {
+        // rocketmq当前版本
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
         try {
             //PackageConflictDetect.detectFastjson();
