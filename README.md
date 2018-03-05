@@ -29,7 +29,7 @@ It offers a variety of features:
 * Mailing Lists: <https://rocketmq.apache.org/about/contact/>
 * Home: <https://rocketmq.apache.org>
 * Docs: <https://rocketmq.apache.org/docs/quick-start/>
-* Issues: <https://issues.apache.org/jira/browse/RocketMQ>
+* Issues: <https://github.com/apache/rocketmq/issues>, <https://issues.apache.org/jira/browse/RocketMQ>
 * Ask: <https://stackoverflow.com/questions/tagged/rocketmq>
  
 
