@@ -42,9 +42,6 @@ public class ClientLogger {
         final String logbackResourceFile =
                 System.getProperty("rocketmq.client.logback.resource.fileName", "logback_rocketmq_client.xml");
 
-        final String log4J2ResourceFile =
-                System.getProperty("rocketmq.client.log4j2.resource.fileName", "log4j2_rocketmq_client.xml");
-
         String clientLogRoot = System.getProperty(CLIENT_LOG_ROOT, System.getProperty("user.home") + "/logs/rocketmqlogs");
         System.setProperty("client.logRoot", clientLogRoot);
         String clientLogLevel = System.getProperty(CLIENT_LOG_LEVEL, "INFO");
@@ -90,13 +87,7 @@ public class ClientLogger {
                     }
 
                 } else if (classType.getName().equals("org.apache.logging.slf4j.Log4jLoggerFactory")) {
-                    Class<?> joranConfigurator = Class.forName("org.apache.logging.log4j.core.config.Configurator");
-                    Method initialize = joranConfigurator.getDeclaredMethod("initialize", String.class, String.class);
-                    if (null == logConfigFilePath) {
-                        initialize.invoke(joranConfigurator, "log4j2", log4J2ResourceFile);
-                    } else {
-                        initialize.invoke(joranConfigurator, "log4j2", logConfigFilePath);
-                    }
+                    Log4j2Helper.addClientLogger(clientLogRoot, clientLogLevel, clientLogMaxIndex, true);
                 }
             } catch (Exception e) {
                 System.err.println(e);
