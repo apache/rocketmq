@@ -70,11 +70,11 @@ public interface MQProducer extends MQAdmin {
         InterruptedException;
 
     void send(final Message msg, final MessageQueueSelector selector, final Object arg,
-        final SendCallback sendCallback) throws MQClientException, RemotingException,
+              final SendCallback sendCallback) throws MQClientException, RemotingException,
         InterruptedException;
 
     void send(final Message msg, final MessageQueueSelector selector, final Object arg,
-        final SendCallback sendCallback, final long timeout) throws MQClientException, RemotingException,
+              final SendCallback sendCallback, final long timeout) throws MQClientException, RemotingException,
         InterruptedException;
 
     void sendOneway(final Message msg, final MessageQueueSelector selector, final Object arg)

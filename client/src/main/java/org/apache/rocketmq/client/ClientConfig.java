@@ -25,6 +25,7 @@ import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
  * Client Common configuration
  */
 public class ClientConfig {
+    public static final String SEND_ASYNC_SEMAPHORE = "com.rocketmq.sendAsyncSemaphore";
     public static final String SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY = "com.rocketmq.sendMessageWithVIPChannel";
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
     private String clientIP = RemotingUtil.getLocalAddress();
@@ -45,6 +46,8 @@ public class ClientConfig {
     private boolean unitMode = false;
     private String unitName;
     private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "true"));
+
+    private int asyncSendSemaphore = Integer.parseInt(System.getProperty(SEND_ASYNC_SEMAPHORE, "65536"));
 
     private boolean useTLS = TlsSystemConfig.tlsEnable;
 
@@ -184,6 +187,14 @@ public class ClientConfig {
 
     public void setUseTLS(boolean useTLS) {
         this.useTLS = useTLS;
+    }
+
+    public int getAsyncSendSemaphore() {
+        return asyncSendSemaphore;
+    }
+
+    public void setAsyncSendSemaphore(int asyncSendSemaphore) {
+        this.asyncSendSemaphore = asyncSendSemaphore;
     }
 
     @Override

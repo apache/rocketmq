@@ -29,8 +29,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -98,6 +101,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     private MQFaultStrategy mqFaultStrategy = new MQFaultStrategy();
 
+    private Semaphore asyncSendSemphore = null;
+
     public DefaultMQProducerImpl(final DefaultMQProducer defaultMQProducer) {
         this(defaultMQProducer, null);
     }
@@ -144,6 +149,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 this.serviceState = ServiceState.START_FAILED;
 
                 this.checkConfig();
+
+                if (asyncSendSemphore == null) {
+                    asyncSendSemphore = new Semaphore(defaultMQProducer.getAsyncSendSemaphore());
+                }
 
                 if (!this.defaultMQProducer.getProducerGroup().equals(MixAll.CLIENT_INNER_PRODUCER_GROUP)) {
                     this.defaultMQProducer.changeInstanceNameToPID();
@@ -406,20 +415,99 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return this.mQClientFactory.getMQAdminImpl().queryMessageByUniqKey(topic, uniqKey);
     }
 
+    private static class AsyncSendCallback implements SendCallback {
+        private SendCallback realSendCallback;
+        private Semaphore semaphore;
+
+        public AsyncSendCallback(SendCallback sendCallback, Semaphore semaphore) {
+            this.realSendCallback = sendCallback;
+            this.semaphore = semaphore;
+        }
+
+        @Override
+        public void onSuccess(SendResult sendResult) {
+            try {
+                realSendCallback.onSuccess(sendResult);
+            } finally {
+                semaphore.release();
+            }
+        }
+
+        @Override
+        public void onException(Throwable e) {
+            try {
+                realSendCallback.onException(e);
+            } finally {
+                semaphore.release();
+            }
+        }
+    }
+
+    // FIXME: 2018/1/25
+    private ExecutorService getAsyncSendExecutor() {
+        return this.getCallbackExecutor();
+    }
+
+    private void doAsyncSend(Runnable runnable, final SendCallback sendCallback) {
+        try {
+            getAsyncSendExecutor().submit(runnable);
+        } catch (RejectedExecutionException e) {
+            sendCallback.onException(e);
+        }
+    }
+
+    private void asyncHandleException(final SendCallback sendCallback, final Throwable e) {
+        try {
+            getAsyncSendExecutor().submit(new Runnable() {
+                @Override
+                public void run() {
+                    sendCallback.onException(e);
+                }
+            });
+        } catch (RejectedExecutionException e1) {
+            sendCallback.onException(e);
+        }
+    }
+
     /**
      * DEFAULT ASYNC -------------------------------------------------------
      */
-    public void send(Message msg,
-        SendCallback sendCallback) throws MQClientException, RemotingException, InterruptedException {
+    public void send(Message msg, SendCallback sendCallback) {
         send(msg, sendCallback, this.defaultMQProducer.getSendMsgTimeout());
     }
 
-    public void send(Message msg, SendCallback sendCallback, long timeout)
-        throws MQClientException, RemotingException, InterruptedException {
+    public void send(final Message msg, final SendCallback sendCallback, final long timeout) {
         try {
-            this.sendDefaultImpl(msg, CommunicationMode.ASYNC, sendCallback, timeout);
-        } catch (MQBrokerException e) {
-            throw new MQClientException("unknownn exception", e);
+            boolean acquire = asyncSendSemphore.tryAcquire(timeout, TimeUnit.MILLISECONDS);
+            if (acquire) {
+                final AsyncSendCallback asyncSendCallback = new AsyncSendCallback(sendCallback, asyncSendSemphore);
+                doAsyncSend(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            sendDefaultImpl(msg, CommunicationMode.ASYNC, asyncSendCallback, timeout);
+                        } catch (Exception e) {
+                            handleCallbackException(e, asyncSendCallback);
+                        }
+                    }
+                }, asyncSendCallback);
+            } else {
+                asyncHandleException(sendCallback, new RejectedExecutionException());
+            }
+        } catch (InterruptedException e) {
+            asyncHandleException(sendCallback, e);
+        }
+    }
+
+    private void handleCallbackException(Exception e, SendCallback sendCallback) {
+        if (sendCallback != null) {
+            if (e instanceof MQBrokerException) {
+                sendCallback.onException(new MQClientException("unknown exception", e));
+            } else {
+                sendCallback.onException(e);
+            }
+        } else {
+            log.warn("asyncSend message callback null real exception is " + e.getMessage(), e);
         }
     }
 
@@ -583,11 +671,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     private SendResult sendKernelImpl(final Message msg,
-        final MessageQueue mq,
-        final CommunicationMode communicationMode,
-        final SendCallback sendCallback,
-        final TopicPublishInfo topicPublishInfo,
-        final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+                                      final MessageQueue mq,
+                                      final CommunicationMode communicationMode,
+                                      final SendCallback sendCallback,
+                                      final TopicPublishInfo topicPublishInfo,
+                                      final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         if (null == brokerAddr) {
             tryToFindTopicPublishInfo(mq.getTopic());
@@ -842,24 +930,38 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     /**
      * KERNEL ASYNC -------------------------------------------------------
      */
-    public void send(Message msg, MessageQueue mq, SendCallback sendCallback)
-        throws MQClientException, RemotingException, InterruptedException {
+    public void send(Message msg, MessageQueue mq, SendCallback sendCallback) {
         send(msg, mq, sendCallback, this.defaultMQProducer.getSendMsgTimeout());
     }
 
-    public void send(Message msg, MessageQueue mq, SendCallback sendCallback, long timeout)
-        throws MQClientException, RemotingException, InterruptedException {
-        this.makeSureStateOK();
-        Validators.checkMessage(msg, this.defaultMQProducer);
-
-        if (!msg.getTopic().equals(mq.getTopic())) {
-            throw new MQClientException("message's topic not equal mq's topic", null);
-        }
-
+    public void send(final Message msg, final MessageQueue mq, final SendCallback sendCallback, final long timeout) {
         try {
-            this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, sendCallback, null, timeout);
-        } catch (MQBrokerException e) {
-            throw new MQClientException("unknown exception", e);
+            boolean acquire = asyncSendSemphore.tryAcquire(timeout, TimeUnit.MILLISECONDS);
+            if (acquire) {
+                final AsyncSendCallback asyncSendCallback = new AsyncSendCallback(sendCallback, asyncSendSemphore);
+                doAsyncSend(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+
+                            makeSureStateOK();
+                            Validators.checkMessage(msg, defaultMQProducer);
+
+                            if (!msg.getTopic().equals(mq.getTopic())) {
+                                throw new MQClientException("message's topic not equal mq's topic", null);
+                            }
+                            sendKernelImpl(msg, mq, CommunicationMode.ASYNC, asyncSendCallback, null, timeout);
+                        } catch (Exception e) {
+                            handleCallbackException(e, asyncSendCallback);
+                        }
+                    }
+                }, asyncSendCallback);
+
+            } else {
+                asyncHandleException(sendCallback, new RejectedExecutionException());
+            }
+        } catch (InterruptedException e) {
+            asyncHandleException(sendCallback, e);
         }
     }
 
@@ -867,7 +969,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
      * KERNEL ONEWAY -------------------------------------------------------
      */
     public void sendOneway(Message msg,
-        MessageQueue mq) throws MQClientException, RemotingException, InterruptedException {
+                           MessageQueue mq) throws MQClientException, RemotingException, InterruptedException {
         this.makeSureStateOK();
         Validators.checkMessage(msg, this.defaultMQProducer);
 
@@ -923,17 +1025,31 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     /**
      * SELECT ASYNC -------------------------------------------------------
      */
-    public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback)
-        throws MQClientException, RemotingException, InterruptedException {
+    public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback) {
         send(msg, selector, arg, sendCallback, this.defaultMQProducer.getSendMsgTimeout());
     }
 
-    public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback, long timeout)
-        throws MQClientException, RemotingException, InterruptedException {
+    public void send(final Message msg, final MessageQueueSelector selector, final Object arg, final SendCallback sendCallback, final long timeout) {
         try {
-            this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, sendCallback, timeout);
-        } catch (MQBrokerException e) {
-            throw new MQClientException("unknownn exception", e);
+            boolean acquire = asyncSendSemphore.tryAcquire(timeout, TimeUnit.MILLISECONDS);
+            if (acquire) {
+                final AsyncSendCallback asyncSendCallback = new AsyncSendCallback(sendCallback, asyncSendSemphore);
+                doAsyncSend(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, asyncSendCallback, timeout);
+                        } catch (Exception e) {
+                            handleCallbackException(e, asyncSendCallback);
+                        }
+                    }
+                }, asyncSendCallback);
+
+            } else {
+                asyncHandleException(sendCallback, new RejectedExecutionException());
+            }
+        } catch (InterruptedException e) {
+            asyncHandleException(sendCallback, e);
         }
     }
 
@@ -950,7 +1066,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public TransactionSendResult sendMessageInTransaction(final Message msg,
-        final LocalTransactionExecuter tranExecuter, final Object arg)
+                                                          final LocalTransactionExecuter tranExecuter, final Object arg)
         throws MQClientException {
         if (null == tranExecuter) {
             throw new MQClientException("tranExecutor is null", null);
@@ -1064,8 +1180,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.mQClientFactory.getMQClientAPIImpl().getRemotingClient().setCallbackExecutor(callbackExecutor);
     }
 
+    private ExecutorService getCallbackExecutor() {
+        return this.mQClientFactory.getMQClientAPIImpl().getRemotingClient().getCallbackExecutor();
+    }
+
     public SendResult send(Message msg,
-        long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+                           long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.sendDefaultImpl(msg, CommunicationMode.SYNC, null, timeout);
     }
 
