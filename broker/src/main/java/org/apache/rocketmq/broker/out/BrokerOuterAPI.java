@@ -305,10 +305,10 @@ public class BrokerOuterAPI {
                                 default:
                                     break;
                             }
-                            log.warn("query data version from name server {} OK,changed {}, broker {},name server {}", namesrvAddr, changed, topicConfigWrapper.getDataVersion(), nameServerDataVersion == null ? "" : nameServerDataVersion);
+                            log.warn("Query data version from name server {} OK,changed {}, broker {},name server {}", namesrvAddr, changed, topicConfigWrapper.getDataVersion(), nameServerDataVersion == null ? "" : nameServerDataVersion);
                         } catch (Exception e) {
                             changedList.add(Boolean.TRUE);
-                            log.error("query data version from name server {}  Exception, {}", namesrvAddr, e);
+                            log.error("Query data version from name server {}  Exception, {}", namesrvAddr, e);
                         } finally {
                             countDownLatch.countDown();
                         }
