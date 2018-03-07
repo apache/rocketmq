@@ -33,13 +33,14 @@ import java.util.zip.InflaterInputStream;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class RegisterBrokerBody extends RemotingSerializable {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RegisterBrokerBody.class);
+    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
     private TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
     private List<String> filterServerList = new ArrayList<String>();
 
