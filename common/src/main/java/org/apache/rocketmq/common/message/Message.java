@@ -20,6 +20,7 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.rocketmq.common.ClientTracerTimeUtil;
 
 public class Message implements Serializable {
     private static final long serialVersionUID = 8445773977080406428L;
@@ -48,6 +49,10 @@ public class Message implements Serializable {
             this.setKeys(keys);
 
         this.setWaitStoreMsgOK(waitStoreMsgOK);
+
+        if (ClientTracerTimeUtil.isEnableTracerTime()) {
+            putProperty(MessageConst.MESSAGE_CREATE_TIME, String.valueOf(System.currentTimeMillis()));
+        }
     }
 
     public Message(String topic, String tags, byte[] body) {

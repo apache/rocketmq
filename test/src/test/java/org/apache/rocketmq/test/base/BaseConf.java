@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.common.TracerTime;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.test.client.rmq.RMQAsyncSendProducer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
@@ -154,6 +155,16 @@ public class BaseConf {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+    }
+
+    public static BrokerController getBrokerController1() {
+        return brokerController1;
+    }
+
+    public static TracerTime queryTracerTime(String topic,
+        String messageTracerTimeId) {
+       return IntegrationTestBase.queryTracerTime(nsAddr, clusterName,topic, messageTracerTimeId);
 
     }
 }

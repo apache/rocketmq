@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
@@ -40,6 +41,7 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.TracerTime;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
@@ -999,5 +1001,33 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         return this.mqClientInstance.getMQClientAPIImpl().queryConsumeQueue(
             brokerAddr, topic, queueId, index, count, consumerGroup, timeoutMillis
         );
+    }
+
+    @Override
+    public TracerTime queryTracerTime(final String brokerAddr, final String topic, final String messageTracerTimeId)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
+
+        if (brokerAddr != null) {
+            return this.mqClientInstance.getMQClientAPIImpl().queryTracerTime(brokerAddr, messageTracerTimeId, timeoutMillis);
+        }
+
+        this.mqClientInstance.updateTopicRouteInfoFromNameServer();
+
+        ConcurrentMap<String, TopicRouteData> topicRouteTable = this.mqClientInstance.getTopicRouteTable();
+        if (topicRouteTable != null) {
+            TopicRouteData topicRouteData = topicRouteTable.get(topic);
+            if (topicRouteData != null) {
+                List<BrokerData> brokerDataList = topicRouteData.getBrokerDatas();
+                if (brokerDataList != null) {
+                    for (BrokerData brokerData : brokerDataList) {
+                        TracerTime tracerTime = this.mqClientInstance.getMQClientAPIImpl().queryTracerTime(brokerData.selectBrokerAddr(), messageTracerTimeId, timeoutMillis);
+                        if (tracerTime != null) {
+                            return tracerTime;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 }

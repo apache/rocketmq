@@ -24,7 +24,9 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.mqtrace.TrackerTimeSendMessageHook;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.TracerTime;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.namesrv.NamesrvController;
@@ -137,7 +139,12 @@ public class IntegrationTestBase {
         storeConfig.setMaxIndexNum(INDEX_NUM);
         storeConfig.setMaxHashSlotNum(INDEX_NUM * 4);
         nettyServerConfig.setListenPort(10000 + random.nextInt(1000));
+
         BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig, nettyClientConfig, storeConfig);
+        if (brokerConfig.isEnableTracerTime()) {
+            brokerController.registerSendMessageHook(new TrackerTimeSendMessageHook());
+        }
+
         try {
             Assert.assertTrue(brokerController.initialize());
             logger.info("Broker Start name:{} addr:{}", brokerConfig.getBrokerName(), brokerController.getBrokerAddr());
@@ -188,6 +195,11 @@ public class IntegrationTestBase {
             }
             file.delete();
         }
+    }
+
+    public static TracerTime queryTracerTime(String nameSrvAddr, String clusterName, String topic,
+        String messageTracerTimeId) {
+        return MQAdmin.queryTracerTime(nameSrvAddr, clusterName, topic, messageTracerTimeId);
     }
 
 }

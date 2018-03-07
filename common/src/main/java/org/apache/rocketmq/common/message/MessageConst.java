@@ -41,6 +41,13 @@ public class MessageConst {
     public static final String PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX = "UNIQ_KEY";
     public static final String PROPERTY_MAX_RECONSUME_TIMES = "MAX_RECONSUME_TIMES";
     public static final String PROPERTY_CONSUME_START_TIMESTAMP = "CONSUME_START_TIME";
+    public static final String MESSAGE_CREATE_TIME = "MESSAGE_CREATE_TIME";
+    public static final String MESSAGE_SEND_TIME = "MESSAGE_SEND_TIME";
+    public static final String MESSAGE_ARRIVE_BROKER_TIME = "MESSAGE_ARRIVE_BROKER_TIME";
+    public static final String MESSAGE_BEGIN_SAVE_TIME = "MESSAGE_BEGIN_SAVE_TIME";
+    public static final String MESSAGE_SAVE_END_TIME = "MESSAGE_SAVE_END_TIME";
+    public static final String BROKER_SEND_ACK_TIME = "BROKER_SEND_ACK_TIME";
+    public static final String RECEIVE_SEND_ACK_TIME = "RECEIVE_SEND_ACK_TIME";
 
     public static final String KEY_SEPARATOR = " ";
 
@@ -69,5 +76,12 @@ public class MessageConst {
         STRING_HASH_SET.add(PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
         STRING_HASH_SET.add(PROPERTY_MAX_RECONSUME_TIMES);
         STRING_HASH_SET.add(PROPERTY_CONSUME_START_TIMESTAMP);
+        STRING_HASH_SET.add(MESSAGE_CREATE_TIME);
+        STRING_HASH_SET.add(MESSAGE_SEND_TIME);
+        STRING_HASH_SET.add(MESSAGE_ARRIVE_BROKER_TIME);
+        STRING_HASH_SET.add(MESSAGE_BEGIN_SAVE_TIME);
+        STRING_HASH_SET.add(MESSAGE_SAVE_END_TIME);
+        STRING_HASH_SET.add(BROKER_SEND_ACK_TIME);
+        STRING_HASH_SET.add(RECEIVE_SEND_ACK_TIME);
     }
 }

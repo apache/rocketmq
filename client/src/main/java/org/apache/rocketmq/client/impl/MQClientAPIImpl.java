@@ -45,6 +45,7 @@ import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.TracerTime;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
@@ -112,6 +113,7 @@ import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHea
 import org.apache.rocketmq.common.protocol.header.QueryCorrectionOffsetHeader;
 import org.apache.rocketmq.common.protocol.header.QueryMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryTopicConsumeByWhoRequestHeader;
+import org.apache.rocketmq.common.protocol.header.QueryTracerTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
@@ -2083,5 +2085,29 @@ public class MQClientAPIImpl {
         if (ResponseCode.SUCCESS != response.getCode()) {
             throw new MQClientException(response.getCode(), response.getRemark());
         }
+    }
+
+    public TracerTime queryTracerTime(final String brokerAddr, final String messageTracerTimeId,
+        final long timeoutMillis) throws InterruptedException,
+        RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
+
+        QueryTracerTimeRequestHeader requestHeader = new QueryTracerTimeRequestHeader();
+        requestHeader.setMessageTracerTimeId(messageTracerTimeId);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_TRACER_TIME, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), brokerAddr), request, timeoutMillis);
+
+        assert response != null;
+
+        if (ResponseCode.SUCCESS == response.getCode()) {
+            if (response.getBody() != null) {
+                return TracerTime.decode(response.getBody(), TracerTime.class);
+            } else {
+                return null;
+            }
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
     }
 }

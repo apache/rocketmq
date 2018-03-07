@@ -27,6 +27,7 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.TracerTime;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.RollbackStats;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
@@ -512,5 +513,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         return this.defaultMQAdminExtImpl.queryConsumeQueue(
             brokerAddr, topic, queueId, index, count, consumerGroup
         );
+    }
+
+    @Override
+    public TracerTime queryTracerTime(final String brokerAddr,String topic, String messageTracerTimeId)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
+        return this.defaultMQAdminExtImpl.queryTracerTime(brokerAddr,topic, messageTracerTimeId);
     }
 }
