@@ -73,10 +73,6 @@ public abstract class InternalLoggerFactory {
         }
     }
 
-    public InternalLoggerFactory() {
-        doRegister();
-    }
-
     protected void doRegister() {
         String loggerType = getLoggerType();
         if (loggerFactoryCache.get(loggerType) != null) {
