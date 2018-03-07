@@ -15,29 +15,34 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.common;
+package org.apache.rocketmq.common.protocol.header.namesrv;
 
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicLong;
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.annotation.CFNotNull;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class ThreadFactoryImpl implements ThreadFactory {
-    private final AtomicLong threadIndex = new AtomicLong(0);
-    private final String threadNamePrefix;
-    private final boolean daemon;
+public class QueryDataVersionResponseHeader implements CommandCustomHeader {
+    @CFNotNull
+    private Boolean changed;
 
-    public ThreadFactoryImpl(final String threadNamePrefix) {
-        this(threadNamePrefix, false);
+    @Override
+    public void checkFields() throws RemotingCommandException {
+
     }
 
-    public ThreadFactoryImpl(final String threadNamePrefix, boolean daemon) {
-        this.threadNamePrefix = threadNamePrefix;
-        this.daemon = daemon;
+    public Boolean getChanged() {
+        return changed;
+    }
+
+    public void setChanged(Boolean changed) {
+        this.changed = changed;
     }
 
     @Override
-    public Thread newThread(Runnable r) {
-        Thread thread = new Thread(r, threadNamePrefix + this.threadIndex.incrementAndGet());
-        thread.setDaemon(daemon);
-        return thread;
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("QueryDataVersionResponseHeader{");
+        sb.append("changed=").append(changed);
+        sb.append('}');
+        return sb.toString();
     }
 }
