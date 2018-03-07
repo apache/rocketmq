@@ -24,6 +24,10 @@ import java.util.Map;
 
 public class InnerLoggerFactory extends InternalLoggerFactory {
 
+    public InnerLoggerFactory() {
+        doRegister();
+    }
+
     @Override
     protected InternalLogger getLoggerInstance(String name) {
         return new InnerLogger(name);
