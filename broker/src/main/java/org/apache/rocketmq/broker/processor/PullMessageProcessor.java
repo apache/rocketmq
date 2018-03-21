@@ -35,7 +35,6 @@ import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.pagecache.ManyMessageTransfer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
@@ -54,15 +53,12 @@ import org.apache.rocketmq.common.protocol.topic.OffsetMovedEvent;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.GetMessageResult;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageFilter;
-import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
@@ -436,7 +432,6 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                         event.setMessageQueue(mq);
                         event.setOffsetRequest(requestHeader.getQueueOffset());
                         event.setOffsetNew(getMessageResult.getNextBeginOffset());
-                        this.generateOffsetMovedEvent(event);
                         log.warn(
                             "PULL_OFFSET_MOVED:correction offset. topic={}, groupId={}, requestOffset={}, newOffset={}, suggestBrokerId={}",
                             requestHeader.getTopic(), requestHeader.getConsumerGroup(), event.getOffsetRequest(), event.getOffsetNew(),
@@ -502,32 +497,6 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
         this.brokerController.getBrokerStatsManager().recordDiskFallBehindTime(group, topic, queueId, this.brokerController.getMessageStore().now() - storeTimestamp);
         return byteBuffer.array();
-    }
-
-    private void generateOffsetMovedEvent(final OffsetMovedEvent event) {
-        try {
-            MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
-            msgInner.setTopic(MixAll.OFFSET_MOVED_EVENT);
-            msgInner.setTags(event.getConsumerGroup());
-            msgInner.setDelayTimeLevel(0);
-            msgInner.setKeys(event.getConsumerGroup());
-            msgInner.setBody(event.encode());
-            msgInner.setFlag(0);
-            msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
-            msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(TopicFilterType.SINGLE_TAG, msgInner.getTags()));
-
-            msgInner.setQueueId(0);
-            msgInner.setSysFlag(0);
-            msgInner.setBornTimestamp(System.currentTimeMillis());
-            msgInner.setBornHost(RemotingUtil.string2SocketAddress(this.brokerController.getBrokerAddr()));
-            msgInner.setStoreHost(msgInner.getBornHost());
-
-            msgInner.setReconsumeTimes(0);
-
-            PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
-        } catch (Exception e) {
-            log.warn(String.format("generateOffsetMovedEvent Exception, %s", event.toString()), e);
-        }
     }
 
     public void executeRequestWhenWakeup(final Channel channel,

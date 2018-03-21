@@ -19,7 +19,6 @@ package org.apache.rocketmq.tools.monitor;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeMap;
@@ -29,9 +28,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.log.ClientLogger;
@@ -41,13 +37,11 @@ import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.Connection;
 import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.body.TopicList;
-import org.apache.rocketmq.common.protocol.topic.OffsetMovedEvent;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
@@ -80,32 +74,6 @@ public class MonitorService {
 
         this.defaultMQPushConsumer.setInstanceName(instanceName());
         this.defaultMQPushConsumer.setNamesrvAddr(monitorConfig.getNamesrvAddr());
-        try {
-            this.defaultMQPushConsumer.setConsumeThreadMin(1);
-            this.defaultMQPushConsumer.setConsumeThreadMax(1);
-            this.defaultMQPushConsumer.subscribe(MixAll.OFFSET_MOVED_EVENT, "*");
-            this.defaultMQPushConsumer.registerMessageListener(new MessageListenerConcurrently() {
-
-                @Override
-                public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                    ConsumeConcurrentlyContext context) {
-                    try {
-                        OffsetMovedEvent ome =
-                            OffsetMovedEvent.decode(msgs.get(0).getBody(), OffsetMovedEvent.class);
-
-                        DeleteMsgsEvent deleteMsgsEvent = new DeleteMsgsEvent();
-                        deleteMsgsEvent.setOffsetMovedEvent(ome);
-                        deleteMsgsEvent.setEventTimestamp(msgs.get(0).getStoreTimestamp());
-
-                        MonitorService.this.monitorListener.reportDeleteMsgsEvent(deleteMsgsEvent);
-                    } catch (Exception e) {
-                    }
-
-                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-                }
-            });
-        } catch (MQClientException e) {
-        }
     }
 
     public static void main(String[] args) throws MQClientException {
