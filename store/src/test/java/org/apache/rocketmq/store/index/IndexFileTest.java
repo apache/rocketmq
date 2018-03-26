@@ -31,16 +31,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class IndexFileTest {
     private final int HASH_SLOT_NUM = 5000000;
-    private final int INDEX_NUM = 2000000;
+    private final int INDEX_NUM = 1000000;
 
     @Test
     public void testPutKey() throws Exception {
         IndexFile indexFile = new IndexFile("100", HASH_SLOT_NUM, INDEX_NUM, 0, 0);
+        long start = System.currentTimeMillis();
         for (long i = 0; i < (INDEX_NUM - 1); i++) {
             boolean putResult = indexFile.putKey(Long.toString(i), i, System.currentTimeMillis());
             assertThat(putResult).isTrue();
         }
-
+        long end = System.currentTimeMillis();
+        System.out.println("total:" + INDEX_NUM + " cost:" + (end - start));
         // put over index file capacity.
         boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
         assertThat(putResult).isFalse();

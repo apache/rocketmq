@@ -42,6 +42,7 @@ public class IndexFile {
         int fileTotalSize = IndexHeader.INDEX_HEADER_SIZE + (hashSlotNum * hashSlotSize) + (indexNum * indexSize);
         this.fileName = fileName;
         this.randomAccessFile = new RandomAccessFile(fileName,"rw");
+        this.randomAccessFile.setLength(fileTotalSize);
 
         this.hashSlotNum = hashSlotNum;
         this.indexNum = indexNum;
@@ -56,27 +57,6 @@ public class IndexFile {
         if (endTimestamp > 0) {
             this.indexHeader.setBeginTimestamp(endTimestamp);
             this.indexHeader.setEndTimestamp(endTimestamp);
-        }
-
-        initFile(fileTotalSize);
-    }
-
-    private void initFile(int size){
-        try{
-            int indexCount = indexHeader.getIndexCount();
-            if(indexCount<2){
-                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                for (int i = 0; i < 1024*32; i++) {
-                    byteArrayOutputStream.write(0);
-                }
-
-                randomAccessFile.seek((long)IndexHeader.INDEX_HEADER_SIZE);
-                for (int i = IndexHeader.INDEX_HEADER_SIZE; i < size; i+=1024*1024) {
-                    randomAccessFile.write(byteArrayOutputStream.toByteArray());
-                }
-            }
-        }catch (IOException e){
-            log.error("init IndexFile failed", e);
         }
     }
 
@@ -93,7 +73,11 @@ public class IndexFile {
     }
 
     public void flush() {
-        //Do nothing
+        try {
+            this.indexHeader.updateByteBuffer();
+        } catch (IOException e) {
+            log.error("flush file {} index header error", fileName, e);
+        }
     }
 
     public boolean isWriteFull() {
@@ -165,8 +149,6 @@ public class IndexFile {
                 this.indexHeader.incIndexCount();
                 this.indexHeader.setEndPhyOffset(phyOffset);
                 this.indexHeader.setEndTimestamp(storeTimestamp);
-
-                this.indexHeader.updateByteBuffer();
                 return true;
             } catch (Exception e) {
                 log.error("putKey exception, Key: " + key + " KeyHashCode: " + key.hashCode(), e);
