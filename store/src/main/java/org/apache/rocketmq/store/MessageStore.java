@@ -116,10 +116,10 @@ public interface MessageStore {
      * @param topic Topic of the message.
      * @param queueId Queue ID.
      * @param timestamp Timestamp to look up.
-     * @param isGetTimeLast If there is many messages at this given timestamp , return the first offset if isGetTimeLast=false,else return last offset
+     * @param getLastOrFirstOffset If there is many messages at this given timestamp , return the first offset if getLastOrFirstOffset=1,else return last offset
      * @return physical offset which matches.
      */
-    long getOffsetInQueueByTime(final String topic, final int queueId, final long timestamp,boolean isGetTimeLast);
+    long getOffsetInQueueByTime(final String topic, final int queueId, final long timestamp, int getLastOrFirstOffset);
 
     /**
      * Look up the message by given commit log offset.

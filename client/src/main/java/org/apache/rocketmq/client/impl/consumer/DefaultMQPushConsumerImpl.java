@@ -53,6 +53,7 @@ import org.apache.rocketmq.client.stat.ConsumerStatsManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.constant.OffsetConstant;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.help.FAQUrl;
@@ -956,11 +957,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
-        return this.searchOffset(mq, timestamp, false);
+        return this.searchOffset(mq, timestamp, OffsetConstant.SEARCH_OFFSET_BYTIME_RETURN_RETURN_FIRST_OFFSET);
     }
 
-    public long searchOffset(MessageQueue mq, long timestamp, boolean getTimeLast) throws MQClientException {
-        return this.mQClientFactory.getMQAdminImpl().doSearchOffset(mq, timestamp, getTimeLast);
+    public long searchOffset(MessageQueue mq, long timestamp, int getLastOrFirstOffset) throws MQClientException {
+        return this.mQClientFactory.getMQAdminImpl().doSearchOffset(mq, timestamp, getLastOrFirstOffset);
     }
 
     @Override

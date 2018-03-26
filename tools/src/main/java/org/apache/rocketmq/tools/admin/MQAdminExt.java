@@ -260,5 +260,5 @@ public interface MQAdminExt extends MQAdmin {
         final long index, final int count, final String consumerGroup)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException;
 
-    long searchOffset(final MessageQueue mq, final long timestamp, final boolean getTimeLast) throws MQClientException;
+    long searchOffset(final MessageQueue mq, final long timestamp, final int getLastOrFirstOffset) throws MQClientException;
 }

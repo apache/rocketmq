@@ -26,6 +26,7 @@ import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.constant.OffsetConstant;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -131,7 +132,7 @@ public class PrintMessageSubCommand implements SubCommand {
                 if (commandLine.hasOption('e')) {
                     String timestampStr = commandLine.getOptionValue('e').trim();
                     long timeValue = timestampFormat(timestampStr);
-                    maxOffset = consumer.searchOffset(mq, timeValue, true);
+                    maxOffset = consumer.searchOffset(mq, timeValue, OffsetConstant.SEARCH_OFFSET_BYTIME_RETURN_RETURN_LAST_OFFSET);
                 }
 
                 System.out.printf("minOffset=%s, maxOffset=%s, %s", minOffset, maxOffset, mq);

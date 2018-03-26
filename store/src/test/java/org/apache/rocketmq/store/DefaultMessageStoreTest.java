@@ -30,6 +30,7 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.constant.OffsetConstant;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.config.FlushDiskType;
@@ -287,7 +288,7 @@ public class DefaultMessageStoreTest {
 
         Map.Entry<Long, AtomicInteger> timeCount = sameTimeCountCache.lastEntry();
         start = timeCount.getKey();
-        long offsetInQueueByTime = messageStore.getOffsetInQueueByTime(topic, 0, start, false);
+        long offsetInQueueByTime = messageStore.getOffsetInQueueByTime(topic, 0, start, OffsetConstant.SEARCH_OFFSET_BYTIME_RETURN_RETURN_FIRST_OFFSET);
         GetMessageResult testQueryByTime = messageStore.getMessage(consumerGroup, topic, 0, offsetInQueueByTime, 20, null);
 
         List<ByteBuffer> messageBufferList = testQueryByTime.getMessageBufferList();
@@ -302,17 +303,17 @@ public class DefaultMessageStoreTest {
         }
         testQueryByTime.release();
 
-        long hlOffset = messageStore.getOffsetInQueueByTime(topic, 0, hlTime, false);
+        long hlOffset = messageStore.getOffsetInQueueByTime(topic, 0, hlTime, OffsetConstant.SEARCH_OFFSET_BYTIME_RETURN_RETURN_FIRST_OFFSET);
         GetMessageResult hlResult = messageStore.getMessage(consumerGroup, topic, 0, hlOffset, 20, null);
         hlCount = hlResult.getMessageCount();
         hlResult.release();
 
-        long endOffset1 = messageStore.getOffsetInQueueByTime(topic, 0, endTime, false);
+        long endOffset1 = messageStore.getOffsetInQueueByTime(topic, 0, endTime, OffsetConstant.SEARCH_OFFSET_BYTIME_RETURN_RETURN_FIRST_OFFSET);
         GetMessageResult endResult1 = messageStore.getMessage(consumerGroup, topic, 0, endOffset1, 20, null);
         endCount1 = endResult1.getMessageCount();
         endResult1.release();
 
-        long endOffset2 = messageStore.getOffsetInQueueByTime(topic, 0, endTime, true);
+        long endOffset2 = messageStore.getOffsetInQueueByTime(topic, 0, endTime, OffsetConstant.SEARCH_OFFSET_BYTIME_RETURN_RETURN_FIRST_OFFSET);
         GetMessageResult endResult2 = messageStore.getMessage(consumerGroup, topic, 0, endOffset2, 20, null);
         endCount2 = endResult2.getMessageCount();
         endResult2.release();

@@ -17,13 +17,6 @@
 
 package org.apache.rocketmq.tools.command.message;
 
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -32,11 +25,20 @@ import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.constant.OffsetConstant;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
+
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class PrintMessageByQueueCommand implements SubCommand {
 
@@ -190,7 +192,7 @@ public class PrintMessageByQueueCommand implements SubCommand {
             if (commandLine.hasOption('e')) {
                 String timestampStr = commandLine.getOptionValue('e').trim();
                 long timeValue = timestampFormat(timestampStr);
-                maxOffset = consumer.searchOffset(mq, timeValue, true);
+                maxOffset = consumer.searchOffset(mq, timeValue, OffsetConstant.SEARCH_OFFSET_BYTIME_RETURN_RETURN_LAST_OFFSET);
             }
 
             final Map<String, AtomicLong> tagCalmap = new HashMap<String, AtomicLong>();

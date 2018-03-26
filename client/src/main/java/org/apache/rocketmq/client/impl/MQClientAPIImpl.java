@@ -669,13 +669,13 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
     
-    public long searchOffset(final String addr, final String topic, final int queueId, final long timestamp, final boolean getTimeLast, final long timeoutMillis)
+    public long searchOffset(final String addr, final String topic, final int queueId, final long timestamp, final int getLastOrFirstOffset, final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException {
         SearchOffsetRequestHeader requestHeader = new SearchOffsetRequestHeader();
         requestHeader.setTopic(topic);
         requestHeader.setQueueId(queueId);
         requestHeader.setTimestamp(timestamp);
-        requestHeader.setGetTimelast(getTimeLast);
+        requestHeader.setGetLastOrFirstOffset(getLastOrFirstOffset);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
