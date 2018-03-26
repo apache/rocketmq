@@ -30,8 +30,8 @@ import org.junit.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class IndexFileTest {
-    private final int HASH_SLOT_NUM = 100;
-    private final int INDEX_NUM = 400;
+    private final int HASH_SLOT_NUM = 5000000;
+    private final int INDEX_NUM = 2000000;
 
     @Test
     public void testPutKey() throws Exception {
