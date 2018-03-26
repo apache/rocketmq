@@ -26,12 +26,12 @@ import java.util.ListIterator;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class MappedFileQueue {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-    private static final Logger LOG_ERROR = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
     private static final int DELETE_FILES_BATCH_MAX = 10;
 
@@ -461,26 +461,39 @@ public class MappedFileQueue {
      */
     public MappedFile findMappedFileByOffset(final long offset, final boolean returnFirstOnNotFound) {
         try {
-            MappedFile mappedFile = this.getFirstMappedFile();
-            if (mappedFile != null) {
-                int index = (int) ((offset / this.mappedFileSize) - (mappedFile.getFileFromOffset() / this.mappedFileSize));
-                if (index < 0 || index >= this.mappedFiles.size()) {
-                    LOG_ERROR.warn("Offset for {} not matched. Request offset: {}, index: {}, " +
-                            "mappedFileSize: {}, mappedFiles count: {}",
-                        mappedFile,
+            MappedFile firstMappedFile = this.getFirstMappedFile();
+            MappedFile lastMappedFile = this.getLastMappedFile();
+            if (firstMappedFile != null && lastMappedFile != null) {
+                if (offset < firstMappedFile.getFileFromOffset() || offset >= lastMappedFile.getFileFromOffset() + this.mappedFileSize) {
+                    LOG_ERROR.warn("Offset not matched. Request offset: {}, firstOffset: {}, lastOffset: {}, mappedFileSize: {}, mappedFiles count: {}",
                         offset,
-                        index,
+                        firstMappedFile.getFileFromOffset(),
+                        lastMappedFile.getFileFromOffset() + this.mappedFileSize,
                         this.mappedFileSize,
                         this.mappedFiles.size());
+                } else {
+                    int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
+                    MappedFile targetFile = null;
+                    try {
+                        targetFile = this.mappedFiles.get(index);
+                    } catch (Exception ignored) {
+                    }
+
+                    if (targetFile != null && offset >= targetFile.getFileFromOffset()
+                        && offset < targetFile.getFileFromOffset() + this.mappedFileSize) {
+                        return targetFile;
+                    }
+
+                    for (MappedFile tmpMappedFile : this.mappedFiles) {
+                        if (offset >= tmpMappedFile.getFileFromOffset()
+                            && offset < tmpMappedFile.getFileFromOffset() + this.mappedFileSize) {
+                            return tmpMappedFile;
+                        }
+                    }
                 }
 
-                try {
-                    return this.mappedFiles.get(index);
-                } catch (Exception e) {
-                    if (returnFirstOnNotFound) {
-                        return mappedFile;
-                    }
-                    LOG_ERROR.warn("findMappedFileByOffset failure. ", e);
+                if (returnFirstOnNotFound) {
+                    return firstMappedFile;
                 }
             }
         } catch (Exception e) {

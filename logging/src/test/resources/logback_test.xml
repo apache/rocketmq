@@ -19,17 +19,17 @@
 <configuration>
     <appender name="RocketmqClientAppender"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${client.logRoot}/rocketmq_client.log</file>
+        <file>${loggingDir}/logback_test.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${client.logRoot}/otherdays/rocketmq_client.%i.log
+            <fileNamePattern>${loggingDir}/logback_test.%i.log
             </fileNamePattern>
             <minIndex>1</minIndex>
-            <maxIndex>${client.logFileMaxIndex}</maxIndex>
+            <maxIndex>5</maxIndex>
         </rollingPolicy>
         <triggeringPolicy
             class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
-            <maxFileSize>100MB</maxFileSize>
+            <maxFileSize>10MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
             <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
@@ -37,20 +37,8 @@
         </encoder>
     </appender>
 
-    <logger name="RocketmqCommon" additivity="false">
-        <level value="${client.logLevel}"/>
-        <appender-ref ref="RocketmqClientAppender"/>
-    </logger>
-
-
-    <logger name="RocketmqRemoting" additivity="false">
-        <level value="${client.logLevel}"/>
-        <appender-ref ref="RocketmqClientAppender"/>
-    </logger>
-
-
-    <logger name="RocketmqClient" additivity="false">
-        <level value="${client.logLevel}"/>
+    <logger name="Slf4jTestLogger" additivity="false">
+        <level value="INFO"/>
         <appender-ref ref="RocketmqClientAppender"/>
     </logger>
 
