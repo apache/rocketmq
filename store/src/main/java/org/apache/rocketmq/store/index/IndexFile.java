@@ -18,6 +18,7 @@ package org.apache.rocketmq.store.index;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileLock;
@@ -41,6 +42,14 @@ public class IndexFile {
         final long endPhyOffset, final long endTimestamp) throws IOException {
         int fileTotalSize = IndexHeader.INDEX_HEADER_SIZE + (hashSlotNum * hashSlotSize) + (indexNum * indexSize);
         this.fileName = fileName;
+        File indexFile = new File(fileName);
+        if (!indexFile.exists()) {
+            File parentFile = new File(indexFile.getAbsoluteFile().getParent());
+            if (!parentFile.exists()) {
+                parentFile.mkdirs();
+            }
+            indexFile.createNewFile();
+        }
         this.randomAccessFile = new RandomAccessFile(fileName,"rw");
         this.randomAccessFile.setLength(fileTotalSize);
 

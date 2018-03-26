@@ -20,7 +20,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -36,11 +35,6 @@ import java.util.concurrent.atomic.AtomicLong;
 public class IndexHeader {
     public static final int INDEX_HEADER_SIZE = 40;
     private static int beginTimestampIndex = 0;
-    private static int endTimestampIndex = 8;
-    private static int beginPhyoffsetIndex = 16;
-    private static int endPhyoffsetIndex = 24;
-    private static int hashSlotcountIndex = 32;
-    private static int indexCountIndex = 36;
     private final RandomAccessFile randomAccessFile;
     private AtomicLong beginTimestamp = new AtomicLong(0);
     private AtomicLong endTimestamp = new AtomicLong(0);
@@ -70,19 +64,19 @@ public class IndexHeader {
     }
 
     public void updateByteBuffer() throws IOException {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            DataOutputStream dos = new DataOutputStream(bos);
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(bos);
 
-            dos.writeLong(this.beginTimestamp.get());
-            dos.writeLong(this.endTimestamp.get());
-            dos.writeLong(this.beginPhyOffset.get());
-            dos.writeLong(this.endPhyOffset.get());
+        dos.writeLong(this.beginTimestamp.get());
+        dos.writeLong(this.endTimestamp.get());
+        dos.writeLong(this.beginPhyOffset.get());
+        dos.writeLong(this.endPhyOffset.get());
 
-            dos.writeInt(this.hashSlotCount.get());
-            dos.writeInt(this.indexCount.get());
+        dos.writeInt(this.hashSlotCount.get());
+        dos.writeInt(this.indexCount.get());
 
-            randomAccessFile.seek(beginTimestampIndex);
-            randomAccessFile.write(bos.toByteArray());
+        randomAccessFile.seek(beginTimestampIndex);
+        randomAccessFile.write(bos.toByteArray());
     }
 
     public long getBeginTimestamp() {

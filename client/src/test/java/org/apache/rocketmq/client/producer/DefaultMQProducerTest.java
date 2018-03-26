@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -71,6 +72,8 @@ public class DefaultMQProducerTest {
     private Message zeroMsg;
     private String topic = "FooBar";
     private String producerGroupPrefix = "FooBar_PID";
+
+    private Random random = new Random();
 
     @Before
     public void init() throws Exception {
@@ -200,7 +203,7 @@ public class DefaultMQProducerTest {
 
     @Test
     public void testSetCallbackExecutor() throws MQClientException {
-        String producerGroupTemp = producerGroupPrefix + System.currentTimeMillis();
+        String producerGroupTemp = producerGroupPrefix + System.currentTimeMillis() + random.nextInt(100);
         producer = new DefaultMQProducer(producerGroupTemp);
         producer.setNamesrvAddr("127.0.0.1:9876");
         producer.start();
