@@ -1,4 +1,4 @@
-The issue tracker is **ONLY** used for bug report and feature request. 
+The issue tracker is **ONLY** used for bug report and feature request. Keep in mind, please check whether there is an existing same report before your raise a new one.
 
 Any question or RocketMQ proposal please use our [mailing lists](http://rocketmq.apache.org/about/contact/).
 
