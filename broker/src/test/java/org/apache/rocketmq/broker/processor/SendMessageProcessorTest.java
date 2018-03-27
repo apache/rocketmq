@@ -18,19 +18,27 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+
+import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
+import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
@@ -42,6 +50,7 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -54,6 +63,7 @@ import org.mockito.stubbing.Answer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -63,6 +73,8 @@ public class SendMessageProcessorTest {
     private SendMessageProcessor sendMessageProcessor;
     @Mock
     private ChannelHandlerContext handlerContext;
+    @Spy
+    private InternalLogger dlqLogger = InternalLoggerFactory.getLogger(LoggerName.ROCKETMQ_DLQ_STATS_LOGGER_NAME);
     @Spy
     private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(), new MessageStoreConfig());
     @Mock
@@ -225,5 +237,76 @@ public class SendMessageProcessorTest {
         }
         assertThat(response[0].getCode()).isEqualTo(responseCode);
         assertThat(response[0].getOpaque()).isEqualTo(request.getOpaque());
+    }
+
+    @Test
+    public void testDlqStatLog() throws RemotingCommandException, NoSuchFieldException, IllegalAccessException {
+        String topic = "TopicA";
+        String groupName = "TestDLQGroup";
+        String msgId = "msgid4r3nufeu4gtbfy3gf3fy43g4";
+        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+        subscriptionGroupConfig.setRetryQueueNums(1);
+        subscriptionGroupConfig.setConsumeEnable(true);
+        subscriptionGroupConfig.setGroupName(groupName);
+        subscriptionGroupConfig.setRetryQueueNums(5);
+
+        final SubscriptionGroupManager subscriptionGroupManager = new SubscriptionGroupManager();
+        subscriptionGroupManager.getSubscriptionGroupTable().put(subscriptionGroupConfig.getGroupName(),subscriptionGroupConfig);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                return subscriptionGroupManager;
+            }
+        }).when(brokerController).getSubscriptionGroupManager();
+        final StringBuilder resultCollector = new StringBuilder();
+
+        MessageExt messageExt = new MessageExt();
+        messageExt.setTopic(topic);
+        messageExt.setQueueId(0);
+        messageExt.setBody("simple message".getBytes());
+        messageExt.setCommitLogOffset(876867867L);
+        messageExt.setReconsumeTimes(16);
+        messageExt.setMsgId(msgId);
+        messageExt.setStoreTimestamp(System.currentTimeMillis());
+        messageExt.putUserProperty("test222","gggg");
+        messageExt.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX,msgId);
+        messageExt.getProperties().put(MessageConst.PROPERTY_RETRY_TOPIC,topic);
+        when(messageStore.lookMessageByOffset(anyLong())).thenReturn(messageExt);
+
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                resultCollector.append(arguments[0]);
+                return null;
+            }
+        }).when(dlqLogger).info(anyString());
+
+        Field dlqLoggerField = SendMessageProcessor.class.getDeclaredField("dlqLogger");
+        dlqLoggerField.setAccessible(true);
+        dlqLoggerField.set(sendMessageProcessor,dlqLogger);
+
+        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+
+        ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = new ConsumerSendMsgBackRequestHeader();
+        consumerSendMsgBackRequestHeader.setGroup(groupName);
+        consumerSendMsgBackRequestHeader.setMaxReconsumeTimes(3);
+        consumerSendMsgBackRequestHeader.setOffset(876867867L);
+        consumerSendMsgBackRequestHeader.setDelayLevel(10);
+        consumerSendMsgBackRequestHeader.setOriginTopic("%RETRY%"+groupName);
+        consumerSendMsgBackRequestHeader.setOriginMsgId(msgId);
+
+        RemotingCommand requestCommand = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, consumerSendMsgBackRequestHeader);
+        requestCommand.addExtField("group",groupName);
+        requestCommand.addExtField("maxReconsumeTimes","3");
+        requestCommand.addExtField("offset","876867867");
+        requestCommand.addExtField("delayLevel","10");
+        requestCommand.addExtField("originTopic","%RETRY%"+groupName);
+        requestCommand.addExtField("originMsgId",msgId);
+        sendMessageProcessor.processRequest(null,requestCommand);
+        String result = resultCollector.toString();
+        Assert.assertTrue(result.contains(msgId));
+        Assert.assertTrue(result.contains(topic));
+        Assert.assertTrue(result.contains(groupName));
     }
 }

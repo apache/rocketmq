@@ -243,6 +243,24 @@
         </encoder>
     </appender>
 
+    <appender name="RocketmqDLQAppender"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${user.home}/logs/rocketmqlogs/stat_dlq.log</file>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/stat_dlq.%i.log.gz</fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>5</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>100MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p - %m%n</pattern>
+            <charset class="java.nio.charset.Charset">UTF-8</charset>
+        </encoder>
+    </appender>
+
     <appender name="RocketmqCommercialAppender"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/logs/rocketmqlogs/commercial.log</file>
@@ -313,6 +331,11 @@
     <logger name="RocketmqStats" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketmqStatsAppender"/>
+    </logger>
+
+    <logger name="RocketmqDLQ" additivity="false">
+        <level value="INFO"/>
+        <appender-ref ref="RocketmqDLQAppender"/>
     </logger>
 
     <logger name="RocketmqCommercial" additivity="false">
