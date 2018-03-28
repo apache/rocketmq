@@ -46,7 +46,6 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -309,8 +308,8 @@ public class SendMessageProcessorTest {
         requestCommand.addExtField("originMsgId",msgId);
         sendMessageProcessor.processRequest(null,requestCommand);
         String result = resultCollector.toString();
-        Assert.assertTrue(result.contains(msgId));
-        Assert.assertTrue(result.contains(topic));
-        Assert.assertTrue(result.contains(groupName));
+        assertThat(result).contains(msgId);
+        assertThat(result).contains(topic);
+        assertThat(result).contains(groupName);
     }
 }
