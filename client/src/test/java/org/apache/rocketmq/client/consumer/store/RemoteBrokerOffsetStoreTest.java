@@ -18,7 +18,6 @@ package org.apache.rocketmq.client.consumer.store;
 
 import java.util.Collections;
 import java.util.HashSet;
-import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
