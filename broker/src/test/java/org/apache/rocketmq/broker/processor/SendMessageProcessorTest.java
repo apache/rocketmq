@@ -32,6 +32,7 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.logging.InnerLoggerFactory;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -50,6 +51,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -275,10 +277,14 @@ public class SendMessageProcessorTest {
             @Override
             public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
                 Object[] arguments = invocationOnMock.getArguments();
-                resultCollector.append(arguments[0]);
+                InnerLoggerFactory.MessageFormatter messageFormatter = new InnerLoggerFactory.MessageFormatter();
+                String pattern = (String) arguments[0];
+                Object[] objects = {arguments[1], arguments[2], arguments[3]};
+                String message = messageFormatter.arrayFormat(pattern, objects).getMessage();
+                resultCollector.append(message);
                 return null;
             }
-        }).when(dlqLogger).info(anyString());
+        }).when(dlqLogger).info(anyString(), new Object[]{Mockito.any()});
 
         Field dlqLoggerField = SendMessageProcessor.class.getDeclaredField("dlqLogger");
         dlqLoggerField.setAccessible(true);

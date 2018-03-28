@@ -199,7 +199,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             if (msgId == null) {
                 msgId = msgExt.getProperty(MessageConst.PROPERTY_ORIGIN_MESSAGE_ID);
             }
-            dlqLogger.info("[DLQ] topic:" + retryTopic + " consumerGroup:" + requestHeader.getGroup() + " msgId:" + msgId);
+            dlqLogger.info("[DLQ] topic:{} consumerGroup:{} msgId:{}", retryTopic, requestHeader.getGroup(), msgId);
         } else {
             if (0 == delayLevel) {
                 delayLevel = 3 + msgExt.getReconsumeTimes();
