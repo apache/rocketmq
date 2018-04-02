@@ -134,7 +134,7 @@ public class BrokerConfig {
 
     private boolean compressedRegister = false;
 
-    private boolean forceRegister = false;
+    private boolean forceRegister = true;
 
     public boolean isTraceOn() {
         return traceOn;
