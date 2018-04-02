@@ -155,7 +155,7 @@ public class MQAdminStartup {
         initCommand(new QueryMsgByKeySubCommand());
         initCommand(new QueryMsgByUniqueKeySubCommand());
         initCommand(new QueryMsgByOffsetSubCommand());
-        initCommand(new QueryMsgByUniqueKeySubCommand());
+        
         initCommand(new PrintMessageSubCommand());
         initCommand(new PrintMessageByQueueCommand());
         initCommand(new SendMsgStatusCommand());
