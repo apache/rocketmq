@@ -45,6 +45,7 @@ import org.apache.rocketmq.remoting.common.ServiceThread;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
+import org.apache.rocketmq.remoting.protocol.RemoteCommandResponseCallback;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.slf4j.Logger;
@@ -170,31 +171,36 @@ public abstract class NettyRemotingAbstract {
                 @Override
                 public void run() {
                     try {
-                        RPCHook rpcHook = NettyRemotingAbstract.this.getRPCHook();
+                        final RPCHook rpcHook = NettyRemotingAbstract.this.getRPCHook();
                         if (rpcHook != null) {
                             rpcHook.doBeforeRequest(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd);
                         }
 
-                        final RemotingCommand response = pair.getObject1().processRequest(ctx, cmd);
-                        if (rpcHook != null) {
-                            rpcHook.doAfterResponse(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, response);
-                        }
-
-                        if (!cmd.isOnewayRPC()) {
-                            if (response != null) {
-                                response.setOpaque(opaque);
-                                response.markResponseType();
-                                try {
-                                    ctx.writeAndFlush(response);
-                                } catch (Throwable e) {
-                                    log.error("process request over, but response failed", e);
-                                    log.error(cmd.toString());
-                                    log.error(response.toString());
+                        final RemoteCommandResponseCallback responseCallback = new RemoteCommandResponseCallback() {
+                            @Override
+                            public void callback(RemotingCommand response) {
+                                if (rpcHook != null) {
+                                    rpcHook.doAfterResponse(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, response);
                                 }
-                            } else {
 
+                                if (!cmd.isOnewayRPC()) {
+                                    if (response != null) {
+                                        response.setOpaque(opaque);
+                                        response.markResponseType();
+                                        try {
+                                            ctx.writeAndFlush(response);
+                                        } catch (Throwable e) {
+                                            log.error("process request over, but response failed", e);
+                                            log.error(cmd.toString());
+                                            log.error(response.toString());
+                                        }
+                                    } else {
+
+                                    }
+                                }
                             }
-                        }
+                        } ;
+                        pair.getObject1().asyncProcessRequest(ctx, cmd , responseCallback);
                     } catch (Throwable e) {
                         log.error("process request exception", e);
                         log.error(cmd.toString());

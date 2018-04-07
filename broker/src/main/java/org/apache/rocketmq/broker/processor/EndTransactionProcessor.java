@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.protocol.RemoteCommandResponseCallback;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
@@ -195,6 +196,12 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         }
 
         return response;
+    }
+
+    @Override
+    public void asyncProcessRequest(ChannelHandlerContext ctx, RemotingCommand request, RemoteCommandResponseCallback remoteCommandResponseCallback) throws Exception {
+        RemotingCommand remotingCommand = processRequest(ctx , request) ;
+        remoteCommandResponseCallback.callback(remotingCommand);
     }
 
     @Override

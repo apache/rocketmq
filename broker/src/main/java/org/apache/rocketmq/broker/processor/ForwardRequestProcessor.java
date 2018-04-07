@@ -20,6 +20,7 @@ import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.protocol.RemoteCommandResponseCallback;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,12 @@ public class ForwardRequestProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
         return null;
+    }
+
+    @Override
+    public void asyncProcessRequest(ChannelHandlerContext ctx, RemotingCommand request, RemoteCommandResponseCallback remoteCommandResponseCallback) throws Exception {
+        RemotingCommand remotingCommand = processRequest(ctx , request) ;
+        remoteCommandResponseCallback.callback(remotingCommand);
     }
 
     @Override

@@ -29,6 +29,8 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -253,15 +255,15 @@ public class HAService {
     class GroupTransferService extends ServiceThread {
 
         private final WaitNotifyObject notifyTransferObject = new WaitNotifyObject();
-        private volatile List<CommitLog.GroupCommitRequest> requestsWrite = new ArrayList<>();
-        private volatile List<CommitLog.GroupCommitRequest> requestsRead = new ArrayList<>();
+        private ConcurrentSkipListMap<Long , CommitLog.GroupCommitRequest> groupCommitRequestConcurrentSkipListMap = new ConcurrentSkipListMap<>() ;
 
-        public synchronized void putRequest(final CommitLog.GroupCommitRequest request) {
-            synchronized (this.requestsWrite) {
-                this.requestsWrite.add(request);
+        public void putRequest(final CommitLog.GroupCommitRequest request) {
+            if(request.getNextOffset() >= HAService.this.push2SlaveMaxOffset.get()) {
+                request.setFlushOK(true);
+                request.getGroupCommitCallback().doSlaveAction(request) ;
             }
-            if (hasNotified.compareAndSet(false, true)) {
-                waitPoint.countDown(); // notify
+            else{
+                groupCommitRequestConcurrentSkipListMap.put(request.getNextOffset() , request) ;
             }
         }
 
@@ -269,32 +271,33 @@ public class HAService {
             this.notifyTransferObject.wakeup();
         }
 
-        private void swapRequests() {
-            List<CommitLog.GroupCommitRequest> tmp = this.requestsWrite;
-            this.requestsWrite = this.requestsRead;
-            this.requestsRead = tmp;
-        }
-
+        /**
+         * wait slave fetch message or fetch timeout,then response the produce request
+         */
         private void doWaitTransfer() {
-            synchronized (this.requestsRead) {
-                if (!this.requestsRead.isEmpty()) {
-                    for (CommitLog.GroupCommitRequest req : this.requestsRead) {
-                        boolean transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
-                        for (int i = 0; !transferOK && i < 5; i++) {
-                            this.notifyTransferObject.waitForRunning(1000);
-                            transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
-                        }
-
-                        if (!transferOK) {
-                            log.warn("transfer messsage to slave timeout, " + req.getNextOffset());
-                        }
-
-                        req.wakeupCustomer(transferOK);
-                    }
-
-                    this.requestsRead.clear();
+            long waitStart = System.currentTimeMillis();
+            boolean waitTimeout = false ;
+            while (!groupCommitRequestConcurrentSkipListMap.isEmpty() &&
+                    (groupCommitRequestConcurrentSkipListMap.firstEntry().getKey() <= HAService.this.push2SlaveMaxOffset.get()
+                            || (waitTimeout = (System.currentTimeMillis() - waitStart > 5000)))){
+                if(waitTimeout){
+                    Long offset = groupCommitRequestConcurrentSkipListMap.firstEntry().getKey();
+                    CommitLog.GroupCommitRequest request = groupCommitRequestConcurrentSkipListMap.remove(offset) ;
+                    request.setFlushOK(false);
+                    request.getGroupCommitCallback().doSlaveAction(request);
                 }
+                else {
+                    ConcurrentNavigableMap<Long, CommitLog.GroupCommitRequest> subMap = groupCommitRequestConcurrentSkipListMap.headMap(HAService.this.push2SlaveMaxOffset.get());
+                    for (Long offset : subMap.keySet()) {
+                        CommitLog.GroupCommitRequest request = subMap.remove(offset);
+                        request.setFlushOK(true);
+                        request.getGroupCommitCallback().doSlaveAction(request);
+                    }
+                }
+                waitTimeout = false ;
+                waitStart = System.currentTimeMillis();
             }
+            this.notifyTransferObject.waitForRunning(1000);
         }
 
         public void run() {
@@ -302,7 +305,6 @@ public class HAService {
 
             while (!this.isStopped()) {
                 try {
-                    this.waitForRunning(10);
                     this.doWaitTransfer();
                 } catch (Exception e) {
                     log.warn(this.getServiceName() + " service has exception. ", e);
@@ -310,11 +312,6 @@ public class HAService {
             }
 
             log.info(this.getServiceName() + " service end");
-        }
-
-        @Override
-        protected void onWaitEnd() {
-            this.swapRequests();
         }
 
         @Override

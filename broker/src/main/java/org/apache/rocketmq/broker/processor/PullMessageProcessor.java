@@ -56,6 +56,7 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
+import org.apache.rocketmq.remoting.protocol.RemoteCommandResponseCallback;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
@@ -79,6 +80,12 @@ public class PullMessageProcessor implements NettyRequestProcessor {
     public RemotingCommand processRequest(final ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         return this.processRequest(ctx.channel(), request, true);
+    }
+
+    @Override
+    public void asyncProcessRequest(ChannelHandlerContext ctx, RemotingCommand request, RemoteCommandResponseCallback remoteCommandResponseCallback) throws Exception {
+        RemotingCommand remotingCommand = processRequest(ctx , request) ;
+        remoteCommandResponseCallback.callback(remotingCommand);
     }
 
     @Override

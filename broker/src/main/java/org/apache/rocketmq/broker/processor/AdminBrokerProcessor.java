@@ -106,6 +106,7 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
+import org.apache.rocketmq.remoting.protocol.RemoteCommandResponseCallback;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.store.ConsumeQueue;
@@ -205,6 +206,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         return null;
+    }
+
+    @Override
+    public void asyncProcessRequest(ChannelHandlerContext ctx, RemotingCommand request, RemoteCommandResponseCallback remoteCommandResponseCallback) throws Exception {
+        RemotingCommand remotingCommand = processRequest(ctx , request) ;
+        remoteCommandResponseCallback.callback(remotingCommand);
     }
 
     @Override
