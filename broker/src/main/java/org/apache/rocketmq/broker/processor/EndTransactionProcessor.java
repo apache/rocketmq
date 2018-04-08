@@ -34,6 +34,7 @@ import org.apache.rocketmq.remoting.protocol.RemoteCommandResponseCallback;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.PutMessageCallback;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -145,7 +146,15 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
             }
 
             final MessageStore messageStore = this.brokerController.getMessageStore();
-            final PutMessageResult putMessageResult = messageStore.putMessage(msgInner);
+            PutMessageCallback putMessageCallback = new PutMessageCallback() ;
+            messageStore.putMessage(msgInner , putMessageCallback);
+            try {
+                putMessageCallback.waitComplete();
+            }
+            catch (InterruptedException e) {
+                //ignore
+            }
+            final PutMessageResult putMessageResult = putMessageCallback.getPutMessageResult() ;
             if (putMessageResult != null) {
                 switch (putMessageResult.getPutMessageStatus()) {
                     // Success

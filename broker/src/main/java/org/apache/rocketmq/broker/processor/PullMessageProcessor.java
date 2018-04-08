@@ -61,7 +61,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageFilter;
-import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.PutMessageCallback;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.slf4j.Logger;
@@ -531,7 +531,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
             msgInner.setReconsumeTimes(0);
 
-            PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
+            this.brokerController.getMessageStore().putMessage(msgInner , new PutMessageCallback());
         } catch (Exception e) {
             log.warn(String.format("generateOffsetMovedEvent Exception, %s", event.toString()), e);
         }

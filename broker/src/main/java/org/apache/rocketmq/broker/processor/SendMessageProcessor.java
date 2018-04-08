@@ -64,34 +64,34 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
     @Override
     public void asyncProcessRequest(ChannelHandlerContext ctx, RemotingCommand request, final RemoteCommandResponseCallback remoteCommandResponseCallback) throws Exception {
 
-            final SendMessageContext mqtraceContext;
-            switch (request.getCode()) {
-                case RequestCode.CONSUMER_SEND_MSG_BACK:
-                    this.consumerSendMsgBack(ctx, request , remoteCommandResponseCallback);
-                    return ;
-                default:
-                    SendMessageRequestHeader requestHeader = parseRequestHeader(request);
-                    if (requestHeader == null) {
-                        remoteCommandResponseCallback.callback(null);
-                        return;
-                    }
+        final SendMessageContext mqtraceContext;
+        switch (request.getCode()) {
+            case RequestCode.CONSUMER_SEND_MSG_BACK:
+                this.consumerSendMsgBack(ctx, request , remoteCommandResponseCallback);
+                return ;
+            default:
+                SendMessageRequestHeader requestHeader = parseRequestHeader(request);
+                if (requestHeader == null) {
+                    remoteCommandResponseCallback.callback(null);
+                    return;
+                }
 
-                    mqtraceContext = buildMsgContext(ctx, requestHeader);
-                    this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
+                mqtraceContext = buildMsgContext(ctx, requestHeader);
+                this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
 
-                    SendMessageCallback sendMessageCallback = new SendMessageCallback() {
-                        @Override
-                        public void callback(RemotingCommand response) {
-                            executeSendMessageHookAfter(response, mqtraceContext);
-                            remoteCommandResponseCallback.callback(response);
-                        }
-                    } ;
-                    if (requestHeader.isBatch()) {
-                        this.sendBatchMessage(ctx, request, mqtraceContext, requestHeader , sendMessageCallback);
-                    } else {
-                        this.sendMessage(ctx, request, mqtraceContext, requestHeader , sendMessageCallback);
+                SendMessageCallback sendMessageCallback = new SendMessageCallback() {
+                    @Override
+                    public void callback(RemotingCommand response) {
+                        executeSendMessageHookAfter(response, mqtraceContext);
+                        remoteCommandResponseCallback.callback(response);
                     }
-            }
+                } ;
+                if (requestHeader.isBatch()) {
+                    this.sendBatchMessage(ctx, request, mqtraceContext, requestHeader , sendMessageCallback);
+                } else {
+                    this.sendMessage(ctx, request, mqtraceContext, requestHeader , sendMessageCallback);
+                }
+        }
 
     }
 
@@ -239,7 +239,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         this.brokerController.getMessageStore().putMessage(msgInner, new PutMessageCallback() {
             @Override
-            public void callback(PutMessageResult putMessageResult) {
+            public void doAction(PutMessageResult putMessageResult) {
                 if (putMessageResult != null) {
                     switch (putMessageResult.getPutMessageStatus()) {
                         case PUT_OK:
@@ -321,7 +321,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         final RemotingCommand request,
         final SendMessageContext sendMessageContext,
         final SendMessageRequestHeader requestHeader,
-                                        final SendMessageCallback sendMessageCallback ) throws RemotingCommandException {
+        final SendMessageCallback sendMessageCallback) throws RemotingCommandException {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
         final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader) response.readCustomHeader();
@@ -389,7 +389,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         final int innerQueueIdInt = queueIdInt ;
         PutMessageCallback putMessageCallback = new PutMessageCallback() {
             @Override
-            public void callback(PutMessageResult putMessageResult) {
+            public void doAction(PutMessageResult putMessageResult) {
                 RemotingCommand remotingCommand = handlePutMessageResult(putMessageResult, response, request, msgInner, responseHeader, sendMessageContext, ctx, innerQueueIdInt);
                 sendMessageCallback.callback(remotingCommand);
             }
@@ -574,7 +574,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         final int innerQueueIdInt = queueIdInt ;
         PutMessageCallback putMessageCallback = new PutMessageCallback() {
             @Override
-            public void callback(PutMessageResult putMessageResult) {
+            public void doAction(PutMessageResult putMessageResult) {
                 RemotingCommand remotingCommand = handlePutMessageResult(putMessageResult, response, request, messageExtBatch, responseHeader, sendMessageContext, ctx, innerQueueIdInt);
                 sendMessageCallback.callback(remotingCommand);
             }

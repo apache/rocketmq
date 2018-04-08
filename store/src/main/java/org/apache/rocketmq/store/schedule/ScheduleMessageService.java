@@ -36,6 +36,7 @@ import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.store.PutMessageCallback;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -44,9 +45,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ScheduleMessageService extends ConfigManager {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-
     public static final String SCHEDULE_TOPIC = "SCHEDULE_TOPIC_XXXX";
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final long FIRST_DELAY_TIME = 1000L;
     private static final long DELAY_FOR_A_WHILE = 100L;
     private static final long DELAY_FOR_A_PERIOD = 10000L;
@@ -283,11 +283,13 @@ public class ScheduleMessageService extends ConfigManager {
 
                                 if (msgExt != null) {
                                     try {
+                                        PutMessageCallback putMessageCallback = new PutMessageCallback();
                                         MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
-                                        PutMessageResult putMessageResult =
-                                            ScheduleMessageService.this.defaultMessageStore
-                                                .putMessage(msgInner);
+                                        ScheduleMessageService.this.defaultMessageStore
+                                            .putMessage(msgInner, putMessageCallback);
 
+                                        putMessageCallback.waitComplete();
+                                        PutMessageResult putMessageResult = putMessageCallback.getPutMessageResult();
                                         if (putMessageResult != null
                                             && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
                                             continue;

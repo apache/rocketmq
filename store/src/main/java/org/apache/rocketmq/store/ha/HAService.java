@@ -25,7 +25,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -258,11 +257,11 @@ public class HAService {
         private ConcurrentSkipListMap<Long , CommitLog.GroupCommitRequest> groupCommitRequestConcurrentSkipListMap = new ConcurrentSkipListMap<>() ;
 
         public void putRequest(final CommitLog.GroupCommitRequest request) {
-            if(request.getNextOffset() >= HAService.this.push2SlaveMaxOffset.get()) {
+            if (request.getNextOffset() >= HAService.this.push2SlaveMaxOffset.get()) {
                 request.setFlushOK(true);
                 request.getGroupCommitCallback().doSlaveAction(request) ;
             }
-            else{
+            else {
                 groupCommitRequestConcurrentSkipListMap.put(request.getNextOffset() , request) ;
             }
         }
@@ -279,8 +278,8 @@ public class HAService {
             boolean waitTimeout = false ;
             while (!groupCommitRequestConcurrentSkipListMap.isEmpty() &&
                     (groupCommitRequestConcurrentSkipListMap.firstEntry().getKey() <= HAService.this.push2SlaveMaxOffset.get()
-                            || (waitTimeout = (System.currentTimeMillis() - waitStart > 5000)))){
-                if(waitTimeout){
+                            || (waitTimeout = System.currentTimeMillis() - waitStart > 5000))) {
+                if (waitTimeout) {
                     Long offset = groupCommitRequestConcurrentSkipListMap.firstEntry().getKey();
                     CommitLog.GroupCommitRequest request = groupCommitRequestConcurrentSkipListMap.remove(offset) ;
                     request.setFlushOK(false);

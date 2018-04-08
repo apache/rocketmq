@@ -1036,7 +1036,7 @@ public class CommitLog {
         private MessageExt messageExt ;
         private GroupCommitCallback groupCommitCallback ;
 
-        public GroupCommitRequest(long nextOffset){
+        public GroupCommitRequest(long nextOffset) {
             this.nextOffset = nextOffset;
         }
         public GroupCommitRequest(long nextOffset, CommitLogPutMessageCallback commitLogPutMessageCallback, PutMessageResult putMessageResult, MessageExt messageExt, GroupCommitCallback groupCommitCallback) {
@@ -1092,7 +1092,7 @@ public class CommitLog {
     }
 
     public static class GroupCommitCallback {
-        public void doSlaveAction(GroupCommitRequest request){
+        public void doSlaveAction(GroupCommitRequest request) {
             boolean flushOK = request.isFlushOK() ;
             if (!flushOK) {
                 log.error("do sync transfer other node, wait return, but failed, topic: " + request.getMessageExt().getTopic() + " tags: "

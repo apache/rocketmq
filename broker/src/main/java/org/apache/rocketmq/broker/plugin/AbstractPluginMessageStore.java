@@ -27,7 +27,7 @@ import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.MessageStore;
-import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.PutMessageCallback;
 import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 
@@ -81,8 +81,8 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public PutMessageResult putMessage(MessageExtBrokerInner msg) {
-        return next.putMessage(msg);
+    public void putMessage(MessageExtBrokerInner msg , PutMessageCallback putMessageCallback) {
+        next.putMessage(msg , putMessageCallback);
     }
 
     @Override
