@@ -79,6 +79,12 @@ public class BrokerStartup {
         return null;
     }
 
+    public static void shutdown(final BrokerController controller) {
+        if (null != controller) {
+            controller.shutdown();
+        }
+    }
+
     public static BrokerController createBrokerController(String[] args) {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
 
