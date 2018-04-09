@@ -35,8 +35,17 @@ public class PutMessageCallback {
     }
 
     public void waitComplete() throws InterruptedException {
+        waitComplete(-1);
+    }
+
+    public void waitComplete(long timeout) throws InterruptedException {
         synchronized (waitObject) {
-            waitObject.wait();
+            if (timeout < 0) {
+                waitObject.wait();
+            }
+            else {
+                waitObject.wait(timeout);
+            }
         }
     }
 
