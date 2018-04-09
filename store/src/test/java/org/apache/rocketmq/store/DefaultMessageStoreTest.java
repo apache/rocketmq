@@ -24,13 +24,12 @@ import java.net.SocketAddress;
 import java.nio.channels.OverlappingFileLockException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.junit.After;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -108,7 +107,7 @@ public class DefaultMessageStoreTest {
         QUEUE_TOTAL = 1;
         MessageBody = StoreMessage.getBytes();
         for (long i = 0; i < totalMsgs; i++) {
-            messageStore.putMessage(buildMessage());
+            messageStore.putMessage(buildMessage() , new PutMessageCallback());
         }
 
         for (long i = 0; i < totalMsgs; i++) {
@@ -140,7 +139,7 @@ public class DefaultMessageStoreTest {
         QUEUE_TOTAL = 1;
         MessageBody = StoreMessage.getBytes();
         for (long i = 0; i < totalMsgs; i++) {
-            messageStore.putMessage(buildMessage());
+            messageStore.putMessage(buildMessage() , new PutMessageCallback());
         }
 
         for (long i = 0; i < totalMsgs; i++) {
@@ -153,7 +152,7 @@ public class DefaultMessageStoreTest {
 
     private void verifyThatMasterIsFunctional(long totalMsgs, MessageStore master) {
         for (long i = 0; i < totalMsgs; i++) {
-            master.putMessage(buildMessage());
+            master.putMessage(buildMessage() , new PutMessageCallback());
         }
 
         for (long i = 0; i < totalMsgs; i++) {
@@ -172,7 +171,7 @@ public class DefaultMessageStoreTest {
             MessageExtBrokerInner messageExtBrokerInner = buildMessage();
             messageExtBrokerInner.setTopic(topic);
             messageExtBrokerInner.setQueueId(0);
-            messageStore.putMessage(messageExtBrokerInner);
+            messageStore.putMessage(messageExtBrokerInner , new PutMessageCallback());
         }
         //wait for consume queue build
         Thread.sleep(10);
@@ -190,7 +189,7 @@ public class DefaultMessageStoreTest {
     private class MyMessageArrivingListener implements MessageArrivingListener {
         @Override
         public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
-                             byte[] filterBitMap, Map<String, String> properties) {
+            byte[] filterBitMap, Map<String, String> properties) {
         }
     }
 }

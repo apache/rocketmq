@@ -126,7 +126,9 @@ public class ConsumeQueueTest {
         long totalMsgs = 200;
 
         for (long i = 0; i < totalMsgs; i++) {
-            master.putMessage(buildMessage());
+            PutMessageCallback putMessageCallback = new PutMessageCallback() ;
+            master.putMessage(buildMessage() , putMessageCallback);
+            putMessageCallback.waitComplete();
         }
     }
 

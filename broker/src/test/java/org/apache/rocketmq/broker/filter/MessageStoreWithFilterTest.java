@@ -32,6 +32,7 @@ import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageArrivingListener;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageFilter;
+import org.apache.rocketmq.store.PutMessageCallback;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -184,7 +185,10 @@ public class MessageStoreWithFilterTest {
                 msg.putUserProperty("a", String.valueOf(j * 10 + 5));
                 msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
 
-                PutMessageResult result = master.putMessage(msg);
+                PutMessageCallback putMessageCallback = new PutMessageCallback() ;
+                master.putMessage(msg , putMessageCallback);
+                putMessageCallback.waitComplete();
+                PutMessageResult result = putMessageCallback.getPutMessageResult() ;
 
                 msg.setMsgId(result.getAppendMessageResult().getMsgId());
 

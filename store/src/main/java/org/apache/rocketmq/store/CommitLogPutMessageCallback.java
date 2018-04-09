@@ -14,21 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.netty;
-
-import io.netty.channel.ChannelHandlerContext;
-import org.apache.rocketmq.remoting.protocol.RemoteCommandResponseCallback;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+package org.apache.rocketmq.store;
 
 /**
- * Common remoting command processor
+ * CommitLogPutMessageCallback is a asynchronous callback for messageStore
  */
-public interface NettyRequestProcessor {
-    RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
-        throws Exception;
-
-    void asyncProcessRequest(ChannelHandlerContext ctx, RemotingCommand request , RemoteCommandResponseCallback remoteCommandResponseCallback)
-            throws Exception;
-
-    boolean rejectRequest();
+public interface CommitLogPutMessageCallback {
+    void callback(PutMessageResult result) ;
 }
