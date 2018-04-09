@@ -51,21 +51,34 @@ public interface MessageStore {
      */
     void destroy();
 
-    /**
+/*
+    */
+/**
      * Store a message into store.
      *
      * @param msg Message instance to store
      * @return result of store operation.
-     */
+     *//*
+
     PutMessageResult putMessage(final MessageExtBrokerInner msg);
+*/
+
+    /**
+     * Store a message into store.
+     *
+     * @param msg Message instance to store
+     * @param putMessageCallback callback of put message
+     *
+     */
+    void putMessage(final MessageExtBrokerInner msg , PutMessageCallback putMessageCallback);
 
     /**
      * Store a batch of messages.
      *
      * @param messageExtBatch Message batch.
-     * @return result of storing batch messages.
+     * @param putMessageCallback callback of put message
      */
-    PutMessageResult putMessages(final MessageExtBatch messageExtBatch);
+    void putMessages(final MessageExtBatch messageExtBatch , PutMessageCallback putMessageCallback);
 
     /**
      * Query at most <code>maxMsgNums</code> messages belonging to <code>topic</code> at <code>queueId</code> starting
