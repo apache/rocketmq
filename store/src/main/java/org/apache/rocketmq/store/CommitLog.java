@@ -632,7 +632,9 @@ public class CommitLog {
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
 
         handleDiskFlush(result, putMessageResult, msg);
-        handleHA(result, putMessageResult, msg, commitLogPutMessageCallback);
+        if (!handleHA(result, putMessageResult, msg, commitLogPutMessageCallback)) {
+            commitLogPutMessageCallback.callback(putMessageResult);
+        }
     }
 
     public void handleDiskFlush(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt) {
@@ -662,7 +664,15 @@ public class CommitLog {
         }
     }
 
-    public void handleHA(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt, CommitLogPutMessageCallback commitLogPutMessageCallback) {
+    /**
+     *
+     * @param result
+     * @param putMessageResult
+     * @param messageExt
+     * @param commitLogPutMessageCallback
+     * @return whether to wait slave, if false, the request should respond synchronously
+     */
+    public boolean handleHA(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt, CommitLogPutMessageCallback commitLogPutMessageCallback) {
         if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
             HAService service = this.defaultMessageStore.getHaService();
             if (messageExt.isWaitStoreMsgOK()) {
@@ -672,6 +682,7 @@ public class CommitLog {
                     GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes() , commitLogPutMessageCallback, putMessageResult, messageExt, groupCommitCallback) ;
                     service.putRequest(request);
                     service.getWaitNotifyObject().wakeupAll();
+                    return true;
                 }
                 // Slave problem
                 else {
@@ -681,6 +692,7 @@ public class CommitLog {
             }
         }
 
+        return false;
     }
 
     public void putMessages(final MessageExtBatch messageExtBatch , CommitLogPutMessageCallback commitLogPutMessageCallback) {
@@ -782,7 +794,9 @@ public class CommitLog {
 
         handleDiskFlush(result, putMessageResult, messageExtBatch);
 
-        handleHA(result, putMessageResult, messageExtBatch, commitLogPutMessageCallback);
+        if (!handleHA(result, putMessageResult, messageExtBatch, commitLogPutMessageCallback)) {
+            commitLogPutMessageCallback.callback(putMessageResult);
+        }
     }
 
     /**
