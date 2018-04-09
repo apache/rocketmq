@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.store;
 
+/**
+ * PutMessageCallback is a asynchronous callback for processor process the put message result
+ */
 public class PutMessageCallback {
     private final Object waitObject = new Object();
     private volatile boolean completed = false;

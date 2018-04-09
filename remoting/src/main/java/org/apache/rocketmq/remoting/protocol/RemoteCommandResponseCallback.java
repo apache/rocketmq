@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.remoting.protocol;
 
+/**
+ * RemoteCommandResponseCallback is a asynchronous callback for netty network io
+ */
 public interface RemoteCommandResponseCallback {
     void callback(RemotingCommand response);
 }

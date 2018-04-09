@@ -18,6 +18,9 @@ package org.apache.rocketmq.broker.processor;
 
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+/**
+ * SendMessageCallback is a asynchronous callback for processor process the response of the produce request
+ */
 public interface SendMessageCallback {
     void callback(RemotingCommand response);
 }

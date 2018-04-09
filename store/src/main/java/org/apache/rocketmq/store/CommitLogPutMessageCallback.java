@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.store;
 
+/**
+ * CommitLogPutMessageCallback is a asynchronous callback for messageStore
+ */
 public interface CommitLogPutMessageCallback {
     void callback(PutMessageResult result) ;
 }
