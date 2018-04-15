@@ -164,14 +164,14 @@ public final class BeanUtils {
 
             final Set<String> keySet = properties.keySet();
             for (String key : keySet) {
-                String[] keyGroup = key.split("\\.");
+                String[] keyGroup = key.split("[\\._]");
                 for (int i = 0; i < keyGroup.length; i++) {
                     keyGroup[i] = keyGroup[i].toLowerCase();
                     keyGroup[i] = StringUtils.capitalize(keyGroup[i]);
                 }
                 String beanFieldNameWithCapitalization = StringUtils.join(keyGroup);
                 try {
-                    setProperties(clazz, obj, "set" + beanFieldNameWithCapitalization, properties.getString(key));
+                    setProperties(clazz, obj, "setOms" + beanFieldNameWithCapitalization, properties.getString(key));
                 } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
                     //ignored...
                 }
