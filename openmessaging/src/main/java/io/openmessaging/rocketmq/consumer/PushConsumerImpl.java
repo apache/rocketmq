@@ -58,7 +58,7 @@ public class PushConsumerImpl implements PushConsumer {
         }
         this.rocketmqPushConsumer.setNamesrvAddr(accessPoints.replace(',', ';'));
 
-        String consumerGroup = clientConfig.getRmqConsumerGroup();
+        String consumerGroup = clientConfig.getOmsConsumerId();
         if (null == consumerGroup || consumerGroup.isEmpty()) {
             throw new OMSRuntimeException("-1", "Consumer Group is necessary for RocketMQ, please set it.");
         }

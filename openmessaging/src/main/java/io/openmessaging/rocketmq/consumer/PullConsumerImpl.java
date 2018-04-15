@@ -52,7 +52,7 @@ public class PullConsumerImpl implements PullConsumer {
         this.properties = properties;
         this.clientConfig = BeanUtils.populate(properties, ClientConfig.class);
 
-        String consumerGroup = clientConfig.getRmqConsumerGroup();
+        String consumerGroup = clientConfig.getOmsConsumerId();
         if (null == consumerGroup || consumerGroup.isEmpty()) {
             throw new OMSRuntimeException("-1", "Consumer Group is necessary for RocketMQ, please set it.");
         }

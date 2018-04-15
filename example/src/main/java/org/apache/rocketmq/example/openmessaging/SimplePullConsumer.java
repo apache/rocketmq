@@ -19,16 +19,16 @@ package org.apache.rocketmq.example.openmessaging;
 import io.openmessaging.Message;
 import io.openmessaging.MessagingAccessPoint;
 import io.openmessaging.OMS;
+import io.openmessaging.OMSBuiltinKeys;
 import io.openmessaging.consumer.PullConsumer;
-import io.openmessaging.rocketmq.domain.NonStandardKeys;
 
 public class SimplePullConsumer {
     public static void main(String[] args) {
         final MessagingAccessPoint messagingAccessPoint =
-            OMS.getMessagingAccessPoint("openmessaging:rocketmq://IP1:9876,IP2:9876/namespace");
+            OMS.getMessagingAccessPoint("oms:rocketmq://localhost:9876/default:default");
 
         final PullConsumer consumer = messagingAccessPoint.createPullConsumer(
-            OMS.newKeyValue().put(NonStandardKeys.CONSUMER_GROUP, "OMS_CONSUMER"));
+            OMS.newKeyValue().put(OMSBuiltinKeys.CONSUMER_ID, "OMS_CONSUMER"));
 
         messagingAccessPoint.startup();
         System.out.printf("MessagingAccessPoint startup OK%n");
