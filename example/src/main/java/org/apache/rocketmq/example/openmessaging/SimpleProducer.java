@@ -24,6 +24,7 @@ import io.openmessaging.OMS;
 import io.openmessaging.producer.Producer;
 import io.openmessaging.producer.SendResult;
 import java.nio.charset.Charset;
+import java.util.concurrent.CountDownLatch;
 
 public class SimpleProducer {
     public static void main(String[] args) {
@@ -38,14 +39,6 @@ public class SimpleProducer {
         producer.startup();
         System.out.printf("Producer startup OK%n");
 
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            @Override
-            public void run() {
-                producer.shutdown();
-                messagingAccessPoint.shutdown();
-            }
-        }));
-
         {
             Message message = producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8")));
             SendResult sendResult = producer.send(message);
@@ -53,6 +46,7 @@ public class SimpleProducer {
             System.out.printf("Send async message OK, msgId: %s%n", sendResult.messageId());
         }
 
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
         {
             final Future<SendResult> result = producer.sendAsync(producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8"))));
             result.addListener(new FutureListener<SendResult>() {
@@ -63,6 +57,7 @@ public class SimpleProducer {
                     } else {
                         System.out.printf("Send async message OK, msgId: %s%n", future.get().messageId());
                     }
+                    countDownLatch.countDown();
                 }
             });
         }
@@ -71,5 +66,12 @@ public class SimpleProducer {
             producer.sendOneway(producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8"))));
             System.out.printf("Send oneway message OK%n");
         }
+
+        try {
+            countDownLatch.await();
+        } catch (InterruptedException ignore) {
+        }
+
+        producer.shutdown();
     }
 }
