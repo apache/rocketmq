@@ -16,20 +16,20 @@
  */
 package io.openmessaging.rocketmq.config;
 
-import io.openmessaging.PropertyKeys;
+import io.openmessaging.OMSBuiltinKeys;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 
-public class ClientConfig implements PropertyKeys, NonStandardKeys {
-    private String omsDriverImpl;
-    private String omsAccessPoints;
-    private String omsNamespace;
-    private String omsProducerId;
-    private String omsConsumerId;
-    private int omsOperationTimeout = 5000;
-    private String omsRoutingName;
-    private String omsOperatorName;
-    private String omsDstQueue;
-    private String omsSrcTopic;
+public class ClientConfig implements OMSBuiltinKeys, NonStandardKeys {
+    private String driverImpl;
+    private String accessPoints;
+    private String namespace;
+    private String producerId;
+    private String consumerId;
+    private int operationTimeout = 5000;
+    private String region;
+    private String routingSource;
+    private String routingDestination;
+    private String routingExpression;
     private String rmqConsumerGroup;
     private String rmqProducerGroup = "__OMS_PRODUCER_DEFAULT_GROUP";
     private int rmqMaxRedeliveryTimes = 16;
@@ -40,84 +40,60 @@ public class ClientConfig implements PropertyKeys, NonStandardKeys {
     private int rmqPullMessageBatchNums = 32;
     private int rmqPullMessageCacheCapacity = 1000;
 
-    public String getOmsDriverImpl() {
-        return omsDriverImpl;
+    public String getDriverImpl() {
+        return driverImpl;
     }
 
-    public void setOmsDriverImpl(final String omsDriverImpl) {
-        this.omsDriverImpl = omsDriverImpl;
+    public void setDriverImpl(final String driverImpl) {
+        this.driverImpl = driverImpl;
     }
 
-    public String getOmsAccessPoints() {
-        return omsAccessPoints;
+    public String getAccessPoints() {
+        return accessPoints;
     }
 
-    public void setOmsAccessPoints(final String omsAccessPoints) {
-        this.omsAccessPoints = omsAccessPoints;
+    public void setAccessPoints(final String accessPoints) {
+        this.accessPoints = accessPoints;
     }
 
-    public String getOmsNamespace() {
-        return omsNamespace;
+    public String getNamespace() {
+        return namespace;
     }
 
-    public void setOmsNamespace(final String omsNamespace) {
-        this.omsNamespace = omsNamespace;
+    public void setNamespace(final String namespace) {
+        this.namespace = namespace;
     }
 
-    public String getOmsProducerId() {
-        return omsProducerId;
+    public String getProducerId() {
+        return producerId;
     }
 
-    public void setOmsProducerId(final String omsProducerId) {
-        this.omsProducerId = omsProducerId;
+    public void setProducerId(final String producerId) {
+        this.producerId = producerId;
     }
 
-    public String getOmsConsumerId() {
-        return omsConsumerId;
+    public String getConsumerId() {
+        return consumerId;
     }
 
-    public void setOmsConsumerId(final String omsConsumerId) {
-        this.omsConsumerId = omsConsumerId;
+    public void setConsumerId(final String consumerId) {
+        this.consumerId = consumerId;
     }
 
-    public int getOmsOperationTimeout() {
-        return omsOperationTimeout;
+    public int getOperationTimeout() {
+        return operationTimeout;
     }
 
-    public void setOmsOperationTimeout(final int omsOperationTimeout) {
-        this.omsOperationTimeout = omsOperationTimeout;
+    public void setOperationTimeout(final int operationTimeout) {
+        this.operationTimeout = operationTimeout;
     }
 
-    public String getOmsRoutingName() {
-        return omsRoutingName;
+    public String getRoutingSource() {
+        return routingSource;
     }
 
-    public void setOmsRoutingName(final String omsRoutingName) {
-        this.omsRoutingName = omsRoutingName;
-    }
-
-    public String getOmsOperatorName() {
-        return omsOperatorName;
-    }
-
-    public void setOmsOperatorName(final String omsOperatorName) {
-        this.omsOperatorName = omsOperatorName;
-    }
-
-    public String getOmsDstQueue() {
-        return omsDstQueue;
-    }
-
-    public void setOmsDstQueue(final String omsDstQueue) {
-        this.omsDstQueue = omsDstQueue;
-    }
-
-    public String getOmsSrcTopic() {
-        return omsSrcTopic;
-    }
-
-    public void setOmsSrcTopic(final String omsSrcTopic) {
-        this.omsSrcTopic = omsSrcTopic;
+    public void setRoutingSource(final String routingSource) {
+        this.routingSource = routingSource;
     }
 
     public String getRmqConsumerGroup() {
@@ -190,5 +166,29 @@ public class ClientConfig implements PropertyKeys, NonStandardKeys {
 
     public void setRmqPullMessageCacheCapacity(final int rmqPullMessageCacheCapacity) {
         this.rmqPullMessageCacheCapacity = rmqPullMessageCacheCapacity;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
+    public void setRegion(String region) {
+        this.region = region;
+    }
+
+    public String getRoutingDestination() {
+        return routingDestination;
+    }
+
+    public void setRoutingDestination(String routingDestination) {
+        this.routingDestination = routingDestination;
+    }
+
+    public String getRoutingExpression() {
+        return routingExpression;
+    }
+
+    public void setRoutingExpression(String routingExpression) {
+        this.routingExpression = routingExpression;
     }
 }

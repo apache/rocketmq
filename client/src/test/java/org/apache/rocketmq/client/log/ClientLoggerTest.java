@@ -49,7 +49,10 @@ public class ClientLoggerTest {
             rocketmqCommon.info("common message {}", i, new RuntimeException());
             rocketmqRemoting.info("remoting message {}", i, new RuntimeException());
         }
-
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException ignore) {
+        }
         String content = MixAll.file2String(LOG_DIR + "/rocketmq_client.log");
         Assert.assertTrue(content.contains("testClientlog"));
         Assert.assertTrue(content.contains("RocketmqClient"));
