@@ -17,7 +17,7 @@
 package io.openmessaging.rocketmq.consumer;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.PropertyKeys;
+import io.openmessaging.Message;
 import io.openmessaging.ServiceLifecycle;
 import io.openmessaging.rocketmq.config.ClientConfig;
 import io.openmessaging.rocketmq.domain.ConsumeRequest;
@@ -37,11 +37,11 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.ProcessQueue;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.utils.ThreadUtils;
+import org.apache.rocketmq.logging.InternalLogger;
 
 class LocalMessageCache implements ServiceLifecycle {
     private final BlockingQueue<ConsumeRequest> consumeRequestCache;
@@ -96,8 +96,8 @@ class LocalMessageCache implements ServiceLifecycle {
 
     MessageExt poll(final KeyValue properties) {
         int currentPollTimeout = clientConfig.getOmsOperationTimeout();
-        if (properties.containsKey(PropertyKeys.OPERATION_TIMEOUT)) {
-            currentPollTimeout = properties.getInt(PropertyKeys.OPERATION_TIMEOUT);
+        if (properties.containsKey(Message.BuiltinKeys.TIMEOUT)) {
+            currentPollTimeout = properties.getInt(Message.BuiltinKeys.TIMEOUT);
         }
         return poll(currentPollTimeout);
     }

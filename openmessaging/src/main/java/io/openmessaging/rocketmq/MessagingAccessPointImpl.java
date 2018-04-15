@@ -16,24 +16,21 @@
  */
 package io.openmessaging.rocketmq;
 
-import io.openmessaging.IterableConsumer;
 import io.openmessaging.KeyValue;
 import io.openmessaging.MessagingAccessPoint;
-import io.openmessaging.Producer;
-import io.openmessaging.PullConsumer;
-import io.openmessaging.PushConsumer;
 import io.openmessaging.ResourceManager;
-import io.openmessaging.SequenceProducer;
-import io.openmessaging.ServiceEndPoint;
+import io.openmessaging.consumer.PullConsumer;
+import io.openmessaging.consumer.PushConsumer;
+import io.openmessaging.consumer.StreamingConsumer;
 import io.openmessaging.exception.OMSNotSupportedException;
-import io.openmessaging.observer.Observer;
+import io.openmessaging.producer.Producer;
 import io.openmessaging.rocketmq.consumer.PullConsumerImpl;
 import io.openmessaging.rocketmq.consumer.PushConsumerImpl;
 import io.openmessaging.rocketmq.producer.ProducerImpl;
-import io.openmessaging.rocketmq.producer.SequenceProducerImpl;
 import io.openmessaging.rocketmq.utils.OMSUtil;
 
 public class MessagingAccessPointImpl implements MessagingAccessPoint {
+
     private final KeyValue accessPointProperties;
 
     public MessagingAccessPointImpl(final KeyValue accessPointProperties) {
@@ -41,8 +38,13 @@ public class MessagingAccessPointImpl implements MessagingAccessPoint {
     }
 
     @Override
-    public KeyValue properties() {
+    public KeyValue attributes() {
         return accessPointProperties;
+    }
+
+    @Override
+    public String implVersion() {
+        return "0.3.0";
     }
 
     @Override
@@ -56,16 +58,6 @@ public class MessagingAccessPointImpl implements MessagingAccessPoint {
     }
 
     @Override
-    public SequenceProducer createSequenceProducer() {
-        return new SequenceProducerImpl(this.accessPointProperties);
-    }
-
-    @Override
-    public SequenceProducer createSequenceProducer(KeyValue properties) {
-        return new SequenceProducerImpl(OMSUtil.buildKeyValue(this.accessPointProperties, properties));
-    }
-
-    @Override
     public PushConsumer createPushConsumer() {
         return new PushConsumerImpl(accessPointProperties);
     }
@@ -76,48 +68,28 @@ public class MessagingAccessPointImpl implements MessagingAccessPoint {
     }
 
     @Override
-    public PullConsumer createPullConsumer(String queueName) {
-        return new PullConsumerImpl(queueName, accessPointProperties);
+    public PullConsumer createPullConsumer() {
+        return new PullConsumerImpl(accessPointProperties);
     }
 
     @Override
-    public PullConsumer createPullConsumer(String queueName, KeyValue properties) {
-        return new PullConsumerImpl(queueName, OMSUtil.buildKeyValue(this.accessPointProperties, properties));
+    public PullConsumer createPullConsumer(KeyValue attributes) {
+        return new PullConsumerImpl(OMSUtil.buildKeyValue(this.accessPointProperties, attributes));
     }
 
     @Override
-    public IterableConsumer createIterableConsumer(String queueName) {
-        throw new OMSNotSupportedException("-1", "IterableConsumer is not supported in current version");
+    public StreamingConsumer createStreamingConsumer() {
+        return null;
     }
 
     @Override
-    public IterableConsumer createIterableConsumer(String queueName, KeyValue properties) {
-        throw new OMSNotSupportedException("-1", "IterableConsumer is not supported in current version");
+    public StreamingConsumer createStreamingConsumer(KeyValue attributes) {
+        return null;
     }
 
     @Override
-    public ResourceManager getResourceManager() {
+    public ResourceManager resourceManager() {
         throw new OMSNotSupportedException("-1", "ResourceManager is not supported in current version.");
-    }
-
-    @Override
-    public ServiceEndPoint createServiceEndPoint() {
-        throw new OMSNotSupportedException("-1", "ServiceEndPoint is not supported in current version.");
-    }
-
-    @Override
-    public ServiceEndPoint createServiceEndPoint(KeyValue properties) {
-        throw new OMSNotSupportedException("-1", "ServiceEndPoint is not supported in current version.");
-    }
-
-    @Override
-    public void addObserver(Observer observer) {
-        //Ignore
-    }
-
-    @Override
-    public void deleteObserver(Observer observer) {
-        //Ignore
     }
 
     @Override

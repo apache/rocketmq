@@ -17,19 +17,17 @@
 package org.apache.rocketmq.example.openmessaging;
 
 import io.openmessaging.Message;
-import io.openmessaging.MessageHeader;
 import io.openmessaging.MessagingAccessPoint;
-import io.openmessaging.MessagingAccessPointFactory;
 import io.openmessaging.OMS;
-import io.openmessaging.PullConsumer;
+import io.openmessaging.consumer.PullConsumer;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 
 public class SimplePullConsumer {
     public static void main(String[] args) {
-        final MessagingAccessPoint messagingAccessPoint = MessagingAccessPointFactory
-            .getMessagingAccessPoint("openmessaging:rocketmq://IP1:9876,IP2:9876/namespace");
+        final MessagingAccessPoint messagingAccessPoint =
+            OMS.getMessagingAccessPoint("openmessaging:rocketmq://IP1:9876,IP2:9876/namespace");
 
-        final PullConsumer consumer = messagingAccessPoint.createPullConsumer("OMS_HELLO_TOPIC",
+        final PullConsumer consumer = messagingAccessPoint.createPullConsumer(
             OMS.newKeyValue().put(NonStandardKeys.CONSUMER_GROUP, "OMS_CONSUMER"));
 
         messagingAccessPoint.startup();
@@ -43,13 +41,15 @@ public class SimplePullConsumer {
             }
         }));
 
+        consumer.attachQueue("OMS_HELLO_TOPIC");
+
         consumer.startup();
         System.out.printf("Consumer startup OK%n");
 
         while (true) {
-            Message message = consumer.poll();
+            Message message = consumer.receive();
             if (message != null) {
-                String msgId = message.headers().getString(MessageHeader.MESSAGE_ID);
+                String msgId = message.sysHeaders().getString(Message.BuiltinKeys.MESSAGE_ID);
                 System.out.printf("Received one message: %s%n", msgId);
                 consumer.ack(msgId);
             }

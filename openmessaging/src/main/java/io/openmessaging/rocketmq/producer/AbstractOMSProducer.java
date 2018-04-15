@@ -20,8 +20,7 @@ import io.openmessaging.BytesMessage;
 import io.openmessaging.KeyValue;
 import io.openmessaging.Message;
 import io.openmessaging.MessageFactory;
-import io.openmessaging.MessageHeader;
-import io.openmessaging.PropertyKeys;
+import io.openmessaging.OMSBuiltinKeys;
 import io.openmessaging.ServiceLifecycle;
 import io.openmessaging.exception.OMSMessageFormatException;
 import io.openmessaging.exception.OMSNotSupportedException;
@@ -64,7 +63,7 @@ abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
         this.rocketmqProducer.setSendMsgTimeout(clientConfig.getOmsOperationTimeout());
         this.rocketmqProducer.setInstanceName(producerId);
         this.rocketmqProducer.setMaxMessageSize(1024 * 1024 * 4);
-        properties.put(PropertyKeys.PRODUCER_ID, producerId);
+        properties.put(OMSBuiltinKeys.PRODUCER_ID, producerId);
     }
 
     @Override
@@ -121,18 +120,10 @@ abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
     }
 
     @Override
-    public BytesMessage createBytesMessageToTopic(final String topic, final byte[] body) {
-        BytesMessage bytesMessage = new BytesMessageImpl();
-        bytesMessage.setBody(body);
-        bytesMessage.headers().put(MessageHeader.TOPIC, topic);
-        return bytesMessage;
-    }
-
-    @Override
-    public BytesMessage createBytesMessageToQueue(final String queue, final byte[] body) {
-        BytesMessage bytesMessage = new BytesMessageImpl();
-        bytesMessage.setBody(body);
-        bytesMessage.headers().put(MessageHeader.QUEUE, queue);
-        return bytesMessage;
+    public BytesMessage createBytesMessage(String queue, byte[] body) {
+        BytesMessage message = new BytesMessageImpl();
+        message.setBody(body);
+        message.sysHeaders().put(Message.BuiltinKeys.DESTINATION, queue);
+        return message;
     }
 }

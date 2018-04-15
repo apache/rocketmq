@@ -16,10 +16,10 @@
  */
 package io.openmessaging.rocketmq.config;
 
-import io.openmessaging.PropertyKeys;
+import io.openmessaging.OMSBuiltinKeys;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 
-public class ClientConfig implements PropertyKeys, NonStandardKeys {
+public class ClientConfig implements OMSBuiltinKeys, NonStandardKeys {
     private String omsDriverImpl;
     private String omsAccessPoints;
     private String omsNamespace;
