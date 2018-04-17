@@ -18,6 +18,7 @@ package io.openmessaging.rocketmq.consumer;
 
 import io.openmessaging.BytesMessage;
 import io.openmessaging.Message;
+import io.openmessaging.OMSBuiltinKeys;
 import io.openmessaging.consumer.MessageListener;
 import io.openmessaging.MessagingAccessPoint;
 import io.openmessaging.OMS;
@@ -47,9 +48,9 @@ public class PushConsumerImplTest {
     @Before
     public void init() throws NoSuchFieldException, IllegalAccessException {
         final MessagingAccessPoint messagingAccessPoint = OMS
-            .getMessagingAccessPoint("openmessaging:rocketmq://IP1:9876,IP2:9876/namespace");
+            .getMessagingAccessPoint("oms:rocketmq://IP1:9876,IP2:9876/namespace");
         consumer = messagingAccessPoint.createPushConsumer(
-            OMS.newKeyValue().put(NonStandardKeys.CONSUMER_GROUP, "TestGroup"));
+            OMS.newKeyValue().put(OMSBuiltinKeys.CONSUMER_ID, "TestGroup"));
 
         Field field = PushConsumerImpl.class.getDeclaredField("rocketmqPushConsumer");
         field.setAccessible(true);

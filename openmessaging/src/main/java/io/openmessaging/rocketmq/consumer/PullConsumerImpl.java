@@ -52,7 +52,7 @@ public class PullConsumerImpl implements PullConsumer {
         this.properties = properties;
         this.clientConfig = BeanUtils.populate(properties, ClientConfig.class);
 
-        String consumerGroup = clientConfig.getOmsConsumerId();
+        String consumerGroup = clientConfig.getConsumerId();
         if (null == consumerGroup || consumerGroup.isEmpty()) {
             throw new OMSRuntimeException("-1", "Consumer Group is necessary for RocketMQ, please set it.");
         }
@@ -60,7 +60,7 @@ public class PullConsumerImpl implements PullConsumer {
 
         this.rocketmqPullConsumer = pullConsumerScheduleService.getDefaultMQPullConsumer();
 
-        String accessPoints = clientConfig.getOmsAccessPoints();
+        String accessPoints = clientConfig.getAccessPoints();
         if (accessPoints == null || accessPoints.isEmpty()) {
             throw new OMSRuntimeException("-1", "OMS AccessPoints is null or empty.");
         }

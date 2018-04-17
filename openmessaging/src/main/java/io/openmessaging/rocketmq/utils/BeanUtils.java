@@ -171,7 +171,7 @@ public final class BeanUtils {
                 }
                 String beanFieldNameWithCapitalization = StringUtils.join(keyGroup);
                 try {
-                    setProperties(clazz, obj, "setOms" + beanFieldNameWithCapitalization, properties.getString(key));
+                    setProperties(clazz, obj, "set" + beanFieldNameWithCapitalization, properties.getString(key));
                 } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
                     //ignored...
                 }

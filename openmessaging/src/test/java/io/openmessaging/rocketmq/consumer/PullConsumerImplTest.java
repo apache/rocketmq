@@ -20,6 +20,7 @@ import io.openmessaging.BytesMessage;
 import io.openmessaging.Message;
 import io.openmessaging.MessagingAccessPoint;
 import io.openmessaging.OMS;
+import io.openmessaging.OMSBuiltinKeys;
 import io.openmessaging.consumer.PullConsumer;
 import io.openmessaging.rocketmq.config.ClientConfig;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
@@ -48,9 +49,9 @@ public class PullConsumerImplTest {
     @Before
     public void init() throws NoSuchFieldException, IllegalAccessException {
         final MessagingAccessPoint messagingAccessPoint = OMS
-            .getMessagingAccessPoint("openmessaging:rocketmq://IP1:9876,IP2:9876/namespace");
+            .getMessagingAccessPoint("oms:rocketmq://IP1:9876,IP2:9876/namespace");
 
-        consumer = messagingAccessPoint.createPullConsumer(OMS.newKeyValue().put(NonStandardKeys.CONSUMER_GROUP, "TestGroup"));
+        consumer = messagingAccessPoint.createPullConsumer(OMS.newKeyValue().put(OMSBuiltinKeys.CONSUMER_ID, "TestGroup"));
         consumer.attachQueue(queueName);
 
         Field field = PullConsumerImpl.class.getDeclaredField("rocketmqPullConsumer");
@@ -58,7 +59,7 @@ public class PullConsumerImplTest {
         field.set(consumer, rocketmqPullConsumer); //Replace
 
         ClientConfig clientConfig = new ClientConfig();
-        clientConfig.setOmsOperationTimeout(200);
+        clientConfig.setOperationTimeout(200);
         localMessageCache = spy(new LocalMessageCache(rocketmqPullConsumer, clientConfig));
 
         field = PullConsumerImpl.class.getDeclaredField("localMessageCache");

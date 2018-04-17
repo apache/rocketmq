@@ -69,6 +69,7 @@ public class SimpleProducer {
 
         try {
             countDownLatch.await();
+            Thread.sleep(500); // Wait some time for one-way delivery.
         } catch (InterruptedException ignore) {
         }
 

@@ -91,11 +91,11 @@ class LocalMessageCache implements ServiceLifecycle {
     }
 
     MessageExt poll() {
-        return poll(clientConfig.getOmsOperationTimeout());
+        return poll(clientConfig.getOperationTimeout());
     }
 
     MessageExt poll(final KeyValue properties) {
-        int currentPollTimeout = clientConfig.getOmsOperationTimeout();
+        int currentPollTimeout = clientConfig.getOperationTimeout();
         if (properties.containsKey(Message.BuiltinKeys.TIMEOUT)) {
             currentPollTimeout = properties.getInt(Message.BuiltinKeys.TIMEOUT);
         }

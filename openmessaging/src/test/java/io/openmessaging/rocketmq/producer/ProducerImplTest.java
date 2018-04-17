@@ -50,7 +50,7 @@ public class ProducerImplTest {
     @Before
     public void init() throws NoSuchFieldException, IllegalAccessException {
         final MessagingAccessPoint messagingAccessPoint = OMS
-            .getMessagingAccessPoint("openmessaging:rocketmq://IP1:9876,IP2:9876/namespace");
+            .getMessagingAccessPoint("oms:rocketmq://IP1:9876,IP2:9876/namespace");
         producer = messagingAccessPoint.createProducer();
 
         Field field = AbstractOMSProducer.class.getDeclaredField("rocketmqProducer");
