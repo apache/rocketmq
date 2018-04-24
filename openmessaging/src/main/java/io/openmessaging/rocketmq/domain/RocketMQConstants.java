@@ -2,6 +2,6 @@ package io.openmessaging.rocketmq.domain;
 
 public interface RocketMQConstants {
 
-    String STARTDELIVERTIME = "__STARTDELIVERTIME";
+    String START_DELIVER_TIME = "__STARTDELIVERTIME";
 
 }

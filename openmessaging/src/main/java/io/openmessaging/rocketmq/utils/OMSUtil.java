@@ -57,7 +57,7 @@ public class OMSUtil {
         if (sysHeaders.containsKey(BuiltinKeys.START_TIME)) {
             long deliverTime = sysHeaders.getLong(BuiltinKeys.START_TIME, 0);
             if (deliverTime > 0) {
-                rmqMessage.putUserProperty(RocketMQConstants.STARTDELIVERTIME, String.valueOf(deliverTime));
+                rmqMessage.putUserProperty(RocketMQConstants.START_DELIVER_TIME, String.valueOf(deliverTime));
             }
         }
 
