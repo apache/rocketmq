@@ -22,6 +22,7 @@ import io.openmessaging.Message.BuiltinKeys;
 import io.openmessaging.OMS;
 import io.openmessaging.producer.SendResult;
 import io.openmessaging.rocketmq.domain.BytesMessageImpl;
+import io.openmessaging.rocketmq.domain.RocketMQConstants;
 import io.openmessaging.rocketmq.domain.SendResultImpl;
 import java.lang.reflect.Field;
 import java.util.Iterator;
@@ -52,6 +53,13 @@ public class OMSUtil {
 
         //All destinations in RocketMQ use Topic
         rmqMessage.setTopic(sysHeaders.getString(BuiltinKeys.DESTINATION));
+
+        if (sysHeaders.containsKey(BuiltinKeys.START_TIME)) {
+            long deliverTime = sysHeaders.getLong(BuiltinKeys.START_TIME, 0);
+            if (deliverTime > 0) {
+                rmqMessage.putUserProperty(RocketMQConstants.STARTDELIVERTIME, String.valueOf(deliverTime));
+            }
+        }
 
         for (String key : userHeaders.keySet()) {
             MessageAccessor.putProperty(rmqMessage, key, userHeaders.getString(key));
