@@ -297,11 +297,59 @@ public class MQClientAPIImpl {
     ) throws RemotingException, MQBrokerException, InterruptedException {
         return sendMessage(addr, brokerName, msg, requestHeader, timeoutMillis, communicationMode, null, null, null, 0, context, producer);
     }
+    public SendResult sendMessage(
+            final String addr,
+            final String brokerName,
+            final Message msg,
+            final SendMessageRequestHeader requestHeader,
+            final long timeoutMillis,
+            final CommunicationMode communicationMode,
+            final SendCallback sendCallback,
+            final TopicPublishInfo topicPublishInfo,
+            final MQClientInstance instance,
+            final int retryTimesWhenSendFailed,
+            final SendMessageContext context,
+            final DefaultMQProducerImpl producer
+    ) throws RemotingException, MQBrokerException, InterruptedException {
+        RemotingCommand request = null;
+        if (sendSmartMsg || msg instanceof MessageBatch) {
+            SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
+            request = RemotingCommand.createRequestCommand(msg instanceof MessageBatch ? RequestCode.SEND_BATCH_MESSAGE : RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
+        } else {
+            request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
+        }
 
+        request.setBody(msg.getBody());
+
+        switch (communicationMode) {
+            case ONEWAY:
+                this.remotingClient.invokeOneway(addr, request, timeoutMillis);
+                return null;
+            case ASYNC:
+                final AtomicInteger times = new AtomicInteger();
+                this.sendMessageAsync(addr, brokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,
+                        retryTimesWhenSendFailed, times, context, producer);
+                return null;
+            case SYNC:
+                return this.sendMessageSync(addr, brokerName, msg, timeoutMillis, request);
+            default:
+                assert false;
+                break;
+        }
+
+        return null;
+    }
+
+    /**
+     * Add new parameter byte[] msgBody
+     *if msgbody is compressed, use this parameter
+     *fix bug:https://github.com/apache/rocketmq-externals/issues/66
+    **/
     public SendResult sendMessage(
         final String addr,
         final String brokerName,
         final Message msg,
+        final byte[] msgBody,
         final SendMessageRequestHeader requestHeader,
         final long timeoutMillis,
         final CommunicationMode communicationMode,
@@ -320,7 +368,7 @@ public class MQClientAPIImpl {
             request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
         }
 
-        request.setBody(msg.getBody());
+        request.setBody(msgBody);
 
         switch (communicationMode) {
             case ONEWAY:

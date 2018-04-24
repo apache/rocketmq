@@ -607,8 +607,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 }
 
                 int sysFlag = 0;
+                boolean msgBodyCompressed = false;
                 if (this.tryToCompressMessage(msg)) {
                     sysFlag |= MessageSysFlag.COMPRESSED_FLAG;
+                    msgBodyCompressed = true;
                 }
 
                 final String tranMsg = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
@@ -678,10 +680,17 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 SendResult sendResult = null;
                 switch (communicationMode) {
                     case ASYNC:
+                        byte[] msgBody = msg.getBody();
+                        if(msgBodyCompressed){
+                            //如果消息体被压缩过,异步消息发送将消息体重设回未压缩状态
+                            //fix bug:https://github.com/apache/rocketmq-externals/issues/66
+                            msg.setBody(prevBody);
+                        }
                         sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(
                             brokerAddr,
                             mq.getBrokerName(),
                             msg,
+                            msgBody,
                             requestHeader,
                             timeout,
                             communicationMode,
