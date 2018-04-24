@@ -681,8 +681,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 switch (communicationMode) {
                     case ASYNC:
                         byte[] msgBody = msg.getBody();
-                        if(msgBodyCompressed){
-                            //如果消息体被压缩过,异步消息发送将消息体重设回未压缩状态
+                        if (msgBodyCompressed) {
+                            //if msg body was compressed, reset it using prevBody.
                             //fix bug:https://github.com/apache/rocketmq-externals/issues/66
                             msg.setBody(prevBody);
                         }
