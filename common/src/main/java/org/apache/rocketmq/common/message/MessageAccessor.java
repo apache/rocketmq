@@ -88,5 +88,11 @@ public class MessageAccessor {
     public static String getConsumeStartTimeStamp(final Message msg) {
         return msg.getProperty(MessageConst.PROPERTY_CONSUME_START_TIMESTAMP);
     }
+    public static Message cloneMessage(final Message msg){
+        Message newMsg = new Message(msg.getTopic(),msg.getBody());
+        newMsg.setFlag(msg.getFlag());
+        newMsg.setProperties(msg.getProperties());
+        return newMsg;
+    }
 
-}
+    }

@@ -680,17 +680,19 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 SendResult sendResult = null;
                 switch (communicationMode) {
                     case ASYNC:
-                        byte[] msgBody = msg.getBody();
+                        Message tmpMessage = msg;
                         if (msgBodyCompressed) {
-                            //if msg body was compressed, reset it using prevBody.
+                            //if msg body was compressed, msgbody should be reset using prevBody.
+                            //clone new message using commpressed message body and recover origin massage
                             //fix bug:https://github.com/apache/rocketmq-externals/issues/66
+                            tmpMessage = MessageAccessor.cloneMessage(msg);
                             msg.setBody(prevBody);
                         }
+
                         sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(
                             brokerAddr,
                             mq.getBrokerName(),
-                            msg,
-                            msgBody,
+                            tmpMessage,
                             requestHeader,
                             timeout,
                             communicationMode,
