@@ -52,11 +52,15 @@ abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
         this.rocketmqProducer = new DefaultMQProducer();
         this.clientConfig = BeanUtils.populate(properties, ClientConfig.class);
 
-        String accessPoints = clientConfig.getAccessPoints();
-        if (accessPoints == null || accessPoints.isEmpty()) {
-            throw new OMSRuntimeException("-1", "OMS AccessPoints is null or empty.");
+        if ("true".equalsIgnoreCase(System.getenv("OMS_RMQ_DIRECT_NAME_SRV"))) {
+            String accessPoints = clientConfig.getAccessPoints();
+            if (accessPoints == null || accessPoints.isEmpty()) {
+                throw new OMSRuntimeException("-1", "OMS AccessPoints is null or empty.");
+            }
+
+            this.rocketmqProducer.setNamesrvAddr(accessPoints.replace(',', ';'));
         }
-        this.rocketmqProducer.setNamesrvAddr(accessPoints.replace(',', ';'));
+
         this.rocketmqProducer.setProducerGroup(clientConfig.getRmqProducerGroup());
 
         String producerId = buildInstanceName();
