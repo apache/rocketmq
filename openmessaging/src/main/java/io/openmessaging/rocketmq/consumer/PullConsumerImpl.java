@@ -60,11 +60,13 @@ public class PullConsumerImpl implements PullConsumer {
 
         this.rocketmqPullConsumer = pullConsumerScheduleService.getDefaultMQPullConsumer();
 
-        String accessPoints = clientConfig.getAccessPoints();
-        if (accessPoints == null || accessPoints.isEmpty()) {
-            throw new OMSRuntimeException("-1", "OMS AccessPoints is null or empty.");
+        if ("true".equalsIgnoreCase(System.getenv("OMS_RMQ_DIRECT_NAME_SRV"))) {
+            String accessPoints = clientConfig.getAccessPoints();
+            if (accessPoints == null || accessPoints.isEmpty()) {
+                throw new OMSRuntimeException("-1", "OMS AccessPoints is null or empty.");
+            }
+            this.rocketmqPullConsumer.setNamesrvAddr(accessPoints.replace(',', ';'));
         }
-        this.rocketmqPullConsumer.setNamesrvAddr(accessPoints.replace(',', ';'));
 
         this.rocketmqPullConsumer.setConsumerGroup(consumerGroup);
 
