@@ -682,9 +682,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     case ASYNC:
                         Message tmpMessage = msg;
                         if (msgBodyCompressed) {
-                            //if msg body was compressed, msgbody should be reset using prevBody.
-                            //clone new message using commpressed message body and recover origin massage
-                            //fix bug:https://github.com/apache/rocketmq-externals/issues/66
+                            //If msg body was compressed, msgbody should be reset using prevBody.
+                            //Clone new message using commpressed message body and recover origin massage.
+                            //Fix bug:https://github.com/apache/rocketmq-externals/issues/66
                             tmpMessage = MessageAccessor.cloneMessage(msg);
                             msg.setBody(prevBody);
                         }
