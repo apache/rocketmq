@@ -36,13 +36,13 @@ public class Message implements Serializable {
         this(topic, "", "", 0, body, true);
     }
 
-    public Message(String topic, String tags, String keys, int flag, byte[] body, boolean waitStoreMsgOK) {
+    public Message(String topic, String tag, String keys, int flag, byte[] body, boolean waitStoreMsgOK) {
         this.topic = topic;
         this.flag = flag;
         this.body = body;
 
-        if (tags != null && tags.length() > 0)
-            this.setTags(tags);
+        if (tag != null && tag.length() > 0)
+            this.setTags(tag);
 
         if (keys != null && keys.length() > 0)
             this.setKeys(keys);
@@ -50,12 +50,12 @@ public class Message implements Serializable {
         this.setWaitStoreMsgOK(waitStoreMsgOK);
     }
 
-    public Message(String topic, String tags, byte[] body) {
-        this(topic, tags, "", 0, body, true);
+    public Message(String topic, String tag, byte[] body) {
+        this(topic, tag, "", 0, body, true);
     }
 
-    public Message(String topic, String tags, String keys, byte[] body) {
-        this(topic, tags, keys, 0, body, true);
+    public Message(String topic, String tag, String keys, byte[] body) {
+        this(topic, tag, keys, 0, body, true);
     }
 
     public void setKeys(String keys) {
@@ -116,8 +116,8 @@ public class Message implements Serializable {
         return this.getProperty(MessageConst.PROPERTY_TAGS);
     }
 
-    public void setTags(String tags) {
-        this.putProperty(MessageConst.PROPERTY_TAGS, tags);
+    public void setTags(String tag) {
+        this.putProperty(MessageConst.PROPERTY_TAGS, tag);
     }
 
     public String getKeys() {
