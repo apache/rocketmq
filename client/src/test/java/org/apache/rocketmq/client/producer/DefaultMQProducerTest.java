@@ -69,6 +69,7 @@ public class DefaultMQProducerTest {
     private DefaultMQProducer producer;
     private Message message;
     private Message zeroMsg;
+    private Message bigMessage;
     private String topic = "FooBar";
     private String producerGroupPrefix = "FooBar_PID";
 
@@ -77,8 +78,10 @@ public class DefaultMQProducerTest {
         String producerGroupTemp = producerGroupPrefix + System.currentTimeMillis();
         producer = new DefaultMQProducer(producerGroupTemp);
         producer.setNamesrvAddr("127.0.0.1:9876");
+        producer.setCompressMsgBodyOverHowmuch(16);
         message = new Message(topic, new byte[] {'a'});
         zeroMsg = new Message(topic, new byte[] {});
+        bigMessage = new Message(topic, "This is a very huge message!".getBytes());
 
         producer.start();
 
@@ -144,6 +147,52 @@ public class DefaultMQProducerTest {
         assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
         assertThat(sendResult.getOffsetMsgId()).isEqualTo("123");
         assertThat(sendResult.getQueueOffset()).isEqualTo(456L);
+    }
+
+    @Test
+    public void testSendMessageSync_WithBodyCompressed() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+        SendResult sendResult = producer.send(bigMessage);
+
+        assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
+        assertThat(sendResult.getOffsetMsgId()).isEqualTo("123");
+        assertThat(sendResult.getQueueOffset()).isEqualTo(456L);
+    }
+
+    @Test
+    public void testSendMessageAsync_Success() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+        producer.send(message, new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
+                assertThat(sendResult.getOffsetMsgId()).isEqualTo("123");
+                assertThat(sendResult.getQueueOffset()).isEqualTo(456L);
+            }
+
+            @Override
+            public void onException(Throwable e) {
+            }
+        });
+
+    }
+
+    @Test
+    public void testSendMessageAsync_BodyCompressed() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+        producer.send(bigMessage, new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
+                assertThat(sendResult.getOffsetMsgId()).isEqualTo("123");
+                assertThat(sendResult.getQueueOffset()).isEqualTo(456L);
+            }
+
+            @Override
+            public void onException(Throwable e) {
+            }
+        });
+
     }
 
     @Test
