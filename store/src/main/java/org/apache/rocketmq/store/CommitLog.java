@@ -62,6 +62,7 @@ public class CommitLog {
 
     private volatile long beginTimeInLock = 0;
     private final PutMessageLock putMessageLock;
+    private final GroupCommitCallback groupCommitCallback ;
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
         this.mappedFileQueue = new MappedFileQueue(defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog(),
@@ -84,6 +85,7 @@ public class CommitLog {
             }
         };
         this.putMessageLock = defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new PutMessageSpinLock();
+        this.groupCommitCallback = new GroupCommitCallback() ;
 
     }
 
@@ -518,7 +520,7 @@ public class CommitLog {
         return beginTimeInLock;
     }
 
-    public PutMessageResult putMessage(final MessageExtBrokerInner msg) {
+    public void putMessage(final MessageExtBrokerInner msg , final CommitLogPutMessageCallback commitLogPutMessageCallback) {
         // Set the storage time
         msg.setStoreTimestamp(System.currentTimeMillis());
         // Set the message body BODY CRC (consider the most appropriate setting
@@ -573,7 +575,8 @@ public class CommitLog {
             if (null == mappedFile) {
                 log.error("create mapped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
                 beginTimeInLock = 0;
-                return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null);
+                commitLogPutMessageCallback.callback(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null));
+                return ;
             }
 
             result = mappedFile.appendMessage(msg, this.appendMessageCallback);
@@ -588,20 +591,24 @@ public class CommitLog {
                         // XXX: warn and notify me
                         log.error("create mapped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
                         beginTimeInLock = 0;
-                        return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
+                        commitLogPutMessageCallback.callback(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result));
+                        return ;
                     }
                     result = mappedFile.appendMessage(msg, this.appendMessageCallback);
                     break;
                 case MESSAGE_SIZE_EXCEEDED:
                 case PROPERTIES_SIZE_EXCEEDED:
                     beginTimeInLock = 0;
-                    return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result);
+                    commitLogPutMessageCallback.callback(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result));
+                    return ;
                 case UNKNOWN_ERROR:
                     beginTimeInLock = 0;
-                    return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
+                    commitLogPutMessageCallback.callback(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
+                    return ;
                 default:
                     beginTimeInLock = 0;
-                    return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
+                    commitLogPutMessageCallback.callback(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
+                    return ;
             }
 
             eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
@@ -625,9 +632,9 @@ public class CommitLog {
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
 
         handleDiskFlush(result, putMessageResult, msg);
-        handleHA(result, putMessageResult, msg);
-
-        return putMessageResult;
+        if (!handleHA(result, putMessageResult, msg, commitLogPutMessageCallback)) {
+            commitLogPutMessageCallback.callback(putMessageResult);
+        }
     }
 
     public void handleDiskFlush(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt) {
@@ -657,22 +664,25 @@ public class CommitLog {
         }
     }
 
-    public void handleHA(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt) {
+    /**
+     *
+     * @param result
+     * @param putMessageResult
+     * @param messageExt
+     * @param commitLogPutMessageCallback
+     * @return whether to wait slave, if false, the request should respond synchronously
+     */
+    public boolean handleHA(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt, CommitLogPutMessageCallback commitLogPutMessageCallback) {
         if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
             HAService service = this.defaultMessageStore.getHaService();
             if (messageExt.isWaitStoreMsgOK()) {
                 // Determine whether to wait
                 if (service.isSlaveOK(result.getWroteOffset() + result.getWroteBytes())) {
-                    GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
+
+                    GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes() , commitLogPutMessageCallback, putMessageResult, messageExt, groupCommitCallback) ;
                     service.putRequest(request);
                     service.getWaitNotifyObject().wakeupAll();
-                    boolean flushOK =
-                        request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
-                    if (!flushOK) {
-                        log.error("do sync transfer other node, wait return, but failed, topic: " + messageExt.getTopic() + " tags: "
-                            + messageExt.getTags() + " client address: " + messageExt.getBornHostNameString());
-                        putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
-                    }
+                    return true;
                 }
                 // Slave problem
                 else {
@@ -682,9 +692,10 @@ public class CommitLog {
             }
         }
 
+        return false;
     }
 
-    public PutMessageResult putMessages(final MessageExtBatch messageExtBatch) {
+    public void putMessages(final MessageExtBatch messageExtBatch , CommitLogPutMessageCallback commitLogPutMessageCallback) {
         messageExtBatch.setStoreTimestamp(System.currentTimeMillis());
         AppendMessageResult result;
 
@@ -693,10 +704,12 @@ public class CommitLog {
         final int tranType = MessageSysFlag.getTransactionValue(messageExtBatch.getSysFlag());
 
         if (tranType != MessageSysFlag.TRANSACTION_NOT_TYPE) {
-            return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
+            commitLogPutMessageCallback.callback(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
+            return ;
         }
         if (messageExtBatch.getDelayTimeLevel() > 0) {
-            return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
+            commitLogPutMessageCallback.callback(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
+            return ;
         }
 
         long eclipseTimeInLock = 0;
@@ -723,7 +736,8 @@ public class CommitLog {
             if (null == mappedFile) {
                 log.error("Create mapped file1 error, topic: {} clientAddr: {}", messageExtBatch.getTopic(), messageExtBatch.getBornHostString());
                 beginTimeInLock = 0;
-                return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null);
+                commitLogPutMessageCallback.callback(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null));
+                return ;
             }
 
             result = mappedFile.appendMessages(messageExtBatch, this.appendMessageCallback);
@@ -738,20 +752,24 @@ public class CommitLog {
                         // XXX: warn and notify me
                         log.error("Create mapped file2 error, topic: {} clientAddr: {}", messageExtBatch.getTopic(), messageExtBatch.getBornHostString());
                         beginTimeInLock = 0;
-                        return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
+                        commitLogPutMessageCallback.callback(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result));
+                        return ;
                     }
                     result = mappedFile.appendMessages(messageExtBatch, this.appendMessageCallback);
                     break;
                 case MESSAGE_SIZE_EXCEEDED:
                 case PROPERTIES_SIZE_EXCEEDED:
                     beginTimeInLock = 0;
-                    return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result);
+                    commitLogPutMessageCallback.callback(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result));
+                    return ;
                 case UNKNOWN_ERROR:
                     beginTimeInLock = 0;
-                    return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
+                    commitLogPutMessageCallback.callback(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
+                    return ;
                 default:
                     beginTimeInLock = 0;
-                    return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
+                    commitLogPutMessageCallback.callback(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
+                    return ;
             }
 
             eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
@@ -776,9 +794,9 @@ public class CommitLog {
 
         handleDiskFlush(result, putMessageResult, messageExtBatch);
 
-        handleHA(result, putMessageResult, messageExtBatch);
-
-        return putMessageResult;
+        if (!handleHA(result, putMessageResult, messageExtBatch, commitLogPutMessageCallback)) {
+            commitLogPutMessageCallback.callback(putMessageResult);
+        }
     }
 
     /**
@@ -1027,9 +1045,20 @@ public class CommitLog {
         private final long nextOffset;
         private final CountDownLatch countDownLatch = new CountDownLatch(1);
         private volatile boolean flushOK = false;
+        private CommitLogPutMessageCallback commitLogPutMessageCallback ;
+        private PutMessageResult putMessageResult ;
+        private MessageExt messageExt ;
+        private GroupCommitCallback groupCommitCallback ;
 
         public GroupCommitRequest(long nextOffset) {
             this.nextOffset = nextOffset;
+        }
+        public GroupCommitRequest(long nextOffset, CommitLogPutMessageCallback commitLogPutMessageCallback, PutMessageResult putMessageResult, MessageExt messageExt, GroupCommitCallback groupCommitCallback) {
+            this.nextOffset = nextOffset;
+            this.commitLogPutMessageCallback = commitLogPutMessageCallback;
+            this.putMessageResult = putMessageResult;
+            this.messageExt = messageExt;
+            this.groupCommitCallback = groupCommitCallback ;
         }
 
         public long getNextOffset() {
@@ -1049,6 +1078,42 @@ public class CommitLog {
                 log.error("Interrupted", e);
                 return false;
             }
+        }
+
+        public void setFlushOK(boolean flushOK) {
+            this.flushOK = flushOK;
+        }
+
+        public boolean isFlushOK() {
+            return flushOK;
+        }
+
+        public CommitLogPutMessageCallback getCommitLogPutMessageCallback() {
+            return commitLogPutMessageCallback;
+        }
+
+        public PutMessageResult getPutMessageResult() {
+            return putMessageResult;
+        }
+
+        public MessageExt getMessageExt() {
+            return messageExt;
+        }
+
+        public GroupCommitCallback getGroupCommitCallback() {
+            return groupCommitCallback;
+        }
+    }
+
+    public static class GroupCommitCallback {
+        public void doSlaveAction(GroupCommitRequest request) {
+            boolean flushOK = request.isFlushOK() ;
+            if (!flushOK) {
+                log.error("do sync transfer other node, wait return, but failed, topic: " + request.getMessageExt().getTopic() + " tags: "
+                        + request.getMessageExt().getTags() + " client address: " + request.getMessageExt().getBornHostNameString());
+                request.getPutMessageResult().setPutMessageStatus(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
+            }
+            request.getCommitLogPutMessageCallback().callback(request.getPutMessageResult());
         }
     }
 

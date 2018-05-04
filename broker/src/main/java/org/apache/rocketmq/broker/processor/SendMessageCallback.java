@@ -14,21 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.netty;
+package org.apache.rocketmq.broker.processor;
 
-import io.netty.channel.ChannelHandlerContext;
-import org.apache.rocketmq.remoting.protocol.RemoteCommandResponseCallback;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 /**
- * Common remoting command processor
+ * SendMessageCallback is a asynchronous callback for processor process the response of the produce request
  */
-public interface NettyRequestProcessor {
-    RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
-        throws Exception;
-
-    void asyncProcessRequest(ChannelHandlerContext ctx, RemotingCommand request , RemoteCommandResponseCallback remoteCommandResponseCallback)
-            throws Exception;
-
-    boolean rejectRequest();
+public interface SendMessageCallback {
+    void callback(RemotingCommand response);
 }

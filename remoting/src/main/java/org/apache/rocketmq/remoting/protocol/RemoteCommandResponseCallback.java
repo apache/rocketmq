@@ -14,21 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.netty;
-
-import io.netty.channel.ChannelHandlerContext;
-import org.apache.rocketmq.remoting.protocol.RemoteCommandResponseCallback;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+package org.apache.rocketmq.remoting.protocol;
 
 /**
- * Common remoting command processor
+ * RemoteCommandResponseCallback is a asynchronous callback for netty network io
  */
-public interface NettyRequestProcessor {
-    RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
-        throws Exception;
-
-    void asyncProcessRequest(ChannelHandlerContext ctx, RemotingCommand request , RemoteCommandResponseCallback remoteCommandResponseCallback)
-            throws Exception;
-
-    boolean rejectRequest();
+public interface RemoteCommandResponseCallback {
+    void callback(RemotingCommand response);
 }
