@@ -83,7 +83,7 @@ public class PullConsumerImplTest {
 
         Message message = consumer.receive();
         assertThat(message.sysHeaders().getString(Message.BuiltinKeys.MESSAGE_ID)).isEqualTo("NewMsgId");
-        assertThat(((BytesMessage) message).getBody()).isEqualTo(testBody);
+        assertThat(((BytesMessage) message).getBody(byte[].class)).isEqualTo(testBody);
     }
 
     @Test

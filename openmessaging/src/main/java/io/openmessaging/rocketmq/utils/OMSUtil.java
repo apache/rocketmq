@@ -46,7 +46,7 @@ public class OMSUtil {
 
     public static org.apache.rocketmq.common.message.Message msgConvert(BytesMessage omsMessage) {
         org.apache.rocketmq.common.message.Message rmqMessage = new org.apache.rocketmq.common.message.Message();
-        rmqMessage.setBody(omsMessage.getBody());
+        rmqMessage.setBody(omsMessage.getBody(byte[].class));
 
         KeyValue sysHeaders = omsMessage.sysHeaders();
         KeyValue userHeaders = omsMessage.userHeaders();

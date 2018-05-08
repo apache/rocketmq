@@ -20,6 +20,7 @@ import io.openmessaging.BytesMessage;
 import io.openmessaging.KeyValue;
 import io.openmessaging.Message;
 import io.openmessaging.OMS;
+import io.openmessaging.exception.OMSMessageFormatException;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 public class BytesMessageImpl implements BytesMessage {
@@ -33,8 +34,12 @@ public class BytesMessageImpl implements BytesMessage {
     }
 
     @Override
-    public byte[] getBody() {
-        return body;
+    public <T> T getBody(Class<T> type) throws OMSMessageFormatException {
+        if (type == byte[].class) {
+            return (T)body;
+        }
+
+        throw new OMSMessageFormatException("", "Cannot assign byte[] to " + type.getName());
     }
 
     @Override

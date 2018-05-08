@@ -75,7 +75,7 @@ public class PushConsumerImplTest {
             @Override
             public void onReceived(Message message, Context context) {
                 assertThat(message.sysHeaders().getString(Message.BuiltinKeys.MESSAGE_ID)).isEqualTo("NewMsgId");
-                assertThat(((BytesMessage) message).getBody()).isEqualTo(testBody);
+                assertThat(((BytesMessage) message).getBody(byte[].class)).isEqualTo(testBody);
                 context.ack();
             }
         });
