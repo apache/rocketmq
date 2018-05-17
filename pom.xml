@@ -525,8 +525,13 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.rocketmq</groupId>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-filter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-openmessaging</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
