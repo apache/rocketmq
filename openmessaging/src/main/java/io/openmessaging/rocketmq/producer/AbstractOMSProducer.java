@@ -37,6 +37,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
 import static io.openmessaging.rocketmq.utils.OMSUtil.buildInstanceName;
 
@@ -45,7 +46,7 @@ abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
     final KeyValue properties;
     final DefaultMQProducer rocketmqProducer;
     private boolean started = false;
-    final ClientConfig clientConfig;
+    private final ClientConfig clientConfig;
 
     AbstractOMSProducer(final KeyValue properties) {
         this.properties = properties;
@@ -67,6 +68,7 @@ abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
         this.rocketmqProducer.setSendMsgTimeout(clientConfig.getOperationTimeout());
         this.rocketmqProducer.setInstanceName(producerId);
         this.rocketmqProducer.setMaxMessageSize(1024 * 1024 * 4);
+        this.rocketmqProducer.setLanguage(LanguageCode.OMS);
         properties.put(OMSBuiltinKeys.PRODUCER_ID, producerId);
     }
 
