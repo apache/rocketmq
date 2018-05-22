@@ -129,7 +129,11 @@ public class ConsumerProgressSubCommand implements SubCommand {
                     diffTotal += diff;
                     String lastTime = "";
                     try {
-                        lastTime = UtilAll.formatDate(new Date(offsetWrapper.getLastTimestamp()), UtilAll.YYYY_MM_DD_HH_MM_SS);
+                        if (offsetWrapper.getLastTimestamp() == 0) {
+                            lastTime = "N/A";
+                        } else {
+                            lastTime = UtilAll.formatDate(new Date(offsetWrapper.getLastTimestamp()), UtilAll.YYYY_MM_DD_HH_MM_SS);
+                        }
                     } catch (Exception e) {
                     }
 
@@ -144,7 +148,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
                         mq.getQueueId(),
                         offsetWrapper.getBrokerOffset(),
                         offsetWrapper.getConsumerOffset(),
-                        null != clientIP ? clientIP : "NA",
+                        null != clientIP ? clientIP : "N/A",
                         diff,
                         lastTime
                     );
