@@ -245,7 +245,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         topicConfig.setTopicSysFlag(requestHeader.getTopicSysFlag() == null ? 0 : requestHeader.getTopicSysFlag());
 
         this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
-        this.brokerController.registerBrokerAll(false, true, true);
+
+        if (brokerController.getBrokerConfig().getRegisterNameServerPeriod() == 0) {
+            this.brokerController.registerBrokerAll(false, true, true);
+        }
 
         return null;
     }
