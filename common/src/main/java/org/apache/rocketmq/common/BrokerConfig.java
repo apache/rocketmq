@@ -136,6 +136,8 @@ public class BrokerConfig {
 
     private boolean forceRegister = false;
 
+    private int registerNameServerPeriod = 1000 * 30;
+
     public boolean isTraceOn() {
         return traceOn;
     }
@@ -616,5 +618,13 @@ public class BrokerConfig {
 
     public void setForceRegister(boolean forceRegister) {
         this.forceRegister = forceRegister;
+    }
+
+    public int getRegisterNameServerPeriod() {
+        return registerNameServerPeriod;
+    }
+
+    public void setRegisterNameServerPeriod(int registerNameServerPeriod) {
+        this.registerNameServerPeriod = registerNameServerPeriod;
     }
 }
