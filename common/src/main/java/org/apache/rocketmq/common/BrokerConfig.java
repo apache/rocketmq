@@ -136,6 +136,16 @@ public class BrokerConfig {
 
     private boolean forceRegister = true;
 
+    /**
+     *
+     * This configurable item defines interval of topics registration of broker to name server. Allowing values are
+     * between 10, 000 and 60, 000 milliseconds.
+     *
+     * If set to 0, newly created topics will be immediately reported to name servers and interval of periodical
+     * registration defaults to 10, 000 in milliseconds.
+     */
+    private int registerNameServerPeriod = 1000 * 30;
+
     public boolean isTraceOn() {
         return traceOn;
     }
@@ -616,5 +626,13 @@ public class BrokerConfig {
 
     public void setForceRegister(boolean forceRegister) {
         this.forceRegister = forceRegister;
+    }
+
+    public int getRegisterNameServerPeriod() {
+        return registerNameServerPeriod;
+    }
+
+    public void setRegisterNameServerPeriod(int registerNameServerPeriod) {
+        this.registerNameServerPeriod = registerNameServerPeriod;
     }
 }
