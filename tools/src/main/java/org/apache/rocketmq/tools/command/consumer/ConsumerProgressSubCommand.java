@@ -64,6 +64,10 @@ public class ConsumerProgressSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        Option optionShowClientIP = new Option("s", "showClientIP", true, "Show Client IP per Queue");
+        optionShowClientIP.setRequired(false);
+        options.addOption(optionShowClientIP);
+
         return options;
     }
 
@@ -92,13 +96,22 @@ public class ConsumerProgressSubCommand implements SubCommand {
 
         try {
             defaultMQAdminExt.start();
+
+            boolean showClientIP = commandLine.hasOption('s')
+                && "true".equalsIgnoreCase(commandLine.getOptionValue('s'));
+
             if (commandLine.hasOption('g')) {
                 String consumerGroup = commandLine.getOptionValue('g').trim();
                 ConsumeStats consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
                 List<MessageQueue> mqList = new LinkedList<MessageQueue>();
                 mqList.addAll(consumeStats.getOffsetTable().keySet());
                 Collections.sort(mqList);
-                Map<MessageQueue, String> messageQueueAllocationResult = getMessageQueueAllocationResult(defaultMQAdminExt, consumerGroup);
+
+                Map<MessageQueue, String> messageQueueAllocationResult = null;
+                if (showClientIP) {
+                    messageQueueAllocationResult = getMessageQueueAllocationResult(defaultMQAdminExt, consumerGroup);
+                }
+
                 System.out.printf("%-32s  %-32s  %-4s  %-20s  %-20s  %-20s %-20s  %s%n",
                     "#Topic",
                     "#Broker Name",
@@ -120,7 +133,11 @@ public class ConsumerProgressSubCommand implements SubCommand {
                     } catch (Exception e) {
                     }
 
-                    String clientIP = messageQueueAllocationResult.get(mq);
+                    String clientIP = null;
+                    if (showClientIP) {
+                        clientIP = messageQueueAllocationResult.get(mq);
+                    }
+
                     System.out.printf("%-32s  %-32s  %-4d  %-20d  %-20d  %-20s %-20d  %s%n",
                         UtilAll.frontStringAtLeast(mq.getTopic(), 32),
                         UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),
