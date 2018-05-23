@@ -34,6 +34,7 @@ public class ClientLogger {
     public static final String CLIENT_LOG_MAXINDEX = "rocketmq.client.logFileMaxIndex";
     public static final String CLIENT_LOG_FILESIZE = "rocketmq.client.logFileMaxSize";
     public static final String CLIENT_LOG_LEVEL = "rocketmq.client.logLevel";
+    public static final String CLIENT_LOG_ADDITIVE = "rocketmq.client.log.additive";
     public static final String CLIENT_LOG_FILENAME = "rocketmq.client.logFileName";
     public static final String CLIENT_LOG_ASYNC_QUEUESIZE = "rocketmq.client.logAsyncQueueSize";
     public static final String ROCKETMQ_CLIENT_APPENDER_NAME = "RocketmqClientAppender";
@@ -79,6 +80,7 @@ public class ClientLogger {
 
     private static InternalLogger createLogger(final String loggerName) {
         String clientLogLevel = System.getProperty(CLIENT_LOG_LEVEL, "INFO");
+        boolean additive = "true".equalsIgnoreCase(System.getProperty(CLIENT_LOG_ADDITIVE));
         InternalLogger logger = InternalLoggerFactory.getLogger(loggerName);
         InnerLoggerFactory.InnerLogger innerLogger = (InnerLoggerFactory.InnerLogger) logger;
         Logger realLogger = innerLogger.getLogger();
@@ -89,6 +91,7 @@ public class ClientLogger {
 
         realLogger.addAppender(rocketmqClientAppender);
         realLogger.setLevel(Level.toLevel(clientLogLevel));
+        realLogger.setAdditivity(additive);
         return logger;
     }
 
