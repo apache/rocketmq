@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -62,6 +63,7 @@ import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.Configuration;
+import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
@@ -768,6 +770,24 @@ public class BrokerController {
         }
     }
 
+    public synchronized void registerIncrementBrokerData(TopicConfig topicConfig, DataVersion dataVersion) {
+        TopicConfig registerTopicConfig = topicConfig;
+        if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
+            || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
+            registerTopicConfig =
+                new TopicConfig(topicConfig.getTopicName(), topicConfig.getReadQueueNums(), topicConfig.getWriteQueueNums(),
+                    this.brokerConfig.getBrokerPermission());
+        }
+
+        ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<String, TopicConfig>();
+        topicConfigTable.put(topicConfig.getTopicName(), registerTopicConfig);
+        TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
+        topicConfigSerializeWrapper.setDataVersion(dataVersion);
+        topicConfigSerializeWrapper.setTopicConfigTable(topicConfigTable);
+
+        doRegisterBrokerAll(true, false, topicConfigSerializeWrapper);
+    }
+
     public synchronized void registerBrokerAll(final boolean checkOrderConfig, boolean oneway, boolean forceRegister) {
         TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
 
@@ -788,30 +808,35 @@ public class BrokerController {
             this.brokerConfig.getBrokerName(),
             this.brokerConfig.getBrokerId(),
             this.brokerConfig.getRegisterBrokerTimeoutMills())) {
-            List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
-                this.brokerConfig.getBrokerClusterName(),
-                this.getBrokerAddr(),
-                this.brokerConfig.getBrokerName(),
-                this.brokerConfig.getBrokerId(),
-                this.getHAServerAddr(),
-                topicConfigWrapper,
-                this.filterServerManager.buildNewFilterServerList(),
-                oneway,
-                this.brokerConfig.getRegisterBrokerTimeoutMills(),
-                this.brokerConfig.isCompressedRegister());
+            doRegisterBrokerAll(checkOrderConfig, oneway, topicConfigWrapper);
+        }
+    }
 
-            if (registerBrokerResultList.size() > 0) {
-                RegisterBrokerResult registerBrokerResult = registerBrokerResultList.get(0);
-                if (registerBrokerResult != null) {
-                    if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
-                        this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
-                    }
+    private void doRegisterBrokerAll(boolean checkOrderConfig, boolean oneway,
+        TopicConfigSerializeWrapper topicConfigWrapper) {
+        List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
+            this.brokerConfig.getBrokerClusterName(),
+            this.getBrokerAddr(),
+            this.brokerConfig.getBrokerName(),
+            this.brokerConfig.getBrokerId(),
+            this.getHAServerAddr(),
+            topicConfigWrapper,
+            this.filterServerManager.buildNewFilterServerList(),
+            oneway,
+            this.brokerConfig.getRegisterBrokerTimeoutMills(),
+            this.brokerConfig.isCompressedRegister());
 
-                    this.slaveSynchronize.setMasterAddr(registerBrokerResult.getMasterAddr());
+        if (registerBrokerResultList.size() > 0) {
+            RegisterBrokerResult registerBrokerResult = registerBrokerResultList.get(0);
+            if (registerBrokerResult != null) {
+                if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
+                    this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
+                }
 
-                    if (checkOrderConfig) {
-                        this.getTopicConfigManager().updateOrderTopicConfig(registerBrokerResult.getKvTable());
-                    }
+                this.slaveSynchronize.setMasterAddr(registerBrokerResult.getMasterAddr());
+
+                if (checkOrderConfig) {
+                    this.getTopicConfigManager().updateOrderTopicConfig(registerBrokerResult.getKvTable());
                 }
             }
         }
