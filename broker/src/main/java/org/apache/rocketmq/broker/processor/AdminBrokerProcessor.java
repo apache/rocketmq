@@ -212,7 +212,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    private RemotingCommand updateAndCreateTopic(ChannelHandlerContext ctx,
+    private synchronized RemotingCommand updateAndCreateTopic(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final CreateTopicRequestHeader requestHeader =
@@ -246,14 +246,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
 
-        if (brokerController.getBrokerConfig().getRegisterNameServerPeriod() == 0) {
-            this.brokerController.registerBrokerAll(false, true, true);
-        }
+        this.brokerController.registerIncrementBrokerData(topicConfig,this.brokerController.getTopicConfigManager().getDataVersion());
 
         return null;
     }
 
-    private RemotingCommand deleteTopic(ChannelHandlerContext ctx,
+    private synchronized RemotingCommand deleteTopic(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         DeleteTopicRequestHeader requestHeader =
@@ -299,7 +297,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand updateBrokerConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+    private synchronized RemotingCommand updateBrokerConfig(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         log.info("updateBrokerConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
