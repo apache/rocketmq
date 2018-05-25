@@ -259,8 +259,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         log.info("deleteTopic called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         this.brokerController.getTopicConfigManager().deleteTopicConfig(requestHeader.getTopic());
-        this.brokerController.getMessageStore()
-            .cleanUnusedTopic(this.brokerController.getTopicConfigManager().getTopicConfigTable().keySet());
+        this.brokerController.getMessageStore().cleanUnusedTopic(this.brokerController.getTopicConfigManager()
+            .getTopicConfigTable().keySet());
+
+        // Remove consume offsets
+        this.brokerController.getConsumerOffsetManager().removeConsumeOffsetsByTopic(requestHeader.getTopic());
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
@@ -520,8 +523,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         log.info("deleteSubscriptionGroup called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
-        this.brokerController.getSubscriptionGroupManager().deleteSubscriptionGroupConfig(requestHeader.getGroupName());
-
+        brokerController.getSubscriptionGroupManager().deleteSubscriptionGroupConfig(requestHeader.getGroupName());
+        brokerController.getConsumerOffsetManager().removeConsumeOffsetsByConsumerGroup(requestHeader.getGroupName());
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
