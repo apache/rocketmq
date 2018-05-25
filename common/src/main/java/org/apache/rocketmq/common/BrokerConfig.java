@@ -141,8 +141,6 @@ public class BrokerConfig {
      * This configurable item defines interval of topics registration of broker to name server. Allowing values are
      * between 10, 000 and 60, 000 milliseconds.
      *
-     * If set to 0, newly created topics will be immediately reported to name servers and interval of periodical
-     * registration defaults to 10, 000 in milliseconds.
      */
     private int registerNameServerPeriod = 1000 * 30;
 
