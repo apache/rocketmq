@@ -63,6 +63,7 @@ public class BrokerConfig {
     private int adminBrokerThreadPoolNums = 16;
     private int clientManageThreadPoolNums = 32;
     private int consumerManageThreadPoolNums = 32;
+    private int heartbeatThreadPoolNums = 32;
 
     private int flushConsumerOffsetInterval = 1000 * 5;
 
@@ -77,6 +78,7 @@ public class BrokerConfig {
     private int queryThreadPoolQueueCapacity = 20000;
     private int clientManagerThreadPoolQueueCapacity = 1000000;
     private int consumerManagerThreadPoolQueueCapacity = 1000000;
+    private int heartbeatThreadPoolQueueCapacity = 1000000;
 
     private int filterServerNums = 0;
 
@@ -626,11 +628,19 @@ public class BrokerConfig {
         this.forceRegister = forceRegister;
     }
 
-    public int getRegisterNameServerPeriod() {
-        return registerNameServerPeriod;
+    public int getHeartbeatThreadPoolQueueCapacity() {
+        return heartbeatThreadPoolQueueCapacity;
     }
 
-    public void setRegisterNameServerPeriod(int registerNameServerPeriod) {
-        this.registerNameServerPeriod = registerNameServerPeriod;
+    public void setHeartbeatThreadPoolQueueCapacity(int heartbeatThreadPoolQueueCapacity) {
+        this.heartbeatThreadPoolQueueCapacity = heartbeatThreadPoolQueueCapacity;
+    }
+
+    public int getHeartbeatThreadPoolNums() {
+        return heartbeatThreadPoolNums;
+    }
+
+    public void setHeartbeatThreadPoolNums(int heartbeatThreadPoolNums) {
+        this.heartbeatThreadPoolNums = heartbeatThreadPoolNums;
     }
 }
