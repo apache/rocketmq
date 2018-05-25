@@ -643,12 +643,4 @@ public class BrokerConfig {
     public void setHeartbeatThreadPoolNums(int heartbeatThreadPoolNums) {
         this.heartbeatThreadPoolNums = heartbeatThreadPoolNums;
     }
-
-    public int getRegisterNameServerPeriod() {
-        return registerNameServerPeriod;
-    }
-
-    public void setRegisterNameServerPeriod(int registerNameServerPeriod) {
-        this.registerNameServerPeriod = registerNameServerPeriod;
-    }
 }
