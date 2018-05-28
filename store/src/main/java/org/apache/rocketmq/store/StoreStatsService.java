@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.common.ServiceThread;
@@ -43,9 +42,9 @@ public class StoreStatsService extends ServiceThread {
 
     private final AtomicLong putMessageFailedTimes = new AtomicLong(0);
 
-    private final ConcurrentMap<String, AtomicLong> putMessageTopicTimesTotal =
+    private final Map<String, AtomicLong> putMessageTopicTimesTotal =
         new ConcurrentHashMap<String, AtomicLong>(128);
-    private final ConcurrentMap<String, AtomicLong> putMessageTopicSizeTotal =
+    private final Map<String, AtomicLong> putMessageTopicSizeTotal =
         new ConcurrentHashMap<String, AtomicLong>(128);
 
     private final AtomicLong getMessageTimesTotalFound = new AtomicLong(0);
@@ -546,10 +545,7 @@ public class StoreStatsService extends ServiceThread {
         AtomicLong rs = putMessageTopicSizeTotal.get(topic);
         if (null == rs) {
             rs = new AtomicLong(0);
-            AtomicLong previous = putMessageTopicSizeTotal.putIfAbsent(topic, rs);
-            if(previous != null){
-                rs = previous;
-            }
+            putMessageTopicSizeTotal.put(topic, rs);
         }
         return rs;
     }
@@ -558,10 +554,7 @@ public class StoreStatsService extends ServiceThread {
         AtomicLong rs = putMessageTopicTimesTotal.get(topic);
         if (null == rs) {
             rs = new AtomicLong(0);
-            AtomicLong previous = putMessageTopicTimesTotal.putIfAbsent(topic, rs);
-            if(previous != null){
-                rs = previous;
-            }
+            putMessageTopicTimesTotal.put(topic, rs);
         }
         return rs;
     }
