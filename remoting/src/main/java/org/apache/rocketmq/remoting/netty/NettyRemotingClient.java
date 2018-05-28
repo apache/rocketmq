@@ -47,9 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -362,18 +360,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     @Override
     public RemotingCommand invokeSync(String addr, final RemotingCommand request, long timeoutMillis)
         throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
-        long beginStartTime = System.currentTimeMillis();
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
             try {
                 if (this.rpcHook != null) {
                     this.rpcHook.doBeforeRequest(addr, request);
                 }
-                long costTime = System.currentTimeMillis() - beginStartTime;
-                if (timeoutMillis < costTime) {
-                    throw new RemotingTimeoutException("invokeSync call timeout");
-                }
-                RemotingCommand response = this.invokeSyncImpl(channel, request, timeoutMillis - costTime);
+                RemotingCommand response = this.invokeSyncImpl(channel, request, timeoutMillis);
                 if (this.rpcHook != null) {
                     this.rpcHook.doAfterResponse(RemotingHelper.parseChannelRemoteAddr(channel), request, response);
                 }
@@ -518,18 +511,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     public void invokeAsync(String addr, RemotingCommand request, long timeoutMillis, InvokeCallback invokeCallback)
         throws InterruptedException, RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException,
         RemotingSendRequestException {
-        long beginStartTime = System.currentTimeMillis();
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
             try {
                 if (this.rpcHook != null) {
                     this.rpcHook.doBeforeRequest(addr, request);
                 }
-                long costTime = System.currentTimeMillis() - beginStartTime;
-                if (timeoutMillis < costTime) {
-                    throw new RemotingTooMuchRequestException("invokeAsync call timeout");
-                }
-                this.invokeAsyncImpl(channel, request, timeoutMillis - costTime, invokeCallback);
+                this.invokeAsyncImpl(channel, request, timeoutMillis, invokeCallback);
             } catch (RemotingSendRequestException e) {
                 log.warn("invokeAsync: send request exception, so close the channel[{}]", addr);
                 this.closeChannel(addr, channel);
@@ -599,16 +587,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     @Override
     public ExecutorService getCallbackExecutor() {
-        if (callbackExecutor != null) {
-            return callbackExecutor;
-        }
-        return new ThreadPoolExecutor(4, 4, 0L, TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>(65535));
+        return callbackExecutor != null ? callbackExecutor : publicExecutor;
     }
 
     @Override
     public void setCallbackExecutor(final ExecutorService callbackExecutor) {
-        
         this.callbackExecutor = callbackExecutor;
     }
 

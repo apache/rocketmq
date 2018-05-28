@@ -308,7 +308,6 @@ public class MQClientAPIImpl {
         final SendMessageContext context,
         final DefaultMQProducerImpl producer
     ) throws RemotingException, MQBrokerException, InterruptedException {
-        long beginStartTime = System.currentTimeMillis();
         RemotingCommand request = null;
         if (sendSmartMsg || msg instanceof MessageBatch) {
             SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
@@ -325,19 +324,11 @@ public class MQClientAPIImpl {
                 return null;
             case ASYNC:
                 final AtomicInteger times = new AtomicInteger();
-                long costTimeAsync = System.currentTimeMillis() - beginStartTime;
-                if (timeoutMillis < costTimeAsync) {
-                    throw new RemotingTooMuchRequestException("sendMessage call timeout");
-                }
-                this.sendMessageAsync(addr, brokerName, msg, timeoutMillis - costTimeAsync, request, sendCallback, topicPublishInfo, instance,
+                this.sendMessageAsync(addr, brokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,
                     retryTimesWhenSendFailed, times, context, producer);
                 return null;
             case SYNC:
-                long costTimeSync = System.currentTimeMillis() - beginStartTime;
-                if (timeoutMillis < costTimeSync) {
-                    throw new RemotingTooMuchRequestException("sendMessage call timeout");
-                }
-                return this.sendMessageSync(addr, brokerName, msg, timeoutMillis - costTimeSync, request);
+                return this.sendMessageSync(addr, brokerName, msg, timeoutMillis, request);
             default:
                 assert false;
                 break;
