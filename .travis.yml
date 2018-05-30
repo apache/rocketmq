@@ -3,7 +3,7 @@ notifications:
     recipients:
       - dev@rocketmq.apache.org
   on_success: change
-  on_failure: always
+  on_failure: never
 
 language: java
 
