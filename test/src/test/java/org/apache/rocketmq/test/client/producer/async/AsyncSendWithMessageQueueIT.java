@@ -65,10 +65,11 @@ public class AsyncSendWithMessageQueueIT extends BaseConf {
             .containsExactlyElementsIn(producer.getAllMsgBody());
 
         VerifyUtils.verifyMessageQueueId(queueId, consumer.getListener().getAllOriginMsg());
+        System.out.println(producer.getSuccessMsgCount());
 
         producer.clearMsg();
         consumer.clearMsg();
-
+	producer.getSuccessSendResult().clear();
         mq = new MessageQueue(topic, broker2Name, queueId);
         producer.asyncSend(msgSize, mq);
         producer.waitForResponse(10 * 1000);

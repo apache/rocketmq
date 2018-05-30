@@ -18,6 +18,7 @@
 package org.apache.rocketmq.test.client.rmq;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.log4j.Logger;
@@ -38,7 +39,8 @@ public class RMQAsyncSendProducer extends AbstractMQProducer {
     private String nsAddr = null;
     private DefaultMQProducer producer = null;
     private SendCallback sendCallback = null;
-    private List<org.apache.rocketmq.client.producer.SendResult> successSendResult = new ArrayList<org.apache.rocketmq.client.producer.SendResult>();
+    private List<org.apache.rocketmq.client.producer.SendResult> successSendResult = Collections
+        .synchronizedList(new ArrayList<org.apache.rocketmq.client.producer.SendResult>());
     private AtomicInteger exceptionMsgCount = new AtomicInteger(
         0);
     private int msgSize = 0;
