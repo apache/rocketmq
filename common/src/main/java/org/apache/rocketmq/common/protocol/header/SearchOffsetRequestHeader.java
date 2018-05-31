@@ -32,6 +32,8 @@ public class SearchOffsetRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private Long timestamp;
 
+    private Integer getLastOrFirstOffset;
+
     @Override
     public void checkFields() throws RemotingCommandException {
 
@@ -61,4 +63,11 @@ public class SearchOffsetRequestHeader implements CommandCustomHeader {
         this.timestamp = timestamp;
     }
 
+    public Integer getGetLastOrFirstOffset() {
+        return getLastOrFirstOffset;
+    }
+
+    public void setGetLastOrFirstOffset(Integer getLastOrFirstOffset) {
+        this.getLastOrFirstOffset = getLastOrFirstOffset;
+    }
 }

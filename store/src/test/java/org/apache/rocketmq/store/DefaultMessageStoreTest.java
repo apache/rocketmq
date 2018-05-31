@@ -21,21 +21,29 @@ import java.io.File;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.util.List;
 import java.nio.channels.OverlappingFileLockException;
 import java.util.Map;
+import java.util.Random;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.constant.OffsetConstant;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.common.UtilAll;
 import org.junit.After;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.Assert;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
+
 
 public class DefaultMessageStoreTest {
     private final String StoreMessage = "Once, there was a chance for me!";
@@ -53,7 +61,7 @@ public class DefaultMessageStoreTest {
 
         messageStore = buildMessageStore();
         boolean load = messageStore.load();
-        assertTrue(load);
+        Assert.assertTrue(load);
         messageStore.start();
     }
 
@@ -71,7 +79,7 @@ public class DefaultMessageStoreTest {
         MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig());
 
         boolean load = master.load();
-        assertTrue(load);
+        Assert.assertTrue(load);
 
         try {
             master.start();
@@ -107,6 +115,7 @@ public class DefaultMessageStoreTest {
         long totalMsgs = 100;
         QUEUE_TOTAL = 1;
         MessageBody = StoreMessage.getBytes();
+
         for (long i = 0; i < totalMsgs; i++) {
             messageStore.putMessage(buildMessage());
         }
@@ -139,6 +148,7 @@ public class DefaultMessageStoreTest {
         long totalMsgs = 10;
         QUEUE_TOTAL = 1;
         MessageBody = StoreMessage.getBytes();
+
         for (long i = 0; i < totalMsgs; i++) {
             messageStore.putMessage(buildMessage());
         }
@@ -192,5 +202,126 @@ public class DefaultMessageStoreTest {
         public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
                              byte[] filterBitMap, Map<String, String> properties) {
         }
+    }
+
+    @Test
+    public void testQueryByTime() throws Exception {
+        int totalMsgs = 100;
+        int randomIndex = new Random().nextInt(10) + 40;
+        QUEUE_TOTAL = 8;
+        String topic = "TimeTopic";
+        String keys = "testQueryByTime";
+        long now = System.currentTimeMillis();
+        MessageBody = StoreMessage.getBytes();
+        for (int i = 0; i < totalMsgs; i++) {
+            MessageExtBrokerInner messageExtBrokerInner = new MessageExtBrokerInner();
+            messageExtBrokerInner.setBody(("time:" + System.currentTimeMillis() + " index:" + i).getBytes());
+            messageExtBrokerInner.setTopic(topic);
+            messageExtBrokerInner.setKeys(keys);
+            messageExtBrokerInner.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+            messageExtBrokerInner.setBornTimestamp(System.currentTimeMillis());
+            messageExtBrokerInner.setStoreHost(StoreHost);
+            messageExtBrokerInner.setBornHost(BornHost);
+            messageExtBrokerInner.setPropertiesString(MessageDecoder.messageProperties2String(messageExtBrokerInner.getProperties()));
+            PutMessageResult putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+            if (i == randomIndex) {
+                now = putMessageResult.getAppendMessageResult().getStoreTimestamp();
+            }
+        }
+        Thread.sleep(2000L);
+        long end = System.currentTimeMillis();
+        QueryMessageResult result = messageStore.queryMessage(topic, keys, totalMsgs, now, end);
+        for (ByteBuffer byteBuffer : result.getMessageBufferList()) {
+            MessageExt messageExt = MessageDecoder.decode(byteBuffer);
+        }
+        int bufferTotalSize = result.getMessageBufferList().size();
+        result.release();
+        Assert.assertTrue(totalMsgs - randomIndex - 1 <= bufferTotalSize);
+    }
+
+    @Test
+    public void testQueueOffsetByTime() throws Exception {
+        long totalMsgs = 100;
+        QUEUE_TOTAL = 1;
+        String topic = "TimeTopic";
+        String keys = "testQueryByTime";
+        String consumerGroup = "testQueryByTime";
+        MessageBody = StoreMessage.getBytes();
+
+        TreeMap<Long, AtomicInteger> sameTimeCountCache = new TreeMap<>();
+        TreeMap<Long, AtomicInteger> sameTimeResultCache = new TreeMap<>();
+        long hlTime = System.currentTimeMillis();
+        long hlCount = 0;
+        long endTime = System.currentTimeMillis();
+        int endCount1 = 0;
+        int endCount2 = 0;
+        long start = 0;
+
+        for (long i = 0; i < totalMsgs; i++) {
+            if (i == totalMsgs - 20) {
+                Thread.sleep(1000);
+                hlTime = System.currentTimeMillis();
+                Thread.sleep(500);
+            }
+            if (i == totalMsgs - 10) {
+                endTime = System.currentTimeMillis();
+            }
+            MessageExtBrokerInner messageExtBrokerInner = new MessageExtBrokerInner();
+            messageExtBrokerInner.setBody(("time:" + System.currentTimeMillis() + " index:" + i).getBytes());
+            messageExtBrokerInner.setTopic(topic);
+            messageExtBrokerInner.setKeys(keys);
+            messageExtBrokerInner.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+            messageExtBrokerInner.setBornTimestamp(System.currentTimeMillis());
+            messageExtBrokerInner.setStoreHost(StoreHost);
+            messageExtBrokerInner.setBornHost(BornHost);
+            messageExtBrokerInner.setPropertiesString(MessageDecoder.messageProperties2String(messageExtBrokerInner.getProperties()));
+            PutMessageResult putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+            long storeTimestamp = putMessageResult.getAppendMessageResult().getStoreTimestamp();
+            AtomicInteger count = sameTimeCountCache.get(storeTimestamp);
+            if (count == null) {
+                count = new AtomicInteger(0);
+                sameTimeCountCache.put(storeTimestamp, count);
+            }
+            count.incrementAndGet();
+        }
+        Thread.sleep(2000L);
+
+        Map.Entry<Long, AtomicInteger> timeCount = sameTimeCountCache.lastEntry();
+        start = timeCount.getKey();
+        long offsetInQueueByTime = messageStore.getOffsetInQueueByTime(topic, 0, start, OffsetConstant.SEARCH_OFFSET_BYTIME_RETURN_RETURN_FIRST_OFFSET);
+        GetMessageResult testQueryByTime = messageStore.getMessage(consumerGroup, topic, 0, offsetInQueueByTime, 20, null);
+
+        List<ByteBuffer> messageBufferList = testQueryByTime.getMessageBufferList();
+        for (ByteBuffer byteBuffer : messageBufferList) {
+            MessageExt messageExt = MessageDecoder.decode(byteBuffer);
+            AtomicInteger cc = sameTimeResultCache.get(messageExt.getStoreTimestamp());
+            if (cc == null) {
+                cc = new AtomicInteger(0);
+                sameTimeResultCache.put(messageExt.getStoreTimestamp(), cc);
+            }
+            cc.incrementAndGet();
+        }
+        testQueryByTime.release();
+
+        long hlOffset = messageStore.getOffsetInQueueByTime(topic, 0, hlTime, OffsetConstant.SEARCH_OFFSET_BYTIME_RETURN_RETURN_FIRST_OFFSET);
+        GetMessageResult hlResult = messageStore.getMessage(consumerGroup, topic, 0, hlOffset, 20, null);
+        hlCount = hlResult.getMessageCount();
+        hlResult.release();
+
+        long endOffset1 = messageStore.getOffsetInQueueByTime(topic, 0, endTime, OffsetConstant.SEARCH_OFFSET_BYTIME_RETURN_RETURN_FIRST_OFFSET);
+        GetMessageResult endResult1 = messageStore.getMessage(consumerGroup, topic, 0, endOffset1, 20, null);
+        endCount1 = endResult1.getMessageCount();
+        endResult1.release();
+
+        long endOffset2 = messageStore.getOffsetInQueueByTime(topic, 0, endTime, OffsetConstant.SEARCH_OFFSET_BYTIME_RETURN_RETURN_FIRST_OFFSET);
+        GetMessageResult endResult2 = messageStore.getMessage(consumerGroup, topic, 0, endOffset2, 20, null);
+        endCount2 = endResult2.getMessageCount();
+        endResult2.release();
+        Assert.assertTrue(start > 0);
+        AtomicInteger cc = sameTimeCountCache.get(start);
+        AtomicInteger result = sameTimeResultCache.get(start);
+        Assert.assertEquals(cc.get(), result.get());
+        Assert.assertTrue(19 == hlCount || hlCount == 20);
+        Assert.assertTrue(endCount1 >= endCount2);
     }
 }

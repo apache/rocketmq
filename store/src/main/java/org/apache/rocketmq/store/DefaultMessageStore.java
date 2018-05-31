@@ -640,10 +640,10 @@ public class DefaultMessageStore implements MessageStore {
         return 0;
     }
 
-    public long getOffsetInQueueByTime(String topic, int queueId, long timestamp) {
+    public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, int getLastOrFirstOffset) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
-            return logic.getOffsetInQueueByTime(timestamp);
+            return logic.getOffsetInQueueByTime(timestamp, getLastOrFirstOffset);
         }
 
         return 0;
@@ -821,10 +821,11 @@ public class DefaultMessageStore implements MessageStore {
     public QueryMessageResult queryMessage(String topic, String key, int maxNum, long begin, long end) {
         QueryMessageResult queryMessageResult = new QueryMessageResult();
 
-        long lastQueryMsgTime = end;
+        long fixedBeginTime = begin - 1001;
+        long lastQueryMsgTime = end + 1;
 
         for (int i = 0; i < 3; i++) {
-            QueryOffsetResult queryOffsetResult = this.indexService.queryOffset(topic, key, maxNum, begin, lastQueryMsgTime);
+            QueryOffsetResult queryOffsetResult = this.indexService.queryOffset(topic, key, maxNum, fixedBeginTime, lastQueryMsgTime);
             if (queryOffsetResult.getPhyOffsets().isEmpty()) {
                 break;
             }
@@ -839,33 +840,28 @@ public class DefaultMessageStore implements MessageStore {
 
                 try {
 
-                    boolean match = true;
-                    MessageExt msg = this.lookMessageByOffset(offset);
-                    if (0 == m) {
-                        lastQueryMsgTime = msg.getStoreTimestamp();
-                    }
+                    SelectMappedBufferResult result = this.commitLog.getData(offset, false);
+                    if (result != null) {
+                        int size = result.getByteBuffer().getInt(0);
+                        result.getByteBuffer().limit(size);
+                        result.setSize(size);
+                        long storeTime = getMessageStoreTimestamp(result);
 
-//                    String[] keyArray = msg.getKeys().split(MessageConst.KEY_SEPARATOR);
-//                    if (topic.equals(msg.getTopic())) {
-//                        for (String k : keyArray) {
-//                            if (k.equals(key)) {
-//                                match = true;
-//                                break;
-//                            }
-//                        }
-//                    }
-
-                    if (match) {
-                        SelectMappedBufferResult result = this.commitLog.getData(offset, false);
-                        if (result != null) {
-                            int size = result.getByteBuffer().getInt(0);
-                            result.getByteBuffer().limit(size);
-                            result.setSize(size);
-                            queryMessageResult.addMessage(result);
+                        boolean keyMatch = true;
+                        // check key match,now ignore check key duplicate
+                        if (keyMatch) {
+                            if (storeTime >= begin && storeTime <= end) {
+                                queryMessageResult.addMessage(result);
+                            }
+                        } else {
+                            log.warn("queryMessage hash duplicate, {} {}", topic, key);
                         }
-                    } else {
-                        log.warn("queryMessage hash duplicate, {} {}", topic, key);
+
+                        if (0 == m) {
+                            lastQueryMsgTime = storeTime;
+                        }
                     }
+
                 } catch (Exception e) {
                     log.error("queryMessage exception", e);
                 }
@@ -875,12 +871,16 @@ public class DefaultMessageStore implements MessageStore {
                 break;
             }
 
-            if (lastQueryMsgTime < begin) {
+            if (lastQueryMsgTime < fixedBeginTime) {
                 break;
             }
         }
 
         return queryMessageResult;
+    }
+
+    private long getMessageStoreTimestamp(SelectMappedBufferResult message) {
+        return message.getByteBuffer().getLong(MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSTION);
     }
 
     @Override
@@ -1428,6 +1428,7 @@ public class DefaultMessageStore implements MessageStore {
 
         @Override
         public void dispatch(DispatchRequest request) {
+
             if (DefaultMessageStore.this.messageStoreConfig.isMessageIndexEnable()) {
                 DefaultMessageStore.this.indexService.buildIndex(request);
             }

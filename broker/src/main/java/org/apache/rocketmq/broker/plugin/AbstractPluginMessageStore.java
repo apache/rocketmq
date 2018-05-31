@@ -107,8 +107,8 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public long getOffsetInQueueByTime(String topic, int queueId, long timestamp) {
-        return next.getOffsetInQueueByTime(topic, queueId, timestamp);
+    public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, int getLastOrFirstOffset) {
+        return next.getOffsetInQueueByTime(topic, queueId, timestamp, getLastOrFirstOffset);
     }
 
     @Override

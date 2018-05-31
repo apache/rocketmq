@@ -104,6 +104,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
+    public long searchOffset(MessageQueue mq, long timestamp,int getLastOrFirstOffset) throws MQClientException {
+        return defaultMQAdminExtImpl.searchOffset(mq, timestamp, getLastOrFirstOffset);
+    }
+
+    @Override
     public long maxOffset(MessageQueue mq) throws MQClientException {
         return defaultMQAdminExtImpl.maxOffset(mq);
     }

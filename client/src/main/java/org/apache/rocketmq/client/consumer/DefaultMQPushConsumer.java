@@ -301,6 +301,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     }
 
     @Override
+    public long searchOffset(MessageQueue mq, long timestamp, int getLastOrFirstOffset) throws MQClientException {
+        return this.defaultMQPushConsumerImpl.searchOffset(mq, timestamp, getLastOrFirstOffset);
+    }
+
+    @Override
     public long maxOffset(MessageQueue mq) throws MQClientException {
         return this.defaultMQPushConsumerImpl.maxOffset(mq);
     }

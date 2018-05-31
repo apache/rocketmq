@@ -34,6 +34,7 @@ import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.constant.OffsetConstant;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
@@ -167,6 +168,10 @@ public class MQAdminImpl {
     }
 
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
+        return this.doSearchOffset(mq, timestamp, OffsetConstant.SEARCH_OFFSET_BYTIME_RETURN_RETURN_FIRST_OFFSET);
+    }
+
+    public long doSearchOffset(MessageQueue mq, long timestamp, int getLastOrFirstOffset) throws MQClientException {
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         if (null == brokerAddr) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
@@ -176,7 +181,7 @@ public class MQAdminImpl {
         if (brokerAddr != null) {
             try {
                 return this.mQClientFactory.getMQClientAPIImpl().searchOffset(brokerAddr, mq.getTopic(), mq.getQueueId(), timestamp,
-                    timeoutMillis);
+                    getLastOrFirstOffset, timeoutMillis);
             } catch (Exception e) {
                 throw new MQClientException("Invoke Broker[" + brokerAddr + "] exception", e);
             }

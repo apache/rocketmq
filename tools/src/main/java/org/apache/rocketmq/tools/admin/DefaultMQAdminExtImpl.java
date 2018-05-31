@@ -46,6 +46,7 @@ import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.admin.RollbackStats;
 import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
+import org.apache.rocketmq.common.constant.OffsetConstant;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageClientExt;
@@ -509,7 +510,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         } else {
             resetOffset =
                 this.mqClientInstance.getMQClientAPIImpl().searchOffset(brokerAddr, queue.getTopic(), queue.getQueueId(), timestamp,
-                    timeoutMillis);
+                    OffsetConstant.SEARCH_OFFSET_BYTIME_RETURN_RETURN_FIRST_OFFSET, timeoutMillis);
         }
 
         RollbackStats rollbackStats = new RollbackStats();
@@ -935,6 +936,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
         return this.mqClientInstance.getMQAdminImpl().searchOffset(mq, timestamp);
+    }
+
+    @Override
+    public long searchOffset(MessageQueue mq, long timestamp,int getLastOrFirstOffset) throws MQClientException {
+        return this.mqClientInstance.getMQAdminImpl().doSearchOffset(mq, timestamp, getLastOrFirstOffset);
     }
 
     @Override

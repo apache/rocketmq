@@ -44,6 +44,7 @@ import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.constant.OffsetConstant;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -367,8 +368,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final SearchOffsetRequestHeader requestHeader =
             (SearchOffsetRequestHeader) request.decodeCommandCustomHeader(SearchOffsetRequestHeader.class);
 
+        int getLastOrFirstOffset = OffsetConstant.SEARCH_OFFSET_BYTIME_RETURN_RETURN_FIRST_OFFSET;
+        if (requestHeader.getGetLastOrFirstOffset() != null) {
+            getLastOrFirstOffset = requestHeader.getGetLastOrFirstOffset();
+        }
+
         long offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(requestHeader.getTopic(), requestHeader.getQueueId(),
-            requestHeader.getTimestamp());
+            requestHeader.getTimestamp(), getLastOrFirstOffset);
 
         responseHeader.setOffset(offset);
 
