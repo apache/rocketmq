@@ -80,6 +80,7 @@ public class BrokerOuterAPI {
 
     public void shutdown() {
         this.remotingClient.shutdown();
+        this.brokerOuterExecutor.shutdown();
     }
 
     public String fetchNameServerAddr() {
