@@ -682,6 +682,22 @@ public class BrokerController {
         if (this.consumerFilterManager != null) {
             this.consumerFilterManager.persist();
         }
+
+        if (this.clientManageExecutor != null) {
+            this.clientManageExecutor.shutdown();
+        }
+
+        if (this.queryMessageExecutor != null) {
+            this.queryMessageExecutor.shutdown();
+        }
+
+        if (this.consumerManageExecutor != null) {
+            this.consumerManageExecutor.shutdown();
+        }
+
+        if (this.fileWatchService != null) {
+            this.fileWatchService.shutdown();
+        }
     }
 
     private void unregisterBrokerAll() {
