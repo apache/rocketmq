@@ -31,6 +31,7 @@ It offers a variety of features:
 * Docs: <https://rocketmq.apache.org/docs/quick-start/>
 * Issues: <https://github.com/apache/rocketmq/issues>
 * Ask: <https://stackoverflow.com/questions/tagged/rocketmq>
+* Slack: <https://rocketmq-community.slack.com/>
  
 
 ----------
