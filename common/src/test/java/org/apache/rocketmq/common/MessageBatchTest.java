@@ -19,6 +19,8 @@ package org.apache.rocketmq.common;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.rocketmq.common.message.DelayTimeLevel;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.junit.Test;
@@ -59,6 +61,13 @@ public class MessageBatchTest {
     public void testGenerate_Delay() throws Exception {
         List<Message> messages = generateMessages();
         messages.get(1).setDelayTimeLevel(1);
+        MessageBatch.generateFromList(messages);
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testGenerate_Delay_Enum() throws Exception {
+        List<Message> messages = generateMessages();
+        messages.get(1).setDelayTimeLevel(DelayTimeLevel.ONE_SECOND);
         MessageBatch.generateFromList(messages);
     }
 
