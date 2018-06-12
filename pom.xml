@@ -581,7 +581,7 @@
             <dependency>
                 <groupId>io.openmessaging</groupId>
                 <artifactId>openmessaging-api</artifactId>
-                <version>0.3.1-alpha-SNAPSHOT</version>
+                <version>0.3.1-alpha</version>
             </dependency>
             <dependency>
                 <groupId>log4j</groupId>
@@ -600,11 +600,4 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
-    <repositories>
-        <repository>
-            <id>snapshot@oss.sonatype.org</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-        </repository>
-    </repositories>
 </project>
