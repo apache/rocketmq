@@ -35,7 +35,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DefaultMessageStoreShutdownTest {
+public class DefaultMessageStoreShutDownTest {
     private DefaultMessageStore messageStore;
 
     @Before
