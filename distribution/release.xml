@@ -67,7 +67,6 @@
                 <include>org.apache.rocketmq:rocketmq-client</include>
                 <include>org.apache.rocketmq:rocketmq-namesrv</include>
                 <include>org.apache.rocketmq:rocketmq-example</include>
-                <include>org.apache.rocketmq:rocketmq-filter</include>
                 <include>org.apache.rocketmq:rocketmq-openmessaging</include>
             </includes>
             <binaries>

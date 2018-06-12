@@ -44,11 +44,6 @@
 
                 <dependency>
                     <groupId>org.apache.rocketmq</groupId>
-                    <artifactId>rocketmq-filtersrv</artifactId>
-                </dependency>
-
-                <dependency>
-                    <groupId>org.apache.rocketmq</groupId>
                     <artifactId>rocketmq-tools</artifactId>
                 </dependency>
 
