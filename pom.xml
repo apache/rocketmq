@@ -119,7 +119,6 @@
         <module>remoting</module>
         <module>logappender</module>
         <module>example</module>
-        <module>filtersrv</module>
         <module>srvutil</module>
         <module>filter</module>
         <module>test</module>
@@ -512,11 +511,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-test</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-filtersrv</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
