@@ -17,17 +17,15 @@
 
 package org.apache.rocketmq.client.log;
 
+import java.io.File;
+import java.io.IOException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
-
-import java.io.File;
-import java.io.IOException;
-
 
 public class ClientLoggerTest {
 
@@ -46,13 +44,10 @@ public class ClientLoggerTest {
 
         for (int i = 0; i < 10; i++) {
             logger.info("testClientlog test {}", i);
-            rocketmqCommon.info("common message {}", i, new RuntimeException());
-            rocketmqRemoting.info("remoting message {}", i, new RuntimeException());
+            rocketmqCommon.info("common message {}", i);
+            rocketmqRemoting.info("remoting message {}", i);
         }
-        try {
-            Thread.sleep(10);
-        } catch (InterruptedException ignore) {
-        }
+
         String content = MixAll.file2String(LOG_DIR + "/rocketmq_client.log");
         Assert.assertTrue(content.contains("testClientlog"));
         Assert.assertTrue(content.contains("RocketmqClient"));
@@ -61,7 +56,7 @@ public class ClientLoggerTest {
         Assert.assertTrue(content.contains("RocketmqRemoting"));
     }
 
-    @After
+    @Before
     public void cleanFiles() {
         UtilAll.deleteFile(new File(LOG_DIR));
     }
