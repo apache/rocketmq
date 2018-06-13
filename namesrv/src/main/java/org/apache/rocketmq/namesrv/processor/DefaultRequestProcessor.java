@@ -200,8 +200,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         if (requestHeader.getBodyCrc32() != 0) {
             final int crc32 = UtilAll.crc32(request.getBody());
             if (crc32 != requestHeader.getBodyCrc32()) {
-                log.warn("receive registerBroker request,crc32 not match,from %s",
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                log.warn(String.format("receive registerBroker request,crc32 not match,from %s",
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel())));
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("crc32 not match");
                 return response;
@@ -277,8 +277,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         if (requestHeader.getBodyCrc32() != 0) {
             final int crc32 = UtilAll.crc32(request.getBody());
             if (crc32 != requestHeader.getBodyCrc32()) {
-                log.warn("receive registerBroker request,crc32 not match,from %s",
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                log.warn(String.format("receive registerBroker request,crc32 not match,from %s",
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel())));
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("crc32 not match");
                 return response;
