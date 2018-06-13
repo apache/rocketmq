@@ -204,6 +204,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                     RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("crc32 not match");
+                return response;
+
             }
         }
 
@@ -279,6 +281,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                     RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("crc32 not match");
+                return response;
             }
         }
 
