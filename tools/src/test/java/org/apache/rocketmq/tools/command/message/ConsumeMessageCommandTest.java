@@ -64,11 +64,8 @@ public class ConsumeMessageCommandTest {
         final PullResult pullResult = new PullResult(PullStatus.FOUND,2, 0, 1, msgFoundList);
 
         when(defaultMQPullConsumer.pull(any(MessageQueue.class), anyString(), anyLong(), anyInt())).thenReturn(pullResult);
-
         when(defaultMQPullConsumer.minOffset(any(MessageQueue.class))).thenReturn(Long.valueOf(0));
-
         when(defaultMQPullConsumer.maxOffset(any(MessageQueue.class))).thenReturn(Long.valueOf(1));
-
 
         final Set<MessageQueue> mqList = new HashSet<>();
         mqList.add(new MessageQueue());
