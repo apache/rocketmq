@@ -214,7 +214,7 @@ public class DefaultMQProducerTest {
         producer.send(new Message(),messageQueueSelector,null,sendCallback);
         producer.send(message,messageQueueSelector,null,sendCallback,1000);
 
-        countDownLatch.await(1000L, TimeUnit.MILLISECONDS);
+        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(6);
     }
 
