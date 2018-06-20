@@ -77,7 +77,6 @@ public class ConsumeMessageCommandTest {
     }
     @AfterClass
     public static void terminate() {
-
     }
 
     @Test

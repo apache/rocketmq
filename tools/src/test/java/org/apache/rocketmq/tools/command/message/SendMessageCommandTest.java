@@ -68,7 +68,6 @@ public class SendMessageCommandTest {
 
     @AfterClass
     public static void terminate() {
-
     }
 
     @Test
