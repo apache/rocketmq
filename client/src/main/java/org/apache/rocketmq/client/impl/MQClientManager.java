@@ -25,10 +25,15 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.slf4j.Logger;
 
+/***
+ * 主要整个应用中的MQClientInstance实例，
+ * 每个ip下的每个应用实例映射一个MQClientInstance实例
+ */
 public class MQClientManager {
     private final static Logger log = ClientLogger.getLog();
     private static MQClientManager instance = new MQClientManager();
     private AtomicInteger factoryIndexGenerator = new AtomicInteger();
+    //根据clientId存放客户端实例，每个ip只能有一个，不能重复创建
     private ConcurrentMap<String/* clientId */, MQClientInstance> factoryTable =
         new ConcurrentHashMap<String, MQClientInstance>();
 
@@ -44,18 +49,26 @@ public class MQClientManager {
         return getAndCreateMQClientInstance(clientConfig, null);
     }
 
+    /***
+     * 根据clientId维护客户端实例，clienId=ip+"@"+instanceName
+     * 所以同一个ip地址发起的请求基本都就共享一个 MQClientInstance
+     * @param clientConfig
+     * @param rpcHook
+     * @return
+     */
     public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
-        String clientId = clientConfig.buildMQClientId();
+        String clientId = clientConfig.buildMQClientId();//根据客户端ip 创建客户端ID:ip+"@"+instanceName
         MQClientInstance instance = this.factoryTable.get(clientId);
         if (null == instance) {
             instance =
                 new MQClientInstance(clientConfig.cloneClientConfig(),
                     this.factoryIndexGenerator.getAndIncrement(), clientId, rpcHook);
+            //一个ip只能创建一个MQClientInstance实例，也就是不能重复创建
             MQClientInstance prev = this.factoryTable.putIfAbsent(clientId, instance);
-            if (prev != null) {
+            if (prev != null) {//表示该ip下已经有MQClientInstance，直接使用即可
                 instance = prev;
                 log.warn("Returned Previous MQClientInstance for clientId:[{}]", clientId);
-            } else {
+            } else {//表示新建MQClientInstance
                 log.info("Created new MQClientInstance for clientId:[{}]", clientId);
             }
         }

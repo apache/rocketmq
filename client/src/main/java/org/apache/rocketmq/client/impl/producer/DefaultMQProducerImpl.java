@@ -139,20 +139,22 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public void start(final boolean startFactory) throws MQClientException {
+        //根据服务当前状态进行相关操作
         switch (this.serviceState) {
-            case CREATE_JUST:
+            case CREATE_JUST://服务状态是新建的
+                //更新服务状态(这里START_FAILED相当于启动中)
                 this.serviceState = ServiceState.START_FAILED;
-
+                //
                 this.checkConfig();
-
+                //组名不是CLIENT_INNER_PRODUCER，更新实例名称为PID
                 if (!this.defaultMQProducer.getProducerGroup().equals(MixAll.CLIENT_INNER_PRODUCER_GROUP)) {
                     this.defaultMQProducer.changeInstanceNameToPID();
                 }
-
+                //为每个ip创建一个客户端实例MQClientInstance
                 this.mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQProducer, rpcHook);
-
+                //将{group,producter}注册到MQClientInstance.producterTable
                 boolean registerOK = mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);
-                if (!registerOK) {
+                if (!registerOK) {//注册失败，将状态更新为CREATE_JUST，这样可以保证后期继续start
                     this.serviceState = ServiceState.CREATE_JUST;
                     throw new MQClientException("The producer group[" + this.defaultMQProducer.getProducerGroup()
                         + "] has been created before, specify another name please." + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL),
@@ -182,14 +184,15 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
     }
-
+    //校验Producter配置(只校验了分组)
     private void checkConfig() throws MQClientException {
+        //校验组名
         Validators.checkGroup(this.defaultMQProducer.getProducerGroup());
 
         if (null == this.defaultMQProducer.getProducerGroup()) {
             throw new MQClientException("producerGroup is null", null);
         }
-
+        //组名不能为DEFAULT_PRODUCER
         if (this.defaultMQProducer.getProducerGroup().equals(MixAll.DEFAULT_PRODUCER_GROUP)) {
             throw new MQClientException("producerGroup can not equal " + MixAll.DEFAULT_PRODUCER_GROUP + ", please specify another one.",
                 null);
