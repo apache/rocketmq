@@ -197,16 +197,10 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final RegisterBrokerRequestHeader requestHeader =
             (RegisterBrokerRequestHeader) request.decodeCommandCustomHeader(RegisterBrokerRequestHeader.class);
 
-        if (requestHeader.getBodyCrc32() != 0) {
-            final int crc32 = UtilAll.crc32(request.getBody());
-            if (crc32 != requestHeader.getBodyCrc32()) {
-                log.warn(String.format("receive registerBroker request,crc32 not match,from %s",
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel())));
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("crc32 not match");
-                return response;
-
-            }
+        if (!checksum(ctx, request, requestHeader)){
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("crc32 not match");
+            return response;
         }
 
         RegisterBrokerBody registerBrokerBody = new RegisterBrokerBody();
@@ -243,6 +237,19 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    private boolean checksum(ChannelHandlerContext ctx, RemotingCommand request,
+        RegisterBrokerRequestHeader requestHeader) {
+        if (requestHeader.getBodyCrc32() != 0) {
+            final int crc32 = UtilAll.crc32(request.getBody());
+            if (crc32 != requestHeader.getBodyCrc32()) {
+                log.warn(String.format("receive registerBroker request,crc32 not match,from %s",
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel())));
+                return false;
+            }
+        }
+        return true;
+    }
+
     public RemotingCommand queryBrokerTopicConfig(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(QueryDataVersionResponseHeader.class);
@@ -274,15 +281,10 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final RegisterBrokerRequestHeader requestHeader =
             (RegisterBrokerRequestHeader) request.decodeCommandCustomHeader(RegisterBrokerRequestHeader.class);
 
-        if (requestHeader.getBodyCrc32() != 0) {
-            final int crc32 = UtilAll.crc32(request.getBody());
-            if (crc32 != requestHeader.getBodyCrc32()) {
-                log.warn(String.format("receive registerBroker request,crc32 not match,from %s",
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel())));
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("crc32 not match");
-                return response;
-            }
+        if (!checksum(ctx, request, requestHeader)) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("crc32 not match");
+            return response;
         }
 
         TopicConfigSerializeWrapper topicConfigWrapper;
