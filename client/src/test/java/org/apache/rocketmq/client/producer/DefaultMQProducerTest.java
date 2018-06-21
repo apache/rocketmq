@@ -193,8 +193,8 @@ public class DefaultMQProducerTest {
             @Override
             public void onException(Throwable e) {
                 e.printStackTrace();
-                countDownLatch.countDown();
                 cc.incrementAndGet();
+                countDownLatch.countDown();
             }
         };
         MessageQueueSelector messageQueueSelector = new MessageQueueSelector() {
