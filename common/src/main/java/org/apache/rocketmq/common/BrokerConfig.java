@@ -78,7 +78,7 @@ public class BrokerConfig {
     private int queryThreadPoolQueueCapacity = 20000;
     private int clientManagerThreadPoolQueueCapacity = 1000000;
     private int consumerManagerThreadPoolQueueCapacity = 1000000;
-    private int heartbeatThreadPoolQueueCapacity = 1000000;
+    private int heartbeatThreadPoolQueueCapacity = 10000;
 
     private int filterServerNums = 0;
 
@@ -110,6 +110,7 @@ public class BrokerConfig {
     private boolean brokerFastFailureEnable = true;
     private long waitTimeMillsInSendQueue = 200;
     private long waitTimeMillsInPullQueue = 5 * 1000;
+    private long waitTimeMillsInHeartbeatQueue = 2 * 1000;
 
     private long startAcceptSendRequestTimeStamp = 0L;
 
@@ -667,5 +668,9 @@ public class BrokerConfig {
 
     public void setRegisterNameServerPeriod(int registerNameServerPeriod) {
         this.registerNameServerPeriod = registerNameServerPeriod;
+    }
+
+    public long getWaitTimeMillsInHeartbeatQueue() {
+        return waitTimeMillsInHeartbeatQueue;
     }
 }

@@ -961,4 +961,8 @@ public class BrokerController {
     public Configuration getConfiguration() {
         return this.configuration;
     }
+
+    public BlockingQueue<Runnable> getHeartbeatThreadPoolQueue() {
+        return heartbeatThreadPoolQueue;
+    }
 }
