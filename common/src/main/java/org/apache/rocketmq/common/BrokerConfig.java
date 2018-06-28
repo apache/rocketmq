@@ -645,32 +645,19 @@ public class BrokerConfig {
         this.heartbeatThreadPoolNums = heartbeatThreadPoolNums;
     }
 
-    public int getRegisterNameServerPeriod() {
-        return registerNameServerPeriod;
-    public int getHeartbeatThreadPoolQueueCapacity() {
-        return heartbeatThreadPoolQueueCapacity;
+    public long getWaitTimeMillsInHeartbeatQueue() {
+        return waitTimeMillsInHeartbeatQueue;
     }
 
-    public void setHeartbeatThreadPoolQueueCapacity(int heartbeatThreadPoolQueueCapacity) {
-        this.heartbeatThreadPoolQueueCapacity = heartbeatThreadPoolQueueCapacity;
+    public void setWaitTimeMillsInHeartbeatQueue(long waitTimeMillsInHeartbeatQueue) {
+        this.waitTimeMillsInHeartbeatQueue = waitTimeMillsInHeartbeatQueue;
     }
 
-    public int getHeartbeatThreadPoolNums() {
-        return heartbeatThreadPoolNums;
-    }
-
-    public void setHeartbeatThreadPoolNums(int heartbeatThreadPoolNums) {
-        this.heartbeatThreadPoolNums = heartbeatThreadPoolNums;
-    }
     public int getRegisterNameServerPeriod() {
         return registerNameServerPeriod;
     }
 
     public void setRegisterNameServerPeriod(int registerNameServerPeriod) {
         this.registerNameServerPeriod = registerNameServerPeriod;
-    }
-
-    public long getWaitTimeMillsInHeartbeatQueue() {
-        return waitTimeMillsInHeartbeatQueue;
     }
 }
