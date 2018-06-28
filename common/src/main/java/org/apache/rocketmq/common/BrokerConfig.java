@@ -79,6 +79,7 @@ public class BrokerConfig {
     private int clientManagerThreadPoolQueueCapacity = 1000000;
     private int consumerManagerThreadPoolQueueCapacity = 1000000;
     private int heartbeatThreadPoolQueueCapacity = 10000;
+    private int heartbeatThreadPoolQueueCapacity = 50000;
 
     private int filterServerNums = 0;
 
