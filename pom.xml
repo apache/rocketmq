@@ -254,6 +254,8 @@
                         <exclude>bin/README.md</exclude>
                         <exclude>.github/*</exclude>
                         <exclude>src/test/resources/certs/*</exclude>
+                        <exclude>*/target/**</exclude>
+                        <exclude>*/*.iml</exclude>
                     </excludes>
                 </configuration>
             </plugin>
