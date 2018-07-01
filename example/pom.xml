@@ -53,5 +53,9 @@
             <artifactId>rocketmq-openmessaging</artifactId>
             <version>4.2.1-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-tools</artifactId>
+        </dependency>
     </dependencies>
 </project>
