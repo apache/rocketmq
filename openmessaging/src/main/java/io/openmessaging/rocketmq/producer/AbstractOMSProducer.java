@@ -99,9 +99,19 @@ abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
                     return new OMSTimeOutException("-1", String.format("Send message to broker timeout, %dms, Topic=%s, msgId=%s",
                         this.rocketmqProducer.getSendMsgTimeout(), topic, msgId), e);
                 } else if (e.getCause() instanceof MQBrokerException || e.getCause() instanceof RemotingConnectException) {
-                    MQBrokerException brokerException = (MQBrokerException) e.getCause();
-                    return new OMSRuntimeException("-1", String.format("Received a broker exception, Topic=%s, msgId=%s, %s",
-                        topic, msgId, brokerException.getErrorMessage()), e);
+                    if (e.getCause() instanceof MQBrokerException) {
+                        MQBrokerException brokerException = (MQBrokerException) e.getCause();
+                        return new OMSRuntimeException("-1", String.format("Received a broker exception, Topic=%s, msgId=%s, %s",
+                            topic, msgId, brokerException.getErrorMessage()), e);
+                    }
+
+                    if (e.getCause() instanceof RemotingConnectException) {
+                        RemotingConnectException connectException = (RemotingConnectException)e.getCause();
+                        return new OMSRuntimeException("-1",
+                            String.format("Network connection experiences failures. Topic=%s, msgId=%s, %s",
+                                topic, msgId, connectException.getMessage()),
+                            e);
+                    }
                 }
             }
             // Exception thrown by local.

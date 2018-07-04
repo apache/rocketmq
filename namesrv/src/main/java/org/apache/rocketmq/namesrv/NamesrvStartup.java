@@ -170,4 +170,8 @@ public class NamesrvStartup {
 
         return options;
     }
+
+    public static Properties getProperties() {
+        return properties;
+    }
 }
