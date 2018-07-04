@@ -108,9 +108,6 @@
         <sonar.exclusions>file:**/generated-sources/**,**/test/**</sonar.exclusions>
 
 
-        <skipTests>false</skipTests>
-        <skipITs>${skipTests}</skipITs>
-        <skipUTs>${skipTests}</skipUTs>
     </properties>
 
     <modules>
@@ -322,7 +319,6 @@
                     <forkCount>1</forkCount>
                     <reuseForks>true</reuseForks>
 
-                    <skipTests>${skipUTs}</skipTests>
                 </configuration>
             </plugin>
             <plugin>
@@ -343,8 +339,6 @@
                     <excludes>
                         <exclude>**/NormalMsgDelayIT.java</exclude>
                     </excludes>
-                    <skipTests>${skipTests}</skipTests>
-                    <skipITs>${skipITs}</skipITs>
                 </configuration>
                 <executions>
                     <execution>

@@ -49,10 +49,12 @@ public class RMQAsyncSendProducer extends AbstractMQProducer {
         super(topic);
         this.nsAddr = nsAddr;
         sendCallback = new SendCallback() {
+            @Override
             public void onSuccess(org.apache.rocketmq.client.producer.SendResult sendResult) {
                 successSendResult.add(sendResult);
             }
-
+            
+            @Override
             public void onException(Throwable throwable) {
                 exceptionMsgCount.getAndIncrement();
             }
@@ -94,10 +96,12 @@ public class RMQAsyncSendProducer extends AbstractMQProducer {
         }
     }
 
+    @Override
     public SendResult send(Object msg, Object arg) {
         return null;
     }
 
+    @Override
     public void shutdown() {
         producer.shutdown();
     }
