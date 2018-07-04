@@ -14,10 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.producer;
+package org.apache.rocketmq.broker.transaction.queue;
 
-import org.apache.rocketmq.common.message.Message;
-@Deprecated
-public interface LocalTransactionExecuter {
-    LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg);
+import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.common.message.MessageExt;
+
+public class GetResult {
+    private MessageExt msg;
+    private PullResult pullResult;
+
+    public MessageExt getMsg() {
+        return msg;
+    }
+
+    public void setMsg(MessageExt msg) {
+        this.msg = msg;
+    }
+
+    public PullResult getPullResult() {
+        return pullResult;
+    }
+
+    public void setPullResult(PullResult pullResult) {
+        this.pullResult = pullResult;
+    }
 }

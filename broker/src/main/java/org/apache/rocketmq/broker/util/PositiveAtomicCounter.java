@@ -14,10 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.producer;
+package org.apache.rocketmq.broker.util;
 
-import org.apache.rocketmq.common.message.Message;
-@Deprecated
-public interface LocalTransactionExecuter {
-    LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg);
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class PositiveAtomicCounter {
+    private static final int MASK = 0x7FFFFFFF;
+    private final AtomicInteger atom;
+
+
+    public PositiveAtomicCounter() {
+        atom = new AtomicInteger(0);
+    }
+
+
+    public final int incrementAndGet() {
+        final int rt = atom.incrementAndGet();
+        return rt & MASK;
+    }
+
+
+    public int intValue() {
+        return atom.intValue();
+    }
 }

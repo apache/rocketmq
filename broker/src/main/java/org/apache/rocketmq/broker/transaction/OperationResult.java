@@ -14,10 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.producer;
+package org.apache.rocketmq.broker.transaction;
 
-import org.apache.rocketmq.common.message.Message;
-@Deprecated
-public interface LocalTransactionExecuter {
-    LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg);
+import org.apache.rocketmq.common.message.MessageExt;
+
+public class OperationResult {
+    private MessageExt prepareMessage;
+
+    private int responseCode;
+
+    private String responseRemark;
+
+    public MessageExt getPrepareMessage() {
+        return prepareMessage;
+    }
+
+    public void setPrepareMessage(MessageExt prepareMessage) {
+        this.prepareMessage = prepareMessage;
+    }
+
+    public int getResponseCode() {
+        return responseCode;
+    }
+
+    public void setResponseCode(int responseCode) {
+        this.responseCode = responseCode;
+    }
+
+    public String getResponseRemark() {
+        return responseRemark;
+    }
+
+    public void setResponseRemark(String responseRemark) {
+        this.responseRemark = responseRemark;
+    }
 }

@@ -14,10 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.producer;
+package org.apache.rocketmq.broker.util;
 
-import org.apache.rocketmq.common.message.Message;
-@Deprecated
-public interface LocalTransactionExecuter {
-    LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg);
+import org.apache.rocketmq.broker.transaction.AbstractTransactionCheckListener;
+import org.apache.rocketmq.common.message.MessageExt;
+
+public class LogTransactionCheckListener extends AbstractTransactionCheckListener {
+
+    @Override
+    public void resolveDiscardMsg(MessageExt msgExt) {
+
+    }
 }

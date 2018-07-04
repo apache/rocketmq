@@ -61,6 +61,13 @@ import org.apache.rocketmq.broker.processor.SendMessageProcessor;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
+import org.apache.rocketmq.broker.transaction.AbstractTransactionCheckListener;
+import org.apache.rocketmq.broker.transaction.TransactionMsgCheckService;
+import org.apache.rocketmq.broker.transaction.TransactionMsgService;
+import org.apache.rocketmq.broker.transaction.queue.DefaultAbstractTransactionCheckListener;
+import org.apache.rocketmq.broker.transaction.queue.QueueTransactionMsgServiceImpl;
+import org.apache.rocketmq.broker.transaction.queue.TransactionBridge;
+import org.apache.rocketmq.broker.util.ServiceProvider;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.Configuration;
 import org.apache.rocketmq.common.DataVersion;
@@ -142,6 +149,9 @@ public class BrokerController {
     private BrokerFastFailure brokerFastFailure;
     private Configuration configuration;
     private FileWatchService fileWatchService;
+    private TransactionMsgCheckService transactionMsgCheckService;
+    private TransactionMsgService transactionMsgService;
+    private AbstractTransactionCheckListener transactionCheckListener;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -432,9 +442,24 @@ public class BrokerController {
                     log.warn("FileWatchService created error, can't load the certificate dynamically");
                 }
             }
+            initialTransaction();
         }
-
         return result;
+    }
+
+    private void initialTransaction() {
+        this.transactionMsgService = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_SERVICE_ID, TransactionMsgService.class);
+        if (null == this.transactionMsgService) {
+            this.transactionMsgService = new QueueTransactionMsgServiceImpl(new TransactionBridge(this, this.getMessageStore()));
+            log.warn("Load default transaction message hook service: {}", QueueTransactionMsgServiceImpl.class.getSimpleName());
+        }
+        this.transactionCheckListener = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_LISTENER_ID, AbstractTransactionCheckListener.class);
+        if (null == this.transactionCheckListener) {
+            this.transactionCheckListener = new DefaultAbstractTransactionCheckListener();
+            log.warn("Load default discard message hook service: {}", DefaultAbstractTransactionCheckListener.class.getSimpleName());
+        }
+        this.transactionCheckListener.setBrokerController(this);
+        this.transactionMsgCheckService = new TransactionMsgCheckService(this);
     }
 
     public void registerProcessor() {
@@ -700,6 +725,10 @@ public class BrokerController {
         if (this.fileWatchService != null) {
             this.fileWatchService.shutdown();
         }
+
+        if (this.transactionMsgCheckService != null) {
+            this.transactionMsgCheckService.shutdown(false);
+        }
     }
 
     private void unregisterBrokerAll() {
@@ -767,6 +796,13 @@ public class BrokerController {
 
         if (this.brokerFastFailure != null) {
             this.brokerFastFailure.start();
+        }
+
+        if (BrokerRole.SLAVE != messageStoreConfig.getBrokerRole()) {
+            if (this.transactionMsgCheckService != null) {
+                log.info("start transaction service!");
+                this.transactionMsgCheckService.start();
+            }
         }
     }
 
@@ -948,5 +984,29 @@ public class BrokerController {
 
     public Configuration getConfiguration() {
         return this.configuration;
+    }
+
+    public TransactionMsgCheckService getTransactionMsgCheckService() {
+        return transactionMsgCheckService;
+    }
+
+    public void setTransactionMsgCheckService(TransactionMsgCheckService transactionMsgCheckService) {
+        this.transactionMsgCheckService = transactionMsgCheckService;
+    }
+
+    public TransactionMsgService getTransactionMsgService() {
+        return transactionMsgService;
+    }
+
+    public void setTransactionMsgService(TransactionMsgService transactionMsgService) {
+        this.transactionMsgService = transactionMsgService;
+    }
+
+    public AbstractTransactionCheckListener getTransactionCheckListener() {
+        return transactionCheckListener;
+    }
+
+    public void setTransactionCheckListener(AbstractTransactionCheckListener transactionCheckListener) {
+        this.transactionCheckListener = transactionCheckListener;
     }
 }

@@ -17,6 +17,15 @@
 
 package org.apache.rocketmq.example.benchmark;
 
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.producer.LocalTransactionState;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.client.producer.TransactionListener;
+import org.apache.rocketmq.client.producer.TransactionMQProducer;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+
 import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.Timer;
@@ -24,15 +33,6 @@ import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.producer.LocalTransactionExecuter;
-import org.apache.rocketmq.client.producer.LocalTransactionState;
-import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.client.producer.TransactionCheckListener;
-import org.apache.rocketmq.client.producer.TransactionMQProducer;
-import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class TransactionProducer {
     private static int threadCount;
@@ -73,8 +73,8 @@ public class TransactionProducer {
                     Long[] end = snapshotList.getLast();
 
                     final long sendTps =
-                        (long) (((end[3] - begin[3]) / (double) (end[0] - begin[0])) * 1000L);
-                    final double averageRT = (end[5] - begin[5]) / (double) (end[3] - begin[3]);
+                        (long)(((end[3] - begin[3]) / (double)(end[0] - begin[0])) * 1000L);
+                    final double averageRT = (end[5] - begin[5]) / (double)(end[3] - begin[3]);
 
                     System.out.printf(
                         "Send TPS: %d Max RT: %d Average RT: %7.3f Send Failed: %d Response Failed: %d transaction checkCount: %d %n",
@@ -92,15 +92,13 @@ public class TransactionProducer {
             }
         }, 10000, 10000);
 
-        final TransactionCheckListener transactionCheckListener =
-            new TransactionCheckListenerBImpl(ischeckffalse, statsBenchmark);
+        final TransactionListener transactionListener =
+            new TransactionListenerImpl(ischeckffalse, ischeck, statsBenchmark);
         final TransactionMQProducer producer = new TransactionMQProducer("benchmark_transaction_producer");
         producer.setInstanceName(Long.toString(System.currentTimeMillis()));
-        producer.setTransactionCheckListener(transactionCheckListener);
+        producer.setTransactionListener(transactionListener);
         producer.setDefaultTopicQueueNums(1000);
         producer.start();
-
-        final TransactionExecuterBImpl tranExecuter = new TransactionExecuterBImpl(ischeck);
 
         for (int i = 0; i < threadCount; i++) {
             sendThreadPool.execute(new Runnable() {
@@ -111,7 +109,7 @@ public class TransactionProducer {
                             // Thread.sleep(1000);
                             final long beginTimestamp = System.currentTimeMillis();
                             SendResult sendResult =
-                                producer.sendMessageInTransaction(msg, tranExecuter, null);
+                                producer.sendMessageInTransaction(msg, null);
                             if (sendResult != null) {
                                 statsBenchmark.getSendRequestSuccessCount().incrementAndGet();
                                 statsBenchmark.getReceiveResponseSuccessCount().incrementAndGet();
@@ -124,8 +122,7 @@ public class TransactionProducer {
                                 boolean updated =
                                     statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT,
                                         currentRT);
-                                if (updated)
-                                    break;
+                                if (updated) { break; }
 
                                 prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
                             }
@@ -153,41 +150,51 @@ public class TransactionProducer {
     }
 }
 
-class TransactionExecuterBImpl implements LocalTransactionExecuter {
+//class TransactionExecuterBImpl implements LocalTransactionExecuter {
+//
+//    private boolean ischeckLocal;
+//
+//    public TransactionExecuterBImpl(boolean ischeck) {
+//        this.ischeck = ischeck;
+//    }
+//
+//    @Override
+//    public LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg) {
+//        if (ischeck) {
+//            return LocalTransactionState.UNKNOW;
+//        }
+//        return LocalTransactionState.COMMIT_MESSAGE;
+//    }
+//}
 
-    private boolean ischeck;
-
-    public TransactionExecuterBImpl(boolean ischeck) {
-        this.ischeck = ischeck;
-    }
-
-    @Override
-    public LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg) {
-        if (ischeck) {
-            return LocalTransactionState.UNKNOW;
-        }
-        return LocalTransactionState.COMMIT_MESSAGE;
-    }
-}
-
-class TransactionCheckListenerBImpl implements TransactionCheckListener {
+class TransactionListenerImpl implements TransactionListener {
     private boolean ischeckffalse;
     private StatsBenchmarkTProducer statsBenchmarkTProducer;
+    private boolean ischeckLocal;
 
-    public TransactionCheckListenerBImpl(boolean ischeckffalse,
-        StatsBenchmarkTProducer statsBenchmarkTProducer) {
+    public TransactionListenerImpl(boolean ischeckffalse, boolean isCheckLocal,
+                                   StatsBenchmarkTProducer statsBenchmarkTProducer) {
         this.ischeckffalse = ischeckffalse;
+        this.ischeckLocal = isCheckLocal;
         this.statsBenchmarkTProducer = statsBenchmarkTProducer;
     }
 
     @Override
-    public LocalTransactionState checkLocalTransactionState(MessageExt msg) {
+    public LocalTransactionState checkLocalTransaction(MessageExt msg) {
         statsBenchmarkTProducer.getCheckRequestSuccessCount().incrementAndGet();
         if (ischeckffalse) {
 
             return LocalTransactionState.ROLLBACK_MESSAGE;
         }
 
+        return LocalTransactionState.COMMIT_MESSAGE;
+    }
+
+    @Override
+    public LocalTransactionState executeLocalTransaction(final Message msg, final Object arg) {
+        if (ischeckLocal) {
+            return LocalTransactionState.UNKNOW;
+        }
         return LocalTransactionState.COMMIT_MESSAGE;
     }
 }

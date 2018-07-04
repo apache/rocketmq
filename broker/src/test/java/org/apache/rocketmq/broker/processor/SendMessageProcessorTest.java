@@ -21,16 +21,22 @@ import io.netty.channel.ChannelHandlerContext;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
+import org.apache.rocketmq.broker.transaction.TransactionMsgService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
@@ -67,6 +73,9 @@ public class SendMessageProcessorTest {
     private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(), new MessageStoreConfig());
     @Mock
     private MessageStore messageStore;
+
+    @Mock
+    private TransactionMsgService transactionMsgService;
 
     private String topic = "FooBar";
     private String group = "FooBarGroup";
@@ -177,7 +186,42 @@ public class SendMessageProcessorTest {
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
 
-    private RemotingCommand createSendMsgCommand(int requestCode) {
+    @Test
+    public void testProcessRequest_Transaction() throws RemotingCommandException {
+        brokerController.setTransactionMsgService(transactionMsgService);
+        when(brokerController.getTransactionMsgService().prepareMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        RemotingCommand request = createSendTransactionMsgCommand(RequestCode.SEND_MESSAGE);
+        final RemotingCommand[] response = new RemotingCommand[1];
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                response[0] = invocation.getArgument(0);
+                return null;
+            }
+        }).when(handlerContext).writeAndFlush(any(Object.class));
+        RemotingCommand responseToReturn = sendMessageProcessor.processRequest(handlerContext, request);
+        if (responseToReturn != null) {
+            assertThat(response[0]).isNull();
+            response[0] = responseToReturn;
+        }
+        assertThat(response[0].getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+    }
+    private RemotingCommand createSendTransactionMsgCommand(int requestCode) {
+        SendMessageRequestHeader header = createSendMsgRequestHeader();
+        int sysFlag = header.getSysFlag();
+        Map<String, String> oriProps = MessageDecoder.string2messageProperties(header.getProperties());
+        oriProps.put(MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
+        header.setProperties(MessageDecoder.messageProperties2String(oriProps));
+        sysFlag |= MessageSysFlag.TRANSACTION_PREPARED_TYPE;
+        header.setSysFlag(sysFlag);
+        RemotingCommand request = RemotingCommand.createRequestCommand(requestCode, header);
+        request.setBody(new byte[] {'a'});
+        request.makeCustomHeaderToNet();
+        return request;
+    }
+
+    private SendMessageRequestHeader createSendMsgRequestHeader() {
         SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
         requestHeader.setProducerGroup(group);
         requestHeader.setTopic(topic);
@@ -188,6 +232,11 @@ public class SendMessageProcessorTest {
         requestHeader.setBornTimestamp(System.currentTimeMillis());
         requestHeader.setFlag(124);
         requestHeader.setReconsumeTimes(0);
+        return requestHeader;
+    }
+
+    private RemotingCommand createSendMsgCommand(int requestCode) {
+        SendMessageRequestHeader requestHeader = createSendMsgRequestHeader();
 
         RemotingCommand request = RemotingCommand.createRequestCommand(requestCode, requestHeader);
         request.setBody(new byte[] {'a'});

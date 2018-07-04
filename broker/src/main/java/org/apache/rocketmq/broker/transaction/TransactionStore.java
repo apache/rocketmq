@@ -18,7 +18,7 @@
 package org.apache.rocketmq.broker.transaction;
 
 import java.util.List;
-
+@Deprecated
 public interface TransactionStore {
     boolean open();
 
