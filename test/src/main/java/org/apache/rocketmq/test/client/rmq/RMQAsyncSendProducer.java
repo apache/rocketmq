@@ -53,7 +53,6 @@ public class RMQAsyncSendProducer extends AbstractMQProducer {
             public void onSuccess(org.apache.rocketmq.client.producer.SendResult sendResult) {
                 successSendResult.add(sendResult);
             }
-            
             @Override
             public void onException(Throwable throwable) {
                 exceptionMsgCount.getAndIncrement();
