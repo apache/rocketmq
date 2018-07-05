@@ -249,11 +249,12 @@
                 <version>0.12</version>
                 <configuration>
                     <excludes>
+                        <exclude>.gitignore</exclude>
                         <exclude>.travis.yml</exclude>
                         <exclude>CONTRIBUTING.md</exclude>
-                        <exclude>bin/README.md</exclude>
-                        <exclude>.github/*</exclude>
-                        <exclude>src/test/resources/certs/*</exclude>
+                        <exclude>**/README.md</exclude>
+                        <exclude>.github/**/*</exclude>
+                        <exclude>**/test/resources/**/*</exclude>
                     </excludes>
                 </configuration>
             </plugin>
