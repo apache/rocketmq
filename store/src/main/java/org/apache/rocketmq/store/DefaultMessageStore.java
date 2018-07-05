@@ -247,7 +247,7 @@ public class DefaultMessageStore implements MessageStore {
 
             try {
 
-                Thread.sleep(1000 * 3);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 log.error("shutdown Exception, ", e);
             }

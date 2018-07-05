@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.test.sendresult;
 
-public class SendResult {
+public class ResultWrapper {
     private boolean sendResult = false;
     private String msgId = null;
     private Exception sendException = null;
