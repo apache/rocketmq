@@ -35,7 +35,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DefaultMessageStoreShuwDownTest {
+public class DefaultMessageStoreShutDownTest {
     private DefaultMessageStore messageStore;
 
     @Before
@@ -48,7 +48,7 @@ public class DefaultMessageStoreShuwDownTest {
     }
 
     @Test
-    public void testDispatchBehindWhenShutDown() {
+    public void testDispatchBehindWhenShutdown() {
         messageStore.shutdown();
         assertTrue(!messageStore.shutDownNormal);
         File file = new File(StorePathConfigHelper.getAbortFile(messageStore.getMessageStoreConfig().getStorePathRootDir()));
@@ -56,7 +56,7 @@ public class DefaultMessageStoreShuwDownTest {
     }
 
     @After
-    public void destory() {
+    public void destroy() {
         messageStore.destroy();
         File file = new File(messageStore.getMessageStoreConfig().getStorePathRootDir());
         UtilAll.deleteFile(file);

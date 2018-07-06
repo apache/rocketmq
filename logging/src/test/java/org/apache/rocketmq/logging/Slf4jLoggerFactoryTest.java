@@ -59,7 +59,7 @@ public class Slf4jLoggerFactoryTest extends BasicLoggerTest {
         String file = loggingDir + "/logback_test.log";
 
         logger.info("logback slf4j info Message");
-        logger.error("logback slf4j error Message", new RuntimeException());
+        logger.error("logback slf4j error Message", new RuntimeException("test"));
         logger.debug("logback slf4j debug message");
         logger3.info("logback info message");
         logger3.error("logback error message");
