@@ -96,7 +96,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     protected ExecutorService checkExecutor;
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private MQClientInstance mQClientFactory;
-    private ExecutorService callbackExecutor;
     private ArrayList<CheckForbiddenHook> checkForbiddenHookList = new ArrayList<CheckForbiddenHook>();
     private int zipCompressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
 
@@ -1206,19 +1205,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public void setCallbackExecutor(final ExecutorService callbackExecutor) {
         this.mQClientFactory.getMQClientAPIImpl().getRemotingClient().setCallbackExecutor(callbackExecutor);
-        this.callbackExecutor = callbackExecutor;
     }
     public ExecutorService getCallbackExecutor() {
-        if (this.callbackExecutor == null) {
-            try {
-                return this.mQClientFactory.getMQClientAPIImpl().getRemotingClient().getCallbackExecutor();
-            } catch (Exception e) {
-                return new ThreadPoolExecutor(4, 4, 0L, TimeUnit.MILLISECONDS,
-                    new LinkedBlockingQueue<Runnable>(65535));
-            }
+        return this.mQClientFactory.getMQClientAPIImpl().getRemotingClient().getCallbackExecutor();
 
-        }
-        return this.callbackExecutor;
     }
 
     public SendResult send(Message msg,

@@ -47,9 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -397,8 +395,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     private Channel getAndCreateChannel(final String addr) throws InterruptedException {
-        if (null == addr)
+        if (null == addr) {
             return getAndCreateNameserverChannel();
+        }
 
         ChannelWrapper cw = this.channelTables.get(addr);
         if (cw != null && cw.isOK()) {
@@ -438,8 +437,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         this.namesrvAddrChoosed.set(newAddr);
                         log.info("new name server is chosen. OLD: {} , NEW: {}. namesrvIndex = {}", addr, newAddr, namesrvIndex);
                         Channel channelNew = this.createChannel(newAddr);
-                        if (channelNew != null)
+                        if (channelNew != null) {
                             return channelNew;
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -599,11 +599,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     @Override
     public ExecutorService getCallbackExecutor() {
-        if (this.callbackExecutor != null) {
-            return this.callbackExecutor;
-        }
-        return new ThreadPoolExecutor(4, 4, 0L, TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>(65535));
+        return callbackExecutor != null ? callbackExecutor : publicExecutor;
     }
 
     @Override
