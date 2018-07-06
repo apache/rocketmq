@@ -109,6 +109,7 @@ public class BrokerStatsManager {
 
     public void shutdown() {
         this.scheduledExecutorService.shutdown();
+        this.commercialExecutor.shutdown();
     }
 
     public StatsItem getStatsItem(final String statsName, final String statsKey) {
