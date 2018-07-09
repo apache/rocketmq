@@ -14,10 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.producer;
+package org.apache.rocketmq.broker.transaction.queue;
 
+import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
-@Deprecated
-public interface TransactionCheckListener {
-    LocalTransactionState checkLocalTransactionState(final MessageExt msg);
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+
+public class DefaultTransactionalMessageCheckListener extends AbstractTransactionalMessageCheckListener {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
+
+    public DefaultTransactionalMessageCheckListener() {
+        super();
+    }
+
+    @Override
+    public void resolveDiscardMsg(MessageExt msgExt) {
+        log.error("MsgExt:{} has been checked too many times, so discard it", msgExt);
+    }
 }

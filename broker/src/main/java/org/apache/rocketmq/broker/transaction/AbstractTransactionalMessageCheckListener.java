@@ -22,8 +22,8 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -31,8 +31,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public abstract class AbstractTransactionCheckListener {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
+public abstract class AbstractTransactionalMessageCheckListener {
+    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
 
     private BrokerController brokerController;
 
@@ -45,9 +45,9 @@ public abstract class AbstractTransactionCheckListener {
         }
     });
 
-    public AbstractTransactionCheckListener() {}
+    public AbstractTransactionalMessageCheckListener() {}
 
-    public AbstractTransactionCheckListener(BrokerController brokerController) {
+    public AbstractTransactionalMessageCheckListener(BrokerController brokerController) {
         this.brokerController = brokerController;
     }
 
@@ -66,7 +66,7 @@ public abstract class AbstractTransactionCheckListener {
         if (channel != null) {
             brokerController.getBroker2Client().checkProducerTransactionState(groupId, channel, checkTransactionStateRequestHeader, msgExt);
         } else {
-            log.warn("Check transaction failed, channel is null. groupId={}", groupId);
+            LOGGER.warn("Check transaction failed, channel is null. groupId={}", groupId);
         }
     }
 
@@ -77,7 +77,7 @@ public abstract class AbstractTransactionCheckListener {
                 try {
                     sendCheckMessage(msgExt);
                 } catch (Exception e) {
-                    log.error("Send check message error!", e);
+                    LOGGER.error("Send check message error!", e);
                 }
             }
         });
@@ -101,7 +101,7 @@ public abstract class AbstractTransactionCheckListener {
     }
 
     /**
-     * In order to avoid check back unlimited, we will discard this message after checked too many times
+     * In order to avoid check back unlimited, we will discard the message that have been checked more than a certain number of times.
      *
      * @param msgExt Message to be discarded.
      */

@@ -16,21 +16,25 @@
  */
 package org.apache.rocketmq.broker.transaction.queue;
 
-import org.apache.rocketmq.broker.transaction.AbstractTransactionCheckListener;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.common.MixAll;
 
-public class DefaultAbstractTransactionCheckListener extends AbstractTransactionCheckListener {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
+import java.nio.charset.Charset;
 
-    public DefaultAbstractTransactionCheckListener() {
-        super();
+public class TransactionalMessageUtil {
+    public static final String REMOVETAG = "d";
+    public static Charset charset = Charset.forName("utf-8");
+
+
+    public static String buildOpTopic() {
+        return MixAll.RMQ_SYS_TRANS_OP_HALF_TOPIC;
     }
 
-    @Override
-    public void resolveDiscardMsg(MessageExt msgExt) {
-        log.error("MsgExt:{} has been checked too many times, so discard it", msgExt);
+    public static String buildHalfTopic() {
+        return MixAll.RMQ_SYS_TRANS_HALF_TOPIC;
     }
+
+    public static String buildConsumerGroup() {
+        return MixAll.CID_SYS_RMQ_TRANS;
+    }
+
 }

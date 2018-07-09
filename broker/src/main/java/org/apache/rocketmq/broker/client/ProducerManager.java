@@ -200,7 +200,7 @@ public class ProducerManager {
             }
             int size = channelList.size();
             if (0 == size) {
-                log.warn("channel list is empty. groupId={}", groupId);
+                log.warn("Channel list is empty. groupId={}", groupId);
                 return null;
             }
 
@@ -214,7 +214,7 @@ public class ProducerManager {
                 return channel;
             }
         } else {
-            log.warn("check transaction failed, channel table is empty. groupId={}", groupId);
+            log.warn("Check transaction failed, channel table is empty. groupId={}", groupId);
             return null;
         }
         return null;

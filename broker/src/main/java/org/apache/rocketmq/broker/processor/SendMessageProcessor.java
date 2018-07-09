@@ -356,7 +356,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                         + "] sending transaction message is forbidden");
                 return response;
             }
-            putMessageResult = this.brokerController.getTransactionMsgService().prepareMessage(msgInner);
+            putMessageResult = this.brokerController.getTransactionalMessageService().prepareMessage(msgInner);
         } else {
             putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
         }

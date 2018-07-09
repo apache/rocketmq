@@ -16,21 +16,6 @@
  */
 package org.apache.rocketmq.broker;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -61,12 +46,12 @@ import org.apache.rocketmq.broker.processor.SendMessageProcessor;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
-import org.apache.rocketmq.broker.transaction.AbstractTransactionCheckListener;
-import org.apache.rocketmq.broker.transaction.TransactionMsgCheckService;
-import org.apache.rocketmq.broker.transaction.TransactionMsgService;
-import org.apache.rocketmq.broker.transaction.queue.DefaultAbstractTransactionCheckListener;
-import org.apache.rocketmq.broker.transaction.queue.QueueTransactionMsgServiceImpl;
-import org.apache.rocketmq.broker.transaction.queue.TransactionBridge;
+import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
+import org.apache.rocketmq.broker.transaction.TransactionalMessageCheckService;
+import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
+import org.apache.rocketmq.broker.transaction.queue.DefaultTransactionalMessageCheckListener;
+import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageBridge;
+import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageServiceImpl;
 import org.apache.rocketmq.broker.util.ServiceProvider;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.Configuration;
@@ -76,12 +61,12 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.stats.MomentStatsItem;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.common.TlsMode;
@@ -99,6 +84,22 @@ import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStats;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class BrokerController {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -149,9 +150,9 @@ public class BrokerController {
     private BrokerFastFailure brokerFastFailure;
     private Configuration configuration;
     private FileWatchService fileWatchService;
-    private TransactionMsgCheckService transactionMsgCheckService;
-    private TransactionMsgService transactionMsgService;
-    private AbstractTransactionCheckListener transactionCheckListener;
+    private TransactionalMessageCheckService transactionMsgCheckService;
+    private TransactionalMessageService transactionalMessageService;
+    private AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -225,7 +226,7 @@ public class BrokerController {
                 this.messageStore =
                     new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener,
                         this.brokerConfig);
-                this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
+                this.brokerStats = new BrokerStats((DefaultMessageStore)this.messageStore);
                 //load plugin
                 MessageStorePluginContext context = new MessageStorePluginContext(messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig);
                 this.messageStore = MessageStoreFactory.build(context, this.messageStore);
@@ -240,7 +241,7 @@ public class BrokerController {
 
         if (result) {
             this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
-            NettyServerConfig fastConfig = (NettyServerConfig) this.nettyServerConfig.clone();
+            NettyServerConfig fastConfig = (NettyServerConfig)this.nettyServerConfig.clone();
             fastConfig.setListenPort(nettyServerConfig.getListenPort() - 2);
             this.fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
             this.sendMessageExecutor = new BrokerFixedThreadPoolExecutor(
@@ -415,6 +416,7 @@ public class BrokerController {
                         },
                         new FileWatchService.Listener() {
                             boolean certChanged, keyChanged = false;
+
                             @Override
                             public void onChanged(String path) {
                                 if (path.equals(TlsSystemConfig.tlsServerTrustCertPath)) {
@@ -433,9 +435,10 @@ public class BrokerController {
                                     reloadServerSslContext();
                                 }
                             }
+
                             private void reloadServerSslContext() {
-                                ((NettyRemotingServer) remotingServer).loadSslContext();
-                                ((NettyRemotingServer) fastRemotingServer).loadSslContext();
+                                ((NettyRemotingServer)remotingServer).loadSslContext();
+                                ((NettyRemotingServer)fastRemotingServer).loadSslContext();
                             }
                         });
                 } catch (Exception e) {
@@ -448,18 +451,18 @@ public class BrokerController {
     }
 
     private void initialTransaction() {
-        this.transactionMsgService = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_SERVICE_ID, TransactionMsgService.class);
-        if (null == this.transactionMsgService) {
-            this.transactionMsgService = new QueueTransactionMsgServiceImpl(new TransactionBridge(this, this.getMessageStore()));
-            log.warn("Load default transaction message hook service: {}", QueueTransactionMsgServiceImpl.class.getSimpleName());
+        this.transactionalMessageService = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_SERVICE_ID, TransactionalMessageService.class);
+        if (null == this.transactionalMessageService) {
+            this.transactionalMessageService = new TransactionalMessageServiceImpl(new TransactionalMessageBridge(this, this.getMessageStore()));
+            log.warn("Load default transaction message hook service: {}", TransactionalMessageServiceImpl.class.getSimpleName());
         }
-        this.transactionCheckListener = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_LISTENER_ID, AbstractTransactionCheckListener.class);
-        if (null == this.transactionCheckListener) {
-            this.transactionCheckListener = new DefaultAbstractTransactionCheckListener();
-            log.warn("Load default discard message hook service: {}", DefaultAbstractTransactionCheckListener.class.getSimpleName());
+        this.transactionalMessageCheckListener = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_LISTENER_ID, AbstractTransactionalMessageCheckListener.class);
+        if (null == this.transactionalMessageCheckListener) {
+            this.transactionalMessageCheckListener = new DefaultTransactionalMessageCheckListener();
+            log.warn("Load default discard message hook service: {}", DefaultTransactionalMessageCheckListener.class.getSimpleName());
         }
-        this.transactionCheckListener.setBrokerController(this);
-        this.transactionMsgCheckService = new TransactionMsgCheckService(this);
+        this.transactionalMessageCheckListener.setBrokerController(this);
+        this.transactionMsgCheckService = new TransactionalMessageCheckService(this);
     }
 
     public void registerProcessor() {
@@ -564,8 +567,7 @@ public class BrokerController {
             slowTimeMills = rt == null ? 0 : this.messageStore.now() - rt.getCreateTimestamp();
         }
 
-        if (slowTimeMills < 0)
-            slowTimeMills = 0;
+        if (slowTimeMills < 0) { slowTimeMills = 0; }
 
         return slowTimeMills;
     }
@@ -849,7 +851,7 @@ public class BrokerController {
     }
 
     private void doRegisterBrokerAll(boolean checkOrderConfig, boolean oneway,
-        TopicConfigSerializeWrapper topicConfigWrapper) {
+                                     TopicConfigSerializeWrapper topicConfigWrapper) {
         List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
             this.brokerConfig.getBrokerClusterName(),
             this.getBrokerAddr(),
@@ -879,10 +881,10 @@ public class BrokerController {
     }
 
     private boolean needRegister(final String clusterName,
-        final String brokerAddr,
-        final String brokerName,
-        final long brokerId,
-        final int timeoutMills) {
+                                 final String brokerAddr,
+                                 final String brokerName,
+                                 final long brokerId,
+                                 final int timeoutMills) {
 
         TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
         List<Boolean> changeList = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigWrapper, timeoutMills);
@@ -986,27 +988,27 @@ public class BrokerController {
         return this.configuration;
     }
 
-    public TransactionMsgCheckService getTransactionMsgCheckService() {
+    public TransactionalMessageCheckService getTransactionMsgCheckService() {
         return transactionMsgCheckService;
     }
 
-    public void setTransactionMsgCheckService(TransactionMsgCheckService transactionMsgCheckService) {
+    public void setTransactionMsgCheckService(TransactionalMessageCheckService transactionMsgCheckService) {
         this.transactionMsgCheckService = transactionMsgCheckService;
     }
 
-    public TransactionMsgService getTransactionMsgService() {
-        return transactionMsgService;
+    public TransactionalMessageService getTransactionalMessageService() {
+        return transactionalMessageService;
     }
 
-    public void setTransactionMsgService(TransactionMsgService transactionMsgService) {
-        this.transactionMsgService = transactionMsgService;
+    public void setTransactionalMessageService(TransactionalMessageService transactionalMessageService) {
+        this.transactionalMessageService = transactionalMessageService;
     }
 
-    public AbstractTransactionCheckListener getTransactionCheckListener() {
-        return transactionCheckListener;
+    public AbstractTransactionalMessageCheckListener getTransactionalMessageCheckListener() {
+        return transactionalMessageCheckListener;
     }
 
-    public void setTransactionCheckListener(AbstractTransactionCheckListener transactionCheckListener) {
-        this.transactionCheckListener = transactionCheckListener;
+    public void setTransactionalMessageCheckListener(AbstractTransactionalMessageCheckListener transactionalMessageCheckListener) {
+        this.transactionalMessageCheckListener = transactionalMessageCheckListener;
     }
 }

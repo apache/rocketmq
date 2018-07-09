@@ -17,7 +17,9 @@
 package org.apache.rocketmq.broker.transaction.queue;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.OperationResult;
+import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -60,24 +62,24 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class QueueTransactionMsgServiceImplTest {
+public class TransactionalMessageServiceImplTest {
 
-    private QueueTransactionMsgServiceImpl queueTransactionMsgService;
+    private TransactionalMessageService queueTransactionMsgService;
 
     @Mock
-    private TransactionBridge bridge;
+    private TransactionalMessageBridge bridge;
 
     @Spy
     private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(),
         new NettyClientConfig(), new MessageStoreConfig());
 
     @Mock
-    private DefaultAbstractTransactionCheckListener listener;
+    private AbstractTransactionalMessageCheckListener listener;
 
     @Before
     public void init() {
         listener.setBrokerController(brokerController);
-        queueTransactionMsgService = new QueueTransactionMsgServiceImpl(bridge);
+        queueTransactionMsgService = new TransactionalMessageServiceImpl(bridge);
         brokerController.getMessageStoreConfig().setFileReservedTime(3);
     }
 
@@ -187,7 +189,7 @@ public class QueueTransactionMsgServiceImplTest {
         PullResult result = createPullResult(topic, queueOffset, body, size);
         List<MessageExt> msgs = result.getMsgFoundList();
         for (MessageExt msg : msgs) {
-            msg.setTags(TransactionUtil.REMOVETAG);
+            msg.setTags(TransactionalMessageUtil.REMOVETAG);
         }
         return result;
     }

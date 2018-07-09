@@ -16,9 +16,9 @@
  */
 package org.apache.rocketmq.broker.transaction.queue;
 
-import org.apache.rocketmq.broker.transaction.AbstractTransactionCheckListener;
+import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.OperationResult;
-import org.apache.rocketmq.broker.transaction.TransactionMsgService;
+import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.MixAll;
@@ -28,11 +28,11 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,10 +42,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class QueueTransactionMsgServiceImpl implements TransactionMsgService {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
+public class TransactionalMessageServiceImpl implements TransactionalMessageService {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
 
-    private TransactionBridge transactionBridge;
+    private TransactionalMessageBridge transactionBridge;
 
     private static final int TRY_PULL_MSG_NUMBER = 1;
 
@@ -53,7 +53,7 @@ public class QueueTransactionMsgServiceImpl implements TransactionMsgService {
 
     private static final int MAX_RETRY_COUNT_WHEN_HALF_NULL = 1;
 
-    public QueueTransactionMsgServiceImpl(TransactionBridge transactionBridge) {
+    public TransactionalMessageServiceImpl(TransactionalMessageBridge transactionBridge) {
         this.transactionBridge = transactionBridge;
     }
 
@@ -84,7 +84,7 @@ public class QueueTransactionMsgServiceImpl implements TransactionMsgService {
         if (valueOfCurrentMinusBorn
             > transactionBridge.getBrokerController().getMessageStoreConfig().getFileReservedTime()
             * 3600L * 1000) {
-            log.info("Half message status too log ,so skip it.messageId {},bornTime {}",
+            log.info("Half message exceed file reserved time ,so skip it.messageId {},bornTime {}",
                 msgExt.getMsgId(), msgExt.getBornTimestamp());
             return true;
         }
@@ -118,7 +118,7 @@ public class QueueTransactionMsgServiceImpl implements TransactionMsgService {
     }
 
     @Override
-    public void check(long transactionTimeout, int transactionCheckMax, AbstractTransactionCheckListener listener) {
+    public void check(long transactionTimeout, int transactionCheckMax, AbstractTransactionalMessageCheckListener listener) {
         try {
             String topic = MixAll.RMQ_SYS_TRANS_HALF_TOPIC;
             Set<MessageQueue> msgQueues = transactionBridge.fetchMessageQueues(topic);
@@ -290,10 +290,10 @@ public class QueueTransactionMsgServiceImpl implements TransactionMsgService {
             return pullResult;
         }
         for (MessageExt opMessageExt : opMsg) {
-            Long queueOffset = getLong(new String(opMessageExt.getBody(), TransactionUtil.charset));
+            Long queueOffset = getLong(new String(opMessageExt.getBody(), TransactionalMessageUtil.charset));
             log.info("Topic: {} tags: {}, OpOffset: {}, HalfOffset: {}", opMessageExt.getTopic(),
                 opMessageExt.getTags(), opMessageExt.getQueueOffset(), queueOffset);
-            if (TransactionUtil.REMOVETAG.equals(opMessageExt.getTags())) {
+            if (TransactionalMessageUtil.REMOVETAG.equals(opMessageExt.getTags())) {
                 if (queueOffset < miniOffset) {
                     doneOpOffset.add(opMessageExt.getQueueOffset());
                 } else {
@@ -303,10 +303,8 @@ public class QueueTransactionMsgServiceImpl implements TransactionMsgService {
                 log.error("Found a illegal tag in opMessageExt= {} ", opMessageExt);
             }
         }
-        if (log.isDebugEnabled()) {
-            log.debug("Remove map: {}" + removeMap);
-            log.debug("Done op list: {}" + doneOpOffset);
-        }
+        log.debug("Remove map: {}", removeMap);
+        log.debug("Done op list: {}", doneOpOffset);
         return pullResult;
     }
 
@@ -430,7 +428,7 @@ public class QueueTransactionMsgServiceImpl implements TransactionMsgService {
     private MessageQueue getOpQueue(MessageQueue messageQueue) {
         MessageQueue opQueue = opQueueMap.get(messageQueue);
         if (opQueue == null) {
-            opQueue = new MessageQueue(TransactionUtil.buildOpTopic(), messageQueue.getBrokerName(),
+            opQueue = new MessageQueue(TransactionalMessageUtil.buildOpTopic(), messageQueue.getBrokerName(),
                 messageQueue.getQueueId());
             opQueueMap.put(messageQueue, opQueue);
         }
@@ -466,7 +464,7 @@ public class QueueTransactionMsgServiceImpl implements TransactionMsgService {
 
     @Override
     public boolean deletePrepareMessage(MessageExt msgExt) {
-        if (this.transactionBridge.putOpMessage(msgExt, TransactionUtil.REMOVETAG)) {
+        if (this.transactionBridge.putOpMessage(msgExt, TransactionalMessageUtil.REMOVETAG)) {
             log.info("Transaction op message write successfully. messageId={}, queueId={} msgExt:{}", msgExt.getMsgId(), msgExt.getQueueId(), msgExt);
             return true;
         } else {

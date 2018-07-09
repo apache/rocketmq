@@ -19,19 +19,19 @@ package org.apache.rocketmq.broker.transaction;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class TransactionMsgCheckService extends ServiceThread {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
+public class TransactionalMessageCheckService extends ServiceThread {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
 
     private BrokerController brokerController;
 
     private final AtomicBoolean started = new AtomicBoolean(false);
 
-    public TransactionMsgCheckService(BrokerController brokerController) {
+    public TransactionalMessageCheckService(BrokerController brokerController) {
         this.brokerController = brokerController;
     }
 
@@ -39,7 +39,7 @@ public class TransactionMsgCheckService extends ServiceThread {
     public void start() {
         if (started.compareAndSet(false, true)) {
             super.start();
-            this.brokerController.getTransactionMsgService().open();
+            this.brokerController.getTransactionalMessageService().open();
         }
     }
 
@@ -47,14 +47,14 @@ public class TransactionMsgCheckService extends ServiceThread {
     public void shutdown(boolean interrupt) {
         if (started.compareAndSet(true, false)) {
             super.shutdown(interrupt);
-            this.brokerController.getTransactionMsgService().close();
-            this.brokerController.getTransactionCheckListener().shutDown();
+            this.brokerController.getTransactionalMessageService().close();
+            this.brokerController.getTransactionalMessageCheckListener().shutDown();
         }
     }
 
     @Override
     public String getServiceName() {
-        return TransactionMsgCheckService.class.getSimpleName();
+        return TransactionalMessageCheckService.class.getSimpleName();
     }
 
     @Override
@@ -67,7 +67,7 @@ public class TransactionMsgCheckService extends ServiceThread {
         while (!this.isStopped()) {
             try {
                 Thread.sleep(checkInterval);
-                this.brokerController.getTransactionMsgService().check(timeout, checkMax, this.brokerController.getTransactionCheckListener());
+                this.brokerController.getTransactionalMessageService().check(timeout, checkMax, this.brokerController.getTransactionalMessageCheckListener());
             } catch (Exception e) {
                 log.error("", e);
             }

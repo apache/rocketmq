@@ -16,19 +16,19 @@
  */
 package org.apache.rocketmq.broker.util;
 
-import org.apache.rocketmq.broker.transaction.AbstractTransactionCheckListener;
+import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.OperationResult;
-import org.apache.rocketmq.broker.transaction.TransactionMsgService;
+import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class TransactionMsgServiceImpl implements TransactionMsgService {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
+public class TransactionalMessageServiceImpl implements TransactionalMessageService {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
 
     @Override
     public PutMessageResult prepareMessage(MessageExtBrokerInner messageInner) {
@@ -51,7 +51,7 @@ public class TransactionMsgServiceImpl implements TransactionMsgService {
     }
 
     @Override
-    public void check(long transactionTimeout, int transactionCheckMax, AbstractTransactionCheckListener listener) {
+    public void check(long transactionTimeout, int transactionCheckMax, AbstractTransactionalMessageCheckListener listener) {
         log.warn("check check!");
     }
 

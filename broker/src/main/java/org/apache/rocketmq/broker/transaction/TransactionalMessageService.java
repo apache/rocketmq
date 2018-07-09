@@ -21,7 +21,7 @@ import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 
-public interface TransactionMsgService {
+public interface TransactionalMessageService {
 
     /**
      * Process prepare message, in common, we should put this message to storage service.
@@ -61,7 +61,7 @@ public interface TransactionMsgService {
      * @param transactionCheckMax The maximum number of times the message was checked, if exceed this value, this message will be discarded.
      * @param listener            When the message is considered to be checked or discarded, the relative method of this class will be invoked.
      */
-    void check(long transactionTimeout, int transactionCheckMax, AbstractTransactionCheckListener listener);
+    void check(long transactionTimeout, int transactionCheckMax, AbstractTransactionalMessageCheckListener listener);
 
     /**
      * Open transaction service.

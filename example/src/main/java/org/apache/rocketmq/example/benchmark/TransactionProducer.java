@@ -37,14 +37,14 @@ import java.util.concurrent.atomic.AtomicLong;
 public class TransactionProducer {
     private static int threadCount;
     private static int messageSize;
-    private static boolean ischeck;
-    private static boolean ischeckffalse;
+    private static boolean isCheck;
+    private static boolean isCheckFalse;
 
     public static void main(String[] args) throws MQClientException, UnsupportedEncodingException {
         threadCount = args.length >= 1 ? Integer.parseInt(args[0]) : 32;
         messageSize = args.length >= 2 ? Integer.parseInt(args[1]) : 1024 * 2;
-        ischeck = args.length >= 3 && Boolean.parseBoolean(args[2]);
-        ischeckffalse = args.length >= 4 && Boolean.parseBoolean(args[3]);
+        isCheck = args.length >= 3 && Boolean.parseBoolean(args[2]);
+        isCheckFalse = args.length >= 4 && Boolean.parseBoolean(args[3]);
 
         final Message msg = buildMessage(messageSize);
 
@@ -93,7 +93,7 @@ public class TransactionProducer {
         }, 10000, 10000);
 
         final TransactionListener transactionListener =
-            new TransactionListenerImpl(ischeckffalse, ischeck, statsBenchmark);
+            new TransactionListenerImpl(isCheckFalse, isCheck, statsBenchmark);
         final TransactionMQProducer producer = new TransactionMQProducer("benchmark_transaction_producer");
         producer.setInstanceName(Long.toString(System.currentTimeMillis()));
         producer.setTransactionListener(transactionListener);
@@ -150,39 +150,23 @@ public class TransactionProducer {
     }
 }
 
-//class TransactionExecuterBImpl implements LocalTransactionExecuter {
-//
-//    private boolean ischeckLocal;
-//
-//    public TransactionExecuterBImpl(boolean ischeck) {
-//        this.ischeck = ischeck;
-//    }
-//
-//    @Override
-//    public LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg) {
-//        if (ischeck) {
-//            return LocalTransactionState.UNKNOW;
-//        }
-//        return LocalTransactionState.COMMIT_MESSAGE;
-//    }
-//}
 
 class TransactionListenerImpl implements TransactionListener {
-    private boolean ischeckffalse;
+    private boolean isCheckFalse;
     private StatsBenchmarkTProducer statsBenchmarkTProducer;
-    private boolean ischeckLocal;
+    private boolean isCheckLocal;
 
-    public TransactionListenerImpl(boolean ischeckffalse, boolean isCheckLocal,
+    public TransactionListenerImpl(boolean isCheckFalse, boolean isCheckLocal,
                                    StatsBenchmarkTProducer statsBenchmarkTProducer) {
-        this.ischeckffalse = ischeckffalse;
-        this.ischeckLocal = isCheckLocal;
+        this.isCheckFalse = isCheckFalse;
+        this.isCheckLocal = isCheckLocal;
         this.statsBenchmarkTProducer = statsBenchmarkTProducer;
     }
 
     @Override
     public LocalTransactionState checkLocalTransaction(MessageExt msg) {
         statsBenchmarkTProducer.getCheckRequestSuccessCount().incrementAndGet();
-        if (ischeckffalse) {
+        if (isCheckFalse) {
 
             return LocalTransactionState.ROLLBACK_MESSAGE;
         }
@@ -192,7 +176,7 @@ class TransactionListenerImpl implements TransactionListener {
 
     @Override
     public LocalTransactionState executeLocalTransaction(final Message msg, final Object arg) {
-        if (ischeckLocal) {
+        if (isCheckLocal) {
             return LocalTransactionState.UNKNOW;
         }
         return LocalTransactionState.COMMIT_MESSAGE;

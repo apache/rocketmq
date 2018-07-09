@@ -56,9 +56,9 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class TransactionBridgeTest {
+public class TransactionalMessageBridgeTest {
 
-    private TransactionBridge transactionBridge;
+    private TransactionalMessageBridge transactionBridge;
 
     @Spy
     private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(),
@@ -70,12 +70,12 @@ public class TransactionBridgeTest {
     @Before
     public void init() {
         brokerController.setMessageStore(messageStore);
-        transactionBridge = new TransactionBridge(brokerController, messageStore);
+        transactionBridge = new TransactionalMessageBridge(brokerController, messageStore);
     }
 
     @Test
     public void testPutOpMessage() {
-        boolean isSuccess = transactionBridge.putOpMessage(createMessageBrokerInner(), TransactionUtil.REMOVETAG);
+        boolean isSuccess = transactionBridge.putOpMessage(createMessageBrokerInner(), TransactionalMessageUtil.REMOVETAG);
         assertThat(isSuccess).isTrue();
     }
 
@@ -95,7 +95,7 @@ public class TransactionBridgeTest {
 
     @Test
     public void testFetchConsumeOffset() {
-        MessageQueue mq = new MessageQueue(TransactionUtil.buildOpTopic(), this.brokerController.getBrokerConfig().getBrokerName(),
+        MessageQueue mq = new MessageQueue(TransactionalMessageUtil.buildOpTopic(), this.brokerController.getBrokerConfig().getBrokerName(),
             0);
         long offset = transactionBridge.fetchConsumeOffset(mq);
         assertThat(offset).isGreaterThan(-1);
@@ -103,7 +103,7 @@ public class TransactionBridgeTest {
 
     @Test
     public void updateConsumeOffset() {
-        MessageQueue mq = new MessageQueue(TransactionUtil.buildOpTopic(), this.brokerController.getBrokerConfig().getBrokerName(),
+        MessageQueue mq = new MessageQueue(TransactionalMessageUtil.buildOpTopic(), this.brokerController.getBrokerConfig().getBrokerName(),
             0);
         transactionBridge.updateConsumeOffset(mq, 0);
     }

@@ -31,14 +31,14 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.logging.InnerLoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -49,15 +49,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class TransactionBridge {
-    private static Logger logger = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
+public class TransactionalMessageBridge {
+    private static final InternalLogger LOGGER = InnerLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
 
     private final ConcurrentHashMap<MessageQueue, MessageQueue> opQueueMap = new ConcurrentHashMap<>();
     private final BrokerController brokerController;
     private final MessageStore store;
     private final SocketAddress storeHost;
 
-    public TransactionBridge(BrokerController brokerController, MessageStore store) {
+    public TransactionalMessageBridge(BrokerController brokerController, MessageStore store) {
         try {
             this.brokerController = brokerController;
             this.store = store;
@@ -65,14 +65,14 @@ public class TransactionBridge {
                 new InetSocketAddress(brokerController.getBrokerConfig().getBrokerIP1(),
                     brokerController.getNettyServerConfig().getListenPort());
         } catch (Exception e) {
-            logger.error("Init TransactionBridge error", e);
+            LOGGER.error("Init TransactionBridge error", e);
             throw new RuntimeException(e);
         }
 
     }
 
     public long fetchConsumeOffset(MessageQueue mq) {
-        long offset = brokerController.getConsumerOffsetManager().queryOffset(TransactionUtil.buildConsumerGroup(),
+        long offset = brokerController.getConsumerOffsetManager().queryOffset(TransactionalMessageUtil.buildConsumerGroup(),
             mq.getTopic(), mq.getQueueId());
         if (offset == -1) {
             offset = store.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId());
@@ -97,20 +97,20 @@ public class TransactionBridge {
 
     public void updateConsumeOffset(MessageQueue mq, long offset) {
         this.brokerController.getConsumerOffsetManager().commitOffset(
-            RemotingHelper.parseSocketAddressAddr(this.storeHost), TransactionUtil.buildConsumerGroup(), mq.getTopic(),
+            RemotingHelper.parseSocketAddressAddr(this.storeHost), TransactionalMessageUtil.buildConsumerGroup(), mq.getTopic(),
             mq.getQueueId(), offset);
     }
 
     public PullResult getHalfMessage(int queueId, long offset, int nums) {
-        String group = TransactionUtil.buildConsumerGroup();
-        String topic = TransactionUtil.buildHalfTopic();
+        String group = TransactionalMessageUtil.buildConsumerGroup();
+        String topic = TransactionalMessageUtil.buildHalfTopic();
         SubscriptionData sub = new SubscriptionData(topic, "*");
         return getMessage(group, topic, queueId, offset, nums, sub);
     }
 
     public PullResult getOpMessage(int queueId, long offset, int nums) {
-        String group = TransactionUtil.buildConsumerGroup();
-        String topic = TransactionUtil.buildOpTopic();
+        String group = TransactionalMessageUtil.buildConsumerGroup();
+        String topic = TransactionalMessageUtil.buildOpTopic();
         SubscriptionData sub = new SubscriptionData(topic, "*");
         return getMessage(group, topic, queueId, offset, nums, sub);
     }
@@ -136,12 +136,12 @@ public class TransactionBridge {
                     break;
                 case NO_MATCHED_MESSAGE:
                     pullStatus = PullStatus.NO_MATCHED_MSG;
-                    logger.warn("No matched message. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
+                    LOGGER.warn("No matched message. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
                         getMessageResult.getStatus(), topic, group, offset);
                     break;
                 case NO_MESSAGE_IN_QUEUE:
                     pullStatus = PullStatus.NO_NEW_MSG;
-                    logger.warn("No new message. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
+                    LOGGER.warn("No new message. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
                         getMessageResult.getStatus(), topic, group, offset);
                     break;
                 case MESSAGE_WAS_REMOVING:
@@ -151,7 +151,7 @@ public class TransactionBridge {
                 case OFFSET_OVERFLOW_ONE:
                 case OFFSET_TOO_SMALL:
                     pullStatus = PullStatus.OFFSET_ILLEGAL;
-                    logger.warn("Offset illegal. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
+                    LOGGER.warn("Offset illegal. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
                         getMessageResult.getStatus(), topic, group, offset);
                     break;
                 default:
@@ -163,7 +163,7 @@ public class TransactionBridge {
                 getMessageResult.getMaxOffset(), foundList);
 
         } else {
-            logger.error("Get message from store return null. topic={}, groupId={}, requestOffset={}", topic, group,
+            LOGGER.error("Get message from store return null. topic={}, groupId={}, requestOffset={}", topic, group,
                 offset);
             return null;
         }
@@ -195,7 +195,7 @@ public class TransactionBridge {
             String.valueOf(msgInner.getQueueId()));
         msgInner.setSysFlag(
             MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(), MessageSysFlag.TRANSACTION_NOT_TYPE));
-        msgInner.setTopic(TransactionUtil.buildHalfTopic());
+        msgInner.setTopic(TransactionalMessageUtil.buildHalfTopic());
         msgInner.setQueueId(0);
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         return msgInner;
@@ -204,14 +204,14 @@ public class TransactionBridge {
     public boolean putOpMessage(MessageExt messageExt, String opType) {
         MessageQueue messageQueue = new MessageQueue(messageExt.getTopic(),
             this.brokerController.getBrokerConfig().getBrokerName(), messageExt.getQueueId());
-        if (TransactionUtil.REMOVETAG.equals(opType)) {
+        if (TransactionalMessageUtil.REMOVETAG.equals(opType)) {
             return addRemoveTagInTransactionOp(messageExt, messageQueue);
         }
         return true;
     }
 
     public PutMessageResult putMessageReturnResult(MessageExtBrokerInner messageInner) {
-        logger.debug("[BUG-TO-FIX] Thread:{} msgID:{}", Thread.currentThread().getName(), messageInner.getMsgId());
+        LOGGER.debug("[BUG-TO-FIX] Thread:{} msgID:{}", Thread.currentThread().getName(), messageInner.getMsgId());
         return store.putMessage(messageInner);
     }
 
@@ -221,7 +221,7 @@ public class TransactionBridge {
             && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
             return true;
         } else {
-            logger.error("Put message failed, topic: {}, queueId: {}, msgId: {}",
+            LOGGER.error("Put message failed, topic: {}, queueId: {}, msgId: {}",
                 messageInner.getTopic(), messageInner.getQueueId(), messageInner.getMsgId());
             return false;
         }
@@ -297,8 +297,8 @@ public class TransactionBridge {
      * @return This method will always return true.
      */
     private boolean addRemoveTagInTransactionOp(MessageExt messageExt, MessageQueue messageQueue) {
-        Message message = new Message(TransactionUtil.buildOpTopic(), TransactionUtil.REMOVETAG,
-            String.valueOf(messageExt.getQueueOffset()).getBytes(TransactionUtil.charset));
+        Message message = new Message(TransactionalMessageUtil.buildOpTopic(), TransactionalMessageUtil.REMOVETAG,
+            String.valueOf(messageExt.getQueueOffset()).getBytes(TransactionalMessageUtil.charset));
         writeOp(message, messageQueue);
         return true;
     }
@@ -315,18 +315,14 @@ public class TransactionBridge {
             }
         }
         if (opQueue == null) {
-            opQueue = new MessageQueue(TransactionUtil.buildOpTopic(), mq.getBrokerName(), mq.getQueueId());
-        }
-        if (logger.isDebugEnabled()) {
-            logger.debug(opQueue + "---------Op msg " + message.getTags() + "---" + new String(message.getBody(),
-                TransactionUtil.charset));
+            opQueue = new MessageQueue(TransactionalMessageUtil.buildOpTopic(), mq.getBrokerName(), mq.getQueueId());
         }
         putMessage(makeOpMessageInner(message, opQueue));
     }
 
     private MessageQueue getOpQueueByHalf(MessageQueue halfMQ) {
         MessageQueue opQueue = new MessageQueue();
-        opQueue.setTopic(TransactionUtil.buildOpTopic());
+        opQueue.setTopic(TransactionalMessageUtil.buildOpTopic());
         opQueue.setBrokerName(halfMQ.getBrokerName());
         opQueue.setQueueId(halfMQ.getQueueId());
         return opQueue;

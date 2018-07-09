@@ -32,9 +32,9 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DefaultAbstractTransactionCheckListenerTest {
+public class DefaultTransactionalMessageCheckListenerTest {
 
-    private DefaultAbstractTransactionCheckListener listener;
+    private DefaultTransactionalMessageCheckListener listener;
 
     @Spy
     private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(),
@@ -43,7 +43,7 @@ public class DefaultAbstractTransactionCheckListenerTest {
 
     @Before
     public void init() {
-        listener = new DefaultAbstractTransactionCheckListener();
+        listener = new DefaultTransactionalMessageCheckListener();
         listener.setBrokerController(brokerController);
     }
 

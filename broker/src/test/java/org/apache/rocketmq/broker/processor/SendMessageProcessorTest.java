@@ -18,15 +18,10 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
-import org.apache.rocketmq.broker.transaction.TransactionMsgService;
+import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -57,6 +52,11 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -75,7 +75,7 @@ public class SendMessageProcessorTest {
     private MessageStore messageStore;
 
     @Mock
-    private TransactionMsgService transactionMsgService;
+    private TransactionalMessageService transactionMsgService;
 
     private String topic = "FooBar";
     private String group = "FooBarGroup";
@@ -188,8 +188,8 @@ public class SendMessageProcessorTest {
 
     @Test
     public void testProcessRequest_Transaction() throws RemotingCommandException {
-        brokerController.setTransactionMsgService(transactionMsgService);
-        when(brokerController.getTransactionMsgService().prepareMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        brokerController.setTransactionalMessageService(transactionMsgService);
+        when(brokerController.getTransactionalMessageService().prepareMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         RemotingCommand request = createSendTransactionMsgCommand(RequestCode.SEND_MESSAGE);
         final RemotingCommand[] response = new RemotingCommand[1];
         doAnswer(new Answer() {

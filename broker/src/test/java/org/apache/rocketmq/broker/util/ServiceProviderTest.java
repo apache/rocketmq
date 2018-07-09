@@ -17,8 +17,8 @@
 
 package org.apache.rocketmq.broker.util;
 
-import org.apache.rocketmq.broker.transaction.AbstractTransactionCheckListener;
-import org.apache.rocketmq.broker.transaction.TransactionMsgService;
+import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
+import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,15 +27,15 @@ public class ServiceProviderTest {
 
     @Test
     public void loadTransactionMsgServiceTest() {
-        TransactionMsgService transactionService = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_SERVICE_ID,
-            TransactionMsgService.class);
+        TransactionalMessageService transactionService = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_SERVICE_ID,
+            TransactionalMessageService.class);
         assertThat(transactionService).isNotNull();
     }
 
     @Test
     public void loadAbstractTransactionListenerTest() {
-        AbstractTransactionCheckListener listener = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_LISTENER_ID,
-            AbstractTransactionCheckListener.class);
+        AbstractTransactionalMessageCheckListener listener = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_LISTENER_ID,
+            AbstractTransactionalMessageCheckListener.class);
         assertThat(listener).isNotNull();
     }
 }

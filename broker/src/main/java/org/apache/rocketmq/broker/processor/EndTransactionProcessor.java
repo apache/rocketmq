@@ -28,6 +28,8 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -35,14 +37,12 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.BrokerRole;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * EndTransaction processor: process commit and rollback message
  */
 public class EndTransactionProcessor implements NettyRequestProcessor {
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
+    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
     private final BrokerController brokerController;
 
     public EndTransactionProcessor(final BrokerController brokerController) {
@@ -123,7 +123,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         }
         OperationResult result = new OperationResult();
         if (MessageSysFlag.TRANSACTION_COMMIT_TYPE == requestHeader.getCommitOrRollback()) {
-            result = this.brokerController.getTransactionMsgService().commitMessage(requestHeader);
+            result = this.brokerController.getTransactionalMessageService().commitMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
@@ -134,18 +134,18 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     msgInner.setStoreTimestamp(result.getPrepareMessage().getStoreTimestamp());
                     RemotingCommand sendResult = sendFinalMessage(msgInner);
                     if (sendResult.getCode() == ResponseCode.SUCCESS) {
-                        this.brokerController.getTransactionMsgService().deletePrepareMessage(result.getPrepareMessage());
+                        this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
                     }
                     return sendResult;
                 }
                 return res;
             }
         } else if (MessageSysFlag.TRANSACTION_ROLLBACK_TYPE == requestHeader.getCommitOrRollback()) {
-            result = this.brokerController.getTransactionMsgService().rollbackMessage(requestHeader);
+            result = this.brokerController.getTransactionalMessageService().rollbackMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
-                    this.brokerController.getTransactionMsgService().deletePrepareMessage(result.getPrepareMessage());
+                    this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
                 }
                 return res;
             }
