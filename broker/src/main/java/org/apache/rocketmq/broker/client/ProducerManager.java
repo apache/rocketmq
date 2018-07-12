@@ -39,6 +39,7 @@ public class ProducerManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long LOCK_TIMEOUT_MILLIS = 3000;
     private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
+    private static final int GET_AVALIABLE_CHANNEL_RETRY_COUNT = 3;
     private final Lock groupChannelLock = new ReentrantLock();
     private final HashMap<String /* group name */, HashMap<Channel, ClientChannelInfo>> groupChannelTable =
         new HashMap<String, HashMap<Channel, ClientChannelInfo>>();
@@ -208,7 +209,7 @@ public class ProducerManager {
             Channel channel = channelList.get(index);
             int count = 0;
             boolean isOk = channel.isActive() && channel.isWritable();
-            while (isOk && count++ < 3) {
+            while (isOk && count++ < GET_AVALIABLE_CHANNEL_RETRY_COUNT) {
                 index = (++index) % size;
                 channel = channelList.get(index);
                 return channel;

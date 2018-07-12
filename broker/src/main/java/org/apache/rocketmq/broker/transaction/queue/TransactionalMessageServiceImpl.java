@@ -47,9 +47,9 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     private TransactionalMessageBridge transactionBridge;
 
-    private static final int TRY_PULL_MSG_NUMBER = 1;
+    private static final int PULL_MSG_RETRY_NUMBER = 1;
 
-    private final int queueTime = 60000;
+    private final int MAX_QUEUE_PROCESS_TIME = 60000;
 
     private static final int MAX_RETRY_COUNT_WHEN_HALF_NULL = 1;
 
@@ -153,8 +153,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 long newOffset = halfOffset;
                 long i = halfOffset;
                 while (true) {
-                    if (System.currentTimeMillis() - startTime > queueTime) {
-                        log.info("Queue={} process time reach max={}", messageQueue, queueTime);
+                    if (System.currentTimeMillis() - startTime > MAX_QUEUE_PROCESS_TIME) {
+                        log.info("Queue={} process time reach max={}", messageQueue, MAX_QUEUE_PROCESS_TIME);
                         break;
                     }
                     if (removeMap.containsKey(i)) {
@@ -441,7 +441,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     private GetResult getHalfMsg(MessageQueue messageQueue, long offset) {
         GetResult getResult = new GetResult();
 
-        PullResult result = pullHalfMsg(messageQueue, offset, TRY_PULL_MSG_NUMBER);
+        PullResult result = pullHalfMsg(messageQueue, offset, PULL_MSG_RETRY_NUMBER);
         getResult.setPullResult(result);
         List<MessageExt> messageExts = result.getMsgFoundList();
         if (messageExts == null) {
