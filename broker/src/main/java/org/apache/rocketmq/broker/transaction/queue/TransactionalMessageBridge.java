@@ -115,7 +115,8 @@ public class TransactionalMessageBridge {
         return getMessage(group, topic, queueId, offset, nums, sub);
     }
 
-    private PullResult getMessage(String group, String topic, int queueId, long offset, int nums, SubscriptionData sub) {
+    private PullResult getMessage(String group, String topic, int queueId, long offset, int nums,
+        SubscriptionData sub) {
         GetMessageResult getMessageResult = store.getMessage(group, topic, queueId, offset, nums, null);
 
         if (getMessageResult != null) {
@@ -227,7 +228,6 @@ public class TransactionalMessageBridge {
         }
     }
 
-
     public MessageExtBrokerInner renewImmunityHalfMessageInner(MessageExt msgExt) {
         MessageExtBrokerInner msgInner = renewHalfMessageInner(msgExt);
         String queueOffsetFromPrepare = msgExt.getUserProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET);
@@ -290,9 +290,10 @@ public class TransactionalMessageBridge {
     }
 
     /**
-     * Use this function while transaction msg is committed or rollback write a flag 'd' to operation queue for the msg's offset
+     * Use this function while transaction msg is committed or rollback write a flag 'd' to operation queue for the
+     * msg's offset
      *
-     * @param messageExt   Op message
+     * @param messageExt Op message
      * @param messageQueue Op message queue
      * @return This method will always return true.
      */

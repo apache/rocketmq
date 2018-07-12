@@ -45,7 +45,8 @@ public abstract class AbstractTransactionalMessageCheckListener {
         }
     });
 
-    public AbstractTransactionalMessageCheckListener() {}
+    public AbstractTransactionalMessageCheckListener() {
+    }
 
     public AbstractTransactionalMessageCheckListener(BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -101,7 +102,8 @@ public abstract class AbstractTransactionalMessageCheckListener {
     }
 
     /**
-     * In order to avoid check back unlimited, we will discard the message that have been checked more than a certain number of times.
+     * In order to avoid check back unlimited, we will discard the message that have been checked more than a certain
+     * number of times.
      *
      * @param msgExt Message to be discarded.
      */

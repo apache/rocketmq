@@ -118,7 +118,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     }
 
     @Override
-    public void check(long transactionTimeout, int transactionCheckMax, AbstractTransactionalMessageCheckListener listener) {
+    public void check(long transactionTimeout, int transactionCheckMax,
+        AbstractTransactionalMessageCheckListener listener) {
         try {
             String topic = MixAll.RMQ_SYS_TRANS_HALF_TOPIC;
             Set<MessageQueue> msgQueues = transactionBridge.fetchMessageQueues(topic);
@@ -260,15 +261,15 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     /**
      * Read op message, parse op message, and fill removeMap
      *
-     * @param removeMap      Half message to be remove, key:halfOffset, value: opOffset.
-     * @param opQueue        Op message queue.
+     * @param removeMap Half message to be remove, key:halfOffset, value: opOffset.
+     * @param opQueue Op message queue.
      * @param pullOffsetOfOp The begin offset of op message queue.
-     * @param miniOffset     The current minimum offset of half message queue.
-     * @param doneOpOffset   Stored op messages that have been processed.
+     * @param miniOffset The current minimum offset of half message queue.
+     * @param doneOpOffset Stored op messages that have been processed.
      * @return Op message result.
      */
     private PullResult fillOpRemoveMap(HashMap<Long, Long> removeMap,
-                                       MessageQueue opQueue, long pullOffsetOfOp, long miniOffset, List<Long> doneOpOffset) {
+        MessageQueue opQueue, long pullOffsetOfOp, long miniOffset, List<Long> doneOpOffset) {
         PullResult pullResult = pullOpMsg(opQueue, pullOffsetOfOp, 32);
         if (null == pullResult) {
             return null;
@@ -311,13 +312,14 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     /**
      * If return true, skip this msg
      *
-     * @param removeMap         Op message map to determine whether a half message was responded by producer.
-     * @param doneOpOffset      Op Message which has been checked.
-     * @param msgExt            Half message
+     * @param removeMap Op message map to determine whether a half message was responded by producer.
+     * @param doneOpOffset Op Message which has been checked.
+     * @param msgExt Half message
      * @param checkImmunityTime User defined time to avoid being detected early.
      * @return Return true if put success, otherwise return false.
      */
-    private boolean checkPrepareQueueOffset(HashMap<Long, Long> removeMap, List<Long> doneOpOffset, MessageExt msgExt, long checkImmunityTime) {
+    private boolean checkPrepareQueueOffset(HashMap<Long, Long> removeMap, List<Long> doneOpOffset, MessageExt msgExt,
+        long checkImmunityTime) {
         if (System.currentTimeMillis() - msgExt.getBornTimestamp() < checkImmunityTime) {
             String prepareQueueOffsetStr = msgExt.getUserProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET);
             if (null == prepareQueueOffsetStr) {
@@ -368,9 +370,9 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     /**
      * Read half message from Half Topic
      *
-     * @param mq     Target message queue, in this method, it means the half message queue.
+     * @param mq Target message queue, in this method, it means the half message queue.
      * @param offset Offset in the message queue.
-     * @param nums   Pull message number.
+     * @param nums Pull message number.
      * @return Messages pulled from half message queue.
      */
     private PullResult pullHalfMsg(MessageQueue mq, long offset, int nums) {
@@ -380,9 +382,9 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     /**
      * Read op message from Op Topic
      *
-     * @param mq     Target Message Queue
+     * @param mq Target Message Queue
      * @param offset Offset in the message queue
-     * @param nums   Pull message number
+     * @param nums Pull message number
      * @return Messages pulled from operate message queue.
      */
     private PullResult pullOpMsg(MessageQueue mq, long offset, int nums) {

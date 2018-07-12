@@ -226,7 +226,7 @@ public class BrokerController {
                 this.messageStore =
                     new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener,
                         this.brokerConfig);
-                this.brokerStats = new BrokerStats((DefaultMessageStore)this.messageStore);
+                this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
                 //load plugin
                 MessageStorePluginContext context = new MessageStorePluginContext(messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig);
                 this.messageStore = MessageStoreFactory.build(context, this.messageStore);
@@ -241,7 +241,7 @@ public class BrokerController {
 
         if (result) {
             this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
-            NettyServerConfig fastConfig = (NettyServerConfig)this.nettyServerConfig.clone();
+            NettyServerConfig fastConfig = (NettyServerConfig) this.nettyServerConfig.clone();
             fastConfig.setListenPort(nettyServerConfig.getListenPort() - 2);
             this.fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
             this.sendMessageExecutor = new BrokerFixedThreadPoolExecutor(
@@ -437,8 +437,8 @@ public class BrokerController {
                             }
 
                             private void reloadServerSslContext() {
-                                ((NettyRemotingServer)remotingServer).loadSslContext();
-                                ((NettyRemotingServer)fastRemotingServer).loadSslContext();
+                                ((NettyRemotingServer) remotingServer).loadSslContext();
+                                ((NettyRemotingServer) fastRemotingServer).loadSslContext();
                             }
                         });
                 } catch (Exception e) {
@@ -567,7 +567,9 @@ public class BrokerController {
             slowTimeMills = rt == null ? 0 : this.messageStore.now() - rt.getCreateTimestamp();
         }
 
-        if (slowTimeMills < 0) { slowTimeMills = 0; }
+        if (slowTimeMills < 0) {
+            slowTimeMills = 0;
+        }
 
         return slowTimeMills;
     }
@@ -802,7 +804,7 @@ public class BrokerController {
 
         if (BrokerRole.SLAVE != messageStoreConfig.getBrokerRole()) {
             if (this.transactionMsgCheckService != null) {
-                log.info("start transaction service!");
+                log.info("Start transaction service!");
                 this.transactionMsgCheckService.start();
             }
         }
@@ -851,7 +853,7 @@ public class BrokerController {
     }
 
     private void doRegisterBrokerAll(boolean checkOrderConfig, boolean oneway,
-                                     TopicConfigSerializeWrapper topicConfigWrapper) {
+        TopicConfigSerializeWrapper topicConfigWrapper) {
         List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
             this.brokerConfig.getBrokerClusterName(),
             this.getBrokerAddr(),
@@ -881,10 +883,10 @@ public class BrokerController {
     }
 
     private boolean needRegister(final String clusterName,
-                                 final String brokerAddr,
-                                 final String brokerName,
-                                 final long brokerId,
-                                 final int timeoutMills) {
+        final String brokerAddr,
+        final String brokerName,
+        final long brokerId,
+        final int timeoutMills) {
 
         TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
         List<Boolean> changeList = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigWrapper, timeoutMills);
@@ -1008,7 +1010,8 @@ public class BrokerController {
         return transactionalMessageCheckListener;
     }
 
-    public void setTransactionalMessageCheckListener(AbstractTransactionalMessageCheckListener transactionalMessageCheckListener) {
+    public void setTransactionalMessageCheckListener(
+        AbstractTransactionalMessageCheckListener transactionalMessageCheckListener) {
         this.transactionalMessageCheckListener = transactionalMessageCheckListener;
     }
 }
