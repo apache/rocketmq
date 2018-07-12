@@ -111,7 +111,7 @@ public class BrokerConfig {
     private boolean brokerFastFailureEnable = true;
     private long waitTimeMillsInSendQueue = 200;
     private long waitTimeMillsInPullQueue = 5 * 1000;
-    private long waitTimeMillsInHeartbeatQueue = 2 * 1000;
+    private long waitTimeMillsInHeartbeatQueue = 31 * 1000;
 
     private long startAcceptSendRequestTimeStamp = 0L;
 
