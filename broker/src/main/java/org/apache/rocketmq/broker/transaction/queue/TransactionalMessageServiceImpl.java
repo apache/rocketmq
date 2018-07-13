@@ -49,7 +49,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     private static final int PULL_MSG_RETRY_NUMBER = 1;
 
-    private final int MAX_QUEUE_PROCESS_TIME = 60000;
+    private static final int MAX_PROCESS_TIME_LIMIT = 60000;
 
     private static final int MAX_RETRY_COUNT_WHEN_HALF_NULL = 1;
 
@@ -153,8 +153,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 long newOffset = halfOffset;
                 long i = halfOffset;
                 while (true) {
-                    if (System.currentTimeMillis() - startTime > MAX_QUEUE_PROCESS_TIME) {
-                        log.info("Queue={} process time reach max={}", messageQueue, MAX_QUEUE_PROCESS_TIME);
+                    if (System.currentTimeMillis() - startTime > MAX_PROCESS_TIME_LIMIT) {
+                        log.info("Queue={} process time reach max={}", messageQueue, MAX_PROCESS_TIME_LIMIT);
                         break;
                     }
                     if (removeMap.containsKey(i)) {
