@@ -63,7 +63,7 @@ public class BrokerConfig {
     private int adminBrokerThreadPoolNums = 16;
     private int clientManageThreadPoolNums = 32;
     private int consumerManageThreadPoolNums = 32;
-    private int heartbeatThreadPoolNums = 32;
+    private int heartbeatThreadPoolNums = Math.min(32,Runtime.getRuntime().availableProcessors());
 
     private int flushConsumerOffsetInterval = 1000 * 5;
 
@@ -78,7 +78,6 @@ public class BrokerConfig {
     private int queryThreadPoolQueueCapacity = 20000;
     private int clientManagerThreadPoolQueueCapacity = 1000000;
     private int consumerManagerThreadPoolQueueCapacity = 1000000;
-    private int heartbeatThreadPoolQueueCapacity = 10000;
     private int heartbeatThreadPoolQueueCapacity = 50000;
 
     private int filterServerNums = 0;
