@@ -40,15 +40,15 @@ public class ConsumeMessageCommand implements SubCommand {
 
     public enum ConsumeType {
         /**
-         * topic only
+         * Topic only
          */
         DEFAULT,
         /**
-         * topic brokerName queueId set
+         * Topic brokerName queueId set
          */
         BYQUEUE,
         /**
-         * topic brokerName queueId offset set
+         * Topic brokerName queueId offset set
          */
         BYOFFSET
     }
