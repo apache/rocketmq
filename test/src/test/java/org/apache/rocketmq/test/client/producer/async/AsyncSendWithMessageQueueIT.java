@@ -65,7 +65,6 @@ public class AsyncSendWithMessageQueueIT extends BaseConf {
             .containsExactlyElementsIn(producer.getAllMsgBody());
 
         VerifyUtils.verifyMessageQueueId(queueId, consumer.getListener().getAllOriginMsg());
-        System.out.println(producer.getSuccessMsgCount());
 
         producer.clearMsg();
         consumer.clearMsg();
