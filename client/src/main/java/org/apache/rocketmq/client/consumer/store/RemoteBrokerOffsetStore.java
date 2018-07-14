@@ -125,13 +125,8 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                     if (mqs.contains(mq)) {
                         try {
                             this.updateConsumeOffsetToBroker(mq, offset.get());
-                            log.info("[persistAll] Group: {} ClientId: {} updateConsumeOffsetToBroker {} {}",
-                                this.groupName,
-                                this.mQClientFactory.getClientId(),
-                                mq,
-                                offset.get());
                         } catch (Exception e) {
-                            log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
+                            log.error("updateConsumeOffsetToBroker exception, " + mq.toString() + " offset:" + offset.get(), e);
                         }
                     } else {
                         unusedMQ.add(mq);
@@ -154,13 +149,8 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         if (offset != null) {
             try {
                 this.updateConsumeOffsetToBroker(mq, offset.get());
-                log.info("[persist] Group: {} ClientId: {} updateConsumeOffsetToBroker {} {}",
-                    this.groupName,
-                    this.mQClientFactory.getClientId(),
-                    mq,
-                    offset.get());
             } catch (Exception e) {
-                log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
+                log.error("updateConsumeOffsetToBroker exception, " + mq.toString() + " offset:" + offset.get(), e);
             }
         }
     }

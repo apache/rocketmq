@@ -270,8 +270,14 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                 case SUCCESS:
                     commitOffset = consumeRequest.getProcessQueue().commit();
                     this.getConsumerStatsManager().incConsumeOKTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msgs.size());
+                    for (MessageExt msg : msgs) {
+                        this.getConsumerStatsManager().incConsumeTimeOkTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msg.getReconsumeTimes());
+                    }
                     break;
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
+                    for (MessageExt msg : msgs) {
+                        this.getConsumerStatsManager().incConsumeTimeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msg.getReconsumeTimes());
+                    }
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msgs.size());
                     if (checkReconsumeTimes(msgs)) {
                         consumeRequest.getProcessQueue().makeMessageToCosumeAgain(msgs);
@@ -291,6 +297,9 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             switch (status) {
                 case SUCCESS:
                     this.getConsumerStatsManager().incConsumeOKTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msgs.size());
+                    for (MessageExt msg : msgs) {
+                        this.getConsumerStatsManager().incConsumeTimeOkTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msg.getReconsumeTimes());
+                    }
                     break;
                 case COMMIT:
                     commitOffset = consumeRequest.getProcessQueue().commit();
@@ -304,6 +313,10 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                     continueConsume = false;
                     break;
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
+                    for (MessageExt msg : msgs) {
+                        this.getConsumerStatsManager().incConsumeTimeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msg.getReconsumeTimes());
+                    }
+
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msgs.size());
                     if (checkReconsumeTimes(msgs)) {
                         consumeRequest.getProcessQueue().makeMessageToCosumeAgain(msgs);

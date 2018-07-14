@@ -28,6 +28,8 @@ import org.apache.rocketmq.common.stats.StatsSnapshot;
 public class ConsumerStatsManager {
     private static final InternalLogger log = ClientLogger.getLog();
 
+    private static final String TOPIC_AND_GROUP_CONSUME_TIME_OK_TPS = "CONSUME_TIME_OK_TPS";
+    private static final String TOPIC_AND_GROUP_CONSUME_TIME_FAILED_TPS = "CONSUME_TIME_FAILED_TPS";
     private static final String TOPIC_AND_GROUP_CONSUME_OK_TPS = "CONSUME_OK_TPS";
     private static final String TOPIC_AND_GROUP_CONSUME_FAILED_TPS = "CONSUME_FAILED_TPS";
     private static final String TOPIC_AND_GROUP_CONSUME_RT = "CONSUME_RT";
@@ -39,6 +41,9 @@ public class ConsumerStatsManager {
     private final StatsItemSet topicAndGroupConsumeFailedTPS;
     private final StatsItemSet topicAndGroupPullTPS;
     private final StatsItemSet topicAndGroupPullRT;
+
+    private final StatsItemSet topicAndGroupConsumeTimeOkTPS;
+    private final StatsItemSet topicAndGroupConsumeTimeFailedTPS;
 
     public ConsumerStatsManager(final ScheduledExecutorService scheduledExecutorService) {
         this.topicAndGroupConsumeOKTPS =
@@ -53,6 +58,10 @@ public class ConsumerStatsManager {
         this.topicAndGroupPullTPS = new StatsItemSet(TOPIC_AND_GROUP_PULL_TPS, scheduledExecutorService, log);
 
         this.topicAndGroupPullRT = new StatsItemSet(TOPIC_AND_GROUP_PULL_RT, scheduledExecutorService, log);
+
+        this.topicAndGroupConsumeTimeOkTPS = new StatsItemSet(TOPIC_AND_GROUP_CONSUME_TIME_OK_TPS, scheduledExecutorService, log);
+
+        this.topicAndGroupConsumeTimeFailedTPS = new StatsItemSet(TOPIC_AND_GROUP_CONSUME_TIME_FAILED_TPS, scheduledExecutorService, log);
     }
 
     public void start() {
@@ -67,6 +76,14 @@ public class ConsumerStatsManager {
 
     public void incPullTPS(final String group, final String topic, final long msgs) {
         this.topicAndGroupPullTPS.addValue(topic + "@" + group, (int) msgs, 1);
+    }
+
+    public void incConsumeTimeOkTPS(final String group, final String topic, final int consumeTimes) {
+        topicAndGroupConsumeTimeOkTPS.addValue(topic + "@" + group + "@" + consumeTimes, 1, 1);
+    }
+
+    public void incConsumeTimeFailedTPS(final String group, final String topic, final int consumeTimes) {
+        topicAndGroupConsumeTimeFailedTPS.addValue(topic + "@" + group + "@" + consumeTimes, 1, 1);
     }
 
     public void incConsumeRT(final String group, final String topic, final long rt) {

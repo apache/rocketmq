@@ -18,7 +18,6 @@ package org.apache.rocketmq.client.consumer.store;
 
 import java.util.Collections;
 import java.util.HashSet;
-import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
@@ -56,8 +55,8 @@ public class RemoteBrokerOffsetStoreTest {
     @Before
     public void init() {
         System.setProperty("rocketmq.client.localOffsetStoreDir", System.getProperty("java.io.tmpdir") + ".rocketmq_offsets");
-        String clientId = new ClientConfig().buildMQClientId() + "#TestNamespace" + System.currentTimeMillis();
-        when(mQClientFactory.getClientId()).thenReturn(clientId);
+//        String clientId = new ClientConfig().buildMQClientId() + "#TestNamespace" + System.currentTimeMillis();
+//        when(mQClientFactory.getClientId()).thenReturn(clientId);
         when(mQClientFactory.findBrokerAddressInAdmin(brokerName)).thenReturn(new FindBrokerResult("127.0.0.1", false));
         when(mQClientFactory.getMQClientAPIImpl()).thenReturn(mqClientAPI);
     }
