@@ -814,7 +814,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public void executeDeleteFilesManually() {
-        this.cleanCommitLogService.excuteDeleteFilesManualy();
+        this.cleanCommitLogService.executeDeleteFilesManualy();
     }
 
     @Override
@@ -1434,21 +1434,24 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    /** Service to periodically reclaim disk space. */
     class CleanCommitLogService {
 
         private final static int MAX_MANUAL_DELETE_FILE_TIMES = 20;
+
         private final double diskSpaceWarningLevelRatio =
             Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceWarningLevelRatio", "0.90"));
 
         private final double diskSpaceCleanForciblyRatio =
             Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceCleanForciblyRatio", "0.85"));
+
         private long lastRedeleteTimestamp = 0;
 
         private volatile int manualDeleteFileSeveralTimes = 0;
 
         private volatile boolean cleanImmediately = false;
 
-        public void excuteDeleteFilesManualy() {
+        void executeDeleteFilesManualy() {
             this.manualDeleteFileSeveralTimes = MAX_MANUAL_DELETE_FILE_TIMES;
             DefaultMessageStore.log.info("executeDeleteFilesManually was invoked");
         }
@@ -1503,9 +1506,9 @@ public class DefaultMessageStore implements MessageStore {
             long currentTimestamp = System.currentTimeMillis();
             if ((currentTimestamp - this.lastRedeleteTimestamp) > interval) {
                 this.lastRedeleteTimestamp = currentTimestamp;
-                int destroyMapedFileIntervalForcibly =
+                int destroyMappedFileIntervalForcibly =
                     DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
-                if (DefaultMessageStore.this.commitLog.retryDeleteFirstFile(destroyMapedFileIntervalForcibly)) {
+                if (DefaultMessageStore.this.commitLog.retryDeleteFirstFile(destroyMappedFileIntervalForcibly)) {
                 }
             }
         }
@@ -1524,63 +1527,60 @@ public class DefaultMessageStore implements MessageStore {
             return false;
         }
 
+        double getDiskUsageRatio() {
+            return UtilAll.getDiskPartitionSpaceUsedPercent(
+                DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog());
+        }
+
+        double getQueueSpace() {
+            return UtilAll.getDiskPartitionSpaceUsedPercent(StorePathConfigHelper
+                .getStorePathConsumeQueue(DefaultMessageStore.this.getMessageStoreConfig().getStorePathRootDir()));
+        }
+
+        /**
+         * Checks if cleaning on the disk is needed.
+         *
+         * @param usageRatio Usage ratio.
+         * @param allowedRatio Allowed ratio.
+         * @return <code>True</code> if cleaning is needed, otherwise <code>false</code>.
+         */
+        private boolean needCleaning(double usageRatio, double allowedRatio) {
+            if (usageRatio < 0)
+                return false;
+
+            if (usageRatio > diskSpaceWarningLevelRatio) {
+                boolean diskFull = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
+                if (diskFull) {
+                    DefaultMessageStore.log.error("Disk maybe full soon (ratio: {}). Mark disk full", usageRatio);
+                }
+
+                cleanImmediately = true;
+            } else if (usageRatio > diskSpaceCleanForciblyRatio) {
+                cleanImmediately = true;
+            } else {
+                boolean diskSpaceOk = DefaultMessageStore.this.runningFlags.getAndMakeDiskOK();
+                if (diskSpaceOk) {
+                    DefaultMessageStore.log.info("Marking disk space OK (ratio: {})", usageRatio);
+                }
+            }
+
+            if (usageRatio > allowedRatio) {
+                DefaultMessageStore.log.info("Disk maybe full soon (ratio: {}). Reclaim space", usageRatio);
+                return true;
+            }
+
+            return false;
+        }
+
+        /**
+         * @return <code>True</code> if space needs to be reclaimed, otherwise <code>false</code>.
+         */
         private boolean isSpaceToDelete() {
             double ratio = DefaultMessageStore.this.getMessageStoreConfig().getDiskMaxUsedSpaceRatio() / 100.0;
 
             cleanImmediately = false;
 
-            {
-                String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
-                double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
-                if (physicRatio > diskSpaceWarningLevelRatio) {
-                    boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
-                    if (diskok) {
-                        DefaultMessageStore.log.error("physic disk maybe full soon " + physicRatio + ", so mark disk full");
-                    }
-
-                    cleanImmediately = true;
-                } else if (physicRatio > diskSpaceCleanForciblyRatio) {
-                    cleanImmediately = true;
-                } else {
-                    boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskOK();
-                    if (!diskok) {
-                        DefaultMessageStore.log.info("physic disk space OK " + physicRatio + ", so mark disk ok");
-                    }
-                }
-
-                if (physicRatio < 0 || physicRatio > ratio) {
-                    DefaultMessageStore.log.info("physic disk maybe full soon, so reclaim space, " + physicRatio);
-                    return true;
-                }
-            }
-
-            {
-                String storePathLogics = StorePathConfigHelper
-                    .getStorePathConsumeQueue(DefaultMessageStore.this.getMessageStoreConfig().getStorePathRootDir());
-                double logicsRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogics);
-                if (logicsRatio > diskSpaceWarningLevelRatio) {
-                    boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
-                    if (diskok) {
-                        DefaultMessageStore.log.error("logics disk maybe full soon " + logicsRatio + ", so mark disk full");
-                    }
-
-                    cleanImmediately = true;
-                } else if (logicsRatio > diskSpaceCleanForciblyRatio) {
-                    cleanImmediately = true;
-                } else {
-                    boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskOK();
-                    if (!diskok) {
-                        DefaultMessageStore.log.info("logics disk space OK " + logicsRatio + ", so mark disk ok");
-                    }
-                }
-
-                if (logicsRatio < 0 || logicsRatio > ratio) {
-                    DefaultMessageStore.log.info("logics disk maybe full soon, so reclaim space, " + logicsRatio);
-                    return true;
-                }
-            }
-
-            return false;
+            return needCleaning(getDiskUsageRatio(), ratio) || needCleaning(getQueueSpace(), ratio);
         }
 
         public int getManualDeleteFileSeveralTimes() {

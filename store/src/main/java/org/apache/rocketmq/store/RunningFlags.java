@@ -125,7 +125,7 @@ public class RunningFlags {
     }
 
     public boolean getAndMakeDiskOK() {
-        boolean result = !((this.flagBits & DISK_FULL_BIT) == DISK_FULL_BIT);
+        boolean result = (this.flagBits & DISK_FULL_BIT) == DISK_FULL_BIT;
         this.flagBits &= ~DISK_FULL_BIT;
         return result;
     }
