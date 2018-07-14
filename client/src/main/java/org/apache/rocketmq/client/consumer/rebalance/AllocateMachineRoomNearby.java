@@ -24,7 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.slf4j.Logger;
+import org.apache.rocketmq.logging.InternalLogger;
 
 /**
  * An allocate strategy proxy for based on machine room nearside priority. An actual allocate strategy can be
@@ -35,7 +35,7 @@ import org.slf4j.Logger;
  * no alive consumer to monopolize them.
  */
 public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
-    private final Logger log = ClientLogger.getLog();
+    private final InternalLogger log = ClientLogger.getLog();
 
     private final AllocateMessageQueueStrategy allocateMessageQueueStrategy;//actual allocate strategy
     private final MachineRoomResolver machineRoomResolver;
