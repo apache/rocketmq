@@ -18,6 +18,8 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
 import java.util.List;
+import java.util.Map;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -125,27 +127,39 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
             (QueryConsumerOffsetRequestHeader) request
                 .decodeCommandCustomHeader(QueryConsumerOffsetRequestHeader.class);
 
+        String topicName = requestHeader.getTopic();
+        int queueId = requestHeader.getQueueId();
+        String consumerGroupName = requestHeader.getConsumerGroup();
+
         long offset =
             this.brokerController.getConsumerOffsetManager().queryOffset(
-                requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
+                consumerGroupName, topicName, queueId);
 
         if (offset >= 0) {
+            log.info("Offset found. topic = {}, queueId = {}, group = {}, offset = {}",
+                topicName, queueId, consumerGroupName, offset);
+
             responseHeader.setOffset(offset);
             response.setCode(ResponseCode.SUCCESS);
-            response.setRemark(null);
         } else {
-            long minOffset =
-                this.brokerController.getMessageStore().getMinOffsetInQueue(requestHeader.getTopic(),
-                    requestHeader.getQueueId());
-            if (minOffset <= 0
-                && !this.brokerController.getMessageStore().checkInDiskByConsumeOffset(
-                requestHeader.getTopic(), requestHeader.getQueueId(), 0)) {
+            Map<Integer, Long> offsetTable =
+                brokerController.getConsumerOffsetManager().queryOffset(
+                    requestHeader.getConsumerGroup(), requestHeader.getTopic());
+            // brand new subscription
+            if (offsetTable == null) {
+                log.info("Might be a new subscription. topic = {}, queueId = {}, group = {}",
+                    topicName, queueId, consumerGroupName);
+
+                response.setCode(ResponseCode.QUERY_NOT_FOUND);
+                response.setRemark("Offset not found. The subscription is probably new.");
+            }
+            // new scaled queue
+            else {
+                log.info("Might be a new scaled queue. topic = {}, queueId = {}, group = {}",
+                    topicName, queueId, consumerGroupName);
+
                 responseHeader.setOffset(0L);
                 response.setCode(ResponseCode.SUCCESS);
-                response.setRemark(null);
-            } else {
-                response.setCode(ResponseCode.QUERY_NOT_FOUND);
-                response.setRemark("Not found, V3_0_6_SNAPSHOT maybe this group consumer boot first");
             }
         }
 

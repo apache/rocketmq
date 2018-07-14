@@ -142,72 +142,49 @@ public class RebalancePushImpl extends RebalanceImpl {
         long result = -1;
         final ConsumeFromWhere consumeFromWhere = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeFromWhere();
         final OffsetStore offsetStore = this.defaultMQPushConsumerImpl.getOffsetStore();
-        switch (consumeFromWhere) {
-            case CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST:
-            case CONSUME_FROM_MIN_OFFSET:
-            case CONSUME_FROM_MAX_OFFSET:
-            case CONSUME_FROM_LAST_OFFSET: {
-                long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
-                if (lastOffset >= 0) {
-                    result = lastOffset;
-                }
-                // First start,no offset
-                else if (-1 == lastOffset) {
-                    if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-                        result = 0L;
-                    } else {
-                        try {
-                            result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
-                        } catch (MQClientException e) {
-                            result = -1;
-                        }
-                    }
-                } else {
-                    result = -1;
-                }
-                break;
-            }
-            case CONSUME_FROM_FIRST_OFFSET: {
-                long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
-                if (lastOffset >= 0) {
-                    result = lastOffset;
-                } else if (-1 == lastOffset) {
-                    result = 0L;
-                } else {
-                    result = -1;
-                }
-                break;
-            }
-            case CONSUME_FROM_TIMESTAMP: {
-                long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
-                if (lastOffset >= 0) {
-                    result = lastOffset;
-                } else if (-1 == lastOffset) {
-                    if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-                        try {
-                            result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
-                        } catch (MQClientException e) {
-                            result = -1;
-                        }
-                    } else {
-                        try {
-                            long timestamp = UtilAll.parseDate(this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeTimestamp(),
-                                UtilAll.YYYYMMDDHHMMSS).getTime();
-                            result = this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
-                        } catch (MQClientException e) {
-                            result = -1;
-                        }
-                    }
-                } else {
-                    result = -1;
-                }
-                break;
-            }
-
-            default:
-                break;
+        long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
+        // Offset found, continue pulling from here
+        if (lastOffset >= 0) {
+            result = lastOffset;
         }
-
+        // If not found, with RETRY_GROUP_TOPIC_PREFIX, continue from 0
+        else if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+            result = 0L;
+        }
+        // else, determine where to pull from
+        else {
+            switch (consumeFromWhere) {
+                case CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST:
+                case CONSUME_FROM_MIN_OFFSET:
+                case CONSUME_FROM_MAX_OFFSET:
+                case CONSUME_FROM_LAST_OFFSET:
+                    try {
+                        result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
+                    } catch (MQClientException e) {
+                        result = -1;
+                    }
+                    break;
+                case CONSUME_FROM_FIRST_OFFSET:
+                    try {
+                        result = this.mQClientFactory.getMQAdminImpl().minOffset(mq);
+                    } catch (MQClientException e) {
+                        result = -1;
+                    }
+                    break;
+                case CONSUME_FROM_TIMESTAMP:
+                    try {
+                        long timestamp = UtilAll.parseDate(
+                            this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeTimestamp(),
+                            UtilAll.YYYYMMDDHHMMSS).getTime();
+                        result = this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
+                    } catch (MQClientException e) {
+                        result = -1;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
         return result;
     }
 
