@@ -17,6 +17,8 @@
 package org.apache.rocketmq.client.impl.consumer;
 
 import java.util.List;
+import java.util.concurrent.ThreadPoolExecutor;
+
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
@@ -41,4 +43,6 @@ public interface ConsumeMessageService {
         final ProcessQueue processQueue,
         final MessageQueue messageQueue,
         final boolean dispathToConsume);
+
+    void setConsumeThreadPoolExecutor(String topic,ThreadPoolExecutor threadPoolExecutor);
 }

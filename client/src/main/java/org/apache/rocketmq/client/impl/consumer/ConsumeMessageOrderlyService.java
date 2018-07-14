@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -62,6 +64,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     private final ScheduledExecutorService scheduledExecutorService;
     private volatile boolean stopped = false;
 
+    private final Map<String, ThreadPoolExecutor> consumeThreadExecutorMap = new HashMap<String, ThreadPoolExecutor>();
+
     public ConsumeMessageOrderlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
         MessageListenerOrderly messageListener) {
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
@@ -97,9 +101,28 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         this.stopped = true;
         this.scheduledExecutorService.shutdown();
         this.consumeExecutor.shutdown();
+        Set<Map.Entry<String, ThreadPoolExecutor>> topicConsumeExecutors = consumeThreadExecutorMap.entrySet();
+        for (Map.Entry<String, ThreadPoolExecutor> topicConsumeExecutor : topicConsumeExecutors) {
+            topicConsumeExecutor.getValue().shutdown();
+        }
         if (MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) {
             this.unlockAllMQ();
         }
+    }
+
+    @Override
+    public void setConsumeThreadPoolExecutor(String topic, ThreadPoolExecutor threadPoolExecutor) {
+        consumeThreadExecutorMap.put(topic, threadPoolExecutor);
+    }
+
+    private ThreadPoolExecutor getConsumeExecutor(MessageQueue messageQueue) {
+        if (consumeThreadExecutorMap != null && messageQueue != null) {
+            ThreadPoolExecutor threadPoolExecutor = consumeThreadExecutorMap.get(messageQueue.getTopic());
+            if (threadPoolExecutor != null) {
+                return threadPoolExecutor;
+            }
+        }
+        return consumeExecutor;
     }
 
     public synchronized void unlockAllMQ() {
@@ -195,7 +218,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         final boolean dispathToConsume) {
         if (dispathToConsume) {
             ConsumeRequest consumeRequest = new ConsumeRequest(processQueue, messageQueue);
-            this.consumeExecutor.submit(consumeRequest);
+            this.getConsumeExecutor(messageQueue).submit(consumeRequest);
         }
     }
 

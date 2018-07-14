@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -60,6 +61,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     private final ScheduledExecutorService scheduledExecutorService;
     private final ScheduledExecutorService cleanExpireMsgExecutors;
 
+    private final Map<String, ThreadPoolExecutor> consumeThreadExecutorMap = new HashMap<String, ThreadPoolExecutor>();
+
     public ConsumeMessageConcurrentlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
         MessageListenerConcurrently messageListener) {
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
@@ -95,7 +98,26 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     public void shutdown() {
         this.scheduledExecutorService.shutdown();
         this.consumeExecutor.shutdown();
+        Set<Map.Entry<String, ThreadPoolExecutor>> topicConsumeExecutors = consumeThreadExecutorMap.entrySet();
+        for (Map.Entry<String, ThreadPoolExecutor> topicConsumeExecutor : topicConsumeExecutors) {
+            topicConsumeExecutor.getValue().shutdown();
+        }
         this.cleanExpireMsgExecutors.shutdown();
+    }
+
+    @Override
+    public void setConsumeThreadPoolExecutor(String topic, ThreadPoolExecutor threadPoolExecutor) {
+        consumeThreadExecutorMap.put(topic, threadPoolExecutor);
+    }
+
+    private ThreadPoolExecutor getConsumeExecutor(MessageQueue messageQueue) {
+        if (consumeThreadExecutorMap != null && messageQueue != null) {
+            ThreadPoolExecutor threadPoolExecutor = consumeThreadExecutorMap.get(messageQueue.getTopic());
+            if (threadPoolExecutor != null) {
+                return threadPoolExecutor;
+            }
+        }
+        return consumeExecutor;
     }
 
     @Override
@@ -207,7 +229,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         if (msgs.size() <= consumeBatchSize) {
             ConsumeRequest consumeRequest = new ConsumeRequest(msgs, processQueue, messageQueue);
             try {
-                this.consumeExecutor.submit(consumeRequest);
+                this.getConsumeExecutor(messageQueue).submit(consumeRequest);
             } catch (RejectedExecutionException e) {
                 this.submitConsumeRequestLater(consumeRequest);
             }
@@ -224,7 +246,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
                 ConsumeRequest consumeRequest = new ConsumeRequest(msgThis, processQueue, messageQueue);
                 try {
-                    this.consumeExecutor.submit(consumeRequest);
+                    this.getConsumeExecutor(messageQueue).submit(consumeRequest);
                 } catch (RejectedExecutionException e) {
                     for (; total < msgs.size(); total++) {
                         msgThis.add(msgs.get(total));
@@ -358,7 +380,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
             @Override
             public void run() {
-                ConsumeMessageConcurrentlyService.this.consumeExecutor.submit(consumeRequest);
+                ConsumeMessageConcurrentlyService.this.getConsumeExecutor(consumeRequest.getMessageQueue()).submit(consumeRequest);
             }
         }, 5000, TimeUnit.MILLISECONDS);
     }
