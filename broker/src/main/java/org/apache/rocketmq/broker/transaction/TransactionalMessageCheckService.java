@@ -59,20 +59,22 @@ public class TransactionalMessageCheckService extends ServiceThread {
 
     @Override
     public void run() {
-        log.info("Start transaction service thread!");
+        log.info("Start transaction check service thread!");
+        long checkInterval = brokerController.getBrokerConfig().getTransactionCheckInterval();
+        while (!this.isStopped()) {
+            this.waitForRunning(checkInterval);
+        }
+        log.info("End transaction check service thread!");
+    }
+
+    @Override
+    protected void onWaitEnd() {
         long timeout = brokerController.getBrokerConfig().getTransactionTimeOut();
         int checkMax = brokerController.getBrokerConfig().getTransactionCheckMax();
-        long checkInterval = brokerController.getBrokerConfig().getTransactionCheckInterval();
-        log.info("Check parameter: transactionCheckMax: {}, transactionTimeOut: {} transactionCheckInterval: {}", checkMax, timeout, checkInterval);
-        while (!this.isStopped()) {
-            try {
-                Thread.sleep(checkInterval);
-                this.brokerController.getTransactionalMessageService().check(timeout, checkMax, this.brokerController.getTransactionalMessageCheckListener());
-            } catch (Exception e) {
-                log.error("", e);
-            }
-        }
-        log.info("End transaction service thread!");
+        long begin = System.currentTimeMillis();
+        log.info("Begin to check prepare message, begin time:{}", begin);
+        this.brokerController.getTransactionalMessageService().check(timeout, checkMax, this.brokerController.getTransactionalMessageCheckListener());
+        log.info("End to check prepare message, consumed time:{}", System.currentTimeMillis() - begin);
     }
 
 }

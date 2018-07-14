@@ -150,7 +150,7 @@ public class BrokerController {
     private BrokerFastFailure brokerFastFailure;
     private Configuration configuration;
     private FileWatchService fileWatchService;
-    private TransactionalMessageCheckService transactionMsgCheckService;
+    private TransactionalMessageCheckService transactionalMessageCheckService;
     private TransactionalMessageService transactionalMessageService;
     private AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
 
@@ -462,7 +462,7 @@ public class BrokerController {
             log.warn("Load default discard message hook service: {}", DefaultTransactionalMessageCheckListener.class.getSimpleName());
         }
         this.transactionalMessageCheckListener.setBrokerController(this);
-        this.transactionMsgCheckService = new TransactionalMessageCheckService(this);
+        this.transactionalMessageCheckService = new TransactionalMessageCheckService(this);
     }
 
     public void registerProcessor() {
@@ -730,8 +730,8 @@ public class BrokerController {
             this.fileWatchService.shutdown();
         }
 
-        if (this.transactionMsgCheckService != null) {
-            this.transactionMsgCheckService.shutdown(false);
+        if (this.transactionalMessageCheckService != null) {
+            this.transactionalMessageCheckService.shutdown(false);
         }
     }
 
@@ -803,9 +803,9 @@ public class BrokerController {
         }
 
         if (BrokerRole.SLAVE != messageStoreConfig.getBrokerRole()) {
-            if (this.transactionMsgCheckService != null) {
+            if (this.transactionalMessageCheckService != null) {
                 log.info("Start transaction service!");
-                this.transactionMsgCheckService.start();
+                this.transactionalMessageCheckService.start();
             }
         }
     }
@@ -990,12 +990,13 @@ public class BrokerController {
         return this.configuration;
     }
 
-    public TransactionalMessageCheckService getTransactionMsgCheckService() {
-        return transactionMsgCheckService;
+    public TransactionalMessageCheckService getTransactionalMessageCheckService() {
+        return transactionalMessageCheckService;
     }
 
-    public void setTransactionMsgCheckService(TransactionalMessageCheckService transactionMsgCheckService) {
-        this.transactionMsgCheckService = transactionMsgCheckService;
+    public void setTransactionalMessageCheckService(
+        TransactionalMessageCheckService transactionalMessageCheckService) {
+        this.transactionalMessageCheckService = transactionalMessageCheckService;
     }
 
     public TransactionalMessageService getTransactionalMessageService() {
