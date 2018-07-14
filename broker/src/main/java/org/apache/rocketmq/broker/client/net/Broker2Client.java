@@ -148,10 +148,13 @@ public class Broker2Client {
 
             long timeStampOffset;
             if (timeStamp == -1) {
-
                 timeStampOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
             } else {
                 timeStampOffset = this.brokerController.getMessageStore().getOffsetInQueueByTime(topic, i, timeStamp);
+
+                if (timeStampOffset == 0) {
+                    timeStampOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
+                }
             }
 
             if (timeStampOffset < 0) {
