@@ -22,9 +22,6 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-/**
- * Created by Jason918 on 2017/11/19.
- */
 public class WaitNotifyObjectTest {
     @Test
     public void removeFromWaitingThreadTable() throws Exception {
