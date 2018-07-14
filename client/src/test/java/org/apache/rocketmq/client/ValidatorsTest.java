@@ -49,12 +49,12 @@ public class ValidatorsTest {
 
     @Test
     public void testCheckTopic_UseDefaultTopic() {
-        String defaultTopic = MixAll.DEFAULT_TOPIC;
+        String defaultTopic = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
         try {
             Validators.checkTopic(defaultTopic);
             failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
-            assertThat(e).hasMessageStartingWith(String.format("The topic[%s] is conflict with default topic.", defaultTopic));
+            assertThat(e).hasMessageStartingWith(String.format("The topic[%s] is conflict with AUTO_CREATE_TOPIC_KEY_TOPIC.", defaultTopic));
         }
     }
 
