@@ -17,6 +17,7 @@
 package org.apache.rocketmq.common.message;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +29,7 @@ public class Message implements Serializable {
     private int flag;
     private Map<String, String> properties;
     private byte[] body;
+    private String transactionId;
 
     public Message() {
     }
@@ -191,9 +193,22 @@ public class Message implements Serializable {
         putProperty(MessageConst.PROPERTY_BUYER_ID, buyerId);
     }
 
+    public String getTransactionId() {
+        return transactionId;
+    }
+
+    public void setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
+    }
+
     @Override
     public String toString() {
-        return "Message [topic=" + topic + ", flag=" + flag + ", properties=" + properties + ", body="
-            + (body != null ? body.length : 0) + "]";
+        return "Message{" +
+            "topic='" + topic + '\'' +
+            ", flag=" + flag +
+            ", properties=" + properties +
+            ", body=" + Arrays.toString(body) +
+            ", transactionId='" + transactionId + '\'' +
+            '}';
     }
 }

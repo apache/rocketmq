@@ -137,12 +137,29 @@ public class BrokerConfig {
     private boolean forceRegister = true;
 
     /**
-     *
      * This configurable item defines interval of topics registration of broker to name server. Allowing values are
      * between 10, 000 and 60, 000 milliseconds.
-     *
      */
     private int registerNameServerPeriod = 1000 * 30;
+
+    /**
+     * The minimum time of the transactional message  to be checked firstly, one message only exceed this time interval
+     * that can be checked.
+     */
+    @ImportantField
+    private long transactionTimeOut = 3 * 1000;
+
+    /**
+     * The maximum number of times the message was checked, if exceed this value, this message will be discarded.
+     */
+    @ImportantField
+    private int transactionCheckMax = 5;
+
+    /**
+     * Transaction message check interval.
+     */
+    @ImportantField
+    private long transactionCheckInterval = 60 * 1000;
 
     public boolean isTraceOn() {
         return traceOn;
@@ -632,5 +649,29 @@ public class BrokerConfig {
 
     public void setRegisterNameServerPeriod(int registerNameServerPeriod) {
         this.registerNameServerPeriod = registerNameServerPeriod;
+    }
+
+    public long getTransactionTimeOut() {
+        return transactionTimeOut;
+    }
+
+    public void setTransactionTimeOut(long transactionTimeOut) {
+        this.transactionTimeOut = transactionTimeOut;
+    }
+
+    public int getTransactionCheckMax() {
+        return transactionCheckMax;
+    }
+
+    public void setTransactionCheckMax(int transactionCheckMax) {
+        this.transactionCheckMax = transactionCheckMax;
+    }
+
+    public long getTransactionCheckInterval() {
+        return transactionCheckInterval;
+    }
+
+    public void setTransactionCheckInterval(long transactionCheckInterval) {
+        this.transactionCheckInterval = transactionCheckInterval;
     }
 }

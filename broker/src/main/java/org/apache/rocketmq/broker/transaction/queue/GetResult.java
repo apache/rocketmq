@@ -14,29 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.broker.transaction.queue;
 
-package org.apache.rocketmq.broker.transaction;
+import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.common.message.MessageExt;
 
-import java.util.List;
+public class GetResult {
+    private MessageExt msg;
+    private PullResult pullResult;
 
-/**
- * This class will be removed in ther version 4.4.0, and {@link TransactionalMessageService} class is recommended.
- */
-@Deprecated
-public interface TransactionStore {
-    boolean open();
+    public MessageExt getMsg() {
+        return msg;
+    }
 
-    void close();
+    public void setMsg(MessageExt msg) {
+        this.msg = msg;
+    }
 
-    boolean put(final List<TransactionRecord> trs);
+    public PullResult getPullResult() {
+        return pullResult;
+    }
 
-    void remove(final List<Long> pks);
-
-    List<TransactionRecord> traverse(final long pk, final int nums);
-
-    long totalRecords();
-
-    long minPK();
-
-    long maxPK();
+    public void setPullResult(PullResult pullResult) {
+        this.pullResult = pullResult;
+    }
 }

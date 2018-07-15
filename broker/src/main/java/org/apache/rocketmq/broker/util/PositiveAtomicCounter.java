@@ -14,29 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.broker.util;
 
-package org.apache.rocketmq.broker.transaction;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import java.util.List;
+public class PositiveAtomicCounter {
+    private static final int MASK = 0x7FFFFFFF;
+    private final AtomicInteger atom;
 
-/**
- * This class will be removed in ther version 4.4.0, and {@link TransactionalMessageService} class is recommended.
- */
-@Deprecated
-public interface TransactionStore {
-    boolean open();
 
-    void close();
+    public PositiveAtomicCounter() {
+        atom = new AtomicInteger(0);
+    }
 
-    boolean put(final List<TransactionRecord> trs);
 
-    void remove(final List<Long> pks);
+    public final int incrementAndGet() {
+        final int rt = atom.incrementAndGet();
+        return rt & MASK;
+    }
 
-    List<TransactionRecord> traverse(final long pk, final int nums);
 
-    long totalRecords();
-
-    long minPK();
-
-    long maxPK();
+    public int intValue() {
+        return atom.intValue();
+    }
 }
