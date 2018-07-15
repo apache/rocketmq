@@ -14,29 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.rocketmq.broker.transaction;
 
-import java.util.List;
+import org.apache.rocketmq.common.message.MessageExt;
 
-/**
- * This class will be removed in ther version 4.4.0, and {@link TransactionalMessageService} class is recommended.
- */
-@Deprecated
-public interface TransactionStore {
-    boolean open();
+public class OperationResult {
+    private MessageExt prepareMessage;
 
-    void close();
+    private int responseCode;
 
-    boolean put(final List<TransactionRecord> trs);
+    private String responseRemark;
 
-    void remove(final List<Long> pks);
+    public MessageExt getPrepareMessage() {
+        return prepareMessage;
+    }
 
-    List<TransactionRecord> traverse(final long pk, final int nums);
+    public void setPrepareMessage(MessageExt prepareMessage) {
+        this.prepareMessage = prepareMessage;
+    }
 
-    long totalRecords();
+    public int getResponseCode() {
+        return responseCode;
+    }
 
-    long minPK();
+    public void setResponseCode(int responseCode) {
+        this.responseCode = responseCode;
+    }
 
-    long maxPK();
+    public String getResponseRemark() {
+        return responseRemark;
+    }
+
+    public void setResponseRemark(String responseRemark) {
+        this.responseRemark = responseRemark;
+    }
 }

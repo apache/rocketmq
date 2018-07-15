@@ -14,27 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.impl.producer;
+package org.apache.rocketmq.broker.transaction.queue;
 
-import org.apache.rocketmq.client.producer.TransactionListener;
+import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
-import java.util.Set;
+public class DefaultTransactionalMessageCheckListener extends AbstractTransactionalMessageCheckListener {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
 
-public interface MQProducerInner {
-    Set<String> getPublishTopicList();
+    public DefaultTransactionalMessageCheckListener() {
+        super();
+    }
 
-    boolean isPublishTopicNeedUpdate(final String topic);
-
-    TransactionListener checkListener();
-
-    void checkTransactionState(
-        final String addr,
-        final MessageExt msg,
-        final CheckTransactionStateRequestHeader checkRequestHeader);
-
-    void updateTopicPublishInfo(final String topic, final TopicPublishInfo info);
-
-    boolean isUnitMode();
+    @Override
+    public void resolveDiscardMsg(MessageExt msgExt) {
+        log.error("MsgExt:{} has been checked too many times, so discard it", msgExt);
+    }
 }
