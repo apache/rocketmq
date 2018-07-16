@@ -20,8 +20,7 @@ import io.openmessaging.BytesMessage;
 import io.openmessaging.KeyValue;
 import io.openmessaging.Message;
 import io.openmessaging.MessageFactory;
-import io.openmessaging.MessageHeader;
-import io.openmessaging.PropertyKeys;
+import io.openmessaging.OMSBuiltinKeys;
 import io.openmessaging.ServiceLifecycle;
 import io.openmessaging.exception.OMSMessageFormatException;
 import io.openmessaging.exception.OMSNotSupportedException;
@@ -34,37 +33,43 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
-import org.slf4j.Logger;
+import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
 import static io.openmessaging.rocketmq.utils.OMSUtil.buildInstanceName;
 
 abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
-    final static Logger log = ClientLogger.getLog();
+    final static InternalLogger log = ClientLogger.getLog();
     final KeyValue properties;
     final DefaultMQProducer rocketmqProducer;
     private boolean started = false;
-    final ClientConfig clientConfig;
+    private final ClientConfig clientConfig;
 
     AbstractOMSProducer(final KeyValue properties) {
         this.properties = properties;
         this.rocketmqProducer = new DefaultMQProducer();
         this.clientConfig = BeanUtils.populate(properties, ClientConfig.class);
 
-        String accessPoints = clientConfig.getOmsAccessPoints();
-        if (accessPoints == null || accessPoints.isEmpty()) {
-            throw new OMSRuntimeException("-1", "OMS AccessPoints is null or empty.");
+        if ("true".equalsIgnoreCase(System.getenv("OMS_RMQ_DIRECT_NAME_SRV"))) {
+            String accessPoints = clientConfig.getAccessPoints();
+            if (accessPoints == null || accessPoints.isEmpty()) {
+                throw new OMSRuntimeException("-1", "OMS AccessPoints is null or empty.");
+            }
+
+            this.rocketmqProducer.setNamesrvAddr(accessPoints.replace(',', ';'));
         }
-        this.rocketmqProducer.setNamesrvAddr(accessPoints.replace(',', ';'));
+
         this.rocketmqProducer.setProducerGroup(clientConfig.getRmqProducerGroup());
 
         String producerId = buildInstanceName();
-        this.rocketmqProducer.setSendMsgTimeout(clientConfig.getOmsOperationTimeout());
+        this.rocketmqProducer.setSendMsgTimeout(clientConfig.getOperationTimeout());
         this.rocketmqProducer.setInstanceName(producerId);
         this.rocketmqProducer.setMaxMessageSize(1024 * 1024 * 4);
-        properties.put(PropertyKeys.PRODUCER_ID, producerId);
+        this.rocketmqProducer.setLanguage(LanguageCode.OMS);
+        properties.put(OMSBuiltinKeys.PRODUCER_ID, producerId);
     }
 
     @Override
@@ -94,9 +99,19 @@ abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
                     return new OMSTimeOutException("-1", String.format("Send message to broker timeout, %dms, Topic=%s, msgId=%s",
                         this.rocketmqProducer.getSendMsgTimeout(), topic, msgId), e);
                 } else if (e.getCause() instanceof MQBrokerException || e.getCause() instanceof RemotingConnectException) {
-                    MQBrokerException brokerException = (MQBrokerException) e.getCause();
-                    return new OMSRuntimeException("-1", String.format("Received a broker exception, Topic=%s, msgId=%s, %s",
-                        topic, msgId, brokerException.getErrorMessage()), e);
+                    if (e.getCause() instanceof MQBrokerException) {
+                        MQBrokerException brokerException = (MQBrokerException) e.getCause();
+                        return new OMSRuntimeException("-1", String.format("Received a broker exception, Topic=%s, msgId=%s, %s",
+                            topic, msgId, brokerException.getErrorMessage()), e);
+                    }
+
+                    if (e.getCause() instanceof RemotingConnectException) {
+                        RemotingConnectException connectException = (RemotingConnectException)e.getCause();
+                        return new OMSRuntimeException("-1",
+                            String.format("Network connection experiences failures. Topic=%s, msgId=%s, %s",
+                                topic, msgId, connectException.getMessage()),
+                            e);
+                    }
                 }
             }
             // Exception thrown by local.
@@ -121,18 +136,10 @@ abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
     }
 
     @Override
-    public BytesMessage createBytesMessageToTopic(final String topic, final byte[] body) {
-        BytesMessage bytesMessage = new BytesMessageImpl();
-        bytesMessage.setBody(body);
-        bytesMessage.headers().put(MessageHeader.TOPIC, topic);
-        return bytesMessage;
-    }
-
-    @Override
-    public BytesMessage createBytesMessageToQueue(final String queue, final byte[] body) {
-        BytesMessage bytesMessage = new BytesMessageImpl();
-        bytesMessage.setBody(body);
-        bytesMessage.headers().put(MessageHeader.QUEUE, queue);
-        return bytesMessage;
+    public BytesMessage createBytesMessage(String queue, byte[] body) {
+        BytesMessage message = new BytesMessageImpl();
+        message.setBody(body);
+        message.sysHeaders().put(Message.BuiltinKeys.DESTINATION, queue);
+        return message;
     }
 }

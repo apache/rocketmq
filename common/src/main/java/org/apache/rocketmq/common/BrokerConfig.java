@@ -16,18 +16,17 @@
  */
 package org.apache.rocketmq.common;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 public class BrokerConfig {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
     @ImportantField
@@ -136,6 +135,35 @@ public class BrokerConfig {
     private int dlqNumsPerGroup = 1;
 
     private int dlqPerm = PermName.PERM_WRITE;
+
+    private boolean compressedRegister = false;
+
+    private boolean forceRegister = true;
+
+    /**
+     * This configurable item defines interval of topics registration of broker to name server. Allowing values are
+     * between 10, 000 and 60, 000 milliseconds.
+     */
+    private int registerNameServerPeriod = 1000 * 30;
+
+    /**
+     * The minimum time of the transactional message  to be checked firstly, one message only exceed this time interval
+     * that can be checked.
+     */
+    @ImportantField
+    private long transactionTimeOut = 3 * 1000;
+
+    /**
+     * The maximum number of times the message was checked, if exceed this value, this message will be discarded.
+     */
+    @ImportantField
+    private int transactionCheckMax = 5;
+
+    /**
+     * Transaction message check interval.
+     */
+    @ImportantField
+    private long transactionCheckInterval = 60 * 1000;
 
     public boolean isTraceOn() {
         return traceOn;
@@ -617,5 +645,53 @@ public class BrokerConfig {
 
     public void setDlqPerm(int dlqPerm) {
         this.dlqPerm = dlqPerm;
+    }
+
+    public boolean isCompressedRegister() {
+        return compressedRegister;
+    }
+
+    public void setCompressedRegister(boolean compressedRegister) {
+        this.compressedRegister = compressedRegister;
+    }
+
+    public boolean isForceRegister() {
+        return forceRegister;
+    }
+
+    public void setForceRegister(boolean forceRegister) {
+        this.forceRegister = forceRegister;
+    }
+
+    public int getRegisterNameServerPeriod() {
+        return registerNameServerPeriod;
+    }
+
+    public void setRegisterNameServerPeriod(int registerNameServerPeriod) {
+        this.registerNameServerPeriod = registerNameServerPeriod;
+    }
+
+    public long getTransactionTimeOut() {
+        return transactionTimeOut;
+    }
+
+    public void setTransactionTimeOut(long transactionTimeOut) {
+        this.transactionTimeOut = transactionTimeOut;
+    }
+
+    public int getTransactionCheckMax() {
+        return transactionCheckMax;
+    }
+
+    public void setTransactionCheckMax(int transactionCheckMax) {
+        this.transactionCheckMax = transactionCheckMax;
+    }
+
+    public long getTransactionCheckInterval() {
+        return transactionCheckInterval;
+    }
+
+    public void setTransactionCheckInterval(long transactionCheckInterval) {
+        this.transactionCheckInterval = transactionCheckInterval;
     }
 }

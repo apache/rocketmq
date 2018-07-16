@@ -119,9 +119,9 @@ public class Validators {
         }
 
         //whether the same with system reserved keyword
-        if (topic.equals(MixAll.DEFAULT_TOPIC)) {
+        if (topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
             throw new MQClientException(
-                String.format("The topic[%s] is conflict with default topic.", topic), null);
+                String.format("The topic[%s] is conflict with AUTO_CREATE_TOPIC_KEY_TOPIC.", topic), null);
         }
     }
 }

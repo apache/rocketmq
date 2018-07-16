@@ -29,7 +29,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>4.2.0-SNAPSHOT</version>
+    <version>4.3.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.apache.org/</url>
@@ -39,9 +39,9 @@
     </prerequisites>
 
     <scm>
-        <url>https://github.com/apache/rocketmq.git</url>
-        <connection>scm:git:https://github.com/apache/rocketmq.git</connection>
-        <developerConnection>scm:git:https://github.com/apache/rocketmq.git</developerConnection>
+        <url>git@github.com:apache/rocketmq.git</url>
+        <connection>scm:git:git@github.com:apache/rocketmq.git</connection>
+        <developerConnection>scm:git:git@github.com:apache/rocketmq.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
@@ -119,12 +119,12 @@
         <module>remoting</module>
         <module>logappender</module>
         <module>example</module>
-        <module>filtersrv</module>
         <module>srvutil</module>
         <module>filter</module>
         <module>test</module>
         <module>distribution</module>
         <module>openmessaging</module>
+        <module>logging</module>
     </modules>
 
     <build>
@@ -157,7 +157,7 @@
                 </executions>
                 <configuration>
                     <rules>
-                        <banCircularDependencies />
+                        <banCircularDependencies/>
                     </rules>
                     <fail>true</fail>
                 </configuration>
@@ -252,7 +252,11 @@
                         <exclude>.travis.yml</exclude>
                         <exclude>CONTRIBUTING.md</exclude>
                         <exclude>bin/README.md</exclude>
-                        <exclude>PULL_REQUEST_TEMPLATE.md</exclude>
+                        <exclude>.github/*</exclude>
+                        <exclude>src/test/resources/certs/*</exclude>
+                        <exclude>src/test/resources/META-INF/service/*</exclude>
+                        <exclude>*/target/**</exclude>
+                        <exclude>*/*.iml</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -312,6 +316,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.19.1</version>
                 <configuration>
+                    <skipAfterFailureCount>1</skipAfterFailureCount>
                     <forkCount>1</forkCount>
                     <reuseForks>true</reuseForks>
                 </configuration>
@@ -330,6 +335,7 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>2.19.1</version>
                 <configuration>
+                    <skipAfterFailureCount>1</skipAfterFailureCount>
                     <excludes>
                         <exclude>**/NormalMsgDelayIT.java</exclude>
                     </excludes>
@@ -504,12 +510,12 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-test</artifactId>
+                <artifactId>rocketmq-logging</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-filtersrv</artifactId>
+                <artifactId>rocketmq-test</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -580,7 +586,7 @@
             <dependency>
                 <groupId>io.openmessaging</groupId>
                 <artifactId>openmessaging-api</artifactId>
-                <version>0.1.0-alpha</version>
+                <version>0.3.1-alpha</version>
             </dependency>
             <dependency>
                 <groupId>log4j</groupId>

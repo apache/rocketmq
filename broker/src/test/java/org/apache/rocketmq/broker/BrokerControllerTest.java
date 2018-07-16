@@ -18,6 +18,7 @@
 package org.apache.rocketmq.broker;
 
 import org.apache.rocketmq.broker.processor.SendMessageProcessor;
+import java.io.File;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.PermName;
@@ -35,18 +36,12 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Test;
 
-import java.io.File;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 public class BrokerControllerTest {
-    /**
-     * Tests if the controller can be properly stopped and started.
-     *
-     * @throws Exception If fails.
-     */
+
     @Test
     public void testBrokerRestart() throws Exception {
         BrokerController brokerController = new BrokerController(
@@ -74,7 +69,7 @@ public class BrokerControllerTest {
     }
 
     @After
-    public void destory() {
+    public void destroy() {
         UtilAll.deleteFile(new File(new MessageStoreConfig().getStorePathRootDir()));
     }
 }
