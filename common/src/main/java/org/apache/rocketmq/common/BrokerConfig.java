@@ -63,6 +63,7 @@ public class BrokerConfig {
     private int adminBrokerThreadPoolNums = 16;
     private int clientManageThreadPoolNums = 32;
     private int consumerManageThreadPoolNums = 32;
+    private int heartbeatThreadPoolNums = Math.min(32,Runtime.getRuntime().availableProcessors());
 
     private int flushConsumerOffsetInterval = 1000 * 5;
 
@@ -77,6 +78,7 @@ public class BrokerConfig {
     private int queryThreadPoolQueueCapacity = 20000;
     private int clientManagerThreadPoolQueueCapacity = 1000000;
     private int consumerManagerThreadPoolQueueCapacity = 1000000;
+    private int heartbeatThreadPoolQueueCapacity = 50000;
 
     private int filterServerNums = 0;
 
@@ -108,6 +110,7 @@ public class BrokerConfig {
     private boolean brokerFastFailureEnable = true;
     private long waitTimeMillsInSendQueue = 200;
     private long waitTimeMillsInPullQueue = 5 * 1000;
+    private long waitTimeMillsInHeartbeatQueue = 31 * 1000;
 
     private long startAcceptSendRequestTimeStamp = 0L;
 
@@ -641,6 +644,30 @@ public class BrokerConfig {
 
     public void setForceRegister(boolean forceRegister) {
         this.forceRegister = forceRegister;
+    }
+
+    public int getHeartbeatThreadPoolQueueCapacity() {
+        return heartbeatThreadPoolQueueCapacity;
+    }
+
+    public void setHeartbeatThreadPoolQueueCapacity(int heartbeatThreadPoolQueueCapacity) {
+        this.heartbeatThreadPoolQueueCapacity = heartbeatThreadPoolQueueCapacity;
+    }
+
+    public int getHeartbeatThreadPoolNums() {
+        return heartbeatThreadPoolNums;
+    }
+
+    public void setHeartbeatThreadPoolNums(int heartbeatThreadPoolNums) {
+        this.heartbeatThreadPoolNums = heartbeatThreadPoolNums;
+    }
+
+    public long getWaitTimeMillsInHeartbeatQueue() {
+        return waitTimeMillsInHeartbeatQueue;
+    }
+
+    public void setWaitTimeMillsInHeartbeatQueue(long waitTimeMillsInHeartbeatQueue) {
+        this.waitTimeMillsInHeartbeatQueue = waitTimeMillsInHeartbeatQueue;
     }
 
     public int getRegisterNameServerPeriod() {
