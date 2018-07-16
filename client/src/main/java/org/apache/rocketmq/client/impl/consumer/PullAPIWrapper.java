@@ -96,6 +96,10 @@ public class PullAPIWrapper {
             }
 
             for (MessageExt msg : msgListFilterAgain) {
+                String traFlag = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
+                if (traFlag != null && Boolean.parseBoolean(traFlag)) {
+                    msg.setTransactionId(msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
+                }
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MIN_OFFSET,
                     Long.toString(pullResult.getMinOffset()));
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MAX_OFFSET,

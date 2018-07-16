@@ -91,6 +91,10 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         final ByteBuffer byteBuffer = ByteBuffer.wrap(request.getBody());
         final MessageExt messageExt = MessageDecoder.decode(byteBuffer);
         if (messageExt != null) {
+            String transactionId = messageExt.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+            if (null != transactionId && !"".equals(transactionId)) {
+                messageExt.setTransactionId(transactionId);
+            }
             final String group = messageExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
             if (group != null) {
                 MQProducerInner producer = this.mqClientFactory.selectProducer(group);

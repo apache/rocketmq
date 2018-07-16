@@ -44,8 +44,10 @@ public class BrokerFastFailure {
 
     public static RequestTask castRunnable(final Runnable runnable) {
         try {
-            FutureTaskExt object = (FutureTaskExt) runnable;
-            return (RequestTask) object.getRunnable();
+            if (runnable instanceof FutureTaskExt) {
+                FutureTaskExt object = (FutureTaskExt) runnable;
+                return (RequestTask) object.getRunnable();
+            }
         } catch (Throwable e) {
             log.error(String.format("castRunnable exception, %s", runnable.getClass().getName()), e);
         }
@@ -87,6 +89,9 @@ public class BrokerFastFailure {
 
         cleanExpiredRequestInQueue(this.brokerController.getPullThreadPoolQueue(),
             this.brokerController.getBrokerConfig().getWaitTimeMillsInPullQueue());
+
+        cleanExpiredRequestInQueue(this.brokerController.getHeartbeatThreadPoolQueue(),
+            this.brokerController.getBrokerConfig().getWaitTimeMillsInHeartbeatQueue());
     }
 
     void cleanExpiredRequestInQueue(final BlockingQueue<Runnable> blockingQueue, final long maxWaitTimeMillsInQueue) {

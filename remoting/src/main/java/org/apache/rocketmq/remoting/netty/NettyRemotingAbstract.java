@@ -364,7 +364,7 @@ public abstract class NettyRemotingAbstract {
         final int opaque = request.getOpaque();
 
         try {
-            final ResponseFuture responseFuture = new ResponseFuture(opaque, timeoutMillis, null, null);
+            final ResponseFuture responseFuture = new ResponseFuture(channel, opaque, timeoutMillis, null, null);
             this.responseTable.put(opaque, responseFuture);
             final SocketAddress addr = channel.remoteAddress();
             channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
@@ -422,20 +422,8 @@ public abstract class NettyRemotingAbstract {
                         if (f.isSuccess()) {
                             responseFuture.setSendRequestOK(true);
                             return;
-                        } else {
-                            responseFuture.setSendRequestOK(false);
                         }
-
-                        responseFuture.putResponse(null);
-                        responseTable.remove(opaque);
-                        try {
-                            executeInvokeCallback(responseFuture);
-                        } catch (Throwable e) {
-                            log.warn("excute callback in writeAndFlush addListener, and callback throw", e);
-                        } finally {
-                            responseFuture.release();
-                        }
-
+                        requestFail(opaque);
                         log.warn("send a request command to channel <{}> failed.", RemotingHelper.parseChannelRemoteAddr(channel));
                     }
                 });
@@ -456,6 +444,38 @@ public abstract class NettyRemotingAbstract {
                     );
                 log.warn(info);
                 throw new RemotingTimeoutException(info);
+            }
+        }
+    }
+
+    private void requestFail(final int opaque) {
+        ResponseFuture responseFuture = responseTable.remove(opaque);
+        if (responseFuture != null) {
+            responseFuture.setSendRequestOK(false);
+            responseFuture.putResponse(null);
+            try {
+                executeInvokeCallback(responseFuture);
+            } catch (Throwable e) {
+                log.warn("execute callback in requestFail, and callback throw", e);
+            } finally {
+                responseFuture.release();
+            }
+        }
+    }
+
+    /**
+     * mark the request of the specified channel as fail and to invoke fail callback immediately
+     * @param channel the channel which is close already
+     */
+    protected void failFast(final Channel channel) {
+        Iterator<Entry<Integer, ResponseFuture>> it = responseTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<Integer, ResponseFuture> entry = it.next();
+            if (entry.getValue().getProcessChannel() == channel) {
+                Integer opaque = entry.getKey();
+                if (opaque != null) {
+                    requestFail(opaque);
+                }
             }
         }
     }
