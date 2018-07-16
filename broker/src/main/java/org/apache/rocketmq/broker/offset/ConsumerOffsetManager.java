@@ -49,6 +49,56 @@ public class ConsumerOffsetManager extends ConfigManager {
         this.brokerController = brokerController;
     }
 
+    public void removeConsumeOffsetsByTopic(String topic) {
+        boolean found = false;
+        Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = offsetTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
+            String topicAtGroup = next.getKey();
+            String[] segments = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+            if (segments.length == 2) {
+                String topicName = segments[0];
+                if (topicName.equals(topic)) {
+                    it.remove();
+                    found = true;
+                    log.info("Remove consume offset: {} in accordance to topic removal", topicAtGroup);
+                    for (ConcurrentMap.Entry<Integer, Long> entry : next.getValue().entrySet()) {
+                        log.info("Queue ID: {}, Offset: {}", entry.getKey(), entry.getValue());
+                    }
+                }
+            }
+        }
+
+        if (found) {
+            persist();
+        }
+    }
+
+    public void removeConsumeOffsetsByConsumerGroup(String group) {
+        boolean found = false;
+        Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = offsetTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
+            String topicAtGroup = next.getKey();
+            String[] segments = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+            if (segments.length == 2) {
+                String groupName = segments[1];
+                if (groupName.equals(group)) {
+                    it.remove();
+                    found = true;
+                    log.info("Remove consume offset: {} in accordance to consumer group removal", topicAtGroup);
+                    for (ConcurrentMap.Entry<Integer, Long> entry : next.getValue().entrySet()) {
+                        log.info("Queue ID: {}, Offset: {}", entry.getKey(), entry.getValue());
+                    }
+                }
+            }
+        }
+
+        if (found) {
+            persist();
+        }
+    }
+
     public void scanUnsubscribedTopic() {
         Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
         while (it.hasNext()) {

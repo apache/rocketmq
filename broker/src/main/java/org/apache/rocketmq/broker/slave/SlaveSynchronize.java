@@ -17,15 +17,18 @@
 package org.apache.rocketmq.broker.slave;
 
 import java.io.IOException;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.protocol.body.ConsumerOffsetSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
 public class SlaveSynchronize {
@@ -63,11 +66,25 @@ public class SlaveSynchronize {
 
                     this.brokerController.getTopicConfigManager().getDataVersion()
                         .assignNewOne(topicWrapper.getDataVersion());
-                    this.brokerController.getTopicConfigManager().getTopicConfigTable().clear();
-                    this.brokerController.getTopicConfigManager().getTopicConfigTable()
-                        .putAll(topicWrapper.getTopicConfigTable());
-                    this.brokerController.getTopicConfigManager().persist();
 
+                    ConcurrentMap<String, TopicConfig> topicConfigMap = brokerController.getTopicConfigManager()
+                        .getTopicConfigTable();
+                    boolean hasTopicRemoval = false;
+                    for (ConcurrentMap.Entry<String, TopicConfig> item : topicConfigMap.entrySet()) {
+                        if (!topicWrapper.getTopicConfigTable().containsKey(item.getKey())) {
+                            topicConfigMap.remove(item.getKey());
+                            hasTopicRemoval = true;
+                        }
+                    }
+
+                    if (hasTopicRemoval) {
+                        // Clean consume queues as their topic has already been removed.
+                        brokerController.getMessageStore().cleanUnusedTopic(topicConfigMap.keySet());
+                    }
+
+                    topicConfigMap.clear();
+                    topicConfigMap.putAll(topicWrapper.getTopicConfigTable());
+                    this.brokerController.getTopicConfigManager().persist();
                     log.info("Update slave topic config from master, {}", masterAddrBak);
                 }
             } catch (Exception e) {
@@ -80,8 +97,13 @@ public class SlaveSynchronize {
         String masterAddrBak = this.masterAddr;
         if (masterAddrBak != null) {
             try {
-                ConsumerOffsetSerializeWrapper offsetWrapper =
-                    this.brokerController.getBrokerOuterAPI().getAllConsumerOffset(masterAddrBak);
+                ConsumerOffsetSerializeWrapper offsetWrapper = this.brokerController.getBrokerOuterAPI()
+                    .getAllConsumerOffset(masterAddrBak);
+
+                // Clear previous consume offsets
+                this.brokerController.getConsumerOffsetManager().getOffsetTable().clear();
+
+                // Persist consume offsets replicated from master
                 this.brokerController.getConsumerOffsetManager().getOffsetTable()
                     .putAll(offsetWrapper.getOffsetTable());
                 this.brokerController.getConsumerOffsetManager().persist();
@@ -128,11 +150,21 @@ public class SlaveSynchronize {
                     .equals(subscriptionWrapper.getDataVersion())) {
                     SubscriptionGroupManager subscriptionGroupManager =
                         this.brokerController.getSubscriptionGroupManager();
-                    subscriptionGroupManager.getDataVersion().assignNewOne(
-                        subscriptionWrapper.getDataVersion());
-                    subscriptionGroupManager.getSubscriptionGroupTable().clear();
-                    subscriptionGroupManager.getSubscriptionGroupTable().putAll(
-                        subscriptionWrapper.getSubscriptionGroupTable());
+                    subscriptionGroupManager.getDataVersion().assignNewOne(subscriptionWrapper.getDataVersion());
+
+                    // Even if consume offsets are also replicated from master, we also purge deprecated consume offsets
+                    // resulted from subscription removal.
+                    ConcurrentMap<String, SubscriptionGroupConfig> subscriptionMap =
+                        subscriptionGroupManager.getSubscriptionGroupTable();
+                    for (ConcurrentMap.Entry<String, SubscriptionGroupConfig> item : subscriptionMap.entrySet()) {
+                        if (!subscriptionWrapper.getSubscriptionGroupTable().containsKey(item.getKey())) {
+                            subscriptionMap.remove(item.getKey());
+                            brokerController.getConsumerOffsetManager()
+                                .removeConsumeOffsetsByConsumerGroup(item.getKey());
+                        }
+                    }
+                    subscriptionMap.clear();
+                    subscriptionMap.putAll(subscriptionWrapper.getSubscriptionGroupTable());
                     subscriptionGroupManager.persist();
                     log.info("Update slave Subscription Group from master, {}", masterAddrBak);
                 }
