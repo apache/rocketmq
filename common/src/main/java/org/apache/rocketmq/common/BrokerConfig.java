@@ -132,6 +132,10 @@ public class BrokerConfig {
     private boolean filterSupportRetry = false;
     private boolean enablePropertyFilter = false;
 
+    private int dlqNumsPerGroup = 1;
+
+    private int dlqPerm = PermName.PERM_WRITE;
+
     private boolean compressedRegister = false;
 
     private boolean forceRegister = true;
@@ -625,6 +629,22 @@ public class BrokerConfig {
 
     public void setEnablePropertyFilter(boolean enablePropertyFilter) {
         this.enablePropertyFilter = enablePropertyFilter;
+    }
+
+    public int getDlqNumsPerGroup() {
+        return dlqNumsPerGroup;
+    }
+
+    public void setDlqNumsPerGroup(int dlqNumsPerGroup) {
+        this.dlqNumsPerGroup = dlqNumsPerGroup;
+    }
+
+    public int getDlqPerm() {
+        return dlqPerm;
+    }
+
+    public void setDlqPerm(int dlqPerm) {
+        this.dlqPerm = dlqPerm;
     }
 
     public boolean isCompressedRegister() {
