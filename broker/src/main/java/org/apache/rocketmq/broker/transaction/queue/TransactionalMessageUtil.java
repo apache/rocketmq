@@ -14,10 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.producer;
+package org.apache.rocketmq.broker.transaction.queue;
 
-import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.MixAll;
 
-public interface TransactionCheckListener {
-    LocalTransactionState checkLocalTransactionState(final MessageExt msg);
+import java.nio.charset.Charset;
+
+public class TransactionalMessageUtil {
+    public static final String REMOVETAG = "d";
+    public static Charset charset = Charset.forName("utf-8");
+
+    public static String buildOpTopic() {
+        return MixAll.RMQ_SYS_TRANS_OP_HALF_TOPIC;
+    }
+
+    public static String buildHalfTopic() {
+        return MixAll.RMQ_SYS_TRANS_HALF_TOPIC;
+    }
+
+    public static String buildConsumerGroup() {
+        return MixAll.CID_SYS_RMQ_TRANS;
+    }
+
 }
