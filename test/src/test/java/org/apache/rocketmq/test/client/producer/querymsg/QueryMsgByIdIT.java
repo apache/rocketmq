@@ -23,7 +23,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
-import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListner;
+import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.TestUtils;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
@@ -44,12 +44,12 @@ public class QueryMsgByIdIT extends BaseConf {
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
         producer = getProducer(nsAddr, topic);
-        consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListner());
+        consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
     }
 
     @After
     public void tearDown() {
-        shutDown();
+        shutdown();
     }
 
     @Test

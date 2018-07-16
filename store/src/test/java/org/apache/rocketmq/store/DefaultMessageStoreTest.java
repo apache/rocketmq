@@ -21,6 +21,7 @@ import java.io.File;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.channels.OverlappingFileLockException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -56,6 +57,30 @@ public class DefaultMessageStoreTest {
         messageStore.start();
     }
 
+    @Test(expected = OverlappingFileLockException.class)
+    public void test_repate_restart() throws Exception {
+        QUEUE_TOTAL = 1;
+        MessageBody = StoreMessage.getBytes();
+
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setMapedFileSizeCommitLog(1024 * 8);
+        messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 4);
+        messageStoreConfig.setMaxHashSlotNum(100);
+        messageStoreConfig.setMaxIndexNum(100 * 10);
+        MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig());
+
+        boolean load = master.load();
+        assertTrue(load);
+
+        try {
+            master.start();
+            master.start();
+        } finally {
+            master.shutdown();
+            master.destroy();
+        }
+    }
+
     @After
     public void destory() {
         messageStore.shutdown();
@@ -66,50 +91,19 @@ public class DefaultMessageStoreTest {
         UtilAll.deleteFile(file);
     }
 
-    public MessageStore buildMessageStore() throws Exception {
+    private MessageStore buildMessageStore() throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMapedFileSizeCommitLog(1024 * 1024 * 10);
         messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 1024 * 10);
         messageStoreConfig.setMaxHashSlotNum(10000);
         messageStoreConfig.setMaxIndexNum(100 * 100);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
+        messageStoreConfig.setFlushIntervalConsumeQueue(1);
         return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MyMessageArrivingListener(), new BrokerConfig());
     }
 
     @Test
-    public void testWriteAndRead() throws Exception {
-        long totalMsgs = 100;
-        QUEUE_TOTAL = 1;
-        MessageBody = StoreMessage.getBytes();
-        for (long i = 0; i < totalMsgs; i++) {
-            messageStore.putMessage(buildMessage());
-        }
-
-        for (long i = 0; i < totalMsgs; i++) {
-            GetMessageResult result = messageStore.getMessage("GROUP_A", "TOPIC_A", 0, i, 1024 * 1024, null);
-            assertThat(result).isNotNull();
-            result.release();
-        }
-        verifyThatMasterIsFunctional(totalMsgs, messageStore);
-    }
-
-    public MessageExtBrokerInner buildMessage() {
-        MessageExtBrokerInner msg = new MessageExtBrokerInner();
-        msg.setTopic("FooBar");
-        msg.setTags("TAG1");
-        msg.setKeys("Hello");
-        msg.setBody(MessageBody);
-        msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
-        msg.setSysFlag(0);
-        msg.setBornTimestamp(System.currentTimeMillis());
-        msg.setStoreHost(StoreHost);
-        msg.setBornHost(BornHost);
-        return msg;
-    }
-
-    @Test
-    public void testGroupCommit() throws Exception {
+    public void testWriteAndRead() {
         long totalMsgs = 10;
         QUEUE_TOTAL = 1;
         MessageBody = StoreMessage.getBytes();
@@ -123,6 +117,21 @@ public class DefaultMessageStoreTest {
             result.release();
         }
         verifyThatMasterIsFunctional(totalMsgs, messageStore);
+    }
+
+    private MessageExtBrokerInner buildMessage() {
+        MessageExtBrokerInner msg = new MessageExtBrokerInner();
+        msg.setTopic("FooBar");
+        msg.setTags("TAG1");
+        msg.setKeys("Hello");
+        msg.setBody(MessageBody);
+        msg.setKeys(String.valueOf(System.currentTimeMillis()));
+        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+        msg.setSysFlag(0);
+        msg.setBornTimestamp(System.currentTimeMillis());
+        msg.setStoreHost(StoreHost);
+        msg.setBornHost(BornHost);
+        return msg;
     }
 
     private void verifyThatMasterIsFunctional(long totalMsgs, MessageStore master) {
@@ -148,8 +157,9 @@ public class DefaultMessageStoreTest {
             messageExtBrokerInner.setQueueId(0);
             messageStore.putMessage(messageExtBrokerInner);
         }
-        //wait for consume queue build
-        Thread.sleep(10);
+        // wait for consume queue build
+        // the sleep time should be great than consume queue flush interval
+        Thread.sleep(100);
         String group = "simple";
         GetMessageResult getMessageResult32 = messageStore.getMessage(group, topic, 0, 0, 32, null);
         assertThat(getMessageResult32.getMessageBufferList().size()).isEqualTo(32);
@@ -164,7 +174,7 @@ public class DefaultMessageStoreTest {
     private class MyMessageArrivingListener implements MessageArrivingListener {
         @Override
         public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
-            byte[] filterBitMap, Map<String, String> properties) {
+                             byte[] filterBitMap, Map<String, String> properties) {
         }
     }
 }

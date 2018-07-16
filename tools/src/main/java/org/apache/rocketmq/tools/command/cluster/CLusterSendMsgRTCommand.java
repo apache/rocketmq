@@ -171,7 +171,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
                                 failCount
                             );
                         } else {
-                            System.out.printf(String.format("%s|%s|%s|%s|%s%n", getCurTime(),
+                            System.out.printf("%s", String.format("%s|%s|%s|%s|%s%n", getCurTime(),
                                 machineRoom, clusterName, brokerName,
                                 new BigDecimal(rt).setScale(0, BigDecimal.ROUND_HALF_UP)));
                         }

@@ -17,7 +17,6 @@
 package org.apache.rocketmq.logappender;
 
 import org.apache.log4j.Logger;
-import org.apache.rocketmq.client.exception.MQClientException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,7 +29,7 @@ public abstract class Log4jTest extends AbstractTestCase {
     public abstract String getType();
 
     @Test
-    public void testLog4j() throws InterruptedException, MQClientException {
+    public void testLog4j() {
         clear();
         Logger logger = Logger.getLogger("testLogger");
         for (int i = 0; i < 10; i++) {

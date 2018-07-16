@@ -22,14 +22,14 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 /**
  * thread safe
  */
 public class ConcurrentTreeMap<K, V> {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final ReentrantLock lock;
     private TreeMap<K, V> tree;
     private RoundQueue<K> roundQueue;
@@ -58,7 +58,7 @@ public class ConcurrentTreeMap<K, V> {
                     tree.put(key, value);
                     exsit = value;
                 }
-                log.warn("putIfAbsentAndRetExsit success. {}", key);
+                log.warn("putIfAbsentAndRetExsit success. " + key);
                 return exsit;
             } else {
                 V exsit = tree.get(key);

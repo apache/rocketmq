@@ -20,11 +20,12 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.RPCHook;
 
+import java.util.concurrent.ExecutorService;
+
 public class TransactionMQProducer extends DefaultMQProducer {
-    private TransactionCheckListener transactionCheckListener;
-    private int checkThreadPoolMinSize = 1;
-    private int checkThreadPoolMaxSize = 1;
-    private int checkRequestHoldMax = 2000;
+    private TransactionListener transactionListener;
+
+    private ExecutorService executorService;
 
     public TransactionMQProducer() {
     }
@@ -50,44 +51,27 @@ public class TransactionMQProducer extends DefaultMQProducer {
     }
 
     @Override
-    public TransactionSendResult sendMessageInTransaction(final Message msg,
-        final LocalTransactionExecuter tranExecuter, final Object arg) throws MQClientException {
-        if (null == this.transactionCheckListener) {
-            throw new MQClientException("localTransactionBranchCheckListener is null", null);
+    public TransactionSendResult sendMessageInTransaction(final Message msg, final Object arg) throws MQClientException {
+        if (null == this.transactionListener) {
+            throw new MQClientException("TransactionListener is null", null);
         }
 
-        return this.defaultMQProducerImpl.sendMessageInTransaction(msg, tranExecuter, arg);
+        return this.defaultMQProducerImpl.sendMessageInTransaction(msg, transactionListener, arg);
     }
 
-    public TransactionCheckListener getTransactionCheckListener() {
-        return transactionCheckListener;
+    public TransactionListener getTransactionListener() {
+        return transactionListener;
     }
 
-    public void setTransactionCheckListener(TransactionCheckListener transactionCheckListener) {
-        this.transactionCheckListener = transactionCheckListener;
+    public void setTransactionListener(TransactionListener transactionListener) {
+        this.transactionListener = transactionListener;
     }
 
-    public int getCheckThreadPoolMinSize() {
-        return checkThreadPoolMinSize;
+    public ExecutorService getExecutorService() {
+        return executorService;
     }
 
-    public void setCheckThreadPoolMinSize(int checkThreadPoolMinSize) {
-        this.checkThreadPoolMinSize = checkThreadPoolMinSize;
-    }
-
-    public int getCheckThreadPoolMaxSize() {
-        return checkThreadPoolMaxSize;
-    }
-
-    public void setCheckThreadPoolMaxSize(int checkThreadPoolMaxSize) {
-        this.checkThreadPoolMaxSize = checkThreadPoolMaxSize;
-    }
-
-    public int getCheckRequestHoldMax() {
-        return checkRequestHoldMax;
-    }
-
-    public void setCheckRequestHoldMax(int checkRequestHoldMax) {
-        this.checkRequestHoldMax = checkRequestHoldMax;
+    public void setExecutorService(ExecutorService executorService) {
+        this.executorService = executorService;
     }
 }

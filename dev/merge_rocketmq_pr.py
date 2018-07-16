@@ -57,8 +57,8 @@ JIRA_PASSWORD = os.environ.get("JIRA_PASSWORD", "")
 GITHUB_OAUTH_KEY = os.environ.get("GITHUB_OAUTH_KEY")
 
 
-GITHUB_BASE = "https://github.com/apache/incubator-rocketmq/pull"
-GITHUB_API_BASE = "https://api.github.com/repos/apache/incubator-rocketmq"
+GITHUB_BASE = "https://github.com/apache/rocketmq/pull"
+GITHUB_API_BASE = "https://api.github.com/repos/apache/rocketmq"
 JIRA_BASE = "https://issues.apache.org/jira/browse"
 JIRA_API_BASE = "https://issues.apache.org/jira"
 # Prefix added to temporary branches
@@ -146,8 +146,10 @@ def merge_pr(pr_num, target_ref, title, body, pr_repo_desc):
 
     merge_message_flags = []
 
-    title = raw_input("Modify commit log [%s]: " % title)
-    merge_message_flags += ["-m", title]
+    modified_title = raw_input("Modify commit log [%s]: " % title)
+    if modified_title == "":
+        modified_title = title
+    merge_message_flags += ["-m", modified_title]
 
     authors = "\n".join(["Author: %s" % a for a in distinct_authors])
 

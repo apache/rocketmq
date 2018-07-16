@@ -1,7 +1,7 @@
 notifications:
   email:
     recipients:
-      - dev@rocketmq.incubator.apache.org
+      - dev@rocketmq.apache.org
   on_success: change
   on_failure: always
 

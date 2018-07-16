@@ -23,7 +23,7 @@ import org.apache.rocketmq.test.client.consumer.balance.NormalMsgStaticBalanceIT
 import org.apache.rocketmq.test.client.mq.MQAsyncProducer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
-import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListner;
+import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.MQWait;
 import org.apache.rocketmq.test.util.TestUtils;
 import org.junit.After;
@@ -46,20 +46,20 @@ public class DynamicAddAndCrashIT extends BaseConf {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test
     public void testAddOneConsumerAndCrashAfterWhile() {
         int msgSize = 150;
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQNormalListner());
+        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
 
         MQAsyncProducer asyncDefaultMQProducer = new MQAsyncProducer(producer, msgSize, 100);
         asyncDefaultMQProducer.start();
         TestUtils.waitForSeconds(waitTime);
 
         RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
-            "*", new RMQNormalListner());
+            "*", new RMQNormalListener());
         TestUtils.waitForSeconds(waitTime);
         consumer2.shutdown();
 
@@ -76,16 +76,16 @@ public class DynamicAddAndCrashIT extends BaseConf {
     @Test
     public void testAddTwoConsumerAndCrashAfterWhile() {
         int msgSize = 150;
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQNormalListner());
+        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
 
         MQAsyncProducer asyncDefaultMQProducer = new MQAsyncProducer(producer, msgSize, 100);
         asyncDefaultMQProducer.start();
         TestUtils.waitForSeconds(waitTime);
 
         RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
-            "*", new RMQNormalListner());
+            "*", new RMQNormalListener());
         RMQNormalConsumer consumer3 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
-            "*", new RMQNormalListner());
+            "*", new RMQNormalListener());
         TestUtils.waitForSeconds(waitTime);
 
         consumer2.shutdown();

@@ -18,8 +18,10 @@ package org.apache.rocketmq.store;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileLock;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -40,6 +42,8 @@ import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
@@ -53,13 +57,11 @@ import org.apache.rocketmq.store.index.IndexService;
 import org.apache.rocketmq.store.index.QueryOffsetResult;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.store.config.BrokerRole.SLAVE;
 
 public class DefaultMessageStore implements MessageStore {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     private final MessageStoreConfig messageStoreConfig;
     // CommitLog
@@ -104,6 +106,12 @@ public class DefaultMessageStore implements MessageStore {
 
     private final LinkedList<CommitLogDispatcher> dispatcherList;
 
+    private RandomAccessFile lockFile;
+
+    private FileLock lock;
+
+    boolean shutDownNormal = false;
+
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig) throws IOException {
         this.messageArrivingListener = messageArrivingListener;
@@ -138,6 +146,10 @@ public class DefaultMessageStore implements MessageStore {
         this.dispatcherList = new LinkedList<>();
         this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());
         this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex());
+
+        File file = new File(StorePathConfigHelper.getLockFile(messageStoreConfig.getStorePathRootDir()));
+        MappedFile.ensureDirOK(file.getParent());
+        lockFile = new RandomAccessFile(file, "rw");
     }
 
     public void truncateDirtyLogicFiles(long phyOffset) {
@@ -196,6 +208,15 @@ public class DefaultMessageStore implements MessageStore {
      * @throws Exception
      */
     public void start() throws Exception {
+
+        lock = lockFile.getChannel().tryLock(0, 1, false);
+        if (lock == null || lock.isShared() || !lock.isValid()) {
+            throw new RuntimeException("Lock failed,MQ already started");
+        }
+
+        lockFile.getChannel().write(ByteBuffer.wrap("lock".getBytes()));
+        lockFile.getChannel().force(true);
+
         this.flushConsumeQueueService.start();
         this.commitLog.start();
         this.storeStatsService.start();
@@ -226,7 +247,7 @@ public class DefaultMessageStore implements MessageStore {
 
             try {
 
-                Thread.sleep(1000 * 3);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 log.error("shutdown Exception, ", e);
             }
@@ -246,14 +267,23 @@ public class DefaultMessageStore implements MessageStore {
             this.storeCheckpoint.flush();
             this.storeCheckpoint.shutdown();
 
-            if (this.runningFlags.isWriteable()) {
+            if (this.runningFlags.isWriteable() && dispatchBehindBytes() == 0) {
                 this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
+                shutDownNormal = true;
             } else {
                 log.warn("the store may be wrong, so shutdown abnormally, and keep abort file.");
             }
         }
 
         this.transientStorePool.destroy();
+
+        if (lockFile != null && lock != null) {
+            try {
+                lock.release();
+                lockFile.close();
+            } catch (IOException e) {
+            }
+        }
     }
 
     public void destroy() {
@@ -389,12 +419,8 @@ public class DefaultMessageStore implements MessageStore {
         long begin = this.getCommitLog().getBeginTimeInLock();
         long diff = this.systemClock.now() - begin;
 
-        if (diff < 10000000
-            && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills()) {
-            return true;
-        }
-
-        return false;
+        return diff < 10000000
+                && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills();
     }
 
     @Override
@@ -487,7 +513,7 @@ public class DefaultMessageStore implements MessageStore {
                                 break;
                             }
 
-                            boolean extRet = false;
+                            boolean extRet = false, isTagsCodeLegal = true;
                             if (consumeQueue.isExtAddr(tagsCode)) {
                                 extRet = consumeQueue.getExt(tagsCode, cqExtUnit);
                                 if (extRet) {
@@ -496,11 +522,12 @@ public class DefaultMessageStore implements MessageStore {
                                     // can't find ext content.Client will filter messages by tag also.
                                     log.error("[BUG] can't find consume queue extend file content!addr={}, offsetPy={}, sizePy={}, topic={}, group={}",
                                         tagsCode, offsetPy, sizePy, topic, group);
+                                    isTagsCodeLegal = false;
                                 }
                             }
 
                             if (messageFilter != null
-                                && !messageFilter.isMatchedByConsumeQueue(tagsCode, extRet ? cqExtUnit : null)) {
+                                && !messageFilter.isMatchedByConsumeQueue(isTagsCodeLegal ? tagsCode : null, extRet ? cqExtUnit : null)) {
                                 if (getResult.getBufferTotalSize() == 0) {
                                     status = GetMessageStatus.NO_MATCHED_MESSAGE;
                                 }

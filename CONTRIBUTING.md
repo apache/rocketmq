@@ -1,7 +1,7 @@
 ## How To Contribute
 
 We are always very happy to have contributions, whether for trivial cleanups or big new features.
-We want to have high quality, well documented codes for each programming language, as well as the surrounding [ecosystem](https://github.com/apache/incubator-rocketmq-externals) of integration tools that people use with RocketMQ.
+We want to have high quality, well documented codes for each programming language, as well as the surrounding [ecosystem](https://github.com/apache/rocketmq-externals) of integration tools that people use with RocketMQ.
 
 Nor is code the only way to contribute to the project. We strongly value documentation, integration with other project, and gladly accept improvements for these aspects.
 

@@ -21,7 +21,7 @@ import org.apache.log4j.Logger;
 import org.apache.rocketmq.test.client.consumer.broadcast.BaseBroadCastIT;
 import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
-import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListner;
+import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -46,7 +46,7 @@ public class BroadCastNormalMsgNotRecvIT extends BaseBroadCastIT {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test
@@ -55,7 +55,7 @@ public class BroadCastNormalMsgNotRecvIT extends BaseBroadCastIT {
 
         String group = initConsumerGroup();
         RMQBroadCastConsumer consumer1 = getBroadCastConsumer(nsAddr, group, topic, "*",
-            new RMQNormalListner(group + "_1"));
+            new RMQNormalListener(group + "_1"));
         Thread.sleep(3000);
         producer.send(msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
@@ -66,7 +66,7 @@ public class BroadCastNormalMsgNotRecvIT extends BaseBroadCastIT {
             .containsExactlyElementsIn(producer.getAllMsgBody());
 
         RMQBroadCastConsumer consumer2 = getBroadCastConsumer(nsAddr,
-            consumer1.getConsumerGroup(), topic, "*", new RMQNormalListner(group + "_2"));
+            consumer1.getConsumerGroup(), topic, "*", new RMQNormalListener(group + "_2"));
         consumer2.getListener().waitForMessageConsume(producer.getAllMsgBody(), waitTime);
         assertThat(consumer2.getListener().getAllMsgBody().size()).isEqualTo(0);
     }
