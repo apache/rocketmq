@@ -31,6 +31,7 @@ public class CheckTransactionStateRequestHeader implements CommandCustomHeader {
     private Long commitLogOffset;
     private String msgId;
     private String transactionId;
+    private String offsetMsgId;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -66,5 +67,13 @@ public class CheckTransactionStateRequestHeader implements CommandCustomHeader {
 
     public void setTransactionId(String transactionId) {
         this.transactionId = transactionId;
+    }
+
+    public String getOffsetMsgId() {
+        return offsetMsgId;
+    }
+
+    public void setOffsetMsgId(String offsetMsgId) {
+        this.offsetMsgId = offsetMsgId;
     }
 }

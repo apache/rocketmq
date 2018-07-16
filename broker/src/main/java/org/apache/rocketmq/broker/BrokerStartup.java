@@ -18,11 +18,6 @@ package org.apache.rocketmq.broker;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -44,6 +39,12 @@ import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.slf4j.LoggerFactory;
+
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_ENABLE;
 
@@ -70,6 +71,7 @@ public class BrokerStartup {
             }
 
             log.info(tip);
+            System.out.printf("%s%n", tip);
             return controller;
         } catch (Throwable e) {
             e.printStackTrace();
@@ -77,6 +79,12 @@ public class BrokerStartup {
         }
 
         return null;
+    }
+
+    public static void shutdown(final BrokerController controller) {
+        if (null != controller) {
+            controller.shutdown();
+        }
     }
 
     public static BrokerController createBrokerController(String[] args) {

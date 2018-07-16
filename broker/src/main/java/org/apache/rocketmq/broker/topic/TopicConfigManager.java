@@ -66,9 +66,9 @@ public class TopicConfigManager extends ConfigManager {
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
-            // MixAll.DEFAULT_TOPIC
+            // MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC
             if (this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
-                String topic = MixAll.DEFAULT_TOPIC;
+                String topic = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
                 TopicConfig topicConfig = new TopicConfig(topic);
                 this.systemTopicList.add(topic);
                 topicConfig.setReadQueueNums(this.brokerController.getBrokerConfig()
@@ -135,7 +135,7 @@ public class TopicConfigManager extends ConfigManager {
     }
 
     public boolean isTopicCanSendMessage(final String topic) {
-        return !topic.equals(MixAll.DEFAULT_TOPIC);
+        return !topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC);
     }
 
     public TopicConfig selectTopicConfig(final String topic) {
@@ -156,7 +156,7 @@ public class TopicConfigManager extends ConfigManager {
 
                     TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);
                     if (defaultTopicConfig != null) {
-                        if (defaultTopic.equals(MixAll.DEFAULT_TOPIC)) {
+                        if (defaultTopic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
                             if (!this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
                                 defaultTopicConfig.setPerm(PermName.PERM_READ | PermName.PERM_WRITE);
                             }

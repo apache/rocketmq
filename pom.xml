@@ -119,7 +119,6 @@
         <module>remoting</module>
         <module>logappender</module>
         <module>example</module>
-        <module>filtersrv</module>
         <module>srvutil</module>
         <module>filter</module>
         <module>test</module>
@@ -158,7 +157,7 @@
                 </executions>
                 <configuration>
                     <rules>
-                        <banCircularDependencies />
+                        <banCircularDependencies/>
                     </rules>
                     <fail>true</fail>
                 </configuration>
@@ -255,6 +254,9 @@
                         <exclude>bin/README.md</exclude>
                         <exclude>.github/*</exclude>
                         <exclude>src/test/resources/certs/*</exclude>
+                        <exclude>src/test/resources/META-INF/service/*</exclude>
+                        <exclude>*/target/**</exclude>
+                        <exclude>*/*.iml</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -314,6 +316,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.19.1</version>
                 <configuration>
+                    <skipAfterFailureCount>1</skipAfterFailureCount>
                     <forkCount>1</forkCount>
                     <reuseForks>true</reuseForks>
                 </configuration>
@@ -332,6 +335,7 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>2.19.1</version>
                 <configuration>
+                    <skipAfterFailureCount>1</skipAfterFailureCount>
                     <excludes>
                         <exclude>**/NormalMsgDelayIT.java</exclude>
                     </excludes>
@@ -516,11 +520,6 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-filtersrv</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-srvutil</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -532,11 +531,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-example</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-logging</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -592,7 +586,7 @@
             <dependency>
                 <groupId>io.openmessaging</groupId>
                 <artifactId>openmessaging-api</artifactId>
-                <version>0.1.0-alpha</version>
+                <version>0.3.1-alpha</version>
             </dependency>
             <dependency>
                 <groupId>log4j</groupId>

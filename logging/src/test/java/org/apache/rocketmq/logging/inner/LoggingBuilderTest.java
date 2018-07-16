@@ -88,7 +88,7 @@ public class LoggingBuilderTest extends BasicLoggerTest {
         Assert.assertTrue(cc >= 2);
     }
 
-    @Test
+    //@Test
     public void testDailyRollingFileAppender() throws InterruptedException {
         String rollingFile = loggingDir + "/daily-rolling--222.log";
         Appender rollingFileAppender = LoggingBuilder.newAppenderBuilder().withAsync(false, 1024)

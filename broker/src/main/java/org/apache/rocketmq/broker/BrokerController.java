@@ -16,20 +16,6 @@
  */
 package org.apache.rocketmq.broker;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -60,19 +46,27 @@ import org.apache.rocketmq.broker.processor.SendMessageProcessor;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
+import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
+import org.apache.rocketmq.broker.transaction.TransactionalMessageCheckService;
+import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
+import org.apache.rocketmq.broker.transaction.queue.DefaultTransactionalMessageCheckListener;
+import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageBridge;
+import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageServiceImpl;
+import org.apache.rocketmq.broker.util.ServiceProvider;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.Configuration;
+import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.stats.MomentStatsItem;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.common.TlsMode;
@@ -90,6 +84,22 @@ import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStats;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class BrokerController {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -140,6 +150,9 @@ public class BrokerController {
     private BrokerFastFailure brokerFastFailure;
     private Configuration configuration;
     private FileWatchService fileWatchService;
+    private TransactionalMessageCheckService transactionalMessageCheckService;
+    private TransactionalMessageService transactionalMessageService;
+    private AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -403,6 +416,7 @@ public class BrokerController {
                         },
                         new FileWatchService.Listener() {
                             boolean certChanged, keyChanged = false;
+
                             @Override
                             public void onChanged(String path) {
                                 if (path.equals(TlsSystemConfig.tlsServerTrustCertPath)) {
@@ -421,6 +435,7 @@ public class BrokerController {
                                     reloadServerSslContext();
                                 }
                             }
+
                             private void reloadServerSslContext() {
                                 ((NettyRemotingServer) remotingServer).loadSslContext();
                                 ((NettyRemotingServer) fastRemotingServer).loadSslContext();
@@ -430,9 +445,24 @@ public class BrokerController {
                     log.warn("FileWatchService created error, can't load the certificate dynamically");
                 }
             }
+            initialTransaction();
         }
-
         return result;
+    }
+
+    private void initialTransaction() {
+        this.transactionalMessageService = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_SERVICE_ID, TransactionalMessageService.class);
+        if (null == this.transactionalMessageService) {
+            this.transactionalMessageService = new TransactionalMessageServiceImpl(new TransactionalMessageBridge(this, this.getMessageStore()));
+            log.warn("Load default transaction message hook service: {}", TransactionalMessageServiceImpl.class.getSimpleName());
+        }
+        this.transactionalMessageCheckListener = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_LISTENER_ID, AbstractTransactionalMessageCheckListener.class);
+        if (null == this.transactionalMessageCheckListener) {
+            this.transactionalMessageCheckListener = new DefaultTransactionalMessageCheckListener();
+            log.warn("Load default discard message hook service: {}", DefaultTransactionalMessageCheckListener.class.getSimpleName());
+        }
+        this.transactionalMessageCheckListener.setBrokerController(this);
+        this.transactionalMessageCheckService = new TransactionalMessageCheckService(this);
     }
 
     public void registerProcessor() {
@@ -537,8 +567,9 @@ public class BrokerController {
             slowTimeMills = rt == null ? 0 : this.messageStore.now() - rt.getCreateTimestamp();
         }
 
-        if (slowTimeMills < 0)
+        if (slowTimeMills < 0) {
             slowTimeMills = 0;
+        }
 
         return slowTimeMills;
     }
@@ -682,6 +713,26 @@ public class BrokerController {
         if (this.consumerFilterManager != null) {
             this.consumerFilterManager.persist();
         }
+
+        if (this.clientManageExecutor != null) {
+            this.clientManageExecutor.shutdown();
+        }
+
+        if (this.queryMessageExecutor != null) {
+            this.queryMessageExecutor.shutdown();
+        }
+
+        if (this.consumerManageExecutor != null) {
+            this.consumerManageExecutor.shutdown();
+        }
+
+        if (this.fileWatchService != null) {
+            this.fileWatchService.shutdown();
+        }
+
+        if (this.transactionalMessageCheckService != null) {
+            this.transactionalMessageCheckService.shutdown(false);
+        }
     }
 
     private void unregisterBrokerAll() {
@@ -741,7 +792,7 @@ public class BrokerController {
                     log.error("registerBrokerAll Exception", e);
                 }
             }
-        }, 1000 * 10, 1000 * 30, TimeUnit.MILLISECONDS);
+        }, 1000 * 10, Math.max(10000, Math.min(brokerConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
 
         if (this.brokerStatsManager != null) {
             this.brokerStatsManager.start();
@@ -750,6 +801,31 @@ public class BrokerController {
         if (this.brokerFastFailure != null) {
             this.brokerFastFailure.start();
         }
+
+        if (BrokerRole.SLAVE != messageStoreConfig.getBrokerRole()) {
+            if (this.transactionalMessageCheckService != null) {
+                log.info("Start transaction service!");
+                this.transactionalMessageCheckService.start();
+            }
+        }
+    }
+
+    public synchronized void registerIncrementBrokerData(TopicConfig topicConfig, DataVersion dataVersion) {
+        TopicConfig registerTopicConfig = topicConfig;
+        if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
+            || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
+            registerTopicConfig =
+                new TopicConfig(topicConfig.getTopicName(), topicConfig.getReadQueueNums(), topicConfig.getWriteQueueNums(),
+                    this.brokerConfig.getBrokerPermission());
+        }
+
+        ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<String, TopicConfig>();
+        topicConfigTable.put(topicConfig.getTopicName(), registerTopicConfig);
+        TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
+        topicConfigSerializeWrapper.setDataVersion(dataVersion);
+        topicConfigSerializeWrapper.setTopicConfigTable(topicConfigTable);
+
+        doRegisterBrokerAll(true, false, topicConfigSerializeWrapper);
     }
 
     public synchronized void registerBrokerAll(final boolean checkOrderConfig, boolean oneway, boolean forceRegister) {
@@ -772,30 +848,35 @@ public class BrokerController {
             this.brokerConfig.getBrokerName(),
             this.brokerConfig.getBrokerId(),
             this.brokerConfig.getRegisterBrokerTimeoutMills())) {
-            List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
-                this.brokerConfig.getBrokerClusterName(),
-                this.getBrokerAddr(),
-                this.brokerConfig.getBrokerName(),
-                this.brokerConfig.getBrokerId(),
-                this.getHAServerAddr(),
-                topicConfigWrapper,
-                this.filterServerManager.buildNewFilterServerList(),
-                oneway,
-                this.brokerConfig.getRegisterBrokerTimeoutMills(),
-                this.brokerConfig.isCompressedRegister());
+            doRegisterBrokerAll(checkOrderConfig, oneway, topicConfigWrapper);
+        }
+    }
 
-            if (registerBrokerResultList.size() > 0) {
-                RegisterBrokerResult registerBrokerResult = registerBrokerResultList.get(0);
-                if (registerBrokerResult != null) {
-                    if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
-                        this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
-                    }
+    private void doRegisterBrokerAll(boolean checkOrderConfig, boolean oneway,
+        TopicConfigSerializeWrapper topicConfigWrapper) {
+        List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
+            this.brokerConfig.getBrokerClusterName(),
+            this.getBrokerAddr(),
+            this.brokerConfig.getBrokerName(),
+            this.brokerConfig.getBrokerId(),
+            this.getHAServerAddr(),
+            topicConfigWrapper,
+            this.filterServerManager.buildNewFilterServerList(),
+            oneway,
+            this.brokerConfig.getRegisterBrokerTimeoutMills(),
+            this.brokerConfig.isCompressedRegister());
 
-                    this.slaveSynchronize.setMasterAddr(registerBrokerResult.getMasterAddr());
+        if (registerBrokerResultList.size() > 0) {
+            RegisterBrokerResult registerBrokerResult = registerBrokerResultList.get(0);
+            if (registerBrokerResult != null) {
+                if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
+                    this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
+                }
 
-                    if (checkOrderConfig) {
-                        this.getTopicConfigManager().updateOrderTopicConfig(registerBrokerResult.getKvTable());
-                    }
+                this.slaveSynchronize.setMasterAddr(registerBrokerResult.getMasterAddr());
+
+                if (checkOrderConfig) {
+                    this.getTopicConfigManager().updateOrderTopicConfig(registerBrokerResult.getKvTable());
                 }
             }
         }
@@ -907,5 +988,31 @@ public class BrokerController {
 
     public Configuration getConfiguration() {
         return this.configuration;
+    }
+
+    public TransactionalMessageCheckService getTransactionalMessageCheckService() {
+        return transactionalMessageCheckService;
+    }
+
+    public void setTransactionalMessageCheckService(
+        TransactionalMessageCheckService transactionalMessageCheckService) {
+        this.transactionalMessageCheckService = transactionalMessageCheckService;
+    }
+
+    public TransactionalMessageService getTransactionalMessageService() {
+        return transactionalMessageService;
+    }
+
+    public void setTransactionalMessageService(TransactionalMessageService transactionalMessageService) {
+        this.transactionalMessageService = transactionalMessageService;
+    }
+
+    public AbstractTransactionalMessageCheckListener getTransactionalMessageCheckListener() {
+        return transactionalMessageCheckListener;
+    }
+
+    public void setTransactionalMessageCheckListener(
+        AbstractTransactionalMessageCheckListener transactionalMessageCheckListener) {
+        this.transactionalMessageCheckListener = transactionalMessageCheckListener;
     }
 }
