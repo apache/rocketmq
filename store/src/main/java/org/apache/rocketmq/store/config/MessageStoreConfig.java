@@ -143,6 +143,9 @@ public class MessageStoreConfig {
     private int transientStorePoolSize = 5;
     private boolean fastFailIfNoBufferInStorePool = false;
 
+    @ImportantField
+    private boolean wakeCommitWhenPutMessage = true;
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -666,4 +669,11 @@ public class MessageStoreConfig {
         this.commitCommitLogThoroughInterval = commitCommitLogThoroughInterval;
     }
 
+    public boolean isWakeCommitWhenPutMessage() {
+        return wakeCommitWhenPutMessage;
+    }
+
+    public void setWakeCommitWhenPutMessage(boolean wakeCommitWhenPutMessage) {
+        this.wakeCommitWhenPutMessage = wakeCommitWhenPutMessage;
+    }
 }
