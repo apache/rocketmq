@@ -26,6 +26,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
@@ -34,11 +36,9 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.test.util.MQAdmin;
 import org.apache.rocketmq.test.util.TestUtils;
 import org.junit.Assert;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class IntegrationTestBase {
-    public static Logger logger = LoggerFactory.getLogger(IntegrationTestBase.class);
+    public static InternalLogger logger = InternalLoggerFactory.getLogger(IntegrationTestBase.class);
 
     protected static final String SEP = File.separator;
     protected static final String BROKER_NAME_PREFIX = "TestBrokerName_";
