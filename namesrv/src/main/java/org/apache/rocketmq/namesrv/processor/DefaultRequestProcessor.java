@@ -20,6 +20,7 @@ import io.netty.channel.ChannelHandlerContext;
 import java.io.UnsupportedEncodingException;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MQVersion.Version;
@@ -35,6 +36,7 @@ import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.RegisterBrokerBody;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.common.protocol.header.GetClusterListRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetTopicsByClusterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.DeleteTopicInNamesrvRequestHeader;
@@ -363,11 +365,17 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand getBrokerClusterInfo(ChannelHandlerContext ctx, RemotingCommand request) {
+    private RemotingCommand getBrokerClusterInfo(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        GetClusterListRequestHeader requestHeader = (GetClusterListRequestHeader) request.decodeCommandCustomHeader(GetClusterListRequestHeader.class);
+        if (StringUtils.isBlank(requestHeader.getCluster())) {
+            byte[] content = this.namesrvController.getRouteInfoManager().getAllClusterInfo();
+            response.setBody(content);
+        } else {
+            byte[] content = this.namesrvController.getRouteInfoManager().getOneClusterInfo(requestHeader.getCluster());
+            response.setBody(content);
+        }
 
-        byte[] content = this.namesrvController.getRouteInfoManager().getAllClusterInfo();
-        response.setBody(content);
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);

@@ -92,7 +92,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
             defaultMQAdminExt.start();
             producer.start();
 
-            ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
+            ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo(null);
             HashMap<String, Set<String>> clusterAddr = clusterInfoSerializeWrapper
                 .getClusterAddrTable();
 

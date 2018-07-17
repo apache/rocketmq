@@ -217,8 +217,13 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public ClusterInfo examineBrokerClusterInfo() throws InterruptedException, RemotingConnectException, RemotingTimeoutException,
+    public ClusterInfo examineBrokerClusterInfo(String cluster) throws InterruptedException, RemotingConnectException, RemotingTimeoutException,
         RemotingSendRequestException, MQBrokerException {
+        return defaultMQAdminExtImpl.examineBrokerClusterInfo(cluster);
+    }
+
+    @Override
+    public ClusterInfo examineBrokerClusterInfo() throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         return defaultMQAdminExtImpl.examineBrokerClusterInfo();
     }
 
