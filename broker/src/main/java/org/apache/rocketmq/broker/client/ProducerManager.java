@@ -209,10 +209,13 @@ public class ProducerManager {
             Channel channel = channelList.get(index);
             int count = 0;
             boolean isOk = channel.isActive() && channel.isWritable();
-            while (isOk && count++ < GET_AVALIABLE_CHANNEL_RETRY_COUNT) {
+            while (count++ < GET_AVALIABLE_CHANNEL_RETRY_COUNT) {
+                if (isOk) {
+                    return channel;
+                }
                 index = (++index) % size;
                 channel = channelList.get(index);
-                return channel;
+                isOk = channel.isActive() && channel.isWritable();
             }
         } else {
             log.warn("Check transaction failed, channel table is empty. groupId={}", groupId);
