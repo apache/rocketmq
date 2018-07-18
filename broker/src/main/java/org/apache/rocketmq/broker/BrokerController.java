@@ -872,10 +872,10 @@ public class BrokerController {
         TopicConfigSerializeWrapper topicConfigWrapper) {
         List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
             this.brokerConfig.getBrokerClusterName(),
-            brokerIP,
+            this.getBrokerAddr(),
             this.brokerConfig.getBrokerName(),
             this.brokerConfig.getBrokerId(),
-            haServerIP,
+            this.getHAServerAddr(),
             topicConfigWrapper,
             this.filterServerManager.buildNewFilterServerList(),
             oneway,
