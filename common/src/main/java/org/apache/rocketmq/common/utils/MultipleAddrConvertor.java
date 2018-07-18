@@ -30,11 +30,11 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class MultipleAddrConvertor {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
     private static final int CACHE_MAX_LEN = 1024;
 
     private static LinkedHashMap<String, String> chosenAddrCache = new LinkedHashMap<String, String>() {
