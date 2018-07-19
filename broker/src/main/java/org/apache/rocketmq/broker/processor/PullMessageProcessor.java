@@ -94,8 +94,9 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
 
         response.setOpaque(request.getOpaque());
-
-        log.debug("receive PullMessage request command, {}", request);
+        if(log.isDebugEnabled()) {
+            log.debug("receive PullMessage request command, {}", request);
+        }
 
         if (!PermName.isReadable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
             response.setCode(ResponseCode.NO_PERMISSION);
