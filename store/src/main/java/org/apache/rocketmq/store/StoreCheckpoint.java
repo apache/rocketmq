@@ -24,11 +24,11 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class StoreCheckpoint {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private final RandomAccessFile randomAccessFile;
     private final FileChannel fileChannel;
     private final MappedByteBuffer mappedByteBuffer;
@@ -71,7 +71,7 @@ public class StoreCheckpoint {
         try {
             this.fileChannel.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Failed to properly close the channel", e);
         }
     }
 
@@ -105,7 +105,6 @@ public class StoreCheckpoint {
     public long getMinTimestamp() {
         long min = Math.min(this.physicMsgTimestamp, this.logicsMsgTimestamp);
 
-        // fixed https://github.org/apache/rocketmqissues/467
         min -= 1000 * 3;
         if (min < 0)
             min = 0;

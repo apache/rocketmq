@@ -262,7 +262,8 @@ public class QueryMsgByIdSubCommand implements SubCommand {
         }
     }
 
-    private void pushMsg(final DefaultMQAdminExt defaultMQAdminExt, final String consumerGroup, final String clientId, final String msgId) {
+    private void pushMsg(final DefaultMQAdminExt defaultMQAdminExt, final String consumerGroup, final String clientId,
+        final String msgId) {
         try {
             ConsumeMessageDirectlyResult result =
                 defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, msgId);
@@ -278,11 +279,11 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             MessageExt msg = defaultMQAdminExt.viewMessage(msgId);
             if (msg != null) {
                 // resend msg by id
-                System.out.printf("prepare resend msg. originalMsgId=" + msgId);
+                System.out.printf("prepare resend msg. originalMsgId=%s", msgId);
                 SendResult result = defaultMQProducer.send(msg);
                 System.out.printf("%s", result);
             } else {
-                System.out.printf("no message. msgId=" + msgId);
+                System.out.printf("no message. msgId=%s", msgId);
             }
         } catch (Exception e) {
             e.printStackTrace();

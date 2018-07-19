@@ -47,7 +47,7 @@ public class OrderMsgWithTagIT extends BaseConf {
 
     @After
     public void tearDown() {
-        shutDown();
+        shutdown();
     }
 
     @Test
@@ -60,13 +60,13 @@ public class OrderMsgWithTagIT extends BaseConf {
         MessageQueueMsg mqMsgs = new MessageQueueMsg(mqs, msgSize, tag);
         producer.send(mqMsgs.getMsgsWithMQ());
 
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(mqMsgs.getMsgBodys());
 
-        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer.getListner()).getMsgs()))
+        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer.getListener()).getMsgs()))
             .isEqualTo(true);
     }
 
@@ -80,13 +80,13 @@ public class OrderMsgWithTagIT extends BaseConf {
         MessageQueueMsg mqMsgs = new MessageQueueMsg(mqs, msgSize, tag);
         producer.send(mqMsgs.getMsgsWithMQ());
 
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(mqMsgs.getMsgBodys());
 
-        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer.getListner()).getMsgs()))
+        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer.getListener()).getMsgs()))
             .isEqualTo(true);
     }
 
@@ -106,13 +106,13 @@ public class OrderMsgWithTagIT extends BaseConf {
         mqMsgs = new MessageQueueMsg(mqs, msgSize, tag1);
         producer.send(mqMsgs.getMsgsWithMQ());
 
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(mqMsgs.getMsgBodys());
 
-        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer.getListner()).getMsgs()))
+        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer.getListener()).getMsgs()))
             .isEqualTo(true);
     }
 
@@ -134,12 +134,12 @@ public class OrderMsgWithTagIT extends BaseConf {
         producer.send(mqMsgs.getMsgsWithMQ());
 
         boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
-            consumer1.getListner(), consumer2.getListner());
+            consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
 
-        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer1.getListner()).getMsgs()))
+        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer1.getListener()).getMsgs()))
             .isEqualTo(true);
-        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer2.getListner()).getMsgs()))
+        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer2.getListener()).getMsgs()))
             .isEqualTo(true);
     }
 
@@ -160,10 +160,10 @@ public class OrderMsgWithTagIT extends BaseConf {
         producer.send(mqMsgs.getMsgsWithMQ());
 
         boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
-            consumer.getListner());
+            consumer.getListener());
         assertThat(recvAll).isEqualTo(true);
 
-        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer.getListner()).getMsgs()))
+        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer.getListener()).getMsgs()))
             .isEqualTo(true);
     }
 }

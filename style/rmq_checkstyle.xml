@@ -30,6 +30,12 @@
     <!-- header -->
     <module name="RegexpHeader">
         <property name="header" value="/\*\nLicensed to the Apache Software Foundation*"/>
+        <property name="fileExtensions" value="java"/>
+    </module>
+
+    <module name="RegexpHeader">
+        <property name="header" value="#[\s]*Licensed to the Apache Software Foundation*"/>
+        <property name="fileExtensions" value="properties"/>
     </module>
 
     <module name="RegexpSingleline">
@@ -120,8 +126,8 @@
 
         <!--whitespace-->
         <module name="GenericWhitespace"/>
-        <module name="NoWhitespaceBefore"/>
-        <module name="NoWhitespaceAfter"/>
+        <!--<module name="NoWhitespaceBefore"/>-->
+        <!--<module name="NoWhitespaceAfter"/>-->
         <module name="WhitespaceAround">
             <property name="allowEmptyConstructors" value="true"/>
             <property name="allowEmptyMethods" value="true"/>

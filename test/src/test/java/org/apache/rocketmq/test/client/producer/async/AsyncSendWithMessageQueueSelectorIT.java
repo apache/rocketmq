@@ -26,7 +26,7 @@ import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.consumer.tag.TagMessageWith1ConsumerIT;
 import org.apache.rocketmq.test.client.rmq.RMQAsyncSendProducer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
-import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListner;
+import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -36,7 +36,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 public class AsyncSendWithMessageQueueSelectorIT extends BaseConf {
     private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
-    private static boolean sendFail = false;
     private RMQAsyncSendProducer producer = null;
     private String topic = null;
 
@@ -49,14 +48,14 @@ public class AsyncSendWithMessageQueueSelectorIT extends BaseConf {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test
     public void testSendWithSelector() {
         int msgSize = 20;
         final int queueId = 0;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListner());
+        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
 
         producer.asyncSend(msgSize, new MessageQueueSelector() {
             @Override
@@ -72,15 +71,16 @@ public class AsyncSendWithMessageQueueSelectorIT extends BaseConf {
         producer.waitForResponse(5 * 1000);
         assertThat(producer.getSuccessMsgCount()).isEqualTo(msgSize);
 
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
 
-        VerifyUtils.verifyMessageQueueId(queueId, consumer.getListner().getAllOriginMsg());
+        VerifyUtils.verifyMessageQueueId(queueId, consumer.getListener().getAllOriginMsg());
 
         producer.clearMsg();
         consumer.clearMsg();
+        producer.getSuccessSendResult().clear();
 
         producer.asyncSend(msgSize, new MessageQueueSelector() {
             @Override
@@ -96,11 +96,11 @@ public class AsyncSendWithMessageQueueSelectorIT extends BaseConf {
         producer.waitForResponse(5 * 1000);
         assertThat(producer.getSuccessMsgCount()).isEqualTo(msgSize);
 
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()))
+            consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
 
-        VerifyUtils.verifyMessageQueueId(queueId, consumer.getListner().getAllOriginMsg());
+        VerifyUtils.verifyMessageQueueId(queueId, consumer.getListener().getAllOriginMsg());
     }
 }

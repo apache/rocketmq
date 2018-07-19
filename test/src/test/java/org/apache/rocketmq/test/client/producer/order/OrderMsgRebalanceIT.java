@@ -48,7 +48,7 @@ public class OrderMsgRebalanceIT extends BaseConf {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test
@@ -64,19 +64,19 @@ public class OrderMsgRebalanceIT extends BaseConf {
         producer.send(mqMsgs.getMsgsWithMQ());
 
         boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
-            consumer1.getListner(), consumer2.getListner());
+            consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
 
         boolean balance = VerifyUtils.verifyBalance(producer.getAllMsgBody().size(),
             VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-                consumer1.getListner().getAllUndupMsgBody()).size(),
+                consumer1.getListener().getAllUndupMsgBody()).size(),
             VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-                consumer2.getListner().getAllUndupMsgBody()).size());
+                consumer2.getListener().getAllUndupMsgBody()).size());
         assertThat(balance).isEqualTo(true);
 
-        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer1.getListner()).getMsgs()))
+        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer1.getListener()).getMsgs()))
             .isEqualTo(true);
-        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer2.getListner()).getMsgs()))
+        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer2.getListener()).getMsgs()))
             .isEqualTo(true);
     }
 
@@ -97,36 +97,36 @@ public class OrderMsgRebalanceIT extends BaseConf {
         producer.send(mqMsgs.getMsgsWithMQ());
 
         boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
-            consumer1.getListner(), consumer2.getListner(), consumer3.getListner(),
-            consumer4.getListner());
+            consumer1.getListener(), consumer2.getListener(), consumer3.getListener(),
+            consumer4.getListener());
         assertThat(recvAll).isEqualTo(true);
 
         boolean balance = VerifyUtils
             .verifyBalance(producer.getAllMsgBody().size(),
                 VerifyUtils
                     .getFilterdMessage(producer.getAllMsgBody(),
-                        consumer1.getListner().getAllUndupMsgBody())
+                        consumer1.getListener().getAllUndupMsgBody())
                     .size(),
                 VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-                    consumer2.getListner().getAllUndupMsgBody()).size(),
+                    consumer2.getListener().getAllUndupMsgBody()).size(),
                 VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-                    consumer3.getListner().getAllUndupMsgBody()).size(),
+                    consumer3.getListener().getAllUndupMsgBody()).size(),
                 VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-                    consumer4.getListner().getAllUndupMsgBody()).size());
+                    consumer4.getListener().getAllUndupMsgBody()).size());
         logger.info(String.format("consumer1:%s;consumer2:%s;consumer3:%s,consumer4:%s",
-            consumer1.getListner().getAllMsgBody().size(),
-            consumer2.getListner().getAllMsgBody().size(),
-            consumer3.getListner().getAllMsgBody().size(),
-            consumer4.getListner().getAllMsgBody().size()));
+            consumer1.getListener().getAllMsgBody().size(),
+            consumer2.getListener().getAllMsgBody().size(),
+            consumer3.getListener().getAllMsgBody().size(),
+            consumer4.getListener().getAllMsgBody().size()));
         assertThat(balance).isEqualTo(true);
 
-        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer1.getListner()).getMsgs()))
+        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer1.getListener()).getMsgs()))
             .isEqualTo(true);
-        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer2.getListner()).getMsgs()))
+        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer2.getListener()).getMsgs()))
             .isEqualTo(true);
-        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer3.getListner()).getMsgs()))
+        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer3.getListener()).getMsgs()))
             .isEqualTo(true);
-        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer4.getListner()).getMsgs()))
+        assertThat(VerifyUtils.verifyOrder(((RMQOrderListener) consumer4.getListener()).getMsgs()))
             .isEqualTo(true);
     }
 

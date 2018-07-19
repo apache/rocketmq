@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
+import io.netty.channel.Channel;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -25,6 +26,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ResponseFuture {
     private final int opaque;
+    private final Channel processChannel;
     private final long timeoutMillis;
     private final InvokeCallback invokeCallback;
     private final long beginTimestamp = System.currentTimeMillis();
@@ -37,9 +39,10 @@ public class ResponseFuture {
     private volatile boolean sendRequestOK = true;
     private volatile Throwable cause;
 
-    public ResponseFuture(int opaque, long timeoutMillis, InvokeCallback invokeCallback,
+    public ResponseFuture(Channel channel, int opaque, long timeoutMillis, InvokeCallback invokeCallback,
         SemaphoreReleaseOnlyOnce once) {
         this.opaque = opaque;
+        this.processChannel = channel;
         this.timeoutMillis = timeoutMillis;
         this.invokeCallback = invokeCallback;
         this.once = once;
@@ -114,11 +117,20 @@ public class ResponseFuture {
         return opaque;
     }
 
+    public Channel getProcessChannel() {
+        return processChannel;
+    }
+
     @Override
     public String toString() {
-        return "ResponseFuture [responseCommand=" + responseCommand + ", sendRequestOK=" + sendRequestOK
-            + ", cause=" + cause + ", opaque=" + opaque + ", timeoutMillis=" + timeoutMillis
-            + ", invokeCallback=" + invokeCallback + ", beginTimestamp=" + beginTimestamp
+        return "ResponseFuture [responseCommand=" + responseCommand
+            + ", sendRequestOK=" + sendRequestOK
+            + ", cause=" + cause
+            + ", opaque=" + opaque
+            + ", processChannel=" + processChannel
+            + ", timeoutMillis=" + timeoutMillis
+            + ", invokeCallback=" + invokeCallback
+            + ", beginTimestamp=" + beginTimestamp
             + ", countDownLatch=" + countDownLatch + "]";
     }
 }

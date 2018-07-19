@@ -32,6 +32,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -84,9 +85,15 @@ public class DefaultMQPullConsumerTest {
     }
 
     @Test
+    public void testStart_OffsetShouldNotNUllAfterStart() {
+        Assert.assertNotNull(pullConsumer.getOffsetStore());
+    }
+
+    @Test
     public void testPullMessage_Success() throws Exception {
         doAnswer(new Answer() {
-            @Override public Object answer(InvocationOnMock mock) throws Throwable {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
                 PullMessageRequestHeader requestHeader = mock.getArgument(1);
                 return createPullResult(requestHeader, PullStatus.FOUND, Collections.singletonList(new MessageExt()));
             }
@@ -103,9 +110,10 @@ public class DefaultMQPullConsumerTest {
     }
 
     @Test
-    public void testPullMessage_NotFound() throws Exception{
+    public void testPullMessage_NotFound() throws Exception {
         doAnswer(new Answer() {
-            @Override public Object answer(InvocationOnMock mock) throws Throwable {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
                 PullMessageRequestHeader requestHeader = mock.getArgument(1);
                 return createPullResult(requestHeader, PullStatus.NO_NEW_MSG, new ArrayList<MessageExt>());
             }
@@ -119,7 +127,8 @@ public class DefaultMQPullConsumerTest {
     @Test
     public void testPullMessageAsync_Success() throws Exception {
         doAnswer(new Answer() {
-            @Override public Object answer(InvocationOnMock mock) throws Throwable {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
                 PullMessageRequestHeader requestHeader = mock.getArgument(1);
                 PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.singletonList(new MessageExt()));
 
@@ -131,7 +140,8 @@ public class DefaultMQPullConsumerTest {
 
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 0);
         pullConsumer.pull(messageQueue, "*", 1024, 3, new PullCallback() {
-            @Override public void onSuccess(PullResult pullResult) {
+            @Override
+            public void onSuccess(PullResult pullResult) {
                 assertThat(pullResult).isNotNull();
                 assertThat(pullResult.getPullStatus()).isEqualTo(PullStatus.FOUND);
                 assertThat(pullResult.getNextBeginOffset()).isEqualTo(1024 + 1);
@@ -140,13 +150,15 @@ public class DefaultMQPullConsumerTest {
                 assertThat(pullResult.getMsgFoundList()).isEqualTo(new ArrayList<Object>());
             }
 
-            @Override public void onException(Throwable e) {
+            @Override
+            public void onException(Throwable e) {
 
             }
         });
     }
 
-    private PullResultExt createPullResult(PullMessageRequestHeader requestHeader, PullStatus pullStatus, List<MessageExt> messageExtList) throws Exception {
+    private PullResultExt createPullResult(PullMessageRequestHeader requestHeader, PullStatus pullStatus,
+        List<MessageExt> messageExtList) throws Exception {
         return new PullResultExt(pullStatus, requestHeader.getQueueOffset() + messageExtList.size(), 123, 2048, messageExtList, 0, new byte[] {});
     }
 }

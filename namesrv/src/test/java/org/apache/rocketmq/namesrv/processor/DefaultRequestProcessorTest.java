@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.common.protocol.RequestCode;
@@ -44,7 +45,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.assertj.core.util.Maps;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -61,7 +61,7 @@ public class DefaultRequestProcessorTest {
 
     private RouteInfoManager routeInfoManager;
 
-    private Logger logger;
+    private InternalLogger logger;
 
     @Before
     public void init() throws Exception {
@@ -78,8 +78,7 @@ public class DefaultRequestProcessorTest {
 
         registerRouteInfoManager();
 
-        logger = mock(Logger.class);
-        when(logger.isInfoEnabled()).thenReturn(false);
+        logger = mock(InternalLogger.class);
         setFinalStatic(DefaultRequestProcessor.class.getDeclaredField("log"), logger);
     }
 

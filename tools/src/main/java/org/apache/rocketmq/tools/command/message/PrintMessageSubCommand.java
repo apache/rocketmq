@@ -51,7 +51,6 @@ public class PrintMessageSubCommand implements SubCommand {
                 System.out.printf("MSGID: %s %s BODY: %s%n", msg.getMsgId(), msg.toString(),
                     printBody ? new String(msg.getBody(), charsetName) : "NOT PRINT BODY");
             } catch (UnsupportedEncodingException e) {
-                //
             }
         }
     }
@@ -108,10 +107,10 @@ public class PrintMessageSubCommand implements SubCommand {
         try {
             String topic = commandLine.getOptionValue('t').trim();
 
-            String charsetName = //
+            String charsetName =
                 !commandLine.hasOption('c') ? "UTF-8" : commandLine.getOptionValue('c').trim();
 
-            String subExpression = //
+            String subExpression =
                 !commandLine.hasOption('s') ? "*" : commandLine.getOptionValue('s').trim();
 
             boolean printBody = !commandLine.hasOption('d') || Boolean.parseBoolean(commandLine.getOptionValue('d').trim());
@@ -135,7 +134,7 @@ public class PrintMessageSubCommand implements SubCommand {
                     maxOffset = consumer.searchOffset(mq, timeValue);
                 }
 
-                System.out.printf("minOffset=" + minOffset + ", maxOffset=" + maxOffset + ", " + mq);
+                System.out.printf("minOffset=%s, maxOffset=%s, %s", minOffset, maxOffset, mq);
 
                 READQ:
                 for (long offset = minOffset; offset < maxOffset; ) {
@@ -147,11 +146,11 @@ public class PrintMessageSubCommand implements SubCommand {
                                 printMessage(pullResult.getMsgFoundList(), charsetName, printBody);
                                 break;
                             case NO_MATCHED_MSG:
-                                System.out.printf(mq + " no matched msg. status=" + pullResult.getPullStatus() + ", offset=" + offset);
+                                System.out.printf("%s no matched msg. status=%s, offset=%s", mq, pullResult.getPullStatus(), offset);
                                 break;
                             case NO_NEW_MSG:
                             case OFFSET_ILLEGAL:
-                                System.out.printf(mq + " print msg finished. status=" + pullResult.getPullStatus() + ", offset=" + offset);
+                                System.out.printf("%s print msg finished. status=%s, offset=%s", mq, pullResult.getPullStatus(), offset);
                                 break READQ;
                         }
                     } catch (Exception e) {

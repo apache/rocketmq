@@ -107,7 +107,8 @@ public class MQClientAPIImplTest {
     @Test
     public void testSendMessageSync_Success() throws InterruptedException, RemotingException, MQBrokerException {
         doAnswer(new Answer() {
-            @Override public Object answer(InvocationOnMock mock) throws Throwable {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
                 RemotingCommand request = mock.getArgument(1);
                 return createSuccessResponse(request);
             }
@@ -127,7 +128,8 @@ public class MQClientAPIImplTest {
     @Test
     public void testSendMessageSync_WithException() throws InterruptedException, RemotingException, MQBrokerException {
         doAnswer(new Answer() {
-            @Override public Object answer(InvocationOnMock mock) throws Throwable {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
                 RemotingCommand request = mock.getArgument(1);
                 RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
                 response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -156,10 +158,11 @@ public class MQClientAPIImplTest {
         assertThat(sendResult).isNull();
 
         doAnswer(new Answer() {
-            @Override public Object answer(InvocationOnMock mock) throws Throwable {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
                 InvokeCallback callback = mock.getArgument(3);
                 RemotingCommand request = mock.getArgument(1);
-                ResponseFuture responseFuture = new ResponseFuture(request.getOpaque(), 3 * 1000, null, null);
+                ResponseFuture responseFuture = new ResponseFuture(null,request.getOpaque(), 3 * 1000, null, null);
                 responseFuture.setResponseCommand(createSuccessResponse(request));
                 callback.operationComplete(responseFuture);
                 return null;
@@ -169,14 +172,16 @@ public class MQClientAPIImplTest {
         sendMessageContext.setProducer(new DefaultMQProducerImpl(new DefaultMQProducer()));
         mqClientAPI.sendMessage(brokerAddr, brokerName, msg, new SendMessageRequestHeader(), 3 * 1000, CommunicationMode.ASYNC,
             new SendCallback() {
-                @Override public void onSuccess(SendResult sendResult) {
+                @Override
+                public void onSuccess(SendResult sendResult) {
                     assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
                     assertThat(sendResult.getOffsetMsgId()).isEqualTo("123");
                     assertThat(sendResult.getQueueOffset()).isEqualTo(123L);
                     assertThat(sendResult.getMessageQueue().getQueueId()).isEqualTo(1);
                 }
 
-                @Override public void onException(Throwable e) {
+                @Override
+                public void onException(Throwable e) {
                 }
             },
             null, null, 0, sendMessageContext, defaultMQProducerImpl);

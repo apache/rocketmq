@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -126,7 +127,7 @@ public class PullMessageProcessorTest {
     @Test
     public void testProcessRequest_Found() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult();
-        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(SubscriptionData.class))).thenReturn(getMessageResult);
+        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(getMessageResult);
 
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
         RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
@@ -137,19 +138,22 @@ public class PullMessageProcessorTest {
     @Test
     public void testProcessRequest_FoundWithHook() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult();
-        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(SubscriptionData.class))).thenReturn(getMessageResult);
+        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(getMessageResult);
         List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
         final ConsumeMessageContext[] messageContext = new ConsumeMessageContext[1];
         ConsumeMessageHook consumeMessageHook = new ConsumeMessageHook() {
-            @Override public String hookName() {
+            @Override
+            public String hookName() {
                 return "TestHook";
             }
 
-            @Override public void consumeMessageBefore(ConsumeMessageContext context) {
+            @Override
+            public void consumeMessageBefore(ConsumeMessageContext context) {
                 messageContext[0] = context;
             }
 
-            @Override public void consumeMessageAfter(ConsumeMessageContext context) {
+            @Override
+            public void consumeMessageAfter(ConsumeMessageContext context) {
             }
         };
         consumeMessageHookList.add(consumeMessageHook);
@@ -168,7 +172,7 @@ public class PullMessageProcessorTest {
     public void testProcessRequest_MsgWasRemoving() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult();
         getMessageResult.setStatus(GetMessageStatus.MESSAGE_WAS_REMOVING);
-        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(SubscriptionData.class))).thenReturn(getMessageResult);
+        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(getMessageResult);
 
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
         RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
@@ -180,7 +184,7 @@ public class PullMessageProcessorTest {
     public void testProcessRequest_NoMsgInQueue() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult();
         getMessageResult.setStatus(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
-        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(SubscriptionData.class))).thenReturn(getMessageResult);
+        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(getMessageResult);
 
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
         RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);

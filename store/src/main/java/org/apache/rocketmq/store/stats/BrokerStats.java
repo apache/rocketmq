@@ -17,12 +17,13 @@
 package org.apache.rocketmq.store.stats;
 
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BrokerStats {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+
     private final DefaultMessageStore defaultMessageStore;
 
     private volatile long msgPutTotalYesterdayMorning;
@@ -37,9 +38,6 @@ public class BrokerStats {
         this.defaultMessageStore = defaultMessageStore;
     }
 
-    /**
-
-     */
     public void record() {
         this.msgPutTotalYesterdayMorning = this.msgPutTotalTodayMorning;
         this.msgGetTotalYesterdayMorning = this.msgGetTotalTodayMorning;
