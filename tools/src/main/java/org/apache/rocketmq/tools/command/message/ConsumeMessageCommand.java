@@ -207,6 +207,7 @@ public class ConsumeMessageCommand implements SubCommand {
                 pullResult = defaultMQPullConsumer.pull(mq, "*", offset, (int)(maxOffset - offset + 1));
             } catch (Exception e) {
                 e.printStackTrace();
+                return;
             }
             if (pullResult != null) {
                 offset = pullResult.getNextBeginOffset();
