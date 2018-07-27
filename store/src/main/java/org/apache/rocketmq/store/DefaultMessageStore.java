@@ -1239,7 +1239,8 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private boolean loadConsumeQueue() {
-        File dirLogic = new File(StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()));
+        String consumeQueuePath=StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir());
+        File dirLogic = new File(consumeQueuePath);
         File[] fileTopicList = dirLogic.listFiles();
         if (fileTopicList != null) {
 
@@ -1258,7 +1259,7 @@ public class DefaultMessageStore implements MessageStore {
                         ConsumeQueue logic = new ConsumeQueue(
                             topic,
                             queueId,
-                            StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
+                            consumeQueuePath,
                             this.getMessageStoreConfig().getMapedFileSizeConsumeQueue(),
                             this);
                         this.putConsumeQueue(topic, queueId, logic);
