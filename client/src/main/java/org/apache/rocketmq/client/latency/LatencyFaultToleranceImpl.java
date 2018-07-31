@@ -17,10 +17,7 @@
 
 package org.apache.rocketmq.client.latency;
 
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 
@@ -72,10 +69,9 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         }
 
         if (!tmpList.isEmpty()) {
-            Collections.shuffle(tmpList);
-
-            Collections.sort(tmpList);
-
+            Object[] objects = tmpList.toArray();
+            shuffle(objects,null);
+            Arrays.sort(objects);
             final int half = tmpList.size() / 2;
             if (half <= 0) {
                 return tmpList.get(0).getName();
@@ -86,6 +82,19 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         }
 
         return null;
+    }
+
+    private void shuffle(Object[] arr, Random rnd) {
+        int size = arr.length;
+        rnd = rnd == null ? new Random() : rnd;
+        for (int i=size; i>1; i--) {
+            swap(arr, i-1, rnd.nextInt(i));
+        }
+    }
+    private void swap(Object[] arr, int i, int nextInt) {
+        Object o = arr[i];
+        arr[i] = arr[nextInt];
+        arr[nextInt] = o;
     }
 
     @Override
