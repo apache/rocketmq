@@ -34,7 +34,7 @@ public class SelectMessageQueueByHashTest {
 
         Message message = new Message(topic, new byte[] {});
 
-        List<MessageQueue> messageQueues = new ArrayList<>();
+        List<MessageQueue> messageQueues = new ArrayList<MessageQueue>();
         for (int i = 0; i < 10; i++) {
             MessageQueue messageQueue = new MessageQueue(topic, "DefaultBroker", i);
             messageQueues.add(messageQueue);

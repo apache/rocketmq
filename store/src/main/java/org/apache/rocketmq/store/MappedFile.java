@@ -33,6 +33,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.util.LibC;
 import org.slf4j.Logger;
@@ -71,7 +73,8 @@ public class MappedFile extends ReferenceResource {
         init(fileName, fileSize);
     }
 
-    public MappedFile(final String fileName, final int fileSize, final TransientStorePool transientStorePool) throws IOException {
+    public MappedFile(final String fileName, final int fileSize,
+        final TransientStorePool transientStorePool) throws IOException {
         init(fileName, fileSize, transientStorePool);
     }
 
@@ -140,7 +143,8 @@ public class MappedFile extends ReferenceResource {
         return TOTAL_MAPPED_VIRTUAL_MEMORY.get();
     }
 
-    public void init(final String fileName, final int fileSize, final TransientStorePool transientStorePool) throws IOException {
+    public void init(final String fileName, final int fileSize,
+        final TransientStorePool transientStorePool) throws IOException {
         init(fileName, fileSize);
         this.writeBuffer = transientStorePool.borrowBuffer();
         this.transientStorePool = transientStorePool;
@@ -187,7 +191,15 @@ public class MappedFile extends ReferenceResource {
     }
 
     public AppendMessageResult appendMessage(final MessageExtBrokerInner msg, final AppendMessageCallback cb) {
-        assert msg != null;
+        return appendMessagesInner(msg, cb);
+    }
+
+    public AppendMessageResult appendMessages(final MessageExtBatch messageExtBatch, final AppendMessageCallback cb) {
+        return appendMessagesInner(messageExtBatch, cb);
+    }
+
+    public AppendMessageResult appendMessagesInner(final MessageExt messageExt, final AppendMessageCallback cb) {
+        assert messageExt != null;
         assert cb != null;
 
         int currentPos = this.wrotePosition.get();
@@ -195,30 +207,26 @@ public class MappedFile extends ReferenceResource {
         if (currentPos < this.fileSize) {
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
-            AppendMessageResult result =
-                cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, msg);
+            AppendMessageResult result = null;
+            if (messageExt instanceof MessageExtBrokerInner) {
+                result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBrokerInner) messageExt);
+            } else if (messageExt instanceof MessageExtBatch) {
+                result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBatch) messageExt);
+            } else {
+                return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
+            }
             this.wrotePosition.addAndGet(result.getWroteBytes());
             this.storeTimestamp = result.getStoreTimestamp();
             return result;
         }
-
-        log.error("MappedFile.appendMessage return null, wrotePosition: " + currentPos + " fileSize: "
-            + this.fileSize);
+        log.error("MappedFile.appendMessage return null, wrotePosition: {} fileSize: {}", currentPos, this.fileSize);
         return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
     }
 
-    /**
-
-     */
     public long getFileFromOffset() {
         return this.fileFromOffset;
     }
 
-    /**
-
-     *
-
-     */
     public boolean appendMessage(final byte[] data) {
         int currentPos = this.wrotePosition.get();
 
@@ -237,7 +245,29 @@ public class MappedFile extends ReferenceResource {
     }
 
     /**
-     * @param flushLeastPages
+     * Content of data from offset to offset + length will be wrote to file.
+     *
+     * @param offset The offset of the subarray to be used.
+     * @param length The length of the subarray to be used.
+     */
+    public boolean appendMessage(final byte[] data, final int offset, final int length) {
+        int currentPos = this.wrotePosition.get();
+
+        if ((currentPos + length) <= this.fileSize) {
+            try {
+                this.fileChannel.position(currentPos);
+                this.fileChannel.write(ByteBuffer.wrap(data, offset, length));
+            } catch (Throwable e) {
+                log.error("Error occurred when append message to mappedFile.", e);
+            }
+            this.wrotePosition.addAndGet(length);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * @return The current flushed position
      */
     public int flush(final int flushLeastPages) {
@@ -371,9 +401,6 @@ public class MappedFile extends ReferenceResource {
         return null;
     }
 
-    /**
-
-     */
     public SelectMappedBufferResult selectMappedBuffer(int pos) {
         int readPosition = getReadPosition();
         if (pos < readPosition && pos >= 0) {
@@ -394,7 +421,7 @@ public class MappedFile extends ReferenceResource {
     public boolean cleanup(final long currentRef) {
         if (this.isAvailable()) {
             log.error("this file[REF:" + currentRef + "] " + this.fileName
-                + " have not shutdown, stop unmaping.");
+                + " have not shutdown, stop unmapping.");
             return false;
         }
 
@@ -479,7 +506,7 @@ public class MappedFile extends ReferenceResource {
                 try {
                     Thread.sleep(0);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    log.error("Interrupted", e);
                 }
             }
         }
@@ -541,6 +568,11 @@ public class MappedFile extends ReferenceResource {
         Pointer pointer = new Pointer(address);
         int ret = LibC.INSTANCE.munlock(pointer, new NativeLong(this.fileSize));
         log.info("munlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
+    }
+
+    //testable
+    File getFile() {
+        return this.file;
     }
 
     @Override

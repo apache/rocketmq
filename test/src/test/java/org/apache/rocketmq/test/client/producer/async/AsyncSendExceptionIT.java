@@ -50,7 +50,7 @@ public class AsyncSendExceptionIT extends BaseConf {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test
@@ -112,7 +112,7 @@ public class AsyncSendExceptionIT extends BaseConf {
         int checkNum = 50;
         while (!sendFail && checkNum > 0) {
             checkNum--;
-            TestUtils.waitForMonment(100);
+            TestUtils.waitForMoment(100);
         }
         producer.shutdown();
         assertThat(sendFail).isEqualTo(true);
@@ -141,7 +141,7 @@ public class AsyncSendExceptionIT extends BaseConf {
         int checkNum = 50;
         while (sendFail && checkNum > 0) {
             checkNum--;
-            TestUtils.waitForMonment(100);
+            TestUtils.waitForMoment(100);
         }
         producer.shutdown();
         assertThat(sendFail).isEqualTo(false);

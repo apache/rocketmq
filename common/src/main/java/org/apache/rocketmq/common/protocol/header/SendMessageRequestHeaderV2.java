@@ -51,6 +51,9 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
 
     private Integer l; // consumeRetryTimes
 
+    @CFNullable
+    private boolean m; //batch
+
     public static SendMessageRequestHeader createSendMessageRequestHeaderV1(final SendMessageRequestHeaderV2 v2) {
         SendMessageRequestHeader v1 = new SendMessageRequestHeader();
         v1.setProducerGroup(v2.a);
@@ -65,6 +68,7 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
         v1.setReconsumeTimes(v2.j);
         v1.setUnitMode(v2.k);
         v1.setMaxReconsumeTimes(v2.l);
+        v1.setBatch(v2.m);
         return v1;
     }
 
@@ -82,6 +86,7 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
         v2.j = v1.getReconsumeTimes();
         v2.k = v1.isUnitMode();
         v2.l = v1.getMaxReconsumeTimes();
+        v2.m = v1.isBatch();
         return v2;
     }
 
@@ -183,5 +188,13 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
 
     public void setL(final Integer l) {
         this.l = l;
+    }
+
+    public boolean isM() {
+        return m;
+    }
+
+    public void setM(boolean m) {
+        this.m = m;
     }
 }

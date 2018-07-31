@@ -32,15 +32,19 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.NettySystemConfig;
+import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_ENABLE;
 
 public class BrokerStartup {
     public static Properties properties = null;
@@ -54,7 +58,9 @@ public class BrokerStartup {
 
     public static BrokerController start(BrokerController controller) {
         try {
+
             controller.start();
+
             String tip = "The broker[" + controller.getBrokerConfig().getBrokerName() + ", "
                 + controller.getBrokerAddr() + "] boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
 
@@ -95,26 +101,15 @@ public class BrokerStartup {
             final BrokerConfig brokerConfig = new BrokerConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
             final NettyClientConfig nettyClientConfig = new NettyClientConfig();
+
+            nettyClientConfig.setUseTLS(Boolean.parseBoolean(System.getProperty(TLS_ENABLE,
+                String.valueOf(TlsSystemConfig.tlsMode == TlsMode.ENFORCING))));
             nettyServerConfig.setListenPort(10911);
             final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
 
             if (BrokerRole.SLAVE == messageStoreConfig.getBrokerRole()) {
                 int ratio = messageStoreConfig.getAccessMessageInMemoryMaxRatio() - 10;
                 messageStoreConfig.setAccessMessageInMemoryMaxRatio(ratio);
-            }
-
-            if (commandLine.hasOption('p')) {
-                MixAll.printObjectProperties(null, brokerConfig);
-                MixAll.printObjectProperties(null, nettyServerConfig);
-                MixAll.printObjectProperties(null, nettyClientConfig);
-                MixAll.printObjectProperties(null, messageStoreConfig);
-                System.exit(0);
-            } else if (commandLine.hasOption('m')) {
-                MixAll.printObjectProperties(null, brokerConfig, true);
-                MixAll.printObjectProperties(null, nettyServerConfig, true);
-                MixAll.printObjectProperties(null, nettyClientConfig, true);
-                MixAll.printObjectProperties(null, messageStoreConfig, true);
-                System.exit(0);
             }
 
             if (commandLine.hasOption('c')) {
@@ -125,7 +120,7 @@ public class BrokerStartup {
                     properties = new Properties();
                     properties.load(in);
 
-                    parsePropertie2SystemEnv(properties);
+                    properties2SystemEnv(properties);
                     MixAll.properties2Object(properties, brokerConfig);
                     MixAll.properties2Object(properties, nettyServerConfig);
                     MixAll.properties2Object(properties, nettyClientConfig);
@@ -181,17 +176,33 @@ public class BrokerStartup {
             configurator.setContext(lc);
             lc.reset();
             configurator.doConfigure(brokerConfig.getRocketmqHome() + "/conf/logback_broker.xml");
-            log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
+            if (commandLine.hasOption('p')) {
+                Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
+                MixAll.printObjectProperties(console, brokerConfig);
+                MixAll.printObjectProperties(console, nettyServerConfig);
+                MixAll.printObjectProperties(console, nettyClientConfig);
+                MixAll.printObjectProperties(console, messageStoreConfig);
+                System.exit(0);
+            } else if (commandLine.hasOption('m')) {
+                Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
+                MixAll.printObjectProperties(console, brokerConfig, true);
+                MixAll.printObjectProperties(console, nettyServerConfig, true);
+                MixAll.printObjectProperties(console, nettyClientConfig, true);
+                MixAll.printObjectProperties(console, messageStoreConfig, true);
+                System.exit(0);
+            }
+
+            log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
             MixAll.printObjectProperties(log, brokerConfig);
             MixAll.printObjectProperties(log, nettyServerConfig);
             MixAll.printObjectProperties(log, nettyClientConfig);
             MixAll.printObjectProperties(log, messageStoreConfig);
 
-            final BrokerController controller = new BrokerController(//
-                brokerConfig, //
-                nettyServerConfig, //
-                nettyClientConfig, //
+            final BrokerController controller = new BrokerController(
+                brokerConfig,
+                nettyServerConfig,
+                nettyClientConfig,
                 messageStoreConfig);
             // remember all configs to prevent discard
             controller.getConfiguration().registerConfig(properties);
@@ -212,9 +223,9 @@ public class BrokerStartup {
                         log.info("Shutdown hook was invoked, {}", this.shutdownTimes.incrementAndGet());
                         if (!this.hasShutdown) {
                             this.hasShutdown = true;
-                            long begineTime = System.currentTimeMillis();
+                            long beginTime = System.currentTimeMillis();
                             controller.shutdown();
-                            long consumingTimeTotal = System.currentTimeMillis() - begineTime;
+                            long consumingTimeTotal = System.currentTimeMillis() - beginTime;
                             log.info("Shutdown hook over, consuming total time(ms): {}", consumingTimeTotal);
                         }
                     }
@@ -230,17 +241,17 @@ public class BrokerStartup {
         return null;
     }
 
-    private static void parsePropertie2SystemEnv(Properties properties) {
+    private static void properties2SystemEnv(Properties properties) {
         if (properties == null) {
             return;
         }
-        String rmqAddressServerDomain = properties.getProperty("rmqAddressServerDomain", MixAll.DEFAULT_NAMESRV_ADDR_LOOKUP);
-        String rmqAddressServerSubGroup = properties.getProperty("rmqAddressServerSubGroup", "nsaddr");
+        String rmqAddressServerDomain = properties.getProperty("rmqAddressServerDomain", MixAll.WS_DOMAIN_NAME);
+        String rmqAddressServerSubGroup = properties.getProperty("rmqAddressServerSubGroup", MixAll.WS_DOMAIN_SUBGROUP);
         System.setProperty("rocketmq.namesrv.domain", rmqAddressServerDomain);
         System.setProperty("rocketmq.namesrv.domain.subgroup", rmqAddressServerSubGroup);
     }
 
-    public static Options buildCommandlineOptions(final Options options) {
+    private static Options buildCommandlineOptions(final Options options) {
         Option opt = new Option("c", "configFile", true, "Broker config properties file");
         opt.setRequired(false);
         options.addOption(opt);

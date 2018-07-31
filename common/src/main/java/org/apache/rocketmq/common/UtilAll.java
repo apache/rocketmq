@@ -36,12 +36,19 @@ import java.util.Map;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
+
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class UtilAll {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+
     public static final String YYYY_MM_DD_HH_MM_SS = "yyyy-MM-dd HH:mm:ss";
     public static final String YYYY_MM_DD_HH_MM_SS_SSS = "yyyy-MM-dd#HH:mm:ss:SSS";
-    public static final String YYYY_MMDD_HHMMSS = "yyyyMMddHHmmss";
+    public static final String YYYYMMDDHHMMSS = "yyyyMMddHHmmss";
     final static char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
     public static int getPid() {
@@ -202,7 +209,6 @@ public class UtilAll {
         return -1;
     }
 
-
     public static int crc32(byte[] array) {
         if (array != null) {
             return crc32(array, 0, array.length);
@@ -210,7 +216,6 @@ public class UtilAll {
 
         return 0;
     }
-
 
     public static int crc32(byte[] array, int offset, int length) {
         CRC32 crc32 = new CRC32();
@@ -269,15 +274,18 @@ public class UtilAll {
         } finally {
             try {
                 byteArrayInputStream.close();
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                log.error("Failed to close the stream", e);
             }
             try {
                 inflaterInputStream.close();
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                log.error("Failed to close the stream", e);
             }
             try {
                 byteArrayOutputStream.close();
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                log.error("Failed to close the stream", e);
             }
         }
 
@@ -493,6 +501,21 @@ public class UtilAll {
             }
         } catch (Exception e) {
             throw new RuntimeException("Can not get local ip", e);
+        }
+    }
+
+    public static void deleteFile(File file) {
+        if (!file.exists()) {
+            return;
+        }
+        if (file.isFile()) {
+            file.delete();
+        } else if (file.isDirectory()) {
+            File[] files = file.listFiles();
+            for (File file1 : files) {
+                deleteFile(file1);
+            }
+            file.delete();
         }
     }
 }

@@ -17,6 +17,7 @@
 package org.apache.rocketmq.client.impl.consumer;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -45,8 +46,12 @@ public class ProcessQueue {
     private final ReadWriteLock lockTreeMap = new ReentrantReadWriteLock();
     private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<Long, MessageExt>();
     private final AtomicLong msgCount = new AtomicLong();
+    private final AtomicLong msgSize = new AtomicLong();
     private final Lock lockConsume = new ReentrantLock();
-    private final TreeMap<Long, MessageExt> msgTreeMapTemp = new TreeMap<Long, MessageExt>();
+    /**
+     * A subset of msgTreeMap, will only be used when orderly consume
+     */
+    private final TreeMap<Long, MessageExt> consumingMsgOrderlyTreeMap = new TreeMap<Long, MessageExt>();
     private final AtomicLong tryUnlockTimes = new AtomicLong(0);
     private volatile long queueOffsetMax = 0L;
     private volatile boolean dropped = false;
@@ -101,7 +106,7 @@ public class ProcessQueue {
                     try {
                         if (!msgTreeMap.isEmpty() && msg.getQueueOffset() == msgTreeMap.firstKey()) {
                             try {
-                                msgTreeMap.remove(msgTreeMap.firstKey());
+                                removeMessage(Collections.singletonList(msg));
                             } catch (Exception e) {
                                 log.error("send expired msg exception", e);
                             }
@@ -129,6 +134,7 @@ public class ProcessQueue {
                     if (null == old) {
                         validMsgCnt++;
                         this.queueOffsetMax = msg.getQueueOffset();
+                        msgSize.addAndGet(msg.getBody().length);
                     }
                 }
                 msgCount.addAndGet(validMsgCnt);
@@ -189,6 +195,7 @@ public class ProcessQueue {
                         MessageExt prev = msgTreeMap.remove(msg.getQueueOffset());
                         if (prev != null) {
                             removedCnt--;
+                            msgSize.addAndGet(0 - msg.getBody().length);
                         }
                     }
                     msgCount.addAndGet(removedCnt);
@@ -215,6 +222,10 @@ public class ProcessQueue {
         return msgCount;
     }
 
+    public AtomicLong getMsgSize() {
+        return msgSize;
+    }
+
     public boolean isDropped() {
         return dropped;
     }
@@ -235,8 +246,8 @@ public class ProcessQueue {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
-                this.msgTreeMap.putAll(this.msgTreeMapTemp);
-                this.msgTreeMapTemp.clear();
+                this.msgTreeMap.putAll(this.consumingMsgOrderlyTreeMap);
+                this.consumingMsgOrderlyTreeMap.clear();
             } finally {
                 this.lockTreeMap.writeLock().unlock();
             }
@@ -249,9 +260,12 @@ public class ProcessQueue {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
-                Long offset = this.msgTreeMapTemp.lastKey();
-                msgCount.addAndGet(this.msgTreeMapTemp.size() * (-1));
-                this.msgTreeMapTemp.clear();
+                Long offset = this.consumingMsgOrderlyTreeMap.lastKey();
+                msgCount.addAndGet(0 - this.consumingMsgOrderlyTreeMap.size());
+                for (MessageExt msg : this.consumingMsgOrderlyTreeMap.values()) {
+                    msgSize.addAndGet(0 - msg.getBody().length);
+                }
+                this.consumingMsgOrderlyTreeMap.clear();
                 if (offset != null) {
                     return offset + 1;
                 }
@@ -270,7 +284,7 @@ public class ProcessQueue {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
                 for (MessageExt msg : msgs) {
-                    this.msgTreeMapTemp.remove(msg.getQueueOffset());
+                    this.consumingMsgOrderlyTreeMap.remove(msg.getQueueOffset());
                     this.msgTreeMap.put(msg.getQueueOffset(), msg);
                 }
             } finally {
@@ -293,7 +307,7 @@ public class ProcessQueue {
                         Map.Entry<Long, MessageExt> entry = this.msgTreeMap.pollFirstEntry();
                         if (entry != null) {
                             result.add(entry.getValue());
-                            msgTreeMapTemp.put(entry.getKey(), entry.getValue());
+                            consumingMsgOrderlyTreeMap.put(entry.getKey(), entry.getValue());
                         } else {
                             break;
                         }
@@ -332,8 +346,9 @@ public class ProcessQueue {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
                 this.msgTreeMap.clear();
-                this.msgTreeMapTemp.clear();
+                this.consumingMsgOrderlyTreeMap.clear();
                 this.msgCount.set(0);
+                this.msgSize.set(0);
                 this.queueOffsetMax = 0L;
             } finally {
                 this.lockTreeMap.writeLock().unlock();
@@ -387,12 +402,13 @@ public class ProcessQueue {
                 info.setCachedMsgMinOffset(this.msgTreeMap.firstKey());
                 info.setCachedMsgMaxOffset(this.msgTreeMap.lastKey());
                 info.setCachedMsgCount(this.msgTreeMap.size());
+                info.setCachedMsgSizeInMiB((int) (this.msgSize.get() / (1024 * 1024)));
             }
 
-            if (!this.msgTreeMapTemp.isEmpty()) {
-                info.setTransactionMsgMinOffset(this.msgTreeMapTemp.firstKey());
-                info.setTransactionMsgMaxOffset(this.msgTreeMapTemp.lastKey());
-                info.setTransactionMsgCount(this.msgTreeMapTemp.size());
+            if (!this.consumingMsgOrderlyTreeMap.isEmpty()) {
+                info.setTransactionMsgMinOffset(this.consumingMsgOrderlyTreeMap.firstKey());
+                info.setTransactionMsgMaxOffset(this.consumingMsgOrderlyTreeMap.lastKey());
+                info.setTransactionMsgCount(this.consumingMsgOrderlyTreeMap.size());
             }
 
             info.setLocked(this.locked);

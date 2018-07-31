@@ -20,6 +20,7 @@ package org.apache.rocketmq.filtersrv.filter;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +41,7 @@ public class FilterClassManager {
 
     private final ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("FSGetClassScheduledThread"));
-    private ConcurrentHashMap<String/* topic@consumerGroup */, FilterClassInfo> filterClassTable =
+    private ConcurrentMap<String/* topic@consumerGroup */, FilterClassInfo> filterClassTable =
         new ConcurrentHashMap<String, FilterClassInfo>(128);
     private FilterClassFetchMethod filterClassFetchMethod;
 
