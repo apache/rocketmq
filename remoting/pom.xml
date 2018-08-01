@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>4.2.0</version>
+        <version>4.4.0-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -42,25 +42,13 @@
             <artifactId>netty-all</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>rocketmq-logging</artifactId>
         </dependency>
-
         <dependency>
             <groupId>io.netty</groupId>
-            <artifactId>netty-tcnative</artifactId>
-            <version>1.1.33.Fork22</version>
-            <classifier>${os.detected.classifier}</classifier>
+            <artifactId>netty-tcnative-boringssl-static</artifactId>
+            <version>1.1.33.Fork26</version>
         </dependency>
     </dependencies>
-
-    <build>
-        <extensions>
-            <extension>
-                <groupId>kr.motd.maven</groupId>
-                <artifactId>os-maven-plugin</artifactId>
-                <version>1.4.0.Final</version>
-            </extension>
-        </extensions>
-    </build>
 </project>

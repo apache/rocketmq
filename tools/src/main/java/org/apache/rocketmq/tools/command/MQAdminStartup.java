@@ -48,12 +48,14 @@ import org.apache.rocketmq.tools.command.consumer.DeleteSubscriptionGroupCommand
 import org.apache.rocketmq.tools.command.consumer.StartMonitoringSubCommand;
 import org.apache.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
+import org.apache.rocketmq.tools.command.message.ConsumeMessageCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageByQueueCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageSubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByIdSubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByKeySubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByOffsetSubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByUniqueKeySubCommand;
+import org.apache.rocketmq.tools.command.message.SendMessageCommand;
 import org.apache.rocketmq.tools.command.namesrv.DeleteKvConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.GetNamesrvConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.UpdateKvConfigCommand;
@@ -193,6 +195,8 @@ public class MQAdminStartup {
         initCommand(new GetBrokerConfigCommand());
 
         initCommand(new QueryConsumeQueueCommand());
+        initCommand(new SendMessageCommand());
+        initCommand(new ConsumeMessageCommand());
     }
 
     private static void initLogback() throws JoranException {

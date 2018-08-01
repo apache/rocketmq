@@ -24,6 +24,9 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -36,6 +39,7 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
@@ -65,10 +69,13 @@ public class DefaultMQProducerTest {
     private MQClientInstance mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(new ClientConfig());
     @Mock
     private MQClientAPIImpl mQClientAPIImpl;
+    @Mock
+    private NettyRemotingClient nettyRemotingClient;
 
     private DefaultMQProducer producer;
     private Message message;
     private Message zeroMsg;
+    private Message bigMessage;
     private String topic = "FooBar";
     private String producerGroupPrefix = "FooBar_PID";
 
@@ -77,8 +84,10 @@ public class DefaultMQProducerTest {
         String producerGroupTemp = producerGroupPrefix + System.currentTimeMillis();
         producer = new DefaultMQProducer(producerGroupTemp);
         producer.setNamesrvAddr("127.0.0.1:9876");
+        producer.setCompressMsgBodyOverHowmuch(16);
         message = new Message(topic, new byte[] {'a'});
         zeroMsg = new Message(topic, new byte[] {});
+        bigMessage = new Message(topic, "This is a very huge message!".getBytes());
 
         producer.start();
 
@@ -147,6 +156,105 @@ public class DefaultMQProducerTest {
     }
 
     @Test
+    public void testSendMessageSync_WithBodyCompressed() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+        SendResult sendResult = producer.send(bigMessage);
+
+        assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
+        assertThat(sendResult.getOffsetMsgId()).isEqualTo("123");
+        assertThat(sendResult.getQueueOffset()).isEqualTo(456L);
+    }
+
+    @Test
+    public void testSendMessageAsync_Success() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
+        ExecutorService callbackExecutor = Executors.newSingleThreadExecutor();
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        when(mQClientAPIImpl.getRemotingClient()).thenReturn((nettyRemotingClient));
+        when(nettyRemotingClient.getCallbackExecutor()).thenReturn(callbackExecutor);
+        producer.send(message, new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
+                assertThat(sendResult.getOffsetMsgId()).isEqualTo("123");
+                assertThat(sendResult.getQueueOffset()).isEqualTo(456L);
+                countDownLatch.countDown();
+            }
+
+            @Override
+            public void onException(Throwable e) {
+                countDownLatch.countDown();
+            }
+        });
+        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        callbackExecutor.shutdown();
+    }
+    @Test
+    public void testSendMessageAsync() throws RemotingException, MQClientException, InterruptedException {
+        final AtomicInteger cc = new AtomicInteger(0);
+        final CountDownLatch countDownLatch = new CountDownLatch(6);
+        ExecutorService callbackExecutor = Executors.newSingleThreadExecutor();
+        when(mQClientAPIImpl.getRemotingClient()).thenReturn((nettyRemotingClient));
+        when(nettyRemotingClient.getCallbackExecutor()).thenReturn(callbackExecutor);
+
+        SendCallback sendCallback = new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+            }
+
+            @Override
+            public void onException(Throwable e) {
+                e.printStackTrace();
+                cc.incrementAndGet();
+                countDownLatch.countDown();
+            }
+        };
+        MessageQueueSelector messageQueueSelector = new MessageQueueSelector() {
+            @Override
+            public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
+                return null;
+            }
+        };
+
+        Message message = new Message();
+        message.setTopic("test");
+        message.setBody("hello world".getBytes());
+        producer.send(new Message(),sendCallback);
+        producer.send(message,sendCallback,1000);
+        producer.send(message,new MessageQueue(),sendCallback);
+        producer.send(new Message(),new MessageQueue(),sendCallback,1000);
+        producer.send(new Message(),messageQueueSelector,null,sendCallback);
+        producer.send(message,messageQueueSelector,null,sendCallback,1000);
+
+        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        callbackExecutor.shutdown();
+        assertThat(cc.get()).isEqualTo(6);
+    }
+
+    @Test
+    public void testSendMessageAsync_BodyCompressed() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
+        ExecutorService callbackExecutor = Executors.newSingleThreadExecutor();
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        when(mQClientAPIImpl.getRemotingClient()).thenReturn((nettyRemotingClient));
+        when(nettyRemotingClient.getCallbackExecutor()).thenReturn(callbackExecutor);
+        producer.send(bigMessage, new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
+                assertThat(sendResult.getOffsetMsgId()).isEqualTo("123");
+                assertThat(sendResult.getQueueOffset()).isEqualTo(456L);
+                countDownLatch.countDown();
+            }
+
+            @Override
+            public void onException(Throwable e) {
+                countDownLatch.countDown();
+            }
+        });
+        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        callbackExecutor.shutdown();
+    }
+
+    @Test
     public void testSendMessageSync_SuccessWithHook() throws Throwable {
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         final Throwable[] assertionErrors = new Throwable[1];
@@ -200,7 +308,7 @@ public class DefaultMQProducerTest {
 
     @Test
     public void testSetCallbackExecutor() throws MQClientException {
-        String producerGroupTemp = producerGroupPrefix + System.currentTimeMillis();
+        String producerGroupTemp = "testSetCallbackExecutor_" + System.currentTimeMillis();
         producer = new DefaultMQProducer(producerGroupTemp);
         producer.setNamesrvAddr("127.0.0.1:9876");
         producer.start();
