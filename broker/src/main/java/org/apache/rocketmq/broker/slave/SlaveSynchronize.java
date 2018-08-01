@@ -26,6 +26,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.protocol.body.ConsumerOffsetSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.common.utils.MultipleAddrConvertor;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
 public class SlaveSynchronize {
@@ -42,7 +43,7 @@ public class SlaveSynchronize {
     }
 
     public void setMasterAddr(String masterAddr) {
-        this.masterAddr = masterAddr;
+        this.masterAddr = MultipleAddrConvertor.convert(masterAddr);
     }
 
     public void syncAll() {

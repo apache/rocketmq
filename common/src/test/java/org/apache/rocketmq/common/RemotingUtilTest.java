@@ -28,4 +28,11 @@ public class RemotingUtilTest {
         assertThat(localAddress).isNotNull();
         assertThat(localAddress.length()).isGreaterThan(0);
     }
+
+    @Test
+    public void testGetMultipleLocalAddress() throws Exception {
+        String localAddress = RemotingUtil.getMultipleLocalAddress();
+        assertThat(localAddress).isNotNull();
+        assertThat(localAddress.length()).isGreaterThan(0);
+    }
 }

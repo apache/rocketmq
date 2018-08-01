@@ -752,7 +752,15 @@ public class BrokerController {
     }
 
     public String getBrokerAddr() {
-        return this.brokerConfig.getBrokerIP1() + ":" + this.nettyServerConfig.getListenPort();
+        if (brokerConfig.isEnableMultipleNICSupport()) {
+            return this.getBrokerMultipleAddr();
+        } else {
+            return this.brokerConfig.getBrokerIP1() + ":" + this.nettyServerConfig.getListenPort();
+        }
+    }
+
+    public String getBrokerMultipleAddr() {
+        return this.brokerConfig.getBrokerMultopleIP() + ":" + this.nettyServerConfig.getListenPort();
     }
 
     public void start() throws Exception {
@@ -918,6 +926,10 @@ public class BrokerController {
 
     public String getHAServerAddr() {
         return this.brokerConfig.getBrokerIP2() + ":" + this.messageStoreConfig.getHaListenPort();
+    }
+
+    public String getHAServerMultipleAddr() {
+        return this.brokerConfig.getBrokerMultopleIP() + ":" + this.messageStoreConfig.getHaListenPort();
     }
 
     public RebalanceLockManager getRebalanceLockManager() {

@@ -34,6 +34,7 @@ public class BrokerConfig {
     @ImportantField
     private String brokerIP1 = RemotingUtil.getLocalAddress();
     private String brokerIP2 = RemotingUtil.getLocalAddress();
+    private String multipleIp = RemotingUtil.getMultipleLocalAddress();
     @ImportantField
     private String brokerName = localHostName();
     @ImportantField
@@ -135,6 +136,8 @@ public class BrokerConfig {
     private boolean filterSupportRetry = false;
     private boolean enablePropertyFilter = false;
 
+    private boolean enableMultipleNICSupport = false;
+  
     private boolean compressedRegister = false;
 
     private boolean forceRegister = true;
@@ -336,6 +339,10 @@ public class BrokerConfig {
 
     public String getBrokerIP2() {
         return brokerIP2;
+    }
+
+    public String getBrokerMultopleIP() {
+        return multipleIp;
     }
 
     public void setBrokerIP2(String brokerIP2) {
@@ -630,6 +637,14 @@ public class BrokerConfig {
         this.enablePropertyFilter = enablePropertyFilter;
     }
 
+    public boolean isEnableMultipleNICSupport() {
+        return enableMultipleNICSupport;
+    }
+
+    public void setEnableMultipleNICSupport(boolean enableMultipleNICSupport) {
+        this.enableMultipleNICSupport = enableMultipleNICSupport;
+    }
+  
     public boolean isCompressedRegister() {
         return compressedRegister;
     }
