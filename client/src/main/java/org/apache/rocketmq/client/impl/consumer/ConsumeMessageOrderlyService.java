@@ -133,7 +133,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         ConsumeMessageDirectlyResult result = new ConsumeMessageDirectlyResult();
         result.setOrder(true);
 
-        List<MessageExt> msgs = new ArrayList<MessageExt>();
+        List<MessageExt> msgs = new ArrayList<MessageExt>(1);
         msgs.add(msg);
         MessageQueue mq = new MessageQueue();
         mq.setBrokerName(brokerName);

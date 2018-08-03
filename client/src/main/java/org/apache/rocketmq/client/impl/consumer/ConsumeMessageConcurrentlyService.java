@@ -148,7 +148,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         result.setOrder(false);
         result.setAutoCommit(true);
 
-        List<MessageExt> msgs = new ArrayList<MessageExt>();
+        List<MessageExt> msgs = new ArrayList<MessageExt>(1);
         msgs.add(msg);
         MessageQueue mq = new MessageQueue();
         mq.setBrokerName(brokerName);
