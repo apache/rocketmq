@@ -34,14 +34,14 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TopicConfigManager extends ConfigManager {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long LOCK_TIMEOUT_MILLIS = 3000;
     private transient final Lock lockTopicConfigTable = new ReentrantLock();
 
@@ -66,9 +66,9 @@ public class TopicConfigManager extends ConfigManager {
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
-            // MixAll.DEFAULT_TOPIC
+            // MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC
             if (this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
-                String topic = MixAll.DEFAULT_TOPIC;
+                String topic = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
                 TopicConfig topicConfig = new TopicConfig(topic);
                 this.systemTopicList.add(topic);
                 topicConfig.setReadQueueNums(this.brokerController.getBrokerConfig()
@@ -135,7 +135,7 @@ public class TopicConfigManager extends ConfigManager {
     }
 
     public boolean isTopicCanSendMessage(final String topic) {
-        return !topic.equals(MixAll.DEFAULT_TOPIC);
+        return !topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC);
     }
 
     public TopicConfig selectTopicConfig(final String topic) {
@@ -156,7 +156,7 @@ public class TopicConfigManager extends ConfigManager {
 
                     TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);
                     if (defaultTopicConfig != null) {
-                        if (defaultTopic.equals(MixAll.DEFAULT_TOPIC)) {
+                        if (defaultTopic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
                             if (!this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
                                 defaultTopicConfig.setPerm(PermName.PERM_READ | PermName.PERM_WRITE);
                             }
@@ -210,7 +210,7 @@ public class TopicConfigManager extends ConfigManager {
         }
 
         if (createNew) {
-            this.brokerController.registerBrokerAll(false, true);
+            this.brokerController.registerBrokerAll(false, true,true);
         }
 
         return topicConfig;
@@ -254,7 +254,7 @@ public class TopicConfigManager extends ConfigManager {
         }
 
         if (createNew) {
-            this.brokerController.registerBrokerAll(false, true);
+            this.brokerController.registerBrokerAll(false, true,true);
         }
 
         return topicConfig;
@@ -279,7 +279,7 @@ public class TopicConfigManager extends ConfigManager {
             this.dataVersion.nextVersion();
 
             this.persist();
-            this.brokerController.registerBrokerAll(false, true);
+            this.brokerController.registerBrokerAll(false, true,true);
         }
     }
 
@@ -299,7 +299,7 @@ public class TopicConfigManager extends ConfigManager {
             this.dataVersion.nextVersion();
 
             this.persist();
-            this.brokerController.registerBrokerAll(false, true);
+            this.brokerController.registerBrokerAll(false, true,true);
         }
     }
 

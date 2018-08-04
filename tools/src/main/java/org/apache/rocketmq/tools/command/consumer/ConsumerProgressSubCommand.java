@@ -25,6 +25,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.Connection;
 import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
@@ -36,7 +37,6 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
-import org.slf4j.Logger;
 
 import java.util.Collections;
 import java.util.Date;
@@ -46,7 +46,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ConsumerProgressSubCommand implements SubCommand {
-    private final Logger log = ClientLogger.getLog();
+    private final InternalLogger log = ClientLogger.getLog();
 
     @Override
     public String commandName() {
@@ -63,6 +63,10 @@ public class ConsumerProgressSubCommand implements SubCommand {
         Option opt = new Option("g", "groupName", true, "consumer group name");
         opt.setRequired(false);
         options.addOption(opt);
+
+        Option optionShowClientIP = new Option("s", "showClientIP", true, "Show Client IP per Queue");
+        optionShowClientIP.setRequired(false);
+        options.addOption(optionShowClientIP);
 
         return options;
     }
@@ -92,13 +96,22 @@ public class ConsumerProgressSubCommand implements SubCommand {
 
         try {
             defaultMQAdminExt.start();
+
+            boolean showClientIP = commandLine.hasOption('s')
+                && "true".equalsIgnoreCase(commandLine.getOptionValue('s'));
+
             if (commandLine.hasOption('g')) {
                 String consumerGroup = commandLine.getOptionValue('g').trim();
                 ConsumeStats consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
                 List<MessageQueue> mqList = new LinkedList<MessageQueue>();
                 mqList.addAll(consumeStats.getOffsetTable().keySet());
                 Collections.sort(mqList);
-                Map<MessageQueue, String> messageQueueAllocationResult = getMessageQueueAllocationResult(defaultMQAdminExt, consumerGroup);
+
+                Map<MessageQueue, String> messageQueueAllocationResult = null;
+                if (showClientIP) {
+                    messageQueueAllocationResult = getMessageQueueAllocationResult(defaultMQAdminExt, consumerGroup);
+                }
+
                 System.out.printf("%-32s  %-32s  %-4s  %-20s  %-20s  %-20s %-20s  %s%n",
                     "#Topic",
                     "#Broker Name",
@@ -116,18 +129,26 @@ public class ConsumerProgressSubCommand implements SubCommand {
                     diffTotal += diff;
                     String lastTime = "";
                     try {
-                        lastTime = UtilAll.formatDate(new Date(offsetWrapper.getLastTimestamp()), UtilAll.YYYY_MM_DD_HH_MM_SS);
+                        if (offsetWrapper.getLastTimestamp() == 0) {
+                            lastTime = "N/A";
+                        } else {
+                            lastTime = UtilAll.formatDate(new Date(offsetWrapper.getLastTimestamp()), UtilAll.YYYY_MM_DD_HH_MM_SS);
+                        }
                     } catch (Exception e) {
                     }
 
-                    String clientIP = messageQueueAllocationResult.get(mq);
+                    String clientIP = null;
+                    if (showClientIP) {
+                        clientIP = messageQueueAllocationResult.get(mq);
+                    }
+
                     System.out.printf("%-32s  %-32s  %-4d  %-20d  %-20d  %-20s %-20d  %s%n",
                         UtilAll.frontStringAtLeast(mq.getTopic(), 32),
                         UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),
                         mq.getQueueId(),
                         offsetWrapper.getBrokerOffset(),
                         offsetWrapper.getConsumerOffset(),
-                        null != clientIP ? clientIP : "NA",
+                        null != clientIP ? clientIP : "N/A",
                         diff,
                         lastTime
                     );

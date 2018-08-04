@@ -79,6 +79,7 @@ public class DefaultMQPushConsumerTest {
     private String topic = "FooBar";
     private String brokerName = "BrokerA";
     private MQClientInstance mQClientFactory;
+
     @Mock
     private MQClientAPIImpl mQClientAPIImpl;
     private PullAPIWrapper pullAPIWrapper;
