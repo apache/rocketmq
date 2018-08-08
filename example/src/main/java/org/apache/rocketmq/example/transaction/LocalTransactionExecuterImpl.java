@@ -14,26 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.impl.producer;
+package org.apache.rocketmq.example.transaction;
 
-import java.util.Set;
-import org.apache.rocketmq.client.producer.TransactionCheckListener;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
+import org.apache.rocketmq.client.producer.LocalTransactionExecuter;
+import org.apache.rocketmq.client.producer.LocalTransactionState;
+import org.apache.rocketmq.common.message.Message;
 
-public interface MQProducerInner {
-    Set<String> getPublishTopicList();
-
-    boolean isPublishTopicNeedUpdate(final String topic);
-
-    TransactionCheckListener checkListener();
-
-    void checkTransactionState(
-        final String addr,
-        final MessageExt msg,
-        final CheckTransactionStateRequestHeader checkRequestHeader);
-
-    void updateTopicPublishInfo(final String topic, final TopicPublishInfo info);
-
-    boolean isUnitMode();
+public class LocalTransactionExecuterImpl implements LocalTransactionExecuter {
+    @Override public LocalTransactionState executeLocalTransactionBranch(Message msg, Object arg) {
+        return LocalTransactionState.UNKNOW;
+    }
 }

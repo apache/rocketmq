@@ -16,6 +16,22 @@
  */
 package org.apache.rocketmq.client.impl.producer;
 
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.common.ClientErrorCode;
@@ -31,12 +47,13 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.latency.MQFaultStrategy;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.LocalTransactionExecuter;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
-import org.apache.rocketmq.client.producer.TransactionListener;
+import org.apache.rocketmq.client.producer.TransactionCheckListener;
 import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.client.producer.TransactionSendResult;
 import org.apache.rocketmq.common.MixAll;
@@ -65,23 +82,6 @@ import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
-import java.util.concurrent.RejectedExecutionException;
-
-import java.io.IOException;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 public class DefaultMQProducerImpl implements MQProducerInner {
     private final InternalLogger log = ClientLogger.getLog();
@@ -122,8 +122,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         } else {
             this.checkRequestQueue = new LinkedBlockingQueue<Runnable>(2000);
             this.checkExecutor = new ThreadPoolExecutor(
-                1,
-                1,
+                producer.getCheckThreadPoolMinSize(),
+                producer.getCheckThreadPoolMaxSize(),
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
                 this.checkRequestQueue);
@@ -131,8 +131,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public void destroyTransactionEnv() {
-        this.checkExecutor.shutdown();
-        this.checkRequestQueue.clear();
+        if (this.checkExecutor != null) {
+            this.checkExecutor.shutdown();
+        }
     }
 
     public void registerSendMessageHook(final SendMessageHook hook) {
@@ -244,16 +245,17 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     @Override
-    public TransactionListener checkListener() {
+    public TransactionCheckListener checkListener() {
         if (this.defaultMQProducer instanceof TransactionMQProducer) {
             TransactionMQProducer producer = (TransactionMQProducer) defaultMQProducer;
-            return producer.getTransactionListener();
+            return producer.getTransactionCheckListener();
         }
 
         return null;
     }
 
     @Override
+
     public void checkTransactionState(final String addr, final MessageExt msg,
         final CheckTransactionStateRequestHeader header) {
         Runnable request = new Runnable() {
@@ -264,12 +266,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             @Override
             public void run() {
-                TransactionListener transactionCheckListener = DefaultMQProducerImpl.this.checkListener();
+                TransactionCheckListener transactionCheckListener = DefaultMQProducerImpl.this.checkListener();
                 if (transactionCheckListener != null) {
                     LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
                     Throwable exception = null;
                     try {
-                        localTransactionState = transactionCheckListener.checkLocalTransaction(message);
+                        localTransactionState = transactionCheckListener.checkLocalTransactionState(message);
                     } catch (Throwable e) {
                         log.error("Broker call checkTransactionState, but checkLocalTransactionState exception", e);
                         exception = e;
@@ -1096,9 +1098,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public TransactionSendResult sendMessageInTransaction(final Message msg,
-                                                          final TransactionListener tranExecuter, final Object arg)
+                                                          final LocalTransactionExecuter localTransactionExecuter, final Object arg)
         throws MQClientException {
-        if (null == tranExecuter) {
+        if (null == localTransactionExecuter) {
             throw new MQClientException("tranExecutor is null", null);
         }
         Validators.checkMessage(msg, this.defaultMQProducer);
@@ -1124,7 +1126,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     if (null != transactionId && !"".equals(transactionId)) {
                         msg.setTransactionId(transactionId);
                     }
-                    localTransactionState = tranExecuter.executeLocalTransaction(msg, arg);
+                    localTransactionState = localTransactionExecuter.executeLocalTransactionBranch(msg, arg);
                     if (null == localTransactionState) {
                         localTransactionState = LocalTransactionState.UNKNOW;
                     }
