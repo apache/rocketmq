@@ -30,16 +30,16 @@ import org.apache.rocketmq.test.util.TestUtil;
 public class AbstractListener extends MQCollector implements MessageListener {
     public static Logger logger = Logger.getLogger(AbstractListener.class);
     protected boolean isDebug = false;
-    protected String listnerName = null;
+    protected String listenerName = null;
     protected Collection<Object> allSendMsgs = null;
 
     public AbstractListener() {
         super();
     }
 
-    public AbstractListener(String listnerName) {
+    public AbstractListener(String listenerName) {
         super();
-        this.listnerName = listnerName;
+        this.listenerName = listenerName;
     }
 
     public AbstractListener(String originMsgCollector, String msgBodyCollector) {
@@ -82,10 +82,10 @@ public class AbstractListener extends MQCollector implements MessageListener {
             } else {
                 if (System.currentTimeMillis() - curTime >= timeoutMills) {
                     logger.error(String.format("timeout but  [%s]  not recv all send messages!",
-                        listnerName));
+                        listenerName));
                     break;
                 } else {
-                    logger.info(String.format("[%s] still [%s] msg not recv!", listnerName,
+                    logger.info(String.format("[%s] still [%s] msg not recv!", listenerName,
                         sendMsgs.size()));
                     TestUtil.waitForMonment(500);
                 }
@@ -105,10 +105,10 @@ public class AbstractListener extends MQCollector implements MessageListener {
             }
             if (System.currentTimeMillis() - curTime >= timeoutMills) {
                 logger.error(String.format("timeout but  [%s]  not recv all send messages!",
-                    listnerName));
+                    listenerName));
                 break;
             } else {
-                logger.info(String.format("[%s] still [%s] msg not recv!", listnerName,
+                logger.info(String.format("[%s] still [%s] msg not recv!", listenerName,
                     size - msgBodys.getDataSize()));
                 TestUtil.waitForMonment(500);
             }

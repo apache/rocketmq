@@ -45,7 +45,7 @@ public class QueryMsgByKeyIT extends BaseConf {
 
     @After
     public void tearDown() {
-        shutDown();
+        shutdown();
     }
 
     @Test

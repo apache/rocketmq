@@ -26,7 +26,7 @@ import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.client.rmq.RMQSqlConsumer;
 import org.apache.rocketmq.test.factory.ConsumerFactory;
-import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListner;
+import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -49,7 +49,7 @@ public class SqlFilterIT extends BaseConf {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test
@@ -58,17 +58,17 @@ public class SqlFilterIT extends BaseConf {
 
         String group = initConsumerGroup();
         MessageSelector selector = MessageSelector.bySql("(TAGS is not null and TAGS in ('TagA', 'TagB'))");
-        RMQSqlConsumer consumer = ConsumerFactory.getRMQSqlConsumer(nsAddr, group, topic, selector, new RMQNormalListner(group + "_1"));
+        RMQSqlConsumer consumer = ConsumerFactory.getRMQSqlConsumer(nsAddr, group, topic, selector, new RMQNormalListener(group + "_1"));
         Thread.sleep(3000);
         producer.send("TagA", msgSize);
         producer.send("TagB", msgSize);
         producer.send("TagC", msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize * 3, producer.getAllUndupMsgBody().size());
-        consumer.getListner().waitForMessageConsume(msgSize * 2, consumeTime);
+        consumer.getListener().waitForMessageConsume(msgSize * 2, consumeTime);
         assertThat(producer.getAllMsgBody())
             .containsAllIn(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()));
+                consumer.getListener().getAllMsgBody()));
 
-        assertThat(consumer.getListner().getAllMsgBody().size()).isEqualTo(msgSize * 2);
+        assertThat(consumer.getListener().getAllMsgBody().size()).isEqualTo(msgSize * 2);
     }
 }

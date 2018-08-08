@@ -22,13 +22,11 @@
         <file>${user.home}/logs/rocketmqlogs/broker_default.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/broker_default.%i.log
-            </fileNamePattern>
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/broker_default.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy
-            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -42,13 +40,11 @@
         <file>${user.home}/logs/rocketmqlogs/broker.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/broker.%i.log
-            </fileNamePattern>
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/broker.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>20</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy
-            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>128MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -65,13 +61,11 @@
         <file>${user.home}/logs/rocketmqlogs/protection.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/protection.%i.log
-            </fileNamePattern>
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/protection.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy
-            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -88,13 +82,11 @@
         <file>${user.home}/logs/rocketmqlogs/watermark.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/watermark.%i.log
-            </fileNamePattern>
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/watermark.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy
-            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -111,13 +103,11 @@
         <file>${user.home}/logs/rocketmqlogs/store.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/store.%i.log
-            </fileNamePattern>
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/store.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy
-            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>128MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -134,13 +124,11 @@
         <file>${user.home}/logs/rocketmqlogs/remoting.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/remoting.%i.log
-            </fileNamePattern>
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/remoting.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy
-            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -157,13 +145,11 @@
         <file>${user.home}/logs/rocketmqlogs/storeerror.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/storeerror.%i.log
-            </fileNamePattern>
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/storeerror.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy
-            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -181,13 +167,11 @@
         <file>${user.home}/logs/rocketmqlogs/transaction.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/transaction.%i.log
-            </fileNamePattern>
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/transaction.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy
-            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -204,13 +188,11 @@
         <file>${user.home}/logs/rocketmqlogs/lock.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/lock.%i.log
-            </fileNamePattern>
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/lock.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>5</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy
-            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -227,13 +209,11 @@
         <file>${user.home}/logs/rocketmqlogs/filter.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/filter.%i.log
-            </fileNamePattern>
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/filter.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy
-                class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -250,13 +230,11 @@
         <file>${user.home}/logs/rocketmqlogs/stats.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/stats.%i.log
-            </fileNamePattern>
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/stats.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>5</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy
-            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -270,13 +248,11 @@
         <file>${user.home}/logs/rocketmqlogs/commercial.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/commercial.%i.log
-            </fileNamePattern>
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/commercial.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy
-            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>500MB</maxFileSize>
         </triggeringPolicy>
     </appender>
@@ -350,8 +326,8 @@
     </logger>
 
     <logger name="RocketmqConsole" additivity="false">
-        <level value="INFO" />
-        <appender-ref ref="STDOUT" />
+        <level value="INFO"/>
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <root>

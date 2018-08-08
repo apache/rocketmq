@@ -17,8 +17,11 @@
 
 package org.apache.rocketmq.store;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import org.apache.rocketmq.common.UtilAll;
+import org.junit.After;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,7 +45,7 @@ public class MappedFileQueueTest {
     }
 
     @Test
-    public void test_findMappedFileByOffset() {
+    public void testFindMappedFileByOffset() {
         // four-byte string.
         final String fixedMsg = "abcd";
 
@@ -87,6 +90,28 @@ public class MappedFileQueueTest {
 
         mappedFile = mappedFileQueue.findMappedFileByOffset(1024 * 4 + 100);
         assertThat(mappedFile).isNull();
+
+        mappedFileQueue.shutdown(1000);
+        mappedFileQueue.destroy();
+    }
+
+    @Test
+    public void testFindMappedFileByOffset_StartOffsetIsNonZero() {
+        MappedFileQueue mappedFileQueue =
+            new MappedFileQueue("target/unit_test_store/b/", 1024, null);
+
+        //Start from a non-zero offset
+        MappedFile mappedFile = mappedFileQueue.getLastMappedFile(1024);
+        assertThat(mappedFile).isNotNull();
+
+        assertThat(mappedFileQueue.findMappedFileByOffset(1025)).isEqualTo(mappedFile);
+
+        assertThat(mappedFileQueue.findMappedFileByOffset(0)).isNull();
+        assertThat(mappedFileQueue.findMappedFileByOffset(123, false)).isNull();
+        assertThat(mappedFileQueue.findMappedFileByOffset(123, true)).isEqualTo(mappedFile);
+
+        assertThat(mappedFileQueue.findMappedFileByOffset(0, false)).isNull();
+        assertThat(mappedFileQueue.findMappedFileByOffset(0, true)).isEqualTo(mappedFile);
 
         mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();
@@ -175,5 +200,56 @@ public class MappedFileQueueTest {
 
         mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();
+    }
+
+    @Test
+    public void testDeleteExpiredFileByTime() throws Exception {
+        MappedFileQueue mappedFileQueue =
+            new MappedFileQueue("target/unit_test_store/f/", 1024, null);
+
+        for (int i = 0; i < 100; i++) {
+            MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
+            assertThat(mappedFile).isNotNull();
+            byte[] bytes = new byte[512];
+            assertThat(mappedFile.appendMessage(bytes)).isTrue();
+        }
+
+        assertThat(mappedFileQueue.getMappedFiles().size()).isEqualTo(50);
+        long expiredTime =  100 * 1000;
+        for (int i = 0; i < mappedFileQueue.getMappedFiles().size(); i++) {
+            MappedFile mappedFile = mappedFileQueue.getMappedFiles().get(i);
+           if (i < 5) {
+               mappedFile.getFile().setLastModified(System.currentTimeMillis() - expiredTime * 2);
+           }
+           if (i > 20) {
+               mappedFile.getFile().setLastModified(System.currentTimeMillis() - expiredTime * 2);
+           }
+        }
+        mappedFileQueue.deleteExpiredFileByTime(expiredTime, 0, 0, false);
+        assertThat(mappedFileQueue.getMappedFiles().size()).isEqualTo(45);
+    }
+
+    @Test
+    public void testFindMappedFile_ByIteration() {
+        MappedFileQueue mappedFileQueue =
+            new MappedFileQueue("target/unit_test_store/g/", 1024, null);
+        for (int i =0 ; i < 3; i++) {
+            MappedFile mappedFile = mappedFileQueue.getLastMappedFile(1024 * i);
+            mappedFile.wrotePosition.set(1024);
+        }
+
+        assertThat(mappedFileQueue.findMappedFileByOffset(1028).getFileFromOffset()).isEqualTo(1024);
+
+        // Switch two MappedFiles and verify findMappedFileByOffset method
+        MappedFile tmpFile = mappedFileQueue.getMappedFiles().get(1);
+        mappedFileQueue.getMappedFiles().set(1, mappedFileQueue.getMappedFiles().get(2));
+        mappedFileQueue.getMappedFiles().set(2, tmpFile);
+        assertThat(mappedFileQueue.findMappedFileByOffset(1028).getFileFromOffset()).isEqualTo(1024);
+    }
+
+    @After
+    public void destory() {
+        File file = new File("target/unit_test_store");
+        UtilAll.deleteFile(file);
     }
 }

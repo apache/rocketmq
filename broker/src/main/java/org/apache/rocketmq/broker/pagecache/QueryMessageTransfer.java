@@ -28,7 +28,9 @@ public class QueryMessageTransfer extends AbstractReferenceCounted implements Fi
     private final ByteBuffer byteBufferHeader;
     private final QueryMessageResult queryMessageResult;
 
-    /** Bytes which were transferred already. */
+    /**
+     * Bytes which were transferred already.
+     */
     private long transferred;
 
     public QueryMessageTransfer(ByteBuffer byteBufferHeader, QueryMessageResult queryMessageResult) {

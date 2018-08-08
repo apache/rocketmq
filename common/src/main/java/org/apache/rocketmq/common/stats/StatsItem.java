@@ -22,7 +22,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.UtilAll;
-import org.slf4j.Logger;
+import org.apache.rocketmq.logging.InternalLogger;
 
 public class StatsItem {
 
@@ -39,10 +39,10 @@ public class StatsItem {
     private final String statsName;
     private final String statsKey;
     private final ScheduledExecutorService scheduledExecutorService;
-    private final Logger log;
+    private final InternalLogger log;
 
     public StatsItem(String statsName, String statsKey, ScheduledExecutorService scheduledExecutorService,
-        Logger log) {
+        InternalLogger log) {
         this.statsName = statsName;
         this.statsKey = statsKey;
         this.scheduledExecutorService = scheduledExecutorService;

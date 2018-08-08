@@ -23,7 +23,7 @@ import org.apache.rocketmq.test.client.consumer.balance.NormalMsgStaticBalanceIT
 import org.apache.rocketmq.test.client.mq.MQAsyncProducer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
-import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListner;
+import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.MQWait;
 import org.apache.rocketmq.test.util.TestUtils;
 import org.junit.After;
@@ -46,52 +46,52 @@ public class DynamicAddConsumerIT extends BaseConf {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test
     public void testAddOneConsumer() {
         int msgSize = 100;
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQNormalListner());
+        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
 
         MQAsyncProducer asyncDefaultMQProducer = new MQAsyncProducer(producer, msgSize, 100);
         asyncDefaultMQProducer.start();
         TestUtils.waitForSeconds(waitTime);
 
         RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
-            "*", new RMQNormalListner());
+            "*", new RMQNormalListener());
 
         asyncDefaultMQProducer.waitSendAll(waitTime * 6);
 
-        MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer1.getListner(),
-            consumer2.getListner());
+        MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer1.getListener(),
+            consumer2.getListener());
 
         boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
-            consumer1.getListner(), consumer2.getListner());
+            consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
     }
 
     @Test
     public void testAddTwoConsumer() {
         int msgSize = 100;
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQNormalListner());
+        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
 
         MQAsyncProducer asyncDefaultMQProducer = new MQAsyncProducer(producer, msgSize, 100);
         asyncDefaultMQProducer.start();
         TestUtils.waitForSeconds(waitTime);
 
         RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
-            "*", new RMQNormalListner());
+            "*", new RMQNormalListener());
         RMQNormalConsumer consumer3 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
-            "*", new RMQNormalListner());
+            "*", new RMQNormalListener());
 
         asyncDefaultMQProducer.waitSendAll(waitTime * 6);
 
-        MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer1.getListner(),
-            consumer2.getListner(), consumer3.getListner());
+        MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(), consumer1.getListener(),
+            consumer2.getListener(), consumer3.getListener());
 
         boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
-            consumer1.getListner(), consumer2.getListner(), consumer3.getListner());
+            consumer1.getListener(), consumer2.getListener(), consumer3.getListener());
         assertThat(recvAll).isEqualTo(true);
     }
 }

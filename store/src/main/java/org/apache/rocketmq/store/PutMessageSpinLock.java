@@ -16,12 +16,10 @@
  */
 package org.apache.rocketmq.store;
 
-
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Spin lock Implementation to put message, suggest using this witb low race conditions
- *
+ * Spin lock Implementation to put message, suggest using this with low race conditions
  */
 public class PutMessageSpinLock implements PutMessageLock {
     //true: Can lock, false : in lock.

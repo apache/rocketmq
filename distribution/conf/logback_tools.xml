@@ -22,13 +22,11 @@
         <file>${user.home}/logs/rocketmqlogs/tools_default.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/tools_default.%i.log
-            </fileNamePattern>
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/tools_default.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>5</maxIndex>
         </rollingPolicy>
-        <triggeringPolicy
-            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>100MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
@@ -42,8 +40,7 @@
         <file>${user.home}/logs/rocketmqlogs/tools.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/tools.%i.log
-            </fileNamePattern>
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/tools.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>5</maxIndex>
         </rollingPolicy>

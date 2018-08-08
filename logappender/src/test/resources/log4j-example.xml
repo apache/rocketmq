@@ -19,43 +19,37 @@ limitations under the License.
 <log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
 
     <appender name="consoleAppender" class="org.apache.log4j.ConsoleAppender">
-        <param name="Encoding" value="UTF-8" />
-        <param name="Target" value="System.out" />
+        <param name="Encoding" value="UTF-8"/>
+        <param name="Target" value="System.out"/>
         <layout class="org.apache.log4j.PatternLayout">
-            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss},%d %-4r [%t] (%F:%L) %-5p - %m%n" />
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss},%d %-4r [%t] (%F:%L) %-5p - %m%n"/>
         </layout>
     </appender>
 
     <appender name="mqAppender1" class="org.apache.rocketmq.logappender.log4j.RocketmqLog4jAppender">
-        <param name="Tag" value="log1" />
-        <param name="Topic" value="TopicTest" />
-        <param name="ProducerGroup" value="log4jxml" />
+        <param name="Tag" value="log1"/>
+        <param name="Topic" value="TopicTest"/>
+        <param name="ProducerGroup" value="loggerAppender"/>
         <param name="NameServerAddress" value="127.0.0.1:9876"/>
         <layout class="org.apache.log4j.PatternLayout">
-            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss}-%p %t %c - %m%n" />
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss}-%p %t %c - %m%n"/>
         </layout>
     </appender>
 
-    <appender name="mqAsyncAppender1" class="org.apache.log4j.AsyncAppender">
-        <param name="BufferSize" value="1024" />
-        <param name="Blocking" value="false" />
-        <appender-ref ref="mqAppender1"/>
-    </appender>
-
     <logger name="testLogger" additivity="false">
-        <level value="INFO" />
-        <appender-ref ref="mqAsyncAppender1" />
-        <appender-ref ref="consoleAppender" />
+        <level value="INFO"/>
+        <appender-ref ref="mqAppender1"/>
+        <appender-ref ref="consoleAppender"/>
     </logger>
 
     <logger name="consoleLogger" additivity="false">
-        <level value="INFO" />
-        <appender-ref ref="consoleAppender" />
+        <level value="INFO"/>
+        <appender-ref ref="consoleAppender"/>
     </logger>
 
 
     <root>
-        <level value="INFO" />
+        <level value="INFO"/>
         <appender-ref ref="consoleAppender"/>
     </root>
 

@@ -114,7 +114,7 @@ public class ConsumerSubCommand implements SubCommand {
                             String result =
                                 ConsumerRunningInfo.analyzeProcessQueue(next.getKey(), next.getValue());
                             if (result.length() > 0) {
-                                System.out.printf(result);
+                                System.out.printf("%s", result);
                             }
                         }
                     } else {
@@ -126,7 +126,7 @@ public class ConsumerSubCommand implements SubCommand {
                 ConsumerRunningInfo consumerRunningInfo =
                     defaultMQAdminExt.getConsumerRunningInfo(group, clientId, jstack);
                 if (consumerRunningInfo != null) {
-                    System.out.printf(consumerRunningInfo.formatString());
+                    System.out.printf("%s", consumerRunningInfo.formatString());
                 }
             }
         } catch (Exception e) {

@@ -25,12 +25,13 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.utils.HttpTinyClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TopAddressing {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+
     private String nsAddr;
     private String wsAddr;
     private String unitName;
@@ -78,7 +79,7 @@ public class TopAddressing {
                     log.error("fetch nameserver address is null");
                 }
             } else {
-                log.error("fetch nameserver address failed. statusCode={}", result.code);
+                log.error("fetch nameserver address failed. statusCode=" + result.code);
             }
         } catch (IOException e) {
             if (verbose) {

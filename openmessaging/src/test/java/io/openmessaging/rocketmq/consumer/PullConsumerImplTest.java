@@ -18,12 +18,10 @@ package io.openmessaging.rocketmq.consumer;
 
 import io.openmessaging.BytesMessage;
 import io.openmessaging.Message;
-import io.openmessaging.MessageHeader;
 import io.openmessaging.MessagingAccessPoint;
-import io.openmessaging.MessagingAccessPointFactory;
 import io.openmessaging.OMS;
-import io.openmessaging.PropertyKeys;
-import io.openmessaging.PullConsumer;
+import io.openmessaging.OMSBuiltinKeys;
+import io.openmessaging.consumer.PullConsumer;
 import io.openmessaging.rocketmq.config.ClientConfig;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import java.lang.reflect.Field;
@@ -46,19 +44,23 @@ public class PullConsumerImplTest {
 
     @Mock
     private DefaultMQPullConsumer rocketmqPullConsumer;
-    private LocalMessageCache localMessageCache =
-        spy(new LocalMessageCache(rocketmqPullConsumer, new ClientConfig()));
+    private LocalMessageCache localMessageCache = null;
 
     @Before
     public void init() throws NoSuchFieldException, IllegalAccessException {
-        final MessagingAccessPoint messagingAccessPoint = MessagingAccessPointFactory
-            .getMessagingAccessPoint("openmessaging:rocketmq://IP1:9876,IP2:9876/namespace");
-        consumer = messagingAccessPoint.createPullConsumer(queueName,
-            OMS.newKeyValue().put(NonStandardKeys.CONSUMER_GROUP, "TestGroup"));
+        final MessagingAccessPoint messagingAccessPoint = OMS
+            .getMessagingAccessPoint("oms:rocketmq://IP1:9876,IP2:9876/namespace");
+
+        consumer = messagingAccessPoint.createPullConsumer(OMS.newKeyValue().put(OMSBuiltinKeys.CONSUMER_ID, "TestGroup"));
+        consumer.attachQueue(queueName);
 
         Field field = PullConsumerImpl.class.getDeclaredField("rocketmqPullConsumer");
         field.setAccessible(true);
         field.set(consumer, rocketmqPullConsumer); //Replace
+
+        ClientConfig clientConfig = new ClientConfig();
+        clientConfig.setOperationTimeout(200);
+        localMessageCache = spy(new LocalMessageCache(rocketmqPullConsumer, clientConfig));
 
         field = PullConsumerImpl.class.getDeclaredField("localMessageCache");
         field.setAccessible(true);
@@ -79,18 +81,18 @@ public class PullConsumerImplTest {
 
         when(localMessageCache.poll()).thenReturn(consumedMsg);
 
-        Message message = consumer.poll();
-        assertThat(message.headers().getString(MessageHeader.MESSAGE_ID)).isEqualTo("NewMsgId");
-        assertThat(((BytesMessage) message).getBody()).isEqualTo(testBody);
+        Message message = consumer.receive();
+        assertThat(message.sysHeaders().getString(Message.BuiltinKeys.MESSAGE_ID)).isEqualTo("NewMsgId");
+        assertThat(((BytesMessage) message).getBody(byte[].class)).isEqualTo(testBody);
     }
 
     @Test
     public void testPoll_WithTimeout() {
         //There is a default timeout value, @see ClientConfig#omsOperationTimeout.
-        Message message = consumer.poll();
+        Message message = consumer.receive();
         assertThat(message).isNull();
 
-        message = consumer.poll(OMS.newKeyValue().put(PropertyKeys.OPERATION_TIMEOUT, 100));
+        message = consumer.receive(OMS.newKeyValue().put(Message.BuiltinKeys.TIMEOUT, 100));
         assertThat(message).isNull();
     }
 }

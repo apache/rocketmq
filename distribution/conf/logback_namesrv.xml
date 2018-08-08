@@ -22,8 +22,7 @@
         <file>${user.home}/logs/rocketmqlogs/namesrv_default.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/namesrv_default.%i.log
-            </fileNamePattern>
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/namesrv_default.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>5</maxIndex>
         </rollingPolicy>
@@ -42,8 +41,7 @@
         <file>${user.home}/logs/rocketmqlogs/namesrv.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/namesrv.%i.log
-            </fileNamePattern>
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/namesrv.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>5</maxIndex>
         </rollingPolicy>

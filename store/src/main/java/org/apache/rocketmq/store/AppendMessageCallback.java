@@ -27,23 +27,17 @@ public interface AppendMessageCallback {
     /**
      * After message serialization, write MapedByteBuffer
      *
-     * @param byteBuffer
-     * @param maxBlank
-     * @param msg
      * @return How many bytes to write
      */
     AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer,
-                                 final int maxBlank, final MessageExtBrokerInner msg);
+        final int maxBlank, final MessageExtBrokerInner msg);
 
     /**
      * After batched message serialization, write MapedByteBuffer
      *
-     * @param byteBuffer
-     * @param maxBlank
      * @param messageExtBatch, backed up by a byte array
-     *
      * @return How many bytes to write
      */
     AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer,
-                                 final int maxBlank, final MessageExtBatch messageExtBatch);
+        final int maxBlank, final MessageExtBatch messageExtBatch);
 }

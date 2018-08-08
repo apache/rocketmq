@@ -22,14 +22,14 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.filter.FilterFactory;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.filter.util.BloomFilter;
 import org.apache.rocketmq.filter.util.BloomFilterData;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -42,7 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ConsumerFilterManager extends ConfigManager {
 
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.FILTER_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.FILTER_LOGGER_NAME);
 
     private static final long MS_24_HOUR = 24 * 3600 * 1000;
 
@@ -72,16 +72,11 @@ public class ConsumerFilterManager extends ConfigManager {
     /**
      * Build consumer filter data.Be care, bloom filter data is not included.
      *
-     * @param topic
-     * @param consumerGroup
-     * @param expression
-     * @param type
-     * @param clientVersion
      * @return maybe null
      */
     public static ConsumerFilterData build(final String topic, final String consumerGroup,
-                                           final String expression, final String type,
-                                           final long clientVersion) {
+        final String expression, final String type,
+        final long clientVersion) {
         if (ExpressionType.isTagType(type)) {
             return null;
         }
@@ -140,7 +135,7 @@ public class ConsumerFilterManager extends ConfigManager {
     }
 
     public boolean register(final String topic, final String consumerGroup, final String expression,
-                            final String type, final long clientVersion) {
+        final String type, final long clientVersion) {
         if (ExpressionType.isTagType(type)) {
             return false;
         }
@@ -357,7 +352,8 @@ public class ConsumerFilterManager extends ConfigManager {
             data.setDeadTime(now);
         }
 
-        public boolean register(String consumerGroup, String expression, String type, BloomFilterData bloomFilterData, long clientVersion) {
+        public boolean register(String consumerGroup, String expression, String type, BloomFilterData bloomFilterData,
+            long clientVersion) {
             ConsumerFilterData old = this.groupFilterData.get(consumerGroup);
 
             if (old == null) {

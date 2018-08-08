@@ -19,21 +19,21 @@ package org.apache.rocketmq.broker.filter;
 
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.filter.ExpressionType;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.filter.util.BitsArray;
 import org.apache.rocketmq.filter.util.BloomFilter;
 import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.MessageFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
 
 public class ExpressionMessageFilter implements MessageFilter {
 
-    protected static final Logger log = LoggerFactory.getLogger(LoggerName.FILTER_LOGGER_NAME);
+    protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.FILTER_LOGGER_NAME);
 
     protected final SubscriptionData subscriptionData;
     protected final ConsumerFilterData consumerFilterData;
@@ -41,7 +41,7 @@ public class ExpressionMessageFilter implements MessageFilter {
     protected final boolean bloomDataValid;
 
     public ExpressionMessageFilter(SubscriptionData subscriptionData, ConsumerFilterData consumerFilterData,
-                                   ConsumerFilterManager consumerFilterManager) {
+        ConsumerFilterManager consumerFilterManager) {
         this.subscriptionData = subscriptionData;
         this.consumerFilterData = consumerFilterData;
         this.consumerFilterManager = consumerFilterManager;
@@ -70,7 +70,7 @@ public class ExpressionMessageFilter implements MessageFilter {
         // by tags code.
         if (ExpressionType.isTagType(subscriptionData.getExpressionType())) {
 
-            if (tagsCode == null || tagsCode < 0L) {
+            if (tagsCode == null) {
                 return true;
             }
 

@@ -74,8 +74,17 @@ public class DataVersion extends RemotingSerializable {
         int result = (int) (timestamp ^ (timestamp >>> 32));
         if (null != counter) {
             long l = counter.get();
-            result = 31 * result + (int)(l ^ (l >>> 32));
+            result = 31 * result + (int) (l ^ (l >>> 32));
         }
         return result;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("DataVersion[");
+        sb.append("timestamp=").append(timestamp);
+        sb.append(", counter=").append(counter);
+        sb.append(']');
+        return sb.toString();
     }
 }

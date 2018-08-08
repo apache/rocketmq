@@ -33,11 +33,11 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.srvutil.ServerUtil;
-import org.slf4j.Logger;
 
 public class Producer {
     public static void main(String[] args) throws MQClientException, UnsupportedEncodingException {
@@ -56,7 +56,7 @@ public class Producer {
 
         System.out.printf("topic %s threadCount %d messageSize %d keyEnable %s%n", topic, threadCount, messageSize, keyEnable);
 
-        final Logger log = ClientLogger.getLog();
+        final InternalLogger log = ClientLogger.getLog();
 
         final ExecutorService sendThreadPool = Executors.newFixedThreadPool(threadCount);
 
@@ -242,7 +242,7 @@ class StatsBenchmarkProducer {
     private final AtomicLong sendMessageMaxRT = new AtomicLong(0L);
 
     public Long[] createSnapshot() {
-        Long[] snap = new Long[]{
+        Long[] snap = new Long[] {
             System.currentTimeMillis(),
             this.sendRequestSuccessCount.get(),
             this.sendRequestFailedCount.get(),

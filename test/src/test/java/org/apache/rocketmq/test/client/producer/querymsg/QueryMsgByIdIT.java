@@ -23,7 +23,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
-import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListner;
+import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.TestUtils;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
@@ -44,12 +44,12 @@ public class QueryMsgByIdIT extends BaseConf {
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
         producer = getProducer(nsAddr, topic);
-        consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListner());
+        consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
     }
 
     @After
     public void tearDown() {
-        shutDown();
+        shutdown();
     }
 
     @Test
@@ -57,11 +57,11 @@ public class QueryMsgByIdIT extends BaseConf {
         int msgSize = 20;
         producer.send(msgSize);
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
-        consumer.getListner().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         Assert.assertEquals("Not all are consumed", 0, VerifyUtils.verify(producer.getAllMsgBody(),
-            consumer.getListner().getAllMsgBody()));
+            consumer.getListener().getAllMsgBody()));
 
-        MessageExt recvMsg = (MessageExt) consumer.getListner().getFirstMsg();
+        MessageExt recvMsg = (MessageExt) consumer.getListener().getFirstMsg();
         MessageExt queryMsg = null;
         try {
             TestUtils.waitForMoment(3000);

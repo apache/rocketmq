@@ -38,7 +38,7 @@ public class MessageDecoder {
     public final static int MESSAGE_FLAG_POSTION = 16;
     public final static int MESSAGE_PHYSIC_OFFSET_POSTION = 28;
     public final static int MESSAGE_STORE_TIMESTAMP_POSTION = 56;
-    public final static int MESSAGE_MAGIC_CODE = 0xAABBCCDD ^ 1880681586 + 8;
+    public final static int MESSAGE_MAGIC_CODE = -626843481;
     public static final char NAME_VALUE_SEPARATOR = 1;
     public static final char PROPERTY_SEPARATOR = 2;
     public static final int BODY_SIZE_POSITION = 4 // 1 TOTALSIZE
@@ -98,7 +98,6 @@ public class MessageDecoder {
      * Just decode properties from msg buffer.
      *
      * @param byteBuffer msg commit log buffer.
-     * @return
      */
     public static Map<String, String> decodeProperties(java.nio.ByteBuffer byteBuffer) {
         int topicLengthPosition = BODY_SIZE_POSITION + 4 + byteBuffer.getInt(BODY_SIZE_POSITION);
@@ -238,8 +237,6 @@ public class MessageDecoder {
 
         return byteBuffer.array();
     }
-
-
 
     public static MessageExt decode(
         java.nio.ByteBuffer byteBuffer, final boolean readBody, final boolean deCompressBody) {
@@ -414,7 +411,6 @@ public class MessageDecoder {
         return map;
     }
 
-
     public static byte[] encodeMessage(Message message) {
         //only need flag, body, properties
         byte[] body = message.getBody();
@@ -488,9 +484,9 @@ public class MessageDecoder {
 
     public static byte[] encodeMessages(List<Message> messages) {
         //TO DO refactor, accumulate in one buffer, avoid copies
-        List<byte[]>  encodedMessages = new ArrayList<byte[]>(messages.size());
+        List<byte[]> encodedMessages = new ArrayList<byte[]>(messages.size());
         int allSize = 0;
-        for (Message message: messages) {
+        for (Message message : messages) {
             byte[] tmp = encodeMessage(message);
             encodedMessages.add(tmp);
             allSize += tmp.length;
@@ -503,7 +499,6 @@ public class MessageDecoder {
         }
         return allBytes;
     }
-
 
     public static List<Message> decodeMessages(ByteBuffer byteBuffer) throws Exception {
         //TO DO add a callback for processing,  avoid creating lists

@@ -22,31 +22,31 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.net.Inet6Address;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.annotation.ImportantField;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
-import org.slf4j.Logger;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class MixAll {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
     public static final String ROCKETMQ_HOME_PROPERTY = "rocketmq.home.dir";
     public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
@@ -55,9 +55,9 @@ public class MixAll {
     public static final String DEFAULT_NAMESRV_ADDR_LOOKUP = "jmenv.tbsite.net";
     public static final String WS_DOMAIN_NAME = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);
     public static final String WS_DOMAIN_SUBGROUP = System.getProperty("rocketmq.namesrv.domain.subgroup", "nsaddr");
-//    // http://jmenv.tbsite.net:8080/rocketmq/nsaddr
-//    public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + ":8080/rocketmq/" + WS_DOMAIN_SUBGROUP;
-    public static final String DEFAULT_TOPIC = "TBW102";
+    //http://jmenv.tbsite.net:8080/rocketmq/nsaddr
+    //public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + ":8080/rocketmq/" + WS_DOMAIN_SUBGROUP;
+    public static final String AUTO_CREATE_TOPIC_KEY_TOPIC = "AUTO_CREATE_TOPIC_KEY"; // Will be created at broker when isAutoCreateTopicEnable
     public static final String BENCHMARK_TOPIC = "BenchmarkTest";
     public static final String DEFAULT_PRODUCER_GROUP = "DEFAULT_PRODUCER";
     public static final String DEFAULT_CONSUMER_GROUP = "DEFAULT_CONSUMER";
@@ -88,6 +88,10 @@ public class MixAll {
     public static final String UNIQUE_MSG_QUERY_FLAG = "_UNIQUE_KEY_QUERY";
     public static final String DEFAULT_TRACE_REGION_ID = "DefaultRegion";
     public static final String CONSUME_CONTEXT_TYPE = "ConsumeContextType";
+
+    public static final String RMQ_SYS_TRANS_HALF_TOPIC = "RMQ_SYS_TRANS_HALF_TOPIC";
+    public static final String RMQ_SYS_TRANS_OP_HALF_TOPIC = "RMQ_SYS_TRANS_OP_HALF_TOPIC";
+    public static final String CID_SYS_RMQ_TRANS = "CID_RMQ_SYS_TRANS";
 
     public static String getWSAddr() {
         String wsDomainName = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);
@@ -138,16 +142,6 @@ public class MixAll {
         return 0;
     }
 
-    public static long createBrokerId(final String ip, final int port) {
-        InetSocketAddress isa = new InetSocketAddress(ip, port);
-        byte[] ipArray = isa.getAddress().getAddress();
-        ByteBuffer bb = ByteBuffer.allocate(8);
-        bb.put(ipArray);
-        bb.putInt(port);
-        long value = bb.getLong(0);
-        return Math.abs(value);
-    }
-
     public static void string2File(final String str, final String fileName) throws IOException {
 
         String tmpFile = fileName + ".tmp";
@@ -165,7 +159,6 @@ public class MixAll {
         file = new File(tmpFile);
         file.renameTo(new File(fileName));
     }
-
 
     public static void string2FileNotSafe(final String str, final String fileName) throws IOException {
         File file = new File(fileName);
@@ -238,16 +231,12 @@ public class MixAll {
         return null;
     }
 
-    public static String findClassPath(Class<?> c) {
-        URL url = c.getProtectionDomain().getCodeSource().getLocation();
-        return url.getPath();
+    public static void printObjectProperties(final InternalLogger logger, final Object object) {
+        printObjectProperties(logger, object, false);
     }
 
-    public static void printObjectProperties(final Logger log, final Object object) {
-        printObjectProperties(log, object, false);
-    }
-
-    public static void printObjectProperties(final Logger log, final Object object, final boolean onlyImportantField) {
+    public static void printObjectProperties(final InternalLogger logger, final Object object,
+        final boolean onlyImportantField) {
         Field[] fields = object.getClass().getDeclaredFields();
         for (Field field : fields) {
             if (!Modifier.isStatic(field.getModifiers())) {
@@ -261,7 +250,7 @@ public class MixAll {
                             value = "";
                         }
                     } catch (IllegalAccessException e) {
-                        e.printStackTrace();
+                        log.error("Failed to obtain object properties", e);
                     }
 
                     if (onlyImportantField) {
@@ -271,8 +260,9 @@ public class MixAll {
                         }
                     }
 
-                    if (log != null) {
-                        log.info(name + "=" + value);
+                    if (logger != null) {
+                        logger.info(name + "=" + value);
+                    } else {
                     }
                 }
             }
@@ -294,11 +284,8 @@ public class MixAll {
         try {
             InputStream in = new ByteArrayInputStream(str.getBytes(DEFAULT_CHARSET));
             properties.load(in);
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-            return null;
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            log.error("Failed to handle properties", e);
             return null;
         }
 
@@ -318,7 +305,7 @@ public class MixAll {
                         field.setAccessible(true);
                         value = field.get(object);
                     } catch (IllegalAccessException e) {
-                        e.printStackTrace();
+                        log.error("Failed to handle properties", e);
                     }
 
                     if (value != null) {
@@ -393,23 +380,52 @@ public class MixAll {
         return inetAddressList;
     }
 
-    public static boolean isLocalAddr(String address) {
-        for (String addr : LOCAL_INET_ADDRESS) {
-            if (address.contains(addr))
-                return true;
-        }
-        return false;
-    }
-
     private static String localhost() {
         try {
-            InetAddress addr = InetAddress.getLocalHost();
-            return addr.getHostAddress();
+            return InetAddress.getLocalHost().getHostAddress();
         } catch (Throwable e) {
-            throw new RuntimeException("InetAddress java.net.InetAddress.getLocalHost() throws UnknownHostException"
-                + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION),
-                e);
+            try {
+                String candidatesHost = getLocalhostByNetworkInterface();
+                if (candidatesHost != null)
+                    return candidatesHost;
+
+            } catch (Exception ignored) {
+            }
+
+            throw new RuntimeException("InetAddress java.net.InetAddress.getLocalHost() throws UnknownHostException" + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION), e);
         }
+    }
+
+    //Reverse logic comparing to RemotingUtil method, consider refactor in RocketMQ 5.0
+    public static String getLocalhostByNetworkInterface() throws SocketException {
+        List<String> candidatesHost = new ArrayList<String>();
+        Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
+
+        while (enumeration.hasMoreElements()) {
+            NetworkInterface networkInterface = enumeration.nextElement();
+            // Workaround for docker0 bridge
+            if ("docker0".equals(networkInterface.getName()) || !networkInterface.isUp()) {
+                continue;
+            }
+            Enumeration<InetAddress> addrs = networkInterface.getInetAddresses();
+            while (addrs.hasMoreElements()) {
+                InetAddress address = addrs.nextElement();
+                if (address.isLoopbackAddress()) {
+                    continue;
+                }
+                //ip4 highter priority
+                if (address instanceof Inet6Address) {
+                    candidatesHost.add(address.getHostAddress());
+                    continue;
+                }
+                return address.getHostAddress();
+            }
+        }
+
+        if (!candidatesHost.isEmpty()) {
+            return candidatesHost.get(0);
+        }
+        return null;
     }
 
     public static boolean compareAndIncreaseOnly(final AtomicLong target, final long value) {
@@ -425,16 +441,6 @@ public class MixAll {
         return false;
     }
 
-    public static String localhostName() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (Throwable e) {
-            throw new RuntimeException("InetAddress java.net.InetAddress.getLocalHost() throws UnknownHostException"
-                + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION),
-                e);
-        }
-    }
-
     public static String humanReadableByteCount(long bytes, boolean si) {
         int unit = si ? 1000 : 1024;
         if (bytes < unit)
@@ -444,19 +450,4 @@ public class MixAll {
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 
-    public Set<String> list2Set(List<String> values) {
-        Set<String> result = new HashSet<String>();
-        for (String v : values) {
-            result.add(v);
-        }
-        return result;
-    }
-
-    public List<String> set2List(Set<String> values) {
-        List<String> result = new ArrayList<String>();
-        for (String v : values) {
-            result.add(v);
-        }
-        return result;
-    }
 }

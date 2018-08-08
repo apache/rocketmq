@@ -30,7 +30,7 @@ public class NotifyMessageArrivingListener implements MessageArrivingListener {
 
     @Override
     public void arriving(String topic, int queueId, long logicOffset, long tagsCode,
-                         long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
+        long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         this.pullRequestHoldService.notifyMessageArriving(topic, queueId, logicOffset, tagsCode,
             msgStoreTime, filterBitMap, properties);
     }
