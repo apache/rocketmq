@@ -142,7 +142,7 @@ public class ServiceProvider {
                     return null;
                 }
             } catch (Exception e) {
-                LOG.error("Error occurred when looking for resource file " + name, e);
+                LOG.warn("Error occurred when looking for resource file " + name, e);
             }
         }
         return null;
