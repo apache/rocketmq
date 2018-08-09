@@ -43,7 +43,7 @@ public class TransactionProducer {
                 return thread;
             }
         });
-        LocalTransactionExecuter executor = new LocalTransactionExecuterImpl();
+        LocalTransactionExecuter localTransactionExecuter = new LocalTransactionExecuterImpl();
         producer.setExecutorService(executorService);
         producer.setTransactionCheckListener(transactionListener);
         producer.start();
@@ -54,7 +54,7 @@ public class TransactionProducer {
                 Message msg =
                     new Message("TopicTest1234", tags[i % tags.length], "KEY" + i,
                         ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
-                SendResult sendResult = producer.sendMessageInTransaction(msg, executor,null);
+                SendResult sendResult = producer.sendMessageInTransaction(msg, localTransactionExecuter,null);
                 System.out.printf("%s%n", sendResult);
 
                 Thread.sleep(10);
