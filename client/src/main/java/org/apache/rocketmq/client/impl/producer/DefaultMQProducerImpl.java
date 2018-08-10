@@ -54,6 +54,7 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.client.producer.TransactionCheckListener;
+import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.client.producer.TransactionSendResult;
 import org.apache.rocketmq.common.MixAll;
@@ -120,7 +121,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (producer.getExecutorService() != null) {
             this.checkExecutor = producer.getExecutorService();
         } else {
-            this.checkRequestQueue = new LinkedBlockingQueue<Runnable>(2000);
+            this.checkRequestQueue = new LinkedBlockingQueue<Runnable>(producer.getCheckRequestHoldMax());
             this.checkExecutor = new ThreadPoolExecutor(
                 producer.getCheckThreadPoolMinSize(),
                 producer.getCheckThreadPoolMaxSize(),
@@ -244,7 +245,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return null == prev || !prev.ok();
     }
 
+    /**
+     * This method will be removed in the version 5.0.0 and <code>getCheckListener</code> is recommended.
+     * @return
+     */
     @Override
+    @Deprecated
     public TransactionCheckListener checkListener() {
         if (this.defaultMQProducer instanceof TransactionMQProducer) {
             TransactionMQProducer producer = (TransactionMQProducer) defaultMQProducer;
@@ -255,7 +261,15 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     @Override
+    public TransactionListener getCheckListener() {
+        if (this.defaultMQProducer instanceof TransactionMQProducer) {
+            TransactionMQProducer producer = (TransactionMQProducer) defaultMQProducer;
+            return producer.getTransactionListener();
+        }
+        return null;
+    }
 
+    @Override
     public void checkTransactionState(final String addr, final MessageExt msg,
         final CheckTransactionStateRequestHeader header) {
         Runnable request = new Runnable() {
@@ -267,11 +281,19 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             @Override
             public void run() {
                 TransactionCheckListener transactionCheckListener = DefaultMQProducerImpl.this.checkListener();
-                if (transactionCheckListener != null) {
+                TransactionListener transactionListener = getCheckListener();
+                if (transactionCheckListener != null || transactionListener != null) {
                     LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
                     Throwable exception = null;
                     try {
-                        localTransactionState = transactionCheckListener.checkLocalTransactionState(message);
+                        if (transactionCheckListener != null) {
+                            localTransactionState = transactionCheckListener.checkLocalTransactionState(message);
+                        } else if (transactionListener != null) {
+                            log.info("Used new check API in transaction message");
+                            localTransactionState = transactionListener.checkLocalTransaction(message);
+                        } else {
+                            log.warn("CheckTransactionState, pick transactionListener by group[{}] failed", group);
+                        }
                     } catch (Throwable e) {
                         log.error("Broker call checkTransactionState, but checkLocalTransactionState exception", e);
                         exception = e;
@@ -282,7 +304,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         group,
                         exception);
                 } else {
-                    log.warn("checkTransactionState, pick transactionCheckListener by group[{}] failed", group);
+                    log.warn("CheckTransactionState, pick transactionCheckListener by group[{}] failed", group);
                 }
             }
 
@@ -1100,7 +1122,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     public TransactionSendResult sendMessageInTransaction(final Message msg,
                                                           final LocalTransactionExecuter localTransactionExecuter, final Object arg)
         throws MQClientException {
-        if (null == localTransactionExecuter) {
+        TransactionListener transactionListener = getCheckListener();
+        if (null == localTransactionExecuter && null == transactionListener) {
             throw new MQClientException("tranExecutor is null", null);
         }
         Validators.checkMessage(msg, this.defaultMQProducer);
@@ -1126,7 +1149,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     if (null != transactionId && !"".equals(transactionId)) {
                         msg.setTransactionId(transactionId);
                     }
-                    localTransactionState = localTransactionExecuter.executeLocalTransactionBranch(msg, arg);
+                    if (null != localTransactionExecuter) {
+                        localTransactionState = localTransactionExecuter.executeLocalTransactionBranch(msg, arg);
+                    } else if (transactionListener != null) {
+                        log.info("Used new transaction API");
+                        transactionListener.executeLocalTransaction(msg, arg);
+                    }
                     if (null == localTransactionState) {
                         localTransactionState = LocalTransactionState.UNKNOW;
                     }

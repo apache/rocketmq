@@ -477,6 +477,19 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
+     * This method is used to send transactional messages.
+     * @param msg Transactional message to send.
+     * @param arg Argument used along with local transaction executor.
+     * @return Transaction result.
+     * @throws MQClientException
+     */
+    @Override
+    public TransactionSendResult sendMessageInTransaction(Message msg,
+        Object arg) throws MQClientException {
+        throw new RuntimeException("sendMessageInTransaction not implement, please use TransactionMQProducer class");
+    }
+
+    /**
      * Create a topic on broker.
      *
      * @param key accesskey
