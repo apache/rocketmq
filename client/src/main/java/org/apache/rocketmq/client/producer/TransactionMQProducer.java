@@ -31,7 +31,6 @@ public class TransactionMQProducer extends DefaultMQProducer {
 
     private TransactionListener transactionListener;
 
-
     public TransactionMQProducer() {
     }
 
@@ -55,9 +54,9 @@ public class TransactionMQProducer extends DefaultMQProducer {
         this.defaultMQProducerImpl.destroyTransactionEnv();
     }
 
-
     /**
-     * This method will be removed in the version 5.0.0, method <code>sendMessageInTransaction(Message,Object)</code>} is recommended.
+     * This method will be removed in the version 5.0.0, method <code>sendMessageInTransaction(Message,Object)</code>}
+     * is recommended.
      */
     @Override
     @Deprecated
@@ -71,7 +70,8 @@ public class TransactionMQProducer extends DefaultMQProducer {
     }
 
     @Override
-    public TransactionSendResult sendMessageInTransaction(final Message msg, final Object arg) throws MQClientException {
+    public TransactionSendResult sendMessageInTransaction(final Message msg,
+        final Object arg) throws MQClientException {
         if (null == this.transactionListener) {
             throw new MQClientException("TransactionListener is null", null);
         }
