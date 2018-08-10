@@ -37,7 +37,7 @@ export CLASSPATH=.:${BASE_DIR}/conf:${CLASSPATH}
 # JVM Configuration
 #===========================================================================================
 # Get the max heap used by a jvm, which used all the ram available to the container.
-MAX_POSSIBLE_HEAP_STR=$(java -XX:+UnlockExperimentalVMOptions -XX:MaxRAMFraction=1 -XshowSettings:vm -version |& awk '/Max\. Heap Size \(Estimated\): [0-9KMG]+/{ print $5}')
+MAX_POSSIBLE_HEAP_STR=$(java -XX:+UnlockExperimentalVMOptions -XX:MaxRAMFraction=1 -XshowSettings:vm -version 2>&1 | awk '/Max\. Heap Size \(Estimated\): [0-9KMG]+/{ print $5}')
 MAX_POSSIBLE_HEAP=$MAX_POSSIBLE_HEAP_STR
 CAL_UNIT=${MAX_POSSIBLE_HEAP_STR: -1}
 if [ "$CAL_UNIT" == "G" -o "$CAL_UNIT" == "g" ]; then
