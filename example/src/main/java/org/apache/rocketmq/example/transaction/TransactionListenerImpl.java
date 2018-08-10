@@ -16,18 +16,30 @@
  */
 package org.apache.rocketmq.example.transaction;
 
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
-import org.apache.rocketmq.client.producer.TransactionCheckListener;
+import org.apache.rocketmq.client.producer.TransactionListener;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 
-public class TransactionCheckListenerImpl implements TransactionCheckListener {
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
-    private AtomicInteger localTrans = new AtomicInteger(0);
+public class TransactionListenerImpl implements TransactionListener {
+    private AtomicInteger transactionIndex = new AtomicInteger(0);
+
+    private ConcurrentHashMap<String, Integer> localTrans = new ConcurrentHashMap<>();
 
     @Override
-    public LocalTransactionState checkLocalTransactionState(MessageExt msg) {
-        Integer status = localTrans.getAndIncrement() % 3;
+    public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {
+        int value = transactionIndex.getAndIncrement();
+        int status = value % 3;
+        localTrans.put(msg.getTransactionId(), status);
+        return LocalTransactionState.UNKNOW;
+    }
+
+    @Override
+    public LocalTransactionState checkLocalTransaction(MessageExt msg) {
+        Integer status = localTrans.get(msg.getTransactionId());
         if (null != status) {
             switch (status) {
                 case 0:

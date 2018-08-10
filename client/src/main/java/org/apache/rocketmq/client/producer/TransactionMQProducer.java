@@ -17,8 +17,11 @@
 package org.apache.rocketmq.client.producer;
 
 import java.util.concurrent.ExecutorService;
+import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.remoting.RPCHook;
 
 public class TransactionMQProducer extends DefaultMQProducer {
@@ -28,6 +31,9 @@ public class TransactionMQProducer extends DefaultMQProducer {
     private int checkRequestHoldMax = 2000;
 
     private ExecutorService executorService;
+
+    private TransactionListener transactionListener;
+
 
     public TransactionMQProducer() {
     }
@@ -52,7 +58,12 @@ public class TransactionMQProducer extends DefaultMQProducer {
         this.defaultMQProducerImpl.destroyTransactionEnv();
     }
 
+
+    /**
+     * This method will be removed in the version 5.0.0, method <code>sendMessageInTransaction(Message,Object)</code>} is recommended.
+     */
     @Override
+    @Deprecated
     public TransactionSendResult sendMessageInTransaction(final Message msg,
         final LocalTransactionExecuter tranExecuter, final Object arg) throws MQClientException {
         if (null == this.transactionCheckListener) {
@@ -62,10 +73,23 @@ public class TransactionMQProducer extends DefaultMQProducer {
         return this.defaultMQProducerImpl.sendMessageInTransaction(msg, tranExecuter, arg);
     }
 
+    @Override
+    public TransactionSendResult sendMessageInTransaction(final Message msg, final Object arg) throws MQClientException {
+        if (null == this.transactionListener) {
+            throw new MQClientException("TransactionListener is null", null);
+        }
+
+        return this.defaultMQProducerImpl.sendMessageInTransaction(msg, null, arg);
+    }
+
     public TransactionCheckListener getTransactionCheckListener() {
         return transactionCheckListener;
     }
 
+    /**
+     * This method will be removed in the version 5.0.0 and set a custom thread pool is recommended.
+     */
+    @Deprecated
     public void setTransactionCheckListener(TransactionCheckListener transactionCheckListener) {
         this.transactionCheckListener = transactionCheckListener;
     }
@@ -74,6 +98,10 @@ public class TransactionMQProducer extends DefaultMQProducer {
         return checkThreadPoolMinSize;
     }
 
+    /**
+     * This method will be removed in the version 5.0.0 and set a custom thread pool is recommended.
+     */
+    @Deprecated
     public void setCheckThreadPoolMinSize(int checkThreadPoolMinSize) {
         this.checkThreadPoolMinSize = checkThreadPoolMinSize;
     }
@@ -82,6 +110,10 @@ public class TransactionMQProducer extends DefaultMQProducer {
         return checkThreadPoolMaxSize;
     }
 
+    /**
+     * This method will be removed in the version 5.0.0 and set a custom thread pool is recommended.
+     */
+    @Deprecated
     public void setCheckThreadPoolMaxSize(int checkThreadPoolMaxSize) {
         this.checkThreadPoolMaxSize = checkThreadPoolMaxSize;
     }
@@ -90,6 +122,10 @@ public class TransactionMQProducer extends DefaultMQProducer {
         return checkRequestHoldMax;
     }
 
+    /**
+     * This method will be removed in the version 5.0.0 and set a custom thread pool is recommended.
+     */
+    @Deprecated
     public void setCheckRequestHoldMax(int checkRequestHoldMax) {
         this.checkRequestHoldMax = checkRequestHoldMax;
     }
@@ -100,5 +136,13 @@ public class TransactionMQProducer extends DefaultMQProducer {
 
     public void setExecutorService(ExecutorService executorService) {
         this.executorService = executorService;
+    }
+
+    public TransactionListener getTransactionListener() {
+        return transactionListener;
+    }
+
+    public void setTransactionListener(TransactionListener transactionListener) {
+        this.transactionListener = transactionListener;
     }
 }

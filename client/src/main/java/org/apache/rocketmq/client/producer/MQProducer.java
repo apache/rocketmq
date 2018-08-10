@@ -83,6 +83,9 @@ public interface MQProducer extends MQAdmin {
     TransactionSendResult sendMessageInTransaction(final Message msg,
         final LocalTransactionExecuter tranExecuter, final Object arg) throws MQClientException;
 
+    TransactionSendResult sendMessageInTransaction(final Message msg,
+        final Object arg) throws MQClientException;
+
     //for batch
     SendResult send(final Collection<Message> msgs) throws MQClientException, RemotingException, MQBrokerException,
         InterruptedException;
