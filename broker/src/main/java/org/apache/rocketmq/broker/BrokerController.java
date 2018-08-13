@@ -741,6 +741,10 @@ public class BrokerController {
         if (this.fileWatchService != null) {
             this.fileWatchService.shutdown();
         }
+        
+        if (this.transactionalMessageCheckService != null) {
+            this.transactionalMessageCheckService.shutdown(false);
+        }
     }
 
     private void unregisterBrokerAll() {
