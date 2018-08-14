@@ -167,4 +167,12 @@ public class RequestCode {
     public static final int QUERY_CONSUME_QUEUE = 321;
 
     public static final int QUERY_DATA_VERSION = 322;
+
+    /**
+     * ACL config
+     */
+    public static final int ACL_WRITE_CONFIG = 323;
+
+    public static final int ACL_READ_CONFIG = 324;
+
 }

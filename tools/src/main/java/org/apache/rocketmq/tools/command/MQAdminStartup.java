@@ -56,6 +56,8 @@ import org.apache.rocketmq.tools.command.message.QueryMsgByKeySubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByOffsetSubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByUniqueKeySubCommand;
 import org.apache.rocketmq.tools.command.message.SendMessageCommand;
+import org.apache.rocketmq.tools.command.namesrv.AclConfigReadCommand;
+import org.apache.rocketmq.tools.command.namesrv.AclConfigWriteCommand;
 import org.apache.rocketmq.tools.command.namesrv.DeleteKvConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.GetNamesrvConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.UpdateKvConfigCommand;
@@ -197,6 +199,9 @@ public class MQAdminStartup {
         initCommand(new QueryConsumeQueueCommand());
         initCommand(new SendMessageCommand());
         initCommand(new ConsumeMessageCommand());
+
+        initCommand(new AclConfigReadCommand());
+        initCommand(new AclConfigWriteCommand());
     }
 
     private static void initLogback() throws JoranException {

@@ -58,6 +58,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.namesrv.TopAddressing;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.AclConfigData;
 import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.common.protocol.body.CheckClientRequestBody;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
@@ -1070,7 +1071,7 @@ public class MQClientAPIImpl {
     }
 
     public ProducerConnection getProducerConnectionList(final String addr, final String producerGroup,
-        final long timeoutMillis)
+                                                        final long timeoutMillis)
         throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException,
         MQBrokerException {
         GetProducerConnectionListRequestHeader requestHeader = new GetProducerConnectionListRequestHeader();
@@ -1092,7 +1093,7 @@ public class MQClientAPIImpl {
     }
 
     public ConsumerConnection getConsumerConnectionList(final String addr, final String consumerGroup,
-        final long timeoutMillis)
+                                                        final long timeoutMillis)
         throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException,
         MQBrokerException {
         GetConsumerConnectionListRequestHeader requestHeader = new GetConsumerConnectionListRequestHeader();
@@ -1523,7 +1524,7 @@ public class MQClientAPIImpl {
     }
 
     public List<QueueTimeSpan> queryConsumeTimeSpan(final String addr, final String topic, final String group,
-        final long timeoutMillis)
+                                                    final long timeoutMillis)
         throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException,
         MQBrokerException {
         QueryConsumeTimeSpanRequestHeader requestHeader = new QueryConsumeTimeSpanRequestHeader();
@@ -1919,7 +1920,7 @@ public class MQClientAPIImpl {
     }
 
     public ConsumeStatsList fetchConsumeStatsInBroker(String brokerAddr, boolean isOrder,
-        long timeoutMillis) throws MQClientException,
+                                                      long timeoutMillis) throws MQClientException,
         RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
         GetConsumeStatsInBrokerHeader requestHeader = new GetConsumeStatsInBrokerHeader();
         requestHeader.setIsOrder(isOrder);
@@ -1944,7 +1945,7 @@ public class MQClientAPIImpl {
     }
 
     public SubscriptionGroupWrapper getAllSubscriptionGroup(final String brokerAddr,
-        long timeoutMillis) throws InterruptedException,
+                                                            long timeoutMillis) throws InterruptedException,
         RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG, null);
         RemotingCommand response = this.remotingClient
@@ -1961,7 +1962,7 @@ public class MQClientAPIImpl {
     }
 
     public TopicConfigSerializeWrapper getAllTopicConfig(final String addr,
-        long timeoutMillis) throws RemotingConnectException,
+                                                         long timeoutMillis) throws RemotingConnectException,
         RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, null);
 
@@ -2042,9 +2043,9 @@ public class MQClientAPIImpl {
     }
 
     public QueryConsumeQueueResponseBody queryConsumeQueue(final String brokerAddr, final String topic,
-        final int queueId,
-        final long index, final int count, final String consumerGroup,
-        final long timeoutMillis) throws InterruptedException,
+                                                           final int queueId,
+                                                           final long index, final int count, final String consumerGroup,
+                                                           final long timeoutMillis) throws InterruptedException,
         RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
 
         QueryConsumeQueueRequestHeader requestHeader = new QueryConsumeQueueRequestHeader();
@@ -2088,5 +2089,83 @@ public class MQClientAPIImpl {
         if (ResponseCode.SUCCESS != response.getCode()) {
             throw new MQClientException(response.getCode(), response.getRemark());
         }
+    }
+
+    public boolean aclWriteConfig(final String instanceName, final String topic, final String operation, final long timeoutMillis)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+        RemotingConnectException, MQClientException {
+
+        if (instanceName == null || instanceName.length() < 1) {
+            return false;
+        }
+        if (topic == null || topic.length() < 1) {
+            return false;
+        }
+        if (operation == null || operation.length() < 1) {
+            return false;
+        }
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.ACL_WRITE_CONFIG, null);
+
+        AclConfigData aclConfigData = new AclConfigData();
+        aclConfigData.setInstanceName(instanceName);
+        aclConfigData.setTopic(topic);
+        aclConfigData.setOperation(operation);
+
+        request.setBody(aclConfigData.encode());
+
+        List<String> invokeNameServers = this.remotingClient.getNameServerAddressList();
+
+        RemotingCommand errResponse = null;
+        for (String nameServer : invokeNameServers) {
+            RemotingCommand response = this.remotingClient.invokeSync(nameServer, request, timeoutMillis);
+            assert response != null;
+            switch (response.getCode()) {
+                case ResponseCode.SUCCESS: {
+                    break;
+                }
+                default:
+                    errResponse = response;
+            }
+        }
+
+        if (errResponse != null) {
+            throw new MQClientException(errResponse.getCode(), errResponse.getRemark());
+        }
+
+        return true;
+    }
+
+    public AclConfigData aclReadConfig(final String instanceName, final String topic, final String operation, final long timeoutMillis)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+        RemotingConnectException, MQClientException  {
+
+        if (instanceName == null || instanceName.length() < 1) {
+            return null;
+        }
+        if (topic == null || topic.length() < 1) {
+            return null;
+        }
+        if (operation == null || operation.length() < 1) {
+            return null;
+        }
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.ACL_READ_CONFIG, null);
+
+        AclConfigData aclConfigData = new AclConfigData();
+        aclConfigData.setInstanceName(instanceName);
+        aclConfigData.setTopic(topic);
+        aclConfigData.setOperation(operation);
+
+        request.setBody(aclConfigData.encode());
+
+        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
+        assert response != null;
+
+        if (ResponseCode.SUCCESS == response.getCode()) {
+            return AclConfigData.decode(response.getBody(), AclConfigData.class);
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
     }
 }
