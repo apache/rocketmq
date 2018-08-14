@@ -19,6 +19,7 @@ package org.apache.rocketmq.client.impl;
 import java.lang.reflect.Field;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.hook.SendMessageContext;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -28,12 +29,16 @@ import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.AclConfigData;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RemotingClient;
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -50,8 +55,10 @@ import static org.assertj.core.api.Fail.failBecauseExceptionWasNotThrown;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -208,6 +215,36 @@ public class MQClientAPIImplTest {
         } catch (InterruptedException e) {
             assertThat(e).hasMessage("Interrupted Exception in Test");
         }
+    }
+
+    @Test
+    public void testAclWriteConfig() throws InterruptedException, RemotingSendRequestException, RemotingTimeoutException, RemotingTooMuchRequestException, RemotingConnectException, MQClientException {
+        doNothing().when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
+
+        boolean result = mqClientAPI.aclWriteConfig("test", "test", "rw", 1000);
+        assertThat(result).isEqualTo(true);
+
+
+        RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(3, "error");
+        doReturn(remotingCommand).when(remotingClient)
+                .invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+        try {
+            mqClientAPI.aclWriteConfig("test", "test1", "r", 1000);
+        } catch (MQClientException e) {
+            assertThat(e).hasFieldOrPropertyWithValue("responseCode", 3);
+        }
+
+
+    }
+
+    @Test
+    public void testAclReadConfig() throws InterruptedException, RemotingSendRequestException, RemotingTimeoutException, RemotingTooMuchRequestException, RemotingConnectException, MQClientException {
+        RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(0, "ok");
+        remotingCommand.setBody("{\"test\": \"test\"}".getBytes());
+        doReturn(remotingCommand).when(remotingClient).invokeSync((String) eq(null), any(RemotingCommand.class), anyLong());
+
+        AclConfigData aclConfigData = mqClientAPI.aclReadConfig("test", "test", "rw", 1000);
+        assertThat(aclConfigData).isNotNull();
     }
 
     private RemotingCommand createSuccessResponse(RemotingCommand request) {
