@@ -22,6 +22,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+import org.apache.rocketmq.broker.acl.AclRPCHook;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -62,6 +63,7 @@ public class BrokerStartup {
         try {
 
             controller.start();
+            controller.registerClientRPCHook(new AclRPCHook(controller.getBrokerOuterAPI()));
 
             String tip = "The broker[" + controller.getBrokerConfig().getBrokerName() + ", "
                 + controller.getBrokerAddr() + "] boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();

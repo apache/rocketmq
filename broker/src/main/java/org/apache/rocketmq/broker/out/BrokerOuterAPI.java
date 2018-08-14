@@ -31,6 +31,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.protocol.body.AclConfigData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
@@ -384,6 +385,27 @@ public class BrokerOuterAPI {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 return SubscriptionGroupWrapper.decode(response.getBody(), SubscriptionGroupWrapper.class);
+            }
+            default:
+                break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    /**
+     * Get acl data.
+     * @return
+     */
+    public AclConfigData getAclData(final String addr) throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException, MQBrokerException {
+        // 300, acl code request
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.ACL_READ_CONFIG, null);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return AclConfigData.decode(response.getBody(), AclConfigData.class);
             }
             default:
                 break;
