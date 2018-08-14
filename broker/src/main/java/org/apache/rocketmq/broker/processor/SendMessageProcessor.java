@@ -49,14 +49,20 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 public class SendMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
 
     private List<ConsumeMessageHook> consumeMessageHookList;
 
+    private static final String ROCKETMQ_USERS="rocketmq.users";
+
+    private static final String ROCKETMQ_USER="rocketmq.user";
     public SendMessageProcessor(final BrokerController brokerController) {
         super(brokerController);
     }
@@ -78,6 +84,28 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
 
                 RemotingCommand response;
+
+                Properties properties=new Properties();
+                try {
+                    properties.load(new FileInputStream(brokerController.getBrokerConfig().getRocketmqHome()+"/conf"
+                        + "/acl.conf"));
+                } catch (IOException e) {
+                    log.error("load acl conf file {} failed",brokerController.getBrokerConfig().getRocketmqHome()+"/conf"
+                        + "/acl.conf");
+
+                }
+                if(!properties.isEmpty()){
+                    if(!((String)properties.get(ROCKETMQ_USERS)).contains(request.getExtFields().get(ROCKETMQ_USER))){
+                        response=RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
+                       // response.setOpaque(request.getOpaque());
+                        response.setCode(ResponseCode.NO_PERMISSION);
+                        response.setRemark("the broker[" + "the user:"+request.getExtFields().get(ROCKETMQ_USER)
+                            + "] do not have permission, sending message is forbidden");
+                        return response;
+                    }
+                }
+
+
                 if (requestHeader.isBatch()) {
                     response = this.sendBatchMessage(ctx, request, mqtraceContext, requestHeader);
                 } else {

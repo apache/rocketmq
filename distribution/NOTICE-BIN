@@ -32,5 +32,5 @@ the 'license' directory of the distribution file, for the license terms of the
 components that this product depends on.
 
 ------
-This product has a bundle commons-lang, which includes software from the Spring Framework,
+This product has a bundle commons-lang, which includes software from the  Framework,
 under the Apache License 2.0 (see: StringUtils.containsWhitespace())
