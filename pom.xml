@@ -125,6 +125,7 @@
         <module>distribution</module>
         <module>openmessaging</module>
         <module>logging</module>
+        <module>acl</module>
     </modules>
 
     <build>
@@ -604,6 +605,16 @@
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-slf4j-impl</artifactId>
                 <version>2.7</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>acl</artifactId>
+                <version>4.4.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>acl-hook</artifactId>
+                <version>4.4.0-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

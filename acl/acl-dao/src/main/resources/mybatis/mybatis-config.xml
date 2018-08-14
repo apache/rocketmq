@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- mybatis的配置文件 -->
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <settings>
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+    </settings>
+
+    <typeAliases>
+        <package name="org.apache.rocketmq.acl.dao.domain"/>
+        <package name="org.apache.rocketmq.acl.dao.query"/>
+    </typeAliases>
+
+    <!-- 配置Mybatis运行环境 -->
+    <environments default="development">
+        <environment id="development">
+            <!-- type="JDBC" 代表使用JDBC的提交和回滚来管理事务 -->
+            <transactionManager type="JDBC"/>
+            <!-- mybatis提供了3种数据源类型，分别是：POOLED,UNPOOLED,JNDI -->
+            <!-- POOLED 表示支持JDBC数据源连接池 -->
+            <!-- UNPOOLED 表示不支持数据源连接池 -->
+            <!-- JNDI 表示支持外部数据源连接池 -->
+            <dataSource type="POOLED">
+                <!-- 数据库的具体配置 -->
+                <!-- url表示你数据库的地址
+                     username表示的是数据库的用户
+                     password表示的是数据库的密码-->
+                <property name="driver" value="com.mysql.jdbc.Driver"/>
+                <property name="url" value="jdbc:mysql://localhost:3306/rocketmq"/>
+                <property name="username" value="root"/>
+                <property name="password" value="root"/>
+            </dataSource>
+        </environment>
+    </environments>
+
+    <!-- 注册StudentMapper.xml映射文件 -->
+    <mappers>
+        <mapper resource="mybatis/AclDAOMapper.xml"/>
+    </mappers>
+
+</configuration>

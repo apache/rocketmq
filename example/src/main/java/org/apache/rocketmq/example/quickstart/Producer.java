@@ -16,11 +16,14 @@
  */
 package org.apache.rocketmq.example.quickstart;
 
+import com.google.common.collect.Maps;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+
+import java.util.Map;
 
 /**
  * This class demonstrates how to send messages to brokers using provided {@link DefaultMQProducer}.
@@ -56,6 +59,8 @@ public class Producer {
                 /*
                  * Create a message instance, specifying topic, tag and message body.
                  */
+                Map<String,String> map = Maps.newHashMap();
+                map.put("acl","hanxiACL");
                 Message msg = new Message("TopicTest" /* Topic */,
                     "TagA" /* Tag */,
                     ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
