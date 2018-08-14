@@ -16,7 +16,12 @@
  */
 package org.apache.rocketmq.common;
 
+import org.apache.rocketmq.broker.acl.dao.AclDao;
+import org.apache.rocketmq.broker.acl.domain.AclDomain;
 import org.apache.rocketmq.common.constant.PermName;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class TopicConfig {
     private static final String SEPARATOR = " ";
@@ -29,7 +34,10 @@ public class TopicConfig {
     private TopicFilterType topicFilterType = TopicFilterType.SINGLE_TAG;
     private int topicSysFlag = 0;
     private boolean order = false;
-
+    public static Map<String, AclDomain> aclMap= new HashMap<String,AclDomain>();
+    static {
+        AclDao.recoverFromLog();
+    }
     public TopicConfig() {
     }
 

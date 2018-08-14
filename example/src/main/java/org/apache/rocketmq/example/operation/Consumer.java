@@ -44,7 +44,7 @@ public class Consumer {
             DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
             consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
-            consumer.subscribe(topic, subscription);
+            consumer.subscribe(topic,"","", subscription);
 
             consumer.registerMessageListener(new MessageListenerConcurrently() {
                 AtomicLong consumeTimes = new AtomicLong(0);

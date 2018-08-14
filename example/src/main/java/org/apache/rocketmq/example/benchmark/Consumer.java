@@ -106,16 +106,16 @@ public class Consumer {
         consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         if (filterType == null || expression == null) {
-            consumer.subscribe(topic, "*");
+            consumer.subscribe(topic,"","", "*");
         } else {
             if (ExpressionType.TAG.equals(filterType)) {
                 String expr = MixAll.file2String(expression);
                 System.out.printf("Expression: %s%n", expr);
-                consumer.subscribe(topic, MessageSelector.byTag(expr));
+                consumer.subscribe(topic,"","", MessageSelector.byTag(expr));
             } else if (ExpressionType.SQL92.equals(filterType)) {
                 String expr = MixAll.file2String(expression);
                 System.out.printf("Expression: %s%n", expr);
-                consumer.subscribe(topic, MessageSelector.bySql(expr));
+                consumer.subscribe(topic,"","", MessageSelector.bySql(expr));
             } else {
                 throw new IllegalArgumentException("Not support filter type! " + filterType);
             }

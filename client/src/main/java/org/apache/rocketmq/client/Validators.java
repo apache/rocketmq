@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.client;
 
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -33,6 +34,8 @@ public class Validators {
     public static final String VALID_PATTERN_STR = "^[%|a-zA-Z0-9_-]+$";
     public static final Pattern PATTERN = Pattern.compile(VALID_PATTERN_STR);
     public static final int CHARACTER_MAX_LENGTH = 255;
+    public static final String USERID = "userId";
+    public static final String PASSWD = "passwd";
 
     /**
      * @return The resulting {@code String}
@@ -98,6 +101,16 @@ public class Validators {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL,
                 "the message body size over max value, MAX: " + defaultMQProducer.getMaxMessageSize());
         }
+
+        //validate userID
+        if (msg.getUserProperty(USERID) == null || msg.getUserProperty(USERID).equals("")){
+            throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the userId can not be null or empty");
+        }
+        //validate passwd
+        if (msg.getUserProperty(PASSWD) == null || msg.getUserProperty(PASSWD).equals("")){
+            throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the userId can not be null or empty");
+        }
+
     }
 
     /**
