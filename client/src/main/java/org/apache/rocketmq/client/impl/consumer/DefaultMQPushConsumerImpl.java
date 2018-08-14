@@ -79,6 +79,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     /**
      * Delay some time when exception occur
+     *
      */
     private static final long PULL_TIME_DELAY_MILLS_WHEN_EXCEPTION = 3000;
     /**
@@ -857,7 +858,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         return this.rebalanceImpl.getSubscriptionInner();
     }
 
-    public void subscribe(String topic, String subExpression) throws MQClientException {
+    public void subscribe(String topic, String userId, String passwd, String subExpression) throws MQClientException {
         try {
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),
                 topic, subExpression);
@@ -870,7 +871,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
     }
 
-    public void subscribe(String topic, String fullClassName, String filterClassSource) throws MQClientException {
+    public void subscribe(String topic, String userId, String passwd, String fullClassName, String filterClassSource) throws MQClientException {
         try {
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),
                 topic, "*");
@@ -887,10 +888,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
     }
 
-    public void subscribe(final String topic, final MessageSelector messageSelector) throws MQClientException {
+    public void subscribe(final String topic, String userId, String passwd, final MessageSelector messageSelector) throws MQClientException {
         try {
             if (messageSelector == null) {
-                subscribe(topic, SubscriptionData.SUB_ALL);
+                subscribe(topic,userId, passwd, SubscriptionData.SUB_ALL);
                 return;
             }
 

@@ -566,8 +566,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @throws MQClientException if there is any client error.
      */
     @Override
-    public void subscribe(String topic, String subExpression) throws MQClientException {
-        this.defaultMQPushConsumerImpl.subscribe(topic, subExpression);
+    public void subscribe(String topic, String userId, String passwd, String subExpression) throws MQClientException {
+        this.defaultMQPushConsumerImpl.subscribe(topic, userId, passwd, subExpression);
     }
 
     /**
@@ -578,8 +578,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param filterClassSource class source code,used UTF-8 file encoding,must be responsible for your code safety
      */
     @Override
-    public void subscribe(String topic, String fullClassName, String filterClassSource) throws MQClientException {
-        this.defaultMQPushConsumerImpl.subscribe(topic, fullClassName, filterClassSource);
+    public void subscribe(String topic, String userId, String passwd, String fullClassName, String filterClassSource) throws MQClientException {
+        this.defaultMQPushConsumerImpl.subscribe(topic,userId, passwd, fullClassName, filterClassSource);
     }
 
     /**
@@ -591,8 +591,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @see org.apache.rocketmq.client.consumer.MessageSelector#byTag
      */
     @Override
-    public void subscribe(final String topic, final MessageSelector messageSelector) throws MQClientException {
-        this.defaultMQPushConsumerImpl.subscribe(topic, messageSelector);
+    public void subscribe(final String topic, final  String userId, final String passwd, final MessageSelector messageSelector) throws MQClientException {
+        this.defaultMQPushConsumerImpl.subscribe(topic,userId, passwd, messageSelector);
     }
 
     /**

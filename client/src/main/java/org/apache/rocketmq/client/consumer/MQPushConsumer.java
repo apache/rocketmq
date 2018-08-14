@@ -52,7 +52,7 @@ public interface MQPushConsumer extends MQConsumer {
      * null or * expression,meaning subscribe
      * all
      */
-    void subscribe(final String topic, final String subExpression) throws MQClientException;
+    void subscribe(final String topic, final  String userId, final String passwd, final String subExpression) throws MQClientException;
 
     /**
      * Subscribe some topic
@@ -60,13 +60,13 @@ public interface MQPushConsumer extends MQConsumer {
      * @param fullClassName full class name,must extend org.apache.rocketmq.common.filter. MessageFilter
      * @param filterClassSource class source code,used UTF-8 file encoding,must be responsible for your code safety
      */
-    void subscribe(final String topic, final String fullClassName,
+    void subscribe(final String topic, final String userId, final String passwd, final String fullClassName,
         final String filterClassSource) throws MQClientException;
 
     /**
      * Subscribe some topic with selector.
      * <p>
-     * This interface also has the ability of {@link #subscribe(String, String)},
+     * This interface also has the ability of {@link #subscribe(String,String,String, String)},
      * and, support other message selection, such as {@link org.apache.rocketmq.common.filter.ExpressionType#SQL92}.
      * </p>
      * <p/>
@@ -80,7 +80,7 @@ public interface MQPushConsumer extends MQConsumer {
      *
      * @param selector message selector({@link MessageSelector}), can be null.
      */
-    void subscribe(final String topic, final MessageSelector selector) throws MQClientException;
+    void subscribe(final String topic, final  String userId, final  String passwd, final MessageSelector selector) throws MQClientException;
 
     /**
      * Unsubscribe consumption some topic
