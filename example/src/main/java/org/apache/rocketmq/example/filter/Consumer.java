@@ -36,7 +36,7 @@ public class Consumer {
         File classFile = new File(classLoader.getResource("MessageFilterImpl.java").getFile());
 
         String filterCode = MixAll.file2String(classFile);
-        consumer.subscribe("TopicTest", "org.apache.rocketmq.example.filter.MessageFilterImpl",
+        consumer.subscribe("TopicTest", "","","org.apache.rocketmq.example.filter.MessageFilterImpl",
             filterCode);
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
