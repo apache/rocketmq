@@ -122,6 +122,10 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 return this.updateConfig(ctx, request);
             case RequestCode.GET_NAMESRV_CONFIG:
                 return this.getConfig(ctx, request);
+            case RequestCode.ACL_READ_CONFIG:
+                return this.getACL(ctx, request);
+            case RequestCode.ACL_WRITE_CONFIG:
+                return this.putACL(ctx, request);
             default:
                 break;
         }
@@ -560,4 +564,62 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    private RemotingCommand getACL(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        String content = this.namesrvController.getConfiguration().getAllConfigsFormatString();
+        if (content != null && content.length() > 0) {
+            try {
+                response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
+            } catch (UnsupportedEncodingException e) {
+                log.error("getConfig error, ", e);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("UnsupportedEncodingException " + e);
+                return response;
+            }
+        }
+
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+    private RemotingCommand putACL(ChannelHandlerContext ctx, RemotingCommand request) {
+
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        byte[] body = request.getBody();
+        if (body != null) {
+            String bodyStr;
+            try {
+                bodyStr = new String(body, MixAll.DEFAULT_CHARSET);
+            } catch (UnsupportedEncodingException e) {
+                log.error("updateConfig byte array to string error: ", e);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("UnsupportedEncodingException " + e);
+                return response;
+            }
+
+            if (bodyStr == null) {
+                log.error("updateConfig get null body!");
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("string2Properties error");
+                return response;
+            }
+
+            Properties properties = MixAll.string2Properties(bodyStr);
+            if (properties == null) {
+                log.error("updateConfig MixAll.string2Properties error {}", bodyStr);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("string2Properties error");
+                return response;
+            }
+
+            this.namesrvController.getConfiguration().update(properties);
+        }
+
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
 }
