@@ -94,12 +94,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                         + "/acl.conf");
 
                 }
+
                 if(!properties.isEmpty()){
                     if(!((String)properties.get(ROCKETMQ_USERS)).contains(request.getExtFields().get(ROCKETMQ_USER))){
                         response=RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
-                       // response.setOpaque(request.getOpaque());
                         response.setCode(ResponseCode.NO_PERMISSION);
-                        response.setRemark("the broker[" + "the user:"+request.getExtFields().get(ROCKETMQ_USER)
+                        response.setRemark("the broker has open acl control [" + "the user:"+request.getExtFields().get(ROCKETMQ_USER)
                             + "] do not have permission, sending message is forbidden");
                         return response;
                     }
