@@ -366,6 +366,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             try {
                 if (this.rpcHook != null) {
                     this.rpcHook.doBeforeRequest(addr, request);
+                    ((AclClientHook) this.rpcHook).checkAcl();
                 }
                 long costTime = System.currentTimeMillis() - beginStartTime;
                 if (timeoutMillis < costTime) {
@@ -524,6 +525,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             try {
                 if (this.rpcHook != null) {
                     this.rpcHook.doBeforeRequest(addr, request);
+                    ((AclClientHook) this.rpcHook).checkAcl();
                 }
                 long costTime = System.currentTimeMillis() - beginStartTime;
                 if (timeoutMillis < costTime) {
@@ -549,6 +551,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             try {
                 if (this.rpcHook != null) {
                     this.rpcHook.doBeforeRequest(addr, request);
+                    ((AclClientHook) this.rpcHook).checkAcl();
                 }
                 this.invokeOnewayImpl(channel, request, timeoutMillis);
             } catch (RemotingSendRequestException e) {

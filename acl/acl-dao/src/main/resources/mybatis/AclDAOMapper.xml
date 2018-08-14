@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.apache.rocketmq.acl.dao.mapper.DataMapper">
+
+    <sql id="acl_info_list">
+        id,
+        gmt_create,
+        gmt_modify,
+        row_version,
+        row_status,
+        topic,
+        app_name,
+        user_info,
+        attribute
+    </sql>
+
+    <sql id="table">acl</sql>
+
+    <select id="count" resultType="java.lang.Integer">
+        select count(1)
+        from <include refid="table"/>
+        <where>
+            row_status = 0
+            and topic = #{topic}
+            and app_name = #{appName}
+            and user_info = #{userInfo}
+        </where>
+    </select>
+
+    <select id="select" resultType="AclDO" parameterType="AclQuery">
+        select <include refid="acl_info_list"/>
+        from <include refid="table"/>
+        <where>
+            row_status = 0
+            and topic =#{topic}
+            and app_name = #{appName}
+            <if test="userInfo != null">and user_info = #{userInfo}</if>
+        </where>
+    </select>
+
+    <insert id="insert" parameterType = "AclDO" useGeneratedKeys="true" keyProperty="id">
+        insert into <include refid="table"/>
+        (<include refid="acl_info_list"/>)
+        values(
+        #{id},
+        <choose>
+            <when test="gmtCreate != null">#{gmtCreate}</when>
+            <otherwise>now()</otherwise>
+        </choose>,
+        <choose>
+            <when test="gmtModify != null">#{gmtModify}</when>
+            <otherwise>now()</otherwise>
+        </choose>,
+        <choose>
+            <when test="rowStatus != null">#{rowStatus}</when>
+            <otherwise>0</otherwise>
+        </choose>,
+        <choose>
+            <when test="rowVersion != null">#{rowVersion}</when>
+            <otherwise>1</otherwise>
+        </choose>,
+        #{topic},
+        #{appName},
+        #{userInfo},
+        #{attribute}
+        )
+    </insert>
+
+    <update id="update" parameterType="AclDO">
+        update <include refid="table"/>
+        <set>
+            gmt_modify = now(),
+            row_version = row_version + 1,
+            <if test="topic != null">topic = #{topic},</if>
+            <if test="appName != null">app_name = #{appName},</if>
+            <if test="rowStatus != null">row_status = #{rowStatus},</if>
+            <if test="attribute != null">attribute = concat(attribute,#{attribute})</if>
+        </set>
+        <where>
+            row_status = 0
+            and topic = #{topic}
+            and app_name = #{appName}
+            <if test="userInfo != null">user_info = #{userInfo},</if>
+        </where>
+    </update>
+
+</mapper>
