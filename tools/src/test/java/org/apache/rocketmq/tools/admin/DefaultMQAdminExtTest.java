@@ -18,6 +18,7 @@ package org.apache.rocketmq.tools.admin;
 
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
+import java.security.acl.Acl;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,6 +43,7 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.namesrv.NamesrvUtil;
+import org.apache.rocketmq.common.protocol.body.AclConfigData;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.Connection;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
@@ -67,6 +69,7 @@ import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -75,9 +78,13 @@ import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.booleanThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -225,6 +232,10 @@ public class DefaultMQAdminExtTest {
         consumerRunningInfo.setStatusTable(new TreeMap<String, ConsumeStatus>());
         consumerRunningInfo.setSubscriptionSet(new TreeSet<SubscriptionData>());
         when(mQClientAPIImpl.getConsumerRunningInfo(anyString(), anyString(), anyString(), anyBoolean(), anyLong())).thenReturn(consumerRunningInfo);
+
+        AclConfigData aclConfigData = AclConfigData.decode("{\"test\": \"test\"}".getBytes(), AclConfigData.class);
+        doReturn(aclConfigData).when(mQClientAPIImpl).aclReadConfig("test", "test", "r", 1000);
+        doReturn(true).when(mQClientAPIImpl).aclWriteConfig(anyString(), anyString(), anyString(), anyLong());
     }
 
     @AfterClass
@@ -406,4 +417,16 @@ public class DefaultMQAdminExtTest {
         assertThat(subscriptionGroupWrapper.getSubscriptionGroupTable().get("Consumer-group-one").getGroupName()).isEqualTo("Consumer-group-one");
         assertThat(subscriptionGroupWrapper.getSubscriptionGroupTable().get("Consumer-group-one").isConsumeBroadcastEnable()).isTrue();
     }
+
+    @Test
+    public void testAclWriteConfig() throws InterruptedException, RemotingTimeoutException, MQClientException, RemotingSendRequestException, RemotingConnectException {
+        boolean result = defaultMQAdminExt.aclWriteConfig("test", "test", "r");
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    public void testAclReadConfig() throws InterruptedException, RemotingTimeoutException, MQClientException, RemotingSendRequestException, RemotingConnectException {
+        assertThat(defaultMQAdminExt.aclReadConfig("test", "test", "r")).isNotNull();
+    }
+
 }
