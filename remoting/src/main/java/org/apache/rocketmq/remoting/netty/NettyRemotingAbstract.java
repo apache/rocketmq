@@ -394,7 +394,6 @@ public abstract class NettyRemotingAbstract {
                 }
             }
 
-
             return responseCommand;
         } finally {
             this.responseTable.remove(opaque);
