@@ -132,7 +132,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public void destroyTransactionEnv() {
         this.checkExecutor.shutdown();
-        this.checkRequestQueue.clear();
+//        this.checkRequestQueue.clear();
     }
 
     public void registerSendMessageHook(final SendMessageHook hook) {
