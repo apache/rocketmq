@@ -300,6 +300,8 @@ public class HAConnection {
                 }
             }
 
+            HAConnection.this.haService.getWaitNotifyObject().removeFromWaitingThreadTable();
+
             if (this.selectMappedBufferResult != null) {
                 this.selectMappedBufferResult.release();
             }

@@ -96,4 +96,11 @@ public class WaitNotifyObject {
             }
         }
     }
+
+    public void removeFromWaitingThreadTable() {
+        long currentThreadId = Thread.currentThread().getId();
+        synchronized (this) {
+            this.waitingThreadTable.remove(currentThreadId);
+        }
+    }
 }

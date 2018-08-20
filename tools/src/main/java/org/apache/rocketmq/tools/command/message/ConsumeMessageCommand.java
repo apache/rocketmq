@@ -142,7 +142,7 @@ public class ConsumeMessageCommand implements SubCommand {
             if (commandLine.hasOption('c')) {
                 messageCount = Long.parseLong(commandLine.getOptionValue('c').trim());
                 if (messageCount <= 0) {
-                    System.out.print("please input a positive messageNumber!");
+                    System.out.print("Please input a positive messageNumber!");
                     return;
                 }
             }
@@ -161,20 +161,33 @@ public class ConsumeMessageCommand implements SubCommand {
             }
             if (commandLine.hasOption('o')) {
                 if (consumeType != ConsumeType.BYQUEUE) {
-                    System.out.print("please set queueId before offset!");
+                    System.out.print("Please set queueId before offset!");
                     return;
                 }
                 offset = Long.parseLong(commandLine.getOptionValue('o').trim());
                 consumeType = ConsumeType.BYOFFSET;
             }
 
+            long now = System.currentTimeMillis();
             if (commandLine.hasOption('s')) {
                 String timestampStr = commandLine.getOptionValue('s').trim();
                 timeValueBegin = timestampFormat(timestampStr);
+                if (timeValueBegin > now) {
+                    System.out.print("Please set the beginTimestamp before now!");
+                    return;
+                }
             }
             if (commandLine.hasOption('e')) {
                 String timestampStr = commandLine.getOptionValue('e').trim();
                 timeValueEnd = timestampFormat(timestampStr);
+                if (timeValueEnd > now) {
+                    System.out.print("Please set the endTimestamp before now!");
+                    return;
+                }
+                if (timeValueBegin > timeValueEnd) {
+                    System.out.print("Please make sure that the beginTimestamp is less than or equal to the endTimestamp");
+                    return;
+                }
             }
 
             switch (consumeType) {
@@ -207,6 +220,7 @@ public class ConsumeMessageCommand implements SubCommand {
                 pullResult = defaultMQPullConsumer.pull(mq, "*", offset, (int)(maxOffset - offset + 1));
             } catch (Exception e) {
                 e.printStackTrace();
+                return;
             }
             if (pullResult != null) {
                 offset = pullResult.getNextBeginOffset();

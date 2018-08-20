@@ -67,15 +67,15 @@ public class UpdateTopicSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("o", "order", true, "set topic's order(true|false");
+        opt = new Option("o", "order", true, "set topic's order(true|false)");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("u", "unit", true, "is unit topic (true|false");
+        opt = new Option("u", "unit", true, "is unit topic (true|false)");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("s", "hasUnitSub", true, "has unit sub (true|false");
+        opt = new Option("s", "hasUnitSub", true, "has unit sub (true|false)");
         opt.setRequired(false);
         options.addOption(opt);
 

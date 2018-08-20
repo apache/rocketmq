@@ -29,7 +29,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>4.3.0-SNAPSHOT</version>
+    <version>4.4.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.apache.org/</url>
@@ -157,7 +157,7 @@
                 </executions>
                 <configuration>
                     <rules>
-                        <banCircularDependencies/>
+                        <banCircularDependencies />
                     </rules>
                     <fail>true</fail>
                 </configuration>
@@ -249,11 +249,13 @@
                 <version>0.12</version>
                 <configuration>
                     <excludes>
+                        <exclude>.gitignore</exclude>
                         <exclude>.travis.yml</exclude>
                         <exclude>CONTRIBUTING.md</exclude>
                         <exclude>bin/README.md</exclude>
-                        <exclude>.github/*</exclude>
+                        <exclude>.github/**</exclude>
                         <exclude>src/test/resources/certs/*</exclude>
+                        <exclude>src/test/**/*.log</exclude>
                         <exclude>src/test/resources/META-INF/service/*</exclude>
                         <exclude>*/target/**</exclude>
                         <exclude>*/*.iml</exclude>
