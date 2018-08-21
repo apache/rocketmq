@@ -757,6 +757,7 @@ public class BrokerController {
         }
         if (this.transactionalMessageCheckService != null) {
             this.transactionalMessageCheckService.shutdown(false);
+        }
 
         if (this.endTransactionExecutor != null) {
             this.endTransactionExecutor.shutdown();
