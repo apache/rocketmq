@@ -28,11 +28,27 @@ public class SelectMappedBufferResult {
 
     private MappedFile mappedFile;
 
+    private NonPersistentMsg nonPersistentMsg;
+
     public SelectMappedBufferResult(long startOffset, ByteBuffer byteBuffer, int size, MappedFile mappedFile) {
         this.startOffset = startOffset;
         this.byteBuffer = byteBuffer;
         this.size = size;
         this.mappedFile = mappedFile;
+    }
+
+    public SelectMappedBufferResult() {
+
+    }
+
+    public SelectMappedBufferResult(long startOffset, int size) {
+        this.startOffset = startOffset;
+        this.size = size;
+    }
+
+    public SelectMappedBufferResult(long startOffset, NonPersistentMsg msg) {
+        this.startOffset = startOffset;
+        this.nonPersistentMsg = msg;
     }
 
     public ByteBuffer getByteBuffer() {
