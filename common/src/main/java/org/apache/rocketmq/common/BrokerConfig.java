@@ -157,7 +157,7 @@ public class BrokerConfig {
      * that can be checked.
      */
     @ImportantField
-    private long transactionTimeOut = 3 * 1000;
+    private long transactionTimeOut = 6 * 1000;
 
     /**
      * The maximum number of times the message was checked, if exceed this value, this message will be discarded.

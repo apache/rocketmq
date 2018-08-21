@@ -755,10 +755,8 @@ public class BrokerController {
         if (this.fileWatchService != null) {
             this.fileWatchService.shutdown();
         }
-
         if (this.transactionalMessageCheckService != null) {
-            this.transactionalMessageCheckService.shutdown();
-        }
+            this.transactionalMessageCheckService.shutdown(false);
 
         if (this.endTransactionExecutor != null) {
             this.endTransactionExecutor.shutdown();
