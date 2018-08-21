@@ -1051,8 +1051,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final ViewBrokerStatsDataRequestHeader requestHeader =
             (ViewBrokerStatsDataRequestHeader) request.decodeCommandCustomHeader(ViewBrokerStatsDataRequestHeader.class);
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        if (!(this.brokerController.getMessageStore() instanceof DefaultMessageStore)) {
+            response.setCode(ResponseCode.REQUEST_CODE_NOT_SUPPORTED);
+            response.setRemark(String.format("The ViewBrokerStatsData command not supported in this messageStore"));
+            return response;
+        }
         DefaultMessageStore messageStore = (DefaultMessageStore) this.brokerController.getMessageStore();
-
         StatsItem statsItem = messageStore.getBrokerStatsManager().getStatsItem(requestHeader.getStatsName(), requestHeader.getStatsKey());
         if (null == statsItem) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
