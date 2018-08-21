@@ -763,7 +763,6 @@ public class BrokerController {
             this.endTransactionExecutor.shutdown();
         }
     }
-
     private void unregisterBrokerAll() {
         this.brokerOuterAPI.unregisterBrokerAll(
             this.brokerConfig.getBrokerClusterName(),
