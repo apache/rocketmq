@@ -19,10 +19,15 @@ package org.apache.rocketmq.common;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import org.apache.rocketmq.common.annotation.ImportantField;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class BrokerConfig {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+
     private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
     @ImportantField
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
@@ -47,11 +52,18 @@ public class BrokerConfig {
     private boolean autoCreateSubscriptionGroup = true;
     private String messageStorePlugIn = "";
 
+    /**
+     * thread numbers for send message thread pool, since spin lock will be used by default since 4.0.x, the default
+     * value is 1.
+     */
     private int sendMessageThreadPoolNums = 1; //16 + Runtime.getRuntime().availableProcessors() * 4;
     private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
+    private int queryMessageThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors();
+
     private int adminBrokerThreadPoolNums = 16;
     private int clientManageThreadPoolNums = 32;
     private int consumerManageThreadPoolNums = 32;
+    private int heartbeatThreadPoolNums = Math.min(32,Runtime.getRuntime().availableProcessors());
 
     private int flushConsumerOffsetInterval = 1000 * 5;
 
@@ -63,8 +75,10 @@ public class BrokerConfig {
     private boolean fetchNamesrvAddrByAddressServer = false;
     private int sendThreadPoolQueueCapacity = 10000;
     private int pullThreadPoolQueueCapacity = 100000;
+    private int queryThreadPoolQueueCapacity = 20000;
     private int clientManagerThreadPoolQueueCapacity = 1000000;
     private int consumerManagerThreadPoolQueueCapacity = 1000000;
+    private int heartbeatThreadPoolQueueCapacity = 50000;
 
     private int filterServerNums = 0;
 
@@ -93,21 +107,62 @@ public class BrokerConfig {
     private boolean disableConsumeIfConsumerReadSlowly = false;
     private long consumerFallbehindThreshold = 1024L * 1024 * 1024 * 16;
 
+    private boolean brokerFastFailureEnable = true;
     private long waitTimeMillsInSendQueue = 200;
+    private long waitTimeMillsInPullQueue = 5 * 1000;
+    private long waitTimeMillsInHeartbeatQueue = 31 * 1000;
 
     private long startAcceptSendRequestTimeStamp = 0L;
 
     private boolean traceOn = true;
 
-    public static String localHostName() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
+    // Switch of filter bit map calculation.
+    // If switch on:
+    // 1. Calculate filter bit map when construct queue.
+    // 2. Filter bit map will be saved to consume queue extend file if allowed.
+    private boolean enableCalcFilterBitMap = false;
 
-        return "DEFAULT_BROKER";
-    }
+    // Expect num of consumers will use filter.
+    private int expectConsumerNumUseFilter = 32;
+
+    // Error rate of bloom filter, 1~100.
+    private int maxErrorRateOfBloomFilter = 20;
+
+    //how long to clean filter data after dead.Default: 24h
+    private long filterDataCleanTimeSpan = 24 * 3600 * 1000;
+
+    // whether do filter when retry.
+    private boolean filterSupportRetry = false;
+    private boolean enablePropertyFilter = false;
+
+    private boolean compressedRegister = false;
+
+    private boolean forceRegister = true;
+
+    /**
+     * This configurable item defines interval of topics registration of broker to name server. Allowing values are
+     * between 10, 000 and 60, 000 milliseconds.
+     */
+    private int registerNameServerPeriod = 1000 * 30;
+
+    /**
+     * The minimum time of the transactional message  to be checked firstly, one message only exceed this time interval
+     * that can be checked.
+     */
+    @ImportantField
+    private long transactionTimeOut = 3 * 1000;
+
+    /**
+     * The maximum number of times the message was checked, if exceed this value, this message will be discarded.
+     */
+    @ImportantField
+    private int transactionCheckMax = 5;
+
+    /**
+     * Transaction message check interval.
+     */
+    @ImportantField
+    private long transactionCheckInterval = 60 * 1000;
 
     public boolean isTraceOn() {
         return traceOn;
@@ -141,6 +196,22 @@ public class BrokerConfig {
         this.consumerFallbehindThreshold = consumerFallbehindThreshold;
     }
 
+    public boolean isBrokerFastFailureEnable() {
+        return brokerFastFailureEnable;
+    }
+
+    public void setBrokerFastFailureEnable(final boolean brokerFastFailureEnable) {
+        this.brokerFastFailureEnable = brokerFastFailureEnable;
+    }
+
+    public long getWaitTimeMillsInPullQueue() {
+        return waitTimeMillsInPullQueue;
+    }
+
+    public void setWaitTimeMillsInPullQueue(final long waitTimeMillsInPullQueue) {
+        this.waitTimeMillsInPullQueue = waitTimeMillsInPullQueue;
+    }
+
     public boolean isDisableConsumeIfConsumerReadSlowly() {
         return disableConsumeIfConsumerReadSlowly;
     }
@@ -155,6 +226,16 @@ public class BrokerConfig {
 
     public void setSlaveReadEnable(final boolean slaveReadEnable) {
         this.slaveReadEnable = slaveReadEnable;
+    }
+
+    public static String localHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            log.error("Failed to obtain the host name", e);
+        }
+
+        return "DEFAULT_BROKER";
     }
 
     public int getRegisterBrokerTimeoutMills() {
@@ -277,6 +358,14 @@ public class BrokerConfig {
         this.pullMessageThreadPoolNums = pullMessageThreadPoolNums;
     }
 
+    public int getQueryMessageThreadPoolNums() {
+        return queryMessageThreadPoolNums;
+    }
+
+    public void setQueryMessageThreadPoolNums(final int queryMessageThreadPoolNums) {
+        this.queryMessageThreadPoolNums = queryMessageThreadPoolNums;
+    }
+
     public int getAdminBrokerThreadPoolNums() {
         return adminBrokerThreadPoolNums;
     }
@@ -363,6 +452,14 @@ public class BrokerConfig {
 
     public void setPullThreadPoolQueueCapacity(int pullThreadPoolQueueCapacity) {
         this.pullThreadPoolQueueCapacity = pullThreadPoolQueueCapacity;
+    }
+
+    public int getQueryThreadPoolQueueCapacity() {
+        return queryThreadPoolQueueCapacity;
+    }
+
+    public void setQueryThreadPoolQueueCapacity(final int queryThreadPoolQueueCapacity) {
+        this.queryThreadPoolQueueCapacity = queryThreadPoolQueueCapacity;
     }
 
     public boolean isBrokerTopicEnable() {
@@ -483,5 +580,125 @@ public class BrokerConfig {
 
     public void setCommercialBaseCount(int commercialBaseCount) {
         this.commercialBaseCount = commercialBaseCount;
+    }
+
+    public boolean isEnableCalcFilterBitMap() {
+        return enableCalcFilterBitMap;
+    }
+
+    public void setEnableCalcFilterBitMap(boolean enableCalcFilterBitMap) {
+        this.enableCalcFilterBitMap = enableCalcFilterBitMap;
+    }
+
+    public int getExpectConsumerNumUseFilter() {
+        return expectConsumerNumUseFilter;
+    }
+
+    public void setExpectConsumerNumUseFilter(int expectConsumerNumUseFilter) {
+        this.expectConsumerNumUseFilter = expectConsumerNumUseFilter;
+    }
+
+    public int getMaxErrorRateOfBloomFilter() {
+        return maxErrorRateOfBloomFilter;
+    }
+
+    public void setMaxErrorRateOfBloomFilter(int maxErrorRateOfBloomFilter) {
+        this.maxErrorRateOfBloomFilter = maxErrorRateOfBloomFilter;
+    }
+
+    public long getFilterDataCleanTimeSpan() {
+        return filterDataCleanTimeSpan;
+    }
+
+    public void setFilterDataCleanTimeSpan(long filterDataCleanTimeSpan) {
+        this.filterDataCleanTimeSpan = filterDataCleanTimeSpan;
+    }
+
+    public boolean isFilterSupportRetry() {
+        return filterSupportRetry;
+    }
+
+    public void setFilterSupportRetry(boolean filterSupportRetry) {
+        this.filterSupportRetry = filterSupportRetry;
+    }
+
+    public boolean isEnablePropertyFilter() {
+        return enablePropertyFilter;
+    }
+
+    public void setEnablePropertyFilter(boolean enablePropertyFilter) {
+        this.enablePropertyFilter = enablePropertyFilter;
+    }
+
+    public boolean isCompressedRegister() {
+        return compressedRegister;
+    }
+
+    public void setCompressedRegister(boolean compressedRegister) {
+        this.compressedRegister = compressedRegister;
+    }
+
+    public boolean isForceRegister() {
+        return forceRegister;
+    }
+
+    public void setForceRegister(boolean forceRegister) {
+        this.forceRegister = forceRegister;
+    }
+
+    public int getHeartbeatThreadPoolQueueCapacity() {
+        return heartbeatThreadPoolQueueCapacity;
+    }
+
+    public void setHeartbeatThreadPoolQueueCapacity(int heartbeatThreadPoolQueueCapacity) {
+        this.heartbeatThreadPoolQueueCapacity = heartbeatThreadPoolQueueCapacity;
+    }
+
+    public int getHeartbeatThreadPoolNums() {
+        return heartbeatThreadPoolNums;
+    }
+
+    public void setHeartbeatThreadPoolNums(int heartbeatThreadPoolNums) {
+        this.heartbeatThreadPoolNums = heartbeatThreadPoolNums;
+    }
+
+    public long getWaitTimeMillsInHeartbeatQueue() {
+        return waitTimeMillsInHeartbeatQueue;
+    }
+
+    public void setWaitTimeMillsInHeartbeatQueue(long waitTimeMillsInHeartbeatQueue) {
+        this.waitTimeMillsInHeartbeatQueue = waitTimeMillsInHeartbeatQueue;
+    }
+
+    public int getRegisterNameServerPeriod() {
+        return registerNameServerPeriod;
+    }
+
+    public void setRegisterNameServerPeriod(int registerNameServerPeriod) {
+        this.registerNameServerPeriod = registerNameServerPeriod;
+    }
+
+    public long getTransactionTimeOut() {
+        return transactionTimeOut;
+    }
+
+    public void setTransactionTimeOut(long transactionTimeOut) {
+        this.transactionTimeOut = transactionTimeOut;
+    }
+
+    public int getTransactionCheckMax() {
+        return transactionCheckMax;
+    }
+
+    public void setTransactionCheckMax(int transactionCheckMax) {
+        this.transactionCheckMax = transactionCheckMax;
+    }
+
+    public long getTransactionCheckInterval() {
+        return transactionCheckInterval;
+    }
+
+    public void setTransactionCheckInterval(long transactionCheckInterval) {
+        this.transactionCheckInterval = transactionCheckInterval;
     }
 }

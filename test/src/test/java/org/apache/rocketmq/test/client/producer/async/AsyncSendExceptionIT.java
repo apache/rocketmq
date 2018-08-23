@@ -50,7 +50,7 @@ public class AsyncSendExceptionIT extends BaseConf {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test
@@ -61,7 +61,7 @@ public class AsyncSendExceptionIT extends BaseConf {
         producer.send(msg, sendCallback);
     }
 
-    @Test(expected = java.lang.NullPointerException.class)
+    @Test
     public void testSendMQNull() throws Exception {
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
         DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
@@ -69,7 +69,7 @@ public class AsyncSendExceptionIT extends BaseConf {
         producer.send(msg, messageQueue, SendCallBackFactory.getSendCallBack());
     }
 
-    @Test(expected = org.apache.rocketmq.client.exception.MQClientException.class)
+    @Test
     public void testSendSelectorNull() throws Exception {
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
         DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
@@ -77,7 +77,7 @@ public class AsyncSendExceptionIT extends BaseConf {
         producer.send(msg, selector, 100, SendCallBackFactory.getSendCallBack());
     }
 
-    @Test(expected = org.apache.rocketmq.client.exception.MQClientException.class)
+    @Test
     public void testSelectorThrowsException() throws Exception {
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
         DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
@@ -112,7 +112,7 @@ public class AsyncSendExceptionIT extends BaseConf {
         int checkNum = 50;
         while (!sendFail && checkNum > 0) {
             checkNum--;
-            TestUtils.waitForMonment(100);
+            TestUtils.waitForMoment(100);
         }
         producer.shutdown();
         assertThat(sendFail).isEqualTo(true);
@@ -141,7 +141,7 @@ public class AsyncSendExceptionIT extends BaseConf {
         int checkNum = 50;
         while (sendFail && checkNum > 0) {
             checkNum--;
-            TestUtils.waitForMonment(100);
+            TestUtils.waitForMoment(100);
         }
         producer.shutdown();
         assertThat(sendFail).isEqualTo(false);

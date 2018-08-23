@@ -26,6 +26,7 @@ import org.apache.commons.cli.Options;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
+import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class GetNamesrvConfigCommand implements SubCommand {
 
@@ -45,7 +46,8 @@ public class GetNamesrvConfigCommand implements SubCommand {
     }
 
     @Override
-    public void execute(final CommandLine commandLine, final Options options, final RPCHook rpcHook) {
+    public void execute(final CommandLine commandLine, final Options options,
+        final RPCHook rpcHook) throws SubCommandException {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         try {
@@ -72,7 +74,7 @@ public class GetNamesrvConfigCommand implements SubCommand {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
             defaultMQAdminExt.shutdown();
         }

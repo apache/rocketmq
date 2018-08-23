@@ -31,11 +31,11 @@ import org.apache.rocketmq.broker.transaction.TransactionRecord;
 import org.apache.rocketmq.broker.transaction.TransactionStore;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class JDBCTransactionStore implements TransactionStore {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
     private final JDBCTransactionStoreConfig jdbcTransactionStoreConfig;
     private Connection connection;
     private AtomicLong totalRecordsValue = new AtomicLong(0);
@@ -63,7 +63,7 @@ public class JDBCTransactionStore implements TransactionStore {
 
                 return true;
             } catch (SQLException e) {
-                log.info("Create JDBC Connection Exeption", e);
+                log.info("Create JDBC Connection Exception", e);
             }
         }
 

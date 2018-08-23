@@ -39,6 +39,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
 import org.apache.rocketmq.tools.command.SubCommand;
+import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class QueryMsgByIdSubCommand implements SubCommand {
     public static void queryById(final DefaultMQAdminExt admin, final String msgId) throws MQClientException,
@@ -209,7 +210,7 @@ public class QueryMsgByIdSubCommand implements SubCommand {
     }
 
     @Override
-    public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) {
+    public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         DefaultMQProducer defaultMQProducer = new DefaultMQProducer("ReSendMsgById");
@@ -254,14 +255,15 @@ public class QueryMsgByIdSubCommand implements SubCommand {
 
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
             defaultMQProducer.shutdown();
             defaultMQAdminExt.shutdown();
         }
     }
 
-    private void pushMsg(final DefaultMQAdminExt defaultMQAdminExt, final String consumerGroup, final String clientId, final String msgId) {
+    private void pushMsg(final DefaultMQAdminExt defaultMQAdminExt, final String consumerGroup, final String clientId,
+        final String msgId) {
         try {
             ConsumeMessageDirectlyResult result =
                 defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, msgId);
@@ -277,11 +279,11 @@ public class QueryMsgByIdSubCommand implements SubCommand {
             MessageExt msg = defaultMQAdminExt.viewMessage(msgId);
             if (msg != null) {
                 // resend msg by id
-                System.out.printf("prepare resend msg. originalMsgId=" + msgId);
+                System.out.printf("prepare resend msg. originalMsgId=%s", msgId);
                 SendResult result = defaultMQProducer.send(msg);
                 System.out.printf("%s", result);
             } else {
-                System.out.printf("no message. msgId=" + msgId);
+                System.out.printf("no message. msgId=%s", msgId);
             }
         } catch (Exception e) {
             e.printStackTrace();

@@ -21,7 +21,7 @@ import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.factory.MQMessageFactory;
-import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListner;
+import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.MQWait;
 import org.junit.After;
 import org.junit.Assert;
@@ -40,7 +40,7 @@ public class MulConsumerMulTopicIT extends BaseConf {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test
@@ -48,10 +48,10 @@ public class MulConsumerMulTopicIT extends BaseConf {
         int msgSize = 10;
         String topic1 = initTopic();
         String topic2 = initTopic();
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic1, "*", new RMQNormalListner());
+        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic1, "*", new RMQNormalListener());
         consumer1.subscribe(topic2, "*");
         RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic1,
-            "*", new RMQNormalListner());
+            "*", new RMQNormalListener());
         consumer2.subscribe(topic2, "*");
 
         producer.send(MQMessageFactory.getMsg(topic1, msgSize));
@@ -59,7 +59,7 @@ public class MulConsumerMulTopicIT extends BaseConf {
         Assert.assertEquals("Not all sent succeeded", msgSize * 2, producer.getAllUndupMsgBody().size());
 
         boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
-            consumer1.getListner(), consumer2.getListner());
+            consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
     }
 
@@ -69,10 +69,10 @@ public class MulConsumerMulTopicIT extends BaseConf {
         String topic1 = initTopic();
         String topic2 = initTopic();
         String tag = "jueyin_tag";
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic1, "*", new RMQNormalListner());
+        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic1, "*", new RMQNormalListener());
         consumer1.subscribe(topic2, tag);
         RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic1,
-            "*", new RMQNormalListner());
+            "*", new RMQNormalListener());
         consumer2.subscribe(topic2, tag);
 
         producer.send(MQMessageFactory.getMsg(topic1, msgSize));
@@ -80,7 +80,7 @@ public class MulConsumerMulTopicIT extends BaseConf {
         Assert.assertEquals("Not all sent succeeded", msgSize * 2, producer.getAllUndupMsgBody().size());
 
         boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
-            consumer1.getListner(), consumer2.getListner());
+            consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
     }
 
@@ -91,9 +91,9 @@ public class MulConsumerMulTopicIT extends BaseConf {
         String topic2 = initTopic();
         String tag1 = "jueyin_tag_1";
         String tag2 = "jueyin_tag_2";
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic1, "*", new RMQNormalListner());
+        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic1, "*", new RMQNormalListener());
         consumer1.subscribe(topic2, tag1);
-        RMQNormalConsumer consumer2 = getConsumer(nsAddr, topic1, "*", new RMQNormalListner());
+        RMQNormalConsumer consumer2 = getConsumer(nsAddr, topic1, "*", new RMQNormalListener());
         consumer2.subscribe(topic2, tag1);
 
         producer.send(MQMessageFactory.getMsg(topic2, msgSize, tag2));
@@ -102,7 +102,7 @@ public class MulConsumerMulTopicIT extends BaseConf {
         producer.send(MQMessageFactory.getMsg(topic2, msgSize, tag1));
 
         boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
-            consumer1.getListner(), consumer2.getListner());
+            consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
     }
 }

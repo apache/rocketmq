@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.example.benchmark;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Timer;
@@ -27,16 +28,19 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
 public class Consumer {
 
-    public static void main(String[] args) throws MQClientException {
+    public static void main(String[] args) throws MQClientException, IOException {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine("benchmarkConsumer", args, buildCommandlineOptions(options), new PosixParser());
         if (null == commandLine) {
@@ -46,12 +50,14 @@ public class Consumer {
         final String topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "BenchmarkTest";
         final String groupPrefix = commandLine.hasOption('g') ? commandLine.getOptionValue('g').trim() : "benchmark_consumer";
         final String isPrefixEnable = commandLine.hasOption('p') ? commandLine.getOptionValue('p').trim() : "true";
+        final String filterType = commandLine.hasOption('f') ? commandLine.getOptionValue('f').trim() : null;
+        final String expression = commandLine.hasOption('e') ? commandLine.getOptionValue('e').trim() : null;
         String group = groupPrefix;
         if (Boolean.parseBoolean(isPrefixEnable)) {
             group = groupPrefix + "_" + Long.toString(System.currentTimeMillis() % 100);
         }
 
-        System.out.printf("topic %s group %s prefix %s%n", topic, group, isPrefixEnable);
+        System.out.printf("topic: %s, group: %s, prefix: %s, filterType: %s, expression: %s%n", topic, group, isPrefixEnable, filterType, expression);
 
         final StatsBenchmarkConsumer statsBenchmarkConsumer = new StatsBenchmarkConsumer();
 
@@ -99,7 +105,21 @@ public class Consumer {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
         consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
-        consumer.subscribe(topic, "*");
+        if (filterType == null || expression == null) {
+            consumer.subscribe(topic, "*");
+        } else {
+            if (ExpressionType.TAG.equals(filterType)) {
+                String expr = MixAll.file2String(expression);
+                System.out.printf("Expression: %s%n", expr);
+                consumer.subscribe(topic, MessageSelector.byTag(expr));
+            } else if (ExpressionType.SQL92.equals(filterType)) {
+                String expr = MixAll.file2String(expression);
+                System.out.printf("Expression: %s%n", expr);
+                consumer.subscribe(topic, MessageSelector.bySql(expr));
+            } else {
+                throw new IllegalArgumentException("Not support filter type! " + filterType);
+            }
+        }
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
@@ -139,6 +159,14 @@ public class Consumer {
         options.addOption(opt);
 
         opt = new Option("p", "group prefix enable", true, "Consumer group name, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("f", "filterType", true, "TAG, SQL92");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("e", "expression", true, "filter expression content file path.ie: ./test/expr");
         opt.setRequired(false);
         options.addOption(opt);
 

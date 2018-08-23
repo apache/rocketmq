@@ -44,7 +44,7 @@ public class OneWaySendExceptionIT extends BaseConf {
 
     @After
     public void tearDown() {
-        super.shutDown();
+        super.shutdown();
     }
 
     @Test(expected = java.lang.NullPointerException.class)

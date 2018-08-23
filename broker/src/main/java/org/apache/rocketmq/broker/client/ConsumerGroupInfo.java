@@ -23,20 +23,21 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ConsumerGroupInfo {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final String groupName;
-    private final ConcurrentHashMap<String/* Topic */, SubscriptionData> subscriptionTable =
+    private final ConcurrentMap<String/* Topic */, SubscriptionData> subscriptionTable =
         new ConcurrentHashMap<String, SubscriptionData>();
-    private final ConcurrentHashMap<Channel, ClientChannelInfo> channelInfoTable =
+    private final ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable =
         new ConcurrentHashMap<Channel, ClientChannelInfo>(16);
     private volatile ConsumeType consumeType;
     private volatile MessageModel messageModel;
@@ -63,11 +64,11 @@ public class ConsumerGroupInfo {
         return null;
     }
 
-    public ConcurrentHashMap<String, SubscriptionData> getSubscriptionTable() {
+    public ConcurrentMap<String, SubscriptionData> getSubscriptionTable() {
         return subscriptionTable;
     }
 
-    public ConcurrentHashMap<Channel, ClientChannelInfo> getChannelInfoTable() {
+    public ConcurrentMap<Channel, ClientChannelInfo> getChannelInfoTable() {
         return channelInfoTable;
     }
 

@@ -18,23 +18,23 @@ package org.apache.rocketmq.broker.longpolling;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.store.DefaultMessageFilter;
-import org.apache.rocketmq.store.MessageFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.store.ConsumeQueueExt;
 
 public class PullRequestHoldService extends ServiceThread {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final String TOPIC_QUEUEID_SEPARATOR = "@";
     private final BrokerController brokerController;
     private final SystemClock systemClock = new SystemClock();
-    private final MessageFilter messageFilter = new DefaultMessageFilter();
-    private ConcurrentHashMap<String/* topic@queueId */, ManyPullRequest> pullRequestTable =
+    private ConcurrentMap<String/* topic@queueId */, ManyPullRequest> pullRequestTable =
         new ConcurrentHashMap<String, ManyPullRequest>(1024);
 
     public PullRequestHoldService(final BrokerController brokerController) {
@@ -99,7 +99,7 @@ public class PullRequestHoldService extends ServiceThread {
             if (2 == kArray.length) {
                 String topic = kArray[0];
                 int queueId = Integer.parseInt(kArray[1]);
-                final long offset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
+                final long offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
                 try {
                     this.notifyMessageArriving(topic, queueId, offset);
                 } catch (Throwable e) {
@@ -110,10 +110,11 @@ public class PullRequestHoldService extends ServiceThread {
     }
 
     public void notifyMessageArriving(final String topic, final int queueId, final long maxOffset) {
-        notifyMessageArriving(topic, queueId, maxOffset, null);
+        notifyMessageArriving(topic, queueId, maxOffset, null, 0, null, null);
     }
 
-    public void notifyMessageArriving(final String topic, final int queueId, final long maxOffset, final Long tagsCode) {
+    public void notifyMessageArriving(final String topic, final int queueId, final long maxOffset, final Long tagsCode,
+        long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         String key = this.buildKey(topic, queueId);
         ManyPullRequest mpr = this.pullRequestTable.get(key);
         if (mpr != null) {
@@ -124,11 +125,18 @@ public class PullRequestHoldService extends ServiceThread {
                 for (PullRequest request : requestList) {
                     long newestOffset = maxOffset;
                     if (newestOffset <= request.getPullFromThisOffset()) {
-                        newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQuque(topic, queueId);
+                        newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
                     }
 
                     if (newestOffset > request.getPullFromThisOffset()) {
-                        if (this.messageFilter.isMessageMatched(request.getSubscriptionData(), tagsCode)) {
+                        boolean match = request.getMessageFilter().isMatchedByConsumeQueue(tagsCode,
+                            new ConsumeQueueExt.CqExtUnit(tagsCode, msgStoreTime, filterBitMap));
+                        // match by bit map, need eval again when properties is not null.
+                        if (match && properties != null) {
+                            match = request.getMessageFilter().isMatchedByCommitLog(null, properties);
+                        }
+
+                        if (match) {
                             try {
                                 this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
                                     request.getRequestCommand());

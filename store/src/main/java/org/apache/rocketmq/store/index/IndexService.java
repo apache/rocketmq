@@ -25,17 +25,19 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class IndexService {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-    /** Maximum times to attempt index file creation. */
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    /**
+     * Maximum times to attempt index file creation.
+     */
     private static final int MAX_TRY_IDX_CREATE = 3;
     private final DefaultMessageStore defaultMessageStore;
     private final int hashSlotNum;
@@ -140,7 +142,7 @@ public class IndexService {
 
     public void destroy() {
         try {
-            this.readWriteLock.readLock().lock();
+            this.readWriteLock.writeLock().lock();
             for (IndexFile f : this.indexFileList) {
                 f.destroy(1000 * 3);
             }
@@ -148,7 +150,7 @@ public class IndexService {
         } catch (Exception e) {
             log.error("destroy exception", e);
         } finally {
-            this.readWriteLock.readLock().unlock();
+            this.readWriteLock.writeLock().unlock();
         }
     }
 
@@ -275,7 +277,7 @@ public class IndexService {
                 log.info("Tried to create index file " + times + " times");
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                log.error("Interrupted", e);
             }
         }
 
