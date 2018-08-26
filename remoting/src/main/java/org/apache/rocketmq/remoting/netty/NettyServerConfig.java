@@ -18,6 +18,9 @@ package org.apache.rocketmq.remoting.netty;
 
 public class NettyServerConfig implements Cloneable {
     private int listenPort = 8888;
+    
+    private int httpListenPort= 19999;
+    
     private int serverWorkerThreads = 8;
     private int serverCallbackExecutorThreads = 0;
     private int serverSelectorThreads = 3;
@@ -46,7 +49,17 @@ public class NettyServerConfig implements Cloneable {
         this.listenPort = listenPort;
     }
 
-    public int getServerWorkerThreads() {
+    
+    
+    public int getHttpListenPort() {
+		return httpListenPort;
+	}
+
+	public void setHttpListenPort(int httpListenPort) {
+		this.httpListenPort = httpListenPort;
+	}
+
+	public int getServerWorkerThreads() {
         return serverWorkerThreads;
     }
 

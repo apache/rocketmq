@@ -14,9 +14,7 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
-  -->
-
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  --><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <parent>
         <groupId>org.apache</groupId>
@@ -125,7 +123,8 @@
         <module>distribution</module>
         <module>openmessaging</module>
         <module>logging</module>
-    </modules>
+    <module>rocketmq-http</module>
+  </modules>
 
     <build>
         <plugins>
@@ -157,7 +156,7 @@
                 </executions>
                 <configuration>
                     <rules>
-                        <banCircularDependencies />
+                        <banCircularDependencies/>
                     </rules>
                     <fail>true</fail>
                 </configuration>
@@ -209,14 +208,14 @@
             </plugin>
             <plugin>
                 <artifactId>maven-help-plugin</artifactId>
-                <version>2.2</version>
+                <version>3.0.1</version>
                 <executions>
                     <execution>
                         <id>generate-effective-dependencies-pom</id>
                         <phase>generate-resources</phase>
-                        <goals>
+                        <!-- <goals>
                             <goal>effective-pom</goal>
-                        </goals>
+                        </goals> -->
                         <configuration>
                             <output>${project.build.directory}/effective-pom/effective-dependencies.xml</output>
                         </configuration>

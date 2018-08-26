@@ -40,6 +40,8 @@ public class NettyClientConfig {
 
     private boolean useTLS;
 
+    private boolean useHttp = false;
+    
     public boolean isClientCloseSocketIfTimeout() {
         return clientCloseSocketIfTimeout;
     }
@@ -135,4 +137,14 @@ public class NettyClientConfig {
     public void setUseTLS(boolean useTLS) {
         this.useTLS = useTLS;
     }
+
+	public boolean isUseHttp() {
+		return useHttp;
+	}
+
+	public void setUseHttp(boolean useHttp) {
+		this.useHttp = useHttp;
+	}
+    
+    
 }

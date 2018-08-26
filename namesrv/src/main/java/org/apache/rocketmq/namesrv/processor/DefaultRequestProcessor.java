@@ -219,6 +219,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         RegisterBrokerResult result = this.namesrvController.getRouteInfoManager().registerBroker(
             requestHeader.getClusterName(),
             requestHeader.getBrokerAddr(),
+            requestHeader.getBrokerHttpAddr(),
             requestHeader.getBrokerName(),
             requestHeader.getBrokerId(),
             requestHeader.getHaServerAddr(),
@@ -299,6 +300,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         RegisterBrokerResult result = this.namesrvController.getRouteInfoManager().registerBroker(
             requestHeader.getClusterName(),
             requestHeader.getBrokerAddr(),
+            requestHeader.getBrokerHttpAddr(),
             requestHeader.getBrokerName(),
             requestHeader.getBrokerId(),
             requestHeader.getHaServerAddr(),
