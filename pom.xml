@@ -281,36 +281,45 @@
                 <version>0.7.8</version>
                 <executions>
                     <execution>
-                        <id>default-prepare-agent</id>
+                        <id>pre-unit-test</id>
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
                         <configuration>
                             <destFile>${project.build.directory}/jacoco.exec</destFile>
+                            <!--<propertyName>surefireArgLine</propertyName>-->
                         </configuration>
                     </execution>
                     <execution>
-                        <id>default-prepare-agent-integration</id>
+                        <id>post-unit-test</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <dataFile>${project.build.directory}/jacoco.exec</dataFile>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>pre-integration-test</id>
                         <phase>pre-integration-test</phase>
                         <goals>
                             <goal>prepare-agent-integration</goal>
                         </goals>
                         <configuration>
                             <destFile>${project.build.directory}/jacoco-it.exec</destFile>
-                            <propertyName>failsafeArgLine</propertyName>
+                            <!--<propertyName>failsafeArgLine</propertyName>-->
                         </configuration>
                     </execution>
                     <execution>
-                        <id>default-report</id>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>default-report-integration</id>
+                        <id>post-integration-test</id>
+                        <phase>post-integration-test</phase>
                         <goals>
                             <goal>report-integration</goal>
                         </goals>
+                        <configuration>
+                            <dataFile>${project.build.directory}/jacoco-it.exec</dataFile>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -321,6 +330,9 @@
                     <skipAfterFailureCount>1</skipAfterFailureCount>
                     <forkCount>1</forkCount>
                     <reuseForks>true</reuseForks>
+                    <excludes>
+                        <exclude>**/IT*.java</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
             <plugin>
