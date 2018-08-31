@@ -125,23 +125,25 @@ public class ServiceProvider {
 
     public static <T> T loadClass(String name, Class<?> clazz) {
         final InputStream is = getResourceAsStream(getContextClassLoader(), name);
-        BufferedReader reader;
-        try {
+        if (is != null) {
+            BufferedReader reader;
             try {
-                reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-            } catch (java.io.UnsupportedEncodingException e) {
-                reader = new BufferedReader(new InputStreamReader(is));
+                try {
+                    reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+                } catch (java.io.UnsupportedEncodingException e) {
+                    reader = new BufferedReader(new InputStreamReader(is));
+                }
+                String serviceName = reader.readLine();
+                reader.close();
+                if (serviceName != null && !"".equals(serviceName)) {
+                    return initService(getContextClassLoader(), serviceName, clazz);
+                } else {
+                    LOG.warn("ServiceName is empty!");
+                    return null;
+                }
+            } catch (Exception e) {
+                LOG.warn("Error occurred when looking for resource file " + name, e);
             }
-            String serviceName = reader.readLine();
-            reader.close();
-            if (serviceName != null && !"".equals(serviceName)) {
-                return initService(getContextClassLoader(), serviceName, clazz);
-            } else {
-                LOG.warn("ServiceName is empty!");
-                return null;
-            }
-        } catch (Exception e) {
-            LOG.error("Error occured when looking for resource file " + name, e);
         }
         return null;
     }
