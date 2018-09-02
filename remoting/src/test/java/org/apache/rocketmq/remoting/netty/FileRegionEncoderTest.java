@@ -33,8 +33,8 @@ import org.junit.Test;
 public class FileRegionEncoderTest {
 
     /**
-     * This unit test case ensures that {@link FileRegionEncoder} indeed wraps {@link FileRegion} to
-     * {@link ByteBuf}.
+     * This unit test case ensures that {@link FileRegionEncoder} indeed wraps {@link FileRegion} to {@link ByteBuf}.
+     *
      * @throws IOException if there is an error.
      */
     @Test

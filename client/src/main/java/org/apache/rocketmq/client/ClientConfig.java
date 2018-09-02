@@ -50,7 +50,7 @@ public class ClientConfig {
     private boolean useTLS = TlsSystemConfig.tlsEnable;
 
     private boolean useHttp = false;
-    
+
     private LanguageCode language = LanguageCode.JAVA;
 
     public String buildMQClientId() {
@@ -194,7 +194,7 @@ public class ClientConfig {
     public void setUseTLS(boolean useTLS) {
         this.useTLS = useTLS;
     }
-    
+
     public boolean isUseHttp() {
         return useHttp;
     }

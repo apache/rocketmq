@@ -77,7 +77,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 request);
         }
 
-
         switch (request.getCode()) {
             case RequestCode.PUT_KV_CONFIG:
                 return this.putKVConfig(ctx, request);

@@ -212,34 +212,33 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                             );
                     }
                 });
-        
+
         ServerBootstrap httpChildHandler =
-                this.httpServerBootstrap.group(this.eventLoopGroupBoss, this.eventLoopGroupSelector)
-                    .channel(useEpoll() ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
-                    .option(ChannelOption.SO_BACKLOG, 4096)
-                    .option(ChannelOption.SO_REUSEADDR, true)
-                    .option(ChannelOption.SO_KEEPALIVE, false)
-                    .childOption(ChannelOption.TCP_NODELAY, true)
-                    .childOption(ChannelOption.SO_SNDBUF, nettyServerConfig.getServerSocketSndBufSize())
-                    .childOption(ChannelOption.SO_RCVBUF, nettyServerConfig.getServerSocketRcvBufSize())
-                    .localAddress(new InetSocketAddress(this.nettyServerConfig.getHttpListenPort()))
-                    .childHandler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        public void initChannel(SocketChannel ch) throws Exception {
-                        	
-                        	
-                            ch.pipeline()
-                                .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME,
-                                    new HandshakeHandler(TlsSystemConfig.tlsMode))
-                                .addLast(defaultEventExecutorGroup,
-                                		new HttpRequestDecoder(),
-                                		new HttpObjectAggregator(65536),
-                                		new NettyHTTPResponseEncoder(),
-                                		new ChunkedWriteHandler(),
-                                		new HttpServerHandler( new NettyServerHandler() )
-                                );
-                        }
-                    });
+            this.httpServerBootstrap.group(this.eventLoopGroupBoss, this.eventLoopGroupSelector)
+                .channel(useEpoll() ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
+                .option(ChannelOption.SO_BACKLOG, 4096)
+                .option(ChannelOption.SO_REUSEADDR, true)
+                .option(ChannelOption.SO_KEEPALIVE, false)
+                .childOption(ChannelOption.TCP_NODELAY, true)
+                .childOption(ChannelOption.SO_SNDBUF, nettyServerConfig.getServerSocketSndBufSize())
+                .childOption(ChannelOption.SO_RCVBUF, nettyServerConfig.getServerSocketRcvBufSize())
+                .localAddress(new InetSocketAddress(this.nettyServerConfig.getHttpListenPort()))
+                .childHandler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    public void initChannel(SocketChannel ch) throws Exception {
+
+                        ch.pipeline()
+                            .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME,
+                                new HandshakeHandler(TlsSystemConfig.tlsMode))
+                            .addLast(defaultEventExecutorGroup,
+                                new HttpRequestDecoder(),
+                                new HttpObjectAggregator(65536),
+                                new NettyHTTPResponseEncoder(),
+                                new ChunkedWriteHandler(),
+                                new HttpServerHandler(new NettyServerHandler())
+                            );
+                    }
+                });
 
         if (nettyServerConfig.isServerPooledByteBufAllocatorEnable()) {
             childHandler.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
@@ -249,9 +248,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             ChannelFuture sync = this.serverBootstrap.bind().sync();
             InetSocketAddress addr = (InetSocketAddress) sync.channel().localAddress();
             this.port = addr.getPort();
-            
+
             this.httpServerBootstrap.bind().sync();
-            
+
         } catch (InterruptedException e1) {
             throw new RuntimeException("this.serverBootstrap.bind().sync() InterruptedException", e1);
         }

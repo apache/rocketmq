@@ -90,7 +90,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     private final AtomicReference<List<String>> namesrvAddrList = new AtomicReference<List<String>>();
     private final AtomicReference<List<String>> namesrvHttpAddrList = new AtomicReference<List<String>>();
-    
+
     private final AtomicReference<String> namesrvAddrChoosed = new AtomicReference<String>();
     private final AtomicInteger namesrvIndex = new AtomicInteger(initValueIndex());
     private final Lock lockNamesrvChannel = new ReentrantLock();
@@ -198,27 +198,27 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         new NettyClientHandler());
                 }
             });
-        
-        Bootstrap httpHandler = this.httpBootstrap.group(this.eventLoopGroupWorker).channel(NioSocketChannel.class)
-                .option(ChannelOption.TCP_NODELAY, true)
-                .option(ChannelOption.SO_KEEPALIVE, false)
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, nettyClientConfig.getConnectTimeoutMillis())
-                .option(ChannelOption.SO_SNDBUF, nettyClientConfig.getClientSocketSndBufSize())
-                .option(ChannelOption.SO_RCVBUF, nettyClientConfig.getClientSocketRcvBufSize())
-                .handler(new ChannelInitializer<SocketChannel>() {
-                    @Override
-                    public void initChannel(SocketChannel ch) throws Exception {
-                        ChannelPipeline pipeline = ch.pipeline();
 
-                        pipeline.addLast(
-                            defaultEventExecutorGroup,
-                            new NettyHTTPRequestEncoder(),
-                            new HttpObjectAggregator(65536),
-                            new HttpResponseDecoder(),
-                            new NettyConnectManageHandler(),
-                            new HttpClientHandler(new NettyClientHandler()));
-                    }
-                });
+        Bootstrap httpHandler = this.httpBootstrap.group(this.eventLoopGroupWorker).channel(NioSocketChannel.class)
+            .option(ChannelOption.TCP_NODELAY, true)
+            .option(ChannelOption.SO_KEEPALIVE, false)
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, nettyClientConfig.getConnectTimeoutMillis())
+            .option(ChannelOption.SO_SNDBUF, nettyClientConfig.getClientSocketSndBufSize())
+            .option(ChannelOption.SO_RCVBUF, nettyClientConfig.getClientSocketRcvBufSize())
+            .handler(new ChannelInitializer<SocketChannel>() {
+                @Override
+                public void initChannel(SocketChannel ch) throws Exception {
+                    ChannelPipeline pipeline = ch.pipeline();
+
+                    pipeline.addLast(
+                        defaultEventExecutorGroup,
+                        new NettyHTTPRequestEncoder(),
+                        new HttpObjectAggregator(65536),
+                        new HttpResponseDecoder(),
+                        new NettyConnectManageHandler(),
+                        new HttpClientHandler(new NettyClientHandler()));
+                }
+            });
 
         this.timer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -389,7 +389,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     @Override
     public void updateNameServerHttpAddressList(List<String> addrs) {
-    	List<String> old = this.namesrvHttpAddrList.get();
+        List<String> old = this.namesrvHttpAddrList.get();
         boolean update = false;
 
         if (!addrs.isEmpty()) {
@@ -412,7 +412,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         }
     }
-    
+
     @Override
     public RemotingCommand invokeSync(String addr, final RemotingCommand request, long timeoutMillis)
         throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
@@ -511,11 +511,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     private Channel createChannel(final String addr) throws InterruptedException {
-    	if( addr.charAt(0)=='@') {
-    		return this.httpBootstrap.connect( RemotingHelper.string2SocketAddress(addr.substring(1)) ).sync().channel();
-    	}
+        if (addr.charAt(0) == '@') {
+            return this.httpBootstrap.connect(RemotingHelper.string2SocketAddress(addr.substring(1))).sync().channel();
+        }
         ChannelWrapper cw = this.channelTables.get(addr);
-       
+
         if (cw != null && cw.isOK()) {
             cw.getChannel().close();
             channelTables.remove(addr);
@@ -643,8 +643,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     @Override
-    public List<String> getNameServerAddressList() {   	
-        return nettyClientConfig.isUseHttp()? this.namesrvHttpAddrList.get() : this.namesrvAddrList.get();
+    public List<String> getNameServerAddressList() {
+        return nettyClientConfig.isUseHttp() ? this.namesrvHttpAddrList.get() : this.namesrvAddrList.get();
     }
 
     @Override

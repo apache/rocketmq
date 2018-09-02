@@ -39,7 +39,6 @@ public class TlsSystemConfig {
     public static final String TLS_CLIENT_AUTHSERVER = "tls.client.authServer";
     public static final String TLS_CLIENT_TRUSTCERTPATH = "tls.client.trustCertPath";
 
-
     /**
      * To determine whether use SSL in client-side, include SDK client and BrokerOuterAPI
      */
@@ -51,9 +50,9 @@ public class TlsSystemConfig {
     public static boolean tlsTestModeEnable = Boolean.parseBoolean(System.getProperty(TLS_TEST_MODE_ENABLE, "true"));
 
     /**
-     * Indicates the state of the {@link javax.net.ssl.SSLEngine} with respect to client authentication.
-     * This configuration item really only applies when building the server-side {@link SslContext},
-     * and can be set to none, require or optional.
+     * Indicates the state of the {@link javax.net.ssl.SSLEngine} with respect to client authentication. This
+     * configuration item really only applies when building the server-side {@link SslContext}, and can be set to none,
+     * require or optional.
      */
     public static String tlsServerNeedClientAuth = System.getProperty(TLS_SERVER_NEED_CLIENT_AUTH, "none");
     /**
@@ -107,19 +106,21 @@ public class TlsSystemConfig {
     public static String tlsClientTrustCertPath = System.getProperty(TLS_CLIENT_TRUSTCERTPATH, null);
 
     /**
-     * For server, three SSL modes are supported: disabled, permissive and enforcing.
-     * For client, use {@link TlsSystemConfig#tlsEnable} to determine whether use SSL.
+     * For server, three SSL modes are supported: disabled, permissive and enforcing. For client, use {@link
+     * TlsSystemConfig#tlsEnable} to determine whether use SSL.
      * <ol>
-     *     <li><strong>disabled:</strong> SSL is not supported; any incoming SSL handshake will be rejected, causing connection closed.</li>
-     *     <li><strong>permissive:</strong> SSL is optional, aka, server in this mode can serve client connections with or without SSL;</li>
-     *     <li><strong>enforcing:</strong> SSL is required, aka, non SSL connection will be rejected.</li>
+     * <li><strong>disabled:</strong> SSL is not supported; any incoming SSL handshake will be rejected, causing
+     * connection closed.</li>
+     * <li><strong>permissive:</strong> SSL is optional, aka, server in this mode can serve client connections with or
+     * without SSL;</li>
+     * <li><strong>enforcing:</strong> SSL is required, aka, non SSL connection will be rejected.</li>
      * </ol>
      */
     public static TlsMode tlsMode = TlsMode.parse(System.getProperty(TLS_SERVER_MODE, "permissive"));
 
     /**
-     * A config file to store the above TLS related configurations,
-     * except {@link TlsSystemConfig#tlsMode} and {@link TlsSystemConfig#tlsEnable}
+     * A config file to store the above TLS related configurations, except {@link TlsSystemConfig#tlsMode} and {@link
+     * TlsSystemConfig#tlsEnable}
      */
     public static String tlsConfigFile = System.getProperty(TLS_CONFIG_FILE, "/etc/rocketmq/tls.properties");
 }
