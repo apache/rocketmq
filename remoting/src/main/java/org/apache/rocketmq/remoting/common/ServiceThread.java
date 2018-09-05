@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.remoting.common;
 
-
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 

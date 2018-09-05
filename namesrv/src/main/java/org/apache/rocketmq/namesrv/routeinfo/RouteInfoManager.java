@@ -102,6 +102,7 @@ public class RouteInfoManager {
     public RegisterBrokerResult registerBroker(
         final String clusterName,
         final String brokerAddr,
+        final String brokerHttpAddr,
         final String brokerName,
         final long brokerId,
         final String haServerAddr,
@@ -125,10 +126,11 @@ public class RouteInfoManager {
                 BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                 if (null == brokerData) {
                     registerFirst = true;
-                    brokerData = new BrokerData(clusterName, brokerName, new HashMap<Long, String>());
+                    brokerData = new BrokerData(clusterName, brokerName, new HashMap<Long, String>(), new HashMap<Long, String>());
                     this.brokerAddrTable.put(brokerName, brokerData);
                 }
                 String oldAddr = brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
+                brokerData.getBrokerHttpAddrs().put(brokerId, brokerHttpAddr);
                 registerFirst = registerFirst || (null == oldAddr);
 
                 if (null != topicConfigWrapper
@@ -389,7 +391,7 @@ public class RouteInfoManager {
                         BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                         if (null != brokerData) {
                             BrokerData brokerDataClone = new BrokerData(brokerData.getCluster(), brokerData.getBrokerName(), (HashMap<Long, String>) brokerData
-                                .getBrokerAddrs().clone());
+                                .getBrokerAddrs().clone(), (HashMap<Long, String>) brokerData.getBrokerHttpAddrs().clone());
                             brokerDataList.add(brokerDataClone);
                             foundBrokerData = true;
                             for (final String brokerAddr : brokerDataClone.getBrokerAddrs().values()) {

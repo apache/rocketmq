@@ -49,6 +49,8 @@ public class ClientConfig {
 
     private boolean useTLS = TlsSystemConfig.tlsEnable;
 
+    private boolean useHttp = false;
+
     private LanguageCode language = LanguageCode.JAVA;
 
     public String buildMQClientId() {
@@ -99,6 +101,7 @@ public class ClientConfig {
         this.unitName = cc.unitName;
         this.vipChannelEnabled = cc.vipChannelEnabled;
         this.useTLS = cc.useTLS;
+        this.useHttp = cc.useTLS;
         this.language = cc.language;
     }
 
@@ -115,6 +118,7 @@ public class ClientConfig {
         cc.unitName = unitName;
         cc.vipChannelEnabled = vipChannelEnabled;
         cc.useTLS = useTLS;
+        cc.useHttp = useHttp;
         cc.language = language;
         return cc;
     }
@@ -189,6 +193,14 @@ public class ClientConfig {
 
     public void setUseTLS(boolean useTLS) {
         this.useTLS = useTLS;
+    }
+
+    public boolean isUseHttp() {
+        return useHttp;
+    }
+
+    public void setUseHttp(boolean useHttp) {
+        this.useHttp = useHttp;
     }
 
     public LanguageCode getLanguage() {

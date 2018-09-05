@@ -29,6 +29,8 @@ public interface RemotingClient extends RemotingService {
 
     void updateNameServerAddressList(final List<String> addrs);
 
+    void updateNameServerHttpAddressList(final List<String> addrs);
+
     List<String> getNameServerAddressList();
 
     RemotingCommand invokeSync(final String addr, final RemotingCommand request,

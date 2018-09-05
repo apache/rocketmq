@@ -29,6 +29,9 @@ public class RegisterBrokerRequestHeader implements CommandCustomHeader {
     private String brokerName;
     @CFNotNull
     private String brokerAddr;
+
+    private String brokerHttpAddr;
+
     @CFNotNull
     private String clusterName;
     @CFNotNull
@@ -57,6 +60,14 @@ public class RegisterBrokerRequestHeader implements CommandCustomHeader {
 
     public void setBrokerAddr(String brokerAddr) {
         this.brokerAddr = brokerAddr;
+    }
+
+    public String getBrokerHttpAddr() {
+        return brokerHttpAddr;
+    }
+
+    public void setBrokerHttpAddr(String brokerHttpAddr) {
+        this.brokerHttpAddr = brokerHttpAddr;
     }
 
     public String getClusterName() {

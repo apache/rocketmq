@@ -28,16 +28,19 @@ public class BrokerData implements Comparable<BrokerData> {
     private String brokerName;
     private HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs;
 
+    private HashMap<Long/*brokerId */ , String/*borker http address*/> brokerHttpAddrs;
+    
     private final Random random = new Random();
 
     public BrokerData() {
 
     }
 
-    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs) {
+    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs ,HashMap<Long, String> brokerHttpAddrs) {
         this.cluster = cluster;
         this.brokerName = brokerName;
         this.brokerAddrs = brokerAddrs;
+        this.brokerHttpAddrs = brokerHttpAddrs;
     }
 
     /**
@@ -64,6 +67,14 @@ public class BrokerData implements Comparable<BrokerData> {
     public void setBrokerAddrs(HashMap<Long, String> brokerAddrs) {
         this.brokerAddrs = brokerAddrs;
     }
+    
+    public HashMap<Long, String> getBrokerHttpAddrs() {
+        return brokerHttpAddrs;
+    }
+
+    public void setBrokerHttpAddrs(HashMap<Long, String> brokerHttpAddrs) {
+        this.brokerHttpAddrs = brokerHttpAddrs;
+    }
 
     public String getCluster() {
         return cluster;
@@ -78,6 +89,7 @@ public class BrokerData implements Comparable<BrokerData> {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((brokerAddrs == null) ? 0 : brokerAddrs.hashCode());
+        result = prime * result + ((brokerHttpAddrs == null) ? 0 : brokerHttpAddrs.hashCode());
         result = prime * result + ((brokerName == null) ? 0 : brokerName.hashCode());
         return result;
     }
@@ -96,6 +108,11 @@ public class BrokerData implements Comparable<BrokerData> {
                 return false;
         } else if (!brokerAddrs.equals(other.brokerAddrs))
             return false;
+        if (brokerHttpAddrs == null) {
+            if (other.brokerHttpAddrs != null)
+                return false;
+        } else if (!brokerHttpAddrs.equals(other.brokerHttpAddrs))
+            return false;
         if (brokerName == null) {
             if (other.brokerName != null)
                 return false;
@@ -106,7 +123,7 @@ public class BrokerData implements Comparable<BrokerData> {
 
     @Override
     public String toString() {
-        return "BrokerData [brokerName=" + brokerName + ", brokerAddrs=" + brokerAddrs + "]";
+        return "BrokerData [brokerName=" + brokerName + ", brokerAddrs=" + brokerAddrs + ",brokerHttpAddrs" + brokerHttpAddrs + "]";
     }
 
     @Override

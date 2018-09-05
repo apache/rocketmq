@@ -76,7 +76,7 @@ public class EndTransactionProcessorTest {
         endTransactionProcessor = new EndTransactionProcessor(brokerController);
     }
 
-    private OperationResult createResponse(int status){
+    private OperationResult createResponse(int status) {
         OperationResult response = new OperationResult();
         response.setPrepareMessage(createDefaultMessageExt());
         response.setResponseCode(status);

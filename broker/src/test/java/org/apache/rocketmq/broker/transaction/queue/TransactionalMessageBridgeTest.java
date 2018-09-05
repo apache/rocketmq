@@ -110,14 +110,14 @@ public class TransactionalMessageBridgeTest {
 
     @Test
     public void testGetHalfMessage() {
-        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(),  ArgumentMatchers.nullable(MessageFilter.class))).thenReturn(createGetMessageResult(GetMessageStatus.NO_MESSAGE_IN_QUEUE));
+        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), ArgumentMatchers.nullable(MessageFilter.class))).thenReturn(createGetMessageResult(GetMessageStatus.NO_MESSAGE_IN_QUEUE));
         PullResult result = transactionBridge.getHalfMessage(0, 0, 1);
         assertThat(result.getPullStatus()).isEqualTo(PullStatus.NO_NEW_MSG);
     }
 
     @Test
     public void testGetOpMessage() {
-        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(),  ArgumentMatchers.nullable(MessageFilter.class))).thenReturn(createGetMessageResult(GetMessageStatus.NO_MESSAGE_IN_QUEUE));
+        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), ArgumentMatchers.nullable(MessageFilter.class))).thenReturn(createGetMessageResult(GetMessageStatus.NO_MESSAGE_IN_QUEUE));
         PullResult result = transactionBridge.getOpMessage(0, 0, 1);
         assertThat(result.getPullStatus()).isEqualTo(PullStatus.NO_NEW_MSG);
     }
@@ -143,25 +143,24 @@ public class TransactionalMessageBridgeTest {
         MessageExt messageExt = createMessageBrokerInner();
         final String offset = "123456789";
         MessageExtBrokerInner msgInner = transactionBridge.renewImmunityHalfMessageInner(messageExt);
-        MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET,offset);
+        MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET, offset);
         assertThat(msgInner).isNotNull();
-        Map<String,String> properties = msgInner.getProperties();
+        Map<String, String> properties = msgInner.getProperties();
         assertThat(properties).isNotNull();
         String resOffset = properties.get(MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET);
         assertThat(resOffset).isEqualTo(offset);
     }
-
 
     @Test
     public void testRenewHalfMessageInner() {
         MessageExt messageExt = new MessageExt();
         long bornTimeStamp = messageExt.getBornTimestamp();
         MessageExt messageExtRes = transactionBridge.renewHalfMessageInner(messageExt);
-        assertThat( messageExtRes.getBornTimestamp()).isEqualTo(bornTimeStamp);
+        assertThat(messageExtRes.getBornTimestamp()).isEqualTo(bornTimeStamp);
     }
 
     @Test
-    public void testLookMessageByOffset(){
+    public void testLookMessageByOffset() {
         when(messageStore.lookMessageByOffset(anyLong())).thenReturn(new MessageExt());
         MessageExt messageExt = transactionBridge.lookMessageByOffset(123);
         assertThat(messageExt).isNotNull();

@@ -20,9 +20,11 @@ package org.apache.rocketmq.remoting.common;
 /**
  * For server, three SSL modes are supported: disabled, permissive and enforcing.
  * <ol>
- *     <li><strong>disabled:</strong> SSL is not supported; any incoming SSL handshake will be rejected, causing connection closed.</li>
- *     <li><strong>permissive:</strong> SSL is optional, aka, server in this mode can serve client connections with or without SSL;</li>
- *     <li><strong>enforcing:</strong> SSL is required, aka, non SSL connection will be rejected.</li>
+ * <li><strong>disabled:</strong> SSL is not supported; any incoming SSL handshake will be rejected, causing connection
+ * closed.</li>
+ * <li><strong>permissive:</strong> SSL is optional, aka, server in this mode can serve client connections with or
+ * without SSL;</li>
+ * <li><strong>enforcing:</strong> SSL is required, aka, non SSL connection will be rejected.</li>
  * </ol>
  */
 public enum TlsMode {

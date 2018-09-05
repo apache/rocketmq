@@ -111,9 +111,20 @@ public class BrokerOuterAPI {
         this.remotingClient.updateNameServerAddressList(lst);
     }
 
+    public void updateNameServerHttpAddressList(final String addrs) {
+        List<String> lst = new ArrayList<String>();
+        String[] addrArray = addrs.split(";");
+        for (String addr : addrArray) {
+            lst.add("@" + addr);
+        }
+
+        this.remotingClient.updateNameServerHttpAddressList(lst);
+    }
+
     public List<RegisterBrokerResult> registerBrokerAll(
         final String clusterName,
         final String brokerAddr,
+        final String brokerHttpAddr,
         final String brokerName,
         final long brokerId,
         final String haServerAddr,
@@ -134,6 +145,7 @@ public class BrokerOuterAPI {
             requestHeader.setClusterName(clusterName);
             requestHeader.setHaServerAddr(haServerAddr);
             requestHeader.setCompressed(compressed);
+            requestHeader.setBrokerHttpAddr(brokerHttpAddr);
 
             RegisterBrokerBody requestBody = new RegisterBrokerBody();
             requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper);
@@ -147,7 +159,7 @@ public class BrokerOuterAPI {
                     @Override
                     public void run() {
                         try {
-                            RegisterBrokerResult result = registerBroker(namesrvAddr,oneway, timeoutMills,requestHeader,body);
+                            RegisterBrokerResult result = registerBroker(namesrvAddr, oneway, timeoutMills, requestHeader, body);
                             if (result != null) {
                                 registerBrokerResultList.add(result);
                             }

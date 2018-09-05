@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.broker.filtersrv;
 
-
 import org.apache.rocketmq.logging.InternalLogger;
 
 public class FilterServerUtil {

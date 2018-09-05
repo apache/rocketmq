@@ -16,16 +16,18 @@
  */
 package org.apache.rocketmq.namesrv.processor;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.common.protocol.RequestCode;
@@ -37,6 +39,7 @@ import org.apache.rocketmq.common.protocol.header.namesrv.GetKVConfigResponseHea
 import org.apache.rocketmq.common.protocol.header.namesrv.PutKVConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -46,9 +49,8 @@ import org.assertj.core.util.Maps;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
 
 public class DefaultRequestProcessorTest {
     private DefaultRequestProcessor defaultRequestProcessor;
@@ -179,6 +181,7 @@ public class DefaultRequestProcessorTest {
         BrokerData broker = new BrokerData();
         broker.setBrokerName("broker");
         broker.setBrokerAddrs((HashMap) Maps.newHashMap(new Long(2333), "10.10.1.1"));
+        broker.setBrokerHttpAddrs((HashMap) Maps.newHashMap(new Long(2333), "10.10.1.1") );
 
         assertThat((Map) brokerAddrTable.get(routes))
             .contains(new HashMap.SimpleEntry("broker", broker));
@@ -206,7 +209,8 @@ public class DefaultRequestProcessorTest {
 
         BrokerData broker = new BrokerData();
         broker.setBrokerName("broker");
-        broker.setBrokerAddrs((HashMap) Maps.newHashMap(new Long(2333), "10.10.1.1"));
+        broker.setBrokerAddrs( (HashMap) Maps.newHashMap(new Long(2333), "10.10.1.1") );
+        broker.setBrokerHttpAddrs((HashMap) Maps.newHashMap(new Long(2333), "10.10.1.1") );
 
         assertThat((Map) brokerAddrTable.get(routes))
             .contains(new HashMap.SimpleEntry("broker", broker));
@@ -242,6 +246,7 @@ public class DefaultRequestProcessorTest {
             reg ? RequestCode.REGISTER_BROKER : RequestCode.UNREGISTER_BROKER, header);
         request.addExtField("brokerName", "broker");
         request.addExtField("brokerAddr", "10.10.1.1");
+        request.addExtField("brokerHttpAddr", "10.10.1.1");
         request.addExtField("clusterName", "cluster");
         request.addExtField("haServerAddr", "10.10.2.1");
         request.addExtField("brokerId", "2333");
@@ -268,7 +273,7 @@ public class DefaultRequestProcessorTest {
         topicConfigConcurrentHashMap.put("unit-test", topicConfig);
         topicConfigSerializeWrapper.setTopicConfigTable(topicConfigConcurrentHashMap);
         Channel channel = mock(Channel.class);
-        RegisterBrokerResult registerBrokerResult = routeInfoManager.registerBroker("default-cluster", "127.0.0.1:10911", "default-broker", 1234, "127.0.0.1:1001",
+        RegisterBrokerResult registerBrokerResult = routeInfoManager.registerBroker("default-cluster", "127.0.0.1:10911", "127.0.0.1:19999", "default-broker", 1234, "127.0.0.1:1001",
             topicConfigSerializeWrapper, new ArrayList<String>(), channel);
 
     }

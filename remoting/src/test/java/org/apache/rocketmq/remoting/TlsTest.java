@@ -106,8 +106,7 @@ public class TlsTest {
             tlsClientKeyPath = getCertsPath("badClient.key");
             tlsClientCertPath = getCertsPath("badClient.pem");
             tlsServerAuthClient = false;
-        }
-        else if ("noClientAuthFailure".equals(name.getMethodName())) {
+        } else if ("noClientAuthFailure".equals(name.getMethodName())) {
             //Clear the client cert config to ensure produce the handshake error
             tlsClientKeyPath = "";
             tlsClientCertPath = "";
@@ -152,8 +151,7 @@ public class TlsTest {
     }
 
     /**
-     * Tests that a client and a server configured using two-way SSL auth can successfully
-     * communicate with each other.
+     * Tests that a client and a server configured using two-way SSL auth can successfully communicate with each other.
      */
     @Test
     public void basicClientServerIntegrationTest() throws Exception {
@@ -205,8 +203,8 @@ public class TlsTest {
     }
 
     /**
-     * Tests that a server configured to require client authentication refuses to accept connections
-     * from a client that has an untrusted certificate.
+     * Tests that a server configured to require client authentication refuses to accept connections from a client that
+     * has an untrusted certificate.
      */
     @Test
     public void serverRejectsUntrustedClientCert() throws Exception {
@@ -223,8 +221,7 @@ public class TlsTest {
     }
 
     /**
-     * Tests that a server configured to require client authentication actually does require client
-     * authentication.
+     * Tests that a server configured to require client authentication actually does require client authentication.
      */
     @Test
     public void noClientAuthFailure() throws Exception {
@@ -236,8 +233,8 @@ public class TlsTest {
     }
 
     /**
-     * Tests that a client configured using GrpcSslContexts refuses to talk to a server that has an
-     * an untrusted certificate.
+     * Tests that a client configured using GrpcSslContexts refuses to talk to a server that has an an untrusted
+     * certificate.
      */
     @Test
     public void clientRejectsUntrustedServerCert() throws Exception {
