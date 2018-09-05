@@ -161,7 +161,7 @@ public class BrokerStartup {
                     System.exit(-3);
                 }
             }
-            
+
             String namesrvHttpAddr = brokerConfig.getNamesrvHttpAddr();
             if (null != namesrvHttpAddr) {
                 try {
@@ -176,7 +176,6 @@ public class BrokerStartup {
                     System.exit(-3);
                 }
             }
-            
 
             switch (messageStoreConfig.getBrokerRole()) {
                 case ASYNC_MASTER:

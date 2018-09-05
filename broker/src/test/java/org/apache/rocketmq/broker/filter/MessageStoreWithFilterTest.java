@@ -120,7 +120,7 @@ public class MessageStoreWithFilterTest {
     }
 
     public MessageStoreConfig buildStoreConfig(int commitLogFileSize, int cqFileSize,
-                                               boolean enableCqExt, int cqExtFileSize) {
+        boolean enableCqExt, int cqExtFileSize) {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMapedFileSizeCommitLog(commitLogFileSize);
         messageStoreConfig.setMapedFileSizeConsumeQueue(cqFileSize);
@@ -150,7 +150,7 @@ public class MessageStoreWithFilterTest {
             new MessageArrivingListener() {
                 @Override
                 public void arriving(String topic, int queueId, long logicOffset, long tagsCode,
-                                     long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
+                    long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
                 }
             }
             , brokerConfig);
@@ -174,7 +174,7 @@ public class MessageStoreWithFilterTest {
     }
 
     protected List<MessageExtBrokerInner> putMsg(DefaultMessageStore master, int topicCount,
-                                                 int msgCountPerTopic) throws Exception {
+        int msgCountPerTopic) throws Exception {
         List<MessageExtBrokerInner> msgs = new ArrayList<MessageExtBrokerInner>();
         for (int i = 0; i < topicCount; i++) {
             String realTopic = topic + i;

@@ -69,12 +69,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
                         remotingCommand.setBody(newBodyBy);
                     }
                 }
-				/*String customHeader = remotingCommand.getExtFields().remove("customHeader");
-				if(customHeader != null) {
-					remotingCommand.writeCustomHeader(JSON.);
-				}*/
             }
-
             this.channelInboundHandler.channelRead(channelHandlerContext, remotingCommand);
         } catch (Exception e) {
             e.printStackTrace();

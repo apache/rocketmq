@@ -130,7 +130,7 @@ public class RouteInfoManager {
                     this.brokerAddrTable.put(brokerName, brokerData);
                 }
                 String oldAddr = brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
-                brokerData.getBrokerAddrs().put(brokerId, brokerHttpAddr);
+                brokerData.getBrokerHttpAddrs().put(brokerId, brokerHttpAddr);
                 registerFirst = registerFirst || (null == oldAddr);
 
                 if (null != topicConfigWrapper

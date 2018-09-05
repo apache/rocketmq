@@ -75,7 +75,7 @@ public class Broker2Client {
     }
 
     public RemotingCommand callClient(final Channel channel,
-                                      final RemotingCommand request
+        final RemotingCommand request
     ) throws RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
         return this.brokerController.getRemotingServer().invokeSync(channel, request, 10000);
     }
@@ -105,7 +105,7 @@ public class Broker2Client {
     }
 
     public RemotingCommand resetOffset(String topic, String group, long timeStamp, boolean isForce,
-                                       boolean isC) {
+        boolean isC) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);

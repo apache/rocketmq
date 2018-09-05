@@ -1,10 +1,13 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright ownership. The ASF licenses this file to
- * You under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE
+ * file distributed with this work for additional information regarding copyright ownership. The ASF licenses this file
+ * to You under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
  * <p>
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 package org.apache.rocketmq.broker.util;
@@ -108,7 +111,7 @@ public class ServiceProvider {
                         names.add(serviceName);
                     }
 
-                    services.add((T)initService(getContextClassLoader(), serviceName, clazz));
+                    services.add((T) initService(getContextClassLoader(), serviceName, clazz));
 
                     serviceName = reader.readLine();
                 }
@@ -160,10 +163,11 @@ public class ServiceProvider {
                         // This indicates a problem with the ClassLoader tree. An incompatible ClassLoader was used to load the implementation.
                         LOG.error(
                             "Class {} loaded from classloader {} does not extend {} as loaded by this classloader.",
-                            new Object[] {serviceClazz.getName(),
+                            new Object[] {
+                                serviceClazz.getName(),
                                 objectId(serviceClazz.getClassLoader()), clazz.getName()});
                     }
-                    return (T)serviceClazz.newInstance();
+                    return (T) serviceClazz.newInstance();
                 } catch (ClassNotFoundException ex) {
                     if (classLoader == thisClassLoader) {
                         // Nothing more to try, onwards.
@@ -186,6 +190,6 @@ public class ServiceProvider {
         } catch (Exception e) {
             LOG.error("Unable to init service.", e);
         }
-        return (T)serviceClazz;
+        return (T) serviceClazz;
     }
 }

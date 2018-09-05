@@ -29,8 +29,8 @@ import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 
 /**
- * BrokerFastFailure will cover {@link BrokerController#sendThreadPoolQueue} and
- * {@link BrokerController#pullThreadPoolQueue}
+ * BrokerFastFailure will cover {@link BrokerController#sendThreadPoolQueue} and {@link
+ * BrokerController#pullThreadPoolQueue}
  */
 public class BrokerFastFailure {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);

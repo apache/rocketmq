@@ -1013,7 +1013,7 @@ public class MQClientInstance {
     }
 
     public String findBrokerAddressInPublish(final String brokerName) {
-        ConcurrentMap<String, HashMap<Long, String>> table = clientConfig == null ? brokerAddrTable : brokerHttpAddrTable;
+        ConcurrentMap<String, HashMap<Long, String>> table = clientConfig.isUseHttp() ? brokerHttpAddrTable : brokerAddrTable;
         HashMap<Long/* brokerId */, String/* address */> map = table.get(brokerName);
         if (map != null && !map.isEmpty()) {
             return map.get(MixAll.MASTER_ID);
