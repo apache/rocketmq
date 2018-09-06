@@ -82,6 +82,7 @@ public class ConsumeMessageCommand implements SubCommand {
     public void execute(final CommandLine commandLine, final Options options, RPCHook rpcHook) throws SubCommandException {
         try {
             /* Group name must be set before consumer start */
+
             defaultMQPushConsumer = new DefaultMQPushConsumer(commandLine.getOptionValue('g').trim());
             defaultMQPushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
             defaultMQPushConsumer.setNamesrvAddr(commandLine.getOptionValue('n').trim());
