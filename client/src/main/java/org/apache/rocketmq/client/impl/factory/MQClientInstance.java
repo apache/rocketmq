@@ -89,6 +89,9 @@ public class MQClientInstance {
     private final int instanceIndex;
     private final String clientId;
     private final long bootTimestamp = System.currentTimeMillis();
+    /***
+     * 管理{group,Producter}的映射关系，一个group只能映射一个producter
+     */
     private final ConcurrentMap<String/* group */, MQProducerInner> producerTable = new ConcurrentHashMap<String, MQProducerInner>();
     private final ConcurrentMap<String/* group */, MQConsumerInner> consumerTable = new ConcurrentHashMap<String, MQConsumerInner>();
     private final ConcurrentMap<String/* group */, MQAdminExtInner> adminExtTable = new ConcurrentHashMap<String, MQAdminExtInner>();
@@ -124,11 +127,14 @@ public class MQClientInstance {
 
     public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId, RPCHook rpcHook) {
         this.clientConfig = clientConfig;
-        this.instanceIndex = instanceIndex;
+        this.instanceIndex = instanceIndex;//一个递增的值
         this.nettyClientConfig = new NettyClientConfig();
+        //设置客户端回调函数的线程数，通过ClientCallbackExecutorThreads配置
         this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());
         this.nettyClientConfig.setUseTLS(clientConfig.isUseTLS());
+        //创建一个客户端远程处理器
         this.clientRemotingProcessor = new ClientRemotingProcessor(this);
+        //创建一个MQClientAPIImpl
         this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor, rpcHook, clientConfig);
 
         if (this.clientConfig.getNamesrvAddr() != null) {
@@ -139,14 +145,14 @@ public class MQClientInstance {
         this.clientId = clientId;
 
         this.mQAdminImpl = new MQAdminImpl(this);
-
+        //创建拉取消息的服务
         this.pullMessageService = new PullMessageService(this);
-
+        //创建负载均衡的服务
         this.rebalanceService = new RebalanceService(this);
-
+        //创建默认的内部 CLIENT_INNER_PRODUCER
         this.defaultMQProducer = new DefaultMQProducer(MixAll.CLIENT_INNER_PRODUCER_GROUP);
         this.defaultMQProducer.resetClientConfig(clientConfig);
-
+        //创建消费者状态管理
         this.consumerStatsManager = new ConsumerStatsManager(this.scheduledExecutorService);
 
         log.info("Created a new client Instance, InstanceIndex:{}, ClientID:{}, ClientConfig:{}, ClientVersion:{}, SerializerType:{}",
@@ -905,7 +911,7 @@ public class MQClientInstance {
             }
         }
     }
-
+    //将{group,producter}注册到MQClientInstance的producerTable中，如果group已经存在，则注册失败
     public boolean registerProducer(final String group, final DefaultMQProducerImpl producer) {
         if (null == group || null == producer) {
             return false;

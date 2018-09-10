@@ -47,7 +47,10 @@ public class Validators {
     }
 
     /**
-     * Validate group
+     * 校验分组名
+     *  1、不能为空
+     *  2、组名正则表达式判断
+     *  3、组名长度校验
      */
     public static void checkGroup(String group) throws MQClientException {
         if (UtilAll.isBlank(group)) {
