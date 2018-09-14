@@ -603,10 +603,9 @@ public class RouteInfoManager {
         try {
             try {
                 this.lock.readLock().lockInterruptibly();
-                for (Map.Entry<String, Set<String>> entry : clusterAddrTable.entrySet()) {
-                    topicList.getTopicList().add(entry.getKey());
-                    topicList.getTopicList().addAll(entry.getValue());
-                }
+
+                //Fix bug issues#465, topic should be added to topicList instead of cluster name and broker name
+                topicList.getTopicList().addAll(this.topicQueueTable.keySet());
 
                 if (brokerAddrTable != null && !brokerAddrTable.isEmpty()) {
                     Iterator<String> it = brokerAddrTable.keySet().iterator();
