@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.broker.BrokerController;
@@ -221,39 +222,23 @@ public class TopicConfigManager extends ConfigManager {
         final int clientDefaultTopicQueueNums,
         final int perm,
         final int topicSysFlag) {
-        TopicConfig topicConfig = this.topicConfigTable.get(topic);
-        if (topicConfig != null)
-            return topicConfig;
+        // Internal class requires final variables
+        final AtomicBoolean createNew = new AtomicBoolean(false);
+        TopicConfig topicConfig = this.topicConfigTable.computeIfAbsent(topic, key -> {
+            TopicConfig newTopicConfig = new TopicConfig(key);
+            newTopicConfig.setReadQueueNums(clientDefaultTopicQueueNums);
+            newTopicConfig.setWriteQueueNums(clientDefaultTopicQueueNums);
+            newTopicConfig.setPerm(perm);
+            newTopicConfig.setTopicSysFlag(topicSysFlag);
 
-        boolean createNew = false;
+            log.info("create new topic {}", newTopicConfig);
+            createNew.set(true);
+            TopicConfigManager.this.dataVersion.nextVersion();
+            TopicConfigManager.this.persist();
+            return newTopicConfig;
+        });
 
-        try {
-            if (this.lockTopicConfigTable.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
-                try {
-                    topicConfig = this.topicConfigTable.get(topic);
-                    if (topicConfig != null)
-                        return topicConfig;
-
-                    topicConfig = new TopicConfig(topic);
-                    topicConfig.setReadQueueNums(clientDefaultTopicQueueNums);
-                    topicConfig.setWriteQueueNums(clientDefaultTopicQueueNums);
-                    topicConfig.setPerm(perm);
-                    topicConfig.setTopicSysFlag(topicSysFlag);
-
-                    log.info("create new topic {}", topicConfig);
-                    this.topicConfigTable.put(topic, topicConfig);
-                    createNew = true;
-                    this.dataVersion.nextVersion();
-                    this.persist();
-                } finally {
-                    this.lockTopicConfigTable.unlock();
-                }
-            }
-        } catch (InterruptedException e) {
-            log.error("createTopicInSendMessageBackMethod exception", e);
-        }
-
-        if (createNew) {
+        if (createNew.get()) {
             this.brokerController.registerBrokerAll(false, true,true);
         }
 
@@ -381,6 +366,10 @@ public class TopicConfigManager extends ConfigManager {
         return encode(false);
     }
 
+    public String encode(final boolean prettyFormat) {
+        return buildTopicConfigSerializeWrapper().toJson(prettyFormat);
+    }
+
     @Override
     public String configFilePath() {
         return BrokerPathConfigHelper.getTopicConfigPath(this.brokerController.getMessageStoreConfig()
@@ -398,13 +387,6 @@ public class TopicConfigManager extends ConfigManager {
                 this.printLoadDataWhenFirstBoot(topicConfigSerializeWrapper);
             }
         }
-    }
-
-    public String encode(final boolean prettyFormat) {
-        TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
-        topicConfigSerializeWrapper.setTopicConfigTable(this.topicConfigTable);
-        topicConfigSerializeWrapper.setDataVersion(this.dataVersion);
-        return topicConfigSerializeWrapper.toJson(prettyFormat);
     }
 
     private void printLoadDataWhenFirstBoot(final TopicConfigSerializeWrapper tcs) {
