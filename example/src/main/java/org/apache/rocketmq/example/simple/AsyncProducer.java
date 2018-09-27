@@ -32,7 +32,7 @@ public class AsyncProducer {
         producer.start();
         producer.setRetryTimesWhenSendAsyncFailed(0);
 
-        for (int i = 0; i < 10000000; i++) {
+        for (int i = 0; i < 1000; i++) {
             try {
                 final int index = i;
                 Message msg = new Message("Jodie_topic_1023",
@@ -55,6 +55,7 @@ public class AsyncProducer {
                 e.printStackTrace();
             }
         }
+        Thread.sleep(10 * 1000L);
         producer.shutdown();
     }
 }
