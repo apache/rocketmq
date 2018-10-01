@@ -163,6 +163,9 @@ public class BrokerConfig {
      */
     @ImportantField
     private long transactionCheckInterval = 60 * 1000;
+    
+    
+    private boolean isAclPlug;
 
     public boolean isTraceOn() {
         return traceOn;
@@ -701,4 +704,13 @@ public class BrokerConfig {
     public void setTransactionCheckInterval(long transactionCheckInterval) {
         this.transactionCheckInterval = transactionCheckInterval;
     }
+
+	public boolean isAclPlug() {
+		return isAclPlug;
+	}
+
+	public void setAclPlug(boolean isAclPlug) {
+		this.isAclPlug = isAclPlug;
+	}
+    
 }
