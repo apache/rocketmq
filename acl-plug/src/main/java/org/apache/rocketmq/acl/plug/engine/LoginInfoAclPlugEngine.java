@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.rocketmq.acl.plug.engine;
 
 import java.util.Map;
@@ -11,37 +27,43 @@ import org.apache.rocketmq.acl.plug.entity.LoginOrRequestAccessControl;
 
 public abstract class LoginInfoAclPlugEngine extends AuthenticationInfoManagementAclPlugEngine {
 
-	private Map<String, LoginInfo> loginInfoMap = new ConcurrentHashMap<>();
+    private Map<String, LoginInfo> loginInfoMap = new ConcurrentHashMap<>();
 
-	@Override
-	public AuthenticationInfo getAccessControl(AccessControl accessControl) {
-		AuthenticationInfo authenticationInfo = super.getAccessControl(accessControl);
-		LoginInfo loginInfo = new LoginInfo();
-		loginInfo.setAuthenticationInfo(authenticationInfo);
-		loginInfoMap.put(accessControl.getRecognition(), loginInfo);
-		return authenticationInfo;
-	}
+    @Override
+    public AuthenticationInfo getAccessControl(AccessControl accessControl) {
+        AuthenticationInfo authenticationInfo = super.getAccessControl(accessControl);
+        if (authenticationInfo != null) {
+            LoginInfo loginInfo = new LoginInfo();
+            loginInfo.setAuthenticationInfo(authenticationInfo);
+            loginInfoMap.put(accessControl.getRecognition(), loginInfo);
+        }
+        return authenticationInfo;
+    }
 
-	public LoginInfo getLoginInfo(AccessControl accessControl) {
-		LoginInfo loginInfo = loginInfoMap.get(accessControl.getRecognition());
-		if (loginInfo == null) {
-			getAccessControl(accessControl);
-			loginInfo = loginInfoMap.get(accessControl.getRecognition());
-		}
-		if (loginInfo != null) {
-			loginInfo.setOperationTime(System.currentTimeMillis());
-		}
-		return loginInfo;
-	}
+    public LoginInfo getLoginInfo(AccessControl accessControl) {
+        LoginInfo loginInfo = loginInfoMap.get(accessControl.getRecognition());
+        if (loginInfo == null && getAccessControl(accessControl) != null) {
+            loginInfo = loginInfoMap.get(accessControl.getRecognition());
+        }
+        if (loginInfo != null) {
+            loginInfo.setOperationTime(System.currentTimeMillis());
+        }
+        return loginInfo;
+    }
 
-	
-	protected  AuthenticationInfo  getAuthenticationInfo(LoginOrRequestAccessControl accessControl , AuthenticationResult authenticationResult) {
-		LoginInfo anthenticationInfo = getLoginInfo(accessControl);
-		if(anthenticationInfo != null) {
-			return anthenticationInfo.getAuthenticationInfo();
-		}else {
-			authenticationResult.setResultString("Login information does not exist");
-		}
-		return null;
-	}
+    public void deleteLoginInfo(String remoteAddr) {
+        loginInfoMap.remove(remoteAddr);
+    }
+
+    protected AuthenticationInfo getAuthenticationInfo(LoginOrRequestAccessControl accessControl,
+        AuthenticationResult authenticationResult) {
+        LoginInfo anthenticationInfo = getLoginInfo(accessControl);
+        if (anthenticationInfo != null && anthenticationInfo.getAuthenticationInfo() != null) {
+            return anthenticationInfo.getAuthenticationInfo();
+        } else {
+            authenticationResult.setResultString("Login information does not exist, Please check login, password, IP");
+        }
+        return null;
+    }
+
 }
