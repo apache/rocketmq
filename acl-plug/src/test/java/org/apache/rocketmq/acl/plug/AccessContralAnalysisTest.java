@@ -7,11 +7,11 @@ import org.junit.Test;
 
 public class AccessContralAnalysisTest {
 
-	@Test
-	public void analysisTest() {
-		AccessContralAnalysis accessContralAnalysis = new AccessContralAnalysis();
-		Map<Integer, Boolean> map = accessContralAnalysis.analysis(new BorkerAccessControl());
-		System.out.println(map);
-	}
+    @Test
+    public void analysisTest() {
+        AccessContralAnalysis accessContralAnalysis = new AccessContralAnalysis();
+        Map<Integer, Boolean> map = accessContralAnalysis.analysis(new BorkerAccessControl());
+        System.out.println(map);
+    }
 
 }

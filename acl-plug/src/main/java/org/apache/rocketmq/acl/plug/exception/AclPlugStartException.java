@@ -14,21 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.acl.plug.strategy;
+package org.apache.rocketmq.acl.plug.exception;
 
-import org.apache.rocketmq.acl.plug.entity.AccessControl;
+public class AclPlugStartException extends AclPlugException {
 
-public class OneNetaddressStrategy extends AbstractNetaddressStrategy {
+    private static final long serialVersionUID = 5118936374739373693L;
 
-    private String netaddress;
-
-    public OneNetaddressStrategy(String netaddress) {
-        this.netaddress = netaddress;
+    public AclPlugStartException(String message) {
+        super(message);
     }
 
-    @Override
-    public boolean match(AccessControl accessControl) {
-        return netaddress.equals(accessControl.getNetaddress());
+    public AclPlugStartException(String message, Throwable cause) {
+        super(message, cause);
     }
-
 }
