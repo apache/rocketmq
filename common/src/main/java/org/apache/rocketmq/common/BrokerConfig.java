@@ -64,14 +64,12 @@ public class BrokerConfig {
     private int clientManageThreadPoolNums = 32;
     private int consumerManageThreadPoolNums = 32;
     private int heartbeatThreadPoolNums = Math.min(32, Runtime.getRuntime().availableProcessors());
-<<<<<<< HEAD
-=======
 
     /**
      * Thread numbers for EndTransactionProcessor
      */
     private int endTransactionThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors() * 2;
->>>>>>> 53a63460d3a1599a6c51058bb51a73746233022d
+
 
     private int flushConsumerOffsetInterval = 1000 * 5;
 
@@ -714,7 +712,7 @@ public class BrokerConfig {
         this.transactionCheckInterval = transactionCheckInterval;
     }
 
-<<<<<<< HEAD
+
     public boolean isAclPlug() {
         return isAclPlug;
     }
@@ -723,7 +721,6 @@ public class BrokerConfig {
         this.isAclPlug = isAclPlug;
     }
 
-=======
     public int getEndTransactionThreadPoolNums() {
         return endTransactionThreadPoolNums;
     }
@@ -747,5 +744,5 @@ public class BrokerConfig {
     public void setWaitTimeMillsInTransactionQueue(long waitTimeMillsInTransactionQueue) {
         this.waitTimeMillsInTransactionQueue = waitTimeMillsInTransactionQueue;
     }
->>>>>>> 53a63460d3a1599a6c51058bb51a73746233022d
+
 }
