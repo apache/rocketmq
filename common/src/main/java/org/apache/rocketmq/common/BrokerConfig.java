@@ -64,6 +64,14 @@ public class BrokerConfig {
     private int clientManageThreadPoolNums = 32;
     private int consumerManageThreadPoolNums = 32;
     private int heartbeatThreadPoolNums = Math.min(32, Runtime.getRuntime().availableProcessors());
+<<<<<<< HEAD
+=======
+
+    /**
+     * Thread numbers for EndTransactionProcessor
+     */
+    private int endTransactionThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors() * 2;
+>>>>>>> 53a63460d3a1599a6c51058bb51a73746233022d
 
     private int flushConsumerOffsetInterval = 1000 * 5;
 
@@ -79,6 +87,7 @@ public class BrokerConfig {
     private int clientManagerThreadPoolQueueCapacity = 1000000;
     private int consumerManagerThreadPoolQueueCapacity = 1000000;
     private int heartbeatThreadPoolQueueCapacity = 50000;
+    private int endTransactionPoolQueueCapacity = 100000;
 
     private int filterServerNums = 0;
 
@@ -111,6 +120,7 @@ public class BrokerConfig {
     private long waitTimeMillsInSendQueue = 200;
     private long waitTimeMillsInPullQueue = 5 * 1000;
     private long waitTimeMillsInHeartbeatQueue = 31 * 1000;
+    private long waitTimeMillsInTransactionQueue = 3 * 1000;
 
     private long startAcceptSendRequestTimeStamp = 0L;
 
@@ -150,13 +160,13 @@ public class BrokerConfig {
      * that can be checked.
      */
     @ImportantField
-    private long transactionTimeOut = 3 * 1000;
+    private long transactionTimeOut = 6 * 1000;
 
     /**
      * The maximum number of times the message was checked, if exceed this value, this message will be discarded.
      */
     @ImportantField
-    private int transactionCheckMax = 5;
+    private int transactionCheckMax = 15;
 
     /**
      * Transaction message check interval.
@@ -704,6 +714,7 @@ public class BrokerConfig {
         this.transactionCheckInterval = transactionCheckInterval;
     }
 
+<<<<<<< HEAD
     public boolean isAclPlug() {
         return isAclPlug;
     }
@@ -712,4 +723,29 @@ public class BrokerConfig {
         this.isAclPlug = isAclPlug;
     }
 
+=======
+    public int getEndTransactionThreadPoolNums() {
+        return endTransactionThreadPoolNums;
+    }
+
+    public void setEndTransactionThreadPoolNums(int endTransactionThreadPoolNums) {
+        this.endTransactionThreadPoolNums = endTransactionThreadPoolNums;
+    }
+
+    public int getEndTransactionPoolQueueCapacity() {
+        return endTransactionPoolQueueCapacity;
+    }
+
+    public void setEndTransactionPoolQueueCapacity(int endTransactionPoolQueueCapacity) {
+        this.endTransactionPoolQueueCapacity = endTransactionPoolQueueCapacity;
+    }
+
+    public long getWaitTimeMillsInTransactionQueue() {
+        return waitTimeMillsInTransactionQueue;
+    }
+
+    public void setWaitTimeMillsInTransactionQueue(long waitTimeMillsInTransactionQueue) {
+        this.waitTimeMillsInTransactionQueue = waitTimeMillsInTransactionQueue;
+    }
+>>>>>>> 53a63460d3a1599a6c51058bb51a73746233022d
 }
