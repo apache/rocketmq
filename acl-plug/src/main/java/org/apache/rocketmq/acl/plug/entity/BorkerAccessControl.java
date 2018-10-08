@@ -21,7 +21,6 @@ import java.util.Set;
 
 import org.apache.rocketmq.acl.plug.annotation.RequestCode;
 
-
 public class BorkerAccessControl extends AccessControl {
 
     public BorkerAccessControl() {

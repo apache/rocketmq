@@ -63,7 +63,7 @@ public class BrokerConfig {
     private int adminBrokerThreadPoolNums = 16;
     private int clientManageThreadPoolNums = 32;
     private int consumerManageThreadPoolNums = 32;
-    private int heartbeatThreadPoolNums = Math.min(32,Runtime.getRuntime().availableProcessors());
+    private int heartbeatThreadPoolNums = Math.min(32, Runtime.getRuntime().availableProcessors());
 
     private int flushConsumerOffsetInterval = 1000 * 5;
 
@@ -163,8 +163,7 @@ public class BrokerConfig {
      */
     @ImportantField
     private long transactionCheckInterval = 60 * 1000;
-    
-    
+
     private boolean isAclPlug;
 
     public boolean isTraceOn() {
@@ -705,12 +704,12 @@ public class BrokerConfig {
         this.transactionCheckInterval = transactionCheckInterval;
     }
 
-	public boolean isAclPlug() {
-		return isAclPlug;
-	}
+    public boolean isAclPlug() {
+        return isAclPlug;
+    }
 
-	public void setAclPlug(boolean isAclPlug) {
-		this.isAclPlug = isAclPlug;
-	}
-    
+    public void setAclPlug(boolean isAclPlug) {
+        this.isAclPlug = isAclPlug;
+    }
+
 }

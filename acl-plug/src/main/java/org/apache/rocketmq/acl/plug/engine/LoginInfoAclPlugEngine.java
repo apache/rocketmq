@@ -29,21 +29,15 @@ public abstract class LoginInfoAclPlugEngine extends AuthenticationInfoManagemen
 
     private Map<String, LoginInfo> loginInfoMap = new ConcurrentHashMap<>();
 
-    @Override
-    public AuthenticationInfo getAccessControl(AccessControl accessControl) {
-        AuthenticationInfo authenticationInfo = super.getAccessControl(accessControl);
-        if (authenticationInfo != null) {
-            LoginInfo loginInfo = new LoginInfo();
-            loginInfo.setAuthenticationInfo(authenticationInfo);
-            loginInfoMap.put(accessControl.getRecognition(), loginInfo);
-        }
-        return authenticationInfo;
-    }
-
     public LoginInfo getLoginInfo(AccessControl accessControl) {
         LoginInfo loginInfo = loginInfoMap.get(accessControl.getRecognition());
-        if (loginInfo == null && getAccessControl(accessControl) != null) {
-            loginInfo = loginInfoMap.get(accessControl.getRecognition());
+        if (loginInfo == null) {
+            AuthenticationInfo authenticationInfo = super.getAccessControl(accessControl);
+            if (authenticationInfo != null) {
+                loginInfo = new LoginInfo();
+                loginInfo.setAuthenticationInfo(authenticationInfo);
+                loginInfoMap.put(accessControl.getRecognition(), loginInfo);
+            }
         }
         if (loginInfo != null) {
             loginInfo.setOperationTime(System.currentTimeMillis());
@@ -60,9 +54,8 @@ public abstract class LoginInfoAclPlugEngine extends AuthenticationInfoManagemen
         LoginInfo anthenticationInfo = getLoginInfo(accessControl);
         if (anthenticationInfo != null && anthenticationInfo.getAuthenticationInfo() != null) {
             return anthenticationInfo.getAuthenticationInfo();
-        } else {
-            authenticationResult.setResultString("Login information does not exist, Please check login, password, IP");
         }
+        authenticationResult.setResultString("Login information does not exist, Please check login, password, IP");
         return null;
     }
 

@@ -17,11 +17,14 @@
 package org.apache.rocketmq.acl.plug.strategy;
 
 import org.apache.rocketmq.acl.plug.AclUtils;
+import org.apache.rocketmq.acl.plug.exception.AclPlugAccountAnalysisException;
 
 public abstract class AbstractNetaddressStrategy implements NetaddressStrategy {
 
     public void verify(String netaddress, int index) {
-        AclUtils.isScope(netaddress, index);
+        if (!AclUtils.isScope(netaddress, index)) {
+            throw new AclPlugAccountAnalysisException(String.format("netaddress examine scope Exception netaddress is %s", netaddress));
+        }
     }
 
 }
