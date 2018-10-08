@@ -19,6 +19,7 @@ package org.apache.rocketmq.acl.plug.strategy;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.plug.AclUtils;
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
+import org.apache.rocketmq.acl.plug.exception.AclPlugAccountAnalysisException;
 
 public class NetaddressStrategyFactory {
 
@@ -28,14 +29,14 @@ public class NetaddressStrategyFactory {
             return NullNetaddressStrategy.NULL_NET_ADDRESS_STRATEGY;
         }
         if (netaddress.endsWith("}")) {
-            String[] strArray = StringUtils.split(netaddress);
+            String[] strArray = StringUtils.split(netaddress, ".");
             String four = strArray[3];
             if (!four.startsWith("{")) {
-
+                throw new AclPlugAccountAnalysisException(String.format("MultipleNetaddressStrategy netaddress examine scope Exception netaddress", netaddress));
             }
             return new MultipleNetaddressStrategy(AclUtils.getAddreeStrArray(netaddress, four));
         } else if (AclUtils.isColon(netaddress)) {
-            return new MultipleNetaddressStrategy(StringUtils.split(","));
+            return new MultipleNetaddressStrategy(StringUtils.split(netaddress, ","));
         } else if (AclUtils.isAsterisk(netaddress) || AclUtils.isMinus(netaddress)) {
             return new RangeNetaddressStrategy(netaddress);
         }

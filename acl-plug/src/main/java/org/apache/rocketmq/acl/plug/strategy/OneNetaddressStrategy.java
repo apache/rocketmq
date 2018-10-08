@@ -24,6 +24,7 @@ public class OneNetaddressStrategy extends AbstractNetaddressStrategy {
 
     public OneNetaddressStrategy(String netaddress) {
         this.netaddress = netaddress;
+        verify(netaddress, 4);
     }
 
     @Override

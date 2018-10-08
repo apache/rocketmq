@@ -19,6 +19,7 @@ package org.apache.rocketmq.acl.plug.strategy;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.plug.AclUtils;
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
+import org.apache.rocketmq.acl.plug.exception.AclPlugAccountAnalysisException;
 
 public class RangeNetaddressStrategy extends AbstractNetaddressStrategy {
 
@@ -33,7 +34,7 @@ public class RangeNetaddressStrategy extends AbstractNetaddressStrategy {
     public RangeNetaddressStrategy(String netaddress) {
         String[] strArray = StringUtils.split(netaddress, ".");
         if (analysis(strArray, 2) || analysis(strArray, 3)) {
-            verify(netaddress, index);
+            verify(netaddress, index - 1);
             StringBuffer sb = new StringBuffer().append(strArray[0].trim()).append(".").append(strArray[1].trim()).append(".");
             if (index == 3) {
                 sb.append(strArray[2].trim()).append(".");
@@ -48,11 +49,15 @@ public class RangeNetaddressStrategy extends AbstractNetaddressStrategy {
         if ("*".equals(value)) {
             setValue(0, 255);
         } else if (AclUtils.isMinus(value)) {
+            if (value.indexOf("-") == 0) {
+                throw new AclPlugAccountAnalysisException(String.format("RangeNetaddressStrategy netaddress examine scope Exception value %s ", value));
+
+            }
             String[] valueArray = StringUtils.split(value, "-");
             this.start = Integer.valueOf(valueArray[0]);
             this.end = Integer.valueOf(valueArray[1]);
             if (!(AclUtils.isScope(end) && AclUtils.isScope(start) && start <= end)) {
-
+                throw new AclPlugAccountAnalysisException(String.format("RangeNetaddressStrategy netaddress examine scope Exception start is %s , end is %s", start, end));
             }
         }
         return this.end > 0 ? true : false;

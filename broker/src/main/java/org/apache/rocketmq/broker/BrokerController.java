@@ -32,10 +32,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.plug.AclPlugController;
 import org.apache.rocketmq.acl.plug.AclRemotingServer;
+import org.apache.rocketmq.acl.plug.entity.ControllerParametersEntity;
 import org.apache.rocketmq.acl.plug.entity.LoginOrRequestAccessControl;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
@@ -107,7 +107,6 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStats;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
-
 public class BrokerController {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final InternalLogger LOG_PROTECTION = InternalLoggerFactory.getLogger(LoggerName.PROTECTION_LOGGER_NAME);
@@ -162,6 +161,8 @@ public class BrokerController {
     private TransactionalMessageCheckService transactionalMessageCheckService;
     private TransactionalMessageService transactionalMessageService;
     private AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
+
+    private AclPlugController aclPlugController;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -297,7 +298,6 @@ public class BrokerController {
                 TimeUnit.MILLISECONDS,
                 this.heartbeatThreadPoolQueue,
                 new ThreadFactoryImpl("HeartbeatThread_",true));
-
 
             this.consumerManageExecutor =
                 Executors.newFixedThreadPool(this.brokerConfig.getConsumerManageThreadPoolNums(), new ThreadFactoryImpl(
@@ -486,41 +486,46 @@ public class BrokerController {
     }
 
     private void initialAclPlug() {
-    	try {
-    		if(!this.brokerConfig.isAclPlug()) {
-    			return;
-    		}
-    		AclPlugController aclPlugController = new AclPlugController(null);
-    		if(!aclPlugController.isStartSucceed()) {
-    			return;
-    		}
-    		final AclRemotingServer aclRemotingServe = aclPlugController.getAclRemotingServer();
-    		this.registerServerRPCHook(new RPCHook() {
-				
-				@Override
-				public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
-					HashMap<String, String> extFields = request.getExtFields();
-					LoginOrRequestAccessControl accessControl = new LoginOrRequestAccessControl();
-					accessControl.setCode(request.getCode());
-					accessControl.setRecognition(remoteAddr);
-					if( extFields != null ) {
-						accessControl.setAccount(extFields.get("account"));
-						accessControl.setPassword(extFields.get("password"));
-						accessControl.setNetaddress(StringUtils.split(remoteAddr,":")[0]);
-						accessControl.setTopic(extFields.get("topic"));
-					}
-					aclRemotingServe.eachCheck(accessControl);
-				}
-				
-				@Override
-				public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {}
-			});
-    		
-    	}catch(Exception e) {
-    		
-    	}
+        try {
+            if (!this.brokerConfig.isAclPlug()) {
+                log.info("Default does not start acl plug");
+                return;
+            }
+            ControllerParametersEntity controllerParametersEntity = new ControllerParametersEntity();
+            controllerParametersEntity.setFileHome(brokerConfig.getRocketmqHome());
+            aclPlugController = new AclPlugController(controllerParametersEntity);
+            if (!aclPlugController.isStartSucceed()) {
+                log.error("start acl plug failure");
+                return;
+            }
+            final AclRemotingServer aclRemotingServe = aclPlugController.getAclRemotingServer();
+            this.registerServerRPCHook(new RPCHook() {
+
+                @Override
+                public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+                    HashMap<String, String> extFields = request.getExtFields();
+                    LoginOrRequestAccessControl accessControl = new LoginOrRequestAccessControl();
+                    accessControl.setCode(request.getCode());
+                    accessControl.setRecognition(remoteAddr);
+                    if (extFields != null) {
+                        accessControl.setAccount(extFields.get("account"));
+                        accessControl.setPassword(extFields.get("password"));
+                        accessControl.setNetaddress(StringUtils.split(remoteAddr, ":")[0]);
+                        accessControl.setTopic(extFields.get("topic"));
+                    }
+                    aclRemotingServe.eachCheck(accessControl);
+                }
+
+                @Override
+                public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
+                }
+            });
+
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
     }
-    
+
     public void registerProcessor() {
         /**
          * SendMessageProcessor
@@ -1070,5 +1075,9 @@ public class BrokerController {
     public void setTransactionalMessageCheckListener(
         AbstractTransactionalMessageCheckListener transactionalMessageCheckListener) {
         this.transactionalMessageCheckListener = transactionalMessageCheckListener;
+    }
+
+    public AclPlugController getAclPlugController() {
+        return this.aclPlugController;
     }
 }

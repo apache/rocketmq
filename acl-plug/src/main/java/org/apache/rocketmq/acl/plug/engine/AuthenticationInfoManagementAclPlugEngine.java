@@ -25,6 +25,7 @@ import org.apache.rocketmq.acl.plug.Authentication;
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationInfo;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
+import org.apache.rocketmq.acl.plug.entity.BorkerAccessControlTransport;
 import org.apache.rocketmq.acl.plug.entity.LoginOrRequestAccessControl;
 import org.apache.rocketmq.acl.plug.exception.AclPlugAccountAnalysisException;
 import org.apache.rocketmq.acl.plug.strategy.NetaddressStrategy;
@@ -87,6 +88,8 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
             Map<String, AuthenticationInfo> accessControlAddressMap = accessControlMap.get(accessControl.getAccount());
             if (accessControlAddressMap != null) {
                 existing = accessControlAddressMap.get(accessControl.getNetaddress());
+                if (existing == null)
+                    return null;
                 if (existing.getAccessControl().getPassword().equals(accessControl.getPassword())) {
                     if (existing.getNetaddressStrategy().match(accessControl)) {
                         return existing;
@@ -111,6 +114,21 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
             authenticationResult.setException(e);
         }
         return authenticationResult;
+    }
+
+    void setBorkerAccessControlTransport(BorkerAccessControlTransport transport) {
+        if (transport.getOnlyNetAddress() == null && (transport.getList() == null || transport.getList().size() == 0)) {
+            throw new AclPlugAccountAnalysisException("onlyNetAddress and list  can't be all empty");
+        }
+
+        if (transport.getOnlyNetAddress() != null) {
+            this.setNetaddressAccessControl(transport.getOnlyNetAddress());
+        }
+        if (transport.getList() != null || transport.getList().size() > 0) {
+            for (AccessControl accessControl : transport.getList()) {
+                this.setAccessControl(accessControl);
+            }
+        }
     }
 
     protected abstract AuthenticationInfo getAuthenticationInfo(LoginOrRequestAccessControl accessControl,

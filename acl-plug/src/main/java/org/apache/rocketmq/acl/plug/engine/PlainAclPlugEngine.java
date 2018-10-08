@@ -18,9 +18,8 @@ package org.apache.rocketmq.acl.plug.engine;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 
-import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.BorkerAccessControlTransport;
 import org.apache.rocketmq.acl.plug.entity.ControllerParametersEntity;
 import org.apache.rocketmq.acl.plug.exception.AclPlugAccountAnalysisException;
@@ -39,17 +38,26 @@ public class PlainAclPlugEngine extends LoginInfoAclPlugEngine {
     void init() throws AclPlugAccountAnalysisException {
         String filePath = controllerParametersEntity.getFileHome() + "/conf/transport.yml";
         Yaml ymal = new Yaml();
-        FileInputStream fis;
+        FileInputStream fis = null;
+        BorkerAccessControlTransport transport;
         try {
             fis = new FileInputStream(new File(filePath));
-            BorkerAccessControlTransport transport = ymal.loadAs(fis, BorkerAccessControlTransport.class);
-            super.setNetaddressAccessControl(transport.getOnlyNetAddress());
-            for (AccessControl accessControl : transport.getList()) {
-                super.setAccessControl(accessControl);
-            }
-        } catch (FileNotFoundException e) {
+            transport = ymal.loadAs(fis, BorkerAccessControlTransport.class);
+        } catch (Exception e) {
             throw new AclPlugAccountAnalysisException("The transport.yml file for Plain mode was not found", e);
+        } finally {
+            if (fis != null) {
+                try {
+                    fis.close();
+                } catch (IOException e) {
+                    throw new AclPlugAccountAnalysisException("close transport fileInputStream Exception", e);
+                }
+            }
         }
+        if (transport == null) {
+            throw new AclPlugAccountAnalysisException("transport.yml file  is no data");
+        }
+        super.setBorkerAccessControlTransport(transport);
     }
 
 }
