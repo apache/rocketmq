@@ -22,13 +22,32 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.plug.annotation.RequestCode;
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
+import org.apache.rocketmq.acl.plug.exception.AclPlugAccountAnalysisException;
 
 public class AccessContralAnalysis {
 
     private Map<Class<?>, Map<Integer, Field>> classTocodeAndMentod = new HashMap<>();
 
+    private Map<String , Integer> fieldNameAndCode = new HashMap<>();
+    
+    public void analysisClass(Class<?> clazz) {
+    	Field[] fields = clazz.getDeclaredFields();
+    	try {
+	    	for(Field field : fields) {
+	    		if( field.getType().equals(int.class)) {
+		    		String name = StringUtils.replace(field.getName(), "_", "").toLowerCase();
+		    		fieldNameAndCode.put(name, (Integer)field.get(null));
+	    		}
+	
+	    	}
+		} catch (IllegalArgumentException | IllegalAccessException e) {
+			throw new AclPlugAccountAnalysisException(String.format("analysis on failure Class is %s", clazz.getName()), e);
+		}
+    }
+    
     public Map<Integer, Boolean> analysis(AccessControl accessControl) {
         Class<? extends AccessControl> clazz = accessControl.getClass();
         Map<Integer, Field> codeAndField = classTocodeAndMentod.get(clazz);
@@ -36,17 +55,18 @@ public class AccessContralAnalysis {
             codeAndField = new HashMap<>();
             Field[] fields = clazz.getDeclaredFields();
             for (Field field : fields) {
-                RequestCode requestCode = field.getAnnotation(RequestCode.class);
-                if (requestCode != null) {
-                    int code = requestCode.code();
-                    if (codeAndField.containsKey(code)) {
+            	if(!field.getType().equals(boolean.class)) 
+            		continue;
+        		Integer code = fieldNameAndCode.get(field.getName().toLowerCase());
+        		if(code == null) {	
+        			throw new AclPlugAccountAnalysisException(String.format("field nonexistent in code", field.getName()));
+        		}
+        		field.setAccessible( true );
+    			codeAndField.put(code, field);
 
-                    } else {
-                        field.setAccessible(true);
-                        codeAndField.put(code, field);
-                    }
-                }
-
+            }
+            if(codeAndField.isEmpty()) {
+            	throw new AclPlugAccountAnalysisException(String.format("AccessControl nonexistent code , name %s" , accessControl.getClass().getName()));
             }
             classTocodeAndMentod.put(clazz, codeAndField);
         }
@@ -57,8 +77,8 @@ public class AccessContralAnalysis {
                 Entry<Integer, Field> e = it.next();
                 authority.put(e.getKey(), (Boolean) e.getValue().get(accessControl));
             }
-        } catch (IllegalArgumentException | IllegalAccessException e1) {
-            e1.printStackTrace();
+        } catch (IllegalArgumentException | IllegalAccessException e) {
+            throw new AclPlugAccountAnalysisException(String.format("analysis on failure AccessControl is %s", AccessControl.class.getName()), e);
         }
         return authority;
     }

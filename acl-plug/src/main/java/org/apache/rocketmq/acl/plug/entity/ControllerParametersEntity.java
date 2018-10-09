@@ -16,10 +16,14 @@
  */
 package org.apache.rocketmq.acl.plug.entity;
 
+import org.apache.rocketmq.common.protocol.RequestCode;
+
 public class ControllerParametersEntity {
 
     private String fileHome;
 
+    private Class<?> accessContralAnalysisClass = RequestCode.class;
+    
     public String getFileHome() {
         return fileHome;
     }
@@ -28,11 +32,21 @@ public class ControllerParametersEntity {
         this.fileHome = fileHome;
     }
 
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("ControllerParametersEntity [fileHome=").append(fileHome).append("]");
-        return builder.toString();
-    }
+    
+    public Class<?> getAccessContralAnalysisClass() {
+		return accessContralAnalysisClass;
+	}
+
+	public void setAccessContralAnalysisClass(Class<?> accessContralAnalysisClass) {
+		this.accessContralAnalysisClass = accessContralAnalysisClass;
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("ControllerParametersEntity [fileHome=").append(fileHome).append(", accessContralAnalysisClass=")
+				.append(accessContralAnalysisClass).append("]");
+		return builder.toString();
+	}
 
 }

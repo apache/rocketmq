@@ -47,7 +47,9 @@ public class AclPlugController {
     }
 
     public void doChannelCloseEvent(String remoteAddr) {
-        aclPlugEngine.deleteLoginInfo(remoteAddr);
+        if (this.startSucceed) {
+            aclPlugEngine.deleteLoginInfo(remoteAddr);
+        }
     }
 
     public boolean isStartSucceed() {

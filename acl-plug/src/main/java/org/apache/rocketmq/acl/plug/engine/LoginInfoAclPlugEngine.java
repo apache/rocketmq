@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationInfo;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
+import org.apache.rocketmq.acl.plug.entity.ControllerParametersEntity;
 import org.apache.rocketmq.acl.plug.entity.LoginInfo;
 import org.apache.rocketmq.acl.plug.entity.LoginOrRequestAccessControl;
 
@@ -29,6 +30,11 @@ public abstract class LoginInfoAclPlugEngine extends AuthenticationInfoManagemen
 
     private Map<String, LoginInfo> loginInfoMap = new ConcurrentHashMap<>();
 
+    
+    public LoginInfoAclPlugEngine(ControllerParametersEntity controllerParametersEntity)   {
+            super(controllerParametersEntity);
+     }
+    
     public LoginInfo getLoginInfo(AccessControl accessControl) {
         LoginInfo loginInfo = loginInfoMap.get(accessControl.getRecognition());
         if (loginInfo == null) {
@@ -51,9 +57,9 @@ public abstract class LoginInfoAclPlugEngine extends AuthenticationInfoManagemen
 
     protected AuthenticationInfo getAuthenticationInfo(LoginOrRequestAccessControl accessControl,
         AuthenticationResult authenticationResult) {
-        LoginInfo anthenticationInfo = getLoginInfo(accessControl);
-        if (anthenticationInfo != null && anthenticationInfo.getAuthenticationInfo() != null) {
-            return anthenticationInfo.getAuthenticationInfo();
+        LoginInfo loginInfo = getLoginInfo(accessControl);
+        if (loginInfo != null && loginInfo.getAuthenticationInfo() != null) {
+            return loginInfo.getAuthenticationInfo();
         }
         authenticationResult.setResultString("Login information does not exist, Please check login, password, IP");
         return null;

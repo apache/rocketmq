@@ -1,14 +1,28 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.rocketmq.acl.plug.engine;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationInfo;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
@@ -54,13 +68,13 @@ public class PlainAclPlugEngineTest {
 
         accessControl = new BorkerAccessControl();
         accessControl.setAccount("rokcetmq");
-        accessControl.setPassword("aliyun");
+        accessControl.setPassword("aliyun11");
         accessControl.setNetaddress("127.0.0.1");
         accessControl.setRecognition("127.0.0.1:1");
 
         accessControlTwo = new BorkerAccessControl();
-        accessControlTwo.setAccount("rokcet");
-        accessControlTwo.setPassword("aliyun");
+        accessControlTwo.setAccount("rokcet1");
+        accessControlTwo.setPassword("aliyun1");
         accessControlTwo.setNetaddress("127.0.0.1");
         accessControlTwo.setRecognition("127.0.0.1:2");
 
@@ -69,6 +83,31 @@ public class PlainAclPlugEngineTest {
 
     }
 
+   
+    @Test(expected = AclPlugAccountAnalysisException.class)
+    public void accountNullTest() {
+    	accessControl.setAccount(null);
+    	plainAclPlugEngine.setAccessControl(accessControl);
+    }
+    
+    @Test(expected = AclPlugAccountAnalysisException.class)
+    public void accountThanTest() {
+    	accessControl.setAccount("123");
+    	plainAclPlugEngine.setAccessControl(accessControl);
+    }
+    
+    @Test(expected = AclPlugAccountAnalysisException.class)
+    public void passWordtNullTest() {
+    	accessControl.setAccount(null);
+    	plainAclPlugEngine.setAccessControl(accessControl);
+    }
+    
+    @Test(expected = AclPlugAccountAnalysisException.class)
+    public void passWordThanTest() {
+    	accessControl.setAccount("123");
+    	plainAclPlugEngine.setAccessControl(accessControl);
+    }
+    
     @Test(expected = AclPlugAccountAnalysisException.class)
     public void testPlainAclPlugEngineInit() {
         ControllerParametersEntity controllerParametersEntity = new ControllerParametersEntity();
@@ -88,7 +127,7 @@ public class PlainAclPlugEngineTest {
 
         AccessControl testAccessControl = new AccessControl();
         testAccessControl.setAccount("rokcetmq");
-        testAccessControl.setPassword("aliyun");
+        testAccessControl.setPassword("aliyun11");
         testAccessControl.setNetaddress("127.0.0.1");
         testAccessControl.setRecognition("127.0.0.1:1");
 
@@ -97,7 +136,7 @@ public class PlainAclPlugEngineTest {
         Assert.assertNull(authenticationInfo);
 
         testAccessControl.setAccount("rokcetmq");
-        testAccessControl.setPassword("1");
+        testAccessControl.setPassword("1234567");
         authenticationInfo = aclPlugEngine.getAccessControl(testAccessControl);
         Assert.assertNull(authenticationInfo);
 
@@ -128,6 +167,8 @@ public class PlainAclPlugEngineTest {
     public void setNetaddressAccessControl() {
         AuthenticationInfoManagementAclPlugEngine aclPlugEngine = (AuthenticationInfoManagementAclPlugEngine) plainAclPlugEngine;
         AccessControl accessControl = new BorkerAccessControl();
+        accessControl.setAccount("RocketMQ");
+        accessControl.setPassword("RocketMQ");
         accessControl.setNetaddress("127.0.0.1");
         aclPlugEngine.setAccessControl(accessControl);
         aclPlugEngine.setNetaddressAccessControl(accessControl);
@@ -162,6 +203,8 @@ public class PlainAclPlugEngineTest {
 
         AuthenticationInfoManagementAclPlugEngine aclPlugEngine = (AuthenticationInfoManagementAclPlugEngine) plainAclPlugEngine;
         AccessControl accessControl = new BorkerAccessControl();
+        accessControl.setAccount("RocketMQ");
+        accessControl.setPassword("RocketMQ");
         accessControl.setNetaddress("127.0.0.1");
         aclPlugEngine.setAccessControl(accessControl);
         AuthenticationInfo authenticationInfo = aclPlugEngine.getAccessControl(accessControl);
@@ -201,7 +244,7 @@ public class PlainAclPlugEngineTest {
     public void getAuthenticationInfo() {
         LoginOrRequestAccessControl loginOrRequestAccessControl = new LoginOrRequestAccessControl();
         loginOrRequestAccessControl.setAccount("rokcetmq");
-        loginOrRequestAccessControl.setPassword("aliyun");
+        loginOrRequestAccessControl.setPassword("aliyun11");
         loginOrRequestAccessControl.setNetaddress("127.0.0.1");
         loginOrRequestAccessControl.setRecognition("127.0.0.1:1");
 
