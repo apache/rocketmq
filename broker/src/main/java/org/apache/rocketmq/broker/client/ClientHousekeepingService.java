@@ -72,7 +72,9 @@ public class ClientHousekeepingService implements ChannelEventListener {
         this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
         this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
         this.brokerController.getFilterServerManager().doChannelCloseEvent(remoteAddr, channel);
-        this.brokerController.getAclPlugController().doChannelCloseEvent(remoteAddr);
+        if (this.brokerController.getAclPlugController() != null && this.brokerController.getAclPlugController().isStartSucceed()) {
+            this.brokerController.getAclPlugController().doChannelCloseEvent(remoteAddr);
+        }
     }
 
     @Override

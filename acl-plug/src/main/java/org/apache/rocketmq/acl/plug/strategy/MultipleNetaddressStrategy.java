@@ -18,7 +18,6 @@ package org.apache.rocketmq.acl.plug.strategy;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
 
 public class MultipleNetaddressStrategy extends AbstractNetaddressStrategy {

@@ -17,7 +17,6 @@
 package org.apache.rocketmq.acl.plug;
 
 import org.apache.rocketmq.acl.plug.engine.AclPlugEngine;
-import org.apache.rocketmq.acl.plug.entity.AuthenticationInfo;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
 import org.apache.rocketmq.acl.plug.entity.LoginOrRequestAccessControl;
 import org.apache.rocketmq.acl.plug.exception.AclPlugAuthenticationException;
@@ -30,12 +29,6 @@ public class DefaultAclRemotingServerImpl implements AclRemotingServer {
 
     public DefaultAclRemotingServerImpl(AclPlugEngine aclPlugEngine) {
         this.aclPlugEngine = aclPlugEngine;
-    }
-
-    @Override
-    public AuthenticationInfo login() {
-
-        return null;
     }
 
     @Override

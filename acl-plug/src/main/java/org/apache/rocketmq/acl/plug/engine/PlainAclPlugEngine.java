@@ -19,7 +19,6 @@ package org.apache.rocketmq.acl.plug.engine;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-
 import org.apache.rocketmq.acl.plug.entity.BorkerAccessControlTransport;
 import org.apache.rocketmq.acl.plug.entity.ControllerParametersEntity;
 import org.apache.rocketmq.acl.plug.exception.AclPlugAccountAnalysisException;
@@ -29,9 +28,8 @@ public class PlainAclPlugEngine extends LoginInfoAclPlugEngine {
 
     private ControllerParametersEntity controllerParametersEntity;
 
-    public PlainAclPlugEngine(
-        ControllerParametersEntity controllerParametersEntity) throws AclPlugAccountAnalysisException {
-        this.controllerParametersEntity = controllerParametersEntity;
+    public PlainAclPlugEngine(ControllerParametersEntity controllerParametersEntity) throws AclPlugAccountAnalysisException {
+    	super(controllerParametersEntity);
         init();
     }
 

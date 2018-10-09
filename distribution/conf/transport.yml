@@ -4,14 +4,14 @@ onlyNetAddress:
     - broker-a
 
 list:
-  - account: laohu
-    password: 123456
+  - account: RocketMQ
+    password: 1234567
     netaddress: 192.0.0.*
     permitSendTopic:
       - test1
       - test2
-  - account: laohu
-    password: 123456
+  - account: RocketMQ
+    password: 1234567
     netaddress: 192.0.2.1
     permitSendTopic:
       - test3

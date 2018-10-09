@@ -19,13 +19,13 @@ package org.apache.rocketmq.acl.plug.engine;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.rocketmq.acl.plug.AccessContralAnalysis;
 import org.apache.rocketmq.acl.plug.Authentication;
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationInfo;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
 import org.apache.rocketmq.acl.plug.entity.BorkerAccessControlTransport;
+import org.apache.rocketmq.acl.plug.entity.ControllerParametersEntity;
 import org.apache.rocketmq.acl.plug.entity.LoginOrRequestAccessControl;
 import org.apache.rocketmq.acl.plug.exception.AclPlugAccountAnalysisException;
 import org.apache.rocketmq.acl.plug.strategy.NetaddressStrategy;
@@ -48,7 +48,18 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
 
     private Authentication authentication = new Authentication();
 
+    ControllerParametersEntity controllerParametersEntity;
+    
+    public AuthenticationInfoManagementAclPlugEngine(ControllerParametersEntity controllerParametersEntity)   {
+        this.controllerParametersEntity = controllerParametersEntity;
+        accessContralAnalysis.analysisClass(controllerParametersEntity.getAccessContralAnalysisClass());
+ }
+    
+    
     public void setAccessControl(AccessControl accessControl) throws AclPlugAccountAnalysisException {
+        if (accessControl.getAccount() == null || accessControl.getPassword() == null || accessControl.getAccount().length() <= 6 || accessControl.getPassword().length() <= 6) {
+            throw new AclPlugAccountAnalysisException(String.format("The account password cannot be null and is longer than 6, account is %s  password is %s", accessControl.getAccount(), accessControl.getPassword()));
+        }
         try {
             NetaddressStrategy netaddressStrategy = netaddressStrategyFactory.getNetaddressStrategy(accessControl);
             Map<String, AuthenticationInfo> accessControlAddressMap = accessControlMap.get(accessControl.getAccount());

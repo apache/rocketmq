@@ -1,9 +1,24 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.rocketmq.acl.plug;
 
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.rocketmq.acl.plug.entity.AuthenticationInfo;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
 import org.apache.rocketmq.acl.plug.entity.BorkerAccessControl;
@@ -18,11 +33,16 @@ public class AuthenticationTest {
     Authentication authentication = new Authentication();
 
     AuthenticationInfo authenticationInfo;
+    
+    BorkerAccessControl borkerAccessControl;
+    
+    AuthenticationResult authenticationResult = new AuthenticationResult();
+    LoginOrRequestAccessControl loginOrRequestAccessControl = new LoginOrRequestAccessControl();
 
     @Before
     public void init() {
         OneNetaddressStrategy netaddressStrategy = new OneNetaddressStrategy("127.0.0.1");
-        BorkerAccessControl borkerAccessControl = new BorkerAccessControl();
+        borkerAccessControl = new BorkerAccessControl();
         //321
         borkerAccessControl.setQueryConsumeQueue(false);
 
@@ -51,8 +71,7 @@ public class AuthenticationTest {
     @Test
     public void authenticationTest() {
 
-        AuthenticationResult authenticationResult = new AuthenticationResult();
-        LoginOrRequestAccessControl loginOrRequestAccessControl = new LoginOrRequestAccessControl();
+        
         loginOrRequestAccessControl.setCode(317);
 
         boolean isReturn = authentication.authentication(authenticationInfo, loginOrRequestAccessControl, authenticationResult);
@@ -81,7 +100,7 @@ public class AuthenticationTest {
 
         loginOrRequestAccessControl.setTopic("nopermitSendTopic");
         isReturn = authentication.authentication(authenticationInfo, loginOrRequestAccessControl, authenticationResult);
-        Assert.assertTrue(isReturn);
+        Assert.assertFalse(isReturn);
 
         loginOrRequestAccessControl.setCode(11);
         loginOrRequestAccessControl.setTopic("permitPullTopic");
@@ -94,7 +113,29 @@ public class AuthenticationTest {
 
         loginOrRequestAccessControl.setTopic("nopermitPullTopic");
         isReturn = authentication.authentication(authenticationInfo, loginOrRequestAccessControl, authenticationResult);
-        Assert.assertTrue(isReturn);
+        Assert.assertFalse(isReturn);
 
     }
+    
+    @Test
+    public void isEmptyTest() {
+    	loginOrRequestAccessControl.setCode(10);
+    	loginOrRequestAccessControl.setTopic("absentTopic");
+    	boolean isReturn = authentication.authentication(authenticationInfo, loginOrRequestAccessControl, authenticationResult);
+    	Assert.assertFalse(isReturn);
+    	
+    	Set<String> permitSendTopic = new HashSet<>();
+    	borkerAccessControl.setPermitSendTopic(permitSendTopic);
+    	isReturn = authentication.authentication(authenticationInfo, loginOrRequestAccessControl, authenticationResult);
+    	Assert.assertTrue(isReturn);
+    	
+    	loginOrRequestAccessControl.setCode(11);
+    	isReturn = authentication.authentication(authenticationInfo, loginOrRequestAccessControl, authenticationResult);
+    	Assert.assertFalse(isReturn);
+    	
+    	borkerAccessControl.setPermitPullTopic(permitSendTopic);
+    	isReturn = authentication.authentication(authenticationInfo, loginOrRequestAccessControl, authenticationResult);
+    	Assert.assertTrue(isReturn);    	
+    }
+    
 }

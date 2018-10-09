@@ -18,169 +18,116 @@ package org.apache.rocketmq.acl.plug.entity;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.apache.rocketmq.acl.plug.annotation.RequestCode;
 
 public class BorkerAccessControl extends AccessControl {
 
+    private Set<String> permitSendTopic = new HashSet<>();
+    private Set<String> noPermitSendTopic = new HashSet<>();
+    private Set<String> permitPullTopic = new HashSet<>();
+    private Set<String> noPermitPullTopic = new HashSet<>();
+
+    private boolean sendMessage = true;
+    
+    private boolean sendMessageV2 = true;
+
+    private boolean sendBatchMessage = true;
+
+    private boolean consumerSendMsgBack = true;
+    @RequestCode(code = 11)
+    private boolean pullMessage = true;
+    @RequestCode(code = 12)
+    private boolean queryMessage = true;
+    @RequestCode(code = 33)
+    private boolean viewMessageById = true;
+    @RequestCode(code = 34)
+    private boolean heartBeat = true;
+    @RequestCode(code = 35)
+    private boolean unregisterClient = true;
+    @RequestCode(code = 46)
+    private boolean checkClientConfig = true;
+    @RequestCode(code = 38)
+    private boolean getConsumerListByGroup = true;
+    @RequestCode(code = 15)
+    private boolean updateConsumerOffset = true;
+    @RequestCode(code = 14)
+    private boolean queryConsumerOffset = true;
+    @RequestCode(code = 37)
+    private boolean endTransaction = true;
+    @RequestCode(code = 17)
+    private boolean updateAndCreateTopic = true;
+    @RequestCode(code = 215)
+    private boolean deleteTopicInbroker = true;
+    @RequestCode(code = 21)
+    private boolean getAllTopicConfig = true;
+    @RequestCode(code = 25)
+    private boolean updateBrokerConfig = true;
+    @RequestCode(code = 26)
+    private boolean getBrokerConfig = true;
+    @RequestCode(code = 29)
+    private boolean searchOffsetByTimestamp = true;
+    @RequestCode(code = 30)
+    private boolean getMaxOffset = true;
+    @RequestCode(code = 31)
+    private boolean getMixOffset = true;
+    @RequestCode(code = 32)
+    private boolean getEarliestMsgStoretime = true;
+    @RequestCode(code = 28)
+    private boolean getBrokerRuntimeInfo = true;
+    @RequestCode(code = 41)
+    private boolean lockBatchMQ = true;
+    @RequestCode(code = 42)
+    private boolean unlockBatchMQ = true;
+    @RequestCode(code = 200)
+    private boolean updateAndCreteSubscriptiongroup = true;
+    @RequestCode(code = 201)
+    private boolean getAllSubscriptiongroupConfig = true;
+    @RequestCode(code = 207)
+    private boolean deleteSubscriptiongroup = true;
+    @RequestCode(code = 202)
+    private boolean getTopicStatsInfo = true;
+    @RequestCode(code = 203)
+    private boolean getConsumerConnectionList = true;
+    @RequestCode(code = 204)
+    private boolean getProducerConnectionList = true;
+    @RequestCode(code = 208)
+    private boolean getConsumeStats = true;
+    @RequestCode(code = 43)
+    private boolean getAllConsumerOffset = true;
+    @RequestCode(code = 25)
+    private boolean getAllDelayOffset = true;
+    @RequestCode(code = 222)
+    private boolean invokeBrokerToresetOffset = true;
+    @RequestCode(code = 300)
+    private boolean queryTopicConsumByWho = true;
+    @RequestCode(code = 301)
+    private boolean registerFilterServer = true;
+    
+    private boolean queryConsumeTimeSpan = true;
+
+    private boolean getSystemTopicListFromBroker = true;
+    @RequestCode(code = 306)
+    private boolean cleanExpiredConsumequeue = true;
+    @RequestCode(code = 316)
+    private boolean cleanUnusedTopic = true;
+    @RequestCode(code = 307)
+    private boolean getConsumerRunningInfo = true;
+    @RequestCode(code = 308)
+    private boolean queryCorrectionOffset = true;
+    @RequestCode(code = 309)
+    private boolean consumeMessageDirectly = true;
+    @RequestCode(code = 314)
+    private boolean cloneGroupOffset = true;
+    @RequestCode(code = 315)
+    private boolean viewBrokerStatsData = true;
+    @RequestCode(code = 317)
+    private boolean getBrokerConsumeStats = true;
+    @RequestCode(code = 321)
+    private boolean queryConsumeQueue = true;
+
     public BorkerAccessControl() {
 
     }
-
-    private Set<String> permitSendTopic = new HashSet<>();
-
-    private Set<String> noPermitSendTopic = new HashSet<>();
-
-    private Set<String> permitPullTopic = new HashSet<>();
-
-    private Set<String> noPermitPullTopic = new HashSet<>();
-
-    @RequestCode(code = 10)
-    private boolean sendMessage = true;
-
-    @RequestCode(code = 310)
-    private boolean sendMessageV2 = true;
-
-    @RequestCode(code = 320)
-    private boolean sendBatchMessage = true;
-
-    @RequestCode(code = 36)
-    private boolean consumerSendMsgBack = true;
-
-    @RequestCode(code = 11)
-    private boolean pullMessage = true;
-
-    @RequestCode(code = 12)
-    private boolean queryMessage = true;
-
-    @RequestCode(code = 33)
-    private boolean viewMessageById = true;
-
-    @RequestCode(code = 34)
-    private boolean heartBeat = true;
-
-    @RequestCode(code = 35)
-    private boolean unregisterClient = true;
-
-    @RequestCode(code = 46)
-    private boolean checkClientConfig = true;
-
-    @RequestCode(code = 38)
-    private boolean getConsumerListByGroup = true;
-
-    @RequestCode(code = 15)
-    private boolean updateConsumerOffset = true;
-
-    @RequestCode(code = 14)
-    private boolean queryConsumerOffset = true;
-
-    @RequestCode(code = 37)
-    private boolean endTransaction = true;
-
-    @RequestCode(code = 17)
-    private boolean updateAndCreateTopic = true;
-
-    @RequestCode(code = 215)
-    private boolean deleteTopicInbroker = true;
-
-    @RequestCode(code = 21)
-    private boolean getAllTopicConfig = true;
-
-    @RequestCode(code = 25)
-    private boolean updateBrokerConfig = true;
-
-    @RequestCode(code = 26)
-    private boolean getBrokerConfig = true;
-
-    @RequestCode(code = 29)
-    private boolean searchOffsetByTimestamp = true;
-
-    @RequestCode(code = 30)
-    private boolean getMaxOffset = true;
-
-    @RequestCode(code = 31)
-    private boolean getMixOffset = true;
-
-    @RequestCode(code = 32)
-    private boolean getEarliestMsgStoretime = true;
-
-    @RequestCode(code = 28)
-    private boolean getBrokerRuntimeInfo = true;
-
-    @RequestCode(code = 41)
-    private boolean lockBatchMQ = true;
-
-    @RequestCode(code = 42)
-    private boolean unlockBatchMQ = true;
-
-    @RequestCode(code = 200)
-    private boolean updateAndCreteSubscriptiongroup = true;
-
-    @RequestCode(code = 201)
-    private boolean getAllSubscriptiongroupConfig = true;
-
-    @RequestCode(code = 207)
-    private boolean deleteSubscriptiongroup = true;
-
-    @RequestCode(code = 202)
-    private boolean getTopicStatsInfo = true;
-
-    @RequestCode(code = 203)
-    private boolean getConsumerConnectionList = true;
-
-    @RequestCode(code = 204)
-    private boolean getProducerConnectionList = true;
-
-    @RequestCode(code = 208)
-    private boolean getConsumeStats = true;
-
-    @RequestCode(code = 43)
-    private boolean getAllConsumerOffset = true;
-
-    @RequestCode(code = 25)
-    private boolean getAllDelayOffset = true;
-
-    @RequestCode(code = 222)
-    private boolean invokeBrokerToresetOffset = true;
-
-    @RequestCode(code = 300)
-    private boolean queryTopicConsumByWho = true;
-
-    @RequestCode(code = 301)
-    private boolean registerFilterServer = true;
-
-    @RequestCode(code = 303)
-    private boolean queryConsumeTimeSpan = true;
-
-    @RequestCode(code = 305)
-    private boolean getSystemTopicListFromBroker = true;
-
-    @RequestCode(code = 306)
-    private boolean cleanExpiredConsumequeue = true;
-
-    @RequestCode(code = 316)
-    private boolean cleanUnusedTopic = true;
-
-    @RequestCode(code = 307)
-    private boolean getConsumerRunningInfo = true;
-
-    @RequestCode(code = 308)
-    private boolean queryCorrectionOffset = true;
-
-    @RequestCode(code = 309)
-    private boolean consumeMessageDirectly = true;
-
-    @RequestCode(code = 314)
-    private boolean cloneGroupOffset = true;
-
-    @RequestCode(code = 315)
-    private boolean viewBrokerStatsData = true;
-
-    @RequestCode(code = 317)
-    private boolean getBrokerConsumeStats = true;
-
-    @RequestCode(code = 321)
-    private boolean queryConsumeQueue = true;
 
     public Set<String> getPermitSendTopic() {
         return permitSendTopic;

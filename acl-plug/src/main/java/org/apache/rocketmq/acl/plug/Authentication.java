@@ -45,7 +45,7 @@ public class Authentication {
                 authenticationResult.setResultString(String.format("noPermitSendTopic include %s", topicName));
                 return false;
             }
-            return true;
+            return borker.getPermitSendTopic().isEmpty() ? true : false;
         } else if (code == 11) {
             if (borker.getPermitPullTopic().contains(topicName)) {
                 return true;
@@ -54,7 +54,7 @@ public class Authentication {
                 authenticationResult.setResultString(String.format("noPermitPullTopic include %s", topicName));
                 return false;
             }
-            return true;
+            return borker.getPermitPullTopic().isEmpty() ? true : false;
         }
         return true;
     }

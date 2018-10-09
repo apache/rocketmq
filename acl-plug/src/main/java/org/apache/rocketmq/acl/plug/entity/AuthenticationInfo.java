@@ -19,7 +19,6 @@ package org.apache.rocketmq.acl.plug.entity;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-
 import org.apache.rocketmq.acl.plug.strategy.NetaddressStrategy;
 
 public class AuthenticationInfo {

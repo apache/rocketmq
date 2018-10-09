@@ -302,7 +302,6 @@ public class BrokerController {
                 this.heartbeatThreadPoolQueue,
                 new ThreadFactoryImpl("HeartbeatThread_", true));
 
-
             this.endTransactionExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getEndTransactionThreadPoolNums(),
                 this.brokerConfig.getEndTransactionThreadPoolNums(),
@@ -1101,12 +1100,12 @@ public class BrokerController {
         this.transactionalMessageCheckListener = transactionalMessageCheckListener;
     }
 
-<<<<<<< HEAD
     public AclPlugController getAclPlugController() {
         return this.aclPlugController;
-=======
+    }
+
     public BlockingQueue<Runnable> getEndTransactionThreadPoolQueue() {
         return endTransactionThreadPoolQueue;
->>>>>>> 53a63460d3a1599a6c51058bb51a73746233022d
+
     }
 }
