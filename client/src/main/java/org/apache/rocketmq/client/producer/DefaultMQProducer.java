@@ -76,7 +76,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Just for testing or demo program
      */
-    private String createTopicKey = MixAll.DEFAULT_TOPIC;
+    private String createTopicKey = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
 
     /**
      * Number of queues to create per default topic.
@@ -473,6 +473,19 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public TransactionSendResult sendMessageInTransaction(Message msg, LocalTransactionExecuter tranExecuter,
         final Object arg)
         throws MQClientException {
+        throw new RuntimeException("sendMessageInTransaction not implement, please use TransactionMQProducer class");
+    }
+
+    /**
+     * This method is used to send transactional messages.
+     * @param msg Transactional message to send.
+     * @param arg Argument used along with local transaction executor.
+     * @return Transaction result.
+     * @throws MQClientException
+     */
+    @Override
+    public TransactionSendResult sendMessageInTransaction(Message msg,
+        Object arg) throws MQClientException {
         throw new RuntimeException("sendMessageInTransaction not implement, please use TransactionMQProducer class");
     }
 

@@ -20,38 +20,28 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>4.2.0</version>
+        <version>4.4.0-SNAPSHOT</version>
     </parent>
     <artifactId>rocketmq-distribution</artifactId>
     <name>rocketmq-distribution ${project.version}</name>
     <packaging>pom</packaging>
 
     <profiles>
-
         <profile>
             <id>release-all</id>
-
             <dependencies>
                 <dependency>
                     <groupId>org.apache.rocketmq</groupId>
                     <artifactId>rocketmq-broker</artifactId>
                 </dependency>
-
                 <dependency>
                     <groupId>org.apache.rocketmq</groupId>
                     <artifactId>rocketmq-client</artifactId>
                 </dependency>
-
-                <dependency>
-                    <groupId>org.apache.rocketmq</groupId>
-                    <artifactId>rocketmq-filtersrv</artifactId>
-                </dependency>
-
                 <dependency>
                     <groupId>org.apache.rocketmq</groupId>
                     <artifactId>rocketmq-tools</artifactId>
                 </dependency>
-
                 <dependency>
                     <groupId>org.apache.rocketmq</groupId>
                     <artifactId>rocketmq-example</artifactId>
@@ -85,7 +75,6 @@
 
         <profile>
             <id>release-client</id>
-
             <dependencies>
                 <dependency>
                     <groupId>org.apache.rocketmq</groupId>

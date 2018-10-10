@@ -41,11 +41,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class MixAll {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
     public static final String ROCKETMQ_HOME_PROPERTY = "rocketmq.home.dir";
@@ -57,7 +57,7 @@ public class MixAll {
     public static final String WS_DOMAIN_SUBGROUP = System.getProperty("rocketmq.namesrv.domain.subgroup", "nsaddr");
     //http://jmenv.tbsite.net:8080/rocketmq/nsaddr
     //public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + ":8080/rocketmq/" + WS_DOMAIN_SUBGROUP;
-    public static final String DEFAULT_TOPIC = "TBW102";
+    public static final String AUTO_CREATE_TOPIC_KEY_TOPIC = "TBW102"; // Will be created at broker when isAutoCreateTopicEnable
     public static final String BENCHMARK_TOPIC = "BenchmarkTest";
     public static final String DEFAULT_PRODUCER_GROUP = "DEFAULT_PRODUCER";
     public static final String DEFAULT_CONSUMER_GROUP = "DEFAULT_CONSUMER";
@@ -88,6 +88,10 @@ public class MixAll {
     public static final String UNIQUE_MSG_QUERY_FLAG = "_UNIQUE_KEY_QUERY";
     public static final String DEFAULT_TRACE_REGION_ID = "DefaultRegion";
     public static final String CONSUME_CONTEXT_TYPE = "ConsumeContextType";
+
+    public static final String RMQ_SYS_TRANS_HALF_TOPIC = "RMQ_SYS_TRANS_HALF_TOPIC";
+    public static final String RMQ_SYS_TRANS_OP_HALF_TOPIC = "RMQ_SYS_TRANS_OP_HALF_TOPIC";
+    public static final String CID_SYS_RMQ_TRANS = "CID_RMQ_SYS_TRANS";
 
     public static String getWSAddr() {
         String wsDomainName = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);
@@ -227,11 +231,11 @@ public class MixAll {
         return null;
     }
 
-    public static void printObjectProperties(final Logger logger, final Object object) {
+    public static void printObjectProperties(final InternalLogger logger, final Object object) {
         printObjectProperties(logger, object, false);
     }
 
-    public static void printObjectProperties(final Logger logger, final Object object,
+    public static void printObjectProperties(final InternalLogger logger, final Object object,
         final boolean onlyImportantField) {
         Field[] fields = object.getClass().getDeclaredFields();
         for (Field field : fields) {

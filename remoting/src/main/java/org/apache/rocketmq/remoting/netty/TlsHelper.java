@@ -31,8 +31,8 @@ import java.io.InputStream;
 import java.security.cert.CertificateException;
 import java.util.Properties;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_CLIENT_AUTHSERVER;
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_CLIENT_CERTPATH;
@@ -73,7 +73,7 @@ public class TlsHelper {
         InputStream decryptPrivateKey(String privateKeyEncryptPath, boolean forClient) throws IOException;
     }
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
+    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
     private static DecryptionStrategy decryptionStrategy = new DecryptionStrategy() {
         @Override
