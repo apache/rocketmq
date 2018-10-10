@@ -26,10 +26,10 @@ import org.yaml.snakeyaml.Yaml;
 
 public class PlainAclPlugEngine extends LoginInfoAclPlugEngine {
 
-    private ControllerParametersEntity controllerParametersEntity;
 
-    public PlainAclPlugEngine(ControllerParametersEntity controllerParametersEntity) throws AclPlugAccountAnalysisException {
-    	super(controllerParametersEntity);
+    public PlainAclPlugEngine(
+        ControllerParametersEntity controllerParametersEntity) throws AclPlugAccountAnalysisException {
+        super(controllerParametersEntity);
         init();
     }
 

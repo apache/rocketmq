@@ -18,7 +18,6 @@ package org.apache.rocketmq.acl.plug.entity;
 
 import java.util.HashSet;
 import java.util.Set;
-import org.apache.rocketmq.acl.plug.annotation.RequestCode;
 
 public class BorkerAccessControl extends AccessControl {
 
@@ -28,101 +27,101 @@ public class BorkerAccessControl extends AccessControl {
     private Set<String> noPermitPullTopic = new HashSet<>();
 
     private boolean sendMessage = true;
-    
+
     private boolean sendMessageV2 = true;
 
     private boolean sendBatchMessage = true;
 
     private boolean consumerSendMsgBack = true;
-    @RequestCode(code = 11)
+
     private boolean pullMessage = true;
-    @RequestCode(code = 12)
+
     private boolean queryMessage = true;
-    @RequestCode(code = 33)
+
     private boolean viewMessageById = true;
-    @RequestCode(code = 34)
+
     private boolean heartBeat = true;
-    @RequestCode(code = 35)
+
     private boolean unregisterClient = true;
-    @RequestCode(code = 46)
+
     private boolean checkClientConfig = true;
-    @RequestCode(code = 38)
+
     private boolean getConsumerListByGroup = true;
-    @RequestCode(code = 15)
+
     private boolean updateConsumerOffset = true;
-    @RequestCode(code = 14)
+
     private boolean queryConsumerOffset = true;
-    @RequestCode(code = 37)
+
     private boolean endTransaction = true;
-    @RequestCode(code = 17)
+
     private boolean updateAndCreateTopic = true;
-    @RequestCode(code = 215)
+
     private boolean deleteTopicInbroker = true;
-    @RequestCode(code = 21)
+
     private boolean getAllTopicConfig = true;
-    @RequestCode(code = 25)
+
     private boolean updateBrokerConfig = true;
-    @RequestCode(code = 26)
+
     private boolean getBrokerConfig = true;
-    @RequestCode(code = 29)
+
     private boolean searchOffsetByTimestamp = true;
-    @RequestCode(code = 30)
+
     private boolean getMaxOffset = true;
-    @RequestCode(code = 31)
-    private boolean getMixOffset = true;
-    @RequestCode(code = 32)
+
+    private boolean getMinOffset = true;
+
     private boolean getEarliestMsgStoretime = true;
-    @RequestCode(code = 28)
+
     private boolean getBrokerRuntimeInfo = true;
-    @RequestCode(code = 41)
+
     private boolean lockBatchMQ = true;
-    @RequestCode(code = 42)
+
     private boolean unlockBatchMQ = true;
-    @RequestCode(code = 200)
-    private boolean updateAndCreteSubscriptiongroup = true;
-    @RequestCode(code = 201)
+
+    private boolean updateAndCreateSubscriptiongroup = true;
+
     private boolean getAllSubscriptiongroupConfig = true;
-    @RequestCode(code = 207)
+
     private boolean deleteSubscriptiongroup = true;
-    @RequestCode(code = 202)
+
     private boolean getTopicStatsInfo = true;
-    @RequestCode(code = 203)
+
     private boolean getConsumerConnectionList = true;
-    @RequestCode(code = 204)
+
     private boolean getProducerConnectionList = true;
-    @RequestCode(code = 208)
+
     private boolean getConsumeStats = true;
-    @RequestCode(code = 43)
+
     private boolean getAllConsumerOffset = true;
-    @RequestCode(code = 25)
+
     private boolean getAllDelayOffset = true;
-    @RequestCode(code = 222)
+
     private boolean invokeBrokerToresetOffset = true;
-    @RequestCode(code = 300)
-    private boolean queryTopicConsumByWho = true;
-    @RequestCode(code = 301)
+
+    private boolean queryTopicConsumeByWho = true;
+
     private boolean registerFilterServer = true;
-    
+
     private boolean queryConsumeTimeSpan = true;
 
     private boolean getSystemTopicListFromBroker = true;
-    @RequestCode(code = 306)
+
     private boolean cleanExpiredConsumequeue = true;
-    @RequestCode(code = 316)
+
     private boolean cleanUnusedTopic = true;
-    @RequestCode(code = 307)
+
     private boolean getConsumerRunningInfo = true;
-    @RequestCode(code = 308)
+
     private boolean queryCorrectionOffset = true;
-    @RequestCode(code = 309)
+
     private boolean consumeMessageDirectly = true;
-    @RequestCode(code = 314)
+
     private boolean cloneGroupOffset = true;
-    @RequestCode(code = 315)
+
     private boolean viewBrokerStatsData = true;
-    @RequestCode(code = 317)
+
     private boolean getBrokerConsumeStats = true;
-    @RequestCode(code = 321)
+
     private boolean queryConsumeQueue = true;
 
     public BorkerAccessControl() {
@@ -325,16 +324,16 @@ public class BorkerAccessControl extends AccessControl {
         return getMaxOffset;
     }
 
-    public void setGetMaxOffset(boolean getMaxOffset) {
-        this.getMaxOffset = getMaxOffset;
+    public void setGetMaxOffset(boolean getMinOffset) {
+        this.getMaxOffset = getMinOffset;
     }
 
-    public boolean isGetMixOffset() {
-        return getMixOffset;
+    public boolean isGetMinOffset() {
+        return getMinOffset;
     }
 
-    public void setGetMixOffset(boolean getMixOffset) {
-        this.getMixOffset = getMixOffset;
+    public void setGetMinOffset(boolean getMinOffset) {
+        this.getMinOffset = getMinOffset;
     }
 
     public boolean isGetEarliestMsgStoretime() {
@@ -369,12 +368,12 @@ public class BorkerAccessControl extends AccessControl {
         this.unlockBatchMQ = unlockBatchMQ;
     }
 
-    public boolean isUpdateAndCreteSubscriptiongroup() {
-        return updateAndCreteSubscriptiongroup;
+    public boolean isUpdateAndCreateSubscriptiongroup() {
+        return updateAndCreateSubscriptiongroup;
     }
 
-    public void setUpdateAndCreteSubscriptiongroup(boolean updateAndCreteSubscriptiongroup) {
-        this.updateAndCreteSubscriptiongroup = updateAndCreteSubscriptiongroup;
+    public void setUpdateAndCreateSubscriptiongroup(boolean updateAndCreateSubscriptiongroup) {
+        this.updateAndCreateSubscriptiongroup = updateAndCreateSubscriptiongroup;
     }
 
     public boolean isGetAllSubscriptiongroupConfig() {
@@ -449,12 +448,12 @@ public class BorkerAccessControl extends AccessControl {
         this.invokeBrokerToresetOffset = invokeBrokerToresetOffset;
     }
 
-    public boolean isQueryTopicConsumByWho() {
-        return queryTopicConsumByWho;
+    public boolean isQueryTopicConsumeByWho() {
+        return queryTopicConsumeByWho;
     }
 
-    public void setQueryTopicConsumByWho(boolean queryTopicConsumByWho) {
-        this.queryTopicConsumByWho = queryTopicConsumByWho;
+    public void setQueryTopicConsumeByWho(boolean queryTopicConsumeByWho) {
+        this.queryTopicConsumeByWho = queryTopicConsumeByWho;
     }
 
     public boolean isRegisterFilterServer() {
@@ -601,8 +600,8 @@ public class BorkerAccessControl extends AccessControl {
             builder.append(", searchOffsetByTimestamp=").append(searchOffsetByTimestamp);
         if (!getMaxOffset)
             builder.append(", getMaxOffset=").append(getMaxOffset);
-        if (!getMixOffset)
-            builder.append(", getMixOffset=").append(getMixOffset);
+        if (!getMinOffset)
+            builder.append(", getMixOffset=").append(getMinOffset);
         if (!getEarliestMsgStoretime)
             builder.append(", getEarliestMsgStoretime=").append(getEarliestMsgStoretime);
         if (!getBrokerRuntimeInfo)
@@ -611,8 +610,8 @@ public class BorkerAccessControl extends AccessControl {
             builder.append(", lockBatchMQ=").append(lockBatchMQ);
         if (!unlockBatchMQ)
             builder.append(", unlockBatchMQ=").append(unlockBatchMQ);
-        if (!updateAndCreteSubscriptiongroup)
-            builder.append(", updateAndCreteSubscriptiongroup=").append(updateAndCreteSubscriptiongroup);
+        if (!updateAndCreateSubscriptiongroup)
+            builder.append(", updateAndCreateSubscriptiongroup=").append(updateAndCreateSubscriptiongroup);
         if (!getAllSubscriptiongroupConfig)
             builder.append(", getAllSubscriptiongroupConfig=").append(getAllSubscriptiongroupConfig);
         if (!deleteSubscriptiongroup)
@@ -631,8 +630,8 @@ public class BorkerAccessControl extends AccessControl {
             builder.append(", getAllDelayOffset=").append(getAllDelayOffset);
         if (!invokeBrokerToresetOffset)
             builder.append(", invokeBrokerToresetOffset=").append(invokeBrokerToresetOffset);
-        if (!queryTopicConsumByWho)
-            builder.append(", queryTopicConsumByWho=").append(queryTopicConsumByWho);
+        if (!queryTopicConsumeByWho)
+            builder.append(", queryTopicConsumeByWho=").append(queryTopicConsumeByWho);
         if (!registerFilterServer)
             builder.append(", registerFilterServer=").append(registerFilterServer);
         if (!queryConsumeTimeSpan)

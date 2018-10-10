@@ -83,31 +83,30 @@ public class PlainAclPlugEngineTest {
 
     }
 
-   
     @Test(expected = AclPlugAccountAnalysisException.class)
     public void accountNullTest() {
-    	accessControl.setAccount(null);
-    	plainAclPlugEngine.setAccessControl(accessControl);
+        accessControl.setAccount(null);
+        plainAclPlugEngine.setAccessControl(accessControl);
     }
-    
+
     @Test(expected = AclPlugAccountAnalysisException.class)
     public void accountThanTest() {
-    	accessControl.setAccount("123");
-    	plainAclPlugEngine.setAccessControl(accessControl);
+        accessControl.setAccount("123");
+        plainAclPlugEngine.setAccessControl(accessControl);
     }
-    
+
     @Test(expected = AclPlugAccountAnalysisException.class)
     public void passWordtNullTest() {
-    	accessControl.setAccount(null);
-    	plainAclPlugEngine.setAccessControl(accessControl);
+        accessControl.setAccount(null);
+        plainAclPlugEngine.setAccessControl(accessControl);
     }
-    
+
     @Test(expected = AclPlugAccountAnalysisException.class)
     public void passWordThanTest() {
-    	accessControl.setAccount("123");
-    	plainAclPlugEngine.setAccessControl(accessControl);
+        accessControl.setAccount("123");
+        plainAclPlugEngine.setAccessControl(accessControl);
     }
-    
+
     @Test(expected = AclPlugAccountAnalysisException.class)
     public void testPlainAclPlugEngineInit() {
         ControllerParametersEntity controllerParametersEntity = new ControllerParametersEntity();

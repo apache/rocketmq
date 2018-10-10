@@ -24,6 +24,7 @@ import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
 import org.apache.rocketmq.acl.plug.entity.BorkerAccessControl;
 import org.apache.rocketmq.acl.plug.entity.LoginOrRequestAccessControl;
 import org.apache.rocketmq.acl.plug.strategy.OneNetaddressStrategy;
+import org.apache.rocketmq.common.protocol.RequestCode;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,9 +34,9 @@ public class AuthenticationTest {
     Authentication authentication = new Authentication();
 
     AuthenticationInfo authenticationInfo;
-    
+
     BorkerAccessControl borkerAccessControl;
-    
+
     AuthenticationResult authenticationResult = new AuthenticationResult();
     LoginOrRequestAccessControl loginOrRequestAccessControl = new LoginOrRequestAccessControl();
 
@@ -63,6 +64,7 @@ public class AuthenticationTest {
         borkerAccessControl.setNoPermitPullTopic(noPermitPullTopic);
 
         AccessContralAnalysis accessContralAnalysis = new AccessContralAnalysis();
+        accessContralAnalysis.analysisClass(RequestCode.class);
         Map<Integer, Boolean> map = accessContralAnalysis.analysis(borkerAccessControl);
 
         authenticationInfo = new AuthenticationInfo(map, borkerAccessControl, netaddressStrategy);
@@ -71,7 +73,6 @@ public class AuthenticationTest {
     @Test
     public void authenticationTest() {
 
-        
         loginOrRequestAccessControl.setCode(317);
 
         boolean isReturn = authentication.authentication(authenticationInfo, loginOrRequestAccessControl, authenticationResult);
@@ -116,26 +117,26 @@ public class AuthenticationTest {
         Assert.assertFalse(isReturn);
 
     }
-    
+
     @Test
     public void isEmptyTest() {
-    	loginOrRequestAccessControl.setCode(10);
-    	loginOrRequestAccessControl.setTopic("absentTopic");
-    	boolean isReturn = authentication.authentication(authenticationInfo, loginOrRequestAccessControl, authenticationResult);
-    	Assert.assertFalse(isReturn);
-    	
-    	Set<String> permitSendTopic = new HashSet<>();
-    	borkerAccessControl.setPermitSendTopic(permitSendTopic);
-    	isReturn = authentication.authentication(authenticationInfo, loginOrRequestAccessControl, authenticationResult);
-    	Assert.assertTrue(isReturn);
-    	
-    	loginOrRequestAccessControl.setCode(11);
-    	isReturn = authentication.authentication(authenticationInfo, loginOrRequestAccessControl, authenticationResult);
-    	Assert.assertFalse(isReturn);
-    	
-    	borkerAccessControl.setPermitPullTopic(permitSendTopic);
-    	isReturn = authentication.authentication(authenticationInfo, loginOrRequestAccessControl, authenticationResult);
-    	Assert.assertTrue(isReturn);    	
+        loginOrRequestAccessControl.setCode(10);
+        loginOrRequestAccessControl.setTopic("absentTopic");
+        boolean isReturn = authentication.authentication(authenticationInfo, loginOrRequestAccessControl, authenticationResult);
+        Assert.assertFalse(isReturn);
+
+        Set<String> permitSendTopic = new HashSet<>();
+        borkerAccessControl.setPermitSendTopic(permitSendTopic);
+        isReturn = authentication.authentication(authenticationInfo, loginOrRequestAccessControl, authenticationResult);
+        Assert.assertTrue(isReturn);
+
+        loginOrRequestAccessControl.setCode(11);
+        isReturn = authentication.authentication(authenticationInfo, loginOrRequestAccessControl, authenticationResult);
+        Assert.assertFalse(isReturn);
+
+        borkerAccessControl.setPermitPullTopic(permitSendTopic);
+        isReturn = authentication.authentication(authenticationInfo, loginOrRequestAccessControl, authenticationResult);
+        Assert.assertTrue(isReturn);
     }
-    
+
 }
