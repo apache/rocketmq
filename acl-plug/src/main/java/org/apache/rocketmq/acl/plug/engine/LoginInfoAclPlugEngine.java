@@ -18,7 +18,6 @@ package org.apache.rocketmq.acl.plug.engine;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationInfo;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
@@ -30,11 +29,10 @@ public abstract class LoginInfoAclPlugEngine extends AuthenticationInfoManagemen
 
     private Map<String, LoginInfo> loginInfoMap = new ConcurrentHashMap<>();
 
-    
-    public LoginInfoAclPlugEngine(ControllerParametersEntity controllerParametersEntity)   {
-            super(controllerParametersEntity);
-     }
-    
+    public LoginInfoAclPlugEngine(ControllerParametersEntity controllerParametersEntity) {
+        super(controllerParametersEntity);
+    }
+
     public LoginInfo getLoginInfo(AccessControl accessControl) {
         LoginInfo loginInfo = loginInfoMap.get(accessControl.getRecognition());
         if (loginInfo == null) {

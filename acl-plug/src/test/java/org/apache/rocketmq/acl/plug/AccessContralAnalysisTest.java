@@ -19,7 +19,6 @@ package org.apache.rocketmq.acl.plug;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.BorkerAccessControl;
 import org.apache.rocketmq.acl.plug.exception.AclPlugAccountAnalysisException;
@@ -30,13 +29,13 @@ import org.junit.Test;
 
 public class AccessContralAnalysisTest {
 
-	AccessContralAnalysis accessContralAnalysis = new AccessContralAnalysis();
-	
-	@Before
-	public void init() {
-		accessContralAnalysis.analysisClass(RequestCode.class);
-	}
-	
+    AccessContralAnalysis accessContralAnalysis = new AccessContralAnalysis();
+
+    @Before
+    public void init() {
+        accessContralAnalysis.analysisClass(RequestCode.class);
+    }
+
     @Test
     public void analysisTest() {
         BorkerAccessControl accessControl = new BorkerAccessControl();
@@ -54,12 +53,11 @@ public class AccessContralAnalysisTest {
         }
         Assert.assertEquals(num, 1);
     }
-    
-    
-    @Test(expected=AclPlugAccountAnalysisException.class)
-    public void analysisExceptionTest(){
-    	AccessControl accessControl = new AccessControl();
-    	accessContralAnalysis.analysis(accessControl);
+
+    @Test(expected = AclPlugAccountAnalysisException.class)
+    public void analysisExceptionTest() {
+        AccessControl accessControl = new AccessControl();
+        accessContralAnalysis.analysis(accessControl);
     }
 
 }

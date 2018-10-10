@@ -37,25 +37,18 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPlugEngine {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.ACL_PLUG_LOGGER_NAME);
-
+    ControllerParametersEntity controllerParametersEntity;
     private Map<String/** account **/, Map<String/** netaddress **/, AuthenticationInfo>> accessControlMap = new HashMap<>();
-
     private AuthenticationInfo authenticationInfo;
-
     private NetaddressStrategyFactory netaddressStrategyFactory = new NetaddressStrategyFactory();
-
     private AccessContralAnalysis accessContralAnalysis = new AccessContralAnalysis();
-
     private Authentication authentication = new Authentication();
 
-    ControllerParametersEntity controllerParametersEntity;
-    
-    public AuthenticationInfoManagementAclPlugEngine(ControllerParametersEntity controllerParametersEntity)   {
+    public AuthenticationInfoManagementAclPlugEngine(ControllerParametersEntity controllerParametersEntity) {
         this.controllerParametersEntity = controllerParametersEntity;
         accessContralAnalysis.analysisClass(controllerParametersEntity.getAccessContralAnalysisClass());
- }
-    
-    
+    }
+
     public void setAccessControl(AccessControl accessControl) throws AclPlugAccountAnalysisException {
         if (accessControl.getAccount() == null || accessControl.getPassword() == null || accessControl.getAccount().length() <= 6 || accessControl.getPassword().length() <= 6) {
             throw new AclPlugAccountAnalysisException(String.format("The account password cannot be null and is longer than 6, account is %s  password is %s", accessControl.getAccount(), accessControl.getPassword()));
