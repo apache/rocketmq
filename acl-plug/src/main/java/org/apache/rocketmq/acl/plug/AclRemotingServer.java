@@ -16,11 +16,11 @@
  */
 package org.apache.rocketmq.acl.plug;
 
+import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
-import org.apache.rocketmq.acl.plug.entity.LoginOrRequestAccessControl;
 
 public interface AclRemotingServer {
 
-    public AuthenticationResult eachCheck(LoginOrRequestAccessControl accessControl);
+    public AuthenticationResult eachCheck(AccessControl accessControl);
 
 }

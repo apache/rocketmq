@@ -20,23 +20,21 @@ import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationInfo;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
 import org.apache.rocketmq.acl.plug.entity.BorkerAccessControl;
-import org.apache.rocketmq.acl.plug.entity.LoginOrRequestAccessControl;
 
 public class Authentication {
 
     public boolean authentication(AuthenticationInfo authenticationInfo,
-        LoginOrRequestAccessControl loginOrRequestAccessControl, AuthenticationResult authenticationResult) {
-        int code = loginOrRequestAccessControl.getCode();
+        AccessControl accessControl, AuthenticationResult authenticationResult) {
+        int code = accessControl.getCode();
         if (!authenticationInfo.getAuthority().get(code)) {
             authenticationResult.setResultString(String.format("code is %d Authentication failed", code));
             return false;
         }
-        AccessControl accessControl = authenticationInfo.getAccessControl();
-        if (!(accessControl instanceof BorkerAccessControl)) {
+        if (!(authenticationInfo.getAccessControl() instanceof BorkerAccessControl)) {
             return true;
         }
         BorkerAccessControl borker = (BorkerAccessControl) authenticationInfo.getAccessControl();
-        String topicName = loginOrRequestAccessControl.getTopic();
+        String topicName = accessControl.getTopic();
         if (code == 10 || code == 310 || code == 320) {
             if (borker.getPermitSendTopic().contains(topicName)) {
                 return true;

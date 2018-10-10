@@ -21,18 +21,18 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import org.apache.rocketmq.acl.plug.entity.BorkerAccessControlTransport;
 import org.apache.rocketmq.acl.plug.entity.ControllerParametersEntity;
-import org.apache.rocketmq.acl.plug.exception.AclPlugAccountAnalysisException;
+import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
 import org.yaml.snakeyaml.Yaml;
 
 public class PlainAclPlugEngine extends LoginInfoAclPlugEngine {
 
     public PlainAclPlugEngine(
-        ControllerParametersEntity controllerParametersEntity) throws AclPlugAccountAnalysisException {
+        ControllerParametersEntity controllerParametersEntity) throws AclPlugRuntimeException {
         super(controllerParametersEntity);
         init();
     }
 
-    void init() throws AclPlugAccountAnalysisException {
+    void init() throws AclPlugRuntimeException {
         String filePath = controllerParametersEntity.getFileHome() + "/conf/transport.yml";
         Yaml ymal = new Yaml();
         FileInputStream fis = null;
@@ -41,18 +41,18 @@ public class PlainAclPlugEngine extends LoginInfoAclPlugEngine {
             fis = new FileInputStream(new File(filePath));
             transport = ymal.loadAs(fis, BorkerAccessControlTransport.class);
         } catch (Exception e) {
-            throw new AclPlugAccountAnalysisException("The transport.yml file for Plain mode was not found", e);
+            throw new AclPlugRuntimeException("The transport.yml file for Plain mode was not found", e);
         } finally {
             if (fis != null) {
                 try {
                     fis.close();
                 } catch (IOException e) {
-                    throw new AclPlugAccountAnalysisException("close transport fileInputStream Exception", e);
+                    throw new AclPlugRuntimeException("close transport fileInputStream Exception", e);
                 }
             }
         }
         if (transport == null) {
-            throw new AclPlugAccountAnalysisException("transport.yml file  is no data");
+            throw new AclPlugRuntimeException("transport.yml file  is no data");
         }
         super.setBorkerAccessControlTransport(transport);
     }

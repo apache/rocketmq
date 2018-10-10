@@ -20,7 +20,6 @@ import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationInfo;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
 import org.apache.rocketmq.acl.plug.entity.LoginInfo;
-import org.apache.rocketmq.acl.plug.entity.LoginOrRequestAccessControl;
 
 public interface AclPlugEngine {
 
@@ -30,5 +29,5 @@ public interface AclPlugEngine {
 
     public void deleteLoginInfo(String remoteAddr);
 
-    public AuthenticationResult eachCheckLoginAndAuthentication(LoginOrRequestAccessControl accessControl);
+    public AuthenticationResult eachCheckLoginAndAuthentication(AccessControl accessControl);
 }

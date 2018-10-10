@@ -17,10 +17,8 @@
 package org.apache.rocketmq.acl.plug;
 
 import org.apache.rocketmq.acl.plug.engine.AclPlugEngine;
+import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
-import org.apache.rocketmq.acl.plug.entity.LoginOrRequestAccessControl;
-import org.apache.rocketmq.acl.plug.exception.AclPlugAuthenticationException;
-import org.apache.rocketmq.acl.plug.exception.AclPlugLoginException;
 import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
 
 public class DefaultAclRemotingServerImpl implements AclRemotingServer {
@@ -32,16 +30,16 @@ public class DefaultAclRemotingServerImpl implements AclRemotingServer {
     }
 
     @Override
-    public AuthenticationResult eachCheck(LoginOrRequestAccessControl accessControl) {
+    public AuthenticationResult eachCheck(AccessControl accessControl) {
         AuthenticationResult authenticationResult = aclPlugEngine.eachCheckLoginAndAuthentication(accessControl);
         if (authenticationResult.getException() != null) {
             throw new AclPlugRuntimeException(String.format("eachCheck the inspection appear exception, accessControl data is %s", accessControl.toString()), authenticationResult.getException());
         }
         if (authenticationResult.getAccessControl() == null) {
-            throw new AclPlugLoginException(String.format("%s accessControl data is %s", authenticationResult.getResultString(), accessControl.toString()));
+            throw new AclPlugRuntimeException(String.format("%s accessControl data is %s", authenticationResult.getResultString(), accessControl.toString()));
         }
         if (!authenticationResult.isSucceed()) {
-            throw new AclPlugAuthenticationException(String.format("%s accessControl data is %s", authenticationResult.getResultString(), accessControl.toString()));
+            throw new AclPlugRuntimeException(String.format("%s accessControl data is %s", authenticationResult.getResultString(), accessControl.toString()));
         }
         return authenticationResult;
     }

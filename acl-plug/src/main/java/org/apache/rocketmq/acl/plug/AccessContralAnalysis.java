@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
-import org.apache.rocketmq.acl.plug.exception.AclPlugAccountAnalysisException;
+import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
 
 public class AccessContralAnalysis {
 
@@ -42,7 +42,7 @@ public class AccessContralAnalysis {
 
             }
         } catch (IllegalArgumentException | IllegalAccessException e) {
-            throw new AclPlugAccountAnalysisException(String.format("analysis on failure Class is %s", clazz.getName()), e);
+            throw new AclPlugRuntimeException(String.format("analysis on failure Class is %s", clazz.getName()), e);
         }
     }
 
@@ -57,14 +57,14 @@ public class AccessContralAnalysis {
                     continue;
                 Integer code = fieldNameAndCode.get(field.getName().toLowerCase());
                 if (code == null) {
-                    throw new AclPlugAccountAnalysisException(String.format("field nonexistent in code  fieldName is %s", field.getName()));
+                    throw new AclPlugRuntimeException(String.format("field nonexistent in code  fieldName is %s", field.getName()));
                 }
                 field.setAccessible(true);
                 codeAndField.put(code, field);
 
             }
             if (codeAndField.isEmpty()) {
-                throw new AclPlugAccountAnalysisException(String.format("AccessControl nonexistent code , name %s", accessControl.getClass().getName()));
+                throw new AclPlugRuntimeException(String.format("AccessControl nonexistent code , name %s", accessControl.getClass().getName()));
             }
             classTocodeAndMentod.put(clazz, codeAndField);
         }
@@ -76,7 +76,7 @@ public class AccessContralAnalysis {
                 authority.put(e.getKey(), (Boolean) e.getValue().get(accessControl));
             }
         } catch (IllegalArgumentException | IllegalAccessException e) {
-            throw new AclPlugAccountAnalysisException(String.format("analysis on failure AccessControl is %s", AccessControl.class.getName()), e);
+            throw new AclPlugRuntimeException(String.format("analysis on failure AccessControl is %s", AccessControl.class.getName()), e);
         }
         return authority;
     }

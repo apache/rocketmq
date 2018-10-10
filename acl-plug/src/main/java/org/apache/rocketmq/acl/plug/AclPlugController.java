@@ -19,7 +19,7 @@ package org.apache.rocketmq.acl.plug;
 import org.apache.rocketmq.acl.plug.engine.AclPlugEngine;
 import org.apache.rocketmq.acl.plug.engine.PlainAclPlugEngine;
 import org.apache.rocketmq.acl.plug.entity.ControllerParametersEntity;
-import org.apache.rocketmq.acl.plug.exception.AclPlugStartException;
+import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
 
 public class AclPlugController {
 
@@ -31,14 +31,14 @@ public class AclPlugController {
 
     private boolean startSucceed = false;
 
-    public AclPlugController(ControllerParametersEntity controllerParametersEntity) throws AclPlugStartException {
+    public AclPlugController(ControllerParametersEntity controllerParametersEntity) throws AclPlugRuntimeException {
         try {
             this.controllerParametersEntity = controllerParametersEntity;
             aclPlugEngine = new PlainAclPlugEngine(controllerParametersEntity);
             aclRemotingServer = new DefaultAclRemotingServerImpl(aclPlugEngine);
             this.startSucceed = true;
         } catch (Exception e) {
-            throw new AclPlugStartException(String.format("Start the abnormal , Launch parameters is %s", this.controllerParametersEntity.toString()), e);
+            throw new AclPlugRuntimeException(String.format("Start the abnormal , Launch parameters is %s", this.controllerParametersEntity.toString()), e);
         }
     }
 
