@@ -17,7 +17,7 @@
 package org.apache.rocketmq.acl.plug.strategy;
 
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
-import org.apache.rocketmq.acl.plug.exception.AclPlugAccountAnalysisException;
+import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -29,53 +29,57 @@ public class NetaddressStrategyTest {
     public void NetaddressStrategyFactoryTest() {
         AccessControl accessControl = new AccessControl();
         NetaddressStrategy netaddressStrategy = netaddressStrategyFactory.getNetaddressStrategy(accessControl);
-        Assert.assertEquals(netaddressStrategy, NullNetaddressStrategy.NULL_NET_ADDRESS_STRATEGY);
+        Assert.assertEquals(netaddressStrategy, NetaddressStrategyFactory.NULL_NET_ADDRESS_STRATEGY);
 
         accessControl.setNetaddress("*");
         netaddressStrategy = netaddressStrategyFactory.getNetaddressStrategy(accessControl);
-        Assert.assertEquals(netaddressStrategy, NullNetaddressStrategy.NULL_NET_ADDRESS_STRATEGY);
+        Assert.assertEquals(netaddressStrategy, NetaddressStrategyFactory.NULL_NET_ADDRESS_STRATEGY);
 
         accessControl.setNetaddress("127.0.0.1");
         netaddressStrategy = netaddressStrategyFactory.getNetaddressStrategy(accessControl);
-        Assert.assertEquals(netaddressStrategy.getClass(), OneNetaddressStrategy.class);
+        Assert.assertEquals(netaddressStrategy.getClass(), NetaddressStrategyFactory.OneNetaddressStrategy.class);
 
         accessControl.setNetaddress("127.0.0.1,127.0.0.2,127.0.0.3");
         netaddressStrategy = netaddressStrategyFactory.getNetaddressStrategy(accessControl);
-        Assert.assertEquals(netaddressStrategy.getClass(), MultipleNetaddressStrategy.class);
+        Assert.assertEquals(netaddressStrategy.getClass(), NetaddressStrategyFactory.MultipleNetaddressStrategy.class);
 
         accessControl.setNetaddress("127.0.0.{1,2,3}");
         netaddressStrategy = netaddressStrategyFactory.getNetaddressStrategy(accessControl);
-        Assert.assertEquals(netaddressStrategy.getClass(), MultipleNetaddressStrategy.class);
+        Assert.assertEquals(netaddressStrategy.getClass(), NetaddressStrategyFactory.MultipleNetaddressStrategy.class);
 
         accessControl.setNetaddress("127.0.0.1-200");
         netaddressStrategy = netaddressStrategyFactory.getNetaddressStrategy(accessControl);
-        Assert.assertEquals(netaddressStrategy.getClass(), RangeNetaddressStrategy.class);
+        Assert.assertEquals(netaddressStrategy.getClass(), NetaddressStrategyFactory.RangeNetaddressStrategy.class);
 
         accessControl.setNetaddress("127.0.0.*");
         netaddressStrategy = netaddressStrategyFactory.getNetaddressStrategy(accessControl);
-        Assert.assertEquals(netaddressStrategy.getClass(), RangeNetaddressStrategy.class);
+        Assert.assertEquals(netaddressStrategy.getClass(), NetaddressStrategyFactory.RangeNetaddressStrategy.class);
 
         accessControl.setNetaddress("127.0.1-20.*");
         netaddressStrategy = netaddressStrategyFactory.getNetaddressStrategy(accessControl);
-        Assert.assertEquals(netaddressStrategy.getClass(), RangeNetaddressStrategy.class);
+        Assert.assertEquals(netaddressStrategy.getClass(), NetaddressStrategyFactory.RangeNetaddressStrategy.class);
     }
 
-    @Test(expected = AclPlugAccountAnalysisException.class)
+    @Test(expected = AclPlugRuntimeException.class)
     public void verifyTest() {
-        new OneNetaddressStrategy("127.0.0.1");
-
-        new OneNetaddressStrategy("256.0.0.1");
+        AccessControl accessControl = new AccessControl();
+        accessControl.setNetaddress("127.0.0.1");
+        netaddressStrategyFactory.getNetaddressStrategy(accessControl);
+        accessControl.setNetaddress("256.0.0.1");
+        netaddressStrategyFactory.getNetaddressStrategy(accessControl);
     }
 
     @Test
     public void nullNetaddressStrategyTest() {
-        boolean isMatch = NullNetaddressStrategy.NULL_NET_ADDRESS_STRATEGY.match(new AccessControl());
+        boolean isMatch = NetaddressStrategyFactory.NULL_NET_ADDRESS_STRATEGY.match(new AccessControl());
         Assert.assertTrue(isMatch);
     }
 
     public void oneNetaddressStrategyTest() {
-        OneNetaddressStrategy netaddressStrategy = new OneNetaddressStrategy("127.0.0.1");
         AccessControl accessControl = new AccessControl();
+        accessControl.setNetaddress("127.0.0.1");
+        NetaddressStrategy netaddressStrategy = netaddressStrategyFactory.getNetaddressStrategy(accessControl);
+        accessControl.setNetaddress("");
         boolean match = netaddressStrategy.match(accessControl);
         Assert.assertFalse(match);
 
@@ -101,7 +105,7 @@ public class NetaddressStrategyTest {
 
     }
 
-    @Test(expected = AclPlugAccountAnalysisException.class)
+    @Test(expected = AclPlugRuntimeException.class)
     public void multipleNetaddressStrategyExceptionTest() {
         AccessControl accessControl = new AccessControl();
         accessControl.setNetaddress("127.0.0.1,2,3}");
@@ -174,17 +178,17 @@ public class NetaddressStrategyTest {
         }
     }
 
-    @Test(expected = AclPlugAccountAnalysisException.class)
+    @Test(expected = AclPlugRuntimeException.class)
     public void rangeNetaddressStrategyExceptionStartGreaterEndTest() {
         rangeNetaddressStrategyExceptionTest("127.0.0.2-1");
     }
 
-    @Test(expected = AclPlugAccountAnalysisException.class)
+    @Test(expected = AclPlugRuntimeException.class)
     public void rangeNetaddressStrategyExceptionScopeTest() {
         rangeNetaddressStrategyExceptionTest("127.0.0.-1-200");
     }
 
-    @Test(expected = AclPlugAccountAnalysisException.class)
+    @Test(expected = AclPlugRuntimeException.class)
     public void rangeNetaddressStrategyExceptionScopeTwoTest() {
         rangeNetaddressStrategyExceptionTest("127.0.0.0-256");
     }

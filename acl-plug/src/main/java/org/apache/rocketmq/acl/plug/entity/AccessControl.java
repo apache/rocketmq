@@ -26,6 +26,10 @@ public class AccessControl {
 
     private String recognition;
 
+    private int code;
+
+    private String topic;
+
     public AccessControl() {
     }
 
@@ -61,10 +65,29 @@ public class AccessControl {
         this.recognition = recognition;
     }
 
+    public int getCode() {
+        return code;
+    }
+
+    public void setCode(int code) {
+        this.code = code;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
+
     @Override
     public String toString() {
-        return "AccessControl [account=" + account + ", password=" + password + ", netaddress=" + netaddress
-            + ", recognition=" + recognition + "]";
+        StringBuilder builder = new StringBuilder();
+        builder.append("AccessControl [account=").append(account).append(", password=").append(password)
+            .append(", netaddress=").append(netaddress).append(", recognition=").append(recognition)
+            .append(", code=").append(code).append(", topic=").append(topic).append("]");
+        return builder.toString();
     }
 
 }

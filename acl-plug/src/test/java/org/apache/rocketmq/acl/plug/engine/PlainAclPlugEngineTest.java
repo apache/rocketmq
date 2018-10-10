@@ -30,8 +30,7 @@ import org.apache.rocketmq.acl.plug.entity.BorkerAccessControl;
 import org.apache.rocketmq.acl.plug.entity.BorkerAccessControlTransport;
 import org.apache.rocketmq.acl.plug.entity.ControllerParametersEntity;
 import org.apache.rocketmq.acl.plug.entity.LoginInfo;
-import org.apache.rocketmq.acl.plug.entity.LoginOrRequestAccessControl;
-import org.apache.rocketmq.acl.plug.exception.AclPlugAccountAnalysisException;
+import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
 import org.apache.rocketmq.common.MixAll;
 import org.junit.Assert;
 import org.junit.Before;
@@ -83,31 +82,31 @@ public class PlainAclPlugEngineTest {
 
     }
 
-    @Test(expected = AclPlugAccountAnalysisException.class)
+    @Test(expected = AclPlugRuntimeException.class)
     public void accountNullTest() {
         accessControl.setAccount(null);
         plainAclPlugEngine.setAccessControl(accessControl);
     }
 
-    @Test(expected = AclPlugAccountAnalysisException.class)
+    @Test(expected = AclPlugRuntimeException.class)
     public void accountThanTest() {
         accessControl.setAccount("123");
         plainAclPlugEngine.setAccessControl(accessControl);
     }
 
-    @Test(expected = AclPlugAccountAnalysisException.class)
+    @Test(expected = AclPlugRuntimeException.class)
     public void passWordtNullTest() {
         accessControl.setAccount(null);
         plainAclPlugEngine.setAccessControl(accessControl);
     }
 
-    @Test(expected = AclPlugAccountAnalysisException.class)
+    @Test(expected = AclPlugRuntimeException.class)
     public void passWordThanTest() {
         accessControl.setAccount("123");
         plainAclPlugEngine.setAccessControl(accessControl);
     }
 
-    @Test(expected = AclPlugAccountAnalysisException.class)
+    @Test(expected = AclPlugRuntimeException.class)
     public void testPlainAclPlugEngineInit() {
         ControllerParametersEntity controllerParametersEntity = new ControllerParametersEntity();
         new PlainAclPlugEngine(controllerParametersEntity);
@@ -186,7 +185,7 @@ public class PlainAclPlugEngineTest {
 
     }
 
-    @Test(expected = AclPlugAccountAnalysisException.class)
+    @Test(expected = AclPlugRuntimeException.class)
     public void borkerAccessControlTransportTestNull() {
         plainAclPlugEngine.setBorkerAccessControlTransport(new BorkerAccessControlTransport());
     }
@@ -241,18 +240,18 @@ public class PlainAclPlugEngineTest {
 
     @Test
     public void getAuthenticationInfo() {
-        LoginOrRequestAccessControl loginOrRequestAccessControl = new LoginOrRequestAccessControl();
-        loginOrRequestAccessControl.setAccount("rokcetmq");
-        loginOrRequestAccessControl.setPassword("aliyun11");
-        loginOrRequestAccessControl.setNetaddress("127.0.0.1");
-        loginOrRequestAccessControl.setRecognition("127.0.0.1:1");
+        AccessControl AccessControl = new AccessControl();
+        AccessControl.setAccount("rokcetmq");
+        AccessControl.setPassword("aliyun11");
+        AccessControl.setNetaddress("127.0.0.1");
+        AccessControl.setRecognition("127.0.0.1:1");
 
         AuthenticationResult authenticationResult = new AuthenticationResult();
-        plainAclPlugEngine.getAuthenticationInfo(loginOrRequestAccessControl, authenticationResult);
+        plainAclPlugEngine.getAuthenticationInfo(AccessControl, authenticationResult);
         Assert.assertEquals("Login information does not exist, Please check login, password, IP", authenticationResult.getResultString());
 
         plainAclPlugEngine.setAccessControl(accessControl);
-        AuthenticationInfo authenticationInfo = plainAclPlugEngine.getAuthenticationInfo(loginOrRequestAccessControl, authenticationResult);
+        AuthenticationInfo authenticationInfo = plainAclPlugEngine.getAuthenticationInfo(AccessControl, authenticationResult);
         Assert.assertNotNull(authenticationInfo);
 
     }

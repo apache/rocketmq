@@ -26,8 +26,7 @@ import org.apache.rocketmq.acl.plug.entity.AuthenticationInfo;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
 import org.apache.rocketmq.acl.plug.entity.BorkerAccessControlTransport;
 import org.apache.rocketmq.acl.plug.entity.ControllerParametersEntity;
-import org.apache.rocketmq.acl.plug.entity.LoginOrRequestAccessControl;
-import org.apache.rocketmq.acl.plug.exception.AclPlugAccountAnalysisException;
+import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
 import org.apache.rocketmq.acl.plug.strategy.NetaddressStrategy;
 import org.apache.rocketmq.acl.plug.strategy.NetaddressStrategyFactory;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -49,9 +48,9 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
         accessContralAnalysis.analysisClass(controllerParametersEntity.getAccessContralAnalysisClass());
     }
 
-    public void setAccessControl(AccessControl accessControl) throws AclPlugAccountAnalysisException {
+    public void setAccessControl(AccessControl accessControl) throws AclPlugRuntimeException {
         if (accessControl.getAccount() == null || accessControl.getPassword() == null || accessControl.getAccount().length() <= 6 || accessControl.getPassword().length() <= 6) {
-            throw new AclPlugAccountAnalysisException(String.format("The account password cannot be null and is longer than 6, account is %s  password is %s", accessControl.getAccount(), accessControl.getPassword()));
+            throw new AclPlugRuntimeException(String.format("The account password cannot be null and is longer than 6, account is %s  password is %s", accessControl.getAccount(), accessControl.getPassword()));
         }
         try {
             NetaddressStrategy netaddressStrategy = netaddressStrategyFactory.getNetaddressStrategy(accessControl);
@@ -64,22 +63,22 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
             accessControlAddressMap.put(accessControl.getNetaddress(), authenticationInfo);
             log.info("authenticationInfo is {}", authenticationInfo.toString());
         } catch (Exception e) {
-            throw new AclPlugAccountAnalysisException(accessControl.toString(), e);
+            throw new AclPlugRuntimeException(accessControl.toString(), e);
         }
     }
 
-    public void setAccessControlList(List<AccessControl> accessControlList) throws AclPlugAccountAnalysisException {
+    public void setAccessControlList(List<AccessControl> accessControlList) throws AclPlugRuntimeException {
         for (AccessControl accessControl : accessControlList) {
             setAccessControl(accessControl);
         }
     }
 
-    public void setNetaddressAccessControl(AccessControl accessControl) throws AclPlugAccountAnalysisException {
+    public void setNetaddressAccessControl(AccessControl accessControl) throws AclPlugRuntimeException {
         try {
             authenticationInfo = new AuthenticationInfo(accessContralAnalysis.analysis(accessControl), accessControl, netaddressStrategyFactory.getNetaddressStrategy(accessControl));
             log.info("default authenticationInfo is {}", authenticationInfo.toString());
         } catch (Exception e) {
-            throw new AclPlugAccountAnalysisException(accessControl.toString(), e);
+            throw new AclPlugRuntimeException(accessControl.toString(), e);
         }
 
     }
@@ -106,7 +105,7 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
     }
 
     @Override
-    public AuthenticationResult eachCheckLoginAndAuthentication(LoginOrRequestAccessControl accessControl) {
+    public AuthenticationResult eachCheckLoginAndAuthentication(AccessControl accessControl) {
         AuthenticationResult authenticationResult = new AuthenticationResult();
         try {
             AuthenticationInfo authenticationInfo = getAuthenticationInfo(accessControl, authenticationResult);
@@ -122,7 +121,7 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
 
     void setBorkerAccessControlTransport(BorkerAccessControlTransport transport) {
         if (transport.getOnlyNetAddress() == null && (transport.getList() == null || transport.getList().size() == 0)) {
-            throw new AclPlugAccountAnalysisException("onlyNetAddress and list  can't be all empty");
+            throw new AclPlugRuntimeException("onlyNetAddress and list  can't be all empty");
         }
 
         if (transport.getOnlyNetAddress() != null) {
@@ -135,6 +134,6 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
         }
     }
 
-    protected abstract AuthenticationInfo getAuthenticationInfo(LoginOrRequestAccessControl accessControl,
+    protected abstract AuthenticationInfo getAuthenticationInfo(AccessControl accessControl,
         AuthenticationResult authenticationResult);
 }

@@ -17,8 +17,15 @@
 package org.apache.rocketmq.acl.plug;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
 
 public class AclUtils {
+
+    public static void verify(String netaddress, int index) {
+        if (!AclUtils.isScope(netaddress, index)) {
+            throw new AclPlugRuntimeException(String.format("netaddress examine scope Exception netaddress is %s", netaddress));
+        }
+    }
 
     public static String[] getAddreeStrArray(String netaddress, String four) {
         String[] fourStrArray = StringUtils.split(four.substring(1, four.length() - 1), ",");

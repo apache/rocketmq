@@ -32,11 +32,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.plug.AclPlugController;
 import org.apache.rocketmq.acl.plug.AclRemotingServer;
+import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.ControllerParametersEntity;
-import org.apache.rocketmq.acl.plug.entity.LoginOrRequestAccessControl;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -515,7 +516,7 @@ public class BrokerController {
                 @Override
                 public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
                     HashMap<String, String> extFields = request.getExtFields();
-                    LoginOrRequestAccessControl accessControl = new LoginOrRequestAccessControl();
+                    AccessControl accessControl = new AccessControl();
                     accessControl.setCode(request.getCode());
                     accessControl.setRecognition(remoteAddr);
                     if (extFields != null) {

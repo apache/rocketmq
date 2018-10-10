@@ -23,7 +23,6 @@ import org.apache.rocketmq.acl.plug.entity.AuthenticationInfo;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
 import org.apache.rocketmq.acl.plug.entity.ControllerParametersEntity;
 import org.apache.rocketmq.acl.plug.entity.LoginInfo;
-import org.apache.rocketmq.acl.plug.entity.LoginOrRequestAccessControl;
 
 public abstract class LoginInfoAclPlugEngine extends AuthenticationInfoManagementAclPlugEngine {
 
@@ -53,7 +52,7 @@ public abstract class LoginInfoAclPlugEngine extends AuthenticationInfoManagemen
         loginInfoMap.remove(remoteAddr);
     }
 
-    protected AuthenticationInfo getAuthenticationInfo(LoginOrRequestAccessControl accessControl,
+    protected AuthenticationInfo getAuthenticationInfo(AccessControl accessControl,
         AuthenticationResult authenticationResult) {
         LoginInfo loginInfo = getLoginInfo(accessControl);
         if (loginInfo != null && loginInfo.getAuthenticationInfo() != null) {
