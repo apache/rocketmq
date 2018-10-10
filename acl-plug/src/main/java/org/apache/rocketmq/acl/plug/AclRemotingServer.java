@@ -21,6 +21,6 @@ import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
 
 public interface AclRemotingServer {
 
-    public AuthenticationResult eachCheck(AccessControl accessControl);
+    public AuthenticationResult check(AccessControl accessControl);
 
 }

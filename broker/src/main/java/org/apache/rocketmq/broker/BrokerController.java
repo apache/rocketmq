@@ -525,7 +525,7 @@ public class BrokerController {
                         accessControl.setNetaddress(StringUtils.split(remoteAddr, ":")[0]);
                         accessControl.setTopic(extFields.get("topic"));
                     }
-                    aclRemotingServe.eachCheck(accessControl);
+                    aclRemotingServe.check(accessControl);
                 }
 
                 @Override

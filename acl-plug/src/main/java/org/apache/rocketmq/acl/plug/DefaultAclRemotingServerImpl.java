@@ -30,7 +30,7 @@ public class DefaultAclRemotingServerImpl implements AclRemotingServer {
     }
 
     @Override
-    public AuthenticationResult eachCheck(AccessControl accessControl) {
+    public AuthenticationResult check(AccessControl accessControl) {
         AuthenticationResult authenticationResult = aclPlugEngine.eachCheckLoginAndAuthentication(accessControl);
         if (authenticationResult.getException() != null) {
             throw new AclPlugRuntimeException(String.format("eachCheck the inspection appear exception, accessControl data is %s", accessControl.toString()), authenticationResult.getException());
