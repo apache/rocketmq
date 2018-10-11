@@ -41,7 +41,7 @@ public class PlainAclPlugEngine extends LoginInfoAclPlugEngine {
             fis = new FileInputStream(new File(filePath));
             transport = ymal.loadAs(fis, BorkerAccessControlTransport.class);
         } catch (Exception e) {
-            throw new AclPlugRuntimeException("The transport.yml file for Plain mode was not found", e);
+            throw new AclPlugRuntimeException(String.format("The transport.yml file for Plain mode was not found , paths %s" , filePath), e);
         } finally {
             if (fis != null) {
                 try {

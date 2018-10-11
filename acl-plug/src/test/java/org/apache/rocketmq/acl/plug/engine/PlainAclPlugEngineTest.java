@@ -61,9 +61,9 @@ public class PlainAclPlugEngineTest {
     	Yaml ymal = new Yaml();
         String home = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
         InputStream fis=null;
-        if(home == null){
+        if(home != null){
         	URL url = PlainAclPlugEngineTest.class.getResource("/conf/transport.yml");
-        	if(url == null) {
+        	if(url != null) {
         		url = PlainAclPlugEngineTest.class.getResource("/");
         		home = url.toString();
         		home = home.substring(0, home.length()-1).replace("file:/", "").replace("target/test-classes", "");
