@@ -19,7 +19,7 @@ package org.apache.rocketmq.acl.plug;
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
 
-public interface AclRemotingServer {
+public interface AclRemotingService {
 
     public AuthenticationResult check(AccessControl accessControl);
 

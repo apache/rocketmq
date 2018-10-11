@@ -18,32 +18,32 @@ package org.apache.rocketmq.acl.plug;
 
 import org.apache.rocketmq.acl.plug.engine.AclPlugEngine;
 import org.apache.rocketmq.acl.plug.engine.PlainAclPlugEngine;
-import org.apache.rocketmq.acl.plug.entity.ControllerParametersEntity;
+import org.apache.rocketmq.acl.plug.entity.ControllerParameters;
 import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
 
 public class AclPlugController {
 
-    private ControllerParametersEntity controllerParametersEntity;
+    private ControllerParameters controllerParameters;
 
     private AclPlugEngine aclPlugEngine;
 
-    private AclRemotingServer aclRemotingServer;
+    private AclRemotingService aclRemotingService;
 
     private boolean startSucceed = false;
 
-    public AclPlugController(ControllerParametersEntity controllerParametersEntity) throws AclPlugRuntimeException {
+    public AclPlugController(ControllerParameters controllerParameters) throws AclPlugRuntimeException {
         try {
-            this.controllerParametersEntity = controllerParametersEntity;
-            aclPlugEngine = new PlainAclPlugEngine(controllerParametersEntity);
-            aclRemotingServer = new DefaultAclRemotingServerImpl(aclPlugEngine);
+            this.controllerParameters = controllerParameters;
+            aclPlugEngine = new PlainAclPlugEngine(controllerParameters);
+            aclRemotingService = new DefaultAclRemotingServiceImpl(aclPlugEngine);
             this.startSucceed = true;
         } catch (Exception e) {
-            throw new AclPlugRuntimeException(String.format("Start the abnormal , Launch parameters is %s", this.controllerParametersEntity.toString()), e);
+            throw new AclPlugRuntimeException(String.format("Start the abnormal , Launch parameters is %s", this.controllerParameters.toString()), e);
         }
     }
 
-    public AclRemotingServer getAclRemotingServer() {
-        return this.aclRemotingServer;
+    public AclRemotingService getAclRemotingService() {
+        return this.aclRemotingService;
     }
 
     public void doChannelCloseEvent(String remoteAddr) {

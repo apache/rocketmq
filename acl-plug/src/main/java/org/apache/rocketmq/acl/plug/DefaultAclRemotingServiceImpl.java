@@ -21,11 +21,11 @@ import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
 import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
 
-public class DefaultAclRemotingServerImpl implements AclRemotingServer {
+public class DefaultAclRemotingServiceImpl implements AclRemotingService {
 
     private AclPlugEngine aclPlugEngine;
 
-    public DefaultAclRemotingServerImpl(AclPlugEngine aclPlugEngine) {
+    public DefaultAclRemotingServiceImpl(AclPlugEngine aclPlugEngine) {
         this.aclPlugEngine = aclPlugEngine;
     }
 
