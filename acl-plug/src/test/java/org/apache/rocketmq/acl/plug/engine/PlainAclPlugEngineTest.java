@@ -67,7 +67,8 @@ public class PlainAclPlugEngineTest {
         		url = PlainAclPlugEngineTest.class.getResource("/");
         		home = url.toString();
         		home = home.substring(0, home.length()-1).replace("file:/", "").replace("target/test-classes/", "");
-        		home = home+"resources/conf/transport.yml";
+        		String filePath = home+"resources/conf/transport.yml";
+        		fis = new FileInputStream(new File(filePath));
         	}else {
 	        	fis = url.openStream();
 	        	url = PlainAclPlugEngineTest.class.getResource("/");
