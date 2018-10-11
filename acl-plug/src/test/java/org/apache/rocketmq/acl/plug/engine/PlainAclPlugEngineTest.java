@@ -63,10 +63,18 @@ public class PlainAclPlugEngineTest {
         InputStream fis=null;
         if(home == null){
         	URL url = PlainAclPlugEngineTest.class.getResource("/conf/transport.yml");
-        	fis = url.openStream();
-        	url = PlainAclPlugEngineTest.class.getResource("/");
-        	home = url.toString();
-        	home = home.substring(0, home.length()-1).replace("file:/", "");
+        	if(url == null) {
+        		url = PlainAclPlugEngineTest.class.getResource("/");
+        		home = url.toString();
+        		home = home.substring(0, home.length()-1).replace("file:/", "").replace("target/test-classes/", "");
+        		home = home+"resources/conf/transport.yml";
+        	}else {
+	        	fis = url.openStream();
+	        	url = PlainAclPlugEngineTest.class.getResource("/");
+	        	home = url.toString();
+	        	home = home.substring(0, home.length()-1).replace("file:/", "");
+        	}
+        	
         }else {
         	String filePath = home + "/conf/transport.yml";
         	fis = new FileInputStream(new File(filePath));
