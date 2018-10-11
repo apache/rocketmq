@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationInfo;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
@@ -58,28 +57,19 @@ public class PlainAclPlugEngineTest {
 
     @Before
     public void init() throws NoSuchFieldException, SecurityException, IOException {
-    	Yaml ymal = new Yaml();
+        Yaml ymal = new Yaml();
         String home = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
-        InputStream fis=null;
-        if(home == null){
-        	URL url = PlainAclPlugEngineTest.class.getResource("/conf/transport.yml");
-        	if(url == null) {
-        		url = PlainAclPlugEngineTest.class.getResource("/");
-        		home = url.toString();
-        		home = home.substring(0, home.length()-1).replace("file:/", "").replace("target/test-classes", "");
-        		home = home+"src/test/resources";
-        		String filePath = home+"/conf/transport.yml";
-        		fis = new FileInputStream(new File(filePath));
-        	}else {
-	        	fis = url.openStream();
-	        	url = PlainAclPlugEngineTest.class.getResource("/");
-	        	home = url.toString();
-	        	home = home.substring(0, home.length()-1).replace("file:/", "");
-        	}
-        	
-        }else {
-        	String filePath = home + "/conf/transport.yml";
-        	fis = new FileInputStream(new File(filePath));
+        InputStream fis = null;
+        if (home == null) {
+            URL url = PlainAclPlugEngineTest.class.getResource("/");
+            home = url.toString();
+            home = home.substring(0, home.length() - 1).replace("file:/", "").replace("target/test-classes", "");
+            home = home + "src/test/resources";
+            String filePath = home + "/conf/transport.yml";
+            fis = new FileInputStream(new File(filePath));
+        } else {
+            String filePath = home + "/conf/transport.yml";
+            fis = new FileInputStream(new File(filePath));
         }
         transport = ymal.loadAs(fis, BorkerAccessControlTransport.class);
 
