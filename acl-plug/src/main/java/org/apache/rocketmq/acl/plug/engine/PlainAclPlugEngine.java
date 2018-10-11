@@ -20,20 +20,20 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import org.apache.rocketmq.acl.plug.entity.BorkerAccessControlTransport;
-import org.apache.rocketmq.acl.plug.entity.ControllerParametersEntity;
+import org.apache.rocketmq.acl.plug.entity.ControllerParameters;
 import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
 import org.yaml.snakeyaml.Yaml;
 
 public class PlainAclPlugEngine extends LoginInfoAclPlugEngine {
 
     public PlainAclPlugEngine(
-        ControllerParametersEntity controllerParametersEntity) throws AclPlugRuntimeException {
-        super(controllerParametersEntity);
+        ControllerParameters controllerParameters) throws AclPlugRuntimeException {
+        super(controllerParameters);
         init();
     }
 
     void init() throws AclPlugRuntimeException {
-        String filePath = controllerParametersEntity.getFileHome() + "/conf/transport.yml";
+        String filePath = controllerParameters.getFileHome() + "/conf/transport.yml";
         Yaml ymal = new Yaml();
         FileInputStream fis = null;
         BorkerAccessControlTransport transport;

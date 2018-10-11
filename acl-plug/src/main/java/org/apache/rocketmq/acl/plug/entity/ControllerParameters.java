@@ -18,7 +18,7 @@ package org.apache.rocketmq.acl.plug.entity;
 
 import org.apache.rocketmq.common.protocol.RequestCode;
 
-public class ControllerParametersEntity {
+public class ControllerParameters {
 
     private String fileHome;
 

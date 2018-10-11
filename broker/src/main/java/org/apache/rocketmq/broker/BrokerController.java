@@ -32,12 +32,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.plug.AclPlugController;
-import org.apache.rocketmq.acl.plug.AclRemotingServer;
+import org.apache.rocketmq.acl.plug.AclRemotingService;
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
-import org.apache.rocketmq.acl.plug.entity.ControllerParametersEntity;
+import org.apache.rocketmq.acl.plug.entity.ControllerParameters;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -503,14 +502,14 @@ public class BrokerController {
                 log.info("Default does not start acl plug");
                 return;
             }
-            ControllerParametersEntity controllerParametersEntity = new ControllerParametersEntity();
-            controllerParametersEntity.setFileHome(brokerConfig.getRocketmqHome());
-            aclPlugController = new AclPlugController(controllerParametersEntity);
+            ControllerParameters controllerParameters = new ControllerParameters();
+            controllerParameters.setFileHome(brokerConfig.getRocketmqHome());
+            aclPlugController = new AclPlugController(controllerParameters);
             if (!aclPlugController.isStartSucceed()) {
                 log.error("start acl plug failure");
                 return;
             }
-            final AclRemotingServer aclRemotingServe = aclPlugController.getAclRemotingServer();
+            final AclRemotingService aclRemotingService = aclPlugController.getAclRemotingService();
             this.registerServerRPCHook(new RPCHook() {
 
                 @Override
@@ -525,7 +524,7 @@ public class BrokerController {
                         accessControl.setNetaddress(StringUtils.split(remoteAddr, ":")[0]);
                         accessControl.setTopic(extFields.get("topic"));
                     }
-                    aclRemotingServe.check(accessControl);
+                    aclRemotingService.check(accessControl);
                 }
 
                 @Override

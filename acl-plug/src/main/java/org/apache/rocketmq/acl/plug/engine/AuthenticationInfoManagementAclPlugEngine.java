@@ -25,7 +25,7 @@ import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationInfo;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
 import org.apache.rocketmq.acl.plug.entity.BorkerAccessControlTransport;
-import org.apache.rocketmq.acl.plug.entity.ControllerParametersEntity;
+import org.apache.rocketmq.acl.plug.entity.ControllerParameters;
 import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
 import org.apache.rocketmq.acl.plug.strategy.NetaddressStrategy;
 import org.apache.rocketmq.acl.plug.strategy.NetaddressStrategyFactory;
@@ -36,16 +36,16 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPlugEngine {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.ACL_PLUG_LOGGER_NAME);
-    ControllerParametersEntity controllerParametersEntity;
+    ControllerParameters controllerParameters;
     private Map<String/** account **/, Map<String/** netaddress **/, AuthenticationInfo>> accessControlMap = new HashMap<>();
     private AuthenticationInfo authenticationInfo;
     private NetaddressStrategyFactory netaddressStrategyFactory = new NetaddressStrategyFactory();
     private AccessContralAnalysis accessContralAnalysis = new AccessContralAnalysis();
     private Authentication authentication = new Authentication();
 
-    public AuthenticationInfoManagementAclPlugEngine(ControllerParametersEntity controllerParametersEntity) {
-        this.controllerParametersEntity = controllerParametersEntity;
-        accessContralAnalysis.analysisClass(controllerParametersEntity.getAccessContralAnalysisClass());
+    public AuthenticationInfoManagementAclPlugEngine(ControllerParameters controllerParameters) {
+        this.controllerParameters = controllerParameters;
+        accessContralAnalysis.analysisClass(controllerParameters.getAccessContralAnalysisClass());
     }
 
     public void setAccessControl(AccessControl accessControl) throws AclPlugRuntimeException {

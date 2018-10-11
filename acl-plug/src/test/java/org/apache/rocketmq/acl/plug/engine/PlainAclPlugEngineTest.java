@@ -28,7 +28,7 @@ import org.apache.rocketmq.acl.plug.entity.AuthenticationInfo;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
 import org.apache.rocketmq.acl.plug.entity.BorkerAccessControl;
 import org.apache.rocketmq.acl.plug.entity.BorkerAccessControlTransport;
-import org.apache.rocketmq.acl.plug.entity.ControllerParametersEntity;
+import org.apache.rocketmq.acl.plug.entity.ControllerParameters;
 import org.apache.rocketmq.acl.plug.entity.LoginInfo;
 import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
 import org.apache.rocketmq.common.MixAll;
@@ -61,7 +61,7 @@ public class PlainAclPlugEngineTest {
         FileInputStream fis = new FileInputStream(new File(filePath));
         transport = ymal.loadAs(fis, BorkerAccessControlTransport.class);
 
-        ControllerParametersEntity controllerParametersEntity = new ControllerParametersEntity();
+        ControllerParameters controllerParametersEntity = new ControllerParameters();
         controllerParametersEntity.setFileHome(home);
         plainAclPlugEngine = new PlainAclPlugEngine(controllerParametersEntity);
 
@@ -108,7 +108,7 @@ public class PlainAclPlugEngineTest {
 
     @Test(expected = AclPlugRuntimeException.class)
     public void testPlainAclPlugEngineInit() {
-        ControllerParametersEntity controllerParametersEntity = new ControllerParametersEntity();
+        ControllerParameters controllerParametersEntity = new ControllerParameters();
         new PlainAclPlugEngine(controllerParametersEntity);
 
     }
