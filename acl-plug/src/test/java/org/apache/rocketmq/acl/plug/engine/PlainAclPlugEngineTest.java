@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -60,13 +61,17 @@ public class PlainAclPlugEngineTest {
         String home = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
         InputStream fis = null;
         if (home == null) {
-            home = "/home/travis/build/githublaohu/rocketmq/acl-plug/src/test/resources";
-            String filePath = home + "/conf/transport.yml";
-            fis = new FileInputStream(new File(filePath));
-        } else {
-            String filePath = home + "/conf/transport.yml";
-            fis = new FileInputStream(new File(filePath));
+            URL url = PlainAclPlugEngineTest.class.getResource("/");
+            home = url.toString();
+            home = home.substring(0, home.length() - 1).replace("file:/", "").replace("target/test-classes", "");
+            home = home + "src/test/resources";
+            if (!new File(home + "/conf/transport.yml").exists()) {
+                home = "/home/travis/build/githublaohu/rocketmq/acl-plug/src/test/resources";
+            }
         }
+        String filePath = home + "/conf/transport.yml";
+        fis = new FileInputStream(new File(filePath));
+
         transport = ymal.loadAs(fis, BorkerAccessControlTransport.class);
 
         ControllerParameters controllerParametersEntity = new ControllerParameters();
