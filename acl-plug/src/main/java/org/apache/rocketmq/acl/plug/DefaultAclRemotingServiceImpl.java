@@ -35,10 +35,7 @@ public class DefaultAclRemotingServiceImpl implements AclRemotingService {
         if (authenticationResult.getException() != null) {
             throw new AclPlugRuntimeException(String.format("eachCheck the inspection appear exception, accessControl data is %s", accessControl.toString()), authenticationResult.getException());
         }
-        if (authenticationResult.getAccessControl() == null) {
-            throw new AclPlugRuntimeException(String.format("%s accessControl data is %s", authenticationResult.getResultString(), accessControl.toString()));
-        }
-        if (!authenticationResult.isSucceed()) {
+        if (authenticationResult.getAccessControl() == null || !authenticationResult.isSucceed()) {
             throw new AclPlugRuntimeException(String.format("%s accessControl data is %s", authenticationResult.getResultString(), accessControl.toString()));
         }
         return authenticationResult;
