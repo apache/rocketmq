@@ -63,7 +63,7 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
             accessControlAddressMap.put(accessControl.getNetaddress(), authenticationInfo);
             log.info("authenticationInfo is {}", authenticationInfo.toString());
         } catch (Exception e) {
-            throw new AclPlugRuntimeException(accessControl.toString(), e);
+            throw new AclPlugRuntimeException(String.format("Exception info %s  %s" ,e.getMessage() , accessControl.toString()), e);
         }
     }
 

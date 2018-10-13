@@ -98,6 +98,20 @@ public class PlainAclPlugEngineTest {
 
         }
 
+        accessControl = new BorkerAccessControl();
+        accessControl.setAccount("onlyNetAddress");
+        accessControl.setPassword("aliyun11");
+        accessControl.setNetaddress("127.0.0.1");
+        accessControl.setRecognition("127.0.0.1:1");
+
+        accessControlTwo = new BorkerAccessControl();
+        accessControlTwo.setAccount("listtransport");
+        accessControlTwo.setPassword("aliyun1");
+        accessControlTwo.setNetaddress("127.0.0.1");
+        accessControlTwo.setRecognition("127.0.0.1:2");
+        transport = new BorkerAccessControlTransport();
+        transport.setOnlyNetAddress((BorkerAccessControl) accessControl);
+
         loginInfoMap = new ConcurrentHashMap<>();
         FieldSetter.setField(plainAclPlugEngine, plainAclPlugEngine.getClass().getSuperclass().getDeclaredField("loginInfoMap"), loginInfoMap);
 
@@ -261,18 +275,18 @@ public class PlainAclPlugEngineTest {
 
     @Test
     public void getAuthenticationInfo() {
-        AccessControl AccessControl = new AccessControl();
-        AccessControl.setAccount("rokcetmq");
-        AccessControl.setPassword("aliyun11");
-        AccessControl.setNetaddress("127.0.0.1");
-        AccessControl.setRecognition("127.0.0.1:1");
+        AccessControl accessControl = new AccessControl();
+        accessControl.setAccount("rokcetmq");
+        accessControl.setPassword("aliyun11");
+        accessControl.setNetaddress("127.0.0.1");
+        accessControl.setRecognition("127.0.0.1:1");
 
         AuthenticationResult authenticationResult = new AuthenticationResult();
-        plainAclPlugEngine.getAuthenticationInfo(AccessControl, authenticationResult);
+        plainAclPlugEngine.getAuthenticationInfo(accessControl, authenticationResult);
         Assert.assertEquals("Login information does not exist, Please check login, password, IP", authenticationResult.getResultString());
 
-        plainAclPlugEngine.setAccessControl(accessControl);
-        AuthenticationInfo authenticationInfo = plainAclPlugEngine.getAuthenticationInfo(AccessControl, authenticationResult);
+        plainAclPlugEngine.setAccessControl(this.accessControl);
+        AuthenticationInfo authenticationInfo = plainAclPlugEngine.getAuthenticationInfo(accessControl, authenticationResult);
         Assert.assertNotNull(authenticationInfo);
 
     }
