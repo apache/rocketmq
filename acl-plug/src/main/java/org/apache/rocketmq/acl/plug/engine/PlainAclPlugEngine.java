@@ -29,10 +29,9 @@ public class PlainAclPlugEngine extends LoginInfoAclPlugEngine {
     public PlainAclPlugEngine(
         ControllerParameters controllerParameters) throws AclPlugRuntimeException {
         super(controllerParameters);
-        init();
     }
 
-    void init() throws AclPlugRuntimeException {
+    public void initialize() throws AclPlugRuntimeException {
         String filePath = controllerParameters.getFileHome() + "/conf/transport.yml";
         Yaml ymal = new Yaml();
         FileInputStream fis = null;
