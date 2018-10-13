@@ -35,6 +35,7 @@ public class AclPlugController {
         try {
             this.controllerParameters = controllerParameters;
             aclPlugEngine = new PlainAclPlugEngine(controllerParameters);
+            aclPlugEngine.initialize();
             aclRemotingService = new DefaultAclRemotingServiceImpl(aclPlugEngine);
             this.startSucceed = true;
         } catch (Exception e) {

@@ -75,9 +75,13 @@ public class PlainAclPlugEngineTest {
         transport = ymal.loadAs(fis, BorkerAccessControlTransport.class);
 
         ControllerParameters controllerParametersEntity = new ControllerParameters();
-        controllerParametersEntity.setFileHome(home);
-        plainAclPlugEngine = new PlainAclPlugEngine(controllerParametersEntity);
+        controllerParametersEntity.setFileHome(null);
+        try {
+            plainAclPlugEngine = new PlainAclPlugEngine(controllerParametersEntity);
+            plainAclPlugEngine.initialize();
+        } catch (Exception e) {
 
+        }
         accessControl = new BorkerAccessControl();
         accessControl.setAccount("rokcetmq");
         accessControl.setPassword("aliyun11");
@@ -122,7 +126,7 @@ public class PlainAclPlugEngineTest {
     @Test(expected = AclPlugRuntimeException.class)
     public void testPlainAclPlugEngineInit() {
         ControllerParameters controllerParametersEntity = new ControllerParameters();
-        new PlainAclPlugEngine(controllerParametersEntity);
+        new PlainAclPlugEngine(controllerParametersEntity).initialize();
 
     }
 
