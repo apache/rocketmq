@@ -71,23 +71,23 @@ public class PlainAclPlugEngineTest {
         }
         String filePath = home + "/conf/transport.yml";
         try {
-            fis = new FileInputStream(new File(filePath));
-            transport = ymal.loadAs(fis, BorkerAccessControlTransport.class);
-        } catch (Exception e) {
-            AccessControl accessControl = new BorkerAccessControl();
+	        fis = new FileInputStream(new File(filePath));
+	        transport = ymal.loadAs(fis, BorkerAccessControlTransport.class);
+        }catch(Exception e) {
+        	AccessControl accessControl = new BorkerAccessControl();
             accessControl.setAccount("onlyNetAddress");
             accessControl.setPassword("aliyun11");
             accessControl.setNetaddress("127.0.0.1");
             accessControl.setRecognition("127.0.0.1:1");
 
             AccessControl accessControlTwo = new BorkerAccessControl();
-            accessControlTwo.setAccount("listtransport");
+            accessControlTwo.setAccount("listTransport");
             accessControlTwo.setPassword("aliyun1");
             accessControlTwo.setNetaddress("127.0.0.1");
             accessControlTwo.setRecognition("127.0.0.1:2");
-            transport = new BorkerAccessControlTransport();
-            transport.setOnlyNetAddress((BorkerAccessControl) accessControl);
-
+        	transport = new BorkerAccessControlTransport();
+        	transport.setOnlyNetAddress((BorkerAccessControl)accessControl);
+        	
         }
         ControllerParameters controllerParametersEntity = new ControllerParameters();
         controllerParametersEntity.setFileHome(null);
@@ -97,20 +97,18 @@ public class PlainAclPlugEngineTest {
         } catch (Exception e) {
 
         }
-
+        
         accessControl = new BorkerAccessControl();
-        accessControl.setAccount("onlyNetAddress");
+        accessControl.setAccount("rokcetmq");
         accessControl.setPassword("aliyun11");
         accessControl.setNetaddress("127.0.0.1");
         accessControl.setRecognition("127.0.0.1:1");
 
         accessControlTwo = new BorkerAccessControl();
-        accessControlTwo.setAccount("listtransport");
+        accessControlTwo.setAccount("rokcet1");
         accessControlTwo.setPassword("aliyun1");
         accessControlTwo.setNetaddress("127.0.0.1");
         accessControlTwo.setRecognition("127.0.0.1:2");
-        transport = new BorkerAccessControlTransport();
-        transport.setOnlyNetAddress((BorkerAccessControl) accessControl);
 
         loginInfoMap = new ConcurrentHashMap<>();
         FieldSetter.setField(plainAclPlugEngine, plainAclPlugEngine.getClass().getSuperclass().getDeclaredField("loginInfoMap"), loginInfoMap);
@@ -275,18 +273,18 @@ public class PlainAclPlugEngineTest {
 
     @Test
     public void getAuthenticationInfo() {
-        AccessControl accessControl = new AccessControl();
-        accessControl.setAccount("rokcetmq");
-        accessControl.setPassword("aliyun11");
-        accessControl.setNetaddress("127.0.0.1");
-        accessControl.setRecognition("127.0.0.1:1");
+        AccessControl newAccessControl = new AccessControl();
+        newAccessControl.setAccount("rokcetmq");
+        newAccessControl.setPassword("aliyun11");
+        newAccessControl.setNetaddress("127.0.0.1");
+        newAccessControl.setRecognition("127.0.0.1:1");
 
         AuthenticationResult authenticationResult = new AuthenticationResult();
-        plainAclPlugEngine.getAuthenticationInfo(accessControl, authenticationResult);
+        plainAclPlugEngine.getAuthenticationInfo(newAccessControl, authenticationResult);
         Assert.assertEquals("Login information does not exist, Please check login, password, IP", authenticationResult.getResultString());
 
-        plainAclPlugEngine.setAccessControl(this.accessControl);
-        AuthenticationInfo authenticationInfo = plainAclPlugEngine.getAuthenticationInfo(accessControl, authenticationResult);
+        plainAclPlugEngine.setAccessControl(accessControl);
+        AuthenticationInfo authenticationInfo = plainAclPlugEngine.getAuthenticationInfo(newAccessControl, authenticationResult);
         Assert.assertNotNull(authenticationInfo);
 
     }
