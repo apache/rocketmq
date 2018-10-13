@@ -70,10 +70,25 @@ public class PlainAclPlugEngineTest {
             }
         }
         String filePath = home + "/conf/transport.yml";
-        fis = new FileInputStream(new File(filePath));
+        try {
+            fis = new FileInputStream(new File(filePath));
+            transport = ymal.loadAs(fis, BorkerAccessControlTransport.class);
+        } catch (Exception e) {
+            AccessControl accessControl = new BorkerAccessControl();
+            accessControl.setAccount("onlyNetAddress");
+            accessControl.setPassword("aliyun11");
+            accessControl.setNetaddress("127.0.0.1");
+            accessControl.setRecognition("127.0.0.1:1");
 
-        transport = ymal.loadAs(fis, BorkerAccessControlTransport.class);
+            AccessControl accessControlTwo = new BorkerAccessControl();
+            accessControlTwo.setAccount("listtransport");
+            accessControlTwo.setPassword("aliyun1");
+            accessControlTwo.setNetaddress("127.0.0.1");
+            accessControlTwo.setRecognition("127.0.0.1:2");
+            transport = new BorkerAccessControlTransport();
+            transport.setOnlyNetAddress((BorkerAccessControl) accessControl);
 
+        }
         ControllerParameters controllerParametersEntity = new ControllerParameters();
         controllerParametersEntity.setFileHome(null);
         try {
@@ -82,17 +97,6 @@ public class PlainAclPlugEngineTest {
         } catch (Exception e) {
 
         }
-        accessControl = new BorkerAccessControl();
-        accessControl.setAccount("rokcetmq");
-        accessControl.setPassword("aliyun11");
-        accessControl.setNetaddress("127.0.0.1");
-        accessControl.setRecognition("127.0.0.1:1");
-
-        accessControlTwo = new BorkerAccessControl();
-        accessControlTwo.setAccount("rokcet1");
-        accessControlTwo.setPassword("aliyun1");
-        accessControlTwo.setNetaddress("127.0.0.1");
-        accessControlTwo.setRecognition("127.0.0.1:2");
 
         loginInfoMap = new ConcurrentHashMap<>();
         FieldSetter.setField(plainAclPlugEngine, plainAclPlugEngine.getClass().getSuperclass().getDeclaredField("loginInfoMap"), loginInfoMap);
