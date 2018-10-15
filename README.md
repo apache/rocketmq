@@ -37,12 +37,12 @@ It offers a variety of features:
 ----------
 
 ## Apache RocketMQ Community
-* [RocketMQ Community Projects](https://github.com/apache/rocketmq-externals)
+* [RocketMQ Community Incubator Projects](https://github.com/apache/rocketmq-externals)
 
 ----------
 
 ## Contributing
-We always welcome new contributions, whether for trivial cleanups, big new features or other material rewards, more details see [here](http://rocketmq.apache.org/docs/how-to-contribute/) 
+We always welcome new contributions, whether for trivial cleanups, big new features or other material rewards, more details see [here](http://rocketmq.apache.org/docs/how-to-contribute/).
  
 ----------
 ## License
