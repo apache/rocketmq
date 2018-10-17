@@ -49,6 +49,7 @@ import org.apache.rocketmq.tools.command.consumer.StartMonitoringSubCommand;
 import org.apache.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
 import org.apache.rocketmq.tools.command.message.ConsumeMessageCommand;
+import org.apache.rocketmq.tools.command.message.ConsumePushMessageCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageByQueueCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageSubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByIdSubCommand;
@@ -196,6 +197,7 @@ public class MQAdminStartup {
 
         initCommand(new QueryConsumeQueueCommand());
         initCommand(new SendMessageCommand());
+        initCommand(new ConsumePushMessageCommand());
         initCommand(new ConsumeMessageCommand());
     }
 
