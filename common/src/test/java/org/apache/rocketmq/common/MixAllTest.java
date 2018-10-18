@@ -31,12 +31,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class MixAllTest {
     @Test
     public void testGetLocalInetAddress() throws Exception {
+        
         List<String> localInetAddress = MixAll.getLocalInetAddress();
         String local = InetAddress.getLocalHost().getHostAddress();
         assertThat(localInetAddress).contains("127.0.0.1");
-        if(!local.equals("127.0.1.1")) {
-            assertThat(localInetAddress).contains(local);
-        }
+        assertThat(localInetAddress).contains(local);
     }
 
     @Test
