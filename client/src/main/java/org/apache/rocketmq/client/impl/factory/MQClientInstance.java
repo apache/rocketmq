@@ -560,6 +560,7 @@ public class MQClientInstance {
             }
         }
     }
+
     private void uploadFilterClassSource() {
         Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
         while (it.hasNext()) {
@@ -719,6 +720,7 @@ public class MQClientInstance {
 
         return false;
     }
+    
     private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String fullClassName,
         final String topic,
         final String filterClassSource) throws UnsupportedEncodingException {
