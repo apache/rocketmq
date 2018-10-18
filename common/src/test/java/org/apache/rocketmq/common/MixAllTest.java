@@ -33,7 +33,6 @@ public class MixAllTest {
     public void testGetLocalInetAddress() throws Exception {
         List<String> localInetAddress = MixAll.getLocalInetAddress();
         String local = InetAddress.getLocalHost().getHostAddress();
-        assertThat(localInetAddress).contains("127.0.0.1");
         assertThat(localInetAddress).contains(local);
     }
 
