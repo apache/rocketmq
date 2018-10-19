@@ -35,7 +35,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
@@ -421,7 +420,7 @@ public class DefaultMessageStore implements MessageStore {
         long diff = this.systemClock.now() - begin;
 
         return diff < 10000000
-            && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills();
+                && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills();
     }
 
     @Override
