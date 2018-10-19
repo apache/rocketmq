@@ -762,9 +762,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         if (!(this.brokerController.getMessageStore() instanceof DefaultMessageStore)) {
-            log.error("delay offset not supported in this messagetore, client: {} ", ctx.channel().remoteAddress());
+            log.error("Delay offset not supported in this messagetore, client: {} ", ctx.channel().remoteAddress());
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("delay offset not supported in this messagetore");
+            response.setRemark("Delay offset not supported in this messagetore");
             return response;
         }
 
@@ -773,7 +773,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             try {
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             } catch (UnsupportedEncodingException e) {
-                log.error("get all delay offset from master error.", e);
+                log.error("Get all delay offset from master error.", e);
 
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("UnsupportedEncodingException " + e);
