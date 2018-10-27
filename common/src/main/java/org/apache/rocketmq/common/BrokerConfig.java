@@ -171,6 +171,18 @@ public class BrokerConfig {
     @ImportantField
     private long transactionCheckInterval = 60 * 1000;
 
+    private boolean isAclPlug;
+
+    public static String localHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            log.error("Failed to obtain the host name", e);
+        }
+
+        return "DEFAULT_BROKER";
+    }
+
     public boolean isTraceOn() {
         return traceOn;
     }
@@ -233,16 +245,6 @@ public class BrokerConfig {
 
     public void setSlaveReadEnable(final boolean slaveReadEnable) {
         this.slaveReadEnable = slaveReadEnable;
-    }
-
-    public static String localHostName() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            log.error("Failed to obtain the host name", e);
-        }
-
-        return "DEFAULT_BROKER";
     }
 
     public int getRegisterBrokerTimeoutMills() {
@@ -709,6 +711,14 @@ public class BrokerConfig {
         this.transactionCheckInterval = transactionCheckInterval;
     }
 
+    public boolean isAclPlug() {
+        return isAclPlug;
+    }
+
+    public void setAclPlug(boolean isAclPlug) {
+        this.isAclPlug = isAclPlug;
+    }
+
     public int getEndTransactionThreadPoolNums() {
         return endTransactionThreadPoolNums;
     }
@@ -732,4 +742,5 @@ public class BrokerConfig {
     public void setWaitTimeMillsInTransactionQueue(long waitTimeMillsInTransactionQueue) {
         this.waitTimeMillsInTransactionQueue = waitTimeMillsInTransactionQueue;
     }
+
 }

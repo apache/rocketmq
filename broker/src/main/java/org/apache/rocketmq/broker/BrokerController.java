@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.plug.AclPlugController;
+import org.apache.rocketmq.acl.plug.AclRemotingService;
+import org.apache.rocketmq.acl.plug.entity.AccessControl;
+import org.apache.rocketmq.acl.plug.entity.ControllerParameters;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -91,6 +97,7 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.FileWatchService;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageArrivingListener;
@@ -156,6 +163,8 @@ public class BrokerController {
     private TransactionalMessageCheckService transactionalMessageCheckService;
     private TransactionalMessageService transactionalMessageService;
     private AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
+
+    private AclPlugController aclPlugController;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -467,6 +476,7 @@ public class BrokerController {
                 }
             }
             initialTransaction();
+            initialAclPlug();
         }
         return result;
     }
@@ -484,6 +494,47 @@ public class BrokerController {
         }
         this.transactionalMessageCheckListener.setBrokerController(this);
         this.transactionalMessageCheckService = new TransactionalMessageCheckService(this);
+    }
+
+    private void initialAclPlug() {
+        try {
+            if (!this.brokerConfig.isAclPlug()) {
+                log.info("Default does not start acl plug");
+                return;
+            }
+            ControllerParameters controllerParameters = new ControllerParameters();
+            controllerParameters.setFileHome(brokerConfig.getRocketmqHome());
+            aclPlugController = new AclPlugController(controllerParameters);
+            if (!aclPlugController.isStartSucceed()) {
+                log.error("start acl plug failure");
+                return;
+            }
+            final AclRemotingService aclRemotingService = aclPlugController.getAclRemotingService();
+            this.registerServerRPCHook(new RPCHook() {
+
+                @Override
+                public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+                    HashMap<String, String> extFields = request.getExtFields();
+                    AccessControl accessControl = new AccessControl();
+                    accessControl.setCode(request.getCode());
+                    accessControl.setRecognition(remoteAddr);
+                    if (extFields != null) {
+                        accessControl.setAccount(extFields.get("account"));
+                        accessControl.setPassword(extFields.get("password"));
+                        accessControl.setNetaddress(StringUtils.split(remoteAddr, ":")[0]);
+                        accessControl.setTopic(extFields.get("topic"));
+                    }
+                    aclRemotingService.check(accessControl);
+                }
+
+                @Override
+                public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
+                }
+            });
+
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
     }
 
     public void registerProcessor() {
@@ -1049,7 +1100,12 @@ public class BrokerController {
         this.transactionalMessageCheckListener = transactionalMessageCheckListener;
     }
 
+    public AclPlugController getAclPlugController() {
+        return this.aclPlugController;
+    }
+
     public BlockingQueue<Runnable> getEndTransactionThreadPoolQueue() {
         return endTransactionThreadPoolQueue;
+
     }
 }
