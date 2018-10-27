@@ -19,7 +19,6 @@ package org.apache.rocketmq.broker;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -32,11 +31,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.plug.AclPlugController;
-import org.apache.rocketmq.acl.plug.AclRemotingService;
-import org.apache.rocketmq.acl.plug.entity.AccessControl;
-import org.apache.rocketmq.acl.plug.entity.ControllerParameters;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -476,7 +472,8 @@ public class BrokerController {
                 }
             }
             initialTransaction();
-            initialAclPlug();
+            initialAcl();
+            initialRpcHooks();
         }
         return result;
     }
@@ -496,44 +493,42 @@ public class BrokerController {
         this.transactionalMessageCheckService = new TransactionalMessageCheckService(this);
     }
 
-    private void initialAclPlug() {
-        try {
-            if (!this.brokerConfig.isAclPlug()) {
-                log.info("Default does not start acl plug");
-                return;
-            }
-            ControllerParameters controllerParameters = new ControllerParameters();
-            controllerParameters.setFileHome(brokerConfig.getRocketmqHome());
-            aclPlugController = new AclPlugController(controllerParameters);
-            if (!aclPlugController.isStartSucceed()) {
-                log.error("start acl plug failure");
-                return;
-            }
-            final AclRemotingService aclRemotingService = aclPlugController.getAclRemotingService();
+    private void initialAcl() {
+        if (!this.brokerConfig.isEnableAcl()) {
+            log.info("The broker dose not enable acl");
+            return;
+        }
+
+        List<AccessValidator> accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
+        if (accessValidators == null || accessValidators.isEmpty()) {
+            return;
+        }
+
+        for (AccessValidator accessValidator: accessValidators) {
+            final AccessValidator validator = accessValidator;
             this.registerServerRPCHook(new RPCHook() {
 
                 @Override
                 public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
-                    HashMap<String, String> extFields = request.getExtFields();
-                    AccessControl accessControl = new AccessControl();
-                    accessControl.setCode(request.getCode());
-                    accessControl.setRecognition(remoteAddr);
-                    if (extFields != null) {
-                        accessControl.setAccount(extFields.get("account"));
-                        accessControl.setPassword(extFields.get("password"));
-                        accessControl.setNetaddress(StringUtils.split(remoteAddr, ":")[0]);
-                        accessControl.setTopic(extFields.get("topic"));
-                    }
-                    aclRemotingService.check(accessControl);
+                    validator.validate(validator.parse(request));
                 }
 
                 @Override
                 public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
                 }
             });
+        }
+    }
 
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
+
+    private void initialRpcHooks() {
+
+        List<RPCHook> rpcHooks = ServiceProvider.load(ServiceProvider.RPC_HOOK_ID, RPCHook.class);
+        if (rpcHooks == null || rpcHooks.isEmpty()) {
+            return;
+        }
+        for (RPCHook rpcHook: rpcHooks) {
+            this.registerServerRPCHook(rpcHook);
         }
     }
 
