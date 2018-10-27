@@ -23,6 +23,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import java.net.SocketAddress;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -95,6 +96,13 @@ public abstract class NettyRemotingAbstract {
      */
     protected volatile SslContext sslContext;
 
+    /**
+     * custom rpc hooks
+     */
+    protected List<RPCHook> rpcHooks = new ArrayList<RPCHook>();
+
+
+
     static {
         NettyLogger.initNettyLogger();
     }
@@ -158,6 +166,23 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+    protected void doBeforeRpcHooks(String addr, RemotingCommand request) {
+        if (rpcHooks.size() > 0) {
+            for (RPCHook rpcHook: rpcHooks) {
+                rpcHook.doBeforeRequest(addr, request);
+            }
+        }
+    }
+
+    protected void doAfterRpcHooks(String addr, RemotingCommand request, RemotingCommand response) {
+        if (rpcHooks.size() > 0) {
+            for (RPCHook rpcHook: rpcHooks) {
+                rpcHook.doAfterResponse(addr, request, response);
+            }
+        }
+    }
+
+
     /**
      * Process incoming request command issued by remote peer.
      *
@@ -174,15 +199,9 @@ public abstract class NettyRemotingAbstract {
                 @Override
                 public void run() {
                     try {
-                        RPCHook rpcHook = NettyRemotingAbstract.this.getRPCHook();
-                        if (rpcHook != null) {
-                            rpcHook.doBeforeRequest(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd);
-                        }
-
+                        doBeforeRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd);
                         final RemotingCommand response = pair.getObject1().processRequest(ctx, cmd);
-                        if (rpcHook != null) {
-                            rpcHook.doAfterResponse(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, response);
-                        }
+                        doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, response);
 
                         if (!cmd.isOnewayRPC()) {
                             if (response != null) {
@@ -314,12 +333,29 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+
+
     /**
      * Custom RPC hook.
-     *
-     * @return RPC hook if specified; null otherwise.
+     * Just be compatible with the previous version, use getRPCHooks instead.
      */
-    public abstract RPCHook getRPCHook();
+    @Deprecated
+    protected RPCHook getRPCHook() {
+        if (rpcHooks.size() > 0) {
+            return rpcHooks.get(0);
+        }
+        return null;
+    }
+
+    /**
+     * Custom RPC hooks.
+     *
+     * @return RPC hooks if specified; null otherwise.
+     */
+    public List<RPCHook> getRPCHooks() {
+        return rpcHooks;
+    }
+
 
     /**
      * This method specifies thread pool to use while invoking callback methods.
