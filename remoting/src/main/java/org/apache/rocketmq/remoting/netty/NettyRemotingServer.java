@@ -40,6 +40,8 @@ import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -75,7 +77,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private final Timer timer = new Timer("ServerHouseKeepingService", true);
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
 
-    private RPCHook rpcHook;
 
     private int port = 0;
 
@@ -266,7 +267,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     @Override
     public void registerRPCHook(RPCHook rpcHook) {
-        this.rpcHook = rpcHook;
+        if (!rpcHooks.contains(rpcHook)) {
+            rpcHooks.add(rpcHook);
+        }
     }
 
     @Override
@@ -318,10 +321,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         return channelEventListener;
     }
 
-    @Override
-    public RPCHook getRPCHook() {
-        return this.rpcHook;
-    }
 
     @Override
     public ExecutorService getCallbackExecutor() {
