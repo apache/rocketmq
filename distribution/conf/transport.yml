@@ -13,12 +13,22 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-brokerClusterName = DefaultCluster
-brokerName = broker-a
-brokerId = 0
-deleteWhen = 04
-fileReservedTime = 48
-brokerRole = ASYNC_MASTER
-flushDiskType = ASYNC_FLUSH
-aclPlug=true
-namesrvAddr=127.0.0.1:9876
+onlyNetAddress:
+  netaddress: 10.10.103.*
+  noPermitPullTopic:
+    - broker-a
+
+list:
+  - account: RocketMQ
+    password: 1234567
+    netaddress: 192.0.0.*
+    permitSendTopic:
+      - test1
+      - test2
+  - account: RocketMQ
+    password: 1234567
+    netaddress: 192.0.2.1
+    permitSendTopic:
+      - test3
+      - test4
+    
