@@ -18,6 +18,7 @@
 package org.apache.rocketmq.tools.command.message;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -82,7 +83,7 @@ public class ConsumePushMessageCommand implements SubCommand {
     public void execute(final CommandLine commandLine, final Options options, RPCHook rpcHook) throws SubCommandException {
         try {
             /* Group name must be set before consumer start */
-
+            final CountDownLatch countDownLatch = new CountDownLatch(1);
             defaultMQPushConsumer = new DefaultMQPushConsumer(commandLine.getOptionValue('g').trim());
             defaultMQPushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
             defaultMQPushConsumer.setNamesrvAddr(commandLine.getOptionValue('n').trim());
@@ -97,9 +98,8 @@ public class ConsumePushMessageCommand implements SubCommand {
             });
             defaultMQPushConsumer.start();
             System.out.printf("Consumer Started.%n");
-            while (true) {
 
-            }
+            countDownLatch.await();
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
