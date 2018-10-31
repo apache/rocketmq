@@ -55,6 +55,9 @@ public interface MQPushConsumer extends MQConsumer {
     void subscribe(final String topic, final String subExpression) throws MQClientException;
 
     /**
+     * This method will be removed in the version 5.0.0，because filterServer was removed,and method <code>subscribe(final String topic, final MessageSelector messageSelector)</code>
+     * is recommended.
+     * 
      * Subscribe some topic
      *
      * @param fullClassName full class name,must extend org.apache.rocketmq.common.filter. MessageFilter
