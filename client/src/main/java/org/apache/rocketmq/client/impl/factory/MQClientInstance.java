@@ -720,7 +720,7 @@ public class MQClientInstance {
 
         return false;
     }
-
+    @Deprecated
     private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String fullClassName,
         final String topic,
         final String filterClassSource) throws UnsupportedEncodingException {
