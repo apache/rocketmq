@@ -57,46 +57,14 @@ public class PlainAclPlugEngineTest {
 
     @Before
     public void init() throws NoSuchFieldException, SecurityException, IOException {
+    	System.setProperty("rocketmq.home.dir", "src/test/resources");
+    	ControllerParameters controllerParametersEntity = new ControllerParameters();
         Yaml ymal = new Yaml();
-        String home = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
-        InputStream fis = null;
-        if (home == null) {
-            URL url = PlainAclPlugEngineTest.class.getResource("/");
-            home = url.toString();
-            home = home.substring(0, home.length() - 1).replace("file:/", "").replace("target/test-classes", "");
-            home = home + "src/test/resources";
-            if (!new File(home + "/conf/transport.yml").exists()) {
-                home = "/home/travis/build/githublaohu/rocketmq/acl-plug/src/test/resources";
-            }
-        }
-        String filePath = home + "/conf/transport.yml";
-        try {
-	        fis = new FileInputStream(new File(filePath));
-	        transport = ymal.loadAs(fis, BorkerAccessControlTransport.class);
-        }catch(Exception e) {
-        	AccessControl accessControl = new BorkerAccessControl();
-            accessControl.setAccount("onlyNetAddress");
-            accessControl.setPassword("aliyun11");
-            accessControl.setNetaddress("127.0.0.1");
-            accessControl.setRecognition("127.0.0.1:1");
+	    transport = ymal.loadAs(new FileInputStream(new File(controllerParametersEntity.getFileHome()+"/conf/transport.yml")), BorkerAccessControlTransport.class);
+        
+	    plainAclPlugEngine = new PlainAclPlugEngine(controllerParametersEntity);
+	    plainAclPlugEngine.initialize();
 
-            AccessControl accessControlTwo = new BorkerAccessControl();
-            accessControlTwo.setAccount("listTransport");
-            accessControlTwo.setPassword("aliyun1");
-            accessControlTwo.setNetaddress("127.0.0.1");
-            accessControlTwo.setRecognition("127.0.0.1:2");
-        	transport = new BorkerAccessControlTransport();
-        	transport.setOnlyNetAddress((BorkerAccessControl)accessControl);
-        	
-        }
-        ControllerParameters controllerParametersEntity = new ControllerParameters();
-        controllerParametersEntity.setFileHome(null);
-        try {
-            plainAclPlugEngine = new PlainAclPlugEngine(controllerParametersEntity);
-            plainAclPlugEngine.initialize();
-        } catch (Exception e) {
-
-        }
         
         accessControl = new BorkerAccessControl();
         accessControl.setAccount("rokcetmq");
@@ -142,6 +110,7 @@ public class PlainAclPlugEngineTest {
     @Test(expected = AclPlugRuntimeException.class)
     public void testPlainAclPlugEngineInit() {
         ControllerParameters controllerParametersEntity = new ControllerParameters();
+        controllerParametersEntity.setFileHome("");
         new PlainAclPlugEngine(controllerParametersEntity).initialize();
 
     }

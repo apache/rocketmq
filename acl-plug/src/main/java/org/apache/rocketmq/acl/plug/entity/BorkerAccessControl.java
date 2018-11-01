@@ -556,8 +556,8 @@ public class BorkerAccessControl extends AccessControl {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("BorkerAccessControl [permitSendTopic=").append(permitSendTopic).append(", noPermitSendTopic=")
-            .append(noPermitSendTopic).append(", permitPullTopic=").append(permitPullTopic)
-            .append(", noPermitPullTopic=").append(noPermitPullTopic);
+                .append(noPermitSendTopic).append(", permitPullTopic=").append(permitPullTopic)
+                .append(", noPermitPullTopic=").append(noPermitPullTopic);
         if (!!sendMessage)
             builder.append(", sendMessage=").append(sendMessage);
         if (!!sendMessageV2)

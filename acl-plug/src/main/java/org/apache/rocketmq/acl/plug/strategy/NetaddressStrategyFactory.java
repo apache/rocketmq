@@ -16,12 +16,13 @@
  */
 package org.apache.rocketmq.acl.plug.strategy;
 
-import java.util.HashSet;
-import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.plug.AclUtils;
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class NetaddressStrategyFactory {
 

@@ -18,13 +18,12 @@ package org.apache.rocketmq.acl.plug;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
+
 public class AclUtilsTest {
 
     @Test

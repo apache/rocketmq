@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.rocketmq.acl.plug.AccessContralAnalysis;
 import org.apache.rocketmq.acl.plug.Authentication;
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
@@ -61,10 +62,10 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
                 accessControlMap.put(accessControl.getAccount(), accessControlAddressList);
             }
             AuthenticationInfo authenticationInfo = new AuthenticationInfo(accessContralAnalysis.analysis(accessControl), accessControl, netaddressStrategy);
-            accessControlAddressList.add( authenticationInfo);
+            accessControlAddressList.add(authenticationInfo);
             log.info("authenticationInfo is {}", authenticationInfo.toString());
         } catch (Exception e) {
-            throw new AclPlugRuntimeException(String.format("Exception info %s  %s" ,e.getMessage() , accessControl.toString()), e);
+            throw new AclPlugRuntimeException(String.format("Exception info %s  %s", e.getMessage(), accessControl.toString()), e);
         }
     }
 
@@ -90,11 +91,11 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
         } else {
             List<AuthenticationInfo> accessControlAddressList = accessControlMap.get(accessControl.getAccount());
             if (accessControlAddressList != null) {
-               for(AuthenticationInfo ai : accessControlAddressList) {
-            	   if(ai.getNetaddressStrategy().match(accessControl)&&ai.getAccessControl().getPassword().equals(accessControl.getPassword())) {
-            		   return ai;
-            	   }
-               }
+                for (AuthenticationInfo ai : accessControlAddressList) {
+                    if (ai.getNetaddressStrategy().match(accessControl) && ai.getAccessControl().getPassword().equals(accessControl.getPassword())) {
+                        return ai;
+                    }
+                }
             }
         }
         return null;
@@ -115,19 +116,20 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
         }
         return authenticationResult;
     }
-    
-    public AuthenticationResult  eachCheckAuthentication(AccessControl accessControl) {
-    	 AuthenticationResult authenticationResult = new AuthenticationResult();
-    	 AuthenticationInfo authenticationInfo = getAccessControl(accessControl);
-    	 if(authenticationInfo != null) {
-    		 boolean boo = authentication.authentication(authenticationInfo, accessControl, authenticationResult);
-             authenticationResult.setSucceed(boo);
-    	 }else {
-    		 authenticationResult.setResultString("accessControl is null, Please check login, password, IP\"");
-    	 }
-    	 
-    	 
-    	 return authenticationResult;
+
+    public AuthenticationResult eachCheckAuthentication(AccessControl accessControl) {
+        AuthenticationResult authenticationResult = new AuthenticationResult();
+        AuthenticationInfo authenticationInfo = getAccessControl(accessControl);
+        if (authenticationInfo != null) {
+            boolean boo = authentication.authentication(authenticationInfo, accessControl, authenticationResult);
+            authenticationResult.setSucceed(boo);
+            authenticationResult.setAccessControl(authenticationInfo.getAccessControl());
+        } else {
+            authenticationResult.setResultString("accessControl is null, Please check login, password, IP\"");
+        }
+
+
+        return authenticationResult;
     }
 
     void setBorkerAccessControlTransport(BorkerAccessControlTransport transport) {
@@ -146,5 +148,5 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
     }
 
     protected abstract AuthenticationInfo getAuthenticationInfo(AccessControl accessControl,
-        AuthenticationResult authenticationResult);
+                                                                AuthenticationResult authenticationResult);
 }

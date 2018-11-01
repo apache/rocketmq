@@ -74,8 +74,8 @@ public class LoginInfo {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("LoginInfo [recognition=").append(recognition).append(", loginTime=").append(loginTime)
-            .append(", operationTime=").append(operationTime).append(", clear=").append(clear)
-            .append(", authenticationInfo=").append(authenticationInfo).append("]");
+                .append(", operationTime=").append(operationTime).append(", clear=").append(clear)
+                .append(", authenticationInfo=").append(authenticationInfo).append("]");
         return builder.toString();
     }
 

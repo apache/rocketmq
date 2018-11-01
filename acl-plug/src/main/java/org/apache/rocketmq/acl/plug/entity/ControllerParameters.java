@@ -45,7 +45,7 @@ public class ControllerParameters {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("ControllerParametersEntity [fileHome=").append(fileHome).append(", accessContralAnalysisClass=")
-            .append(accessContralAnalysisClass).append("]");
+                .append(accessContralAnalysisClass).append("]");
         return builder.toString();
     }
 

@@ -16,10 +16,11 @@
  */
 package org.apache.rocketmq.acl.plug.entity;
 
+import org.apache.rocketmq.acl.plug.strategy.NetaddressStrategy;
+
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import org.apache.rocketmq.acl.plug.strategy.NetaddressStrategy;
 
 public class AuthenticationInfo {
 
@@ -30,7 +31,7 @@ public class AuthenticationInfo {
     private Map<Integer, Boolean> authority;
 
     public AuthenticationInfo(Map<Integer, Boolean> authority, AccessControl accessControl,
-        NetaddressStrategy netaddressStrategy) {
+                              NetaddressStrategy netaddressStrategy) {
         super();
         this.authority = authority;
         this.accessControl = accessControl;
@@ -65,7 +66,7 @@ public class AuthenticationInfo {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("AuthenticationInfo [accessControl=").append(accessControl).append(", netaddressStrategy=")
-            .append(netaddressStrategy).append(", authority={");
+                .append(netaddressStrategy).append(", authority={");
         Iterator<Entry<Integer, Boolean>> it = authority.entrySet().iterator();
         while (it.hasNext()) {
             Entry<Integer, Boolean> e = it.next();

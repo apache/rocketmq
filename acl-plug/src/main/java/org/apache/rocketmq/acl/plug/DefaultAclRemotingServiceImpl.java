@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.acl.plug;
 
-import java.util.HashMap;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.AccessResource;
 import org.apache.rocketmq.acl.AccessValidator;
@@ -29,16 +27,18 @@ import org.apache.rocketmq.acl.plug.entity.ControllerParameters;
 import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class DefaultAclRemotingServiceImpl implements AclRemotingService ,AccessValidator{
+import java.util.HashMap;
+
+public class DefaultAclRemotingServiceImpl implements AclRemotingService, AccessValidator {
 
     private AclPlugEngine aclPlugEngine;
 
     public DefaultAclRemotingServiceImpl() {
-    	ControllerParameters controllerParameters = new ControllerParameters();
-    	this.aclPlugEngine = new PlainAclPlugEngine(controllerParameters);
-    	this.aclPlugEngine.initialize();    	
+        ControllerParameters controllerParameters = new ControllerParameters();
+        this.aclPlugEngine = new PlainAclPlugEngine(controllerParameters);
+        this.aclPlugEngine.initialize();
     }
-    
+
     public DefaultAclRemotingServiceImpl(AclPlugEngine aclPlugEngine) {
         this.aclPlugEngine = aclPlugEngine;
     }
@@ -55,9 +55,9 @@ public class DefaultAclRemotingServiceImpl implements AclRemotingService ,Access
         return authenticationResult;
     }
 
-	@Override
-	public AccessResource parse(RemotingCommand request ,String remoteAddr) {
-		HashMap<String, String> extFields = request.getExtFields();
+    @Override
+    public AccessResource parse(RemotingCommand request, String remoteAddr) {
+        HashMap<String, String> extFields = request.getExtFields();
         AccessControl accessControl = new AccessControl();
         accessControl.setCode(request.getCode());
         accessControl.setRecognition(remoteAddr);
@@ -66,19 +66,19 @@ public class DefaultAclRemotingServiceImpl implements AclRemotingService ,Access
             accessControl.setPassword(extFields.get("password"));
             accessControl.setNetaddress(StringUtils.split(remoteAddr, ":")[0]);
             accessControl.setTopic(extFields.get("topic"));
-}
-		return accessControl;
-	}
+        }
+        return accessControl;
+    }
 
-	@Override
-	public void validate(AccessResource accessResource) {
-		AuthenticationResult authenticationResult = aclPlugEngine.eachCheckAuthentication((AccessControl)accessResource);
+    @Override
+    public void validate(AccessResource accessResource) {
+        AuthenticationResult authenticationResult = aclPlugEngine.eachCheckAuthentication((AccessControl) accessResource);
         if (authenticationResult.getException() != null) {
             throw new AclPlugRuntimeException(String.format("eachCheck the inspection appear exception, accessControl data is %s", accessResource.toString()), authenticationResult.getException());
         }
         if (authenticationResult.getAccessControl() == null || !authenticationResult.isSucceed()) {
             throw new AclPlugRuntimeException(String.format("%s accessControl data is %s", authenticationResult.getResultString(), accessResource.toString()));
         }
-	}
+    }
 
 }
