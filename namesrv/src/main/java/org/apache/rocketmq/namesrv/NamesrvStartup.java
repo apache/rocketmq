@@ -99,6 +99,7 @@ public class NamesrvStartup {
         }
 
         if (commandLine.hasOption('p')) {
+            InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_CONSOLE_NAME);
             MixAll.printObjectProperties(console, namesrvConfig);
             MixAll.printObjectProperties(console, nettyServerConfig);
             System.exit(0);
