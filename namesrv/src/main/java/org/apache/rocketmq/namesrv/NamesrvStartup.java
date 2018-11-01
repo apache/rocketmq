@@ -99,8 +99,8 @@ public class NamesrvStartup {
         }
 
         if (commandLine.hasOption('p')) {
-            MixAll.printObjectProperties(null, namesrvConfig);
-            MixAll.printObjectProperties(null, nettyServerConfig);
+            MixAll.printObjectProperties(console, namesrvConfig);
+            MixAll.printObjectProperties(console, nettyServerConfig);
             System.exit(0);
         }
 
