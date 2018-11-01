@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.acl.plug.entity;
 
-public class AccessControl {
+import org.apache.rocketmq.acl.AccessResource;
+
+public class AccessControl implements AccessResource{
 
     private String account;
 

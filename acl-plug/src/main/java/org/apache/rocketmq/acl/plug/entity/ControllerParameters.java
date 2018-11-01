@@ -16,11 +16,12 @@
  */
 package org.apache.rocketmq.acl.plug.entity;
 
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.RequestCode;
 
 public class ControllerParameters {
 
-    private String fileHome;
+    private String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
     private Class<?> accessContralAnalysisClass = RequestCode.class;
 

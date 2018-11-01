@@ -30,6 +30,8 @@ public interface AclPlugEngine {
     public void deleteLoginInfo(String remoteAddr);
 
     public AuthenticationResult eachCheckLoginAndAuthentication(AccessControl accessControl);
+    
+    public AuthenticationResult  eachCheckAuthentication(AccessControl accessControl);
 
     public void initialize();
 }

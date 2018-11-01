@@ -25,7 +25,7 @@ public interface AccessValidator {
      * @param request
      * @return
      */
-    AccessResource parse(RemotingCommand request);
+    AccessResource parse(RemotingCommand request,String remoteAddr);
 
     /**
      * Validate the access resource.

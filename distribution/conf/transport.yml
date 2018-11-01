@@ -14,7 +14,7 @@
 #  limitations under the License.
 
 onlyNetAddress:
-  netaddress: 10.10.103.*
+  netaddress: 127.0.0.*
   noPermitPullTopic:
     - broker-a
 
