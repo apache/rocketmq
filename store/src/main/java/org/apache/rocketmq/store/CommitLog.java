@@ -198,7 +198,6 @@ public class CommitLog {
                 // Intermediate file read error
                 else if (!dispatchRequest.isSuccess()) {
                     log.info("recover physics file end, " + mappedFile.getFileName());
-                    isDamaged = true;
                     break;
                 }
             }
