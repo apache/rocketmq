@@ -162,8 +162,7 @@ public class PullAPIWrapper {
                 this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
                     this.recalculatePullFromWhichNode(mq), false);
         }
-
-
+        
         if (findBrokerResult != null) {
             {
                 // check version
