@@ -348,7 +348,7 @@ public class ConsumeQueue {
                         long tagsCode = result.getByteBuffer().getLong();
 
                         if (offsetPy >= phyMinOffset) {
-                            this.minLogicOffset = result.getMappedFile().getFileFromOffset() + i;
+                            this.minLogicOffset = mappedFile.getFileFromOffset() + i;
                             log.info("Compute logical min offset: {}, topic: {}, queueId: {}",
                                 this.getMinOffsetInQueue(), this.topic, this.queueId);
                             // This maybe not take effect, when not every consume queue has extend file.
