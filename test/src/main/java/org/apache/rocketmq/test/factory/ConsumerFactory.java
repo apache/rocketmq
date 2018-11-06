@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.factory;
 
+import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
@@ -59,5 +60,12 @@ public class ConsumerFactory {
         consumer.create();
         consumer.start();
         return consumer;
+    }
+
+    public static DefaultMQPullConsumer getRMQPullConsumer(String nsAddr, String consumerGroup) throws Exception {
+        DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer(consumerGroup);
+        defaultMQPullConsumer.setNamesrvAddr(nsAddr);
+        defaultMQPullConsumer.start();
+        return defaultMQPullConsumer;
     }
 }

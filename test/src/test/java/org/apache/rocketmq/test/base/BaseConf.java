@@ -33,7 +33,7 @@ import org.apache.rocketmq.test.util.MQAdmin;
 import org.apache.rocketmq.test.util.MQRandomUtils;
 
 public class BaseConf {
-    protected static String nsAddr;
+    public static String nsAddr;
     protected static String broker1Name;
     protected static String broker2Name;
     protected static String clusterName;

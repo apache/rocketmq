@@ -21,7 +21,7 @@ public class DLegerRoleChangeHandler implements DLegerLeaderElector.RoleChangeHa
 
     @Override public void handle(long term, MemberState.Role role) {
         try {
-            log.info("Begin handling lastRole change term={} lastRole={} currStoreRole={}", term, role, messageStore.getMessageStoreConfig().getBrokerRole());
+            log.info("Begin handling broker role change term={} role={} currStoreRole={}", term, role, messageStore.getMessageStoreConfig().getBrokerRole());
             switch (role) {
                 case CANDIDATE:
                     if (messageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
@@ -41,9 +41,9 @@ public class DLegerRoleChangeHandler implements DLegerLeaderElector.RoleChangeHa
                 default:
                     break;
             }
-            log.info("Finish handling lastRole change term={} lastRole={} currStoreRole={}", term, role, messageStore.getMessageStoreConfig().getBrokerRole());
+            log.info("Finish handling broker role change term={} role={} currStoreRole={}", term, role, messageStore.getMessageStoreConfig().getBrokerRole());
         } catch (Throwable t) {
-            log.info("Failed handling lastRole change term={} lastRole={} currStoreRole={}", term, role, messageStore.getMessageStoreConfig().getBrokerRole(), t);
+            log.info("Failed handling broker role change term={} role={} currStoreRole={}", term, role, messageStore.getMessageStoreConfig().getBrokerRole(), t);
         }
     }
 }

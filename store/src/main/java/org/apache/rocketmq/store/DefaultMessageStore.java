@@ -132,8 +132,11 @@ public class DefaultMessageStore implements MessageStore {
         this.cleanConsumeQueueService = new CleanConsumeQueueService();
         this.storeStatsService = new StoreStatsService();
         this.indexService = new IndexService(this);
-        this.haService = new HAService(this);
-
+        if (!messageStoreConfig.isEnableDLegerCommitLog()) {
+            this.haService = new HAService(this);
+        } else {
+            this.haService = null;
+        }
         this.reputMessageService = new ReputMessageService();
 
         this.scheduleMessageService = new ScheduleMessageService(this);
