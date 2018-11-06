@@ -4,6 +4,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.dleger.DLegerLeaderElector;
 import org.apache.rocketmq.dleger.MemberState;
+import org.apache.rocketmq.dleger.utils.UtilAll;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -20,6 +21,7 @@ public class DLegerRoleChangeHandler implements DLegerLeaderElector.RoleChangeHa
     }
 
     @Override public void handle(long term, MemberState.Role role) {
+        long start = System.currentTimeMillis();
         try {
             log.info("Begin handling broker role change term={} role={} currStoreRole={}", term, role, messageStore.getMessageStoreConfig().getBrokerRole());
             switch (role) {
@@ -41,9 +43,9 @@ public class DLegerRoleChangeHandler implements DLegerLeaderElector.RoleChangeHa
                 default:
                     break;
             }
-            log.info("Finish handling broker role change term={} role={} currStoreRole={}", term, role, messageStore.getMessageStoreConfig().getBrokerRole());
+            log.info("Finish handling broker role change term={} role={} currStoreRole={} cost={}", term, role, messageStore.getMessageStoreConfig().getBrokerRole(), UtilAll.elapsed(start));
         } catch (Throwable t) {
-            log.info("Failed handling broker role change term={} role={} currStoreRole={}", term, role, messageStore.getMessageStoreConfig().getBrokerRole(), t);
+            log.info("Failed handling broker role change term={} role={} currStoreRole={} cost={}", term, role, messageStore.getMessageStoreConfig().getBrokerRole(), UtilAll.elapsed(start), t);
         }
     }
 }
