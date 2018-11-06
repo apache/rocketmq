@@ -133,12 +133,6 @@ public class DLegerCommitLog extends CommitLog {
         return 0;
     }
 
-    /**
-     * Read CommitLog data, use data replication
-     */
-    public SelectMappedBufferResult getData(final long offset) {
-        return this.getData(offset, offset == 0);
-    }
 
     private static class DLegerSelectMappedBufferResult extends SelectMappedBufferResult {
 
@@ -164,14 +158,37 @@ public class DLegerCommitLog extends CommitLog {
 
     }
 
+    public SelectMmapBufferResult truncate(SelectMmapBufferResult sbr) {
+        long committedPos = dLegerFileStore.getCommittedPos();
+        if (sbr == null || sbr.getStartOffset() == committedPos) {
+            return null;
+        }
+        if (sbr.getStartOffset() + sbr.getSize() <= committedPos) {
+            return sbr;
+        } else {
+            sbr.setSize((int) (committedPos - sbr.getStartOffset()));
+            return sbr;
+        }
+    }
+
+    /**
+     * Read CommitLog data, use data replication
+     */
+    public SelectMappedBufferResult getData(final long offset) {
+        return this.getData(offset, offset == 0);
+    }
+
 
     public SelectMappedBufferResult getData(final long offset, final boolean returnFirstOnNotFound) {
+        if (offset >= dLegerFileStore.getCommittedPos()) {
+            return null;
+        }
         int mappedFileSize = this.dLegerServer.getdLegerConfig().getMappedFileSizeForEntryData();
         MmapFile mappedFile = this.dLegerFileList.findMappedFileByOffset(offset, returnFirstOnNotFound);
         if (mappedFile != null) {
             int pos = (int) (offset % mappedFileSize);
             SelectMmapBufferResult sbr = mappedFile.selectMappedBuffer(pos);
-            return  convertSbr(sbr);
+            return  convertSbr(truncate(sbr));
         }
 
         return null;
@@ -352,6 +369,9 @@ public class DLegerCommitLog extends CommitLog {
                     case NOT_READY:
                     case DISK_FULL:
                         putMessageStatus = PutMessageStatus.SERVICE_NOT_AVAILABLE;
+                        break;
+                    case WAIT_QUORUM_ACK_TIMEOUT:
+                        putMessageStatus = PutMessageStatus.FLUSH_SLAVE_TIMEOUT;
                         break;
                     case LEADER_PENDING_FULL:
                         putMessageStatus = PutMessageStatus.OS_PAGECACHE_BUSY;
