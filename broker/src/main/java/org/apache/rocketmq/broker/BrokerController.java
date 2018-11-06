@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -38,6 +39,7 @@ import org.apache.rocketmq.broker.client.DefaultConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.client.rebalance.RebalanceLockManager;
+import org.apache.rocketmq.broker.dleger.DLegerRoleChangeHandler;
 import org.apache.rocketmq.broker.filter.CommitLogDispatcherCalcBitMap;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.filtersrv.FilterServerManager;
@@ -97,6 +99,7 @@ import org.apache.rocketmq.store.MessageArrivingListener;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.dleger.DLegerCommitLog;
 import org.apache.rocketmq.store.stats.BrokerStats;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
@@ -156,6 +159,7 @@ public class BrokerController {
     private TransactionalMessageCheckService transactionalMessageCheckService;
     private TransactionalMessageService transactionalMessageService;
     private AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
+    private Future<?> slaveSyncFuture;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -231,6 +235,10 @@ public class BrokerController {
                 this.messageStore =
                     new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener,
                         this.brokerConfig);
+                if (messageStoreConfig.isEnableDLegerCommitLog()) {
+                    DLegerRoleChangeHandler roleChangeHandler = new DLegerRoleChangeHandler(this, (DefaultMessageStore) messageStore);
+                    ((DLegerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getdLegerServer().getdLegerLeaderElector().addRoleChangeHandler(roleChangeHandler);
+                }
                 this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
                 //load plugin
                 MessageStorePluginContext context = new MessageStorePluginContext(messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig);
@@ -392,40 +400,6 @@ public class BrokerController {
                     }
                 }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
             }
-
-            if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
-                if (this.messageStoreConfig.getHaMasterAddress() != null && this.messageStoreConfig.getHaMasterAddress().length() >= 6) {
-                    this.messageStore.updateHaMasterAddress(this.messageStoreConfig.getHaMasterAddress());
-                    this.updateMasterHAServerAddrPeriodically = false;
-                } else {
-                    this.updateMasterHAServerAddrPeriodically = true;
-                }
-
-                this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        try {
-                            BrokerController.this.slaveSynchronize.syncAll();
-                        } catch (Throwable e) {
-                            log.error("ScheduledTask syncAll slave exception", e);
-                        }
-                    }
-                }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
-            } else {
-                this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        try {
-                            BrokerController.this.printMasterAndSlaveDiff();
-                        } catch (Throwable e) {
-                            log.error("schedule printMasterAndSlaveDiff error.", e);
-                        }
-                    }
-                }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
-            }
-
             if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
                 // Register a listener to reload SslContext
                 try {
@@ -831,11 +805,9 @@ public class BrokerController {
             this.brokerFastFailure.start();
         }
 
-        if (BrokerRole.SLAVE != messageStoreConfig.getBrokerRole()) {
-            if (this.transactionalMessageCheckService != null) {
-                log.info("Start transaction service!");
-                this.transactionalMessageCheckService.start();
-            }
+        if (!messageStoreConfig.isEnableDLegerCommitLog()) {
+            startProcessorByHa();
+            handleSlaveSynchronize(messageStoreConfig.getBrokerRole());
         }
     }
 
@@ -1052,4 +1024,95 @@ public class BrokerController {
     public BlockingQueue<Runnable> getEndTransactionThreadPoolQueue() {
         return endTransactionThreadPoolQueue;
     }
+
+
+
+    private void handleSlaveSynchronize(BrokerRole role) {
+        if (role == BrokerRole.SLAVE) {
+            if (null != slaveSyncFuture){
+                slaveSyncFuture.cancel(false);
+            }
+            this.slaveSynchronize.setMasterAddr(null);
+            slaveSyncFuture = this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        BrokerController.this.slaveSynchronize.syncAll();
+                    }
+                    catch (Throwable e) {
+                        log.error("ScheduledTask SlaveSynchronize syncAll error.", e);
+                    }
+                }
+            }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
+        } else {
+            //handle the slave synchronise
+            if (null != slaveSyncFuture){
+                slaveSyncFuture.cancel(false);
+            }
+            this.slaveSynchronize.setMasterAddr(null);
+        }
+    }
+
+    public void changeToSlave() {
+        //change the role
+        brokerConfig.setBrokerId(1); //TO DO check
+        messageStoreConfig.setBrokerRole(BrokerRole.SLAVE);
+
+        //handle the scheduled service
+        this.messageStore.handleScheduleMessageService(BrokerRole.SLAVE);
+
+        //handle the transactional service
+        this.shutdownProcessorByHa();
+
+        //handle the slave synchronise
+        handleSlaveSynchronize(BrokerRole.SLAVE);
+
+        try {
+            this.registerBrokerAll(true, true, brokerConfig.isForceRegister());
+        } catch (Throwable ignored) {
+
+        }
+    }
+
+
+
+    public void changeToMaster(BrokerRole role) {
+        if (role == BrokerRole.SLAVE) {
+            return;
+        }
+        //handle the slave synchronise
+        handleSlaveSynchronize(role);
+        //change the role
+        brokerConfig.setBrokerId(0); //TO DO check
+        messageStoreConfig.setBrokerRole(role);
+
+        //handle the scheduled service
+        this.messageStore.handleScheduleMessageService(role);
+
+        //handle the transactional service
+        this.startProcessorByHa();
+
+        try {
+            this.registerBrokerAll(true, true, brokerConfig.isForceRegister());
+        } catch (Throwable ignored) {
+
+        }
+    }
+
+    private void startProcessorByHa() {
+        if (BrokerRole.SLAVE != messageStoreConfig.getBrokerRole()) {
+            if (this.transactionalMessageCheckService != null) {
+                this.transactionalMessageCheckService.start();
+            }
+        }
+    }
+
+    private void shutdownProcessorByHa() {
+        if (this.transactionalMessageCheckService != null) {
+            this.transactionalMessageCheckService.shutdown(true);
+        }
+    }
+
+
+
 }

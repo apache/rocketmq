@@ -87,6 +87,7 @@ public class DLegerCommitlogTest extends StoreTestBase {
             Assert.assertEquals(results.get(i).getAppendMessageResult().getMsgId(), messageExt.getMsgId());
             Assert.assertEquals(results.get(i).getAppendMessageResult().getWroteOffset(), messageExt.getCommitLogOffset());
         }
+        messageStore.destroy();
     }
 
 
