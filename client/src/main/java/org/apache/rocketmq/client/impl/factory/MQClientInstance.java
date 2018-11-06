@@ -1042,7 +1042,7 @@ public class MQClientInstance {
             if (this.brokerVersionTable.get(brokerName).containsKey(brokerAddr)) {
                 return this.brokerVersionTable.get(brokerName).get(brokerAddr);
             }
-        }else{
+        } else {
             HeartbeatData heartbeatData = prepareHeartbeatData();
             try {
                 int version = this.mQClientAPIImpl.sendHearbeat(brokerAddr, heartbeatData, 3000);
