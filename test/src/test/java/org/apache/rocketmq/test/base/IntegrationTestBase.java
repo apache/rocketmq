@@ -179,15 +179,7 @@ public class IntegrationTestBase {
         if (!file.exists()) {
             return;
         }
-        if (file.isFile()) {
-            file.delete();
-        } else if (file.isDirectory()) {
-            File[] files = file.listFiles();
-            for (File file1 : files) {
-                deleteFile(file1);
-            }
-            file.delete();
-        }
+        UtilAll.deleteFile(file);
     }
 
 }

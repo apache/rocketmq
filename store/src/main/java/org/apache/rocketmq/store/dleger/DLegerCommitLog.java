@@ -626,4 +626,8 @@ public class DLegerCommitLog extends CommitLog {
         }
 
     }
+
+    public DLegerServer getdLegerServer() {
+        return dLegerServer;
+    }
 }
