@@ -163,7 +163,6 @@ public class PullAPIWrapper {
                     this.recalculatePullFromWhichNode(mq), false);
         }
 
-
         if (findBrokerResult != null) {
             {
                 // check version
