@@ -282,7 +282,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     @Override
     public void registerRPCHook(RPCHook rpcHook) {
-        if (!rpcHooks.contains(rpcHook)) {
+        if (rpcHook != null && !rpcHooks.contains(rpcHook)) {
             rpcHooks.add(rpcHook);
         }
     }
