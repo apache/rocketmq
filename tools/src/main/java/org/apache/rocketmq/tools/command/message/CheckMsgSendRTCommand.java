@@ -22,10 +22,14 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
@@ -49,7 +53,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("a", "amout", true, "message amout | default 100");
+        opt = new Option("a", "amount", true, "message amount | default 100");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -63,12 +67,11 @@ public class CheckMsgSendRTCommand implements SubCommand {
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
         DefaultMQProducer producer = new DefaultMQProducer(rpcHook);
         producer.setProducerGroup(Long.toString(System.currentTimeMillis()));
+        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
 
         try {
+            defaultMQAdminExt.start();
             producer.start();
-            long start = 0;
-            long end = 0;
-            long timeElapsed = 0;
             boolean sendSuccess = false;
             String topic = commandLine.getOptionValue('t').trim();
             long amount = !commandLine.hasOption('a') ? 100 : Long.parseLong(commandLine
@@ -76,6 +79,11 @@ public class CheckMsgSendRTCommand implements SubCommand {
             long msgSize = !commandLine.hasOption('s') ? 128 : Long.parseLong(commandLine
                 .getOptionValue('s').trim());
             Message msg = new Message(topic, getStringBySize(msgSize).getBytes(MixAll.DEFAULT_CHARSET));
+            //connect to broker
+            TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
+            for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
+                producer.send(new Message(brokerData.getBrokerName(), getStringBySize(msgSize).getBytes(MixAll.DEFAULT_CHARSET)));
+            }
 
             System.out.printf("%-32s  %-4s  %-20s    %s%n",
                 "#Broker Name",
@@ -83,8 +91,9 @@ public class CheckMsgSendRTCommand implements SubCommand {
                 "#Send Result",
                 "#RT"
             );
+            long elapse = 0;
             for (int i = 0; i < amount; i++) {
-                start = System.currentTimeMillis();
+                long s = System.nanoTime();
                 try {
                     producer.send(msg, new MessageQueueSelector() {
                         @Override
@@ -97,30 +106,26 @@ public class CheckMsgSendRTCommand implements SubCommand {
                         }
                     }, i);
                     sendSuccess = true;
-                    end = System.currentTimeMillis();
                 } catch (Exception e) {
                     sendSuccess = false;
-                    end = System.currentTimeMillis();
                 }
-
-                if (i != 0) {
-                    timeElapsed += end - start;
-                }
-
+                long e = System.nanoTime();
+                elapse += (e - s);
                 System.out.printf("%-32s  %-4s  %-20s    %s%n",
                     brokerName,
                     queueId,
                     sendSuccess,
-                    end - start
+                    (double) (e - s) / 1000000
                 );
             }
-
-            double rt = (double) timeElapsed / (amount - 1);
+//            long end = System.nanoTime();
+            double rt = (double) elapse / amount / 1000000;
             System.out.printf("Avg RT: %s%n", String.format("%.2f", rt));
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
             producer.shutdown();
+            defaultMQAdminExt.shutdown();
         }
     }
 

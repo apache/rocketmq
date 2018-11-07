@@ -19,11 +19,9 @@ package org.apache.rocketmq.tools.command.cluster;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.TreeSet;
+import java.util.*;
+
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -53,7 +51,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("a", "amout", true, "message amout | default 100");
+        Option opt = new Option("a", "amount", true, "message amount | default 100");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -98,7 +96,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
 
             Set<String> clusterNames = null;
 
-            long amount = !commandLine.hasOption('a') ? 50 : Long.parseLong(commandLine
+            long amount = !commandLine.hasOption('a') ? 100 : Long.parseLong(commandLine
                 .getOptionValue('a').trim());
 
             long size = !commandLine.hasOption('s') ? 128 : Long.parseLong(commandLine
@@ -129,6 +127,8 @@ public class CLusterSendMsgRTCommand implements SubCommand {
                 );
             }
 
+            Set<String/* brokerName */> set = new HashSet<>();
+
             while (true) {
                 for (String clusterName : clusterNames) {
                     Set<String> brokerNames = clusterAddr.get(clusterName);
@@ -139,29 +139,25 @@ public class CLusterSendMsgRTCommand implements SubCommand {
 
                     for (String brokerName : brokerNames) {
                         Message msg = new Message(brokerName, getStringBySize(size).getBytes(MixAll.DEFAULT_CHARSET));
-                        long start = 0;
-                        long end = 0;
-                        long elapsed = 0;
+                        //connect to broker
+                        if (!set.contains(brokerName)) {
+                            producer.send(msg);
+                            set.add(brokerName);
+                        }
+                        long start = System.nanoTime();
                         int successCount = 0;
                         int failCount = 0;
 
                         for (int i = 0; i < amount; i++) {
-                            start = System.currentTimeMillis();
                             try {
                                 producer.send(msg);
                                 successCount++;
-                                end = System.currentTimeMillis();
                             } catch (Exception e) {
                                 failCount++;
-                                end = System.currentTimeMillis();
-                            }
-
-                            if (i != 0) {
-                                elapsed += end - start;
                             }
                         }
-
-                        double rt = (double) elapsed / (amount - 1);
+                        long end = System.nanoTime();
+                        double rt = (double) (end - start) / amount / 1000000;
                         if (!printAsTlog) {
                             System.out.printf("%-24s  %-24s  %-8s  %-16s  %-16s%n",
                                 clusterName,
