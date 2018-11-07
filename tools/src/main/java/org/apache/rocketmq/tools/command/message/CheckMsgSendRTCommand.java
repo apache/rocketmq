@@ -22,7 +22,6 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
-import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -110,7 +109,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
                     sendSuccess = false;
                 }
                 long e = System.nanoTime();
-                elapse += (e - s);
+                elapse += e - s;
                 System.out.printf("%-32s  %-4s  %-20s    %s%n",
                     brokerName,
                     queueId,
@@ -118,7 +117,6 @@ public class CheckMsgSendRTCommand implements SubCommand {
                     (double) (e - s) / 1000000
                 );
             }
-//            long end = System.nanoTime();
             double rt = (double) elapse / amount / 1000000;
             System.out.printf("Avg RT: %s%n", String.format("%.2f", rt));
         } catch (Exception e) {

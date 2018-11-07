@@ -19,9 +19,12 @@ package org.apache.rocketmq.tools.command.cluster;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
-import java.util.*;
-
-import com.sun.org.apache.xpath.internal.operations.Bool;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.TimeZone;
+import java.util.TreeSet;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -139,7 +142,6 @@ public class CLusterSendMsgRTCommand implements SubCommand {
 
                     for (String brokerName : brokerNames) {
                         Message msg = new Message(brokerName, getStringBySize(size).getBytes(MixAll.DEFAULT_CHARSET));
-                        //connect to broker
                         if (!set.contains(brokerName)) {
                             producer.send(msg);
                             set.add(brokerName);
