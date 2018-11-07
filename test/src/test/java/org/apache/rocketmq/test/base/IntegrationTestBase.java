@@ -47,7 +47,7 @@ public class IntegrationTestBase {
     protected static final List<BrokerController> BROKER_CONTROLLERS = new ArrayList<>();
     protected static final List<NamesrvController> NAMESRV_CONTROLLERS = new ArrayList<>();
     protected static int topicCreateTime = 30 * 1000;
-    protected static final int COMMIT_LOG_SIZE = 1024 * 1024 * 256;
+    protected static final int COMMIT_LOG_SIZE = 1024 * 1024 * 100;
     protected static final int INDEX_NUM = 1000;
 
     private static final AtomicInteger port = new AtomicInteger(50000);
@@ -135,7 +135,7 @@ public class IntegrationTestBase {
         brokerConfig.setEnablePropertyFilter(true);
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + SEP + "commitlog");
-        storeConfig.setMapedFileSizeCommitLog(100 * 1024 * 1024);
+        storeConfig.setMapedFileSizeCommitLog(COMMIT_LOG_SIZE);
         storeConfig.setMaxIndexNum(INDEX_NUM);
         storeConfig.setMaxHashSlotNum(INDEX_NUM * 4);
         return createAndStartBroker(storeConfig, brokerConfig);
