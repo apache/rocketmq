@@ -455,7 +455,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 sendMessageContext.setCommercialSendSize(wroteSize);
                 sendMessageContext.setCommercialOwner(owner);
             }
-            return null;
+            return response;
         } else {
             if (hasSendMessageHook()) {
                 int wroteSize = request.getBody().length;
