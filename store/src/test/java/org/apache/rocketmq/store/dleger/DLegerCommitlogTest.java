@@ -93,6 +93,7 @@ public class DLegerCommitlogTest extends StoreTestBase {
             Assert.assertEquals(results.get(i).getAppendMessageResult().getWroteOffset(), messageExt.getCommitLogOffset());
         }
         messageStore.destroy();
+        messageStore.shutdown();
     }
 
 
@@ -123,6 +124,9 @@ public class DLegerCommitlogTest extends StoreTestBase {
 
         leaderStore.destroy();
         followerStore.destroy();
+
+        leaderStore.shutdown();
+        followerStore.shutdown();
     }
 
 

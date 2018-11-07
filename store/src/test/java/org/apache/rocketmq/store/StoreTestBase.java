@@ -21,10 +21,10 @@ public class StoreTestBase {
 
     protected Set<String> baseDirs = new HashSet<>();
 
-    private AtomicInteger port = new AtomicInteger(30000);
+    private static AtomicInteger port = new AtomicInteger(30000);
 
-    public int nextPort() {
-        return port.incrementAndGet();
+    public static synchronized int nextPort() {
+        return port.addAndGet(5);
     }
 
     protected MessageExtBrokerInner buildMessage() {
