@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
@@ -40,170 +39,168 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 /**
- * 1. 把broker模块src/test/resources/META-INF/service/org.apache.rocketmq.acl.AccessValidator 复制到src/java/resources/META-INF/service
- * 2. 查看distribution模块下 /conf/transport.yml文件，注意里面的账户密码，ip
- * 3. 把ALC_RCP_HOOK_ACCOUT与ACL_RCP_HOOK_PASSWORD 修改成transport.yml里面对应的账户密码
- * @author laohu
+ *
+ * English explain
+ * 1. broker module src/test/resources/META-INF/service/org.apache.rocketmq.acl.AccessValidator copy to src/java/resources/META-INF/service.
+ *
+ * 2. view the /conf/transport.yml file under the distribution module, pay attention to the account password, IP.
+ *
+ * 3. Modify ALC_RCP_HOOK_ACCOUT and ACL_RCP_HOOK_PASSWORD to the corresponding account password in transport.yml
  *
  */
 public class AclClient {
-	
-	private static final Map<MessageQueue, Long> OFFSE_TABLE = new HashMap<MessageQueue, Long>();
 
-	private static String ALC_RCP_HOOK_ACCOUT = "RocketMQ";
-	 
-	private static String ACL_RCP_HOOK_PASSWORD = "1234567";
-	 
-	
-	
-	 public static void main(String[] args) throws MQClientException, InterruptedException {
-		 producer();
-		 pushConsumer();
-		 pullConsumer();
-	 }
-	 
-	 public static void producer() throws MQClientException {
-		 DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName",getAalRPCHook());
-		 producer.setNamesrvAddr("127.0.0.1:9876");
-	        producer.start();
+    private static final Map<MessageQueue, Long> OFFSE_TABLE = new HashMap<MessageQueue, Long>();
 
-	        for (int i = 0; i < 128; i++)
-	            try {
-	                {
-	                    Message msg = new Message("TopicTest",
-	                        "TagA",
-	                        "OrderID188",
-	                        "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
-	                    SendResult sendResult = producer.send(msg);
-	                    System.out.printf("%s%n", sendResult);
-	                }
+    private static final String ACL_RCPHOOK_ACCOUT = "RocketMQ";
 
-	            } catch (Exception e) {
-	                e.printStackTrace();
-	            }
+    private static final String ACL_RCPHOOK_PASSWORD = "1234567";
 
-	        producer.shutdown();
-	 }
-	 
-	 public static void pushConsumer() throws MQClientException {
+    public static void main(String[] args) throws MQClientException, InterruptedException {
+        producer();
+        pushConsumer();
+        pullConsumer();
+    }
 
-	        
-	        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_5" , getAalRPCHook(),new AllocateMessageQueueAveragely());
-	        consumer.setNamesrvAddr("127.0.0.1:9876");
-	        consumer.subscribe("TopicTest", "*");
-	        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-	        //wrong time format 2017_0422_221800
-	        consumer.setConsumeTimestamp("20180422221800");
-	        consumer.registerMessageListener(new MessageListenerConcurrently() {
+    public static void producer() throws MQClientException {
+        DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName", getAalRPCHook());
+        producer.setNamesrvAddr("127.0.0.1:9876");
+        producer.start();
 
-	            @Override
-	            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
-	                System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
-	                printBody(msgs);
-	                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-	            }
-	        });
-	        consumer.start();
-	        System.out.printf("Consumer Started.%n");
-	 }
-	 
-	 public static void pullConsumer() throws MQClientException {
-		 DefaultMQPullConsumer consumer = new DefaultMQPullConsumer("please_rename_unique_group_name_6" , getAalRPCHook());
-	        consumer.setNamesrvAddr("127.0.0.1:9876");
-	        consumer.start();
+        for (int i = 0; i < 128; i++)
+            try {
+                {
+                    Message msg = new Message("TopicTest",
+                        "TagA",
+                        "OrderID188",
+                        "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
+                    SendResult sendResult = producer.send(msg);
+                    System.out.printf("%s%n", sendResult);
+                }
 
-	        Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
-	        for (MessageQueue mq : mqs) {
-	            System.out.printf("Consume from the queue: %s%n", mq);
-	            SINGLE_MQ:
-	            while (true) {
-	                try {
-	                    PullResult pullResult =
-	                        consumer.pullBlockIfNotFound(mq, null, getMessageQueueOffset(mq), 32);
-	                    System.out.printf("%s%n", pullResult);
-	                    putMessageQueueOffset(mq, pullResult.getNextBeginOffset());
-	                    printBody(pullResult);
-	                    switch (pullResult.getPullStatus()) {
-	                        case FOUND:
-	                            break;
-	                        case NO_MATCHED_MSG:
-	                            break;
-	                        case NO_NEW_MSG:
-	                            break SINGLE_MQ;
-	                        case OFFSET_ILLEGAL:
-	                            break;
-	                        default:
-	                            break;
-	                    }
-	                } catch (Exception e) {
-	                    e.printStackTrace();
-	                }
-	            }
-	        }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
-	        consumer.shutdown();
-	 }
-	 
-	 private static void printBody(PullResult pullResult) {
-		 printBody(pullResult.getMsgFoundList());
-	 }
-	 
-	 private static void printBody(List<MessageExt> msg) {
-		 if(msg == null || msg.size() == 0)
-			 return;
-		 for(MessageExt m : msg) {
-			 if(m != null) {
-				 System.out.printf("msgId : %s  body : %s",m.getMsgId() , new String(m.getBody()));
-				 System.out.println();
-			 }
-		 }
-	 }
-	 
-	 private static long getMessageQueueOffset(MessageQueue mq) {
-	        Long offset = OFFSE_TABLE.get(mq);
-	        if (offset != null)
-	            return offset;
+        producer.shutdown();
+    }
 
-	        return 0;
-	    }
+    public static void pushConsumer() throws MQClientException {
 
-	    private static void putMessageQueueOffset(MessageQueue mq, long offset) {
-	        OFFSE_TABLE.put(mq, offset);
-	    }
-	 
-	 static    RPCHook getAalRPCHook() {
-		 return new AalRPCHook(ALC_RCP_HOOK_ACCOUT, ACL_RCP_HOOK_PASSWORD);
-	 }
-	    
-	    
-	 static class AalRPCHook implements RPCHook{
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_5", getAalRPCHook(), new AllocateMessageQueueAveragely());
+        consumer.setNamesrvAddr("127.0.0.1:9876");
+        consumer.subscribe("TopicTest", "*");
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        //wrong time format 2017_0422_221800
+        consumer.setConsumeTimestamp("20180422221800");
+        consumer.registerMessageListener(new MessageListenerConcurrently() {
 
-		 private String account;
-		 
-		 private String password;
-		 
-		 public AalRPCHook(String account , String password) {
-			this.account = account;
-			this.password = password;
-		}
-		 
-		@Override
-		public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
-			
-			HashMap<String, String> ext = request.getExtFields();
-			if(ext == null) {
-				ext = new HashMap<>();
-				request.setExtFields(ext);
-			}
-			ext.put("account", this.account);
-			ext.put("password", this.password);
-		}
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
+                System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
+                printBody(msgs);
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            }
+        });
+        consumer.start();
+        System.out.printf("Consumer Started.%n");
+    }
 
-		@Override
-		public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
-			// TODO Auto-generated method stub
-			
-		}
-		 
-	 }
+    public static void pullConsumer() throws MQClientException {
+        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer("please_rename_unique_group_name_6", getAalRPCHook());
+        consumer.setNamesrvAddr("127.0.0.1:9876");
+        consumer.start();
+
+        Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
+        for (MessageQueue mq : mqs) {
+            System.out.printf("Consume from the queue: %s%n", mq);
+            SINGLE_MQ:
+            while (true) {
+                try {
+                    PullResult pullResult =
+                        consumer.pullBlockIfNotFound(mq, null, getMessageQueueOffset(mq), 32);
+                    System.out.printf("%s%n", pullResult);
+                    putMessageQueueOffset(mq, pullResult.getNextBeginOffset());
+                    printBody(pullResult);
+                    switch (pullResult.getPullStatus()) {
+                        case FOUND:
+                            break;
+                        case NO_MATCHED_MSG:
+                            break;
+                        case NO_NEW_MSG:
+                            break SINGLE_MQ;
+                        case OFFSET_ILLEGAL:
+                            break;
+                        default:
+                            break;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        consumer.shutdown();
+    }
+
+    private static void printBody(PullResult pullResult) {
+        printBody(pullResult.getMsgFoundList());
+    }
+
+    private static void printBody(List<MessageExt> msg) {
+        if (msg == null || msg.size() == 0)
+            return;
+        for (MessageExt m : msg) {
+            if (m != null) {
+                System.out.printf("msgId : %s  body : %s  \n\r", m.getMsgId(), new String(m.getBody()));
+            }
+        }
+    }
+
+    private static long getMessageQueueOffset(MessageQueue mq) {
+        Long offset = OFFSE_TABLE.get(mq);
+        if (offset != null)
+            return offset;
+
+        return 0;
+    }
+
+    private static void putMessageQueueOffset(MessageQueue mq, long offset) {
+        OFFSE_TABLE.put(mq, offset);
+    }
+
+    static RPCHook getAalRPCHook() {
+        return new AalRPCHook(ACL_RCPHOOK_ACCOUT, ACL_RCPHOOK_PASSWORD);
+    }
+
+    static class AalRPCHook implements RPCHook {
+
+        private String account;
+
+        private String password;
+
+        public AalRPCHook(String account, String password) {
+            this.account = account;
+            this.password = password;
+        }
+
+        @Override
+        public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+
+            HashMap<String, String> ext = request.getExtFields();
+            if (ext == null) {
+                ext = new HashMap<>();
+                request.setExtFields(ext);
+            }
+            ext.put("account", this.account);
+            ext.put("password", this.password);
+        }
+
+        @Override
+        public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
+            // TODO Auto-generated method stub
+
+        }
+
+    }
 }
