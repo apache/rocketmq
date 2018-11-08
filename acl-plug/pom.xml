@@ -19,7 +19,7 @@
         <version>4.4.0-SNAPSHOT</version>
     </parent>
     <artifactId>rocketmq-acl</artifactId>
-    <name>rocketmq-acl-plug ${project.version}</name>
+    <name>rocketmq-acl ${project.version}</name>
 
     <url>http://maven.apache.org</url>
     <properties>
