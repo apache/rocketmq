@@ -38,6 +38,8 @@ import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class CLusterSendMsgRTCommand implements SubCommand {
+    private DefaultMQProducer producer;
+    private DefaultMQAdminExt adminExt;
 
     public static void main(String args[]) {
     }
@@ -78,22 +80,29 @@ public class CLusterSendMsgRTCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("t", "count", true, "loop count | default 10");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
-        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
-
-        DefaultMQProducer producer = new DefaultMQProducer(rpcHook);
+        if (producer == null) {
+            producer = new DefaultMQProducer(rpcHook);
+        }
+        if (adminExt == null) {
+            adminExt = new DefaultMQAdminExt(rpcHook);
+        }
+        adminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         producer.setProducerGroup(Long.toString(System.currentTimeMillis()));
 
         try {
-            defaultMQAdminExt.start();
+            adminExt.start();
             producer.start();
 
-            ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
+            ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
             HashMap<String, Set<String>> clusterAddr = clusterInfoSerializeWrapper
                 .getClusterAddrTable();
 
@@ -107,6 +116,8 @@ public class CLusterSendMsgRTCommand implements SubCommand {
 
             long interval = !commandLine.hasOption('i') ? 10 : Long.parseLong(commandLine
                 .getOptionValue('i').trim());
+            long count = !commandLine.hasOption('t') ? 10 : Long.parseLong(commandLine
+                .getOptionValue('t').trim());
 
             boolean printAsTlog = commandLine.hasOption('p') && Boolean.parseBoolean(commandLine.getOptionValue('p').trim());
 
@@ -131,8 +142,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
             }
 
             Set<String/* brokerName */> set = new HashSet<>();
-
-            while (true) {
+            for (int i = 0; i < count; i++) {
                 for (String clusterName : clusterNames) {
                     Set<String> brokerNames = clusterAddr.get(clusterName);
                     if (brokerNames == null) {
@@ -150,7 +160,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
                         int successCount = 0;
                         int failCount = 0;
 
-                        for (int i = 0; i < amount; i++) {
+                        for (int j = 0; j < amount; j++) {
                             try {
                                 producer.send(msg);
                                 successCount++;
@@ -184,7 +194,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
-            defaultMQAdminExt.shutdown();
+            adminExt.shutdown();
             producer.shutdown();
         }
     }

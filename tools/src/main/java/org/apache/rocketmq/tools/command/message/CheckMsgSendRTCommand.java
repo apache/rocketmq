@@ -35,6 +35,8 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 public class CheckMsgSendRTCommand implements SubCommand {
     private static String brokerName = "";
     private static int queueId = 0;
+    private DefaultMQProducer producer;
+    private DefaultMQAdminExt adminExt;
 
     @Override
     public String commandName() {
@@ -64,12 +66,16 @@ public class CheckMsgSendRTCommand implements SubCommand {
 
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
-        DefaultMQProducer producer = new DefaultMQProducer(rpcHook);
+        if (producer == null) {
+            producer = new DefaultMQProducer(rpcHook);
+        }
         producer.setProducerGroup(Long.toString(System.currentTimeMillis()));
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+        if (adminExt == null) {
+            adminExt = new DefaultMQAdminExt(rpcHook);
+        }
 
         try {
-            defaultMQAdminExt.start();
+            adminExt.start();
             producer.start();
             boolean sendSuccess = false;
             String topic = commandLine.getOptionValue('t').trim();
@@ -79,7 +85,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
                 .getOptionValue('s').trim());
             Message msg = new Message(topic, getStringBySize(msgSize).getBytes(MixAll.DEFAULT_CHARSET));
             //connect to broker
-            TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
+            TopicRouteData topicRouteData = adminExt.examineTopicRouteInfo(topic);
             for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
                 producer.send(new Message(brokerData.getBrokerName(), getStringBySize(msgSize).getBytes(MixAll.DEFAULT_CHARSET)));
             }
@@ -123,7 +129,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
             producer.shutdown();
-            defaultMQAdminExt.shutdown();
+            adminExt.shutdown();
         }
     }
 
