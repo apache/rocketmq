@@ -525,7 +525,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-acl-plug</artifactId>
+                <artifactId>rocketmq-acl</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

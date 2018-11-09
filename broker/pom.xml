@@ -50,7 +50,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>rocketmq-acl-plug</artifactId>
+            <artifactId>rocketmq-acl</artifactId>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>

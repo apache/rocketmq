@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.acl.plug.entity;
 
-public class AccessControl {
+import org.apache.rocketmq.acl.AccessResource;
+
+public class AccessControl implements AccessResource {
 
     private String account;
 
@@ -85,8 +87,8 @@ public class AccessControl {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("AccessControl [account=").append(account).append(", password=").append(password)
-            .append(", netaddress=").append(netaddress).append(", recognition=").append(recognition)
-            .append(", code=").append(code).append(", topic=").append(topic).append("]");
+                .append(", netaddress=").append(netaddress).append(", recognition=").append(recognition)
+                .append(", code=").append(code).append(", topic=").append(topic).append("]");
         return builder.toString();
     }
 

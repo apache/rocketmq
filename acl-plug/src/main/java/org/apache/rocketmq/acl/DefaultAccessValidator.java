@@ -21,11 +21,13 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class DefaultAccessValidator implements AccessValidator {
 
-    @Override public AccessResource parse(RemotingCommand request) {
+    @Override
+    public AccessResource parse(RemotingCommand request, String remoteAddr) {
         return null;
     }
 
-    @Override public void validate(AccessResource accessResource) {
+    @Override
+    public void validate(AccessResource accessResource) {
 
     }
 }

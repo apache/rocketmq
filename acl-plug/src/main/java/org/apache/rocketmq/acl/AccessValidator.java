@@ -22,14 +22,16 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 public interface AccessValidator {
     /**
      * Parse to get the AccessResource(user, resource, needed permission)
+     *
      * @param request
      * @return
      */
-    AccessResource parse(RemotingCommand request);
+    AccessResource parse(RemotingCommand request, String remoteAddr);
 
     /**
      * Validate the access resource.
+     *
      * @param accessResource
      */
-    void validate(AccessResource accessResource) ;
+    void validate(AccessResource accessResource);
 }
