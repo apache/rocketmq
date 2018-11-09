@@ -16,14 +16,15 @@
  */
 package org.apache.rocketmq.acl.plug;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.plug.entity.AccessControl;
+import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
+
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.acl.plug.entity.AccessControl;
-import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
 
 public class AccessContralAnalysis {
 

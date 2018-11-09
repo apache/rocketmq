@@ -14,20 +14,20 @@
 #  limitations under the License.
 
 onlyNetAddress:
-  netaddress: 10.10.103.*
+  netaddress: 192.168.0.*
   noPermitPullTopic:
     - broker-a
 
 list:
   - account: RocketMQ
     password: 1234567
-    netaddress: 192.0.0.*
+    netaddress: 192.168.0.*
     permitSendTopic:
-      - test1
+      - TopicTest
       - test2
   - account: RocketMQ
     password: 1234567
-    netaddress: 192.0.2.1
+    netaddress: 192.168.2.1
     permitSendTopic:
       - test3
       - test4

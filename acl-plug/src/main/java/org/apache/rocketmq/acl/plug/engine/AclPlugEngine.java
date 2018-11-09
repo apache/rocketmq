@@ -31,5 +31,7 @@ public interface AclPlugEngine {
 
     public AuthenticationResult eachCheckLoginAndAuthentication(AccessControl accessControl);
 
+    public AuthenticationResult eachCheckAuthentication(AccessControl accessControl);
+
     public void initialize();
 }

@@ -16,9 +16,11 @@
  */
 package org.apache.rocketmq.acl.plug.engine;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.rocketmq.acl.plug.AccessContralAnalysis;
 import org.apache.rocketmq.acl.plug.Authentication;
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
@@ -37,7 +39,7 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.ACL_PLUG_LOGGER_NAME);
     ControllerParameters controllerParameters;
-    private Map<String/** account **/, Map<String/** netaddress **/, AuthenticationInfo>> accessControlMap = new HashMap<>();
+    private Map<String/** account **/, List<AuthenticationInfo>> accessControlMap = new HashMap<>();
     private AuthenticationInfo authenticationInfo;
     private NetaddressStrategyFactory netaddressStrategyFactory = new NetaddressStrategyFactory();
     private AccessContralAnalysis accessContralAnalysis = new AccessContralAnalysis();
@@ -54,16 +56,16 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
         }
         try {
             NetaddressStrategy netaddressStrategy = netaddressStrategyFactory.getNetaddressStrategy(accessControl);
-            Map<String, AuthenticationInfo> accessControlAddressMap = accessControlMap.get(accessControl.getAccount());
-            if (accessControlAddressMap == null) {
-                accessControlAddressMap = new HashMap<>();
-                accessControlMap.put(accessControl.getAccount(), accessControlAddressMap);
+            List<AuthenticationInfo> accessControlAddressList = accessControlMap.get(accessControl.getAccount());
+            if (accessControlAddressList == null) {
+                accessControlAddressList = new ArrayList<>();
+                accessControlMap.put(accessControl.getAccount(), accessControlAddressList);
             }
             AuthenticationInfo authenticationInfo = new AuthenticationInfo(accessContralAnalysis.analysis(accessControl), accessControl, netaddressStrategy);
-            accessControlAddressMap.put(accessControl.getNetaddress(), authenticationInfo);
+            accessControlAddressList.add(authenticationInfo);
             log.info("authenticationInfo is {}", authenticationInfo.toString());
         } catch (Exception e) {
-            throw new AclPlugRuntimeException(String.format("Exception info %s  %s" ,e.getMessage() , accessControl.toString()), e);
+            throw new AclPlugRuntimeException(String.format("Exception info %s  %s", e.getMessage(), accessControl.toString()), e);
         }
     }
 
@@ -84,24 +86,19 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
     }
 
     public AuthenticationInfo getAccessControl(AccessControl accessControl) {
-        AuthenticationInfo existing = null;
         if (accessControl.getAccount() == null && authenticationInfo != null) {
-            existing = authenticationInfo.getNetaddressStrategy().match(accessControl) ? authenticationInfo : null;
+            return authenticationInfo.getNetaddressStrategy().match(accessControl) ? authenticationInfo : null;
         } else {
-            Map<String, AuthenticationInfo> accessControlAddressMap = accessControlMap.get(accessControl.getAccount());
-            if (accessControlAddressMap != null) {
-                existing = accessControlAddressMap.get(accessControl.getNetaddress());
-                if (existing == null)
-                    return null;
-                if (existing.getAccessControl().getPassword().equals(accessControl.getPassword())) {
-                    if (existing.getNetaddressStrategy().match(accessControl)) {
-                        return existing;
+            List<AuthenticationInfo> accessControlAddressList = accessControlMap.get(accessControl.getAccount());
+            if (accessControlAddressList != null) {
+                for (AuthenticationInfo ai : accessControlAddressList) {
+                    if (ai.getNetaddressStrategy().match(accessControl) && ai.getAccessControl().getPassword().equals(accessControl.getPassword())) {
+                        return ai;
                     }
                 }
-                existing = null;
             }
         }
-        return existing;
+        return null;
     }
 
     @Override
@@ -112,10 +109,26 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
             if (authenticationInfo != null) {
                 boolean boo = authentication.authentication(authenticationInfo, accessControl, authenticationResult);
                 authenticationResult.setSucceed(boo);
+                authenticationResult.setAccessControl(authenticationInfo.getAccessControl());
             }
         } catch (Exception e) {
             authenticationResult.setException(e);
         }
+        return authenticationResult;
+    }
+
+    public AuthenticationResult eachCheckAuthentication(AccessControl accessControl) {
+        AuthenticationResult authenticationResult = new AuthenticationResult();
+        AuthenticationInfo authenticationInfo = getAccessControl(accessControl);
+        if (authenticationInfo != null) {
+            boolean boo = authentication.authentication(authenticationInfo, accessControl, authenticationResult);
+            authenticationResult.setSucceed(boo);
+            authenticationResult.setAccessControl(authenticationInfo.getAccessControl());
+        } else {
+            authenticationResult.setResultString("accessControl is null, Please check login, password, IP\"");
+        }
+
+
         return authenticationResult;
     }
 
@@ -135,5 +148,5 @@ public abstract class AuthenticationInfoManagementAclPlugEngine implements AclPl
     }
 
     protected abstract AuthenticationInfo getAuthenticationInfo(AccessControl accessControl,
-        AuthenticationResult authenticationResult);
+                                                                AuthenticationResult authenticationResult);
 }

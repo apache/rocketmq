@@ -32,7 +32,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.acl.AccessValidator;
-import org.apache.rocketmq.acl.plug.AclPlugController;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -160,7 +159,6 @@ public class BrokerController {
     private TransactionalMessageService transactionalMessageService;
     private AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
 
-    private AclPlugController aclPlugController;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -510,7 +508,7 @@ public class BrokerController {
 
                 @Override
                 public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
-                    validator.validate(validator.parse(request));
+                    validator.validate(validator.parse(request, remoteAddr));
                 }
 
                 @Override
@@ -1095,9 +1093,6 @@ public class BrokerController {
         this.transactionalMessageCheckListener = transactionalMessageCheckListener;
     }
 
-    public AclPlugController getAclPlugController() {
-        return this.aclPlugController;
-    }
 
     public BlockingQueue<Runnable> getEndTransactionThreadPoolQueue() {
         return endTransactionThreadPoolQueue;

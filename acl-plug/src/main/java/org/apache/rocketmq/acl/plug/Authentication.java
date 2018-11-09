@@ -24,7 +24,7 @@ import org.apache.rocketmq.acl.plug.entity.BorkerAccessControl;
 public class Authentication {
 
     public boolean authentication(AuthenticationInfo authenticationInfo,
-        AccessControl accessControl, AuthenticationResult authenticationResult) {
+                                  AccessControl accessControl, AuthenticationResult authenticationResult) {
         int code = accessControl.getCode();
         if (!authenticationInfo.getAuthority().get(code)) {
             authenticationResult.setResultString(String.format("code is %d Authentication failed", code));
