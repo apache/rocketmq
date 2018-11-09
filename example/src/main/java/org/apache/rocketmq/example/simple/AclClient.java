@@ -63,7 +63,7 @@ public class AclClient {
     }
 
     public static void producer() throws MQClientException {
-        DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName", getAalRPCHook());
+        DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName", getAclRPCHook());
         producer.setNamesrvAddr("127.0.0.1:9876");
         producer.start();
 
@@ -87,7 +87,7 @@ public class AclClient {
 
     public static void pushConsumer() throws MQClientException {
 
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_5", getAalRPCHook(), new AllocateMessageQueueAveragely());
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_5", getAclRPCHook(), new AllocateMessageQueueAveragely());
         consumer.setNamesrvAddr("127.0.0.1:9876");
         consumer.subscribe("TopicTest", "*");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
@@ -107,7 +107,7 @@ public class AclClient {
     }
 
     public static void pullConsumer() throws MQClientException {
-        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer("please_rename_unique_group_name_6", getAalRPCHook());
+        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer("please_rename_unique_group_name_6", getAclRPCHook());
         consumer.setNamesrvAddr("127.0.0.1:9876");
         consumer.start();
 
@@ -169,17 +169,17 @@ public class AclClient {
         OFFSE_TABLE.put(mq, offset);
     }
 
-    static RPCHook getAalRPCHook() {
-        return new AalRPCHook(ACL_RCPHOOK_ACCOUT, ACL_RCPHOOK_PASSWORD);
+    static RPCHook getAclRPCHook() {
+        return new AclRPCHook(ACL_RCPHOOK_ACCOUT, ACL_RCPHOOK_PASSWORD);
     }
 
-    static class AalRPCHook implements RPCHook {
+    static class AclRPCHook implements RPCHook {
 
         private String account;
 
         private String password;
 
-        public AalRPCHook(String account, String password) {
+        public AclRPCHook(String account, String password) {
             this.account = account;
             this.password = password;
         }
@@ -198,7 +198,7 @@ public class AclClient {
 
         @Override
         public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
-            // TODO Auto-generated method stub
+            //do nothing
 
         }
 

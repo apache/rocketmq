@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.acl.plug;
 
+import org.apache.rocketmq.acl.PlainAccessValidator;
 import org.apache.rocketmq.acl.plug.engine.AclPlugEngine;
 import org.apache.rocketmq.acl.plug.engine.PlainAclPlugEngine;
 import org.apache.rocketmq.acl.plug.entity.ControllerParameters;
@@ -36,7 +37,7 @@ public class AclPlugController {
             this.controllerParameters = controllerParameters;
             aclPlugEngine = new PlainAclPlugEngine(controllerParameters);
             aclPlugEngine.initialize();
-            aclRemotingService = new DefaultAclRemotingServiceImpl(aclPlugEngine);
+            aclRemotingService = new PlainAccessValidator(aclPlugEngine);
             this.startSucceed = true;
         } catch (Exception e) {
             throw new AclPlugRuntimeException(String.format("Start the abnormal , Launch parameters is %s", this.controllerParameters.toString()), e);

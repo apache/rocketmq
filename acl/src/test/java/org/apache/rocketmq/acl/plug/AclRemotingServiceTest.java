@@ -20,6 +20,7 @@ import java.util.HashMap;
 
 import org.apache.rocketmq.acl.AccessResource;
 import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.acl.PlainAccessValidator;
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
 import org.apache.rocketmq.acl.plug.entity.BorkerAccessControl;
@@ -43,7 +44,7 @@ public class AclRemotingServiceTest {
     @Before
     public void init() {
         System.setProperty("rocketmq.home.dir", "src/test/resources");
-        DefaultAclRemotingServiceImpl aclRemotingServiceImpl = new DefaultAclRemotingServiceImpl();
+        PlainAccessValidator aclRemotingServiceImpl = new PlainAccessValidator();
         defaultAclService = aclRemotingServiceImpl;
         accessValidator = aclRemotingServiceImpl;
 
@@ -64,7 +65,7 @@ public class AclRemotingServiceTest {
     @Test
     public void defaultConstructorTest() {
         System.setProperty("rocketmq.home.dir", "src/test/resources");
-        AclRemotingService defaultAclService = new DefaultAclRemotingServiceImpl();
+        AclRemotingService defaultAclService = new PlainAccessValidator();
         Assert.assertNotNull(defaultAclService);
     }
 

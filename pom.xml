@@ -126,7 +126,7 @@
         <module>distribution</module>
         <module>openmessaging</module>
         <module>logging</module>
-        <module>acl-plug</module>
+        <module>acl</module>
     </modules>
 
     <build>
@@ -587,6 +587,11 @@
                 <groupId>log4j</groupId>
                 <artifactId>log4j</artifactId>
                 <version>1.2.17</version>
+            </dependency>
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>1.19</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>

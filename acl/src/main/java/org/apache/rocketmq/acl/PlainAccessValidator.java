@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.acl.plug;
+package org.apache.rocketmq.acl;
 
 import java.util.HashMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.AccessResource;
 import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.acl.plug.AclRemotingService;
 import org.apache.rocketmq.acl.plug.engine.AclPlugEngine;
 import org.apache.rocketmq.acl.plug.engine.PlainAclPlugEngine;
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
@@ -28,17 +29,17 @@ import org.apache.rocketmq.acl.plug.entity.ControllerParameters;
 import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class DefaultAclRemotingServiceImpl implements AclRemotingService, AccessValidator {
+public class PlainAccessValidator implements AclRemotingService, AccessValidator {
 
     private AclPlugEngine aclPlugEngine;
 
-    public DefaultAclRemotingServiceImpl() {
+    public PlainAccessValidator() {
         ControllerParameters controllerParameters = new ControllerParameters();
         this.aclPlugEngine = new PlainAclPlugEngine(controllerParameters);
         this.aclPlugEngine.initialize();
     }
 
-    public DefaultAclRemotingServiceImpl(AclPlugEngine aclPlugEngine) {
+    public PlainAccessValidator(AclPlugEngine aclPlugEngine) {
         this.aclPlugEngine = aclPlugEngine;
     }
 
