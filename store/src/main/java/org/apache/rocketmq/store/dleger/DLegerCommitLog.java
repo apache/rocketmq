@@ -345,13 +345,13 @@ public class DLegerCommitLog extends CommitLog {
             log.error("Put message error", e);
             appendResult = new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
         } finally {
+            beginTimeInLock = 0;
             putMessageLock.unlock();
         }
 
         if (eclipseTimeInLock > 500) {
             log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", eclipseTimeInLock, msg.getBody().length, appendResult);
         }
-
 
         if (dlegerFuture != null) {
             try {
