@@ -24,7 +24,7 @@ import org.junit.Test;
 
 public class DLegerCommitlogTest extends StoreTestBase {
 
-    private DefaultMessageStore createMessageStore(String base, String selfId, String peers, String leaderId) throws Exception {
+    private DefaultMessageStore createMessageStore(String base, String group, String selfId, String peers, String leaderId) throws Exception {
         baseDirs.add(base);
         MessageStoreConfig storeConfig = new MessageStoreConfig();
         storeConfig.setMapedFileSizeCommitLog(1024 * 100);
@@ -36,7 +36,7 @@ public class DLegerCommitlogTest extends StoreTestBase {
         storeConfig.setFlushDiskType(FlushDiskType.ASYNC_FLUSH);
 
         storeConfig.setEnableDLegerCommitLog(true);
-        storeConfig.setdLegerGroup(UUID.randomUUID().toString());
+        storeConfig.setdLegerGroup(group);
         storeConfig.setdLegerPeers(peers);
         storeConfig.setdLegerSelfId(selfId);
         DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig,  new BrokerStatsManager("DLegerCommitlogTest"), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
@@ -61,7 +61,8 @@ public class DLegerCommitlogTest extends StoreTestBase {
     public void testPutAndGetMessage() throws Exception {
         String base =  createBaseDir();
         String peers = String.format("n0-localhost:%d", nextPort());
-        DefaultMessageStore messageStore = createMessageStore(base, "n0", peers, null);
+        String group = UUID.randomUUID().toString();
+        DefaultMessageStore messageStore = createMessageStore(base, group, "n0", peers, null);
         Thread.sleep(1000);
         String topic = UUID.randomUUID().toString();
 
@@ -100,7 +101,8 @@ public class DLegerCommitlogTest extends StoreTestBase {
     @Test
     public void testCommittedPos() throws Exception {
         String peers = String.format("n0-localhost:%d;n1-localhost:%d", nextPort(), nextPort());
-        DefaultMessageStore leaderStore = createMessageStore(createBaseDir(), "n0", peers, "n0");
+        String group = UUID.randomUUID().toString();
+        DefaultMessageStore leaderStore = createMessageStore(createBaseDir(), group,"n0", peers, "n0");
 
         String topic = UUID.randomUUID().toString();
         MessageExtBrokerInner msgInner =  buildMessage();
@@ -115,7 +117,7 @@ public class DLegerCommitlogTest extends StoreTestBase {
         Assert.assertEquals(0, leaderStore.getMaxOffsetInQueue(topic, 0));
 
 
-        DefaultMessageStore followerStore = createMessageStore(createBaseDir(), "n1", peers, "n0");
+        DefaultMessageStore followerStore = createMessageStore(createBaseDir(), group,"n1", peers, "n0");
         Thread.sleep(2000);
 
         Assert.assertEquals(1, leaderStore.getMaxOffsetInQueue(topic, 0));
