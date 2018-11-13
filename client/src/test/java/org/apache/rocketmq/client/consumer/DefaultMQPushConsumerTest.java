@@ -89,7 +89,7 @@ public class DefaultMQPushConsumerTest {
     @Before
     public void init() throws Exception {
         consumerGroup = "FooBarGroup" + System.currentTimeMillis();
-        pushConsumer = new DefaultMQPushConsumer(consumerGroup);
+        pushConsumer = new DefaultMQPushConsumer(consumerGroup,false);
         pushConsumer.setNamesrvAddr("127.0.0.1:9876");
         pushConsumer.setPullInterval(60 * 1000);
 
@@ -252,7 +252,7 @@ public class DefaultMQPushConsumerTest {
     }
 
     private DefaultMQPushConsumer createPushConsumer() {
-        DefaultMQPushConsumer pushConsumer = new DefaultMQPushConsumer(consumerGroup);
+        DefaultMQPushConsumer pushConsumer = new DefaultMQPushConsumer(consumerGroup,false);
         pushConsumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,

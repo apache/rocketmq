@@ -41,7 +41,7 @@ public class Consumer {
             String subscription = commandLine.getOptionValue('s');
             final String returnFailedHalf = commandLine.getOptionValue('f');
 
-            DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
+            DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group,false);
             consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
             consumer.subscribe(topic, subscription);

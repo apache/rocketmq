@@ -100,7 +100,7 @@ public class Producer {
             }
         }, 10000, 10000);
 
-        final DefaultMQProducer producer = new DefaultMQProducer("benchmark_producer");
+        final DefaultMQProducer producer = new DefaultMQProducer("benchmark_producer",false);
         producer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         if (commandLine.hasOption('n')) {

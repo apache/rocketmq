@@ -39,7 +39,7 @@ public class AbstractTestCase {
 
     @Before
     public void mockLoggerAppender() throws Exception {
-        DefaultMQProducer defaultMQProducer = spy(new DefaultMQProducer("loggerAppender"));
+        DefaultMQProducer defaultMQProducer = spy(new DefaultMQProducer("loggerAppender",false));
         doAnswer(new Answer<Void>() {
             @Override
             public Void answer(InvocationOnMock invocationOnMock) throws Throwable {

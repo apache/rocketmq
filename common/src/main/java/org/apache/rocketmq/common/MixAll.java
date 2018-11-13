@@ -82,7 +82,8 @@ public class MixAll {
     public static final long CURRENT_JVM_PID = getPID();
 
     public static final String RETRY_GROUP_TOPIC_PREFIX = "%RETRY%";
-
+    public static final String TRACE_BROKER_NAME_SUFFIX = "trace";
+    
     public static final String DLQ_GROUP_TOPIC_PREFIX = "%DLQ%";
     public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
     public static final String UNIQUE_MSG_QUERY_FLAG = "_UNIQUE_KEY_QUERY";
@@ -90,6 +91,7 @@ public class MixAll {
     public static final String CONSUME_CONTEXT_TYPE = "ConsumeContextType";
 
     public static final String RMQ_SYS_TRANS_HALF_TOPIC = "RMQ_SYS_TRANS_HALF_TOPIC";
+    public static final String RMQ_SYS_TRACK_TRACE_TOPIC = "RMQ_SYS_TRACK_TRACE_TOPIC";
     public static final String RMQ_SYS_TRANS_OP_HALF_TOPIC = "RMQ_SYS_TRANS_OP_HALF_TOPIC";
     public static final String CID_SYS_RMQ_TRANS = "CID_RMQ_SYS_TRANS";
 
