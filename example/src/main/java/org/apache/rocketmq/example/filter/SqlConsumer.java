@@ -30,7 +30,7 @@ import java.util.List;
 public class SqlConsumer {
 
     public static void main(String[] args) {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4",false);
         try {
             consumer.subscribe("TopicTest",
                 MessageSelector.bySql("(TAGS is not null and TAGS in ('TagA', 'TagB'))" +

@@ -124,6 +124,17 @@ public class TopicConfigManager extends ConfigManager {
             topicConfig.setWriteQueueNums(1);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
+        {
+            // MixAll.RMQ_SYS_TRACK_TRACE_TOPIC
+            if (this.brokerController.getBrokerConfig().isAutoTraceBrokerEnable()) {
+                String topic = MixAll.RMQ_SYS_TRACK_TRACE_TOPIC;
+                TopicConfig topicConfig = new TopicConfig(topic);
+                this.systemTopicList.add(topic);
+                topicConfig.setReadQueueNums(1);
+                topicConfig.setWriteQueueNums(1);
+                this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+            }
+        }
     }
 
     public boolean isSystemTopic(final String topic) {

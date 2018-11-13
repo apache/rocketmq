@@ -18,6 +18,7 @@ package org.apache.rocketmq.client.consumer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
@@ -29,6 +30,12 @@ import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
+import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.client.trace.core.common.TrackTraceConstants;
+import org.apache.rocketmq.client.trace.core.common.TrackTraceDispatcherType;
+import org.apache.rocketmq.client.trace.core.dispatch.AsyncDispatcher;
+import org.apache.rocketmq.client.trace.core.dispatch.impl.AsyncArrayDispatcher;
+import org.apache.rocketmq.client.trace.core.hook.ConsumeMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -36,6 +43,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
@@ -55,6 +63,8 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
  * </p>
  */
 public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsumer {
+
+    private final InternalLogger log = ClientLogger.getLog();
 
     /**
      * Internal implementation. Most of the functions herein are delegated to it.
@@ -247,10 +257,15 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private long consumeTimeout = 15;
 
     /**
+     * Interface of asynchronous transfer data
+     */
+    private AsyncDispatcher traceDispatcher = null;
+
+    /**
      * Default constructor.
      */
     public DefaultMQPushConsumer() {
-        this(MixAll.DEFAULT_CONSUMER_GROUP, null, new AllocateMessageQueueAveragely());
+        this(MixAll.DEFAULT_CONSUMER_GROUP, null, new AllocateMessageQueueAveragely(), false);
     }
 
     /**
@@ -261,10 +276,29 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param allocateMessageQueueStrategy message queue allocating algorithm.
      */
     public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook,
-        AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
+        AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean msgTraceSwitch) {
         this.consumerGroup = consumerGroup;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
+        //if client open the message track trace feature
+        if (msgTraceSwitch) {
+            try {
+                Properties tempProperties = new Properties();
+                tempProperties.put(TrackTraceConstants.MAX_MSG_SIZE, "128000");
+                tempProperties.put(TrackTraceConstants.ASYNC_BUFFER_SIZE, "2048");
+                tempProperties.put(TrackTraceConstants.MAX_BATCH_NUM, "100");
+                tempProperties.put(TrackTraceConstants.INSTANCE_NAME, "PID_CLIENT_INNER_TRACE_PRODUCER");
+                tempProperties.put(TrackTraceConstants.TRACE_DISPATCHER_TYPE, TrackTraceDispatcherType.CONSUMER.name());
+                AsyncArrayDispatcher dispatcher = new AsyncArrayDispatcher(tempProperties);
+                dispatcher.setHostConsumer(this.getDefaultMQPushConsumerImpl());
+                traceDispatcher = dispatcher;
+
+                this.getDefaultMQPushConsumerImpl().registerConsumeMessageHook(
+                    new ConsumeMessageTraceHookImpl(traceDispatcher));
+            } catch (Throwable e) {
+                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+            }
+        }
     }
 
     /**
@@ -273,7 +307,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param rpcHook RPC hook to execute before each remoting command.
      */
     public DefaultMQPushConsumer(RPCHook rpcHook) {
-        this(MixAll.DEFAULT_CONSUMER_GROUP, rpcHook, new AllocateMessageQueueAveragely());
+        this(MixAll.DEFAULT_CONSUMER_GROUP, rpcHook, new AllocateMessageQueueAveragely(),false);
     }
 
     /**
@@ -281,8 +315,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      *
      * @param consumerGroup Consumer group.
      */
-    public DefaultMQPushConsumer(final String consumerGroup) {
-        this(consumerGroup, null, new AllocateMessageQueueAveragely());
+    public DefaultMQPushConsumer(final String consumerGroup, boolean msgTraceSwitch) {
+        this(consumerGroup, null, new AllocateMessageQueueAveragely(),msgTraceSwitch);
     }
 
     @Override
@@ -518,6 +552,15 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Override
     public void start() throws MQClientException {
         this.defaultMQPushConsumerImpl.start();
+        if (null != traceDispatcher) {
+            try {
+                Properties tempProperties = new Properties();
+                tempProperties.put(TrackTraceConstants.NAMESRV_ADDR, this.getNamesrvAddr());
+                traceDispatcher.start(tempProperties);
+            } catch (MQClientException e) {
+                log.warn("trace dispatcher start failed ", e);
+            }
+        }
     }
 
     /**
@@ -526,6 +569,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Override
     public void shutdown() {
         this.defaultMQPushConsumerImpl.shutdown();
+        if (null != traceDispatcher) {
+            traceDispatcher.shutdown();
+        }
     }
 
     @Override
@@ -693,5 +739,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setConsumeTimeout(final long consumeTimeout) {
         this.consumeTimeout = consumeTimeout;
+    }
+
+    public AsyncDispatcher getTraceDispatcher() {
+        return traceDispatcher;
+    }
+
+    public void setTraceDispatcher(AsyncDispatcher traceDispatcher) {
+        this.traceDispatcher = traceDispatcher;
     }
 }

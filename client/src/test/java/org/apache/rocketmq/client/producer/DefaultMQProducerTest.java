@@ -82,7 +82,7 @@ public class DefaultMQProducerTest {
     @Before
     public void init() throws Exception {
         String producerGroupTemp = producerGroupPrefix + System.currentTimeMillis();
-        producer = new DefaultMQProducer(producerGroupTemp);
+        producer = new DefaultMQProducer(producerGroupTemp,false);
         producer.setNamesrvAddr("127.0.0.1:9876");
         producer.setCompressMsgBodyOverHowmuch(16);
         message = new Message(topic, new byte[] {'a'});
@@ -309,7 +309,7 @@ public class DefaultMQProducerTest {
     @Test
     public void testSetCallbackExecutor() throws MQClientException {
         String producerGroupTemp = "testSetCallbackExecutor_" + System.currentTimeMillis();
-        producer = new DefaultMQProducer(producerGroupTemp);
+        producer = new DefaultMQProducer(producerGroupTemp,false);
         producer.setNamesrvAddr("127.0.0.1:9876");
         producer.start();
 

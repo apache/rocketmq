@@ -102,7 +102,7 @@ public class Consumer {
             }
         }, 10000, 10000);
 
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group,false);
         consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         if (filterType == null || expression == null) {

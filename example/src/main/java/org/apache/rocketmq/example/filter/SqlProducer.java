@@ -26,7 +26,7 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 public class SqlProducer {
 
     public static void main(String[] args) {
-        DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
+        DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name",false);
         try {
             producer.start();
         } catch (MQClientException e) {
