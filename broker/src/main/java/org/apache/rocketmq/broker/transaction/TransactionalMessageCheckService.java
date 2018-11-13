@@ -39,7 +39,8 @@ public class TransactionalMessageCheckService extends ServiceThread {
     public void start() {
         if (started.compareAndSet(false, true)) {
             super.start();
-            this.brokerController.getTransactionalMessageService().open();
+            //no need to do this
+            //this.brokerController.getTransactionalMessageService().open();
         }
     }
 
@@ -47,8 +48,9 @@ public class TransactionalMessageCheckService extends ServiceThread {
     public void shutdown(boolean interrupt) {
         if (started.compareAndSet(true, false)) {
             super.shutdown(interrupt);
-            this.brokerController.getTransactionalMessageService().close();
-            this.brokerController.getTransactionalMessageCheckListener().shutDown();
+            //no need to do this
+            //this.brokerController.getTransactionalMessageService().close();
+            //this.brokerController.getTransactionalMessageCheckListener().shutDown();
         }
     }
 
