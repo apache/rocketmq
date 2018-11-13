@@ -366,7 +366,7 @@ public class DLegerCommitLog extends CommitLog {
                         break;
                     case INCONSISTENT_LEADER:
                     case NOT_LEADER:
-                    case NOT_READY:
+                    case LEADER_NOT_READY:
                     case DISK_FULL:
                         putMessageStatus = PutMessageStatus.SERVICE_NOT_AVAILABLE;
                         break;

@@ -1029,7 +1029,7 @@ public class BrokerController {
 
     private void handleSlaveSynchronize(BrokerRole role) {
         if (role == BrokerRole.SLAVE) {
-            if (null != slaveSyncFuture){
+            if (null != slaveSyncFuture) {
                 slaveSyncFuture.cancel(false);
             }
             this.slaveSynchronize.setMasterAddr(null);
@@ -1046,7 +1046,7 @@ public class BrokerController {
             }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
         } else {
             //handle the slave synchronise
-            if (null != slaveSyncFuture){
+            if (null != slaveSyncFuture) {
                 slaveSyncFuture.cancel(false);
             }
             this.slaveSynchronize.setMasterAddr(null);
