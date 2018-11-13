@@ -58,6 +58,8 @@ public class DLegerCommitLog extends CommitLog {
     private final DLegerMmapFileStore dLegerFileStore;
     private final MmapFileList dLegerFileList;
 
+    private final int id;
+
 
 
     private final MessageSerializer messageSerializer;
@@ -71,6 +73,7 @@ public class DLegerCommitLog extends CommitLog {
         dLegerConfig.setGroup(defaultMessageStore.getMessageStoreConfig().getdLegerGroup());
         dLegerConfig.setPeers(defaultMessageStore.getMessageStoreConfig().getdLegerPeers());
         dLegerConfig.setStoreBaseDir(defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
+        id = Integer.valueOf(dLegerConfig.getSelfId().substring(1)) + 1;
         dLegerServer = new DLegerServer(dLegerConfig);
         dLegerFileStore = (DLegerMmapFileStore) dLegerServer.getdLegerStore();
         DLegerMmapFileStore.AppendHook appendHook = (entry, buffer, bodyOffset) -> {
@@ -653,5 +656,9 @@ public class DLegerCommitLog extends CommitLog {
 
     public DLegerServer getdLegerServer() {
         return dLegerServer;
+    }
+
+    public int getId() {
+        return id;
     }
 }

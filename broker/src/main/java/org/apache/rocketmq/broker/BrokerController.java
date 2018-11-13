@@ -784,7 +784,7 @@ public class BrokerController {
         }
 
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
-            changeToSlave();
+            changeToSlave(((DLegerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getId());
         } else {
             startProcessorByHa();
             handleSlaveSynchronize(messageStoreConfig.getBrokerRole());
@@ -1059,9 +1059,9 @@ public class BrokerController {
         }
     }
 
-    public void changeToSlave() {
+    public void changeToSlave(int brokerId) {
         //change the role
-        brokerConfig.setBrokerId(1); //TO DO check
+        brokerConfig.setBrokerId(brokerId == 0 ? 1 : brokerId); //TO DO check
         messageStoreConfig.setBrokerRole(BrokerRole.SLAVE);
 
         //handle the scheduled service
