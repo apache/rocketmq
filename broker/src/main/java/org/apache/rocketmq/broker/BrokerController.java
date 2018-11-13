@@ -783,6 +783,15 @@ public class BrokerController {
             this.filterServerManager.start();
         }
 
+        if (messageStoreConfig.isEnableDLegerCommitLog()) {
+            changeToSlave();
+        } else {
+            startProcessorByHa();
+            handleSlaveSynchronize(messageStoreConfig.getBrokerRole());
+        }
+
+
+
         this.registerBrokerAll(true, false, true);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -805,10 +814,7 @@ public class BrokerController {
             this.brokerFastFailure.start();
         }
 
-        if (!messageStoreConfig.isEnableDLegerCommitLog()) {
-            startProcessorByHa();
-            handleSlaveSynchronize(messageStoreConfig.getBrokerRole());
-        }
+
     }
 
     public synchronized void registerIncrementBrokerData(TopicConfig topicConfig, DataVersion dataVersion) {
