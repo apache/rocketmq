@@ -25,15 +25,18 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.dleger.DLegerCommitLog;
 
 public class DLegerRoleChangeHandler implements DLegerLeaderElector.RoleChangeHandler {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private BrokerController brokerController;
     private DefaultMessageStore messageStore;
+    private DLegerCommitLog dLegerCommitLog;
     public DLegerRoleChangeHandler(BrokerController brokerController, DefaultMessageStore messageStore) {
         this.brokerController = brokerController;
         this.messageStore = messageStore;
+        this.dLegerCommitLog = (DLegerCommitLog) messageStore.getCommitLog();
     }
 
     @Override public void handle(long term, MemberState.Role role) {
@@ -43,11 +46,11 @@ public class DLegerRoleChangeHandler implements DLegerLeaderElector.RoleChangeHa
             switch (role) {
                 case CANDIDATE:
                     if (messageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
-                        brokerController.changeToSlave();
+                        brokerController.changeToSlave(dLegerCommitLog.getId());
                     }
                     break;
                 case FOLLOWER:
-                    brokerController.changeToSlave();
+                    brokerController.changeToSlave(dLegerCommitLog.getId());
                     break;
                 case LEADER:
                     while (messageStore.dispatchBehindBytes() != 0) {
