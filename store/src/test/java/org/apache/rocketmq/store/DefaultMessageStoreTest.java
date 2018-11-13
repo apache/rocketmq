@@ -18,9 +18,12 @@
 package org.apache.rocketmq.store;
 
 import java.io.File;
+import java.io.RandomAccessFile;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.OverlappingFileLockException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,6 +32,7 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.junit.After;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Before;
@@ -169,6 +173,120 @@ public class DefaultMessageStoreTest {
 
         GetMessageResult getMessageResult45 = messageStore.getMessage(group, topic, 0, 0, 10, null);
         assertThat(getMessageResult45.getMessageBufferList().size()).isEqualTo(10);
+    }
+
+    @Test
+    public void testRecover() throws Exception {
+        String topic = "recoverTopic";
+        MessageBody = StoreMessage.getBytes();
+        for (int i = 0; i < 100; i++) {
+            MessageExtBrokerInner messageExtBrokerInner = buildMessage();
+            messageExtBrokerInner.setTopic(topic);
+            messageExtBrokerInner.setQueueId(0);
+            messageStore.putMessage(messageExtBrokerInner);
+        }
+
+        Thread.sleep(100);//wait for build consumer queue
+        long maxPhyOffset = messageStore.getMaxPhyOffset();
+        long maxCqOffset = messageStore.getMaxOffsetInQueue(topic, 0);
+
+        //1.just reboot
+        messageStore.shutdown();
+        messageStore = buildMessageStore();
+        boolean load = messageStore.load();
+        assertTrue(load);
+        messageStore.start();
+        assertTrue(maxPhyOffset == messageStore.getMaxPhyOffset());
+        assertTrue(maxCqOffset == messageStore.getMaxOffsetInQueue(topic, 0));
+
+        //2.damage commitlog and reboot normal
+        for (int i = 0; i < 100; i++) {
+            MessageExtBrokerInner messageExtBrokerInner = buildMessage();
+            messageExtBrokerInner.setTopic(topic);
+            messageExtBrokerInner.setQueueId(0);
+            messageStore.putMessage(messageExtBrokerInner);
+        }
+        Thread.sleep(100);
+        long secondLastPhyOffset = messageStore.getMaxPhyOffset();
+        long secondLastCqOffset = messageStore.getMaxOffsetInQueue(topic, 0);
+
+        MessageExtBrokerInner messageExtBrokerInner = buildMessage();
+        messageExtBrokerInner.setTopic(topic);
+        messageExtBrokerInner.setQueueId(0);
+        messageStore.putMessage(messageExtBrokerInner);
+
+        messageStore.shutdown();
+
+        //damage last message
+        damageCommitlog(secondLastPhyOffset);
+
+        //reboot
+        messageStore = buildMessageStore();
+        load = messageStore.load();
+        assertTrue(load);
+        messageStore.start();
+        assertTrue(secondLastPhyOffset == messageStore.getMaxPhyOffset());
+        assertTrue(secondLastCqOffset == messageStore.getMaxOffsetInQueue(topic, 0));
+
+        //3.damage commitlog and reboot abnormal
+        for (int i = 0; i < 100; i++) {
+            messageExtBrokerInner = buildMessage();
+            messageExtBrokerInner.setTopic(topic);
+            messageExtBrokerInner.setQueueId(0);
+            messageStore.putMessage(messageExtBrokerInner);
+        }
+        Thread.sleep(100);
+        secondLastPhyOffset = messageStore.getMaxPhyOffset();
+        secondLastCqOffset = messageStore.getMaxOffsetInQueue(topic, 0);
+
+        messageExtBrokerInner = buildMessage();
+        messageExtBrokerInner.setTopic(topic);
+        messageExtBrokerInner.setQueueId(0);
+        messageStore.putMessage(messageExtBrokerInner);
+        messageStore.shutdown();
+
+        //damage last message
+        damageCommitlog(secondLastPhyOffset);
+        //add abort file
+        String fileName = StorePathConfigHelper.getAbortFile(((DefaultMessageStore) messageStore).getMessageStoreConfig().getStorePathRootDir());
+        File file = new File(fileName);
+        MappedFile.ensureDirOK(file.getParent());
+        file.createNewFile();
+
+        messageStore = buildMessageStore();
+        load = messageStore.load();
+        assertTrue(load);
+        messageStore.start();
+        assertTrue(secondLastPhyOffset == messageStore.getMaxPhyOffset());
+        assertTrue(secondLastCqOffset == messageStore.getMaxOffsetInQueue(topic, 0));
+
+        //message write again
+        for (int i = 0; i < 100; i++) {
+            messageExtBrokerInner = buildMessage();
+            messageExtBrokerInner.setTopic(topic);
+            messageExtBrokerInner.setQueueId(0);
+            messageStore.putMessage(messageExtBrokerInner);
+        }
+    }
+
+    private void damageCommitlog(long offset) throws Exception {
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        File file = new File(messageStoreConfig.getStorePathCommitLog() + File.separator + "00000000000000000000");
+
+        FileChannel fileChannel = new RandomAccessFile(file, "rw").getChannel();
+        MappedByteBuffer mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, 1024 * 1024 * 10);
+
+        int bodyLen = mappedByteBuffer.getInt((int) offset + 84);
+        int topicLenIndex = (int) offset + 84 + bodyLen + 4;
+        mappedByteBuffer.position(topicLenIndex);
+        mappedByteBuffer.putInt(0);
+        mappedByteBuffer.putInt(0);
+        mappedByteBuffer.putInt(0);
+        mappedByteBuffer.putInt(0);
+
+        mappedByteBuffer.force();
+        fileChannel.force(true);
+        fileChannel.close();
     }
 
     private class MyMessageArrivingListener implements MessageArrivingListener {
