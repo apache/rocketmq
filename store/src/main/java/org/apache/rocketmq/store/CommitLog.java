@@ -60,7 +60,7 @@ public class CommitLog {
     protected HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(1024);
     protected volatile long confirmOffset = -1L;
 
-    protected volatile long beginTimeInLock = 0;
+    private volatile long beginTimeInLock = 0;
     protected final PutMessageLock putMessageLock;
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
