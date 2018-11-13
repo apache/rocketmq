@@ -1060,6 +1060,8 @@ public class BrokerController {
     }
 
     public void changeToSlave(int brokerId) {
+        log.info("Begin to change to slave brokerName={} brokerId={}", brokerConfig.getBrokerName(), brokerId);
+
         //change the role
         brokerConfig.setBrokerId(brokerId == 0 ? 1 : brokerId); //TO DO check
         messageStoreConfig.setBrokerRole(BrokerRole.SLAVE);
@@ -1078,6 +1080,7 @@ public class BrokerController {
         } catch (Throwable ignored) {
 
         }
+        log.info("Finish to change to slave brokerName={} brokerId={}", brokerConfig.getBrokerName(), brokerId);
     }
 
 
@@ -1086,11 +1089,10 @@ public class BrokerController {
         if (role == BrokerRole.SLAVE) {
             return;
         }
+        log.info("Begin to change to master brokerName={}", brokerConfig.getBrokerName());
+
         //handle the slave synchronise
         handleSlaveSynchronize(role);
-        //change the role
-        brokerConfig.setBrokerId(0); //TO DO check
-        messageStoreConfig.setBrokerRole(role);
 
         //handle the scheduled service
         this.messageStore.handleScheduleMessageService(role);
@@ -1098,11 +1100,16 @@ public class BrokerController {
         //handle the transactional service
         this.startProcessorByHa();
 
+        //if the operations above are totally successful, we change to master
+        brokerConfig.setBrokerId(0); //TO DO check
+        messageStoreConfig.setBrokerRole(role);
+
         try {
             this.registerBrokerAll(true, true, brokerConfig.isForceRegister());
         } catch (Throwable ignored) {
 
         }
+        log.info("Finish to change to master brokerName={}", brokerConfig.getBrokerName());
     }
 
     private void startProcessorByHa() {
