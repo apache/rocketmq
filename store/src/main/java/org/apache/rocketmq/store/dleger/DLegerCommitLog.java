@@ -248,14 +248,13 @@ public class DLegerCommitLog extends CommitLog {
     }
 
     public long getConfirmOffset() {
-        return this.confirmOffset;
+        return this.dLegerFileStore.getCommittedPos() == -1 ? getMaxOffset()
+            : this.dLegerFileStore.getCommittedPos();
     }
 
     public void setConfirmOffset(long phyOffset) {
-        this.confirmOffset = phyOffset;
+        log.warn("Should not set confirm offset {} for dleger commitlog", phyOffset);
     }
-
-
 
 
     private void notifyMessageArriving() {
@@ -437,6 +436,8 @@ public class DLegerCommitLog extends CommitLog {
     public long getMinOffset() {
         return dLegerFileList.getMinOffset();
     }
+
+
 
     public SelectMappedBufferResult getMessage(final long offset, final int size) {
         int mappedFileSize = this.dLegerServer.getdLegerConfig().getMappedFileSizeForEntryData();

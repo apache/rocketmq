@@ -227,10 +227,20 @@ public class DefaultMessageStore implements MessageStore {
         this.commitLog.start();
         this.storeStatsService.start();
 
+        //calculate the reput offset from the consume queue itself
+        long maxPhysicalPosInLogicQueue = commitLog.getMinOffset();
+        for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
+            for (ConsumeQueue logic : maps.values()) {
+                if (logic.getMaxPhysicOffset() > maxPhysicalPosInLogicQueue) {
+                    maxPhysicalPosInLogicQueue = logic.getMaxPhysicOffset();
+                }
+            }
+        }
+
         if (this.getMessageStoreConfig().isDuplicationEnable()) {
-            this.reputMessageService.setReputFromOffset(this.commitLog.getConfirmOffset());
+            this.reputMessageService.setReputFromOffset(Math.min(maxPhysicalPosInLogicQueue, this.commitLog.getConfirmOffset()));
         } else {
-            this.reputMessageService.setReputFromOffset(this.commitLog.getMaxOffset());
+            this.reputMessageService.setReputFromOffset(Math.min(maxPhysicalPosInLogicQueue, this.commitLog.getMaxOffset()));
         }
         this.reputMessageService.start();
 
