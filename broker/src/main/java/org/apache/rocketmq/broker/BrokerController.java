@@ -1049,7 +1049,7 @@ public class BrokerController {
                         log.error("ScheduledTask SlaveSynchronize syncAll error.", e);
                     }
                 }
-            }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
+            }, 1000 * 3, 1000 * 3, TimeUnit.MILLISECONDS);
         } else {
             //handle the slave synchronise
             if (null != slaveSyncFuture) {
