@@ -227,14 +227,20 @@ public class DLegerCommitLog extends CommitLog {
         final boolean readBody) {
         try {
             int bodyOffset = DLegerEntry.BODY_OFFSET;
-            byteBuffer.position(byteBuffer.position() + bodyOffset);
-            DispatchRequest dispatchRequest = super.checkMessageAndReturnSize(byteBuffer, checkCRC, readBody);
-            if (dispatchRequest.isSuccess()) {
-                dispatchRequest.setBufferSize(dispatchRequest.getMsgSize() + bodyOffset);
-            } else if (dispatchRequest.getMsgSize() > 0) {
-                dispatchRequest.setBufferSize(dispatchRequest.getMsgSize() + bodyOffset);
+            int pos = byteBuffer.position();
+            int magic =  byteBuffer.getInt();
+            if (magic == MmapFileList.BLANK_MAGIC_CODE) {
+                return new DispatchRequest(0, true);
+            } else {
+                byteBuffer.position(pos + bodyOffset);
+                DispatchRequest dispatchRequest = super.checkMessageAndReturnSize(byteBuffer, checkCRC, readBody);
+                if (dispatchRequest.isSuccess()) {
+                    dispatchRequest.setBufferSize(dispatchRequest.getMsgSize() + bodyOffset);
+                } else if (dispatchRequest.getMsgSize() > 0) {
+                    dispatchRequest.setBufferSize(dispatchRequest.getMsgSize() + bodyOffset);
+                }
+                return dispatchRequest;
             }
-            return  dispatchRequest;
         } catch (Exception e) {
         }
 
