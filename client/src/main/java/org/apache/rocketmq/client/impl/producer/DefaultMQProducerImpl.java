@@ -1127,6 +1127,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             throw new MQClientException("tranExecutor is null", null);
         }
         Validators.checkMessage(msg, this.defaultMQProducer);
+        if (msg.getDelayTimeLevel() > 0) {
+            throw new UnsupportedOperationException("TimeDelayLevel is not supported for transactional message");
+        }
 
         SendResult sendResult = null;
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
