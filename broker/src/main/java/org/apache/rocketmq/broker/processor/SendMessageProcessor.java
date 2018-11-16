@@ -356,6 +356,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                         + "] sending transaction message is forbidden");
                 return response;
             }
+            if (msgInner.getDelayTimeLevel() > 0) {
+                response.setCode(ResponseCode.NO_PERMISSION);
+                response.setRemark(
+                    "delay message is not supported when sending transaction message");
+                return response;
+            }
             putMessageResult = this.brokerController.getTransactionalMessageService().prepareMessage(msgInner);
         } else {
             putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
