@@ -16,245 +16,282 @@
  */
 package org.apache.rocketmq.acl.plug.engine;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
+
+import org.apache.rocketmq.acl.plug.AccessContralAnalysis;
+import org.apache.rocketmq.acl.plug.engine.PlainAclPlugEngine.BorkerAccessControlTransport;
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationInfo;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
 import org.apache.rocketmq.acl.plug.entity.BorkerAccessControl;
-import org.apache.rocketmq.acl.plug.entity.BorkerAccessControlTransport;
-import org.apache.rocketmq.acl.plug.entity.ControllerParameters;
-import org.apache.rocketmq.acl.plug.entity.LoginInfo;
 import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
-import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.acl.plug.strategy.NetaddressStrategyFactory;
+import org.apache.rocketmq.common.protocol.RequestCode;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.internal.util.reflection.FieldSetter;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.yaml.snakeyaml.Yaml;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PlainAclPlugEngineTest {
+	
+	PlainAclPlugEngine plainAclPlugEngine;
 
-    PlainAclPlugEngine plainAclPlugEngine;
+	AccessControl accessControl;
 
-    BorkerAccessControlTransport transport;
+	AccessControl accessControlTwo;
 
-    AccessControl accessControl;
+	AuthenticationInfo authenticationInfo;
 
-    AccessControl accessControlTwo;
+	BorkerAccessControl borkerAccessControl;
 
-    Map<String, LoginInfo> loginInfoMap;
+	@Before
+	public void init() throws NoSuchFieldException, SecurityException, IOException {
 
-    @Before
-    public void init() throws NoSuchFieldException, SecurityException, IOException {
-    	System.setProperty("rocketmq.home.dir", "src/test/resources");
-    	ControllerParameters controllerParametersEntity = new ControllerParameters();
-        Yaml ymal = new Yaml();
-	    transport = ymal.loadAs(new FileInputStream(new File(controllerParametersEntity.getFileHome()+"/conf/transport.yml")), BorkerAccessControlTransport.class);
-        
-	    plainAclPlugEngine = new PlainAclPlugEngine(controllerParametersEntity);
-	    plainAclPlugEngine.initialize();
+		borkerAccessControl = new BorkerAccessControl();
+		// 321
+		borkerAccessControl.setQueryConsumeQueue(false);
 
-        
-        accessControl = new BorkerAccessControl();
-        accessControl.setAccount("rokcetmq");
-        accessControl.setPassword("aliyun11");
-        accessControl.setNetaddress("127.0.0.1");
-        accessControl.setRecognition("127.0.0.1:1");
+		Set<String> permitSendTopic = new HashSet<>();
+		permitSendTopic.add("permitSendTopic");
+		borkerAccessControl.setPermitSendTopic(permitSendTopic);
 
-        accessControlTwo = new BorkerAccessControl();
-        accessControlTwo.setAccount("rokcet1");
-        accessControlTwo.setPassword("aliyun1");
-        accessControlTwo.setNetaddress("127.0.0.1");
-        accessControlTwo.setRecognition("127.0.0.1:2");
+		Set<String> noPermitSendTopic = new HashSet<>();
+		noPermitSendTopic.add("noPermitSendTopic");
+		borkerAccessControl.setNoPermitSendTopic(noPermitSendTopic);
 
-        loginInfoMap = new ConcurrentHashMap<>();
-        FieldSetter.setField(plainAclPlugEngine, plainAclPlugEngine.getClass().getSuperclass().getDeclaredField("loginInfoMap"), loginInfoMap);
+		Set<String> permitPullTopic = new HashSet<>();
+		permitPullTopic.add("permitPullTopic");
+		borkerAccessControl.setPermitPullTopic(permitPullTopic);
 
-    }
+		Set<String> noPermitPullTopic = new HashSet<>();
+		noPermitPullTopic.add("noPermitPullTopic");
+		borkerAccessControl.setNoPermitPullTopic(noPermitPullTopic);
 
-    @Test(expected = AclPlugRuntimeException.class)
-    public void accountNullTest() {
-        accessControl.setAccount(null);
-        plainAclPlugEngine.setAccessControl(accessControl);
-    }
+		AccessContralAnalysis accessContralAnalysis = new AccessContralAnalysis();
+		accessContralAnalysis.analysisClass(RequestCode.class);
+		Map<Integer, Boolean> map = accessContralAnalysis.analysis(borkerAccessControl);
 
-    @Test(expected = AclPlugRuntimeException.class)
-    public void accountThanTest() {
-        accessControl.setAccount("123");
-        plainAclPlugEngine.setAccessControl(accessControl);
-    }
+		authenticationInfo = new AuthenticationInfo(map, borkerAccessControl,NetaddressStrategyFactory.NULL_NET_ADDRESS_STRATEGY);
 
-    @Test(expected = AclPlugRuntimeException.class)
-    public void passWordtNullTest() {
-        accessControl.setAccount(null);
-        plainAclPlugEngine.setAccessControl(accessControl);
-    }
+		System.setProperty("rocketmq.home.dir", "src/test/resources");
+		plainAclPlugEngine = new PlainAclPlugEngine();
+		plainAclPlugEngine.initialize();
 
-    @Test(expected = AclPlugRuntimeException.class)
-    public void passWordThanTest() {
-        accessControl.setAccount("123");
-        plainAclPlugEngine.setAccessControl(accessControl);
-    }
+		accessControl = new BorkerAccessControl();
+		accessControl.setAccount("rokcetmq");
+		accessControl.setPassword("aliyun11");
+		accessControl.setNetaddress("127.0.0.1");
+		accessControl.setRecognition("127.0.0.1:1");
 
-    @Test(expected = AclPlugRuntimeException.class)
-    public void testPlainAclPlugEngineInit() {
-        ControllerParameters controllerParametersEntity = new ControllerParameters();
-        controllerParametersEntity.setFileHome("");
-        new PlainAclPlugEngine(controllerParametersEntity).initialize();
+		accessControlTwo = new BorkerAccessControl();
+		accessControlTwo.setAccount("rokcet1");
+		accessControlTwo.setPassword("aliyun1");
+		accessControlTwo.setNetaddress("127.0.0.1");
+		accessControlTwo.setRecognition("127.0.0.1:2");
 
-    }
+	}
 
-    @Test
-    public void authenticationInfoOfSetAccessControl() {
-        AuthenticationInfoManagementAclPlugEngine aclPlugEngine = (AuthenticationInfoManagementAclPlugEngine) plainAclPlugEngine;
-        aclPlugEngine.setAccessControl(accessControl);
+	@Test(expected = AclPlugRuntimeException.class)
+	public void accountNullTest() {
+		accessControl.setAccount(null);
+		plainAclPlugEngine.setAccessControl(accessControl);
+	}
 
-        AuthenticationInfo authenticationInfo = aclPlugEngine.getAccessControl(accessControl);
+	@Test(expected = AclPlugRuntimeException.class)
+	public void accountThanTest() {
+		accessControl.setAccount("123");
+		plainAclPlugEngine.setAccessControl(accessControl);
+	}
 
-        AccessControl getAccessControl = authenticationInfo.getAccessControl();
-        Assert.assertEquals(accessControl, getAccessControl);
+	@Test(expected = AclPlugRuntimeException.class)
+	public void passWordtNullTest() {
+		accessControl.setAccount(null);
+		plainAclPlugEngine.setAccessControl(accessControl);
+	}
 
-        AccessControl testAccessControl = new AccessControl();
-        testAccessControl.setAccount("rokcetmq");
-        testAccessControl.setPassword("aliyun11");
-        testAccessControl.setNetaddress("127.0.0.1");
-        testAccessControl.setRecognition("127.0.0.1:1");
+	@Test(expected = AclPlugRuntimeException.class)
+	public void passWordThanTest() {
+		accessControl.setAccount("123");
+		plainAclPlugEngine.setAccessControl(accessControl);
+	}
 
-        testAccessControl.setAccount("rokcetmq1");
-        authenticationInfo = aclPlugEngine.getAccessControl(testAccessControl);
-        Assert.assertNull(authenticationInfo);
+	@Test(expected = AclPlugRuntimeException.class)
+	public void testPlainAclPlugEngineInit() {
+		System.setProperty("rocketmq.home.dir", "");
+		new PlainAclPlugEngine().initialize();
+	}
 
-        testAccessControl.setAccount("rokcetmq");
-        testAccessControl.setPassword("1234567");
-        authenticationInfo = aclPlugEngine.getAccessControl(testAccessControl);
-        Assert.assertNull(authenticationInfo);
+	@Test
+	public void authenticationInfoOfSetAccessControl() {
+		plainAclPlugEngine.setAccessControl(accessControl);
 
-        testAccessControl.setNetaddress("127.0.0.2");
-        authenticationInfo = aclPlugEngine.getAccessControl(testAccessControl);
-        Assert.assertNull(authenticationInfo);
-    }
+		AuthenticationInfo authenticationInfo = plainAclPlugEngine.getAccessControl(accessControl);
 
-    @Test
-    public void setAccessControlList() {
-        List<AccessControl> accessControlList = new ArrayList<>();
-        accessControlList.add(accessControl);
+		AccessControl getAccessControl = authenticationInfo.getAccessControl();
+		Assert.assertEquals(accessControl, getAccessControl);
 
-        accessControlList.add(accessControlTwo);
+		AccessControl testAccessControl = new AccessControl();
+		testAccessControl.setAccount("rokcetmq");
+		testAccessControl.setPassword("aliyun11");
+		testAccessControl.setNetaddress("127.0.0.1");
+		testAccessControl.setRecognition("127.0.0.1:1");
 
-        plainAclPlugEngine.setAccessControlList(accessControlList);
+		testAccessControl.setAccount("rokcetmq1");
+		authenticationInfo = plainAclPlugEngine.getAccessControl(testAccessControl);
+		Assert.assertNull(authenticationInfo);
 
-        AuthenticationInfoManagementAclPlugEngine aclPlugEngine = (AuthenticationInfoManagementAclPlugEngine) plainAclPlugEngine;
-        AuthenticationInfo newAccessControl = aclPlugEngine.getAccessControl(accessControl);
-        Assert.assertEquals(accessControl, newAccessControl.getAccessControl());
+		testAccessControl.setAccount("rokcetmq");
+		testAccessControl.setPassword("1234567");
+		authenticationInfo = plainAclPlugEngine.getAccessControl(testAccessControl);
+		Assert.assertNull(authenticationInfo);
 
-        newAccessControl = aclPlugEngine.getAccessControl(accessControlTwo);
-        Assert.assertEquals(accessControlTwo, newAccessControl.getAccessControl());
+		testAccessControl.setNetaddress("127.0.0.2");
+		authenticationInfo = plainAclPlugEngine.getAccessControl(testAccessControl);
+		Assert.assertNull(authenticationInfo);
+	}
 
-    }
+	@Test
+	public void setAccessControlList() {
+		List<AccessControl> accessControlList = new ArrayList<>();
+		accessControlList.add(accessControl);
 
-    @Test
-    public void setNetaddressAccessControl() {
-        AuthenticationInfoManagementAclPlugEngine aclPlugEngine = (AuthenticationInfoManagementAclPlugEngine) plainAclPlugEngine;
-        AccessControl accessControl = new BorkerAccessControl();
-        accessControl.setAccount("RocketMQ");
-        accessControl.setPassword("RocketMQ");
-        accessControl.setNetaddress("127.0.0.1");
-        aclPlugEngine.setAccessControl(accessControl);
-        aclPlugEngine.setNetaddressAccessControl(accessControl);
+		accessControlList.add(accessControlTwo);
 
-        AuthenticationInfo authenticationInfo = aclPlugEngine.getAccessControl(accessControl);
+		plainAclPlugEngine.setAccessControlList(accessControlList);
 
-        AccessControl getAccessControl = authenticationInfo.getAccessControl();
-        Assert.assertEquals(accessControl, getAccessControl);
+		AuthenticationInfo newAccessControl = plainAclPlugEngine.getAccessControl(accessControl);
+		Assert.assertEquals(accessControl, newAccessControl.getAccessControl());
 
-        accessControl.setNetaddress("127.0.0.2");
-        authenticationInfo = aclPlugEngine.getAccessControl(accessControl);
-        Assert.assertNull(authenticationInfo);
-    }
+		newAccessControl = plainAclPlugEngine.getAccessControl(accessControlTwo);
+		Assert.assertEquals(accessControlTwo, newAccessControl.getAccessControl());
 
-    public void eachCheckLoginAndAuthentication() {
+	}
 
-    }
+	@Test
+	public void setNetaddressAccessControl() {
+		AccessControl accessControl = new BorkerAccessControl();
+		accessControl.setAccount("RocketMQ");
+		accessControl.setPassword("RocketMQ");
+		accessControl.setNetaddress("127.0.0.1");
+		plainAclPlugEngine.setAccessControl(accessControl);
+		plainAclPlugEngine.setNetaddressAccessControl(accessControl);
 
-    @Test(expected = AclPlugRuntimeException.class)
-    public void borkerAccessControlTransportTestNull() {
-        plainAclPlugEngine.setBorkerAccessControlTransport(new BorkerAccessControlTransport());
-    }
+		AuthenticationInfo authenticationInfo = plainAclPlugEngine.getAccessControl(accessControl);
 
-    @Test
-    public void borkerAccessControlTransportTest() {
-        BorkerAccessControlTransport borkerAccessControlTransprt = new BorkerAccessControlTransport();
-        borkerAccessControlTransprt.setOnlyNetAddress((BorkerAccessControl) this.accessControl);
-        List<BorkerAccessControl> list = new ArrayList<>();
-        list.add((BorkerAccessControl) this.accessControlTwo);
-        borkerAccessControlTransprt.setList(list);
-        plainAclPlugEngine.setBorkerAccessControlTransport(borkerAccessControlTransprt);
+		AccessControl getAccessControl = authenticationInfo.getAccessControl();
+		Assert.assertEquals(accessControl, getAccessControl);
 
-        AuthenticationInfoManagementAclPlugEngine aclPlugEngine = (AuthenticationInfoManagementAclPlugEngine) plainAclPlugEngine;
-        AccessControl accessControl = new BorkerAccessControl();
-        accessControl.setAccount("RocketMQ");
-        accessControl.setPassword("RocketMQ");
-        accessControl.setNetaddress("127.0.0.1");
-        aclPlugEngine.setAccessControl(accessControl);
-        AuthenticationInfo authenticationInfo = aclPlugEngine.getAccessControl(accessControl);
-        Assert.assertNotNull(authenticationInfo.getAccessControl());
+		accessControl.setNetaddress("127.0.0.2");
+		authenticationInfo = plainAclPlugEngine.getAccessControl(accessControl);
+		Assert.assertNull(authenticationInfo);
+	}
 
-        authenticationInfo = aclPlugEngine.getAccessControl(accessControlTwo);
-        Assert.assertEquals(accessControlTwo, authenticationInfo.getAccessControl());
+	public void eachCheckLoginAndAuthentication() {
 
-    }
+	}
 
-    @Test
-    public void getLoginInfo() {
-        plainAclPlugEngine.setAccessControl(accessControl);
-        LoginInfo loginInfo = plainAclPlugEngine.getLoginInfo(accessControl);
-        Assert.assertNotNull(loginInfo);
+	@Test(expected = AclPlugRuntimeException.class)
+	public void borkerAccessControlTransportTestNull() {
+		BorkerAccessControlTransport accessControlTransport = new BorkerAccessControlTransport();
+		plainAclPlugEngine.setBorkerAccessControlTransport(accessControlTransport);
+	}
 
-        loginInfo = plainAclPlugEngine.getLoginInfo(accessControlTwo);
-        Assert.assertNull(loginInfo);
+	@Test
+	public void borkerAccessControlTransportTest() {
+		BorkerAccessControlTransport accessControlTransport = new BorkerAccessControlTransport();
+		List<BorkerAccessControl> list = new ArrayList<>();
+		list.add((BorkerAccessControl) this.accessControlTwo);
+		accessControlTransport.setOnlyNetAddress((BorkerAccessControl) this.accessControl);
+		accessControlTransport.setList(list);
+		plainAclPlugEngine.setBorkerAccessControlTransport(accessControlTransport);
 
-    }
+		AccessControl accessControl = new BorkerAccessControl();
+		accessControl.setAccount("RocketMQ");
+		accessControl.setPassword("RocketMQ");
+		accessControl.setNetaddress("127.0.0.1");
+		plainAclPlugEngine.setAccessControl(accessControl);
+		AuthenticationInfo authenticationInfo = plainAclPlugEngine.getAccessControl(accessControl);
+		Assert.assertNotNull(authenticationInfo.getAccessControl());
 
-    @Test
-    public void deleteLoginInfo() {
-        plainAclPlugEngine.setAccessControl(accessControl);
-        plainAclPlugEngine.getLoginInfo(accessControl);
+		authenticationInfo = plainAclPlugEngine.getAccessControl(accessControlTwo);
+		Assert.assertEquals(accessControlTwo, authenticationInfo.getAccessControl());
 
-        LoginInfo loginInfo = loginInfoMap.get(accessControl.getRecognition());
-        Assert.assertNotNull(loginInfo);
+	}
 
-        plainAclPlugEngine.deleteLoginInfo(accessControl.getRecognition());
+	@Test
+	public void authenticationTest() {
+		AuthenticationResult authenticationResult = new AuthenticationResult();
+		accessControl.setCode(317);
 
-        loginInfo = loginInfoMap.get(accessControl.getRecognition());
-        Assert.assertNull(loginInfo);
-    }
+		boolean isReturn = plainAclPlugEngine.authentication(authenticationInfo, accessControl, authenticationResult);
+		Assert.assertTrue(isReturn);
 
-    @Test
-    public void getAuthenticationInfo() {
-        AccessControl newAccessControl = new AccessControl();
-        newAccessControl.setAccount("rokcetmq");
-        newAccessControl.setPassword("aliyun11");
-        newAccessControl.setNetaddress("127.0.0.1");
-        newAccessControl.setRecognition("127.0.0.1:1");
+		accessControl.setCode(321);
+		isReturn = plainAclPlugEngine.authentication(authenticationInfo, accessControl, authenticationResult);
+		Assert.assertFalse(isReturn);
 
-        AuthenticationResult authenticationResult = new AuthenticationResult();
-        plainAclPlugEngine.getAuthenticationInfo(newAccessControl, authenticationResult);
-        Assert.assertEquals("Login information does not exist, Please check login, password, IP", authenticationResult.getResultString());
+		accessControl.setCode(10);
+		accessControl.setTopic("permitSendTopic");
+		isReturn = plainAclPlugEngine.authentication(authenticationInfo, accessControl, authenticationResult);
+		Assert.assertTrue(isReturn);
 
-        plainAclPlugEngine.setAccessControl(accessControl);
-        AuthenticationInfo authenticationInfo = plainAclPlugEngine.getAuthenticationInfo(newAccessControl, authenticationResult);
-        Assert.assertNotNull(authenticationInfo);
+		accessControl.setCode(310);
+		isReturn = plainAclPlugEngine.authentication(authenticationInfo, accessControl, authenticationResult);
+		Assert.assertTrue(isReturn);
 
-    }
+		accessControl.setCode(320);
+		isReturn = plainAclPlugEngine.authentication(authenticationInfo, accessControl, authenticationResult);
+		Assert.assertTrue(isReturn);
+
+		accessControl.setTopic("noPermitSendTopic");
+		isReturn = plainAclPlugEngine.authentication(authenticationInfo, accessControl, authenticationResult);
+		Assert.assertFalse(isReturn);
+
+		accessControl.setTopic("nopermitSendTopic");
+		isReturn = plainAclPlugEngine.authentication(authenticationInfo, accessControl, authenticationResult);
+		Assert.assertFalse(isReturn);
+
+		accessControl.setCode(11);
+		accessControl.setTopic("permitPullTopic");
+		isReturn = plainAclPlugEngine.authentication(authenticationInfo, accessControl, authenticationResult);
+		Assert.assertTrue(isReturn);
+
+		accessControl.setTopic("noPermitPullTopic");
+		isReturn = plainAclPlugEngine.authentication(authenticationInfo, accessControl, authenticationResult);
+		Assert.assertFalse(isReturn);
+
+		accessControl.setTopic("nopermitPullTopic");
+		isReturn = plainAclPlugEngine.authentication(authenticationInfo, accessControl, authenticationResult);
+		Assert.assertFalse(isReturn);
+
+	}
+
+	@Test
+	public void isEmptyTest() {
+		AuthenticationResult authenticationResult = new AuthenticationResult();
+		accessControl.setCode(10);
+		accessControl.setTopic("absentTopic");
+		boolean isReturn = plainAclPlugEngine.authentication(authenticationInfo, accessControl, authenticationResult);
+		Assert.assertFalse(isReturn);
+
+		Set<String> permitSendTopic = new HashSet<>();
+		borkerAccessControl.setPermitSendTopic(permitSendTopic);
+		isReturn = plainAclPlugEngine.authentication(authenticationInfo, accessControl, authenticationResult);
+		Assert.assertTrue(isReturn);
+
+		accessControl.setCode(11);
+		isReturn = plainAclPlugEngine.authentication(authenticationInfo, accessControl, authenticationResult);
+		Assert.assertFalse(isReturn);
+
+		borkerAccessControl.setPermitPullTopic(permitSendTopic);
+		isReturn = plainAclPlugEngine.authentication(authenticationInfo, accessControl, authenticationResult);
+		Assert.assertTrue(isReturn);
+	}
 }
