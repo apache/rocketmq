@@ -17,42 +17,21 @@
 package org.apache.rocketmq.acl;
 
 import java.util.HashMap;
+
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.acl.AccessResource;
-import org.apache.rocketmq.acl.AccessValidator;
-import org.apache.rocketmq.acl.plug.AclRemotingService;
-import org.apache.rocketmq.acl.plug.engine.AclPlugEngine;
 import org.apache.rocketmq.acl.plug.engine.PlainAclPlugEngine;
 import org.apache.rocketmq.acl.plug.entity.AccessControl;
 import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
-import org.apache.rocketmq.acl.plug.entity.ControllerParameters;
 import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class PlainAccessValidator implements AclRemotingService, AccessValidator {
+public class PlainAccessValidator implements  AccessValidator {
 
-    private AclPlugEngine aclPlugEngine;
+	
+    private PlainAclPlugEngine aclPlugEngine;
 
     public PlainAccessValidator() {
-        ControllerParameters controllerParameters = new ControllerParameters();
-        this.aclPlugEngine = new PlainAclPlugEngine(controllerParameters);
-        this.aclPlugEngine.initialize();
-    }
-
-    public PlainAccessValidator(AclPlugEngine aclPlugEngine) {
-        this.aclPlugEngine = aclPlugEngine;
-    }
-
-    @Override
-    public AuthenticationResult check(AccessControl accessControl) {
-        AuthenticationResult authenticationResult = aclPlugEngine.eachCheckLoginAndAuthentication(accessControl);
-        if (authenticationResult.getException() != null) {
-            throw new AclPlugRuntimeException(String.format("eachCheck the inspection appear exception, accessControl data is %s", accessControl.toString()), authenticationResult.getException());
-        }
-        if (authenticationResult.getAccessControl() == null || !authenticationResult.isSucceed()) {
-            throw new AclPlugRuntimeException(String.format("%s accessControl data is %s", authenticationResult.getResultString(), accessControl.toString()));
-        }
-        return authenticationResult;
+    	aclPlugEngine = new PlainAclPlugEngine();
     }
 
     @Override

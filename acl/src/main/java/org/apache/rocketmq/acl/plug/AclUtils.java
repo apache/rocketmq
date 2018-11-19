@@ -16,8 +16,13 @@
  */
 package org.apache.rocketmq.acl.plug;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
+import org.yaml.snakeyaml.Yaml;
 
 public class AclUtils {
 
@@ -78,5 +83,25 @@ public class AclUtils {
     public static boolean isMinus(String minus) {
         return minus.indexOf('-') > -1;
 
+    }
+    
+    
+    public static  <T> T getYamlDataObject(String path ,Class<T> clazz) {
+    	Yaml ymal = new Yaml();
+		FileInputStream fis = null;
+		try {
+			fis = new FileInputStream(new File(path));
+			return ymal.loadAs(fis, clazz);
+		} catch (Exception e) {
+			throw new AclPlugRuntimeException(String.format("The transport.yml file for Plain mode was not found , paths %s", path), e);
+		} finally {
+			if (fis != null) {
+				try {
+					fis.close();
+				} catch (IOException e) {
+					throw new AclPlugRuntimeException("close transport fileInputStream Exception", e);
+				}
+			}
+		}
     }
 }
