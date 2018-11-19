@@ -117,7 +117,11 @@ public class DLegerCommitLog extends CommitLog {
     }
 
     public long getMaxOffset() {
-        return this.dLegerFileList.getMaxWrotePosition();
+        if (this.dLegerFileStore.getCommittedPos() != -1) {
+            return dLegerFileStore.getCommittedPos();
+        } else {
+            return this.dLegerFileList.getMaxWrotePosition();
+        }
     }
 
     public long remainHowManyDataToCommit() {
