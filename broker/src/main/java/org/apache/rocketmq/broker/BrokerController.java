@@ -786,7 +786,7 @@ public class BrokerController {
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
             changeToSlave(((DLegerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getId());
         } else {
-            startProcessorByHa();
+            startProcessorByHa(messageStoreConfig.getBrokerRole());
             handleSlaveSynchronize(messageStoreConfig.getBrokerRole());
         }
 
@@ -1049,7 +1049,7 @@ public class BrokerController {
                         log.error("ScheduledTask SlaveSynchronize syncAll error.", e);
                     }
                 }
-            }, 1000 * 3, 1000 * 3, TimeUnit.MILLISECONDS);
+            }, 1000 * 3, 1000 * 10, TimeUnit.MILLISECONDS);
         } else {
             //handle the slave synchronise
             if (null != slaveSyncFuture) {
@@ -1098,7 +1098,7 @@ public class BrokerController {
         this.messageStore.handleScheduleMessageService(role);
 
         //handle the transactional service
-        this.startProcessorByHa();
+        this.startProcessorByHa(BrokerRole.SYNC_MASTER);
 
         //if the operations above are totally successful, we change to master
         brokerConfig.setBrokerId(0); //TO DO check
@@ -1112,8 +1112,8 @@ public class BrokerController {
         log.info("Finish to change to master brokerName={}", brokerConfig.getBrokerName());
     }
 
-    private void startProcessorByHa() {
-        if (BrokerRole.SLAVE != messageStoreConfig.getBrokerRole()) {
+    private void startProcessorByHa(BrokerRole role) {
+        if (BrokerRole.SLAVE != role) {
             if (this.transactionalMessageCheckService != null) {
                 this.transactionalMessageCheckService.start();
             }
