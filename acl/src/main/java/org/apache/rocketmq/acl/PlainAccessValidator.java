@@ -17,21 +17,19 @@
 package org.apache.rocketmq.acl;
 
 import java.util.HashMap;
-
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.acl.plug.engine.PlainAclPlugEngine;
-import org.apache.rocketmq.acl.plug.entity.AccessControl;
-import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
-import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
+import org.apache.rocketmq.acl.plug.AccessControl;
+import org.apache.rocketmq.acl.plug.AclPlugRuntimeException;
+import org.apache.rocketmq.acl.plug.AuthenticationResult;
+import org.apache.rocketmq.acl.plug.PlainAclPlugEngine;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class PlainAccessValidator implements  AccessValidator {
+public class PlainAccessValidator implements AccessValidator {
 
-	
     private PlainAclPlugEngine aclPlugEngine;
 
     public PlainAccessValidator() {
-    	aclPlugEngine = new PlainAclPlugEngine();
+        aclPlugEngine = new PlainAclPlugEngine();
     }
 
     @Override

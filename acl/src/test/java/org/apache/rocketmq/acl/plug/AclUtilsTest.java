@@ -18,11 +18,9 @@ package org.apache.rocketmq.acl.plug;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
-
 
 public class AclUtilsTest {
 
@@ -124,5 +122,9 @@ public class AclUtilsTest {
 
         isMinus = AclUtils.isMinus("*");
         Assert.assertFalse(isMinus);
+    }
+
+    public void getYamlDataObjectTest() {
+
     }
 }
