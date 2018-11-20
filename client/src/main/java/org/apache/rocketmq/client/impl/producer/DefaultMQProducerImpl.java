@@ -184,11 +184,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     private void checkConfig() throws MQClientException {
-        Validators.checkGroup(this.defaultMQProducer.getProducerGroup());
-
-        if (null == this.defaultMQProducer.getProducerGroup()) {
-            throw new MQClientException("producerGroup is null", null);
+        if (UtilAll.isBlank(this.defaultMQProducer.getProducerGroup())) {
+            throw new MQClientException("producerGroup is null or empty", null);
         }
+
+        Validators.checkGroup(this.defaultMQProducer.getProducerGroup());
 
         if (this.defaultMQProducer.getProducerGroup().equals(MixAll.DEFAULT_PRODUCER_GROUP)) {
             throw new MQClientException("producerGroup can not equal " + MixAll.DEFAULT_PRODUCER_GROUP + ", please specify another one.",

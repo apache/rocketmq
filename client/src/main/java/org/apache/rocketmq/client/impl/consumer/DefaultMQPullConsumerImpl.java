@@ -601,7 +601,14 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
     private void checkConfig() throws MQClientException {
-        // check consumerGroup
+        // consumerGroup
+        if (UtilAll.isBlank(this.defaultMQPullConsumer.getConsumerGroup())) {
+            throw new MQClientException(
+                "consumerGroup is null or empty"
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL),
+                null);
+        }
+       // check consumerGroup
         Validators.checkGroup(this.defaultMQPullConsumer.getConsumerGroup());
 
         // consumerGroup
