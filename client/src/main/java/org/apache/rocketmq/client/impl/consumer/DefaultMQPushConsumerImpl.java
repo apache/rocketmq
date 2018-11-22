@@ -268,7 +268,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     pullRequest.setLockedFirst(true);
                     pullRequest.setNextOffset(offset);
                 }
-            } else {
+            } else if (MessageModel.CLUSTERING.equals(this.messageModel())) {
                 this.executePullRequestLater(pullRequest, PULL_TIME_DELAY_MILLS_WHEN_EXCEPTION);
                 log.info("pull message later because not locked in broker, {}", pullRequest);
                 return;
