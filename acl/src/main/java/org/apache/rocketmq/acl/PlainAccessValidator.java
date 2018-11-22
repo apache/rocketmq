@@ -49,16 +49,17 @@ public class PlainAccessValidator implements AccessValidator {
 
     @Override
     public void validate(AccessResource accessResource) {
+    	AuthenticationResult authenticationResult = null;
         try {
-            AuthenticationResult authenticationResult = aclPlugEngine.eachCheckAuthentication((AccessControl) accessResource);
-            if (authenticationResult.getException() != null) {
-                throw new AclPlugRuntimeException(String.format("eachCheck the inspection appear exception, accessControl data is %s", accessResource.toString()), authenticationResult.getException());
-            }
-            if (authenticationResult.getAccessControl() == null || !authenticationResult.isSucceed()) {
-                throw new AclPlugRuntimeException(String.format("%s accessControl data is %s", authenticationResult.getResultString(), accessResource.toString()));
-            }
+             authenticationResult = aclPlugEngine.eachCheckAuthentication((AccessControl) accessResource);
         } catch (Exception e) {
             throw new AclPlugRuntimeException(String.format("validate exception AccessResource data %s", accessResource.toString()), e);
+        }
+        if (authenticationResult.getException() != null) {
+            throw new AclPlugRuntimeException(String.format("eachCheck the inspection appear exception, accessControl data is %s", accessResource.toString()), authenticationResult.getException());
+        }
+        if (authenticationResult.getAccessControl() == null || !authenticationResult.isSucceed()) {
+            throw new AclPlugRuntimeException(String.format("%s accessControl data is %s", authenticationResult.getResultString(), accessResource.toString()));
         }
     }
 
