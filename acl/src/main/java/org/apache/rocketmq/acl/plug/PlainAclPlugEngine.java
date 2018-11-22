@@ -56,6 +56,7 @@ public class PlainAclPlugEngine {
         if (accessControlTransport == null) {
             throw new AclPlugRuntimeException("transport.yml file  is no data");
         }
+        log.info("BorkerAccessControlTransport data is : ", accessControlTransport.toString());
         accessContralAnalysis.analysisClass(accessContralAnalysisClass);
         setBorkerAccessControlTransport(accessControlTransport);
     }
