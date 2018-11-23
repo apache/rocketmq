@@ -16,16 +16,21 @@
  */
 package org.apache.rocketmq.tools.command;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
-import ch.qos.logback.core.joran.spi.JoranException;
-
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -75,6 +80,10 @@ import org.apache.rocketmq.tools.command.topic.UpdateOrderConfCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicPermSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.core.joran.spi.JoranException;
 
 public class MQAdminStartup {
     protected static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
@@ -129,7 +138,7 @@ public class MQAdminStartup {
                             System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, namesrvAddr);
                         }
 
-                        cmd.execute(commandLine, options, rpcHook);
+                        cmd.execute(commandLine, options, getAclRPCHook(commandLine));
                     } else {
                         System.out.printf("The sub command %s not exist.%n", args[0]);
                     }
@@ -211,7 +220,7 @@ public class MQAdminStartup {
 
     private static void printHelp() {
         System.out.printf("The most commonly used mqadmin commands are:%n");
-
+        System.out.println("ROCKETMQ_HOME Add tools.properties to the %ROCKETMQ_HOME%/conf/ directory or add -account xxxx -password xxxx Join when executing a command");
         for (SubCommand cmd : subCommandList) {
             System.out.printf("   %-20s %s%n", cmd.commandName(), cmd.commandDesc());
         }
@@ -242,5 +251,64 @@ public class MQAdminStartup {
 
     public static void initCommand(SubCommand command) {
         subCommandList.add(command);
+    }
+    
+    public static RPCHook 	getAclRPCHook(CommandLine commandLine) {
+    	String account=null ,password = null;
+    	if(commandLine.hasOption("account")) {
+    		account = commandLine.getOptionValue("account");
+    		password = commandLine.getOptionValue("password");
+    	}else {
+	    	String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+	    	File file = new File(fileHome+"/conf/tools.properties");
+	    	if(!file.exists()) {
+	    		System.out.println("no find tools.properties ,  , Execution may fail without account andd password");
+	    		System.out.println("ROCKETMQ_HOME Add tools.properties to the %ROCKETMQ_HOME%/conf/ directory or add -account xxxx -password xxxx Join when executing a command");
+	    		return null;
+	    	}
+	    	InputStream in=null;
+			try {
+				in = new BufferedInputStream(new FileInputStream(file));
+				Properties properties = new Properties();
+				properties.load(in);
+				account = properties.getProperty("account");
+	    		password = properties.getProperty("password");
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}finally {
+				if(in != null) {
+					try {
+						in.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+        }
+    	if(StringUtils.isNotBlank(account) && StringUtils.isNotBlank(password) ) {
+    		final String newAccount = account;
+    		final String newPassword = password;
+    		return new RPCHook() {
+				
+				@Override
+				public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+					HashMap<String, String> ext = request.getExtFields();
+		            if (ext == null) {
+		                ext = new HashMap<>();
+		                request.setExtFields(ext);
+		            }
+		            ext.put("account", newAccount);
+		            ext.put("password", newPassword);
+				}
+				
+				@Override
+				public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {}
+			};
+    	}
+    	System.out.println("account andd password data incorrectness , Execution may fail without account andd password");
+    	System.out.println("ROCKETMQ_HOME Add tools.properties to the %ROCKETMQ_HOME%/conf/ directory or add -account xxxx -password xxxx Join when executing a command");
+    	return null;
     }
 }

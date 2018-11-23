@@ -16,7 +16,15 @@
  */
 package org.apache.rocketmq.acl.plug;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -25,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -49,6 +58,7 @@ public class PlainAclPlugEngine {
 
     public PlainAclPlugEngine() {
         initialize();
+        watch();
     }
 
     public void initialize() {
@@ -59,6 +69,54 @@ public class PlainAclPlugEngine {
         log.info("BorkerAccessControlTransport data is : ", accessControlTransport.toString());
         accessContralAnalysis.analysisClass(accessContralAnalysisClass);
         setBorkerAccessControlTransport(accessControlTransport);
+    }
+
+    private void watch() {
+        String version = System.getProperty("java.version");
+        log.info("java.version is : {}", version);
+        String[] str = StringUtils.split(version, ".");
+        if (Integer.valueOf(str[1]) < 7) {
+            log.warn("wacth need jdk 1.7 support , current version no support");
+            return;
+        }
+        try {
+            final WatchService watcher = FileSystems.getDefault().newWatchService();
+            Path p = Paths.get(fileHome + "/conf/");
+            p.register(watcher, StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_CREATE);
+            ServiceThread watcherServcie = new ServiceThread() {
+
+                public void run() {
+                    while (true) {
+                        try {
+                            while (true) {
+                                WatchKey watchKey = watcher.take();
+                                List<WatchEvent<?>> watchEvents = watchKey.pollEvents();
+                                for (WatchEvent<?> event : watchEvents) {
+                                    if ("transport.yml".equals(event.context().toString()) &&
+                                        (StandardWatchEventKinds.ENTRY_MODIFY.equals(event.kind()) || StandardWatchEventKinds.ENTRY_CREATE.equals(event.kind()))) {
+                                        log.info("transprot.yml make a difference  change is : ", event.toString());
+                                        initialize();
+                                    }
+                                }
+                                watchKey.reset();
+                            }
+                        } catch (InterruptedException e) {
+                            log.error(e.getMessage(), e);
+                        }
+                    }
+                }
+
+                @Override
+                public String getServiceName() {
+                    return "watcherServcie";
+                }
+
+            };
+            watcherServcie.start();
+            log.info("succeed start watcherServcie");
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
+        }
     }
 
     public void setAccessControl(AccessControl accessControl) throws AclPlugRuntimeException {
