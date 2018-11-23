@@ -275,6 +275,7 @@ public class DLegerCommitLog extends CommitLog {
         return beginTimeInDlegerLock;
     }
 
+    @Override
     public PutMessageResult putMessage(final MessageExtBrokerInner msg) {
         // Set the storage time
         msg.setStoreTimestamp(System.currentTimeMillis());
@@ -415,6 +416,7 @@ public class DLegerCommitLog extends CommitLog {
 
     }
 
+    @Override
     public PutMessageResult putMessages(final MessageExtBatch messageExtBatch) {
         return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
     }
