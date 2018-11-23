@@ -37,6 +37,16 @@ public class ServerUtil {
         opt.setRequired(false);
         options.addOption(opt);
 
+        
+        opt = new Option("account", "account", true, "acl want the  parameters");
+        opt.setRequired(false);
+        options.addOption(opt);
+        
+        opt = new Option("password", "password", true, "acl want the  parameters");
+        opt.setRequired(false);
+        options.addOption(opt);
+        
+        
         return options;
     }
 

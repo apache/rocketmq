@@ -35,6 +35,7 @@ public class PlainAccessValidator implements AccessValidator {
     @Override
     public AccessResource parse(RemotingCommand request, String remoteAddr) {
         HashMap<String, String> extFields = request.getExtFields();
+        int code = request.getCode();
         AccessControl accessControl = new AccessControl();
         accessControl.setCode(request.getCode());
         accessControl.setRecognition(remoteAddr);
@@ -42,23 +43,30 @@ public class PlainAccessValidator implements AccessValidator {
         if (extFields != null) {
             accessControl.setAccount(extFields.get("account"));
             accessControl.setPassword(extFields.get("password"));
-            accessControl.setTopic(extFields.get("topic"));
+            if (code == 310 || code == 320) {
+                accessControl.setTopic(extFields.get("b"));
+            } else {
+                accessControl.setTopic(extFields.get("topic"));
+
+            }
         }
         return accessControl;
     }
 
     @Override
     public void validate(AccessResource accessResource) {
-    	AuthenticationResult authenticationResult = null;
+        AuthenticationResult authenticationResult = null;
         try {
-             authenticationResult = aclPlugEngine.eachCheckAuthentication((AccessControl) accessResource);
+            authenticationResult = aclPlugEngine.eachCheckAuthentication((AccessControl) accessResource);
+            if (authenticationResult.isSucceed())
+                return;
         } catch (Exception e) {
             throw new AclPlugRuntimeException(String.format("validate exception AccessResource data %s", accessResource.toString()), e);
         }
         if (authenticationResult.getException() != null) {
             throw new AclPlugRuntimeException(String.format("eachCheck the inspection appear exception, accessControl data is %s", accessResource.toString()), authenticationResult.getException());
         }
-        if (authenticationResult.getAccessControl() == null || !authenticationResult.isSucceed()) {
+        if (authenticationResult.getAccessControl() != null || !authenticationResult.isSucceed()) {
             throw new AclPlugRuntimeException(String.format("%s accessControl data is %s", authenticationResult.getResultString(), accessResource.toString()));
         }
     }
