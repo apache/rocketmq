@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.apache.rocketmq.acl.plug.PlainAclPlugEngine.AccessContralAnalysis;
-import org.apache.rocketmq.acl.plug.PlainAclPlugEngine.BorkerAccessControlTransport;
+import org.apache.rocketmq.acl.plug.PlainAclPlugEngine.BrokerAccessControlTransport;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.junit.Assert;
 import org.junit.Before;
@@ -46,50 +46,49 @@ public class PlainAclPlugEngineTest {
 
     AuthenticationInfo authenticationInfo;
 
-    BorkerAccessControl borkerAccessControl;
+    BrokerAccessControl BrokerAccessControl;
 
     @Before
     public void init() throws NoSuchFieldException, SecurityException, IOException {
 
         accessContralAnalysis.analysisClass(RequestCode.class);
 
-        borkerAccessControl = new BorkerAccessControl();
+        BrokerAccessControl = new BrokerAccessControl();
         // 321
-        borkerAccessControl.setQueryConsumeQueue(false);
+        BrokerAccessControl.setQueryConsumeQueue(false);
 
         Set<String> permitSendTopic = new HashSet<>();
         permitSendTopic.add("permitSendTopic");
-        borkerAccessControl.setPermitSendTopic(permitSendTopic);
+        BrokerAccessControl.setPermitSendTopic(permitSendTopic);
 
         Set<String> noPermitSendTopic = new HashSet<>();
         noPermitSendTopic.add("noPermitSendTopic");
-        borkerAccessControl.setNoPermitSendTopic(noPermitSendTopic);
+        BrokerAccessControl.setNoPermitSendTopic(noPermitSendTopic);
 
         Set<String> permitPullTopic = new HashSet<>();
         permitPullTopic.add("permitPullTopic");
-        borkerAccessControl.setPermitPullTopic(permitPullTopic);
+        BrokerAccessControl.setPermitPullTopic(permitPullTopic);
 
         Set<String> noPermitPullTopic = new HashSet<>();
         noPermitPullTopic.add("noPermitPullTopic");
-        borkerAccessControl.setNoPermitPullTopic(noPermitPullTopic);
+        BrokerAccessControl.setNoPermitPullTopic(noPermitPullTopic);
 
         AccessContralAnalysis accessContralAnalysis = new AccessContralAnalysis();
         accessContralAnalysis.analysisClass(RequestCode.class);
-        Map<Integer, Boolean> map = accessContralAnalysis.analysis(borkerAccessControl);
+        Map<Integer, Boolean> map = accessContralAnalysis.analysis(BrokerAccessControl);
 
-        authenticationInfo = new AuthenticationInfo(map, borkerAccessControl, NetaddressStrategyFactory.NULL_NET_ADDRESS_STRATEGY);
+        authenticationInfo = new AuthenticationInfo(map, BrokerAccessControl, NetaddressStrategyFactory.NULL_NET_ADDRESS_STRATEGY);
 
         System.setProperty("rocketmq.home.dir", "src/test/resources");
         plainAclPlugEngine = new PlainAclPlugEngine();
-        plainAclPlugEngine.initialize();
 
-        accessControl = new BorkerAccessControl();
+        accessControl = new BrokerAccessControl();
         accessControl.setAccount("rokcetmq");
         accessControl.setPassword("aliyun11");
         accessControl.setNetaddress("127.0.0.1");
         accessControl.setRecognition("127.0.0.1:1");
 
-        accessControlTwo = new BorkerAccessControl();
+        accessControlTwo = new BrokerAccessControl();
         accessControlTwo.setAccount("rokcet1");
         accessControlTwo.setPassword("aliyun1");
         accessControlTwo.setNetaddress("127.0.0.1");
@@ -175,7 +174,7 @@ public class PlainAclPlugEngineTest {
 
     @Test
     public void setNetaddressAccessControl() {
-        AccessControl accessControl = new BorkerAccessControl();
+        AccessControl accessControl = new BrokerAccessControl();
         accessControl.setAccount("RocketMQ");
         accessControl.setPassword("RocketMQ");
         accessControl.setNetaddress("127.0.0.1");
@@ -197,21 +196,21 @@ public class PlainAclPlugEngineTest {
     }
 
     @Test(expected = AclPlugRuntimeException.class)
-    public void borkerAccessControlTransportTestNull() {
-        BorkerAccessControlTransport accessControlTransport = new BorkerAccessControlTransport();
-        plainAclPlugEngine.setBorkerAccessControlTransport(accessControlTransport);
+    public void BrokerAccessControlTransportTestNull() {
+        BrokerAccessControlTransport accessControlTransport = new BrokerAccessControlTransport();
+        plainAclPlugEngine.setBrokerAccessControlTransport(accessControlTransport);
     }
 
     @Test
-    public void borkerAccessControlTransportTest() {
-        BorkerAccessControlTransport accessControlTransport = new BorkerAccessControlTransport();
-        List<BorkerAccessControl> list = new ArrayList<>();
-        list.add((BorkerAccessControl) this.accessControlTwo);
-        accessControlTransport.setOnlyNetAddress((BorkerAccessControl) this.accessControl);
+    public void BrokerAccessControlTransportTest() {
+        BrokerAccessControlTransport accessControlTransport = new BrokerAccessControlTransport();
+        List<BrokerAccessControl> list = new ArrayList<>();
+        list.add((BrokerAccessControl) this.accessControlTwo);
+        accessControlTransport.setOnlyNetAddress((BrokerAccessControl) this.accessControl);
         accessControlTransport.setList(list);
-        plainAclPlugEngine.setBorkerAccessControlTransport(accessControlTransport);
+        plainAclPlugEngine.setBrokerAccessControlTransport(accessControlTransport);
 
-        AccessControl accessControl = new BorkerAccessControl();
+        AccessControl accessControl = new BrokerAccessControl();
         accessControl.setAccount("RocketMQ");
         accessControl.setPassword("RocketMQ");
         accessControl.setNetaddress("127.0.0.1");
@@ -281,7 +280,7 @@ public class PlainAclPlugEngineTest {
         Assert.assertFalse(isReturn);
 
         Set<String> permitSendTopic = new HashSet<>();
-        borkerAccessControl.setPermitSendTopic(permitSendTopic);
+        BrokerAccessControl.setPermitSendTopic(permitSendTopic);
         isReturn = plainAclPlugEngine.authentication(authenticationInfo, accessControl, authenticationResult);
         Assert.assertTrue(isReturn);
 
@@ -289,14 +288,14 @@ public class PlainAclPlugEngineTest {
         isReturn = plainAclPlugEngine.authentication(authenticationInfo, accessControl, authenticationResult);
         Assert.assertFalse(isReturn);
 
-        borkerAccessControl.setPermitPullTopic(permitSendTopic);
+        BrokerAccessControl.setPermitPullTopic(permitSendTopic);
         isReturn = plainAclPlugEngine.authentication(authenticationInfo, accessControl, authenticationResult);
         Assert.assertTrue(isReturn);
     }
 
     @Test
     public void analysisTest() {
-        BorkerAccessControl accessControl = new BorkerAccessControl();
+        BrokerAccessControl accessControl = new BrokerAccessControl();
         accessControl.setSendMessage(false);
         Map<Integer, Boolean> map = accessContralAnalysis.analysis(accessControl);
 

@@ -62,13 +62,13 @@ public class PlainAclPlugEngine {
     }
 
     public void initialize() {
-        BorkerAccessControlTransport accessControlTransport = AclUtils.getYamlDataObject(fileHome + "/conf/transport.yml", BorkerAccessControlTransport.class);
+        BrokerAccessControlTransport accessControlTransport = AclUtils.getYamlDataObject(fileHome + "/conf/transport.yml", BrokerAccessControlTransport.class);
         if (accessControlTransport == null) {
             throw new AclPlugRuntimeException("transport.yml file  is no data");
         }
         log.info("BorkerAccessControlTransport data is : ", accessControlTransport.toString());
         accessContralAnalysis.analysisClass(accessContralAnalysisClass);
-        setBorkerAccessControlTransport(accessControlTransport);
+        setBrokerAccessControlTransport(accessControlTransport);
     }
 
     private void watch() {
@@ -188,7 +188,7 @@ public class PlainAclPlugEngine {
         return authenticationResult;
     }
 
-    void setBorkerAccessControlTransport(BorkerAccessControlTransport transport) {
+    void setBrokerAccessControlTransport(BrokerAccessControlTransport transport) {
         if (transport.getOnlyNetAddress() == null && (transport.getList() == null || transport.getList().size() == 0)) {
             throw new AclPlugRuntimeException("onlyNetAddress and list  can't be all empty");
         }
@@ -197,7 +197,14 @@ public class PlainAclPlugEngine {
             this.setNetaddressAccessControl(transport.getOnlyNetAddress());
         }
         if (transport.getList() != null || transport.getList().size() > 0) {
-            for (AccessControl accessControl : transport.getList()) {
+            for (BrokerAccessControl accessControl : transport.getList()) {
+                if (accessControl.isAdmin()) {
+                    accessControl.setUpdateAndCreateSubscriptiongroup(true);
+                    accessControl.setDeleteSubscriptiongroup(true);
+                    accessControl.setUpdateAndCreateTopic(true);
+                    accessControl.setDeleteTopicInbroker(true);
+                    accessControl.setUpdateBrokerConfig(true);
+                }
                 this.setAccessControl(accessControl);
             }
         }
@@ -210,10 +217,10 @@ public class PlainAclPlugEngine {
             authenticationResult.setResultString(String.format("code is %d Authentication failed", code));
             return false;
         }
-        if (!(authenticationInfo.getAccessControl() instanceof BorkerAccessControl)) {
+        if (!(authenticationInfo.getAccessControl() instanceof BrokerAccessControl)) {
             return true;
         }
-        BorkerAccessControl borker = (BorkerAccessControl) authenticationInfo.getAccessControl();
+        BrokerAccessControl borker = (BrokerAccessControl) authenticationInfo.getAccessControl();
         String topicName = accessControl.getTopic();
         if (code == 10 || code == 310 || code == 320) {
             if (borker.getPermitSendTopic().contains(topicName)) {
@@ -264,6 +271,8 @@ public class PlainAclPlugEngine {
                 codeAndField = new HashMap<>();
                 Field[] fields = clazz.getDeclaredFields();
                 for (Field field : fields) {
+                    if ("admin".equals(field.getName()))
+                        continue;
                     if (!field.getType().equals(boolean.class))
                         continue;
                     Integer code = fieldNameAndCode.get(field.getName().toLowerCase());
@@ -297,25 +306,25 @@ public class PlainAclPlugEngine {
 
     }
 
-    public static class BorkerAccessControlTransport {
+    public static class BrokerAccessControlTransport {
 
-        private BorkerAccessControl onlyNetAddress;
+        private BrokerAccessControl onlyNetAddress;
 
-        private List<BorkerAccessControl> list;
+        private List<BrokerAccessControl> list;
 
-        public BorkerAccessControl getOnlyNetAddress() {
+        public BrokerAccessControl getOnlyNetAddress() {
             return onlyNetAddress;
         }
 
-        public void setOnlyNetAddress(BorkerAccessControl onlyNetAddress) {
+        public void setOnlyNetAddress(BrokerAccessControl onlyNetAddress) {
             this.onlyNetAddress = onlyNetAddress;
         }
 
-        public List<BorkerAccessControl> getList() {
+        public List<BrokerAccessControl> getList() {
             return list;
         }
 
-        public void setList(List<BorkerAccessControl> list) {
+        public void setList(List<BrokerAccessControl> list) {
             this.list = list;
         }
 
