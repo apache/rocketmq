@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.store.dleger;
 
-import org.apache.rocketmq.dleger.store.file.SelectMmapBufferResult;
+import io.openmessaging.storage.dleger.store.file.SelectMmapBufferResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 
 public class DLegerSelectMappedBufferResult extends SelectMappedBufferResult {

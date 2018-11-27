@@ -29,8 +29,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-dleger</artifactId>
+            <groupId>io.openmessaging.storage</groupId>
+            <artifactId>dleger</artifactId>
             <version>0.1-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
