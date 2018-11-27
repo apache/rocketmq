@@ -252,7 +252,7 @@ public class MQAdminStartup {
         String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
         File file = new File(fileHome + "/conf/tools.yml");
         if (!file.exists()) {
-        	System.out.printf("file %s is not exist" , file.getPath());
+            System.out.printf("file %s is not exist \n", file.getPath());
             return null;
         }
         Yaml ymal = new Yaml();
@@ -273,7 +273,7 @@ public class MQAdminStartup {
             }
         }
         if (map == null || map.isEmpty()) {
-        	System.out.printf("file %s is no data" , file.getPath());
+            System.out.printf("file %s is no data", file.getPath());
             return null;
         }
 
@@ -282,15 +282,15 @@ public class MQAdminStartup {
 
             @Override
             public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
-            	System.out.printf("remoteAddr is %s code %d \n" , remoteAddr , request.getCode() );
-            	String fastRemoteAddr = null;
-            	if(remoteAddr != null) {
-            		String[] ipAndPost = StringUtils.split(remoteAddr, ":");
-            		Integer fastPost = (Integer.valueOf(ipAndPost[1])+2);
-            		fastRemoteAddr = ipAndPost[0] + ":" + fastPost.toString();
-            	}
+                System.out.printf("remoteAddr is %s code %d \n", remoteAddr, request.getCode());
+                String fastRemoteAddr = null;
+                if (remoteAddr != null) {
+                    String[] ipAndPost = StringUtils.split(remoteAddr, ":");
+                    Integer fastPost = Integer.valueOf(ipAndPost[1]) + 2;
+                    fastRemoteAddr = ipAndPost[0] + ":" + fastPost.toString();
+                }
                 Map<String, Object> map;
-                if ((map = newMap.get(remoteAddr)) != null ||(map = newMap.get(fastRemoteAddr)) != null || (map = newMap.get("all")) != null) {
+                if ((map = newMap.get(remoteAddr)) != null || (map = newMap.get(fastRemoteAddr)) != null || (map = newMap.get("all")) != null) {
                     HashMap<String, String> ext = request.getExtFields();
                     if (ext == null) {
                         ext = new HashMap<>();
@@ -299,7 +299,7 @@ public class MQAdminStartup {
                     ext.put("account", map.get("account").toString());
                     ext.put("password", map.get("password").toString());
                 }
-               
+
             }
 
             @Override
