@@ -56,6 +56,8 @@ public class PlainAclPlugEngine {
 
     private Class<?> accessContralAnalysisClass = RequestCode.class;
 
+    private boolean isWatchStart;
+
     public PlainAclPlugEngine() {
         initialize();
         watch();
@@ -95,6 +97,7 @@ public class PlainAclPlugEngine {
                                     if ("transport.yml".equals(event.context().toString()) &&
                                         (StandardWatchEventKinds.ENTRY_MODIFY.equals(event.kind()) || StandardWatchEventKinds.ENTRY_CREATE.equals(event.kind()))) {
                                         log.info("transprot.yml make a difference  change is : ", event.toString());
+                                        PlainAclPlugEngine.this.cleanAuthenticationInfo();
                                         initialize();
                                     }
                                 }
@@ -114,9 +117,28 @@ public class PlainAclPlugEngine {
             };
             watcherServcie.start();
             log.info("succeed start watcherServcie");
+            this.isWatchStart = true;
         } catch (IOException e) {
             log.error(e.getMessage(), e);
         }
+    }
+
+    private void handleAccessControl(AccessControl accessControl) {
+        if (accessControl instanceof BrokerAccessControl) {
+            BrokerAccessControl brokerAccessControl = (BrokerAccessControl) accessControl;
+            if (brokerAccessControl.isAdmin()) {
+                brokerAccessControl.setUpdateAndCreateSubscriptiongroup(true);
+                brokerAccessControl.setDeleteSubscriptiongroup(true);
+                brokerAccessControl.setUpdateAndCreateTopic(true);
+                brokerAccessControl.setDeleteTopicInbroker(true);
+                brokerAccessControl.setUpdateBrokerConfig(true);
+            }
+        }
+    }
+
+    void cleanAuthenticationInfo() {
+        accessControlMap.clear();
+        authenticationInfo = null;
     }
 
     public void setAccessControl(AccessControl accessControl) throws AclPlugRuntimeException {
@@ -127,6 +149,7 @@ public class PlainAclPlugEngine {
                 accessControl.getAccount(), accessControl.getPassword()));
         }
         try {
+            handleAccessControl(accessControl);
             NetaddressStrategy netaddressStrategy = netaddressStrategyFactory.getNetaddressStrategy(accessControl);
             List<AuthenticationInfo> accessControlAddressList = accessControlMap.get(accessControl.getAccount());
             if (accessControlAddressList == null) {
@@ -198,13 +221,6 @@ public class PlainAclPlugEngine {
         }
         if (transport.getList() != null || transport.getList().size() > 0) {
             for (BrokerAccessControl accessControl : transport.getList()) {
-                if (accessControl.isAdmin()) {
-                    accessControl.setUpdateAndCreateSubscriptiongroup(true);
-                    accessControl.setDeleteSubscriptiongroup(true);
-                    accessControl.setUpdateAndCreateTopic(true);
-                    accessControl.setDeleteTopicInbroker(true);
-                    accessControl.setUpdateBrokerConfig(true);
-                }
                 this.setAccessControl(accessControl);
             }
         }
@@ -242,6 +258,10 @@ public class PlainAclPlugEngine {
             return borker.getPermitPullTopic().isEmpty() ? true : false;
         }
         return true;
+    }
+
+    public boolean isWatchStart() {
+        return isWatchStart;
     }
 
     public static class AccessContralAnalysis {
