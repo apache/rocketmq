@@ -259,6 +259,11 @@
                         <exclude>src/test/resources/META-INF/service/*</exclude>
                         <exclude>*/target/**</exclude>
                         <exclude>*/*.iml</exclude>
+                        <exclude>**/*.md</exclude>
+                        <exclude>**/*.yml</exclude>
+                        <exclude>**/*.key</exclude>
+                        <exclude>**/service/org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener</exclude>
+                        <exclude>**/service/org.apache.rocketmq.broker.transaction.TransactionalMessageService</exclude>
                     </excludes>
                 </configuration>
             </plugin>
