@@ -14,7 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.example.quickstart;
+
+package org.apache.rocketmq.example.tracemessage;
 
 import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -25,58 +26,22 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 
-/**
- * This example shows how to subscribe and consume messages using providing {@link DefaultMQPushConsumer}.
- */
-public class Consumer {
-
+public class TracePushConsumer {
     public static void main(String[] args) throws InterruptedException, MQClientException {
-
-        /*
-         * Instantiate with specified consumer group name.
-         */
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
-
-        /*
-         * Specify name server addresses.
-         * <p/>
-         *
-         * Alternatively, you may specify name server addresses via exporting environmental variable: NAMESRV_ADDR
-         * <pre>
-         * {@code
-         * consumer.setNamesrvAddr("name-server1-ip:9876;name-server2-ip:9876");
-         * }
-         * </pre>
-         */
-
-        /*
-         * Specify where to start in case the specified consumer group is a brand new one.
-         */
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-
-        /*
-         * Subscribe one more more topics to consume.
-         */
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1",true);
         consumer.subscribe("TopicTest", "*");
-
-        /*
-         *  Register callback to execute on arrival of messages fetched from brokers.
-         */
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        //wrong time format 2017_0422_221800
+        consumer.setConsumeTimestamp("20181109221800");
         consumer.registerMessageListener(new MessageListenerConcurrently() {
 
             @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeConcurrentlyContext context) {
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
                 System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
-
-        /*
-         *  Launch the consumer instance.
-         */
         consumer.start();
-
         System.out.printf("Consumer Started.%n");
     }
 }

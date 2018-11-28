@@ -265,7 +265,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Default constructor.
      */
     public DefaultMQPushConsumer() {
-        this(MixAll.DEFAULT_CONSUMER_GROUP, null, new AllocateMessageQueueAveragely(), false);
+        this(MixAll.DEFAULT_CONSUMER_GROUP, null, new AllocateMessageQueueAveragely());
     }
 
     /**
@@ -276,11 +276,25 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param allocateMessageQueueStrategy message queue allocating algorithm.
      */
     public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook,
+        AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
+        this.consumerGroup = consumerGroup;
+        this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
+        defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
+    }
+
+    /**
+     * Constructor specifying consumer group, RPC hook and message queue allocating algorithm.
+     *
+     * @param consumerGroup Consume queue.
+     * @param rpcHook RPC hook to execute before each remoting command.
+     * @param allocateMessageQueueStrategy message queue allocating algorithm.
+     * @param msgTraceSwitch switch flag instance for message track trace.
+     */
+    public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean msgTraceSwitch) {
         this.consumerGroup = consumerGroup;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
-        //if client open the message track trace feature
         if (msgTraceSwitch) {
             try {
                 Properties tempProperties = new Properties();
@@ -307,7 +321,17 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param rpcHook RPC hook to execute before each remoting command.
      */
     public DefaultMQPushConsumer(RPCHook rpcHook) {
-        this(MixAll.DEFAULT_CONSUMER_GROUP, rpcHook, new AllocateMessageQueueAveragely(),false);
+        this(MixAll.DEFAULT_CONSUMER_GROUP, rpcHook, new AllocateMessageQueueAveragely());
+    }
+
+    /**
+     * Constructor specifying consumer group.
+     *
+     * @param consumerGroup Consumer group.
+     * @param msgTraceSwitch switch flag instance for message track trace.
+     */
+    public DefaultMQPushConsumer(final String consumerGroup, boolean msgTraceSwitch) {
+        this(consumerGroup, null, new AllocateMessageQueueAveragely(), msgTraceSwitch);
     }
 
     /**
@@ -315,8 +339,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      *
      * @param consumerGroup Consumer group.
      */
-    public DefaultMQPushConsumer(final String consumerGroup, boolean msgTraceSwitch) {
-        this(consumerGroup, null, new AllocateMessageQueueAveragely(),msgTraceSwitch);
+    public DefaultMQPushConsumer(final String consumerGroup) {
+        this(consumerGroup, null, new AllocateMessageQueueAveragely());
     }
 
     @Override

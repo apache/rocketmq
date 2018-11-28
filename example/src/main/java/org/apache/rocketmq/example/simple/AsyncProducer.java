@@ -30,7 +30,7 @@ public class AsyncProducer {
     public static void main(
         String[] args) throws MQClientException, InterruptedException, UnsupportedEncodingException {
 
-        DefaultMQProducer producer = new DefaultMQProducer("Jodie_Daily_test",false);
+        DefaultMQProducer producer = new DefaultMQProducer("Jodie_Daily_test");
         producer.start();
         producer.setRetryTimesWhenSendAsyncFailed(0);
 

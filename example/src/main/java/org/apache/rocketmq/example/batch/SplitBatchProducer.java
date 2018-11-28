@@ -28,7 +28,7 @@ public class SplitBatchProducer {
 
     public static void main(String[] args) throws Exception {
 
-        DefaultMQProducer producer = new DefaultMQProducer("BatchProducerGroupName",false);
+        DefaultMQProducer producer = new DefaultMQProducer("BatchProducerGroupName");
         producer.start();
 
         //large batch

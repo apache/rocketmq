@@ -146,7 +146,18 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      *
      * @param producerGroup Producer group, see the name-sake field.
      * @param rpcHook RPC hook to execute per each remoting command execution.
-     * @param msgTraceSwitch switch flag instance for message track trace
+     */
+    public DefaultMQProducer(final String producerGroup, RPCHook rpcHook) {
+        this.producerGroup = producerGroup;
+        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
+    }
+
+    /**
+     * Constructor specifying both producer group and RPC hook.
+     *
+     * @param producerGroup Producer group, see the name-sake field.
+     * @param rpcHook RPC hook to execute per each remoting command execution.
+     * @param msgTraceSwitch switch flag instance for message track trace.
      */
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean msgTraceSwitch) {
         this.producerGroup = producerGroup;
@@ -177,8 +188,18 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      *
      * @param producerGroup Producer group, see the name-sake field.
      */
+    public DefaultMQProducer(final String producerGroup) {
+        this(producerGroup, null);
+    }
+
+    /**
+     * Constructor specifying producer group.
+     *
+     * @param producerGroup Producer group, see the name-sake field.
+     * @param msgTraceSwitch switch flag instance for message track trace.
+     */
     public DefaultMQProducer(final String producerGroup, boolean msgTraceSwitch) {
-        this(producerGroup, null,msgTraceSwitch);
+        this(producerGroup, null, msgTraceSwitch);
     }
 
     /**
@@ -187,7 +208,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @param rpcHook RPC hook to execute per each remoting command execution.
      */
     public DefaultMQProducer(RPCHook rpcHook) {
-        this(MixAll.DEFAULT_PRODUCER_GROUP, rpcHook,false);
+        this(MixAll.DEFAULT_PRODUCER_GROUP, rpcHook);
     }
 
     /**

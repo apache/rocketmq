@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.client.trace.core.common;
 
-/**
- * Created by zongtanghu on 2018/11/6.
- */
 public enum TrackTraceType {
     Pub,
     SubBefore,
