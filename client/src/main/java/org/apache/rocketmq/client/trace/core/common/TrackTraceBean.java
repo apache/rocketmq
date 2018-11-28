@@ -16,11 +16,11 @@
  */
 package org.apache.rocketmq.client.trace.core.common;
 
-import org.apache.rocketmq.client.trace.core.Utils.TrackTraceUtils;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageType;
 
 public class TrackTraceBean {
-    private static final String LOCAL_ADDRESS = TrackTraceUtils.getLocalAddress();
+    private static final String LOCAL_ADDRESS = UtilAll.ipToIPv4Str(UtilAll.getIP());
     private String topic = "";
     private String msgId = "";
     private String offsetMsgId = "";

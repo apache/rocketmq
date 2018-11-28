@@ -42,7 +42,7 @@ public class DefaultMQPushConsumerImplTest {
         //test message
         thrown.expectMessage("consumeThreadMin (10) is larger than consumeThreadMax (9)");
 
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("test_consumer_group",false);
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("test_consumer_group");
 
         consumer.setConsumeThreadMin(10);
         consumer.setConsumeThreadMax(9);

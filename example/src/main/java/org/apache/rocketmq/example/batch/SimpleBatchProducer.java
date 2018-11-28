@@ -25,7 +25,7 @@ import org.apache.rocketmq.common.message.Message;
 public class SimpleBatchProducer {
 
     public static void main(String[] args) throws Exception {
-        DefaultMQProducer producer = new DefaultMQProducer("BatchProducerGroupName",false);
+        DefaultMQProducer producer = new DefaultMQProducer("BatchProducerGroupName");
         producer.start();
 
         //If you just send messages of no more than 1MiB at a time, it is easy to use batch

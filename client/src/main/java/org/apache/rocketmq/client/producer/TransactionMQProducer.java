@@ -35,11 +35,11 @@ public class TransactionMQProducer extends DefaultMQProducer {
     }
 
     public TransactionMQProducer(final String producerGroup) {
-        super(producerGroup,false);
+        super(producerGroup);
     }
 
     public TransactionMQProducer(final String producerGroup, RPCHook rpcHook) {
-        super(producerGroup, rpcHook,false);
+        super(producerGroup, rpcHook);
     }
 
     @Override

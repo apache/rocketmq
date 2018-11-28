@@ -22,10 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import net.bytebuddy.asm.Advice;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -48,7 +45,6 @@ import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,11 +53,9 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.when;
@@ -83,6 +77,7 @@ public class DefaultMQProducerWithTraceTest {
 
     private DefaultMQProducer producer;
     private DefaultMQProducer traceProducer;
+    private DefaultMQProducer normalProducer;
 
     private Message message;
     private String topic = "FooBar";
@@ -93,21 +88,23 @@ public class DefaultMQProducerWithTraceTest {
     @Before
     public void init() throws Exception {
 
+        normalProducer = new DefaultMQProducer(producerGroupTemp,false);
         producer = new DefaultMQProducer(producerGroupTemp,true);
         producer.setNamesrvAddr("127.0.0.1:9876");
+        normalProducer.setNamesrvAddr("127.0.0.1:9877");
         message = new Message(topic, new byte[] {'a', 'b' ,'c'});
         asyncArrayDispatcher = (AsyncArrayDispatcher)producer.getTraceDispatcher();
         traceProducer = asyncArrayDispatcher.getTraceProducer();
 
         producer.start();
-
+        
         Field field = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
         field.setAccessible(true);
         field.set(producer.getDefaultMQProducerImpl(), mQClientFactory);
 
         Field fieldTrace = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
         fieldTrace.setAccessible(true);
-        field.set(traceProducer.getDefaultMQProducerImpl(), mQClientTraceFactory);
+        fieldTrace.set(traceProducer.getDefaultMQProducerImpl(), mQClientTraceFactory);
 
         field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
         field.setAccessible(true);
@@ -220,15 +217,4 @@ public class DefaultMQProducerWithTraceTest {
         topicRouteData.setQueueDatas(queueDataList);
         return topicRouteData;
     }
-
-    private SendResult createSendTraceResult(SendStatus sendStatus) {
-        SendResult sendResult = new SendResult();
-        sendResult.setMsgId("456");
-        sendResult.setOffsetMsgId("456");
-        sendResult.setQueueOffset(789);
-        sendResult.setSendStatus(sendStatus);
-        sendResult.setRegionId("HZ");
-        return sendResult;
-    }
-
 }
