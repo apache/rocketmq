@@ -190,13 +190,12 @@ public class AllocateMappedFileService extends ServiceThread {
                         + " " + req.getFilePath() + " " + req.getFileSize());
                 }
 
-                // pre write mappedFile
+                // mlock address mapping to mappedFile
                 if (mappedFile.getFileSize() >= this.messageStore.getMessageStoreConfig()
                     .getMapedFileSizeCommitLog()
                     &&
                     this.messageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
-                    mappedFile.warmMappedFile(this.messageStore.getMessageStoreConfig().getFlushDiskType(),
-                        this.messageStore.getMessageStoreConfig().getFlushLeastPagesWhenWarmMapedFile());
+                    mappedFile.mlock();
                 }
 
                 req.setMappedFile(mappedFile);

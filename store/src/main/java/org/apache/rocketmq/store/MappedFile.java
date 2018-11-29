@@ -37,7 +37,6 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
-import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.util.LibC;
 import sun.nio.ch.DirectBuffer;
 
@@ -482,45 +481,6 @@ public class MappedFile extends ReferenceResource {
 
     public void setCommittedPosition(int pos) {
         this.committedPosition.set(pos);
-    }
-
-    public void warmMappedFile(FlushDiskType type, int pages) {
-        long beginTime = System.currentTimeMillis();
-        ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
-        int flush = 0;
-        long time = System.currentTimeMillis();
-        for (int i = 0, j = 0; i < this.fileSize; i += MappedFile.OS_PAGE_SIZE, j++) {
-            byteBuffer.put(i, (byte) 0);
-            // force flush when flush disk type is sync
-            if (type == FlushDiskType.SYNC_FLUSH) {
-                if ((i / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE) >= pages) {
-                    flush = i;
-                    mappedByteBuffer.force();
-                }
-            }
-
-            // prevent gc
-            if (j % 1000 == 0) {
-                log.info("j={}, costTime={}", j, System.currentTimeMillis() - time);
-                time = System.currentTimeMillis();
-                try {
-                    Thread.sleep(0);
-                } catch (InterruptedException e) {
-                    log.error("Interrupted", e);
-                }
-            }
-        }
-
-        // force flush when prepare load finished
-        if (type == FlushDiskType.SYNC_FLUSH) {
-            log.info("mapped file warm-up done, force to disk, mappedFile={}, costTime={}",
-                this.getFileName(), System.currentTimeMillis() - beginTime);
-            mappedByteBuffer.force();
-        }
-        log.info("mapped file warm-up done. mappedFile={}, costTime={}", this.getFileName(),
-            System.currentTimeMillis() - beginTime);
-
-        this.mlock();
     }
 
     public String getFileName() {
