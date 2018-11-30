@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.acl.plug;
 
-public class AclPlugControllerTest {
+public interface NetaddressStrategy {
 
+    public boolean match(AccessControl accessControl);
 }

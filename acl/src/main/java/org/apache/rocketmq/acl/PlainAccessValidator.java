@@ -18,46 +18,24 @@ package org.apache.rocketmq.acl;
 
 import java.util.HashMap;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.acl.AccessResource;
-import org.apache.rocketmq.acl.AccessValidator;
-import org.apache.rocketmq.acl.plug.AclRemotingService;
-import org.apache.rocketmq.acl.plug.engine.AclPlugEngine;
-import org.apache.rocketmq.acl.plug.engine.PlainAclPlugEngine;
-import org.apache.rocketmq.acl.plug.entity.AccessControl;
-import org.apache.rocketmq.acl.plug.entity.AuthenticationResult;
-import org.apache.rocketmq.acl.plug.entity.ControllerParameters;
-import org.apache.rocketmq.acl.plug.exception.AclPlugRuntimeException;
+import org.apache.rocketmq.acl.plug.AccessControl;
+import org.apache.rocketmq.acl.plug.AclPlugRuntimeException;
+import org.apache.rocketmq.acl.plug.AuthenticationResult;
+import org.apache.rocketmq.acl.plug.PlainAclPlugEngine;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class PlainAccessValidator implements AclRemotingService, AccessValidator {
+public class PlainAccessValidator implements AccessValidator {
 
-    private AclPlugEngine aclPlugEngine;
+    private PlainAclPlugEngine aclPlugEngine;
 
     public PlainAccessValidator() {
-        ControllerParameters controllerParameters = new ControllerParameters();
-        this.aclPlugEngine = new PlainAclPlugEngine(controllerParameters);
-        this.aclPlugEngine.initialize();
-    }
-
-    public PlainAccessValidator(AclPlugEngine aclPlugEngine) {
-        this.aclPlugEngine = aclPlugEngine;
-    }
-
-    @Override
-    public AuthenticationResult check(AccessControl accessControl) {
-        AuthenticationResult authenticationResult = aclPlugEngine.eachCheckLoginAndAuthentication(accessControl);
-        if (authenticationResult.getException() != null) {
-            throw new AclPlugRuntimeException(String.format("eachCheck the inspection appear exception, accessControl data is %s", accessControl.toString()), authenticationResult.getException());
-        }
-        if (authenticationResult.getAccessControl() == null || !authenticationResult.isSucceed()) {
-            throw new AclPlugRuntimeException(String.format("%s accessControl data is %s", authenticationResult.getResultString(), accessControl.toString()));
-        }
-        return authenticationResult;
+        aclPlugEngine = new PlainAclPlugEngine();
     }
 
     @Override
     public AccessResource parse(RemotingCommand request, String remoteAddr) {
         HashMap<String, String> extFields = request.getExtFields();
+        int code = request.getCode();
         AccessControl accessControl = new AccessControl();
         accessControl.setCode(request.getCode());
         accessControl.setRecognition(remoteAddr);
@@ -65,23 +43,31 @@ public class PlainAccessValidator implements AclRemotingService, AccessValidator
         if (extFields != null) {
             accessControl.setAccount(extFields.get("account"));
             accessControl.setPassword(extFields.get("password"));
-            accessControl.setTopic(extFields.get("topic"));
+            if (code == 310 || code == 320) {
+                accessControl.setTopic(extFields.get("b"));
+            } else {
+                accessControl.setTopic(extFields.get("topic"));
+
+            }
         }
         return accessControl;
     }
 
     @Override
     public void validate(AccessResource accessResource) {
+        AuthenticationResult authenticationResult = null;
         try {
-            AuthenticationResult authenticationResult = aclPlugEngine.eachCheckAuthentication((AccessControl) accessResource);
-            if (authenticationResult.getException() != null) {
-                throw new AclPlugRuntimeException(String.format("eachCheck the inspection appear exception, accessControl data is %s", accessResource.toString()), authenticationResult.getException());
-            }
-            if (authenticationResult.getAccessControl() == null || !authenticationResult.isSucceed()) {
-                throw new AclPlugRuntimeException(String.format("%s accessControl data is %s", authenticationResult.getResultString(), accessResource.toString()));
-            }
+            authenticationResult = aclPlugEngine.eachCheckAuthentication((AccessControl) accessResource);
+            if (authenticationResult.isSucceed())
+                return;
         } catch (Exception e) {
             throw new AclPlugRuntimeException(String.format("validate exception AccessResource data %s", accessResource.toString()), e);
+        }
+        if (authenticationResult.getException() != null) {
+            throw new AclPlugRuntimeException(String.format("eachCheck the inspection appear exception, accessControl data is %s", accessResource.toString()), authenticationResult.getException());
+        }
+        if (authenticationResult.getAccessControl() != null || !authenticationResult.isSucceed()) {
+            throw new AclPlugRuntimeException(String.format("%s accessControl data is %s", authenticationResult.getResultString(), accessResource.toString()));
         }
     }
 

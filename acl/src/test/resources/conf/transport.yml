@@ -22,6 +22,7 @@ list:
 - account: RocketMQ
   password: 1234567
   netaddress: 192.0.0.*
+  admin: true
   permitSendTopic:
   - test1
   - test2
