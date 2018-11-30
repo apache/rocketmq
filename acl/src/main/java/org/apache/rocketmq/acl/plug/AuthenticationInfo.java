@@ -14,9 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.acl.plug.entity;
-
-import org.apache.rocketmq.acl.plug.strategy.NetaddressStrategy;
+package org.apache.rocketmq.acl.plug;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -31,7 +29,7 @@ public class AuthenticationInfo {
     private Map<Integer, Boolean> authority;
 
     public AuthenticationInfo(Map<Integer, Boolean> authority, AccessControl accessControl,
-                              NetaddressStrategy netaddressStrategy) {
+        NetaddressStrategy netaddressStrategy) {
         super();
         this.authority = authority;
         this.accessControl = accessControl;
@@ -66,7 +64,7 @@ public class AuthenticationInfo {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("AuthenticationInfo [accessControl=").append(accessControl).append(", netaddressStrategy=")
-                .append(netaddressStrategy).append(", authority={");
+            .append(netaddressStrategy).append(", authority={");
         Iterator<Entry<Integer, Boolean>> it = authority.entrySet().iterator();
         while (it.hasNext()) {
             Entry<Integer, Boolean> e = it.next();

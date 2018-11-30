@@ -14,12 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.acl.plug.entity;
+package org.apache.rocketmq.acl.plug;
 
 import java.util.HashSet;
 import java.util.Set;
 
-public class BorkerAccessControl extends AccessControl {
+public class BrokerAccessControl extends AccessControl {
+
+    private boolean admin;
 
     private Set<String> permitSendTopic = new HashSet<>();
     private Set<String> noPermitSendTopic = new HashSet<>();
@@ -54,13 +56,13 @@ public class BorkerAccessControl extends AccessControl {
 
     private boolean endTransaction = true;
 
-    private boolean updateAndCreateTopic = true;
+    private boolean updateAndCreateTopic = false;
 
-    private boolean deleteTopicInbroker = true;
+    private boolean deleteTopicInbroker = false;
 
     private boolean getAllTopicConfig = true;
 
-    private boolean updateBrokerConfig = true;
+    private boolean updateBrokerConfig = false;
 
     private boolean getBrokerConfig = true;
 
@@ -78,11 +80,11 @@ public class BorkerAccessControl extends AccessControl {
 
     private boolean unlockBatchMQ = true;
 
-    private boolean updateAndCreateSubscriptiongroup = true;
+    private boolean updateAndCreateSubscriptiongroup = false;
 
     private boolean getAllSubscriptiongroupConfig = true;
 
-    private boolean deleteSubscriptiongroup = true;
+    private boolean deleteSubscriptiongroup = false;
 
     private boolean getTopicStatsInfo = true;
 
@@ -124,8 +126,16 @@ public class BorkerAccessControl extends AccessControl {
 
     private boolean queryConsumeQueue = true;
 
-    public BorkerAccessControl() {
+    public BrokerAccessControl() {
 
+    }
+
+    public boolean isAdmin() {
+        return admin;
+    }
+
+    public void setAdmin(boolean admin) {
+        this.admin = admin;
     }
 
     public Set<String> getPermitSendTopic() {
@@ -556,8 +566,8 @@ public class BorkerAccessControl extends AccessControl {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("BorkerAccessControl [permitSendTopic=").append(permitSendTopic).append(", noPermitSendTopic=")
-                .append(noPermitSendTopic).append(", permitPullTopic=").append(permitPullTopic)
-                .append(", noPermitPullTopic=").append(noPermitPullTopic);
+            .append(noPermitSendTopic).append(", permitPullTopic=").append(permitPullTopic)
+            .append(", noPermitPullTopic=").append(noPermitPullTopic);
         if (!!sendMessage)
             builder.append(", sendMessage=").append(sendMessage);
         if (!!sendMessageV2)

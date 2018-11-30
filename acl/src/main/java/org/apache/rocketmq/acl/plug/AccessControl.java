@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.acl.plug.entity;
+package org.apache.rocketmq.acl.plug;
 
 import org.apache.rocketmq.acl.AccessResource;
 
@@ -87,8 +87,8 @@ public class AccessControl implements AccessResource {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("AccessControl [account=").append(account).append(", password=").append(password)
-                .append(", netaddress=").append(netaddress).append(", recognition=").append(recognition)
-                .append(", code=").append(code).append(", topic=").append(topic).append("]");
+            .append(", netaddress=").append(netaddress).append(", recognition=").append(recognition)
+            .append(", code=").append(code).append(", topic=").append(topic).append("]");
         return builder.toString();
     }
 
