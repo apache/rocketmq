@@ -98,7 +98,7 @@ public class DLedgerCommitLog extends CommitLog {
     @Override
     public boolean load() {
         boolean result = super.load();
-        if(!result) {
+        if (!result) {
             return false;
         }
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
