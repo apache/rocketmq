@@ -43,7 +43,7 @@ public class DLedgerRoleChangeHandler implements DLegerLeaderElector.RoleChangeH
         this.brokerController = brokerController;
         this.messageStore = messageStore;
         this.dLedgerCommitLog = (DLedgerCommitLog) messageStore.getCommitLog();
-        this.dLegerServer = dLedgerCommitLog.getdLegerServer();
+        this.dLegerServer = dLedgerCommitLog.getdLedgerServer();
     }
 
     @Override public void handle(long term, MemberState.Role role) {

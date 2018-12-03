@@ -237,7 +237,7 @@ public class BrokerController {
                         this.brokerConfig);
                 if (messageStoreConfig.isEnableDLegerCommitLog()) {
                     DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(this, (DefaultMessageStore) messageStore);
-                    ((DLedgerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getdLegerServer().getdLegerLeaderElector().addRoleChangeHandler(roleChangeHandler);
+                    ((DLedgerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getdLedgerServer().getdLegerLeaderElector().addRoleChangeHandler(roleChangeHandler);
                 }
                 this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
                 //load plugin
