@@ -20,20 +20,21 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+@Deprecated
 public class AuthenticationInfo {
 
     private PlainAccessResource plainAccessResource;
 
-    private NetaddressStrategy netaddressStrategy;
+    private RemoteAddressStrategy remoteAddressStrategy;
 
     private Map<Integer, Boolean> authority;
 
     public AuthenticationInfo(Map<Integer, Boolean> authority, PlainAccessResource plainAccessResource,
-        NetaddressStrategy netaddressStrategy) {
+        RemoteAddressStrategy remoteAddressStrategy) {
         super();
         this.authority = authority;
         this.plainAccessResource = plainAccessResource;
-        this.netaddressStrategy = netaddressStrategy;
+        this.remoteAddressStrategy = remoteAddressStrategy;
     }
 
     public PlainAccessResource getPlainAccessResource() {
@@ -44,12 +45,12 @@ public class AuthenticationInfo {
         this.plainAccessResource = plainAccessResource;
     }
 
-    public NetaddressStrategy getNetaddressStrategy() {
-        return netaddressStrategy;
+    public RemoteAddressStrategy getRemoteAddressStrategy() {
+        return remoteAddressStrategy;
     }
 
-    public void setNetaddressStrategy(NetaddressStrategy netaddressStrategy) {
-        this.netaddressStrategy = netaddressStrategy;
+    public void setRemoteAddressStrategy(RemoteAddressStrategy remoteAddressStrategy) {
+        this.remoteAddressStrategy = remoteAddressStrategy;
     }
 
     public Map<Integer, Boolean> getAuthority() {
@@ -63,8 +64,8 @@ public class AuthenticationInfo {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("AuthenticationInfo [plainAccessResource=").append(plainAccessResource).append(", netaddressStrategy=")
-            .append(netaddressStrategy).append(", authority={");
+        builder.append("AuthenticationInfo [plainAccessResource=").append(plainAccessResource).append(", remoteAddressStrategy=")
+            .append(remoteAddressStrategy).append(", authority={");
         Iterator<Entry<Integer, Boolean>> it = authority.entrySet().iterator();
         while (it.hasNext()) {
             Entry<Integer, Boolean> e = it.next();

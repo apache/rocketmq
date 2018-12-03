@@ -19,6 +19,7 @@ package org.apache.rocketmq.acl.plain;
 import java.util.HashSet;
 import java.util.Set;
 
+@Deprecated
 public class BrokerAccessControl extends PlainAccessResource {
 
     private boolean admin;
