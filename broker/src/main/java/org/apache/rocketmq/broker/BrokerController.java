@@ -39,7 +39,7 @@ import org.apache.rocketmq.broker.client.DefaultConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.client.rebalance.RebalanceLockManager;
-import org.apache.rocketmq.broker.dleger.DLegerRoleChangeHandler;
+import org.apache.rocketmq.broker.dledger.DLedgerRoleChangeHandler;
 import org.apache.rocketmq.broker.filter.CommitLogDispatcherCalcBitMap;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.filtersrv.FilterServerManager;
@@ -99,7 +99,7 @@ import org.apache.rocketmq.store.MessageArrivingListener;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.dleger.DLegerCommitLog;
+import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
 import org.apache.rocketmq.store.stats.BrokerStats;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
@@ -236,8 +236,8 @@ public class BrokerController {
                     new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener,
                         this.brokerConfig);
                 if (messageStoreConfig.isEnableDLegerCommitLog()) {
-                    DLegerRoleChangeHandler roleChangeHandler = new DLegerRoleChangeHandler(this, (DefaultMessageStore) messageStore);
-                    ((DLegerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getdLegerServer().getdLegerLeaderElector().addRoleChangeHandler(roleChangeHandler);
+                    DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(this, (DefaultMessageStore) messageStore);
+                    ((DLedgerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getdLegerServer().getdLegerLeaderElector().addRoleChangeHandler(roleChangeHandler);
                 }
                 this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
                 //load plugin
@@ -784,7 +784,7 @@ public class BrokerController {
         }
 
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
-            changeToSlave(((DLegerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getId());
+            changeToSlave(((DLedgerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getId());
         } else {
             startProcessorByHa(messageStoreConfig.getBrokerRole());
             handleSlaveSynchronize(messageStoreConfig.getBrokerRole());

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.store.dleger;
+package org.apache.rocketmq.store.dledger;
 
 import io.openmessaging.storage.dleger.DLegerConfig;
 import io.openmessaging.storage.dleger.DLegerServer;
@@ -34,7 +34,6 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.store.AppendMessageResult;
@@ -52,7 +51,7 @@ import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 /**
  * Store all metadata downtime for recovery, data protection reliability
  */
-public class DLegerCommitLog extends CommitLog {
+public class DLedgerCommitLog extends CommitLog {
     private final DLegerServer dLegerServer;
     private final DLegerConfig dLegerConfig;
     private final DLegerMmapFileStore dLegerFileStore;
@@ -66,7 +65,7 @@ public class DLegerCommitLog extends CommitLog {
 
     private volatile long beginTimeInDlegerLock = 0;
 
-    public DLegerCommitLog(final DefaultMessageStore defaultMessageStore) {
+    public DLedgerCommitLog(final DefaultMessageStore defaultMessageStore) {
         super(defaultMessageStore);
         dLegerConfig =  new DLegerConfig();
         dLegerConfig.setSelfId(defaultMessageStore.getMessageStoreConfig().getdLegerSelfId());
@@ -87,6 +86,7 @@ public class DLegerCommitLog extends CommitLog {
 
     }
 
+    @Override
     public boolean load() {
         /*boolean result = this.mappedFileQueue.load();
         log.info("load commit log " + (result ? "OK" : "Failed"));
@@ -94,6 +94,7 @@ public class DLegerCommitLog extends CommitLog {
         return true;
     }
 
+    @Override
     public void start() {
         dLegerServer.startup();
        /* this.flushCommitLogService.start();
@@ -103,6 +104,7 @@ public class DLegerCommitLog extends CommitLog {
         }*/
     }
 
+    @Override
     public void shutdown() {
        /* if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
             this.commitLogService.shutdown();
@@ -111,11 +113,13 @@ public class DLegerCommitLog extends CommitLog {
         dLegerServer.shutdown();
     }
 
+    @Override
     public long flush() {
         dLegerFileStore.flush();
         return dLegerFileList.getFlushedWhere();
     }
 
+    @Override
     public long getMaxOffset() {
         if (this.dLegerFileStore.getCommittedPos() != -1) {
             return dLegerFileStore.getCommittedPos();
@@ -124,14 +128,17 @@ public class DLegerCommitLog extends CommitLog {
         }
     }
 
+    @Override
     public long remainHowManyDataToCommit() {
         return dLegerFileList.remainHowManyDataToCommit();
     }
 
+    @Override
     public long remainHowManyDataToFlush() {
         return dLegerFileList.remainHowManyDataToFlush();
     }
 
+    @Override
     public int deleteExpiredFile(
         final long expiredTime,
         final int deleteFilesInterval,
@@ -142,7 +149,7 @@ public class DLegerCommitLog extends CommitLog {
     }
 
 
-    private static class DLegerSelectMappedBufferResult extends SelectMappedBufferResult {
+    static class DLegerSelectMappedBufferResult extends SelectMappedBufferResult {
 
         private SelectMmapBufferResult sbr;
         public DLegerSelectMappedBufferResult(SelectMmapBufferResult sbr) {
@@ -182,11 +189,13 @@ public class DLegerCommitLog extends CommitLog {
     /**
      * Read CommitLog data, use data replication
      */
+    @Override
     public SelectMappedBufferResult getData(final long offset) {
         return this.getData(offset, offset == 0);
     }
 
 
+    @Override
     public SelectMappedBufferResult getData(final long offset, final boolean returnFirstOnNotFound) {
         if (offset >= dLegerFileStore.getCommittedPos()) {
             return null;
@@ -205,21 +214,19 @@ public class DLegerCommitLog extends CommitLog {
     /**
      * When the normal exit, data recovery, all memory data have been flush
      */
-    public void recoverNormally() {
+    @Override
+    public void recoverAbnormally(long maxPhyOffsetOfConsumeQueue)  {
 
     }
-    public void recoverAbnormally() {
+
+    @Override
+    public void recoverNormally(long maxPhyOffsetOfConsumeQueue) {
 
     }
 
+    @Override
     public DispatchRequest checkMessageAndReturnSize(ByteBuffer byteBuffer, final boolean checkCRC) {
         return this.checkMessageAndReturnSize(byteBuffer, checkCRC, true);
-    }
-
-    private void doNothingForDeadCode(final Object obj) {
-        if (obj != null) {
-            log.debug(String.valueOf(obj.hashCode()));
-        }
     }
 
     /**
@@ -227,6 +234,7 @@ public class DLegerCommitLog extends CommitLog {
      *
      * @return 0 Come the end of the file // >0 Normal messages // -1 Message checksum failure
      */
+    @Override
     public DispatchRequest checkMessageAndReturnSize(ByteBuffer byteBuffer, final boolean checkCRC,
         final boolean readBody) {
         try {
@@ -251,22 +259,19 @@ public class DLegerCommitLog extends CommitLog {
         return new DispatchRequest(-1, false /* success */);
     }
 
+    @Override
     public long getConfirmOffset() {
         return this.dLegerFileStore.getCommittedPos() == -1 ? getMaxOffset()
             : this.dLegerFileStore.getCommittedPos();
     }
 
+    @Override
     public void setConfirmOffset(long phyOffset) {
         log.warn("Should not set confirm offset {} for dleger commitlog", phyOffset);
     }
 
-
-    private void notifyMessageArriving() {
-
-    }
-
+    @Override
     public boolean resetOffset(long offset) {
-        //return this.mappedFileQueue.resetOffset(offset);
         return false;
     }
 
@@ -349,7 +354,7 @@ public class DLegerCommitLog extends CommitLog {
                         case MessageSysFlag.TRANSACTION_NOT_TYPE:
                         case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
                             // The next update ConsumeQueue information
-                            DLegerCommitLog.this.topicQueueTable.put(encodeResult.queueOffsetKey, queueOffset + 1);
+                            DLedgerCommitLog.this.topicQueueTable.put(encodeResult.queueOffsetKey, queueOffset + 1);
                             break;
                         default:
                             break;
@@ -408,43 +413,20 @@ public class DLegerCommitLog extends CommitLog {
         return putMessageResult;
     }
 
-    public void handleDiskFlush(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt) {
-
-    }
-
-    public void handleHA(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt) {
-
-    }
-
     @Override
     public PutMessageResult putMessages(final MessageExtBatch messageExtBatch) {
         return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
     }
 
-    /**
-     * According to receive certain message or offset storage time if an error occurs, it returns -1
-     */
-    public long pickupStoreTimestamp(final long offset, final int size) {
-        if (offset >= this.getMinOffset()) {
-            SelectMappedBufferResult result = this.getMessage(offset, size);
-            if (null != result) {
-                try {
-                    return result.getByteBuffer().getLong(MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSTION);
-                } finally {
-                    result.release();
-                }
-            }
-        }
 
-        return -1;
-    }
-
+    @Override
     public long getMinOffset() {
         return dLegerFileList.getMinOffset();
     }
 
 
 
+    @Override
     public SelectMappedBufferResult getMessage(final long offset, final int size) {
         int mappedFileSize = this.dLegerServer.getdLegerConfig().getMappedFileSizeForEntryData();
         MmapFile mappedFile = this.dLegerFileList.findMappedFileByOffset(offset, offset == 0);
@@ -455,42 +437,40 @@ public class DLegerCommitLog extends CommitLog {
         return null;
     }
 
+    @Override
     public long rollNextFile(final long offset) {
         int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
         return offset + mappedFileSize - offset % mappedFileSize;
     }
 
+    @Override
     public HashMap<String, Long> getTopicQueueTable() {
         return topicQueueTable;
     }
 
+    @Override
     public void setTopicQueueTable(HashMap<String, Long> topicQueueTable) {
         this.topicQueueTable = topicQueueTable;
     }
 
+    @Override
     public void destroy() {
         //TO DO
     }
 
+    @Override
     public boolean appendData(long startOffset, byte[] data) {
        //TO DO
         return false;
     }
 
+    @Override
     public boolean retryDeleteFirstFile(final long intervalForcibly) {
-        //TO DO
         return false;
     }
 
-    public void removeQueueFromTopicQueueTable(final String topic, final int queueId) {
-        String key = topic + "-" + queueId;
-        synchronized (this) {
-            this.topicQueueTable.remove(key);
-        }
 
-        log.info("removeQueueFromTopicQueueTable OK Topic: {} QueueId: {}", topic, queueId);
-    }
-
+    @Override
     public void checkSelf() {
         dLegerFileList.checkSelf();
     }
@@ -560,10 +540,10 @@ public class DLegerCommitLog extends CommitLog {
             keyBuilder.append(msgInner.getQueueId());
             String key = keyBuilder.toString();
 
-            Long queueOffset = DLegerCommitLog.this.topicQueueTable.get(key);
+            Long queueOffset = DLedgerCommitLog.this.topicQueueTable.get(key);
             if (null == queueOffset) {
                 queueOffset = 0L;
-                DLegerCommitLog.this.topicQueueTable.put(key, queueOffset);
+                DLedgerCommitLog.this.topicQueueTable.put(key, queueOffset);
             }
 
             // Transaction messages that require special handling
@@ -603,7 +583,7 @@ public class DLegerCommitLog extends CommitLog {
 
             // Exceeds the maximum message
             if (msgLen > this.maxMessageSize) {
-                DLegerCommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLength
+                DLedgerCommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLength
                     + ", maxMessageSize: " + this.maxMessageSize);
                 return new EncodeResult(AppendMessageStatus.MESSAGE_SIZE_EXCEEDED, null, key);
             }
@@ -612,7 +592,7 @@ public class DLegerCommitLog extends CommitLog {
             // 1 TOTALSIZE
             this.msgStoreItemMemory.putInt(msgLen);
             // 2 MAGICCODE
-            this.msgStoreItemMemory.putInt(DLegerCommitLog.MESSAGE_MAGIC_CODE);
+            this.msgStoreItemMemory.putInt(DLedgerCommitLog.MESSAGE_MAGIC_CODE);
             // 3 BODYCRC
             this.msgStoreItemMemory.putInt(msgInner.getBodyCRC());
             // 4 QUEUEID
@@ -642,18 +622,17 @@ public class DLegerCommitLog extends CommitLog {
             this.msgStoreItemMemory.putLong(msgInner.getPreparedTransactionOffset());
             // 15 BODY
             this.msgStoreItemMemory.putInt(bodyLength);
-            if (bodyLength > 0)
+            if (bodyLength > 0) {
                 this.msgStoreItemMemory.put(msgInner.getBody());
+            }
             // 16 TOPIC
             this.msgStoreItemMemory.put((byte) topicLength);
             this.msgStoreItemMemory.put(topicData);
             // 17 PROPERTIES
             this.msgStoreItemMemory.putShort((short) propertiesLength);
-            if (propertiesLength > 0)
+            if (propertiesLength > 0) {
                 this.msgStoreItemMemory.put(propertiesData);
-
-            final long beginTimeMills = DLegerCommitLog.this.defaultMessageStore.now();
-
+            }
             byte[] data = new byte[msgLen];
             this.msgStoreItemMemory.clear();
             this.msgStoreItemMemory.get(data);

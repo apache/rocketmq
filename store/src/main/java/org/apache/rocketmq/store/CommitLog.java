@@ -474,6 +474,7 @@ public class CommitLog {
         }
         // Commitlog case files are deleted
         else {
+            log.warn("The commitlog files are deleted, and delete the consume queue files");
             this.mappedFileQueue.setFlushedWhere(0);
             this.mappedFileQueue.setCommittedWhere(0);
             this.defaultMessageStore.destroyLogics();

@@ -52,7 +52,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
-import org.apache.rocketmq.store.dleger.DLegerCommitLog;
+import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.index.IndexService;
 import org.apache.rocketmq.store.index.QueryOffsetResult;
@@ -119,7 +119,7 @@ public class DefaultMessageStore implements MessageStore {
         this.brokerStatsManager = brokerStatsManager;
         this.allocateMappedFileService = new AllocateMappedFileService(this);
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
-            this.commitLog = new DLegerCommitLog(this);
+            this.commitLog = new DLedgerCommitLog(this);
         } else {
             this.commitLog = new CommitLog(this);
         }
