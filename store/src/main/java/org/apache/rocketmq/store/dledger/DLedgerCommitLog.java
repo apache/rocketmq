@@ -263,6 +263,8 @@ public class DLedgerCommitLog extends CommitLog {
 
     @Override
     public void recoverAbnormally(long maxPhyOffsetOfConsumeQueue)  {
+        dLedgerFileStore.load();
+        dLedgerFileStore.recover();
         if (dLedgerFileList.getMappedFiles().isEmpty()) {
             super.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
         }
@@ -270,6 +272,8 @@ public class DLedgerCommitLog extends CommitLog {
 
     @Override
     public void recoverNormally(long maxPhyOffsetOfConsumeQueue) {
+        dLedgerFileStore.load();
+        dLedgerFileStore.recover();
         if (dLedgerFileList.getMappedFiles().isEmpty()) {
             super.recoverNormally(maxPhyOffsetOfConsumeQueue);
         }
