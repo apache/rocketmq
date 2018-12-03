@@ -43,7 +43,7 @@ public class DLedgerCommitlogTest extends StoreTestBase {
 
         }, new BrokerConfig());
         if (leaderId != null) {
-            DLegerServer dLegerServer = ((DLedgerCommitLog) defaultMessageStore.getCommitLog()).getdLegerServer();
+            DLegerServer dLegerServer = ((DLedgerCommitLog) defaultMessageStore.getCommitLog()).getdLedgerServer();
             dLegerServer.getdLegerConfig().setEnableLeaderElector(false);
             if (selfId.equals(leaderId)) {
                 dLegerServer.getMemberState().changeToLeader(-1);
