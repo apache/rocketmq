@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.acl.plug;
+package org.apache.rocketmq.acl.plain;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -22,26 +22,26 @@ import java.util.Map.Entry;
 
 public class AuthenticationInfo {
 
-    private AccessControl accessControl;
+    private PlainAccessResource plainAccessResource;
 
     private NetaddressStrategy netaddressStrategy;
 
     private Map<Integer, Boolean> authority;
 
-    public AuthenticationInfo(Map<Integer, Boolean> authority, AccessControl accessControl,
+    public AuthenticationInfo(Map<Integer, Boolean> authority, PlainAccessResource plainAccessResource,
         NetaddressStrategy netaddressStrategy) {
         super();
         this.authority = authority;
-        this.accessControl = accessControl;
+        this.plainAccessResource = plainAccessResource;
         this.netaddressStrategy = netaddressStrategy;
     }
 
-    public AccessControl getAccessControl() {
-        return accessControl;
+    public PlainAccessResource getPlainAccessResource() {
+        return plainAccessResource;
     }
 
-    public void setAccessControl(AccessControl accessControl) {
-        this.accessControl = accessControl;
+    public void setPlainAccessResource(PlainAccessResource plainAccessResource) {
+        this.plainAccessResource = plainAccessResource;
     }
 
     public NetaddressStrategy getNetaddressStrategy() {
@@ -63,7 +63,7 @@ public class AuthenticationInfo {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("AuthenticationInfo [accessControl=").append(accessControl).append(", netaddressStrategy=")
+        builder.append("AuthenticationInfo [plainAccessResource=").append(plainAccessResource).append(", netaddressStrategy=")
             .append(netaddressStrategy).append(", authority={");
         Iterator<Entry<Integer, Boolean>> it = authority.entrySet().iterator();
         while (it.hasNext()) {

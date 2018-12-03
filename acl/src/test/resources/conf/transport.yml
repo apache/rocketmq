@@ -14,22 +14,52 @@
 #  limitations under the License.
 
 onlyNetAddress:
-  netaddress: 10.10.103.*
+  remoteAddr: 10.10.103.*
   noPermitPullTopic:
   - broker-a
 
 list:
-- account: RocketMQ
-  password: 1234567
-  netaddress: 192.0.0.*
+- accessKey: RocketMQ
+  signature: 1234567
+  remoteAddr: 192.0.0.*
   admin: true
   permitSendTopic:
   - test1
   - test2
-- account: RocketMQ
-  password: 1234567
-  netaddress: 192.0.2.1
+- accessKey: RocketMQ
+  signature: 1234567
+  remoteAddr: 192.0.2.1
   permitSendTopic:
   - test3
   - test4
-    
+
+
+## suggested format
+
+globalWhiteRemoteAddresses:
+  - 10.10.103.*
+  - 192.168.0.*
+
+accounts:
+- accessKey: ak1
+  secretKey: sk1
+  whiteRemoteAddress: 192.168.0.*
+  admin: false
+  defaultTopicPerm: DENY
+  defaultGroupPerm: SUB
+  topics:
+  - topicA=DENY
+  - topicB=PUB|SUB
+  - topicC=SUB
+  groups:
+  # the group should convert to retry topic
+  - groupA=DENY
+  - groupB=SUB
+  - groupC=SUB
+
+- accessKey: ak2
+  secretKey: sk2
+  whiteRemoteAddress: 192.168.1.*
+  # if it is admin, it could access all resources
+  admin: true
+

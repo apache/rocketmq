@@ -14,15 +14,53 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.acl.plug;
+package org.apache.rocketmq.acl.common;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Map;
+import java.util.SortedMap;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.plain.AclPlugRuntimeException;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.yaml.snakeyaml.Yaml;
 
+import static org.apache.rocketmq.acl.common.SessionCredentials.CHARSET;
+
 public class AclUtils {
+
+    public static byte[] combineRequestContent(RemotingCommand request, SortedMap<String, String> fieldsMap) {
+        try {
+            StringBuilder sb = new StringBuilder("");
+            for (Map.Entry<String, String> entry : fieldsMap.entrySet()) {
+                if (!SessionCredentials.Signature.equals(entry.getKey())) {
+                    sb.append(entry.getValue());
+                }
+            }
+
+            return AclUtils.combineBytes(sb.toString().getBytes(CHARSET), request.getBody());
+        } catch (Exception e) {
+            throw new RuntimeException("incompatible exception.", e);
+        }
+    }
+
+
+    public static byte[] combineBytes(byte[] b1, byte[] b2) {
+        int size = (null != b1 ? b1.length : 0) + (null != b2 ? b2.length : 0);
+        byte[] total = new byte[size];
+        if (null != b1)
+            System.arraycopy(b1, 0, total, 0, b1.length);
+        if (null != b2)
+            System.arraycopy(b2, 0, total, b1.length, b2.length);
+        return total;
+    }
+
+
+    public static String calSignature(byte[] data, String secretKey) {
+        String signature = AclSigner.calSignature(data, secretKey);
+        return signature;
+    }
 
     public static void verify(String netaddress, int index) {
         if (!AclUtils.isScope(netaddress, index)) {

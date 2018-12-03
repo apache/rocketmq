@@ -14,18 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.acl.plug;
+package org.apache.rocketmq.acl.plain;
 
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.common.AclUtils;
 
 public class NetaddressStrategyFactory {
 
     public static final NullNetaddressStrategy NULL_NET_ADDRESS_STRATEGY = new NullNetaddressStrategy();
 
-    public NetaddressStrategy getNetaddressStrategy(AccessControl accessControl) {
-        String netaddress = accessControl.getNetaddress();
+    public NetaddressStrategy getNetaddressStrategy(PlainAccessResource plainAccessResource) {
+        String netaddress = plainAccessResource.getRemoteAddr();
         if (StringUtils.isBlank(netaddress) || "*".equals(netaddress)) {
             return NULL_NET_ADDRESS_STRATEGY;
         }
@@ -47,7 +48,7 @@ public class NetaddressStrategyFactory {
 
     public static class NullNetaddressStrategy implements NetaddressStrategy {
         @Override
-        public boolean match(AccessControl accessControl) {
+        public boolean match(PlainAccessResource plainAccessResource) {
             return true;
         }
 
@@ -65,8 +66,8 @@ public class NetaddressStrategyFactory {
         }
 
         @Override
-        public boolean match(AccessControl accessControl) {
-            return multipleSet.contains(accessControl.getNetaddress());
+        public boolean match(PlainAccessResource plainAccessResource) {
+            return multipleSet.contains(plainAccessResource.getRemoteAddr());
         }
 
     }
@@ -81,8 +82,8 @@ public class NetaddressStrategyFactory {
         }
 
         @Override
-        public boolean match(AccessControl accessControl) {
-            return netaddress.equals(accessControl.getNetaddress());
+        public boolean match(PlainAccessResource plainAccessResource) {
+            return netaddress.equals(plainAccessResource.getRemoteAddr());
         }
 
     }
@@ -135,8 +136,8 @@ public class NetaddressStrategyFactory {
         }
 
         @Override
-        public boolean match(AccessControl accessControl) {
-            String netAddress = accessControl.getNetaddress();
+        public boolean match(PlainAccessResource plainAccessResource) {
+            String netAddress = plainAccessResource.getRemoteAddr();
             if (netAddress.startsWith(this.head)) {
                 String value;
                 if (index == 3) {

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.acl.plug;
+package org.apache.rocketmq.acl.plain;
 
 public class AuthenticationResult {
 
-    private AccessControl accessControl;
+    private PlainAccessResource plainAccessResource;
 
     private boolean succeed;
 
@@ -26,12 +26,12 @@ public class AuthenticationResult {
 
     private String resultString;
 
-    public AccessControl getAccessControl() {
-        return accessControl;
+    public PlainAccessResource getPlainAccessResource() {
+        return plainAccessResource;
     }
 
-    public void setAccessControl(AccessControl accessControl) {
-        this.accessControl = accessControl;
+    public void setPlainAccessResource(PlainAccessResource plainAccessResource) {
+        this.plainAccessResource = plainAccessResource;
     }
 
     public boolean isSucceed() {
