@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.acl.plain;
 
+
+@Deprecated
 public class AuthenticationResult {
 
     private PlainAccessResource plainAccessResource;

@@ -16,6 +16,10 @@
  */
 package org.apache.rocketmq.acl.plain;
 
+/**
+ * Use AclException instead
+ */
+@Deprecated
 public class AclPlugRuntimeException extends RuntimeException {
 
     private static final long serialVersionUID = 6062101368637228900L;

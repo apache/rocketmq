@@ -26,8 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import org.apache.rocketmq.acl.plain.PlainAclPlugEngine.AccessContralAnalysis;
-import org.apache.rocketmq.acl.plain.PlainAclPlugEngine.BrokerAccessControlTransport;
+import org.apache.rocketmq.acl.plain.PlainPermissionLoader.AccessContralAnalysis;
+import org.apache.rocketmq.acl.plain.PlainPermissionLoader.BrokerAccessControlTransport;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.junit.Assert;
 import org.junit.Before;
@@ -38,7 +38,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class PlainAclPlugEngineTest {
 
-    PlainAclPlugEngine plainAclPlugEngine;
+    PlainPermissionLoader plainPermissionLoader;
 
     AccessContralAnalysis accessContralAnalysis = new AccessContralAnalysis();
 
@@ -91,10 +91,10 @@ public class PlainAclPlugEngineTest {
         accessContralAnalysis.analysisClass(RequestCode.class);
         Map<Integer, Boolean> map = accessContralAnalysis.analysis(brokerAccessControl);
 
-        authenticationInfo = new AuthenticationInfo(map, brokerAccessControl, NetaddressStrategyFactory.NULL_NET_ADDRESS_STRATEGY);
+        authenticationInfo = new AuthenticationInfo(map, brokerAccessControl, RemoteAddressStrategyFactory.NULL_NET_ADDRESS_STRATEGY);
 
         System.setProperty("rocketmq.home.dir", "src/test/resources");
-        plainAclPlugEngine = new PlainAclPlugEngine();
+        plainPermissionLoader = new PlainPermissionLoader();
 
         plainAccessResource = new BrokerAccessControl();
         plainAccessResource.setAccessKey("rokcetmq");
@@ -113,38 +113,38 @@ public class PlainAclPlugEngineTest {
     @Test(expected = AclPlugRuntimeException.class)
     public void accountNullTest() {
         plainAccessResource.setAccessKey(null);
-        plainAclPlugEngine.setAccessControl(plainAccessResource);
+        plainPermissionLoader.setAccessControl(plainAccessResource);
     }
 
     @Test(expected = AclPlugRuntimeException.class)
     public void accountThanTest() {
         plainAccessResource.setAccessKey("123");
-        plainAclPlugEngine.setAccessControl(plainAccessResource);
+        plainPermissionLoader.setAccessControl(plainAccessResource);
     }
 
     @Test(expected = AclPlugRuntimeException.class)
     public void passWordtNullTest() {
         plainAccessResource.setAccessKey(null);
-        plainAclPlugEngine.setAccessControl(plainAccessResource);
+        plainPermissionLoader.setAccessControl(plainAccessResource);
     }
 
     @Test(expected = AclPlugRuntimeException.class)
     public void passWordThanTest() {
         plainAccessResource.setAccessKey("123");
-        plainAclPlugEngine.setAccessControl(plainAccessResource);
+        plainPermissionLoader.setAccessControl(plainAccessResource);
     }
 
     @Test(expected = AclPlugRuntimeException.class)
     public void testPlainAclPlugEngineInit() {
         System.setProperty("rocketmq.home.dir", "");
-        new PlainAclPlugEngine().initialize();
+        new PlainPermissionLoader().initialize();
     }
 
     @Test
     public void authenticationInfoOfSetAccessControl() {
-        plainAclPlugEngine.setAccessControl(plainAccessResource);
+        plainPermissionLoader.setAccessControl(plainAccessResource);
 
-        AuthenticationInfo authenticationInfo = plainAclPlugEngine.getAccessControl(plainAccessResource);
+        AuthenticationInfo authenticationInfo = plainPermissionLoader.getAccessControl(plainAccessResource);
 
         PlainAccessResource getPlainAccessResource = authenticationInfo.getPlainAccessResource();
         Assert.assertEquals(plainAccessResource, getPlainAccessResource);
@@ -156,16 +156,16 @@ public class PlainAclPlugEngineTest {
         testPlainAccessResource.setRecognition("127.0.0.1:1");
 
         testPlainAccessResource.setAccessKey("rokcetmq1");
-        authenticationInfo = plainAclPlugEngine.getAccessControl(testPlainAccessResource);
+        authenticationInfo = plainPermissionLoader.getAccessControl(testPlainAccessResource);
         Assert.assertNull(authenticationInfo);
 
         testPlainAccessResource.setAccessKey("rokcetmq");
         testPlainAccessResource.setSignature("1234567");
-        authenticationInfo = plainAclPlugEngine.getAccessControl(testPlainAccessResource);
+        authenticationInfo = plainPermissionLoader.getAccessControl(testPlainAccessResource);
         Assert.assertNull(authenticationInfo);
 
         testPlainAccessResource.setRemoteAddr("127.0.0.2");
-        authenticationInfo = plainAclPlugEngine.getAccessControl(testPlainAccessResource);
+        authenticationInfo = plainPermissionLoader.getAccessControl(testPlainAccessResource);
         Assert.assertNull(authenticationInfo);
     }
 
@@ -176,12 +176,12 @@ public class PlainAclPlugEngineTest {
 
         plainAccessResourceList.add(plainAccessResourceTwo);
 
-        plainAclPlugEngine.setAccessControlList(plainAccessResourceList);
+        plainPermissionLoader.setAccessControlList(plainAccessResourceList);
 
-        AuthenticationInfo newAccessControl = plainAclPlugEngine.getAccessControl(plainAccessResource);
+        AuthenticationInfo newAccessControl = plainPermissionLoader.getAccessControl(plainAccessResource);
         Assert.assertEquals(plainAccessResource, newAccessControl.getPlainAccessResource());
 
-        newAccessControl = plainAclPlugEngine.getAccessControl(plainAccessResourceTwo);
+        newAccessControl = plainPermissionLoader.getAccessControl(plainAccessResourceTwo);
         Assert.assertEquals(plainAccessResourceTwo, newAccessControl.getPlainAccessResource());
 
     }
@@ -192,16 +192,16 @@ public class PlainAclPlugEngineTest {
         plainAccessResource.setAccessKey("RocketMQ");
         plainAccessResource.setSignature("RocketMQ");
         plainAccessResource.setRemoteAddr("127.0.0.1");
-        plainAclPlugEngine.setAccessControl(plainAccessResource);
-        plainAclPlugEngine.setNetaddressAccessControl(plainAccessResource);
+        plainPermissionLoader.setAccessControl(plainAccessResource);
+        plainPermissionLoader.setNetaddressAccessControl(plainAccessResource);
 
-        AuthenticationInfo authenticationInfo = plainAclPlugEngine.getAccessControl(plainAccessResource);
+        AuthenticationInfo authenticationInfo = plainPermissionLoader.getAccessControl(plainAccessResource);
 
         PlainAccessResource getPlainAccessResource = authenticationInfo.getPlainAccessResource();
         Assert.assertEquals(plainAccessResource, getPlainAccessResource);
 
         plainAccessResource.setRemoteAddr("127.0.0.2");
-        authenticationInfo = plainAclPlugEngine.getAccessControl(plainAccessResource);
+        authenticationInfo = plainPermissionLoader.getAccessControl(plainAccessResource);
         Assert.assertNull(authenticationInfo);
     }
 
@@ -212,7 +212,7 @@ public class PlainAclPlugEngineTest {
     @Test(expected = AclPlugRuntimeException.class)
     public void BrokerAccessControlTransportTestNull() {
         BrokerAccessControlTransport accessControlTransport = new BrokerAccessControlTransport();
-        plainAclPlugEngine.setBrokerAccessControlTransport(accessControlTransport);
+        plainPermissionLoader.setBrokerAccessControlTransport(accessControlTransport);
     }
 
     @Test
@@ -222,17 +222,17 @@ public class PlainAclPlugEngineTest {
         list.add((BrokerAccessControl) this.plainAccessResourceTwo);
         accessControlTransport.setOnlyNetAddress((BrokerAccessControl) this.plainAccessResource);
         accessControlTransport.setList(list);
-        plainAclPlugEngine.setBrokerAccessControlTransport(accessControlTransport);
+        plainPermissionLoader.setBrokerAccessControlTransport(accessControlTransport);
 
         PlainAccessResource plainAccessResource = new BrokerAccessControl();
         plainAccessResource.setAccessKey("RocketMQ");
         plainAccessResource.setSignature("RocketMQ");
         plainAccessResource.setRemoteAddr("127.0.0.1");
-        plainAclPlugEngine.setAccessControl(plainAccessResource);
-        AuthenticationInfo authenticationInfo = plainAclPlugEngine.getAccessControl(plainAccessResource);
+        plainPermissionLoader.setAccessControl(plainAccessResource);
+        AuthenticationInfo authenticationInfo = plainPermissionLoader.getAccessControl(plainAccessResource);
         Assert.assertNotNull(authenticationInfo.getPlainAccessResource());
 
-        authenticationInfo = plainAclPlugEngine.getAccessControl(plainAccessResourceTwo);
+        authenticationInfo = plainPermissionLoader.getAccessControl(plainAccessResourceTwo);
         Assert.assertEquals(plainAccessResourceTwo, authenticationInfo.getPlainAccessResource());
 
     }
@@ -242,45 +242,45 @@ public class PlainAclPlugEngineTest {
         AuthenticationResult authenticationResult = new AuthenticationResult();
         plainAccessResource.setRequestCode(317);
 
-        boolean isReturn = plainAclPlugEngine.authentication(authenticationInfo, plainAccessResource, authenticationResult);
+        boolean isReturn = plainPermissionLoader.authentication(authenticationInfo, plainAccessResource, authenticationResult);
         Assert.assertTrue(isReturn);
 
         plainAccessResource.setRequestCode(321);
-        isReturn = plainAclPlugEngine.authentication(authenticationInfo, plainAccessResource, authenticationResult);
+        isReturn = plainPermissionLoader.authentication(authenticationInfo, plainAccessResource, authenticationResult);
         Assert.assertFalse(isReturn);
 
         plainAccessResource.setRequestCode(10);
         plainAccessResource.setTopic("permitSendTopic");
-        isReturn = plainAclPlugEngine.authentication(authenticationInfo, plainAccessResource, authenticationResult);
+        isReturn = plainPermissionLoader.authentication(authenticationInfo, plainAccessResource, authenticationResult);
         Assert.assertTrue(isReturn);
 
         plainAccessResource.setRequestCode(310);
-        isReturn = plainAclPlugEngine.authentication(authenticationInfo, plainAccessResource, authenticationResult);
+        isReturn = plainPermissionLoader.authentication(authenticationInfo, plainAccessResource, authenticationResult);
         Assert.assertTrue(isReturn);
 
         plainAccessResource.setRequestCode(320);
-        isReturn = plainAclPlugEngine.authentication(authenticationInfo, plainAccessResource, authenticationResult);
+        isReturn = plainPermissionLoader.authentication(authenticationInfo, plainAccessResource, authenticationResult);
         Assert.assertTrue(isReturn);
 
         plainAccessResource.setTopic("noPermitSendTopic");
-        isReturn = plainAclPlugEngine.authentication(authenticationInfo, plainAccessResource, authenticationResult);
+        isReturn = plainPermissionLoader.authentication(authenticationInfo, plainAccessResource, authenticationResult);
         Assert.assertFalse(isReturn);
 
         plainAccessResource.setTopic("nopermitSendTopic");
-        isReturn = plainAclPlugEngine.authentication(authenticationInfo, plainAccessResource, authenticationResult);
+        isReturn = plainPermissionLoader.authentication(authenticationInfo, plainAccessResource, authenticationResult);
         Assert.assertFalse(isReturn);
 
         plainAccessResource.setRequestCode(11);
         plainAccessResource.setTopic("permitPullTopic");
-        isReturn = plainAclPlugEngine.authentication(authenticationInfo, plainAccessResource, authenticationResult);
+        isReturn = plainPermissionLoader.authentication(authenticationInfo, plainAccessResource, authenticationResult);
         Assert.assertTrue(isReturn);
 
         plainAccessResource.setTopic("noPermitPullTopic");
-        isReturn = plainAclPlugEngine.authentication(authenticationInfo, plainAccessResource, authenticationResult);
+        isReturn = plainPermissionLoader.authentication(authenticationInfo, plainAccessResource, authenticationResult);
         Assert.assertFalse(isReturn);
 
         plainAccessResource.setTopic("nopermitPullTopic");
-        isReturn = plainAclPlugEngine.authentication(authenticationInfo, plainAccessResource, authenticationResult);
+        isReturn = plainPermissionLoader.authentication(authenticationInfo, plainAccessResource, authenticationResult);
         Assert.assertFalse(isReturn);
 
     }
@@ -290,20 +290,20 @@ public class PlainAclPlugEngineTest {
         AuthenticationResult authenticationResult = new AuthenticationResult();
         plainAccessResource.setRequestCode(10);
         plainAccessResource.setTopic("absentTopic");
-        boolean isReturn = plainAclPlugEngine.authentication(authenticationInfo, plainAccessResource, authenticationResult);
+        boolean isReturn = plainPermissionLoader.authentication(authenticationInfo, plainAccessResource, authenticationResult);
         Assert.assertFalse(isReturn);
 
         Set<String> permitSendTopic = new HashSet<>();
         brokerAccessControl.setPermitSendTopic(permitSendTopic);
-        isReturn = plainAclPlugEngine.authentication(authenticationInfo, plainAccessResource, authenticationResult);
+        isReturn = plainPermissionLoader.authentication(authenticationInfo, plainAccessResource, authenticationResult);
         Assert.assertTrue(isReturn);
 
         plainAccessResource.setRequestCode(11);
-        isReturn = plainAclPlugEngine.authentication(authenticationInfo, plainAccessResource, authenticationResult);
+        isReturn = plainPermissionLoader.authentication(authenticationInfo, plainAccessResource, authenticationResult);
         Assert.assertFalse(isReturn);
 
         brokerAccessControl.setPermitPullTopic(permitSendTopic);
-        isReturn = plainAclPlugEngine.authentication(authenticationInfo, plainAccessResource, authenticationResult);
+        isReturn = plainPermissionLoader.authentication(authenticationInfo, plainAccessResource, authenticationResult);
         Assert.assertTrue(isReturn);
     }
 
@@ -313,11 +313,11 @@ public class PlainAclPlugEngineTest {
         admin.setAccessKey("adminTest");
         admin.setSignature("adminTest");
         admin.setRemoteAddr("127.0.0.1");
-        plainAclPlugEngine.setAccessControl(admin);
+        plainPermissionLoader.setAccessControl(admin);
         Assert.assertFalse(admin.isUpdateAndCreateTopic());
 
         admin.setAdmin(true);
-        plainAclPlugEngine.setAccessControl(admin);
+        plainPermissionLoader.setAccessControl(admin);
         Assert.assertTrue(admin.isUpdateAndCreateTopic());
     }
 
@@ -327,41 +327,41 @@ public class PlainAclPlugEngineTest {
         accessControl.setAccessKey("RocketMQ1");
         accessControl.setSignature("1234567");
         accessControl.setRemoteAddr("127.0.0.1");
-        plainAclPlugEngine.setAccessControl(accessControl);
+        plainPermissionLoader.setAccessControl(accessControl);
         for (Integer code : adminCode) {
             accessControl.setRequestCode(code);
-            AuthenticationResult authenticationResult = plainAclPlugEngine.eachCheckAuthentication(accessControl);
+            AuthenticationResult authenticationResult = plainPermissionLoader.eachCheckAuthentication(accessControl);
             Assert.assertFalse(authenticationResult.isSucceed());
 
         }
-        plainAclPlugEngine.cleanAuthenticationInfo();
+        plainPermissionLoader.cleanAuthenticationInfo();
         accessControl.setAdmin(true);
-        plainAclPlugEngine.setAccessControl(accessControl);
+        plainPermissionLoader.setAccessControl(accessControl);
         for (Integer code : adminCode) {
             accessControl.setRequestCode(code);
-            AuthenticationResult authenticationResult = plainAclPlugEngine.eachCheckAuthentication(accessControl);
+            AuthenticationResult authenticationResult = plainPermissionLoader.eachCheckAuthentication(accessControl);
             Assert.assertTrue(authenticationResult.isSucceed());
         }
     }
 
     @Test
     public void cleanAuthenticationInfoTest() {
-        plainAclPlugEngine.setAccessControl(plainAccessResource);
+        plainPermissionLoader.setAccessControl(plainAccessResource);
         plainAccessResource.setRequestCode(202);
-        AuthenticationResult authenticationResult = plainAclPlugEngine.eachCheckAuthentication(plainAccessResource);
+        AuthenticationResult authenticationResult = plainPermissionLoader.eachCheckAuthentication(plainAccessResource);
         Assert.assertTrue(authenticationResult.isSucceed());
-        plainAclPlugEngine.cleanAuthenticationInfo();
-        authenticationResult = plainAclPlugEngine.eachCheckAuthentication(plainAccessResource);
+        plainPermissionLoader.cleanAuthenticationInfo();
+        authenticationResult = plainPermissionLoader.eachCheckAuthentication(plainAccessResource);
         Assert.assertFalse(authenticationResult.isSucceed());
     }
 
     @Test
     public void isWatchStartTest() {
-        PlainAclPlugEngine plainAclPlugEngine = new PlainAclPlugEngine();
-        Assert.assertTrue(plainAclPlugEngine.isWatchStart());
+        PlainPermissionLoader plainPermissionLoader = new PlainPermissionLoader();
+        Assert.assertTrue(plainPermissionLoader.isWatchStart());
         System.setProperty("java.version", "1.6.11");
-        plainAclPlugEngine = new PlainAclPlugEngine();
-        Assert.assertFalse(plainAclPlugEngine.isWatchStart());
+        plainPermissionLoader = new PlainPermissionLoader();
+        Assert.assertFalse(plainPermissionLoader.isWatchStart());
     }
 
     @Test
@@ -379,9 +379,9 @@ public class PlainAclPlugEngineTest {
         writer.write("  netaddress: 127.0.0.1\r\n");
         writer.flush();
         writer.close();
-        PlainAclPlugEngine plainAclPlugEngine = new PlainAclPlugEngine();
+        PlainPermissionLoader plainPermissionLoader = new PlainPermissionLoader();
         plainAccessResource.setRequestCode(203);
-        AuthenticationResult authenticationResult = plainAclPlugEngine.eachCheckAuthentication(plainAccessResource);
+        AuthenticationResult authenticationResult = plainPermissionLoader.eachCheckAuthentication(plainAccessResource);
         Assert.assertTrue(authenticationResult.isSucceed());
 
         writer = new FileWriter(new File("src/test/resources/watch/conf/transport.yml"), true);
@@ -397,7 +397,7 @@ public class PlainAclPlugEngineTest {
             e.printStackTrace();
         }
         plainAccessResourceTwo.setRequestCode(203);
-        authenticationResult = plainAclPlugEngine.eachCheckAuthentication(plainAccessResourceTwo);
+        authenticationResult = plainPermissionLoader.eachCheckAuthentication(plainAccessResourceTwo);
         Assert.assertTrue(authenticationResult.isSucceed());
 
         transport.delete();

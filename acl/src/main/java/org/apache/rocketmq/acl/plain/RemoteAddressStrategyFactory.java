@@ -21,11 +21,11 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclUtils;
 
-public class NetaddressStrategyFactory {
+public class RemoteAddressStrategyFactory {
 
-    public static final NullNetaddressStrategy NULL_NET_ADDRESS_STRATEGY = new NullNetaddressStrategy();
+    public static final NullRemoteAddressStrategy NULL_NET_ADDRESS_STRATEGY = new NullRemoteAddressStrategy();
 
-    public NetaddressStrategy getNetaddressStrategy(PlainAccessResource plainAccessResource) {
+    public RemoteAddressStrategy getNetaddressStrategy(PlainAccessResource plainAccessResource) {
         String netaddress = plainAccessResource.getRemoteAddr();
         if (StringUtils.isBlank(netaddress) || "*".equals(netaddress)) {
             return NULL_NET_ADDRESS_STRATEGY;
@@ -34,19 +34,19 @@ public class NetaddressStrategyFactory {
             String[] strArray = StringUtils.split(netaddress, ".");
             String four = strArray[3];
             if (!four.startsWith("{")) {
-                throw new AclPlugRuntimeException(String.format("MultipleNetaddressStrategy netaddress examine scope Exception netaddress", netaddress));
+                throw new AclPlugRuntimeException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress", netaddress));
             }
-            return new MultipleNetaddressStrategy(AclUtils.getAddreeStrArray(netaddress, four));
+            return new MultipleRemoteAddressStrategy(AclUtils.getAddreeStrArray(netaddress, four));
         } else if (AclUtils.isColon(netaddress)) {
-            return new MultipleNetaddressStrategy(StringUtils.split(netaddress, ","));
+            return new MultipleRemoteAddressStrategy(StringUtils.split(netaddress, ","));
         } else if (AclUtils.isAsterisk(netaddress) || AclUtils.isMinus(netaddress)) {
-            return new RangeNetaddressStrategy(netaddress);
+            return new RangeRemoteAddressStrategy(netaddress);
         }
-        return new OneNetaddressStrategy(netaddress);
+        return new OneRemoteAddressStrategy(netaddress);
 
     }
 
-    public static class NullNetaddressStrategy implements NetaddressStrategy {
+    public static class NullRemoteAddressStrategy implements RemoteAddressStrategy {
         @Override
         public boolean match(PlainAccessResource plainAccessResource) {
             return true;
@@ -54,11 +54,11 @@ public class NetaddressStrategyFactory {
 
     }
 
-    public static class MultipleNetaddressStrategy implements NetaddressStrategy {
+    public static class MultipleRemoteAddressStrategy implements RemoteAddressStrategy {
 
         private final Set<String> multipleSet = new HashSet<>();
 
-        public MultipleNetaddressStrategy(String[] strArray) {
+        public MultipleRemoteAddressStrategy(String[] strArray) {
             for (String netaddress : strArray) {
                 AclUtils.verify(netaddress, 4);
                 multipleSet.add(netaddress);
@@ -72,11 +72,11 @@ public class NetaddressStrategyFactory {
 
     }
 
-    public static class OneNetaddressStrategy implements NetaddressStrategy {
+    public static class OneRemoteAddressStrategy implements RemoteAddressStrategy {
 
         private String netaddress;
 
-        public OneNetaddressStrategy(String netaddress) {
+        public OneRemoteAddressStrategy(String netaddress) {
             this.netaddress = netaddress;
             AclUtils.verify(netaddress, 4);
         }
@@ -88,7 +88,7 @@ public class NetaddressStrategyFactory {
 
     }
 
-    public static class RangeNetaddressStrategy implements NetaddressStrategy {
+    public static class RangeRemoteAddressStrategy implements RemoteAddressStrategy {
 
         private String head;
 
@@ -98,7 +98,7 @@ public class NetaddressStrategyFactory {
 
         private int index;
 
-        public RangeNetaddressStrategy(String netaddress) {
+        public RangeRemoteAddressStrategy(String netaddress) {
             String[] strArray = StringUtils.split(netaddress, ".");
             if (analysis(strArray, 2) || analysis(strArray, 3)) {
                 AclUtils.verify(netaddress, index - 1);
@@ -117,14 +117,14 @@ public class NetaddressStrategyFactory {
                 setValue(0, 255);
             } else if (AclUtils.isMinus(value)) {
                 if (value.indexOf("-") == 0) {
-                    throw new AclPlugRuntimeException(String.format("RangeNetaddressStrategy netaddress examine scope Exception value %s ", value));
+                    throw new AclPlugRuntimeException(String.format("RangeRemoteAddressStrategy netaddress examine scope Exception value %s ", value));
 
                 }
                 String[] valueArray = StringUtils.split(value, "-");
                 this.start = Integer.valueOf(valueArray[0]);
                 this.end = Integer.valueOf(valueArray[1]);
                 if (!(AclUtils.isScope(end) && AclUtils.isScope(start) && start <= end)) {
-                    throw new AclPlugRuntimeException(String.format("RangeNetaddressStrategy netaddress examine scope Exception start is %s , end is %s", start, end));
+                    throw new AclPlugRuntimeException(String.format("RangeRemoteAddressStrategy netaddress examine scope Exception start is %s , end is %s", start, end));
                 }
             }
             return this.end > 0 ? true : false;

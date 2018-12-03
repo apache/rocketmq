@@ -40,7 +40,7 @@ import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
-public class PlainAclPlugEngine {
+public class PlainPermissionLoader {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.ACL_PLUG_LOGGER_NAME);
 
@@ -51,7 +51,7 @@ public class PlainAclPlugEngine {
 
     private AuthenticationInfo authenticationInfo;
 
-    private NetaddressStrategyFactory netaddressStrategyFactory = new NetaddressStrategyFactory();
+    private RemoteAddressStrategyFactory remoteAddressStrategyFactory = new RemoteAddressStrategyFactory();
 
     private AccessContralAnalysis accessContralAnalysis = new AccessContralAnalysis();
 
@@ -59,7 +59,7 @@ public class PlainAclPlugEngine {
 
     private boolean isWatchStart;
 
-    public PlainAclPlugEngine() {
+    public PlainPermissionLoader() {
         initialize();
         watch();
     }
@@ -98,7 +98,7 @@ public class PlainAclPlugEngine {
                                     if ("transport.yml".equals(event.context().toString()) &&
                                         (StandardWatchEventKinds.ENTRY_MODIFY.equals(event.kind()) || StandardWatchEventKinds.ENTRY_CREATE.equals(event.kind()))) {
                                         log.info("transprot.yml make a difference  change is : ", event.toString());
-                                        PlainAclPlugEngine.this.cleanAuthenticationInfo();
+                                        PlainPermissionLoader.this.cleanAuthenticationInfo();
                                         initialize();
                                     }
                                 }
@@ -151,14 +151,14 @@ public class PlainAclPlugEngine {
         }
         try {
             handleAccessControl(plainAccessResource);
-            NetaddressStrategy netaddressStrategy = netaddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+            RemoteAddressStrategy remoteAddressStrategy = remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
             List<AuthenticationInfo> accessControlAddressList = accessControlMap.get(plainAccessResource.getAccessKey());
             if (accessControlAddressList == null) {
                 accessControlAddressList = new ArrayList<>();
                 accessControlMap.put(plainAccessResource.getAccessKey(), accessControlAddressList);
             }
             AuthenticationInfo authenticationInfo = new AuthenticationInfo(
-                accessContralAnalysis.analysis(plainAccessResource), plainAccessResource, netaddressStrategy);
+                accessContralAnalysis.analysis(plainAccessResource), plainAccessResource, remoteAddressStrategy);
             accessControlAddressList.add(authenticationInfo);
             log.info("authenticationInfo is {}", authenticationInfo.toString());
         } catch (Exception e) {
@@ -175,7 +175,7 @@ public class PlainAclPlugEngine {
 
     public void setNetaddressAccessControl(PlainAccessResource plainAccessResource) throws AclPlugRuntimeException {
         try {
-            authenticationInfo = new AuthenticationInfo(accessContralAnalysis.analysis(plainAccessResource), plainAccessResource, netaddressStrategyFactory.getNetaddressStrategy(plainAccessResource));
+            authenticationInfo = new AuthenticationInfo(accessContralAnalysis.analysis(plainAccessResource), plainAccessResource, remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource));
             log.info("default authenticationInfo is {}", authenticationInfo.toString());
         } catch (Exception e) {
             throw new AclPlugRuntimeException(plainAccessResource.toString(), e);
@@ -185,12 +185,12 @@ public class PlainAclPlugEngine {
 
     public AuthenticationInfo getAccessControl(PlainAccessResource plainAccessResource) {
         if (plainAccessResource.getAccessKey() == null && authenticationInfo != null) {
-            return authenticationInfo.getNetaddressStrategy().match(plainAccessResource) ? authenticationInfo : null;
+            return authenticationInfo.getRemoteAddressStrategy().match(plainAccessResource) ? authenticationInfo : null;
         } else {
             List<AuthenticationInfo> accessControlAddressList = accessControlMap.get(plainAccessResource.getAccessKey());
             if (accessControlAddressList != null) {
                 for (AuthenticationInfo ai : accessControlAddressList) {
-                    if (ai.getNetaddressStrategy().match(plainAccessResource) && ai.getPlainAccessResource().getSignature().equals(plainAccessResource.getSignature())) {
+                    if (ai.getRemoteAddressStrategy().match(plainAccessResource) && ai.getPlainAccessResource().getSignature().equals(plainAccessResource.getSignature())) {
                         return ai;
                     }
                 }
