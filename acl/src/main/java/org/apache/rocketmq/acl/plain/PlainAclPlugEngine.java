@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.acl.plug;
+package org.apache.rocketmq.acl.plain;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -123,9 +124,9 @@ public class PlainAclPlugEngine {
         }
     }
 
-    private void handleAccessControl(AccessControl accessControl) {
-        if (accessControl instanceof BrokerAccessControl) {
-            BrokerAccessControl brokerAccessControl = (BrokerAccessControl) accessControl;
+    private void handleAccessControl(PlainAccessResource plainAccessResource) {
+        if (plainAccessResource instanceof BrokerAccessControl) {
+            BrokerAccessControl brokerAccessControl = (BrokerAccessControl) plainAccessResource;
             if (brokerAccessControl.isAdmin()) {
                 brokerAccessControl.setUpdateAndCreateSubscriptiongroup(true);
                 brokerAccessControl.setDeleteSubscriptiongroup(true);
@@ -141,55 +142,55 @@ public class PlainAclPlugEngine {
         authenticationInfo = null;
     }
 
-    public void setAccessControl(AccessControl accessControl) throws AclPlugRuntimeException {
-        if (accessControl.getAccount() == null || accessControl.getPassword() == null
-            || accessControl.getAccount().length() <= 6 || accessControl.getPassword().length() <= 6) {
+    public void setAccessControl(PlainAccessResource plainAccessResource) throws AclPlugRuntimeException {
+        if (plainAccessResource.getAccessKey() == null || plainAccessResource.getSignature() == null
+            || plainAccessResource.getAccessKey().length() <= 6 || plainAccessResource.getSignature().length() <= 6) {
             throw new AclPlugRuntimeException(String.format(
                 "The account password cannot be null and is longer than 6, account is %s  password is %s",
-                accessControl.getAccount(), accessControl.getPassword()));
+                plainAccessResource.getAccessKey(), plainAccessResource.getSignature()));
         }
         try {
-            handleAccessControl(accessControl);
-            NetaddressStrategy netaddressStrategy = netaddressStrategyFactory.getNetaddressStrategy(accessControl);
-            List<AuthenticationInfo> accessControlAddressList = accessControlMap.get(accessControl.getAccount());
+            handleAccessControl(plainAccessResource);
+            NetaddressStrategy netaddressStrategy = netaddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+            List<AuthenticationInfo> accessControlAddressList = accessControlMap.get(plainAccessResource.getAccessKey());
             if (accessControlAddressList == null) {
                 accessControlAddressList = new ArrayList<>();
-                accessControlMap.put(accessControl.getAccount(), accessControlAddressList);
+                accessControlMap.put(plainAccessResource.getAccessKey(), accessControlAddressList);
             }
             AuthenticationInfo authenticationInfo = new AuthenticationInfo(
-                accessContralAnalysis.analysis(accessControl), accessControl, netaddressStrategy);
+                accessContralAnalysis.analysis(plainAccessResource), plainAccessResource, netaddressStrategy);
             accessControlAddressList.add(authenticationInfo);
             log.info("authenticationInfo is {}", authenticationInfo.toString());
         } catch (Exception e) {
             throw new AclPlugRuntimeException(
-                String.format("Exception info %s  %s", e.getMessage(), accessControl.toString()), e);
+                String.format("Exception info %s  %s", e.getMessage(), plainAccessResource.toString()), e);
         }
     }
 
-    public void setAccessControlList(List<AccessControl> accessControlList) throws AclPlugRuntimeException {
-        for (AccessControl accessControl : accessControlList) {
-            setAccessControl(accessControl);
+    public void setAccessControlList(List<PlainAccessResource> plainAccessResourceList) throws AclPlugRuntimeException {
+        for (PlainAccessResource plainAccessResource : plainAccessResourceList) {
+            setAccessControl(plainAccessResource);
         }
     }
 
-    public void setNetaddressAccessControl(AccessControl accessControl) throws AclPlugRuntimeException {
+    public void setNetaddressAccessControl(PlainAccessResource plainAccessResource) throws AclPlugRuntimeException {
         try {
-            authenticationInfo = new AuthenticationInfo(accessContralAnalysis.analysis(accessControl), accessControl, netaddressStrategyFactory.getNetaddressStrategy(accessControl));
+            authenticationInfo = new AuthenticationInfo(accessContralAnalysis.analysis(plainAccessResource), plainAccessResource, netaddressStrategyFactory.getNetaddressStrategy(plainAccessResource));
             log.info("default authenticationInfo is {}", authenticationInfo.toString());
         } catch (Exception e) {
-            throw new AclPlugRuntimeException(accessControl.toString(), e);
+            throw new AclPlugRuntimeException(plainAccessResource.toString(), e);
         }
 
     }
 
-    public AuthenticationInfo getAccessControl(AccessControl accessControl) {
-        if (accessControl.getAccount() == null && authenticationInfo != null) {
-            return authenticationInfo.getNetaddressStrategy().match(accessControl) ? authenticationInfo : null;
+    public AuthenticationInfo getAccessControl(PlainAccessResource plainAccessResource) {
+        if (plainAccessResource.getAccessKey() == null && authenticationInfo != null) {
+            return authenticationInfo.getNetaddressStrategy().match(plainAccessResource) ? authenticationInfo : null;
         } else {
-            List<AuthenticationInfo> accessControlAddressList = accessControlMap.get(accessControl.getAccount());
+            List<AuthenticationInfo> accessControlAddressList = accessControlMap.get(plainAccessResource.getAccessKey());
             if (accessControlAddressList != null) {
                 for (AuthenticationInfo ai : accessControlAddressList) {
-                    if (ai.getNetaddressStrategy().match(accessControl) && ai.getAccessControl().getPassword().equals(accessControl.getPassword())) {
+                    if (ai.getNetaddressStrategy().match(plainAccessResource) && ai.getPlainAccessResource().getSignature().equals(plainAccessResource.getSignature())) {
                         return ai;
                     }
                 }
@@ -198,15 +199,15 @@ public class PlainAclPlugEngine {
         return null;
     }
 
-    public AuthenticationResult eachCheckAuthentication(AccessControl accessControl) {
+    public AuthenticationResult eachCheckAuthentication(PlainAccessResource plainAccessResource) {
         AuthenticationResult authenticationResult = new AuthenticationResult();
-        AuthenticationInfo authenticationInfo = getAccessControl(accessControl);
+        AuthenticationInfo authenticationInfo = getAccessControl(plainAccessResource);
         if (authenticationInfo != null) {
-            boolean boo = authentication(authenticationInfo, accessControl, authenticationResult);
+            boolean boo = authentication(authenticationInfo, plainAccessResource, authenticationResult);
             authenticationResult.setSucceed(boo);
-            authenticationResult.setAccessControl(authenticationInfo.getAccessControl());
+            authenticationResult.setPlainAccessResource(authenticationInfo.getPlainAccessResource());
         } else {
-            authenticationResult.setResultString("accessControl is null, Please check login, password, IP\"");
+            authenticationResult.setResultString("plainAccessResource is null, Please check login, password, IP\"");
         }
         return authenticationResult;
     }
@@ -226,18 +227,18 @@ public class PlainAclPlugEngine {
         }
     }
 
-    public boolean authentication(AuthenticationInfo authenticationInfo, AccessControl accessControl,
+    public boolean authentication(AuthenticationInfo authenticationInfo, PlainAccessResource plainAccessResource,
         AuthenticationResult authenticationResult) {
-        int code = accessControl.getCode();
+        int code = plainAccessResource.getRequestCode();
         if (!authenticationInfo.getAuthority().get(code)) {
             authenticationResult.setResultString(String.format("code is %d Authentication failed", code));
             return false;
         }
-        if (!(authenticationInfo.getAccessControl() instanceof BrokerAccessControl)) {
+        if (!(authenticationInfo.getPlainAccessResource() instanceof BrokerAccessControl)) {
             return true;
         }
-        BrokerAccessControl borker = (BrokerAccessControl) authenticationInfo.getAccessControl();
-        String topicName = accessControl.getTopic();
+        BrokerAccessControl borker = (BrokerAccessControl) authenticationInfo.getPlainAccessResource();
+        String topicName = plainAccessResource.getTopic();
         if (code == 10 || code == 310 || code == 320) {
             if (borker.getPermitSendTopic().contains(topicName)) {
                 return true;
@@ -284,8 +285,8 @@ public class PlainAclPlugEngine {
             }
         }
 
-        public Map<Integer, Boolean> analysis(AccessControl accessControl) {
-            Class<? extends AccessControl> clazz = accessControl.getClass();
+        public Map<Integer, Boolean> analysis(PlainAccessResource plainAccessResource) {
+            Class<? extends PlainAccessResource> clazz = plainAccessResource.getClass();
             Map<Integer, Field> codeAndField = classTocodeAndMentod.get(clazz);
             if (codeAndField == null) {
                 codeAndField = new HashMap<>();
@@ -305,8 +306,8 @@ public class PlainAclPlugEngine {
 
                 }
                 if (codeAndField.isEmpty()) {
-                    throw new AclPlugRuntimeException(String.format("AccessControl nonexistent code , name %s",
-                        accessControl.getClass().getName()));
+                    throw new AclPlugRuntimeException(String.format("PlainAccessResource nonexistent code , name %s",
+                        plainAccessResource.getClass().getName()));
                 }
                 classTocodeAndMentod.put(clazz, codeAndField);
             }
@@ -315,11 +316,11 @@ public class PlainAclPlugEngine {
             try {
                 while (it.hasNext()) {
                     Entry<Integer, Field> e = it.next();
-                    authority.put(e.getKey(), (Boolean) e.getValue().get(accessControl));
+                    authority.put(e.getKey(), (Boolean) e.getValue().get(plainAccessResource));
                 }
             } catch (IllegalArgumentException | IllegalAccessException e) {
                 throw new AclPlugRuntimeException(
-                    String.format("analysis on failure AccessControl is %s", AccessControl.class.getName()), e);
+                    String.format("analysis on failure PlainAccessResource is %s", PlainAccessResource.class.getName()), e);
             }
             return authority;
         }

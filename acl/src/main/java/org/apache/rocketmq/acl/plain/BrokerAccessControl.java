@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.acl.plug;
+package org.apache.rocketmq.acl.plain;
 
 import java.util.HashSet;
 import java.util.Set;
 
-public class BrokerAccessControl extends AccessControl {
+public class BrokerAccessControl extends PlainAccessResource {
 
     private boolean admin;
 

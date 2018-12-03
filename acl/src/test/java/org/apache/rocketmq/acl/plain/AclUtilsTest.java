@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.acl.plug;
+package org.apache.rocketmq.acl.plain;
 
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.common.AclUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
