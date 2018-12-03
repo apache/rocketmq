@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.store.dleger;
+package org.apache.rocketmq.store.dledger;
 
 import io.openmessaging.storage.dleger.store.file.SelectMmapBufferResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 
-public class DLegerSelectMappedBufferResult extends SelectMappedBufferResult {
+public class DLedgerSelectMappedBufferResult extends SelectMappedBufferResult {
 
     private SelectMmapBufferResult sbr;
-    public DLegerSelectMappedBufferResult(SelectMmapBufferResult sbr) {
+    public DLedgerSelectMappedBufferResult(SelectMmapBufferResult sbr) {
         super(sbr.getStartOffset(), sbr.getByteBuffer(), sbr.getSize(), null);
         this.sbr = sbr;
     }

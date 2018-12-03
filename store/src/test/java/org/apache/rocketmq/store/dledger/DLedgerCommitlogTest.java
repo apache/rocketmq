@@ -1,4 +1,4 @@
-package org.apache.rocketmq.store.dleger;
+package org.apache.rocketmq.store.dledger;
 
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -22,7 +22,7 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class DLegerCommitlogTest extends StoreTestBase {
+public class DLedgerCommitlogTest extends StoreTestBase {
 
     private DefaultMessageStore createMessageStore(String base, String group, String selfId, String peers, String leaderId) throws Exception {
         baseDirs.add(base);
@@ -43,7 +43,7 @@ public class DLegerCommitlogTest extends StoreTestBase {
 
         }, new BrokerConfig());
         if (leaderId != null) {
-            DLegerServer dLegerServer = ((DLegerCommitLog) defaultMessageStore.getCommitLog()).getdLegerServer();
+            DLegerServer dLegerServer = ((DLedgerCommitLog) defaultMessageStore.getCommitLog()).getdLegerServer();
             dLegerServer.getdLegerConfig().setEnableLeaderElector(false);
             if (selfId.equals(leaderId)) {
                 dLegerServer.getMemberState().changeToLeader(-1);

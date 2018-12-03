@@ -1,4 +1,4 @@
-package org.apache.rocketmq.test.base.dleger;
+package org.apache.rocketmq.test.base.dledger;
 
 import java.util.UUID;
 import org.apache.rocketmq.broker.BrokerController;

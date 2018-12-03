@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.dleger;
+package org.apache.rocketmq.broker.dledger;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,21 +29,21 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.BrokerRole;
-import org.apache.rocketmq.store.dleger.DLegerCommitLog;
+import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
 
-public class DLegerRoleChangeHandler implements DLegerLeaderElector.RoleChangeHandler {
+public class DLedgerRoleChangeHandler implements DLegerLeaderElector.RoleChangeHandler {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private ExecutorService executorService = Executors.newSingleThreadExecutor(new ThreadFactoryImpl("DLegerRoleChangeHandler_"));
     private BrokerController brokerController;
     private DefaultMessageStore messageStore;
-    private DLegerCommitLog dLegerCommitLog;
+    private DLedgerCommitLog dLedgerCommitLog;
     private DLegerServer dLegerServer;
-    public DLegerRoleChangeHandler(BrokerController brokerController, DefaultMessageStore messageStore) {
+    public DLedgerRoleChangeHandler(BrokerController brokerController, DefaultMessageStore messageStore) {
         this.brokerController = brokerController;
         this.messageStore = messageStore;
-        this.dLegerCommitLog = (DLegerCommitLog) messageStore.getCommitLog();
-        this.dLegerServer = dLegerCommitLog.getdLegerServer();
+        this.dLedgerCommitLog = (DLedgerCommitLog) messageStore.getCommitLog();
+        this.dLegerServer = dLedgerCommitLog.getdLegerServer();
     }
 
     @Override public void handle(long term, MemberState.Role role) {
@@ -55,11 +55,11 @@ public class DLegerRoleChangeHandler implements DLegerLeaderElector.RoleChangeHa
                     switch (role) {
                         case CANDIDATE:
                             if (messageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
-                                brokerController.changeToSlave(dLegerCommitLog.getId());
+                                brokerController.changeToSlave(dLedgerCommitLog.getId());
                             }
                             break;
                         case FOLLOWER:
-                            brokerController.changeToSlave(dLegerCommitLog.getId());
+                            brokerController.changeToSlave(dLedgerCommitLog.getId());
                             break;
                         case LEADER:
                             while (dLegerServer.getMemberState().isLeader()
