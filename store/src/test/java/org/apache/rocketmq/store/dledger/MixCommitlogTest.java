@@ -65,6 +65,64 @@ public class MixCommitlogTest extends MessageStoreTestBase {
             doGetMessages(recoverDledgerStore, topic, 0, 3000, 0);
             recoverDledgerStore.shutdown();
         }
+    }
 
+    @Test
+    public void testDeleteExpiredFiles() throws Exception {
+        String base =  createBaseDir();
+        String topic = UUID.randomUUID().toString();
+        String peers = String.format("n0-localhost:%d", nextPort());
+        String group = UUID.randomUUID().toString();
+
+        long dividedOffset;
+        {
+            DefaultMessageStore originalStore = createMessageStore(base, false);
+            doPutMessages(originalStore, topic, 0, 1000, 0);
+            Thread.sleep(500);
+            Assert.assertEquals(0, originalStore.getMinOffsetInQueue(topic, 0));
+            Assert.assertEquals(1000, originalStore.getMaxOffsetInQueue(topic, 0));
+            Assert.assertEquals(0, originalStore.dispatchBehindBytes());
+            dividedOffset = originalStore.getCommitLog().getMaxOffset();
+            dividedOffset = dividedOffset - dividedOffset % originalStore.getMessageStoreConfig().getMapedFileSizeCommitLog() + originalStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
+            originalStore.shutdown();
+        }
+        long maxPhysicalOffset;
+        {
+            DefaultMessageStore dledgerStore = createDledgerMessageStore(base, group, "n0", peers, null, true);
+            DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) dledgerStore.getCommitLog();
+            Assert.assertFalse(dLedgerCommitLog.getdLedgerServer().getdLedgerConfig().isEnableDiskForceClean());
+            Assert.assertEquals(dividedOffset, dLedgerCommitLog.getDividedCommitlogOffset());
+            Thread.sleep(2000);
+            doPutMessages(dledgerStore, topic, 0, 1000, 1000);
+            Thread.sleep(500);
+            Assert.assertEquals(0, dledgerStore.getMinOffsetInQueue(topic, 0));
+            Assert.assertEquals(2000, dledgerStore.getMaxOffsetInQueue(topic, 0));
+            Assert.assertEquals(0, dledgerStore.dispatchBehindBytes());
+            Assert.assertEquals(0, dledgerStore.getMinPhyOffset());
+            maxPhysicalOffset = dledgerStore.getMaxPhyOffset();
+
+            doGetMessages(dledgerStore, topic, 0, 2000, 0);
+
+            for (int i = 0; i < 100; i++) {
+                dledgerStore.getCommitLog().deleteExpiredFile(System.currentTimeMillis(), 0, 0, true);
+            }
+            Assert.assertEquals(dividedOffset, dledgerStore.getMinPhyOffset());
+            Assert.assertEquals(maxPhysicalOffset, dledgerStore.getMaxPhyOffset());
+            for (int i = 0; i < 100; i++) {
+                Assert.assertEquals(Integer.MAX_VALUE, dledgerStore.getCommitLog().deleteExpiredFile(System.currentTimeMillis(), 0, 0, true));
+            }
+            Assert.assertEquals(dividedOffset, dledgerStore.getMinPhyOffset());
+            Assert.assertEquals(maxPhysicalOffset, dledgerStore.getMaxPhyOffset());
+            Assert.assertTrue(dLedgerCommitLog.getdLedgerServer().getdLedgerConfig().isEnableDiskForceClean());
+
+            dLedgerCommitLog.getdLedgerServer().getdLedgerConfig().setEnableDiskForceClean(false);
+            for (int i = 0; i < 100; i++) {
+                Assert.assertEquals(Integer.MAX_VALUE, dledgerStore.getCommitLog().deleteExpiredFile(System.currentTimeMillis(), 0, 0, true));
+            }
+            //should not change the value
+            Assert.assertFalse(dLedgerCommitLog.getdLedgerServer().getdLedgerConfig().isEnableDiskForceClean());
+            doGetMessages(dledgerStore, topic, 0, 1000, 1000);
+            dledgerStore.shutdown();
+        }
     }
 }

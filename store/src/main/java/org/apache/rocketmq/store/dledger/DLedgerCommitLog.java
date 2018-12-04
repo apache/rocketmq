@@ -30,6 +30,7 @@ import io.openmessaging.storage.dledger.store.file.SelectMmapBufferResult;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -70,6 +71,7 @@ public class DLedgerCommitLog extends CommitLog {
 
     //The old commitlog should be deleted before the dledger commitlog
     private final boolean originalDledgerEnableForceClean;
+    private final AtomicBoolean hasSetOriginalDledgerEnableForceClean = new AtomicBoolean(false);
 
 
     private boolean isInrecoveringOldCommitlog = false;
@@ -171,12 +173,28 @@ public class DLedgerCommitLog extends CommitLog {
         final long intervalForcibly,
         final boolean cleanImmediately
     ) {
-        int count = super.deleteExpiredFile(expiredTime, deleteFilesInterval, intervalForcibly, cleanImmediately);
         if (mappedFileQueue.getMappedFiles().isEmpty()) {
-            dLedgerConfig.setEnableDiskForceClean(originalDledgerEnableForceClean);
+            if (hasSetOriginalDledgerEnableForceClean.compareAndSet(false, true)) {
+                dLedgerConfig.setEnableDiskForceClean(originalDledgerEnableForceClean);
+            }
+            //To prevent too much log in defaultMessageStore
+            return  Integer.MAX_VALUE;
         }
-        //return 1 to prevent too much log in defaultMessageStore
-        return count > 0 ? count : 1;
+        int count = super.deleteExpiredFile(expiredTime, deleteFilesInterval, intervalForcibly, cleanImmediately);
+        if (count > 0 || mappedFileQueue.getMappedFiles().size() != 1) {
+            return count;
+        }
+        //the old logic will keep the last file, here to delete it
+        MappedFile mappedFile = mappedFileQueue.getLastMappedFile();
+        log.info("Try to delete the last old commitlog file {}", mappedFile.getFileName());
+        long liveMaxTimestamp = mappedFile.getLastModifiedTimestamp() + expiredTime;
+        if (System.currentTimeMillis() >= liveMaxTimestamp || cleanImmediately) {
+            while (!mappedFile.destroy(10 * 1000)) {
+                io.openmessaging.storage.dledger.utils.UtilAll.sleep(1000);
+            }
+            mappedFileQueue.getMappedFiles().remove(mappedFile);
+        }
+        return 1;
     }
 
 
@@ -238,6 +256,8 @@ public class DLedgerCommitLog extends CommitLog {
             if (mappedFile != null) {
                 dLedgerConfig.setEnableDiskForceClean(false);
                 dividedCommitlogOffset = mappedFile.getFileFromOffset() + mappedFile.getFileSize();
+            } else {
+                hasSetOriginalDledgerEnableForceClean.set(true);
             }
             return;
         }
@@ -251,6 +271,7 @@ public class DLedgerCommitLog extends CommitLog {
         isInrecoveringOldCommitlog = false;
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
         if (mappedFile == null) {
+            hasSetOriginalDledgerEnableForceClean.set(true);
             return;
         }
         ByteBuffer byteBuffer =  mappedFile.sliceByteBuffer();
