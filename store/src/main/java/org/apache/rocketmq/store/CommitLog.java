@@ -456,7 +456,7 @@ public class CommitLog {
                         }
                     }
                 } else {
-                    log.info("recover physics file end, " + mappedFile.getFileName());
+                    log.info("recover physics file end, " + mappedFile.getFileName() + " pos=" + byteBuffer.position());
                     break;
                 }
             }
