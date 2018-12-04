@@ -19,33 +19,40 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
 
     @Test
-    public void testReputOffset() throws Exception {
+    public void testRecover() throws Exception {
         String base =  createBaseDir();
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
+        String topic = UUID.randomUUID().toString();
         {
             DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false);
             Thread.sleep(1000);
-            String topic = UUID.randomUUID().toString();
             doPutMessages(messageStore, topic, 0, 1000, 0);
             Thread.sleep(100);
             Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(1000, messageStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, messageStore.dispatchBehindBytes());
+            doGetMessages(messageStore, topic, 0, 1000, 0);
             messageStore.shutdown();
         }
 
         {
             //normal recover
             DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false);
+            Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
+            Assert.assertEquals(1000, messageStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, messageStore.dispatchBehindBytes());
+            doGetMessages(messageStore, topic, 0, 1000, 0);
             messageStore.shutdown();
         }
 
         {
             //abnormal recover
             DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, true);
+            Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
+            Assert.assertEquals(1000, messageStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, messageStore.dispatchBehindBytes());
+            doGetMessages(messageStore, topic, 0, 1000, 0);
             messageStore.shutdown();
         }
     }

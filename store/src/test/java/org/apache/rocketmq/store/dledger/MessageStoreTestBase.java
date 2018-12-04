@@ -99,6 +99,7 @@ public class MessageStoreTestBase extends StoreTestBase {
             Assert.assertTrue(!getMessageResult.getMessageBufferList().isEmpty());
             MessageExt messageExt = MessageDecoder.decode(getMessageResult.getMessageBufferList().get(0));
             Assert.assertEquals(beginLogicsOffset + i, messageExt.getQueueOffset());
+            getMessageResult.release();
         }
     }
 
