@@ -3,7 +3,10 @@ package org.apache.rocketmq.store.dledger;
 import io.openmessaging.storage.dledger.DLedgerServer;
 import java.io.File;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
@@ -86,6 +89,16 @@ public class MessageStoreTestBase extends StoreTestBase {
             PutMessageResult putMessageResult = messageStore.putMessage(msgInner);
             Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
             Assert.assertEquals(beginLogicsOffset + i, putMessageResult.getAppendMessageResult().getLogicsOffset());
+        }
+    }
+
+    protected void doGetMessages(MessageStore messageStore, String topic, int queueId, int num, long beginLogicsOffset) {
+        for (int i = 0; i < num; i++) {
+            GetMessageResult getMessageResult =  messageStore.getMessage("group", topic, 0, beginLogicsOffset + i, 3, null);
+            Assert.assertNotNull(getMessageResult);
+            Assert.assertTrue(!getMessageResult.getMessageBufferList().isEmpty());
+            MessageExt messageExt = MessageDecoder.decode(getMessageResult.getMessageBufferList().get(0));
+            Assert.assertEquals(beginLogicsOffset + i, messageExt.getQueueOffset());
         }
     }
 

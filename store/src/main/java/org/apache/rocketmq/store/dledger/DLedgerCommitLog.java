@@ -234,6 +234,11 @@ public class DLedgerCommitLog extends CommitLog {
         dLedgerFileStore.load();
         if (dLedgerFileList.getMappedFiles().size() > 0) {
             dLedgerFileStore.recover();
+            MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
+            if (mappedFile != null) {
+                dLedgerConfig.setEnableDiskForceClean(false);
+                dividedCommitlogOffset = mappedFile.getFileFromOffset() + mappedFile.getFileSize();
+            }
             return;
         }
         //Indicate that, it is the first time to load mixed commitlog, need to recover the old commitlog
@@ -248,7 +253,6 @@ public class DLedgerCommitLog extends CommitLog {
         if (mappedFile == null) {
             return;
         }
-        dLedgerConfig.setEnableDiskForceClean(false);
         ByteBuffer byteBuffer =  mappedFile.sliceByteBuffer();
         byteBuffer.position(mappedFile.getWrotePosition());
         boolean needWriteMagicCode = true;
@@ -260,6 +264,7 @@ public class DLedgerCommitLog extends CommitLog {
         } else {
             log.info("Recover old commitlog found a illegal magic code={}", magicCode);
         }
+        dLedgerConfig.setEnableDiskForceClean(false);
         dividedCommitlogOffset = mappedFile.getFileFromOffset() + mappedFile.getFileSize();
         log.info("Recover old commitlog needWriteMagicCode={} pos={} file={} dividedCommitlogOffset={}", needWriteMagicCode, mappedFile.getFileFromOffset() + mappedFile.getWrotePosition(), mappedFile.getFileName(), dividedCommitlogOffset);
         if (needWriteMagicCode) {
@@ -465,7 +470,7 @@ public class DLedgerCommitLog extends CommitLog {
     @Override
     public SelectMappedBufferResult getMessage(final long offset, final int size) {
         if (offset < dividedCommitlogOffset) {
-            return getMessage(offset, size);
+            return super.getMessage(offset, size);
         }
         int mappedFileSize = this.dLedgerServer.getdLedgerConfig().getMappedFileSizeForEntryData();
         MmapFile mappedFile = this.dLedgerFileList.findMappedFileByOffset(offset, offset == 0);
