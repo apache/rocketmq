@@ -23,7 +23,6 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         String base =  createBaseDir();
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
-
         {
             DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false);
             Thread.sleep(1000);
