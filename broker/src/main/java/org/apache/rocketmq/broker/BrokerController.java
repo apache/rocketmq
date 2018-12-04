@@ -508,6 +508,7 @@ public class BrokerController {
 
                 @Override
                 public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+                    //Do not catch the exception
                     validator.validate(validator.parse(request, remoteAddr));
                 }
 
