@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store.dledger;
 
+import io.openmessaging.storage.dledger.AppendFuture;
 import io.openmessaging.storage.dledger.DLedgerConfig;
 import io.openmessaging.storage.dledger.DLedgerServer;
 import io.openmessaging.storage.dledger.entry.DLedgerEntry;
@@ -28,7 +29,6 @@ import io.openmessaging.storage.dledger.store.file.MmapFileList;
 import io.openmessaging.storage.dledger.store.file.SelectMmapBufferResult;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -357,54 +357,49 @@ public class DLedgerCommitLog extends CommitLog {
         }
 
         // Back to Results
-        AppendMessageResult appendResult = null;
-        PutMessageStatus putMessageStatus = PutMessageStatus.UNKNOWN_ERROR;
-        CompletableFuture<AppendEntryResponse> dlegerFuture = null;
-        EncodeResult encodeResult = null;
-        long eclipseTimeInLock = 0L;
+        PutMessageStatus putMessageStatus = null;
+        AppendMessageResult appendResult;
+        AppendFuture<AppendEntryResponse> dledgerFuture;
+        EncodeResult encodeResult;
+
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
-        long queueOffset = -1;
+        long eclipseTimeInLock;
+        long queueOffset;
         try {
             beginTimeInDledgerLock =  this.defaultMessageStore.getSystemClock().now();
-            //TO DO use buffer
             encodeResult = this.messageSerializer.serialize(msg);
             queueOffset = topicQueueTable.get(encodeResult.queueOffsetKey);
             if (encodeResult.status  != AppendMessageStatus.PUT_OK) {
-                appendResult = new AppendMessageResult(encodeResult.status);
-                switch (encodeResult.status) {
-                    case PROPERTIES_SIZE_EXCEEDED:
-                    case MESSAGE_SIZE_EXCEEDED:
-                        putMessageStatus = PutMessageStatus.MESSAGE_ILLEGAL;
-                        break;
-                }
-            } else {
-                AppendEntryRequest request = new AppendEntryRequest();
-                request.setGroup(dLedgerConfig.getGroup());
-                request.setRemoteId(dLedgerServer.getMemberState().getSelfId());
-                request.setBody(encodeResult.data);
-                dlegerFuture = dLedgerServer.handleAppend(request);
-                if (dlegerFuture.isDone() && dlegerFuture.get().getCode() != DLedgerResponseCode.SUCCESS.getCode()) {
-                    //TO DO make sure the local store is ok
-                    appendResult = new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
-                } else {
-                    switch (tranType) {
-                        case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
-                        case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
-                            break;
-                        case MessageSysFlag.TRANSACTION_NOT_TYPE:
-                        case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
-                            // The next update ConsumeQueue information
-                            DLedgerCommitLog.this.topicQueueTable.put(encodeResult.queueOffsetKey, queueOffset + 1);
-                            break;
-                        default:
-                            break;
-                    }
-                }
+                return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.status));
             }
+            AppendEntryRequest request = new AppendEntryRequest();
+            request.setGroup(dLedgerConfig.getGroup());
+            request.setRemoteId(dLedgerServer.getMemberState().getSelfId());
+            request.setBody(encodeResult.data);
+            dledgerFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
+            if (dledgerFuture.getPos() == -1) {
+                return new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR));
+            }
+            long wroteOffset =  dledgerFuture.getPos() + DLedgerEntry.BODY_OFFSET;
+            ByteBuffer buffer = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);
+            String msgId = MessageDecoder.createMessageId(buffer, msg.getStoreHostBytes(), wroteOffset);
             eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
+            appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.data.length, msgId, System.currentTimeMillis(), queueOffset, eclipseTimeInLock);
+            switch (tranType) {
+                case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
+                case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
+                    break;
+                case MessageSysFlag.TRANSACTION_NOT_TYPE:
+                case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
+                    // The next update ConsumeQueue information
+                    DLedgerCommitLog.this.topicQueueTable.put(encodeResult.queueOffsetKey, queueOffset + 1);
+                    break;
+                default:
+                    break;
+            }
         } catch (Exception e) {
             log.error("Put message error", e);
-            appendResult = new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
+            return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR));
         } finally {
             beginTimeInDledgerLock = 0;
             putMessageLock.unlock();
@@ -414,34 +409,27 @@ public class DLedgerCommitLog extends CommitLog {
             log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", eclipseTimeInLock, msg.getBody().length, appendResult);
         }
 
-        if (dlegerFuture != null) {
-            try {
-                AppendEntryResponse appendEntryResponse = dlegerFuture.get(3, TimeUnit.SECONDS);
-                switch (DLedgerResponseCode.valueOf(appendEntryResponse.getCode())) {
-                    case SUCCESS:
-                        putMessageStatus = PutMessageStatus.PUT_OK;
-                        long wroteOffset =  appendEntryResponse.getPos() + DLedgerEntry.BODY_OFFSET;
-                        ByteBuffer buffer = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);
-                        String msgId = MessageDecoder.createMessageId(buffer, msg.getStoreHostBytes(), wroteOffset);
-                        appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.data.length, msgId, System.currentTimeMillis(), queueOffset, 0);
-                        break;
-                    case INCONSISTENT_LEADER:
-                    case NOT_LEADER:
-                    case LEADER_NOT_READY:
-                    case DISK_FULL:
-                        putMessageStatus = PutMessageStatus.SERVICE_NOT_AVAILABLE;
-                        break;
-                    case WAIT_QUORUM_ACK_TIMEOUT:
-                        putMessageStatus = PutMessageStatus.FLUSH_SLAVE_TIMEOUT;
-                        break;
-                    case LEADER_PENDING_FULL:
-                        putMessageStatus = PutMessageStatus.OS_PAGECACHE_BUSY;
-                        break;
-                }
-            } catch (Exception ignored) {
-                putMessageStatus = PutMessageStatus.FLUSH_SLAVE_TIMEOUT;
-                appendResult = new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
+        try {
+            AppendEntryResponse appendEntryResponse = dledgerFuture.get(3, TimeUnit.SECONDS);
+            switch (DLedgerResponseCode.valueOf(appendEntryResponse.getCode())) {
+                case SUCCESS:
+                    putMessageStatus = PutMessageStatus.PUT_OK;
+                    break;
+                case INCONSISTENT_LEADER:
+                case NOT_LEADER:
+                case LEADER_NOT_READY:
+                case DISK_FULL:
+                    putMessageStatus = PutMessageStatus.SERVICE_NOT_AVAILABLE;
+                    break;
+                case WAIT_QUORUM_ACK_TIMEOUT:
+                    putMessageStatus = PutMessageStatus.FLUSH_SLAVE_TIMEOUT;
+                    break;
+                case LEADER_PENDING_FULL:
+                    putMessageStatus = PutMessageStatus.OS_PAGECACHE_BUSY;
+                    break;
             }
+        } catch (Throwable ignored) {
+            putMessageStatus = PutMessageStatus.FLUSH_SLAVE_TIMEOUT;
         }
 
         PutMessageResult putMessageResult = new PutMessageResult(putMessageStatus, appendResult);

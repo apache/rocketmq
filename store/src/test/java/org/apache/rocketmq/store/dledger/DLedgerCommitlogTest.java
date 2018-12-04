@@ -12,19 +12,21 @@ import io.openmessaging.storage.dledger.DLedgerServer;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
+import org.apache.rocketmq.store.MappedFile;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.StoreTestBase;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class DLedgerCommitlogTest extends StoreTestBase {
 
-    private DefaultMessageStore createMessageStore(String base, String group, String selfId, String peers, String leaderId) throws Exception {
+    private DefaultMessageStore createMessageStore(String base, String group, String selfId, String peers, String leaderId, boolean createAbort) throws Exception {
         baseDirs.add(base);
         MessageStoreConfig storeConfig = new MessageStoreConfig();
         storeConfig.setMapedFileSizeCommitLog(1024 * 100);
@@ -39,7 +41,7 @@ public class DLedgerCommitlogTest extends StoreTestBase {
         storeConfig.setdLegerGroup(group);
         storeConfig.setdLegerPeers(peers);
         storeConfig.setdLegerSelfId(selfId);
-        DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig,  new BrokerStatsManager("DLegerCommitlogTest"), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
+        DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig,  new BrokerStatsManager("DLedgerCommitlogTest"), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
 
         }, new BrokerConfig());
         if (leaderId != null) {
@@ -52,17 +54,67 @@ public class DLedgerCommitlogTest extends StoreTestBase {
             }
 
         }
+        if (createAbort) {
+            String fileName = StorePathConfigHelper.getAbortFile(storeConfig.getStorePathRootDir());
+            File file = new File(fileName);
+            MappedFile.ensureDirOK(file.getParent());
+            file.createNewFile();
+        }
         defaultMessageStore.load();
         defaultMessageStore.start();
         return defaultMessageStore;
     }
+
+
+
+    @Test
+    public void testReputOffset() throws Exception {
+
+        String base =  createBaseDir();
+        String peers = String.format("n0-localhost:%d", nextPort());
+        String group = UUID.randomUUID().toString();
+
+        {
+            DefaultMessageStore messageStore = createMessageStore(base, group, "n0", peers, null, false);
+            Thread.sleep(1000);
+            String topic = UUID.randomUUID().toString();
+            for (int i = 0; i < 1000; i++) {
+                MessageExtBrokerInner msgInner =  buildMessage();
+                msgInner.setTopic(topic);
+                msgInner.setQueueId(0);
+                PutMessageResult putMessageResult = messageStore.putMessage(msgInner);
+                Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
+                Assert.assertEquals(i, putMessageResult.getAppendMessageResult().getLogicsOffset());
+            }
+            Thread.sleep(100);
+            Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
+            Assert.assertEquals(1000, messageStore.getMaxOffsetInQueue(topic, 0));
+            Assert.assertEquals(0, messageStore.dispatchBehindBytes());
+            messageStore.shutdown();
+        }
+
+        {
+            //normal recover
+            DefaultMessageStore messageStore = createMessageStore(base, group, "n0", peers, null, false);
+            Assert.assertEquals(0, messageStore.dispatchBehindBytes());
+            messageStore.shutdown();
+        }
+        {
+            //normal recover
+            DefaultMessageStore messageStore = createMessageStore(base, group, "n0", peers, null, true);
+            Assert.assertEquals(0, messageStore.dispatchBehindBytes());
+            messageStore.shutdown();
+        }
+    }
+
+
 
     @Test
     public void testPutAndGetMessage() throws Exception {
         String base =  createBaseDir();
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
-        DefaultMessageStore messageStore = createMessageStore(base, group, "n0", peers, null);
+        DefaultMessageStore messageStore = createMessageStore(base, group, "n0", peers, null, false);
         Thread.sleep(1000);
         String topic = UUID.randomUUID().toString();
 
@@ -102,7 +154,7 @@ public class DLedgerCommitlogTest extends StoreTestBase {
     public void testCommittedPos() throws Exception {
         String peers = String.format("n0-localhost:%d;n1-localhost:%d", nextPort(), nextPort());
         String group = UUID.randomUUID().toString();
-        DefaultMessageStore leaderStore = createMessageStore(createBaseDir(), group,"n0", peers, "n0");
+        DefaultMessageStore leaderStore = createMessageStore(createBaseDir(), group,"n0", peers, "n0", false);
 
         String topic = UUID.randomUUID().toString();
         MessageExtBrokerInner msgInner =  buildMessage();
@@ -117,7 +169,7 @@ public class DLedgerCommitlogTest extends StoreTestBase {
         Assert.assertEquals(0, leaderStore.getMaxOffsetInQueue(topic, 0));
 
 
-        DefaultMessageStore followerStore = createMessageStore(createBaseDir(), group,"n1", peers, "n0");
+        DefaultMessageStore followerStore = createMessageStore(createBaseDir(), group,"n1", peers, "n0", false);
         Thread.sleep(2000);
 
         Assert.assertEquals(1, leaderStore.getMaxOffsetInQueue(topic, 0));
