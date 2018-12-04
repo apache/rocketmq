@@ -30,7 +30,7 @@
     <dependencies>
         <dependency>
             <groupId>io.openmessaging.storage</groupId>
-            <artifactId>dleger</artifactId>
+            <artifactId>dledger</artifactId>
             <version>0.1-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
