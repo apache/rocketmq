@@ -71,6 +71,9 @@ public class DLedgerCommitLog extends CommitLog {
     //The old commitlog should be deleted before the dledger commitlog
     private final boolean originalDledgerEnableForceClean;
 
+
+    private boolean isInrecoveringOldCommitlog = false;
+
     public DLedgerCommitLog(final DefaultMessageStore defaultMessageStore) {
         super(defaultMessageStore);
         dLedgerConfig =  new DLedgerConfig();
@@ -101,41 +104,7 @@ public class DLedgerCommitLog extends CommitLog {
         if (!result) {
             return false;
         }
-        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
-        if (mappedFile == null) {
-            return true;
-        }
-        dLedgerConfig.setEnableDiskForceClean(false);
-        ByteBuffer byteBuffer =  mappedFile.sliceByteBuffer();
-        int currentPos = 0;
-        boolean needWriteMagicCode = true;
-        while (true) {
-            byteBuffer.position(currentPos);
-            // 1 TOTAL SIZE
-            int totalSize = byteBuffer.getInt();
-            int magicCode = byteBuffer.getInt();
-            if (magicCode == BLANK_MAGIC_CODE) {
-                needWriteMagicCode = false;
-                break;
-            }
-            if (magicCode != MESSAGE_MAGIC_CODE) {
-                log.info("Recover old commitlog found a illegal magic code={}", magicCode);
-                break;
-            }
-            currentPos = currentPos + totalSize;
-        }
-        log.info("Recover old commitlog needWriteMagicCode={} pos={} file={}", needWriteMagicCode, currentPos, mappedFile.getFileName());
-        if (needWriteMagicCode) {
-            byteBuffer.position(currentPos);
-            byteBuffer.putInt(mappedFile.getFileSize() - currentPos);
-            byteBuffer.putInt(BLANK_MAGIC_CODE);
-            mappedFile.flush(0);
-        }
-        dividedCommitlogOffset = mappedFile.getFileFromOffset() + mappedFile.getFileSize();
-        if (dLedgerFileList.getMappedFiles().isEmpty()) {
-            log.info("Recover to set the initial offset the dledger commitlog dividedCommitlogOffset={}", dividedCommitlogOffset);
-            dLedgerFileList.getLastMappedFile(dividedCommitlogOffset);
-        }
+
         return true;
     }
 
@@ -261,22 +230,59 @@ public class DLedgerCommitLog extends CommitLog {
         return null;
     }
 
-    @Override
-    public void recoverAbnormally(long maxPhyOffsetOfConsumeQueue)  {
+    private void recover(long maxPhyOffsetOfConsumeQueue, boolean lastOk) {
         dLedgerFileStore.load();
-        dLedgerFileStore.recover();
-        if (dLedgerFileList.getMappedFiles().isEmpty()) {
+        if (dLedgerFileList.getMappedFiles().size() > 0) {
+            dLedgerFileStore.recover();
+            return;
+        }
+        //Indicate that, it is the first time to load mixed commitlog, need to recover the old commitlog
+        isInrecoveringOldCommitlog = true;
+        if (lastOk) {
+            super.recoverNormally(maxPhyOffsetOfConsumeQueue);
+        } else {
             super.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
         }
+        isInrecoveringOldCommitlog = false;
+        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
+        if (mappedFile == null) {
+            return;
+        }
+        dLedgerConfig.setEnableDiskForceClean(false);
+        ByteBuffer byteBuffer =  mappedFile.sliceByteBuffer();
+        byteBuffer.position(mappedFile.getWrotePosition());
+        boolean needWriteMagicCode = true;
+        // 1 TOTAL SIZE
+        byteBuffer.getInt(); //size
+        int magicCode = byteBuffer.getInt();
+        if (magicCode == CommitLog.BLANK_MAGIC_CODE) {
+            needWriteMagicCode = false;
+        } else {
+            log.info("Recover old commitlog found a illegal magic code={}", magicCode);
+        }
+        dividedCommitlogOffset = mappedFile.getFileFromOffset() + mappedFile.getFileSize();
+        log.info("Recover old commitlog needWriteMagicCode={} pos={} file={} dividedCommitlogOffset={}", needWriteMagicCode, mappedFile.getFileFromOffset() + mappedFile.getWrotePosition(), mappedFile.getFileName(), dividedCommitlogOffset);
+        if (needWriteMagicCode) {
+            byteBuffer.position(mappedFile.getWrotePosition());
+            byteBuffer.putInt(mappedFile.getFileSize() - mappedFile.getWrotePosition());
+            byteBuffer.putInt(BLANK_MAGIC_CODE);
+            mappedFile.flush(0);
+            mappedFile.setWrotePosition(mappedFile.getFileSize());
+            mappedFile.setCommittedPosition(mappedFile.getFileSize());
+            mappedFile.setFlushedPosition(mappedFile.getFileSize());
+        }
+        dLedgerFileList.getLastMappedFile(dividedCommitlogOffset);
+        log.info("Will set the initial commitlog offset={} for dledger", dividedCommitlogOffset);
     }
 
     @Override
     public void recoverNormally(long maxPhyOffsetOfConsumeQueue) {
-        dLedgerFileStore.load();
-        dLedgerFileStore.recover();
-        if (dLedgerFileList.getMappedFiles().isEmpty()) {
-            super.recoverNormally(maxPhyOffsetOfConsumeQueue);
-        }
+        recover(maxPhyOffsetOfConsumeQueue, true);
+    }
+
+    @Override
+    public void recoverAbnormally(long maxPhyOffsetOfConsumeQueue)  {
+        recover(maxPhyOffsetOfConsumeQueue, false);
     }
 
     @Override
@@ -287,23 +293,31 @@ public class DLedgerCommitLog extends CommitLog {
     @Override
     public DispatchRequest checkMessageAndReturnSize(ByteBuffer byteBuffer, final boolean checkCRC,
         final boolean readBody) {
+        if (isInrecoveringOldCommitlog) {
+            return super.checkMessageAndReturnSize(byteBuffer, checkCRC, readBody);
+        }
         try {
             int bodyOffset = DLedgerEntry.BODY_OFFSET;
             int pos = byteBuffer.position();
             int magic =  byteBuffer.getInt();
+            //In dledger, this field is size, it must be gt 0, so it could prevent collision
+            int magicOld =  byteBuffer.getInt();
+            if (magicOld == CommitLog.BLANK_MAGIC_CODE || magicOld == CommitLog.MESSAGE_MAGIC_CODE) {
+                byteBuffer.position(pos);
+                return super.checkMessageAndReturnSize(byteBuffer, checkCRC, readBody);
+            }
             if (magic == MmapFileList.BLANK_MAGIC_CODE) {
                 return new DispatchRequest(0, true);
-            } else {
-                byteBuffer.position(pos + bodyOffset);
-                DispatchRequest dispatchRequest = super.checkMessageAndReturnSize(byteBuffer, checkCRC, readBody);
-                if (dispatchRequest.isSuccess()) {
-                    dispatchRequest.setBufferSize(dispatchRequest.getMsgSize() + bodyOffset);
-                } else if (dispatchRequest.getMsgSize() > 0) {
-                    dispatchRequest.setBufferSize(dispatchRequest.getMsgSize() + bodyOffset);
-                }
-                return dispatchRequest;
             }
-        } catch (Exception e) {
+            byteBuffer.position(pos + bodyOffset);
+            DispatchRequest dispatchRequest = super.checkMessageAndReturnSize(byteBuffer, checkCRC, readBody);
+            if (dispatchRequest.isSuccess()) {
+                dispatchRequest.setBufferSize(dispatchRequest.getMsgSize() + bodyOffset);
+            } else if (dispatchRequest.getMsgSize() > 0) {
+                dispatchRequest.setBufferSize(dispatchRequest.getMsgSize() + bodyOffset);
+            }
+            return dispatchRequest;
+        } catch (Throwable ignored) {
         }
 
         return new DispatchRequest(-1, false /* success */);

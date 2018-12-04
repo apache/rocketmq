@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.junit.After;
 
 public class StoreTestBase {
@@ -50,6 +51,13 @@ public class StoreTestBase {
         }
         return baseDir;
     }
+
+    public static boolean makeSureFileExists(String fileName) throws Exception {
+        File file = new File(fileName);
+        MappedFile.ensureDirOK(file.getParent());
+        return file.createNewFile();
+    }
+
 
     public static void deleteFile(String fileName) {
         deleteFile(new File(fileName));
