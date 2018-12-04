@@ -16,16 +16,16 @@
  */
 package org.apache.rocketmq.store.dledger;
 
-import io.openmessaging.storage.dleger.DLegerConfig;
-import io.openmessaging.storage.dleger.DLegerServer;
-import io.openmessaging.storage.dleger.entry.DLegerEntry;
-import io.openmessaging.storage.dleger.protocol.AppendEntryRequest;
-import io.openmessaging.storage.dleger.protocol.AppendEntryResponse;
-import io.openmessaging.storage.dleger.protocol.DLegerResponseCode;
-import io.openmessaging.storage.dleger.store.file.DLegerMmapFileStore;
-import io.openmessaging.storage.dleger.store.file.MmapFile;
-import io.openmessaging.storage.dleger.store.file.MmapFileList;
-import io.openmessaging.storage.dleger.store.file.SelectMmapBufferResult;
+import io.openmessaging.storage.dledger.DLedgerConfig;
+import io.openmessaging.storage.dledger.DLedgerServer;
+import io.openmessaging.storage.dledger.entry.DLedgerEntry;
+import io.openmessaging.storage.dledger.protocol.AppendEntryRequest;
+import io.openmessaging.storage.dledger.protocol.AppendEntryResponse;
+import io.openmessaging.storage.dledger.protocol.DLedgerResponseCode;
+import io.openmessaging.storage.dledger.store.file.DLedgerMmapFileStore;
+import io.openmessaging.storage.dledger.store.file.MmapFile;
+import io.openmessaging.storage.dledger.store.file.MmapFileList;
+import io.openmessaging.storage.dledger.store.file.SelectMmapBufferResult;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
@@ -53,9 +53,9 @@ import org.apache.rocketmq.store.schedule.ScheduleMessageService;
  * Store all metadata downtime for recovery, data protection reliability
  */
 public class DLedgerCommitLog extends CommitLog {
-    private final DLegerServer dLedgerServer;
-    private final DLegerConfig dLedgerConfig;
-    private final DLegerMmapFileStore dLedgerFileStore;
+    private final DLedgerServer dLedgerServer;
+    private final DLedgerConfig dLedgerConfig;
+    private final DLedgerMmapFileStore dLedgerFileStore;
     private final MmapFileList dLedgerFileList;
 
     //The id identifies the broker role, 0 means master, others means slave
@@ -73,7 +73,7 @@ public class DLedgerCommitLog extends CommitLog {
 
     public DLedgerCommitLog(final DefaultMessageStore defaultMessageStore) {
         super(defaultMessageStore);
-        dLedgerConfig =  new DLegerConfig();
+        dLedgerConfig =  new DLedgerConfig();
         dLedgerConfig.setEnableDiskForceClean(defaultMessageStore.getMessageStoreConfig().isCleanFileForciblyEnable());
         dLedgerConfig.setSelfId(defaultMessageStore.getMessageStoreConfig().getdLegerSelfId());
         dLedgerConfig.setGroup(defaultMessageStore.getMessageStoreConfig().getdLegerGroup());
@@ -82,10 +82,10 @@ public class DLedgerCommitLog extends CommitLog {
         dLedgerConfig.setMappedFileSizeForEntryData(defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog());
         originalDledgerEnableForceClean =  dLedgerConfig.isEnableDiskForceClean();
         id = Integer.valueOf(dLedgerConfig.getSelfId().substring(1)) + 1;
-        dLedgerServer = new DLegerServer(dLedgerConfig);
-        dLedgerFileStore = (DLegerMmapFileStore) dLedgerServer.getdLegerStore();
-        DLegerMmapFileStore.AppendHook appendHook = (entry, buffer, bodyOffset) -> {
-            assert bodyOffset == DLegerEntry.BODY_OFFSET;
+        dLedgerServer = new DLedgerServer(dLedgerConfig);
+        dLedgerFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();
+        DLedgerMmapFileStore.AppendHook appendHook = (entry, buffer, bodyOffset) -> {
+            assert bodyOffset == DLedgerEntry.BODY_OFFSET;
             buffer.position(buffer.position() + bodyOffset + MessageDecoder.PHY_POS_POSITION);
             buffer.putLong(entry.getPos() + bodyOffset);
         };
@@ -215,7 +215,7 @@ public class DLedgerCommitLog extends CommitLog {
         if (sbr == null) {
             return null;
         } else {
-            return new DLegerSelectMappedBufferResult(sbr);
+            return new DLedgerSelectMappedBufferResult(sbr);
         }
 
     }
@@ -250,7 +250,7 @@ public class DLedgerCommitLog extends CommitLog {
         if (offset >= dLedgerFileStore.getCommittedPos()) {
             return null;
         }
-        int mappedFileSize = this.dLedgerServer.getdLegerConfig().getMappedFileSizeForEntryData();
+        int mappedFileSize = this.dLedgerServer.getdLedgerConfig().getMappedFileSizeForEntryData();
         MmapFile mappedFile = this.dLedgerFileList.findMappedFileByOffset(offset, returnFirstOnNotFound);
         if (mappedFile != null) {
             int pos = (int) (offset % mappedFileSize);
@@ -288,7 +288,7 @@ public class DLedgerCommitLog extends CommitLog {
     public DispatchRequest checkMessageAndReturnSize(ByteBuffer byteBuffer, final boolean checkCRC,
         final boolean readBody) {
         try {
-            int bodyOffset = DLegerEntry.BODY_OFFSET;
+            int bodyOffset = DLedgerEntry.BODY_OFFSET;
             int pos = byteBuffer.position();
             int magic =  byteBuffer.getInt();
             if (magic == MmapFileList.BLANK_MAGIC_CODE) {
@@ -383,7 +383,7 @@ public class DLedgerCommitLog extends CommitLog {
                 request.setRemoteId(dLedgerServer.getMemberState().getSelfId());
                 request.setBody(encodeResult.data);
                 dlegerFuture = dLedgerServer.handleAppend(request);
-                if (dlegerFuture.isDone() && dlegerFuture.get().getCode() != DLegerResponseCode.SUCCESS.getCode()) {
+                if (dlegerFuture.isDone() && dlegerFuture.get().getCode() != DLedgerResponseCode.SUCCESS.getCode()) {
                     //TO DO make sure the local store is ok
                     appendResult = new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
                 } else {
@@ -417,10 +417,10 @@ public class DLedgerCommitLog extends CommitLog {
         if (dlegerFuture != null) {
             try {
                 AppendEntryResponse appendEntryResponse = dlegerFuture.get(3, TimeUnit.SECONDS);
-                switch (DLegerResponseCode.valueOf(appendEntryResponse.getCode())) {
+                switch (DLedgerResponseCode.valueOf(appendEntryResponse.getCode())) {
                     case SUCCESS:
                         putMessageStatus = PutMessageStatus.PUT_OK;
-                        long wroteOffset =  appendEntryResponse.getPos() + DLegerEntry.BODY_OFFSET;
+                        long wroteOffset =  appendEntryResponse.getPos() + DLedgerEntry.BODY_OFFSET;
                         ByteBuffer buffer = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);
                         String msgId = MessageDecoder.createMessageId(buffer, msg.getStoreHostBytes(), wroteOffset);
                         appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.data.length, msgId, System.currentTimeMillis(), queueOffset, 0);
@@ -465,7 +465,7 @@ public class DLedgerCommitLog extends CommitLog {
         if (offset < dividedCommitlogOffset) {
             return getMessage(offset, size);
         }
-        int mappedFileSize = this.dLedgerServer.getdLegerConfig().getMappedFileSizeForEntryData();
+        int mappedFileSize = this.dLedgerServer.getdLedgerConfig().getMappedFileSizeForEntryData();
         MmapFile mappedFile = this.dLedgerFileList.findMappedFileByOffset(offset, offset == 0);
         if (mappedFile != null) {
             int pos = (int) (offset % mappedFileSize);
@@ -678,22 +678,24 @@ public class DLedgerCommitLog extends CommitLog {
 
     }
 
-    static class DLegerSelectMappedBufferResult extends SelectMappedBufferResult {
+    public static class DLedgerSelectMappedBufferResult extends SelectMappedBufferResult {
 
         private SelectMmapBufferResult sbr;
-        public DLegerSelectMappedBufferResult(SelectMmapBufferResult sbr) {
+        public DLedgerSelectMappedBufferResult(SelectMmapBufferResult sbr) {
             super(sbr.getStartOffset(), sbr.getByteBuffer(), sbr.getSize(), null);
             this.sbr = sbr;
         }
 
         public synchronized void release() {
             super.release();
-            sbr.release();
+            if (sbr != null) {
+                sbr.release();
+            }
         }
 
     }
 
-    public DLegerServer getdLedgerServer() {
+    public DLedgerServer getdLedgerServer() {
         return dLedgerServer;
     }
 

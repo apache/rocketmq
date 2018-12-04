@@ -8,7 +8,7 @@ import java.util.UUID;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
-import io.openmessaging.storage.dleger.DLegerServer;
+import io.openmessaging.storage.dledger.DLedgerServer;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
@@ -43,8 +43,8 @@ public class DLedgerCommitlogTest extends StoreTestBase {
 
         }, new BrokerConfig());
         if (leaderId != null) {
-            DLegerServer dLegerServer = ((DLedgerCommitLog) defaultMessageStore.getCommitLog()).getdLedgerServer();
-            dLegerServer.getdLegerConfig().setEnableLeaderElector(false);
+            DLedgerServer dLegerServer = ((DLedgerCommitLog) defaultMessageStore.getCommitLog()).getdLedgerServer();
+            dLegerServer.getdLedgerConfig().setEnableLeaderElector(false);
             if (selfId.equals(leaderId)) {
                 dLegerServer.getMemberState().changeToLeader(-1);
             } else {
