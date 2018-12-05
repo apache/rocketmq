@@ -956,15 +956,15 @@ public class CommitLog {
                 int flushPhysicQueueThoroughInterval =
                     CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
 
-                boolean printFlushProgress = false;
+                long currentTimeMillis = System.currentTimeMillis();
+                // If there is no flush data in the flushPhysicQueueThoroughInterval time interval,
+                // then execute a full flush
+                if (currentTimeMillis >= (this.lastFlushTimestamp + flushPhysicQueueThoroughInterval)) {
+                    flushPhysicQueueLeastPages = 0;
+                }
 
                 // Print flush progress
-                long currentTimeMillis = System.currentTimeMillis();
-                if (currentTimeMillis >= (this.lastFlushTimestamp + flushPhysicQueueThoroughInterval)) {
-                    this.lastFlushTimestamp = currentTimeMillis;
-                    flushPhysicQueueLeastPages = 0;
-                    printFlushProgress = (printTimes++ % 10) == 0;
-                }
+                boolean printFlushProgress = (printTimes++ % 10) == 0;
 
                 try {
                     if (flushCommitLogTimed) {
@@ -978,14 +978,17 @@ public class CommitLog {
                     }
 
                     long begin = System.currentTimeMillis();
-                    CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
-                    long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
-                    if (storeTimestamp > 0) {
-                        CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
+                    boolean result = CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
+                    if (!result) { // Has flushed data
+                        this.lastFlushTimestamp = begin;
+                        long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
+                        if (storeTimestamp > 0) {
+                            CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
+                        }
                     }
-                    long past = System.currentTimeMillis() - begin;
-                    if (past > 500) {
-                        log.info("Flush data to disk costs {} ms", past);
+                    long end = System.currentTimeMillis();
+                    if (end - begin > 500) {
+                        log.info("Flush data to disk costs {} ms", end - begin);
                     }
                 } catch (Throwable e) {
                     CommitLog.log.warn(this.getServiceName() + " service has exception. ", e);
