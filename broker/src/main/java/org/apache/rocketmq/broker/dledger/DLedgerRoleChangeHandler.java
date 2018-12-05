@@ -51,33 +51,36 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
             @Override public void run() {
                 long start = System.currentTimeMillis();
                 try {
+                    boolean succ = false;
                     log.info("Begin handling broker role change term={} role={} currStoreRole={}", term, role, messageStore.getMessageStoreConfig().getBrokerRole());
                     switch (role) {
                         case CANDIDATE:
                             if (messageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
                                 brokerController.changeToSlave(dLedgerCommitLog.getId());
                             }
+                            succ = true;
                             break;
                         case FOLLOWER:
                             brokerController.changeToSlave(dLedgerCommitLog.getId());
+                            succ = true;
                             break;
                         case LEADER:
                             while (dLegerServer.getMemberState().isLeader()
                                 &&  (dLegerServer.getdLedgerStore().getLedgerEndIndex() != dLegerServer.getdLedgerStore().getCommittedIndex() ||  messageStore.dispatchBehindBytes() != 0)) {
                                 UtilAll.sleep(100);
                             }
-                            boolean succ = dLegerServer.getMemberState().isLeader()
+                            succ = dLegerServer.getMemberState().isLeader()
                                 && dLegerServer.getdLedgerStore().getLedgerEndIndex() == dLegerServer.getdLedgerStore().getCommittedIndex()
                                 && messageStore.dispatchBehindBytes() == 0;
                             if (succ) {
                                 messageStore.recoverTopicQueueTable();
                                 brokerController.changeToMaster(BrokerRole.SYNC_MASTER);
                             }
-                            log.info("Finish handling broker role change succ={} term={} role={} currStoreRole={} cost={}", succ, term, role, messageStore.getMessageStoreConfig().getBrokerRole(), UtilAll.elapsed(start));
                             break;
                         default:
                             break;
                     }
+                    log.info("Finish handling broker role change succ={} term={} role={} currStoreRole={} cost={}", succ, term, role, messageStore.getMessageStoreConfig().getBrokerRole(), UtilAll.elapsed(start));
                 } catch (Throwable t) {
                     log.info("[MONITOR]Failed handling broker role change term={} role={} currStoreRole={} cost={}", term, role, messageStore.getMessageStoreConfig().getBrokerRole(), UtilAll.elapsed(start), t);
                 }

@@ -29,29 +29,8 @@ public class TransactionalMessageCheckService extends ServiceThread {
 
     private BrokerController brokerController;
 
-    private final AtomicBoolean started = new AtomicBoolean(false);
-
     public TransactionalMessageCheckService(BrokerController brokerController) {
         this.brokerController = brokerController;
-    }
-
-    @Override
-    public void start() {
-        if (started.compareAndSet(false, true)) {
-            super.start();
-            //no need to do this
-            //this.brokerController.getTransactionalMessageService().open();
-        }
-    }
-
-    @Override
-    public void shutdown(boolean interrupt) {
-        if (started.compareAndSet(true, false)) {
-            super.shutdown(interrupt);
-            //no need to do this
-            //this.brokerController.getTransactionalMessageService().close();
-            //this.brokerController.getTransactionalMessageCheckListener().shutDown();
-        }
     }
 
     @Override
