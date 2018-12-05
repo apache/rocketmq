@@ -27,18 +27,27 @@ public abstract class ServiceThread implements Runnable {
 
     private static final long JOIN_TIME = 90 * 1000;
 
-    protected final Thread thread;
+    protected Thread thread;
     protected final CountDownLatch2 waitPoint = new CountDownLatch2(1);
     protected volatile AtomicBoolean hasNotified = new AtomicBoolean(false);
     protected volatile boolean stopped = false;
 
+    //Make it able to restart the thread
+    private final AtomicBoolean started = new AtomicBoolean(false);
+
     public ServiceThread() {
-        this.thread = new Thread(this, this.getServiceName());
+
     }
 
     public abstract String getServiceName();
 
     public void start() {
+        log.info("Try to start service thread:{} started:{} lastThread:{}", getServiceName(), started.get(), thread);
+        if (!started.compareAndSet(false, true)) {
+            return;
+        }
+        stopped = false;
+        this.thread = new Thread(this, getServiceName());
         this.thread.start();
     }
 
@@ -47,6 +56,10 @@ public abstract class ServiceThread implements Runnable {
     }
 
     public void shutdown(final boolean interrupt) {
+        log.info("Try to start service thread:{} started:{} lastThread:{}", getServiceName(), started.get(), thread);
+        if (!started.compareAndSet(true, false)) {
+            return;
+        }
         this.stopped = true;
         log.info("shutdown thread " + this.getServiceName() + " interrupt " + interrupt);
 
@@ -80,6 +93,9 @@ public abstract class ServiceThread implements Runnable {
     }
 
     public void stop(final boolean interrupt) {
+        if (!started.get()) {
+            return;
+        }
         this.stopped = true;
         log.info("stop thread " + this.getServiceName() + " interrupt " + interrupt);
 
@@ -93,6 +109,9 @@ public abstract class ServiceThread implements Runnable {
     }
 
     public void makeStop() {
+        if (!started.get()) {
+            return;
+        }
         this.stopped = true;
         log.info("makestop thread " + this.getServiceName());
     }
