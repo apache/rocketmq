@@ -1067,10 +1067,18 @@ public class BrokerController {
         messageStoreConfig.setBrokerRole(BrokerRole.SLAVE);
 
         //handle the scheduled service
-        this.messageStore.handleScheduleMessageService(BrokerRole.SLAVE);
+        try {
+            this.messageStore.handleScheduleMessageService(BrokerRole.SLAVE);
+        } catch (Throwable t) {
+            log.error("[MONITOR] handleScheduleMessageService failed when changing to slave", t);
+        }
 
         //handle the transactional service
-        this.shutdownProcessorByHa();
+        try {
+            this.shutdownProcessorByHa();
+        } catch (Throwable t) {
+            log.error("[MONITOR] shutdownProcessorByHa failed when changing to slave", t);
+        }
 
         //handle the slave synchronise
         handleSlaveSynchronize(BrokerRole.SLAVE);
@@ -1095,10 +1103,18 @@ public class BrokerController {
         handleSlaveSynchronize(role);
 
         //handle the scheduled service
-        this.messageStore.handleScheduleMessageService(role);
+        try {
+            this.messageStore.handleScheduleMessageService(role);
+        } catch (Throwable t) {
+            log.error("[MONITOR] handleScheduleMessageService failed when changing to master", t);
+        }
 
         //handle the transactional service
-        this.startProcessorByHa(BrokerRole.SYNC_MASTER);
+        try {
+            this.startProcessorByHa(BrokerRole.SYNC_MASTER);
+        } catch (Throwable t) {
+            log.error("[MONITOR] startProcessorByHa failed when changing to master", t);
+        }
 
         //if the operations above are totally successful, we change to master
         brokerConfig.setBrokerId(0); //TO DO check
