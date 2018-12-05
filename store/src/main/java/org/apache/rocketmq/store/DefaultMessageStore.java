@@ -1276,12 +1276,12 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private void recover(final boolean lastExitOK) {
-        this.recoverConsumeQueue();
+        long maxPhyOffsetOfConsumeQueue = this.recoverConsumeQueue();
 
         if (lastExitOK) {
-            this.commitLog.recoverNormally();
+            this.commitLog.recoverNormally(maxPhyOffsetOfConsumeQueue);
         } else {
-            this.commitLog.recoverAbnormally();
+            this.commitLog.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
         }
 
         this.recoverTopicQueueTable();
@@ -1306,12 +1306,18 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    private void recoverConsumeQueue() {
+    private long recoverConsumeQueue() {
+        long maxPhysicOffset = -1;
         for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
             for (ConsumeQueue logic : maps.values()) {
                 logic.recover();
+                if (logic.getMaxPhysicOffset() > maxPhysicOffset) {
+                    maxPhysicOffset = logic.getMaxPhysicOffset();
+                }
             }
         }
+
+        return maxPhysicOffset;
     }
 
     private void recoverTopicQueueTable() {
@@ -1371,6 +1377,7 @@ public class DefaultMessageStore implements MessageStore {
         cq.putMessagePositionInfoWrapper(dispatchRequest);
     }
 
+    @Override
     public BrokerStatsManager getBrokerStatsManager() {
         return brokerStatsManager;
     }
