@@ -37,7 +37,7 @@ It offers a variety of features:
 ----------
 
 ## Apache RocketMQ Community
-* [RocketMQ Community Incubator Projects](https://github.com/apache/rocketmq-externals)
+* [RocketMQ Community Projects](https://github.com/apache/rocketmq-externals)
 
 ----------
 
