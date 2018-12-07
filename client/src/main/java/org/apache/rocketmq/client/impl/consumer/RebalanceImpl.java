@@ -406,7 +406,7 @@ public abstract class RebalanceImpl {
         return changed;
     }
 
-    protected abstract void dispatchPullRequestLater(List<PullRequest> pullRequestList);
+    public abstract void dispatchPullRequestLater(List<PullRequest> pullRequestList);
 
     public abstract void messageQueueChanged(final String topic, final Set<MessageQueue> mqAll,
         final Set<MessageQueue> mqDivided);
