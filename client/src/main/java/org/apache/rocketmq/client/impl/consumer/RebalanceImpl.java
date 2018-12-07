@@ -390,6 +390,10 @@ public abstract class RebalanceImpl {
                         pullRequest.setProcessQueue(pq);
                         pullRequestList.add(pullRequest);
                         changed = true;
+                        try {
+                            Thread.sleep(50L);
+                        } catch (InterruptedException e) {
+                        }
                     }
                 } else {
                     log.warn("doRebalance, {}, add new mq failed, {}", consumerGroup, mq);
@@ -397,16 +401,10 @@ public abstract class RebalanceImpl {
             }
         }
 
-        if (changed) {
-            this.dispatchPullRequestLater(pullRequestList);
-        } else {
-            this.dispatchPullRequest(pullRequestList);
-        }
+        this.dispatchPullRequest(pullRequestList);
 
         return changed;
     }
-
-    public abstract void dispatchPullRequestLater(List<PullRequest> pullRequestList);
 
     public abstract void messageQueueChanged(final String topic, final Set<MessageQueue> mqAll,
         final Set<MessageQueue> mqDivided);
