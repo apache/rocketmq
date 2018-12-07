@@ -218,4 +218,17 @@ public class RebalancePushImpl extends RebalanceImpl {
             log.info("doRebalance, {}, add a new pull request {}", consumerGroup, pullRequest);
         }
     }
+
+    @Override
+    public void dispatchFirstPullRequest(List<PullRequest> pullRequestList) {
+        for (PullRequest pullRequest : pullRequestList) {
+            try {
+                Thread.sleep(50L);
+            } catch (InterruptedException e) {
+            }
+            //i want to executePullRequestLater but ci fail so use Thread.sleep
+            this.defaultMQPushConsumerImpl.executePullRequestImmediately(pullRequest);
+            log.info("doRebalance, {}, add a new pull request {}", consumerGroup, pullRequest);
+        }
+    }
 }

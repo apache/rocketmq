@@ -390,10 +390,6 @@ public abstract class RebalanceImpl {
                         pullRequest.setProcessQueue(pq);
                         pullRequestList.add(pullRequest);
                         changed = true;
-                        try {
-                            Thread.sleep(50L);
-                        } catch (InterruptedException e) {
-                        }
                     }
                 } else {
                     log.warn("doRebalance, {}, add new mq failed, {}", consumerGroup, mq);
@@ -401,7 +397,11 @@ public abstract class RebalanceImpl {
             }
         }
 
-        this.dispatchPullRequest(pullRequestList);
+        if (changed) {
+            this.dispatchFirstPullRequest(pullRequestList);
+        } else {
+            this.dispatchPullRequest(pullRequestList);
+        }
 
         return changed;
     }
@@ -418,6 +418,8 @@ public abstract class RebalanceImpl {
     public abstract long computePullFromWhere(final MessageQueue mq);
 
     public abstract void dispatchPullRequest(final List<PullRequest> pullRequestList);
+
+    public abstract void dispatchFirstPullRequest(final List<PullRequest> pullRequestList);
 
     public void removeProcessQueue(final MessageQueue mq) {
         ProcessQueue prev = this.processQueueTable.remove(mq);
