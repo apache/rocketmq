@@ -218,4 +218,12 @@ public class RebalancePushImpl extends RebalanceImpl {
             log.info("doRebalance, {}, add a new pull request {}", consumerGroup, pullRequest);
         }
     }
+
+    @Override
+    protected void dispatchPullRequestLater(List<PullRequest> pullRequestList) {
+        for (PullRequest pullRequest : pullRequestList) {
+            this.defaultMQPushConsumerImpl.executePullRequestLater(pullRequest,50L);
+            log.info("doRebalance, {}, add a new pull request {}", consumerGroup, pullRequest);
+        }
+    }
 }

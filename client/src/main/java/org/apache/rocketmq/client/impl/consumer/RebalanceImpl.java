@@ -397,10 +397,16 @@ public abstract class RebalanceImpl {
             }
         }
 
-        this.dispatchPullRequest(pullRequestList);
+        if(changed){
+            this.dispatchPullRequestLater(pullRequestList);
+        }else{
+            this.dispatchPullRequest(pullRequestList);
+        }
 
         return changed;
     }
+
+    protected abstract void dispatchPullRequestLater(List<PullRequest> pullRequestList);
 
     public abstract void messageQueueChanged(final String topic, final Set<MessageQueue> mqAll,
         final Set<MessageQueue> mqDivided);
