@@ -578,6 +578,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param filterClassSource class source code,used UTF-8 file encoding,must be responsible for your code safety
      */
     @Override
+    @Deprecated
     public void subscribe(String topic, String fullClassName, String filterClassSource) throws MQClientException {
         this.defaultMQPushConsumerImpl.subscribe(topic, fullClassName, filterClassSource);
     }
