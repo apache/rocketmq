@@ -27,14 +27,14 @@ public class Producer {
         DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName");
         producer.start();
 
+        String[] tags = new String[] {"TagA", "TagB", "TagC"};
+
         try {
-            for (int i = 0; i < 6000000; i++) {
-                Message msg = new Message("TopicFilter7",
-                    "TagA",
-                    "OrderID001",
+            for (int i = 0; i < 60000; i++) {
+                Message msg = new Message("TagFilterExample",
+                    tags[i % 3],
                     "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
 
-                msg.putUserProperty("SequenceId", String.valueOf(i));
                 SendResult sendResult = producer.send(msg);
                 System.out.printf("%s%n", sendResult);
             }
