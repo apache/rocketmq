@@ -398,7 +398,7 @@ public abstract class RebalanceImpl {
         }
 
         if (changed) {
-            this.dispatchFirstPullRequest(pullRequestList);
+            this.dispatchPullRequestLater(pullRequestList);
         } else {
             this.dispatchPullRequest(pullRequestList);
         }
@@ -419,7 +419,7 @@ public abstract class RebalanceImpl {
 
     public abstract void dispatchPullRequest(final List<PullRequest> pullRequestList);
 
-    public abstract void dispatchFirstPullRequest(final List<PullRequest> pullRequestList);
+    public abstract void dispatchPullRequestLater(final List<PullRequest> pullRequestList);
 
     public void removeProcessQueue(final MessageQueue mq) {
         ProcessQueue prev = this.processQueueTable.remove(mq);

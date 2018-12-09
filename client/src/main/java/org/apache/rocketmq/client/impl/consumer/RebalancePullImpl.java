@@ -78,6 +78,6 @@ public class RebalancePullImpl extends RebalanceImpl {
     }
 
     @Override
-    public void dispatchFirstPullRequest(List<PullRequest> pullRequestList) {
+    public void dispatchPullRequestLater(List<PullRequest> pullRequestList) {
     }
 }
