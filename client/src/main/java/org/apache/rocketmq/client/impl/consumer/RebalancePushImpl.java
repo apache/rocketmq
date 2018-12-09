@@ -18,6 +18,9 @@ package org.apache.rocketmq.client.impl.consumer;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -35,6 +38,13 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 public class RebalancePushImpl extends RebalanceImpl {
     private final static long UNLOCK_DELAY_TIME_MILLS = Long.parseLong(System.getProperty("rocketmq.client.unlockDelayTimeMills", "20000"));
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
+    private final ScheduledExecutorService scheduledExecutorService = Executors
+        .newSingleThreadScheduledExecutor(new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "DispatchPullRequestLaterServiceScheduledThread");
+            }
+        });
 
     public RebalancePushImpl(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl) {
         this(null, null, null, null, defaultMQPushConsumerImpl);
@@ -222,8 +232,17 @@ public class RebalancePushImpl extends RebalanceImpl {
     @Override
     public void dispatchPullRequestLater(List<PullRequest> pullRequestList) {
         for (PullRequest pullRequest : pullRequestList) {
-            this.defaultMQPushConsumerImpl.executePullRequestLaterChanged(pullRequest);
-            log.info("doRebalance, {}, add a new pull request {}", consumerGroup, pullRequest);
+            dispatchPullRequestLater(pullRequest);
         }
+    }
+
+    private void dispatchPullRequestLater(final PullRequest pullRequest){
+        this.scheduledExecutorService.schedule(new Runnable() {
+            @Override
+            public void run() {
+                RebalancePushImpl.this.defaultMQPushConsumerImpl.executePullRequestImmediately(pullRequest);
+            }
+        }, 50L, TimeUnit.MILLISECONDS);
+        log.info("doRebalance, {}, add a new pull request {}", consumerGroup, pullRequest);
     }
 }
