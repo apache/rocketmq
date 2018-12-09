@@ -236,7 +236,7 @@ public class RebalancePushImpl extends RebalanceImpl {
         }
     }
 
-    private void dispatchPullRequestLater(final PullRequest pullRequest){
+    private void dispatchPullRequestLater(final PullRequest pullRequest) {
         this.scheduledExecutorService.schedule(new Runnable() {
             @Override
             public void run() {
