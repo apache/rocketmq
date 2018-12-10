@@ -228,6 +228,14 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return response;
         }
 
+        if (this.brokerController.getBrokerConfig().isAutoTraceBrokerEnable()) {
+            String errorMsg = "the topic[" + requestHeader.getTopic() + "] is user self defined topic and this node is trace broker!";
+            log.warn(errorMsg);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(errorMsg);
+            return response;
+        }
+
         try {
             response.setCode(ResponseCode.SUCCESS);
             response.setOpaque(request.getOpaque());

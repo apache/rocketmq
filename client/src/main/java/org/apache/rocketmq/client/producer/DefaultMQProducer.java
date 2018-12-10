@@ -18,6 +18,7 @@ package org.apache.rocketmq.client.producer;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
@@ -25,6 +26,12 @@ import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
+import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.client.trace.core.common.TrackTraceConstants;
+import org.apache.rocketmq.client.trace.core.common.TrackTraceDispatcherType;
+import org.apache.rocketmq.client.trace.core.dispatch.AsyncDispatcher;
+import org.apache.rocketmq.client.trace.core.dispatch.impl.AsyncArrayDispatcher;
+import org.apache.rocketmq.client.trace.core.hook.SendMessageTrackHookImpl;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
@@ -33,6 +40,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageId;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
@@ -55,6 +63,8 @@ import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
  * </p>
  */
 public class DefaultMQProducer extends ClientConfig implements MQProducer {
+
+    private final InternalLogger log = ClientLogger.getLog();
 
     /**
      * Wrapping internal implementations for virtually all methods presented in this class.
@@ -120,10 +130,15 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private int maxMessageSize = 1024 * 1024 * 4; // 4M
 
     /**
+     * Interface of asynchronous transfer data
+     */
+    private AsyncDispatcher traceDispatcher = null;
+
+    /**
      * Default constructor.
      */
     public DefaultMQProducer() {
-        this(MixAll.DEFAULT_PRODUCER_GROUP, null);
+        this(MixAll.DEFAULT_PRODUCER_GROUP, null,false);
     }
 
     /**
@@ -138,6 +153,37 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
+     * Constructor specifying both producer group and RPC hook.
+     *
+     * @param producerGroup Producer group, see the name-sake field.
+     * @param rpcHook RPC hook to execute per each remoting command execution.
+     * @param msgTraceSwitch switch flag instance for message track trace.
+     */
+    public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean msgTraceSwitch) {
+        this.producerGroup = producerGroup;
+        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
+        //if client open the message track trace feature
+        if (msgTraceSwitch) {
+            try {
+                Properties tempProperties = new Properties();
+                tempProperties.put(TrackTraceConstants.MAX_MSG_SIZE, "128000");
+                tempProperties.put(TrackTraceConstants.ASYNC_BUFFER_SIZE, "2048");
+                tempProperties.put(TrackTraceConstants.MAX_BATCH_NUM, "100");
+                tempProperties.put(TrackTraceConstants.INSTANCE_NAME, "PID_CLIENT_INNER_TRACE_PRODUCER");
+                tempProperties.put(TrackTraceConstants.TRACE_DISPATCHER_TYPE, TrackTraceDispatcherType.PRODUCER.name());
+                AsyncArrayDispatcher dispatcher = new AsyncArrayDispatcher(tempProperties);
+                dispatcher.setHostProducer(this.getDefaultMQProducerImpl());
+                traceDispatcher = dispatcher;
+
+                this.getDefaultMQProducerImpl().registerSendMessageHook(
+                    new SendMessageTrackHookImpl(traceDispatcher));
+            } catch (Throwable e) {
+                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+            }
+        }
+    }
+
+    /**
      * Constructor specifying producer group.
      *
      * @param producerGroup Producer group, see the name-sake field.
@@ -147,8 +193,18 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Constructor specifying the RPC hook.
+     * Constructor specifying producer group.
      *
+     * @param producerGroup Producer group, see the name-sake field.
+     * @param msgTraceSwitch switch flag instance for message track trace.
+     */
+    public DefaultMQProducer(final String producerGroup, boolean msgTraceSwitch) {
+        this(producerGroup, null, msgTraceSwitch);
+    }
+
+    /**
+     * Constructor specifying the RPC hook.
+     * 
      * @param rpcHook RPC hook to execute per each remoting command execution.
      */
     public DefaultMQProducer(RPCHook rpcHook) {
@@ -170,6 +226,15 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void start() throws MQClientException {
         this.defaultMQProducerImpl.start();
+        if (null != traceDispatcher) {
+            try {
+                Properties tempProperties = new Properties();
+                tempProperties.put(TrackTraceConstants.NAMESRV_ADDR, this.getNamesrvAddr());
+                traceDispatcher.start(tempProperties);
+            } catch (MQClientException e) {
+                log.warn("trace dispatcher start failed ", e);
+            }
+        }
     }
 
     /**
@@ -178,6 +243,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void shutdown() {
         this.defaultMQProducerImpl.shutdown();
+        if (null != traceDispatcher) {
+            traceDispatcher.shutdown();
+        }
     }
 
     /**
@@ -786,5 +854,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     public void setRetryTimesWhenSendAsyncFailed(final int retryTimesWhenSendAsyncFailed) {
         this.retryTimesWhenSendAsyncFailed = retryTimesWhenSendAsyncFailed;
+    }
+
+    public AsyncDispatcher getTraceDispatcher() {
+        return traceDispatcher;
+    }
+
+    public void setTraceDispatcher(AsyncDispatcher traceDispatcher) {
+        this.traceDispatcher = traceDispatcher;
     }
 }
