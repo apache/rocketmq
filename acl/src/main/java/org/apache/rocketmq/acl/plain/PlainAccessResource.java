@@ -23,33 +23,55 @@ import org.apache.rocketmq.acl.AccessResource;
 import org.apache.rocketmq.common.MixAll;
 
 public class PlainAccessResource implements AccessResource {
+
     //identify the user
     private String accessKey;
 
-    private String signature;
-    //the content to calculate the content
-    private byte[] content;
+    private String secretKey;
 
-    private String secretToken;
+    private String whiteRemoteAddress;
 
-    private Map<String, Byte> resourcePermMap = new HashMap<>();
+    private boolean admin;
 
-    private String remoteAddr;
+    private byte defaultTopicPerm = 1;
 
-    private String recognition;
+    private byte defaultGroupPerm = 1;
+
+    private Map<String, Byte> resourcePermMap;
+
+    private RemoteAddressStrategy remoteAddressStrategy;
 
     private int requestCode;
 
+    //the content to calculate the content
+    private byte[] content;
 
-    @Deprecated
-    private String topic;
+    private String signature;
+
+    private String secretToken;
+
+    private String recognition;
 
     public PlainAccessResource() {
+    }
+
+    public static boolean isRetryTopic(String topic) {
+        return (null != topic && topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX));
+    }
+
+    public static String getRetryTopic(String group) {
+        if (group == null) {
+            return null;
+        }
+        return MixAll.getRetryTopic(group);
     }
 
     public void addResourceAndPerm(String resource, byte perm) {
         if (resource == null) {
             return;
+        }
+        if (resourcePermMap == null) {
+            resourcePermMap = new HashMap<>();
         }
         resourcePermMap.put(resource, perm);
     }
@@ -62,20 +84,48 @@ public class PlainAccessResource implements AccessResource {
         this.accessKey = accessKey;
     }
 
-    public String getSignature() {
-        return signature;
+    public String getSecretKey() {
+        return secretKey;
     }
 
-    public void setSignature(String signature) {
-        this.signature = signature;
+    public void setSecretKey(String secretKey) {
+        this.secretKey = secretKey;
     }
 
-    public String getRemoteAddr() {
-        return remoteAddr;
+    public String getWhiteRemoteAddress() {
+        return whiteRemoteAddress;
     }
 
-    public void setRemoteAddr(String remoteAddr) {
-        this.remoteAddr = remoteAddr;
+    public void setWhiteRemoteAddress(String whiteRemoteAddress) {
+        this.whiteRemoteAddress = whiteRemoteAddress;
+    }
+
+    public boolean isAdmin() {
+        return admin;
+    }
+
+    public void setAdmin(boolean admin) {
+        this.admin = admin;
+    }
+
+    public byte getDefaultTopicPerm() {
+        return defaultTopicPerm;
+    }
+
+    public void setDefaultTopicPerm(byte defaultTopicPerm) {
+        this.defaultTopicPerm = defaultTopicPerm;
+    }
+
+    public byte getDefaultGroupPerm() {
+        return defaultGroupPerm;
+    }
+
+    public void setDefaultGroupPerm(byte defaultGroupPerm) {
+        this.defaultGroupPerm = defaultGroupPerm;
+    }
+
+    public Map<String, Byte> getResourcePermMap() {
+        return resourcePermMap;
     }
 
     public String getRecognition() {
@@ -94,14 +144,6 @@ public class PlainAccessResource implements AccessResource {
         this.requestCode = requestCode;
     }
 
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
-
     public String getSecretToken() {
         return secretToken;
     }
@@ -110,21 +152,25 @@ public class PlainAccessResource implements AccessResource {
         this.secretToken = secretToken;
     }
 
+    public RemoteAddressStrategy getRemoteAddressStrategy() {
+        return remoteAddressStrategy;
+    }
+
+    public void setRemoteAddressStrategy(RemoteAddressStrategy remoteAddressStrategy) {
+        this.remoteAddressStrategy = remoteAddressStrategy;
+    }
+
+    public String getSignature() {
+        return signature;
+    }
+
+    public void setSignature(String signature) {
+        this.signature = signature;
+    }
+
     @Override
     public String toString() {
         return ToStringBuilder.reflectionToString(this);
-    }
-
-
-    public static boolean isRetryTopic(String topic) {
-        return (null != topic && topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX));
-    }
-
-    public static String getRetryTopic(String group) {
-        if (group == null) {
-            return null;
-        }
-        return MixAll.getRetryTopic(group);
     }
 
     public byte[] getContent() {

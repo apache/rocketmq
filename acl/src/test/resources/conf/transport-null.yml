@@ -15,30 +15,4 @@
 
 ## suggested format
 
-globalWhiteRemoteAddresses:
-- 10.10.103.*
-- 192.168.0.*
-
-accounts:
-- accessKey: RocketMQ
-  secretKey: 12345678
-  whiteRemoteAddress: 192.168.0.*
-  admin: false
-  defaultTopicPerm: DENY
-  defaultGroupPerm: SUB
-  topics:
-  - topicA=DENY
-  - topicB=PUB|SUB
-  - topicC=SUB
-  groups:
-  # the group should convert to retry topic
-  - groupA=DENY
-  - groupB=SUB
-  - groupC=SUB
-
-- accessKey: aliyun.com
-  secretKey: 12345678
-  whiteRemoteAddress: 192.168.1.*
-  # if it is admin, it could access all resources
-  admin: true
 
