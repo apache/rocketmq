@@ -21,8 +21,8 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import org.apache.rocketmq.acl.AccessResource;
 import org.apache.rocketmq.acl.AccessValidator;
-import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.AclException;
+import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.common.protocol.RequestCode;
@@ -47,7 +47,7 @@ public class PlainAccessValidator implements AccessValidator {
     @Override
     public AccessResource parse(RemotingCommand request, String remoteAddr) {
         PlainAccessResource accessResource = new PlainAccessResource();
-        accessResource.setRemoteAddr(remoteAddr);
+        accessResource.setWhiteRemoteAddress(remoteAddr);
         accessResource.setRequestCode(request.getCode());
         accessResource.setAccessKey(request.getExtFields().get(SessionCredentials.AccessKey));
         accessResource.setSignature(request.getExtFields().get(SessionCredentials.Signature));
@@ -77,7 +77,7 @@ public class PlainAccessValidator implements AccessValidator {
                     HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
                     for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
                         accessResource.addResourceAndPerm(getRetryTopic(data.getGroupName()), Permission.SUB);
-                        for (SubscriptionData subscriptionData: data.getSubscriptionDataSet()) {
+                        for (SubscriptionData subscriptionData : data.getSubscriptionDataSet()) {
                             accessResource.addResourceAndPerm(subscriptionData.getTopic(), Permission.SUB);
                         }
                     }
@@ -106,10 +106,8 @@ public class PlainAccessValidator implements AccessValidator {
 
             }
         } catch (Throwable t) {
-            throw new AclException(t.getMessage(), -1, t);
+            throw new AclException(t.getMessage(), t);
         }
-
-
         // content
         SortedMap<String, String> map = new TreeMap<String, String>();
         for (Map.Entry<String, String> entry : request.getExtFields().entrySet()) {
@@ -118,26 +116,12 @@ public class PlainAccessValidator implements AccessValidator {
             }
         }
         accessResource.setContent(AclUtils.combineRequestContent(request, map));
-
         return accessResource;
     }
 
     @Override
     public void validate(AccessResource accessResource) {
-        AuthenticationResult authenticationResult = null;
-        try {
-            authenticationResult = aclPlugEngine.eachCheckAuthentication((PlainAccessResource) accessResource);
-            if (authenticationResult.isSucceed())
-                return;
-        } catch (Exception e) {
-            throw new AclPlugRuntimeException(String.format("validate exception AccessResource data %s", accessResource.toString()), e);
-        }
-        if (authenticationResult.getException() != null) {
-            throw new AclPlugRuntimeException(String.format("eachCheck the inspection appear exception, accessControl data is %s", accessResource.toString()), authenticationResult.getException());
-        }
-        if (authenticationResult.getPlainAccessResource() != null || !authenticationResult.isSucceed()) {
-            throw new AclPlugRuntimeException(String.format("%s accessControl data is %s", authenticationResult.getResultString(), accessResource.toString()));
-        }
+        aclPlugEngine.eachCheckPlainAccessResource((PlainAccessResource) accessResource);
     }
 
 }
