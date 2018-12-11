@@ -27,6 +27,7 @@ import io.openmessaging.storage.dledger.store.file.DLedgerMmapFileStore;
 import io.openmessaging.storage.dledger.store.file.MmapFile;
 import io.openmessaging.storage.dledger.store.file.MmapFileList;
 import io.openmessaging.storage.dledger.store.file.SelectMmapBufferResult;
+import io.openmessaging.storage.dledger.utils.DLedgerUtils;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
@@ -190,7 +191,7 @@ public class DLedgerCommitLog extends CommitLog {
         long liveMaxTimestamp = mappedFile.getLastModifiedTimestamp() + expiredTime;
         if (System.currentTimeMillis() >= liveMaxTimestamp || cleanImmediately) {
             while (!mappedFile.destroy(10 * 1000)) {
-                io.openmessaging.storage.dledger.utils.UtilAll.sleep(1000);
+                DLedgerUtils.sleep(1000);
             }
             mappedFileQueue.getMappedFiles().remove(mappedFile);
         }
@@ -397,7 +398,6 @@ public class DLedgerCommitLog extends CommitLog {
         }
 
         // Back to Results
-        PutMessageStatus putMessageStatus = null;
         AppendMessageResult appendResult;
         AppendFuture<AppendEntryResponse> dledgerFuture;
         EncodeResult encodeResult;
@@ -449,6 +449,7 @@ public class DLedgerCommitLog extends CommitLog {
             log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", eclipseTimeInLock, msg.getBody().length, appendResult);
         }
 
+        PutMessageStatus putMessageStatus = PutMessageStatus.UNKNOWN_ERROR;
         try {
             AppendEntryResponse appendEntryResponse = dledgerFuture.get(3, TimeUnit.SECONDS);
             switch (DLedgerResponseCode.valueOf(appendEntryResponse.getCode())) {
@@ -462,14 +463,15 @@ public class DLedgerCommitLog extends CommitLog {
                     putMessageStatus = PutMessageStatus.SERVICE_NOT_AVAILABLE;
                     break;
                 case WAIT_QUORUM_ACK_TIMEOUT:
-                    putMessageStatus = PutMessageStatus.FLUSH_SLAVE_TIMEOUT;
+                    //Do not return flush_slave_timeout to the client, for the ons client will ignore it.
+                    putMessageStatus = PutMessageStatus.OS_PAGECACHE_BUSY;
                     break;
                 case LEADER_PENDING_FULL:
                     putMessageStatus = PutMessageStatus.OS_PAGECACHE_BUSY;
                     break;
             }
-        } catch (Throwable ignored) {
-            putMessageStatus = PutMessageStatus.FLUSH_SLAVE_TIMEOUT;
+        } catch (Throwable t) {
+            log.error("Failed to get dledger append result", t);
         }
 
         PutMessageResult putMessageResult = new PutMessageResult(putMessageStatus, appendResult);
