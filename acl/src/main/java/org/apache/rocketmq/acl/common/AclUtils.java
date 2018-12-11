@@ -33,7 +33,7 @@ public class AclUtils {
         try {
             StringBuilder sb = new StringBuilder("");
             for (Map.Entry<String, String> entry : fieldsMap.entrySet()) {
-                if (!SessionCredentials.Signature.equals(entry.getKey())) {
+                if (!SessionCredentials.SIGNATURE.equals(entry.getKey())) {
                     sb.append(entry.getValue());
                 }
             }

@@ -16,30 +16,22 @@
  */
 package org.apache.rocketmq.acl.plain;
 
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.acl.common.AclException;
-import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
-import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.acl.plain.PlainPermissionLoader.PlainAccess;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({AclUtils.class})
 public class PlainPermissionLoaderTest {
 
     PlainPermissionLoader plainPermissionLoader;
@@ -50,10 +42,6 @@ public class PlainPermissionLoaderTest {
     PlainAccessResource plainAccessResource = new PlainAccessResource();
     PlainAccessResource plainAccessResourceTwo = new PlainAccessResource();
     Set<Integer> adminCode = new HashSet<>();
-    private String fileName = System.getProperty("romcketmq.acl.plain.fileName", "/conf/transport.yml");
-    private Map<String/** account **/
-        , List<PlainAccessResource>> plainAccessResourceMap;
-    private List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy;
 
     @Before
     public void init() throws NoSuchFieldException, SecurityException, IOException {
@@ -75,6 +63,7 @@ public class PlainPermissionLoaderTest {
 
         System.setProperty("java.version", "1.6.11");
         System.setProperty("rocketmq.home.dir", "src/test/resources");
+        System.setProperty("romcketmq.acl.plain.fileName", "/conf/transport.yml");
         plainPermissionLoader = new PlainPermissionLoader();
 
     }
@@ -98,85 +87,56 @@ public class PlainPermissionLoaderTest {
         return painAccessResource;
     }
 
-    @SuppressWarnings("unchecked")
-    private void getField(PlainPermissionLoader plainPermissionLoader) {
-        try {
-            this.globalWhiteRemoteAddressStrategy = (List<RemoteAddressStrategy>) FieldUtils.readDeclaredField(plainPermissionLoader, "globalWhiteRemoteAddressStrategy", true);
-            this.plainAccessResourceMap = (Map<String/** account **/, List<PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionLoader, "plainAccessResourceMap", true);
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Test(expected = AclException.class)
-    public void initializeTest() {
-        System.setProperty("romcketmq.acl.plain.fileName", "/conf/transport-null.yml");
-        new PlainPermissionLoader();
-
-    }
-
-    @Test
-    public void initializeIngetYamlDataObject() {
-        String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
-        PowerMockito.mockStatic(AclUtils.class);
-        JSONObject json = new JSONObject();
-        json.put("", "");
-        PowerMockito.when(AclUtils.getYamlDataObject(fileHome + "/conf/transport.yml", JSONObject.class)).thenReturn(json);
-        PlainPermissionLoader plainPermissionLoader = new PlainPermissionLoader();
-        getField(plainPermissionLoader);
-        Assert.assertTrue(globalWhiteRemoteAddressStrategy.isEmpty());
-        Assert.assertTrue(plainAccessResourceMap.isEmpty());
-    }
-
     @Test
     public void getPlainAccessResourceTest() {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
-        JSONObject account = new JSONObject();
-        account.put("accessKey", "RocketMQ");
-        plainAccessResource = plainPermissionLoader.getPlainAccessResource(account);
+        PlainAccess plainAccess = new PlainAccess();
+
+        plainAccess.setAccessKey("RocketMQ");
+        plainAccessResource = plainPermissionLoader.getPlainAccessResource(plainAccess);
         Assert.assertEquals(plainAccessResource.getAccessKey(), "RocketMQ");
 
-        account.put("secretKey", "12345678");
-        plainAccessResource = plainPermissionLoader.getPlainAccessResource(account);
+        plainAccess.setSecretKey("12345678");
+        plainAccessResource = plainPermissionLoader.getPlainAccessResource(plainAccess);
         Assert.assertEquals(plainAccessResource.getSecretKey(), "12345678");
 
-        account.put("whiteRemoteAddress", "127.0.0.1");
-        plainAccessResource = plainPermissionLoader.getPlainAccessResource(account);
+        plainAccess.setWhiteRemoteAddress("127.0.0.1");
+        plainAccessResource = plainPermissionLoader.getPlainAccessResource(plainAccess);
         Assert.assertEquals(plainAccessResource.getWhiteRemoteAddress(), "127.0.0.1");
 
-        account.put("admin", true);
-        plainAccessResource = plainPermissionLoader.getPlainAccessResource(account);
+        plainAccess.setAdmin(true);
+        plainAccessResource = plainPermissionLoader.getPlainAccessResource(plainAccess);
         Assert.assertEquals(plainAccessResource.isAdmin(), true);
 
-        account.put("defaultGroupPerm", "ANY");
-        plainAccessResource = plainPermissionLoader.getPlainAccessResource(account);
+        plainAccess.setDefaultGroupPerm("ANY");
+        plainAccessResource = plainPermissionLoader.getPlainAccessResource(plainAccess);
         Assert.assertEquals(plainAccessResource.getDefaultGroupPerm(), Permission.ANY);
 
-        account.put("defaultTopicPerm", "ANY");
-        plainAccessResource = plainPermissionLoader.getPlainAccessResource(account);
+        plainAccess.setDefaultTopicPerm("ANY");
+        plainAccessResource = plainPermissionLoader.getPlainAccessResource(plainAccess);
         Assert.assertEquals(plainAccessResource.getDefaultTopicPerm(), Permission.ANY);
 
-        JSONArray groups = new JSONArray();
+        List<String> groups = new ArrayList<String>();
         groups.add("groupA=DENY");
         groups.add("groupB=PUB|SUB");
         groups.add("groupC=PUB");
-        account.put("groups", groups);
-        plainAccessResource = plainPermissionLoader.getPlainAccessResource(account);
+        plainAccess.setGroups(groups);
+        plainAccessResource = plainPermissionLoader.getPlainAccessResource(plainAccess);
         Map<String, Byte> resourcePermMap = plainAccessResource.getResourcePermMap();
         Assert.assertEquals(resourcePermMap.size(), 3);
 
-        Assert.assertEquals(resourcePermMap.get("groupA").byteValue(), Permission.DENY);
-        Assert.assertEquals(resourcePermMap.get("groupB").byteValue(), Permission.ANY);
-        Assert.assertEquals(resourcePermMap.get("groupC").byteValue(), Permission.PUB);
+        Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupA")).byteValue(), Permission.DENY);
+        Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupB")).byteValue(), Permission.ANY);
+        Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupC")).byteValue(), Permission.PUB);
 
-        JSONArray topics = new JSONArray();
+        List<String> topics = new ArrayList<String>();
         topics.add("topicA=DENY");
         topics.add("topicB=PUB|SUB");
         topics.add("topicC=PUB");
-        account.put("topics", topics);
-        plainAccessResource = plainPermissionLoader.getPlainAccessResource(account);
+        plainAccess.setTopics(topics);
+        plainAccessResource = plainPermissionLoader.getPlainAccessResource(plainAccess);
         resourcePermMap = plainAccessResource.getResourcePermMap();
-        Assert.assertEquals(resourcePermMap.size(), 3);
+        Assert.assertEquals(resourcePermMap.size(), 6);
 
         Assert.assertEquals(resourcePermMap.get("topicA").byteValue(), Permission.DENY);
         Assert.assertEquals(resourcePermMap.get("topicB").byteValue(), Permission.ANY);
@@ -237,17 +197,21 @@ public class PlainPermissionLoaderTest {
         new PlainPermissionLoader().initialize();
     }
 
+    @SuppressWarnings("unchecked")
     @Test
-    public void cleanAuthenticationInfoTest() {
-        plainPermissionLoader.setPlainAccessResource(plainAccessResource);
-        plainAccessResource.setRequestCode(202);
-        plainPermissionLoader.eachCheckPlainAccessResource(plainAccessResource);
+    public void cleanAuthenticationInfoTest() throws IllegalAccessException {
+        //plainPermissionLoader.setPlainAccessResource(plainAccessResource);
+        Map<String, List<PlainAccessResource>> plainAccessResourceMap = (Map<String, List<PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionLoader, "plainAccessResourceMap", true);
+        Assert.assertFalse(plainAccessResourceMap.isEmpty());
+
         plainPermissionLoader.cleanAuthenticationInfo();
-        plainPermissionLoader.eachCheckPlainAccessResource(plainAccessResource);
+        plainAccessResourceMap = (Map<String, List<PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionLoader, "plainAccessResourceMap", true);
+        Assert.assertTrue(plainAccessResourceMap.isEmpty());
     }
 
     @Test
     public void isWatchStartTest() {
+        System.setProperty("java.version", "1.7.11");
         PlainPermissionLoader plainPermissionLoader = new PlainPermissionLoader();
         Assert.assertTrue(plainPermissionLoader.isWatchStart());
         System.setProperty("java.version", "1.6.11");
@@ -255,8 +219,10 @@ public class PlainPermissionLoaderTest {
         Assert.assertFalse(plainPermissionLoader.isWatchStart());
     }
 
+    @SuppressWarnings("unchecked")
     @Test
-    public void watchTest() throws IOException {
+    public void watchTest() throws IOException, IllegalAccessException {
+        System.setProperty("java.version", "1.7.11");
         System.setProperty("rocketmq.home.dir", "src/test/resources/watch");
         File file = new File("src/test/resources/watch/conf");
         file.mkdirs();
@@ -264,35 +230,45 @@ public class PlainPermissionLoaderTest {
         transport.createNewFile();
 
         FileWriter writer = new FileWriter(transport);
-        writer.write("list:\r\n");
-        writer.write("- account: rokcetmq\r\n");
-        writer.write("  password: aliyun11\r\n");
-        writer.write("  netaddress: 127.0.0.1\r\n");
+        writer.write("accounts:\r\n");
+        writer.write("- accessKey: rokcetmq\r\n");
+        writer.write("  secretKey: aliyun11\r\n");
+        writer.write("  whiteRemoteAddress: 127.0.0.1\r\n");
+        writer.write("  admin: true\r\n");
         writer.flush();
         writer.close();
         PlainPermissionLoader plainPermissionLoader = new PlainPermissionLoader();
-        plainAccessResource.setRequestCode(203);
-        plainPermissionLoader.eachCheckPlainAccessResource(plainAccessResource);
+
+        Map<String, List<PlainAccessResource>> plainAccessResourceMap = (Map<String, List<PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionLoader, "plainAccessResourceMap", true);
+        Assert.assertEquals(plainAccessResourceMap.get("rokcetmq").size(), 1);
 
         writer = new FileWriter(new File("src/test/resources/watch/conf/transport.yml"), true);
-        writer.write("- account: rokcet1\r\n");
-        writer.write("  password: aliyun1\r\n");
-        writer.write("  netaddress: 127.0.0.1\r\n");
+        writer.write("- accessKey: rokcet1\r\n");
+        writer.write("  secretKey: aliyun1\r\n");
+        writer.write("  whiteRemoteAddress: 127.0.0.1\r\n");
+        writer.write("  admin: true\r\n");
         writer.flush();
         writer.close();
+
         try {
             Thread.sleep(100);
         } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        plainAccessResourceTwo.setRequestCode(203);
-        plainPermissionLoader.eachCheckPlainAccessResource(plainAccessResourceTwo);
+        plainAccessResourceMap = (Map<String, List<PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionLoader, "plainAccessResourceMap", true);
+        Assert.assertEquals(plainAccessResourceMap.get("rokcet1").size(), 1);
 
         transport.delete();
         file.delete();
         file = new File("src/test/resources/watch");
         file.delete();
+
+    }
+
+    @Test(expected = AclException.class)
+    public void initializeTest() {
+        System.setProperty("romcketmq.acl.plain.fileName", "/conf/transport-null.yml");
+        new PlainPermissionLoader();
 
     }
 

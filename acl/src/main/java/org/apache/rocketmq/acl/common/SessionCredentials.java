@@ -24,12 +24,12 @@ import org.apache.rocketmq.common.MixAll;
 
 public class SessionCredentials {
     public static final Charset CHARSET = Charset.forName("UTF-8");
-    public static final String AccessKey = "AccessKey";
-    public static final String SecretKey = "SecretKey";
-    public static final String Signature = "Signature";
-    public static final String SecurityToken = "SecurityToken";
+    public static final String ACCESS_KEY = "AccessKey";
+    public static final String SECRET_KEY = "SecretKey";
+    public static final String SIGNATURE = "Signature";
+    public static final String SECURITY_TOKEN = "SecurityToken";
 
-    public static final String KeyFile = System.getProperty("rocketmq.client.keyFile",
+    public static final String KEY_FILE = System.getProperty("rocketmq.client.keyFile",
         System.getProperty("user.home") + File.separator + "onskey");
 
     private String accessKey;
@@ -40,7 +40,7 @@ public class SessionCredentials {
     public SessionCredentials() {
         String keyContent = null;
         try {
-            keyContent = MixAll.file2String(KeyFile);
+            keyContent = MixAll.file2String(KEY_FILE);
         } catch (IOException ignore) {
         }
         if (keyContent != null) {
@@ -63,19 +63,19 @@ public class SessionCredentials {
 
     public void updateContent(Properties prop) {
         {
-            String value = prop.getProperty(AccessKey);
+            String value = prop.getProperty(ACCESS_KEY);
             if (value != null) {
                 this.accessKey = value.trim();
             }
         }
         {
-            String value = prop.getProperty(SecretKey);
+            String value = prop.getProperty(SECRET_KEY);
             if (value != null) {
                 this.secretKey = value.trim();
             }
         }
         {
-            String value = prop.getProperty(SecurityToken);
+            String value = prop.getProperty(SECURITY_TOKEN);
             if (value != null) {
                 this.securityToken = value.trim();
             }

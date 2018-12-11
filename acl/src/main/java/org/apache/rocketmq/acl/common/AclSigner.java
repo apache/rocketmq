@@ -25,14 +25,14 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class AclSigner {
-    public static final Charset defaultCharset = Charset.forName("UTF-8");
-    public static final SigningAlgorithm defaultAlgorithm = SigningAlgorithm.HmacSHA1;
+    public static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
+    public static final SigningAlgorithm DEFAULT_ALGORITHM = SigningAlgorithm.HmacSHA1;
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.ROCKETMQ_AUTHORIZE_LOGGER_NAME);
     private static final int CAL_SIGNATURE_FAILED = 10015;
     private static final String CAL_SIGNATURE_FAILED_MSG = "[%s:signature-failed] unable to calculate a request signature. error=%s";
 
     public static String calSignature(String data, String key) throws AclException {
-        return calSignature(data, key, defaultAlgorithm, defaultCharset);
+        return calSignature(data, key, DEFAULT_ALGORITHM, DEFAULT_CHARSET);
     }
 
     public static String calSignature(String data, String key, SigningAlgorithm algorithm,
@@ -44,7 +44,7 @@ public class AclSigner {
         throws AclException {
         try {
             byte[] signature = sign(data.getBytes(charset), key.getBytes(charset), algorithm);
-            return new String(Base64.encodeBase64(signature), defaultCharset);
+            return new String(Base64.encodeBase64(signature), DEFAULT_CHARSET);
         } catch (Exception e) {
             String message = String.format(CAL_SIGNATURE_FAILED_MSG, CAL_SIGNATURE_FAILED, e.getMessage());
             log.error(message, e);
@@ -65,7 +65,7 @@ public class AclSigner {
     }
 
     public static String calSignature(byte[] data, String key) throws AclException {
-        return calSignature(data, key, defaultAlgorithm, defaultCharset);
+        return calSignature(data, key, DEFAULT_ALGORITHM, DEFAULT_CHARSET);
     }
 
     public static String calSignature(byte[] data, String key, SigningAlgorithm algorithm,
@@ -77,7 +77,7 @@ public class AclSigner {
         throws AclException {
         try {
             byte[] signature = sign(data, key.getBytes(charset), algorithm);
-            return new String(Base64.encodeBase64(signature), defaultCharset);
+            return new String(Base64.encodeBase64(signature), DEFAULT_CHARSET);
         } catch (Exception e) {
             String message = String.format(CAL_SIGNATURE_FAILED_MSG, CAL_SIGNATURE_FAILED, e.getMessage());
             log.error(message, e);

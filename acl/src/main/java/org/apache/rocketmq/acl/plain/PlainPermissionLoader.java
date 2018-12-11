@@ -70,7 +70,7 @@ public class PlainPermissionLoader {
             JSONObject.class);
 
         if (accessControlTransport == null || accessControlTransport.isEmpty()) {
-            throw new AclException("transport.yml file  is not data");
+            throw new AclException(String.format("%s file  is not data", fileHome + fileName));
         }
         log.info("BorkerAccessControlTransport data is : ", accessControlTransport.toString());
         JSONArray globalWhiteRemoteAddressesList = accessControlTransport.getJSONArray("globalWhiteRemoteAddresses");
@@ -81,9 +81,10 @@ public class PlainPermissionLoader {
         }
 
         JSONArray accounts = accessControlTransport.getJSONArray("accounts");
-        if (accounts != null && !accounts.isEmpty()) {
-            for (int i = 0; i < accounts.size(); i++) {
-                this.setPlainAccessResource(getPlainAccessResource(accounts.getJSONObject(i)));
+        List<PlainAccess> plainAccessList = accounts.toJavaList(PlainAccess.class);
+        if (plainAccessList != null && !plainAccessList.isEmpty()) {
+            for (PlainAccess plainAccess : plainAccessList) {
+                this.setPlainAccessResource(getPlainAccessResource(plainAccess));
             }
         }
     }
@@ -139,19 +140,19 @@ public class PlainPermissionLoader {
         }
     }
 
-    PlainAccessResource getPlainAccessResource(JSONObject account) {
+    PlainAccessResource getPlainAccessResource(PlainAccess plainAccess) {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
-        plainAccessResource.setAccessKey(account.getString("accessKey"));
-        plainAccessResource.setSecretKey(account.getString("secretKey"));
-        plainAccessResource.setWhiteRemoteAddress(account.getString("whiteRemoteAddress"));
+        plainAccessResource.setAccessKey(plainAccess.getAccessKey());
+        plainAccessResource.setSecretKey(plainAccess.getSecretKey());
+        plainAccessResource.setWhiteRemoteAddress(plainAccess.getWhiteRemoteAddress());
 
-        plainAccessResource.setAdmin(account.containsKey("admin") ? account.getBoolean("admin") : false);
+        plainAccessResource.setAdmin(plainAccess.isAdmin());
 
-        plainAccessResource.setDefaultGroupPerm(Permission.fromStringGetPermission(account.getString("defaultGroupPerm")));
-        plainAccessResource.setDefaultTopicPerm(Permission.fromStringGetPermission(account.getString("defaultTopicPerm")));
+        plainAccessResource.setDefaultGroupPerm(Permission.fromStringGetPermission(plainAccess.getDefaultGroupPerm()));
+        plainAccessResource.setDefaultTopicPerm(Permission.fromStringGetPermission(plainAccess.getDefaultTopicPerm()));
 
-        Permission.setTopicPerm(plainAccessResource, true, account.getJSONArray("groups"));
-        Permission.setTopicPerm(plainAccessResource, true, account.getJSONArray("topics"));
+        Permission.setTopicPerm(plainAccessResource, false, plainAccess.getGroups());
+        Permission.setTopicPerm(plainAccessResource, true, plainAccess.getTopics());
         return plainAccessResource;
     }
 
@@ -248,6 +249,90 @@ public class PlainPermissionLoader {
 
     public boolean isWatchStart() {
         return isWatchStart;
+    }
+
+    static class PlainAccess {
+
+        private String accessKey;
+
+        private String secretKey;
+
+        private String whiteRemoteAddress;
+
+        private boolean admin;
+
+        private String defaultTopicPerm;
+
+        private String defaultGroupPerm;
+
+        private List<String> topics;
+
+        private List<String> groups;
+
+        public String getAccessKey() {
+            return accessKey;
+        }
+
+        public void setAccessKey(String accessKey) {
+            this.accessKey = accessKey;
+        }
+
+        public String getSecretKey() {
+            return secretKey;
+        }
+
+        public void setSecretKey(String secretKey) {
+            this.secretKey = secretKey;
+        }
+
+        public String getWhiteRemoteAddress() {
+            return whiteRemoteAddress;
+        }
+
+        public void setWhiteRemoteAddress(String whiteRemoteAddress) {
+            this.whiteRemoteAddress = whiteRemoteAddress;
+        }
+
+        public boolean isAdmin() {
+            return admin;
+        }
+
+        public void setAdmin(boolean admin) {
+            this.admin = admin;
+        }
+
+        public String getDefaultTopicPerm() {
+            return defaultTopicPerm;
+        }
+
+        public void setDefaultTopicPerm(String defaultTopicPerm) {
+            this.defaultTopicPerm = defaultTopicPerm;
+        }
+
+        public String getDefaultGroupPerm() {
+            return defaultGroupPerm;
+        }
+
+        public void setDefaultGroupPerm(String defaultGroupPerm) {
+            this.defaultGroupPerm = defaultGroupPerm;
+        }
+
+        public List<String> getTopics() {
+            return topics;
+        }
+
+        public void setTopics(List<String> topics) {
+            this.topics = topics;
+        }
+
+        public List<String> getGroups() {
+            return groups;
+        }
+
+        public void setGroups(List<String> groups) {
+            this.groups = groups;
+        }
+
     }
 
 }
