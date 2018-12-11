@@ -16,15 +16,15 @@
  */
 package org.apache.rocketmq.broker.dledger;
 
+import io.openmessaging.storage.dledger.DLedgerLeaderElector;
+import io.openmessaging.storage.dledger.DLedgerServer;
+import io.openmessaging.storage.dledger.MemberState;
+import io.openmessaging.storage.dledger.utils.DLedgerUtils;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
-import io.openmessaging.storage.dledger.DLedgerLeaderElector;
-import io.openmessaging.storage.dledger.DLedgerServer;
-import io.openmessaging.storage.dledger.MemberState;
-import io.openmessaging.storage.dledger.utils.UtilAll;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -67,7 +67,7 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
                         case LEADER:
                             while (dLegerServer.getMemberState().isLeader()
                                 &&  (dLegerServer.getdLedgerStore().getLedgerEndIndex() != dLegerServer.getdLedgerStore().getCommittedIndex() ||  messageStore.dispatchBehindBytes() != 0)) {
-                                UtilAll.sleep(100);
+                                DLedgerUtils.sleep(100);
                             }
                             succ = dLegerServer.getMemberState().isLeader()
                                 && dLegerServer.getdLedgerStore().getLedgerEndIndex() == dLegerServer.getdLedgerStore().getCommittedIndex()
@@ -80,9 +80,9 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
                         default:
                             break;
                     }
-                    log.info("Finish handling broker role change succ={} term={} role={} currStoreRole={} cost={}", succ, term, role, messageStore.getMessageStoreConfig().getBrokerRole(), UtilAll.elapsed(start));
+                    log.info("Finish handling broker role change succ={} term={} role={} currStoreRole={} cost={}", succ, term, role, messageStore.getMessageStoreConfig().getBrokerRole(), DLedgerUtils.elapsed(start));
                 } catch (Throwable t) {
-                    log.info("[MONITOR]Failed handling broker role change term={} role={} currStoreRole={} cost={}", term, role, messageStore.getMessageStoreConfig().getBrokerRole(), UtilAll.elapsed(start), t);
+                    log.info("[MONITOR]Failed handling broker role change term={} role={} currStoreRole={} cost={}", term, role, messageStore.getMessageStoreConfig().getBrokerRole(), DLedgerUtils.elapsed(start), t);
                 }
             }
         };
