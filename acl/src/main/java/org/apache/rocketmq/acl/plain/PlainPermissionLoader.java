@@ -16,8 +16,9 @@
  */
 package org.apache.rocketmq.acl.plain;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,11 +33,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
+import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
@@ -47,15 +49,14 @@ public class PlainPermissionLoader {
     private String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
-    private Map<String/** account **/, List<AuthenticationInfo>> accessControlMap = new HashMap<>();
+    private String fileName = System.getProperty("romcketmq.acl.plain.fileName", "/conf/transport.yml");
 
-    private AuthenticationInfo authenticationInfo;
+    private Map<String/** account **/
+        , List<PlainAccessResource>> plainAccessResourceMap = new HashMap<>();
+
+    private List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<>();
 
     private RemoteAddressStrategyFactory remoteAddressStrategyFactory = new RemoteAddressStrategyFactory();
-
-    private AccessContralAnalysis accessContralAnalysis = new AccessContralAnalysis();
-
-    private Class<?> accessContralAnalysisClass = RequestCode.class;
 
     private boolean isWatchStart;
 
@@ -65,13 +66,27 @@ public class PlainPermissionLoader {
     }
 
     public void initialize() {
-        BrokerAccessControlTransport accessControlTransport = AclUtils.getYamlDataObject(fileHome + "/conf/transport.yml", BrokerAccessControlTransport.class);
-        if (accessControlTransport == null) {
-            throw new AclPlugRuntimeException("transport.yml file  is no data");
+        JSONObject accessControlTransport = AclUtils.getYamlDataObject(fileHome + fileName,
+            JSONObject.class);
+
+        if (accessControlTransport == null || accessControlTransport.isEmpty()) {
+            throw new AclException(String.format("%s file  is not data", fileHome + fileName));
         }
         log.info("BorkerAccessControlTransport data is : ", accessControlTransport.toString());
-        accessContralAnalysis.analysisClass(accessContralAnalysisClass);
-        setBrokerAccessControlTransport(accessControlTransport);
+        JSONArray globalWhiteRemoteAddressesList = accessControlTransport.getJSONArray("globalWhiteRemoteAddresses");
+        if (globalWhiteRemoteAddressesList != null && !globalWhiteRemoteAddressesList.isEmpty()) {
+            for (int i = 0; i < globalWhiteRemoteAddressesList.size(); i++) {
+                setGlobalWhite(globalWhiteRemoteAddressesList.getString(i));
+            }
+        }
+
+        JSONArray accounts = accessControlTransport.getJSONArray("accounts");
+        List<PlainAccess> plainAccessList = accounts.toJavaList(PlainAccess.class);
+        if (plainAccessList != null && !plainAccessList.isEmpty()) {
+            for (PlainAccess plainAccess : plainAccessList) {
+                this.setPlainAccessResource(getPlainAccessResource(plainAccess));
+            }
+        }
     }
 
     private void watch() {
@@ -95,8 +110,9 @@ public class PlainPermissionLoader {
                                 WatchKey watchKey = watcher.take();
                                 List<WatchEvent<?>> watchEvents = watchKey.pollEvents();
                                 for (WatchEvent<?> event : watchEvents) {
-                                    if ("transport.yml".equals(event.context().toString()) &&
-                                        (StandardWatchEventKinds.ENTRY_MODIFY.equals(event.kind()) || StandardWatchEventKinds.ENTRY_CREATE.equals(event.kind()))) {
+                                    if ("transport.yml".equals(event.context().toString())
+                                        && (StandardWatchEventKinds.ENTRY_MODIFY.equals(event.kind())
+                                        || StandardWatchEventKinds.ENTRY_CREATE.equals(event.kind()))) {
                                         log.info("transprot.yml make a difference  change is : ", event.toString());
                                         PlainPermissionLoader.this.cleanAuthenticationInfo();
                                         initialize();
@@ -124,234 +140,199 @@ public class PlainPermissionLoader {
         }
     }
 
-    private void handleAccessControl(PlainAccessResource plainAccessResource) {
-        if (plainAccessResource instanceof BrokerAccessControl) {
-            BrokerAccessControl brokerAccessControl = (BrokerAccessControl) plainAccessResource;
-            if (brokerAccessControl.isAdmin()) {
-                brokerAccessControl.setUpdateAndCreateSubscriptiongroup(true);
-                brokerAccessControl.setDeleteSubscriptiongroup(true);
-                brokerAccessControl.setUpdateAndCreateTopic(true);
-                brokerAccessControl.setDeleteTopicInbroker(true);
-                brokerAccessControl.setUpdateBrokerConfig(true);
+    PlainAccessResource getPlainAccessResource(PlainAccess plainAccess) {
+        PlainAccessResource plainAccessResource = new PlainAccessResource();
+        plainAccessResource.setAccessKey(plainAccess.getAccessKey());
+        plainAccessResource.setSecretKey(plainAccess.getSecretKey());
+        plainAccessResource.setWhiteRemoteAddress(plainAccess.getWhiteRemoteAddress());
+
+        plainAccessResource.setAdmin(plainAccess.isAdmin());
+
+        plainAccessResource.setDefaultGroupPerm(Permission.fromStringGetPermission(plainAccess.getDefaultGroupPerm()));
+        plainAccessResource.setDefaultTopicPerm(Permission.fromStringGetPermission(plainAccess.getDefaultTopicPerm()));
+
+        Permission.setTopicPerm(plainAccessResource, false, plainAccess.getGroups());
+        Permission.setTopicPerm(plainAccessResource, true, plainAccess.getTopics());
+        return plainAccessResource;
+    }
+
+    void checkPerm(PlainAccessResource needCheckplainAccessResource, PlainAccessResource plainAccessResource) {
+        if (!plainAccessResource.isAdmin() && Permission.checkAdminCode(needCheckplainAccessResource.getRequestCode())) {
+            throw new AclException(String.format("accessKey is %s  remoteAddress is %s , is not admin Premission . RequestCode is %d", plainAccessResource.getAccessKey(), plainAccessResource.getWhiteRemoteAddress(), needCheckplainAccessResource.getRequestCode()));
+        }
+        Map<String, Byte> needCheckTopicAndGourpPerm = needCheckplainAccessResource.getResourcePermMap();
+        Map<String, Byte> topicAndGourpPerm = plainAccessResource.getResourcePermMap();
+
+        Iterator<Entry<String, Byte>> it = topicAndGourpPerm.entrySet().iterator();
+        Byte perm;
+        while (it.hasNext()) {
+            Entry<String, Byte> e = it.next();
+            if ((perm = needCheckTopicAndGourpPerm.get(e.getKey())) != null && Permission.checkPermission(perm, e.getValue())) {
+                continue;
+            }
+            byte neededPerm = PlainAccessResource.isRetryTopic(e.getKey()) ? needCheckplainAccessResource.getDefaultGroupPerm() :
+                needCheckplainAccessResource.getDefaultTopicPerm();
+            if (!Permission.checkPermission(neededPerm, e.getValue())) {
+                throw new AclException(String.format("", e.toString()));
             }
         }
     }
 
     void cleanAuthenticationInfo() {
-        accessControlMap.clear();
-        authenticationInfo = null;
+        this.plainAccessResourceMap.clear();
+        this.globalWhiteRemoteAddressStrategy.clear();
     }
 
-    public void setAccessControl(PlainAccessResource plainAccessResource) throws AclPlugRuntimeException {
-        if (plainAccessResource.getAccessKey() == null || plainAccessResource.getSignature() == null
-            || plainAccessResource.getAccessKey().length() <= 6 || plainAccessResource.getSignature().length() <= 6) {
-            throw new AclPlugRuntimeException(String.format(
+    public void setPlainAccessResource(PlainAccessResource plainAccessResource) throws AclException {
+        if (plainAccessResource.getAccessKey() == null || plainAccessResource.getSecretKey() == null
+            || plainAccessResource.getAccessKey().length() <= 6
+            || plainAccessResource.getSecretKey().length() <= 6) {
+            throw new AclException(String.format(
                 "The account password cannot be null and is longer than 6, account is %s  password is %s",
-                plainAccessResource.getAccessKey(), plainAccessResource.getSignature()));
+                plainAccessResource.getAccessKey(), plainAccessResource.getSecretKey()));
         }
         try {
-            handleAccessControl(plainAccessResource);
-            RemoteAddressStrategy remoteAddressStrategy = remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
-            List<AuthenticationInfo> accessControlAddressList = accessControlMap.get(plainAccessResource.getAccessKey());
+            RemoteAddressStrategy remoteAddressStrategy = remoteAddressStrategyFactory
+                .getNetaddressStrategy(plainAccessResource);
+            List<PlainAccessResource> accessControlAddressList = plainAccessResourceMap.get(plainAccessResource.getAccessKey());
             if (accessControlAddressList == null) {
                 accessControlAddressList = new ArrayList<>();
-                accessControlMap.put(plainAccessResource.getAccessKey(), accessControlAddressList);
+                plainAccessResourceMap.put(plainAccessResource.getAccessKey(), accessControlAddressList);
             }
-            AuthenticationInfo authenticationInfo = new AuthenticationInfo(
-                accessContralAnalysis.analysis(plainAccessResource), plainAccessResource, remoteAddressStrategy);
-            accessControlAddressList.add(authenticationInfo);
-            log.info("authenticationInfo is {}", authenticationInfo.toString());
+            plainAccessResource.setRemoteAddressStrategy(remoteAddressStrategy);
+
+            accessControlAddressList.add(plainAccessResource);
+            log.info("authenticationInfo is {}", plainAccessResource.toString());
         } catch (Exception e) {
-            throw new AclPlugRuntimeException(
+            throw new AclException(
                 String.format("Exception info %s  %s", e.getMessage(), plainAccessResource.toString()), e);
         }
     }
 
-    public void setAccessControlList(List<PlainAccessResource> plainAccessResourceList) throws AclPlugRuntimeException {
-        for (PlainAccessResource plainAccessResource : plainAccessResourceList) {
-            setAccessControl(plainAccessResource);
-        }
+    private void setGlobalWhite(String remoteAddresses) {
+        globalWhiteRemoteAddressStrategy.add(remoteAddressStrategyFactory.getNetaddressStrategy(remoteAddresses));
     }
 
-    public void setNetaddressAccessControl(PlainAccessResource plainAccessResource) throws AclPlugRuntimeException {
-        try {
-            authenticationInfo = new AuthenticationInfo(accessContralAnalysis.analysis(plainAccessResource), plainAccessResource, remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource));
-            log.info("default authenticationInfo is {}", authenticationInfo.toString());
-        } catch (Exception e) {
-            throw new AclPlugRuntimeException(plainAccessResource.toString(), e);
-        }
+    public void eachCheckPlainAccessResource(PlainAccessResource plainAccessResource) {
 
-    }
-
-    public AuthenticationInfo getAccessControl(PlainAccessResource plainAccessResource) {
-        if (plainAccessResource.getAccessKey() == null && authenticationInfo != null) {
-            return authenticationInfo.getRemoteAddressStrategy().match(plainAccessResource) ? authenticationInfo : null;
-        } else {
-            List<AuthenticationInfo> accessControlAddressList = accessControlMap.get(plainAccessResource.getAccessKey());
-            if (accessControlAddressList != null) {
-                for (AuthenticationInfo ai : accessControlAddressList) {
-                    if (ai.getRemoteAddressStrategy().match(plainAccessResource) && ai.getPlainAccessResource().getSignature().equals(plainAccessResource.getSignature())) {
-                        return ai;
-                    }
+        List<PlainAccessResource> plainAccessResourceAddressList = plainAccessResourceMap.get(plainAccessResource.getAccessKey());
+        boolean isDistinguishAccessKey = false;
+        if (plainAccessResourceAddressList != null) {
+            for (PlainAccessResource plainAccess : plainAccessResourceAddressList) {
+                if (!plainAccess.getRemoteAddressStrategy().match(plainAccessResource)) {
+                    isDistinguishAccessKey = true;
+                    continue;
+                }
+                String signature = AclUtils.calSignature(plainAccessResource.getContent(), plainAccess.getSecretKey());
+                if (signature.equals(plainAccessResource.getSignature())) {
+                    checkPerm(plainAccess, plainAccessResource);
+                    return;
+                } else {
+                    throw new AclException(String.format("signature is erron. erron accessKe is %s , erron reomiteAddress %s", plainAccess.getAccessKey(), plainAccessResource.getWhiteRemoteAddress()));
                 }
             }
         }
-        return null;
-    }
 
-    public AuthenticationResult eachCheckAuthentication(PlainAccessResource plainAccessResource) {
-        AuthenticationResult authenticationResult = new AuthenticationResult();
-        AuthenticationInfo authenticationInfo = getAccessControl(plainAccessResource);
-        if (authenticationInfo != null) {
-            boolean boo = authentication(authenticationInfo, plainAccessResource, authenticationResult);
-            authenticationResult.setSucceed(boo);
-            authenticationResult.setPlainAccessResource(authenticationInfo.getPlainAccessResource());
+        if (plainAccessResource.getAccessKey() == null && !globalWhiteRemoteAddressStrategy.isEmpty()) {
+            for (RemoteAddressStrategy remoteAddressStrategy : globalWhiteRemoteAddressStrategy) {
+                if (remoteAddressStrategy.match(plainAccessResource)) {
+                    return;
+                }
+            }
+        }
+        if (isDistinguishAccessKey) {
+            throw new AclException(String.format("client ip  not in WhiteRemoteAddress . erron accessKe is %s , erron reomiteAddress %s", plainAccessResource.getAccessKey(), plainAccessResource.getWhiteRemoteAddress()));
         } else {
-            authenticationResult.setResultString("plainAccessResource is null, Please check login, password, IP\"");
+            throw new AclException(String.format("It is not make Access and make client ip .erron accessKe is %s , erron reomiteAddress %s", plainAccessResource.getAccessKey(), plainAccessResource.getWhiteRemoteAddress()));
         }
-        return authenticationResult;
-    }
-
-    void setBrokerAccessControlTransport(BrokerAccessControlTransport transport) {
-        if (transport.getOnlyNetAddress() == null && (transport.getList() == null || transport.getList().size() == 0)) {
-            throw new AclPlugRuntimeException("onlyNetAddress and list  can't be all empty");
-        }
-
-        if (transport.getOnlyNetAddress() != null) {
-            this.setNetaddressAccessControl(transport.getOnlyNetAddress());
-        }
-        if (transport.getList() != null || transport.getList().size() > 0) {
-            for (BrokerAccessControl accessControl : transport.getList()) {
-                this.setAccessControl(accessControl);
-            }
-        }
-    }
-
-    public boolean authentication(AuthenticationInfo authenticationInfo, PlainAccessResource plainAccessResource,
-        AuthenticationResult authenticationResult) {
-        int code = plainAccessResource.getRequestCode();
-        if (!authenticationInfo.getAuthority().get(code)) {
-            authenticationResult.setResultString(String.format("code is %d Authentication failed", code));
-            return false;
-        }
-        if (!(authenticationInfo.getPlainAccessResource() instanceof BrokerAccessControl)) {
-            return true;
-        }
-        BrokerAccessControl borker = (BrokerAccessControl) authenticationInfo.getPlainAccessResource();
-        String topicName = plainAccessResource.getTopic();
-        if (code == 10 || code == 310 || code == 320) {
-            if (borker.getPermitSendTopic().contains(topicName)) {
-                return true;
-            }
-            if (borker.getNoPermitSendTopic().contains(topicName)) {
-                authenticationResult.setResultString(String.format("noPermitSendTopic include %s", topicName));
-                return false;
-            }
-            return borker.getPermitSendTopic().isEmpty() ? true : false;
-        } else if (code == 11) {
-            if (borker.getPermitPullTopic().contains(topicName)) {
-                return true;
-            }
-            if (borker.getNoPermitPullTopic().contains(topicName)) {
-                authenticationResult.setResultString(String.format("noPermitPullTopic include %s", topicName));
-                return false;
-            }
-            return borker.getPermitPullTopic().isEmpty() ? true : false;
-        }
-        return true;
     }
 
     public boolean isWatchStart() {
         return isWatchStart;
     }
 
-    public static class AccessContralAnalysis {
+    static class PlainAccess {
 
-        private Map<Class<?>, Map<Integer, Field>> classTocodeAndMentod = new HashMap<>();
+        private String accessKey;
 
-        private Map<String, Integer> fieldNameAndCode = new HashMap<>();
+        private String secretKey;
 
-        public void analysisClass(Class<?> clazz) {
-            Field[] fields = clazz.getDeclaredFields();
-            try {
-                for (Field field : fields) {
-                    if (field.getType().equals(int.class)) {
-                        String name = StringUtils.replace(field.getName(), "_", "").toLowerCase();
-                        fieldNameAndCode.put(name, (Integer) field.get(null));
-                    }
-                }
-            } catch (IllegalArgumentException | IllegalAccessException e) {
-                throw new AclPlugRuntimeException(String.format("analysis on failure Class is %s", clazz.getName()), e);
-            }
+        private String whiteRemoteAddress;
+
+        private boolean admin;
+
+        private String defaultTopicPerm;
+
+        private String defaultGroupPerm;
+
+        private List<String> topics;
+
+        private List<String> groups;
+
+        public String getAccessKey() {
+            return accessKey;
         }
 
-        public Map<Integer, Boolean> analysis(PlainAccessResource plainAccessResource) {
-            Class<? extends PlainAccessResource> clazz = plainAccessResource.getClass();
-            Map<Integer, Field> codeAndField = classTocodeAndMentod.get(clazz);
-            if (codeAndField == null) {
-                codeAndField = new HashMap<>();
-                Field[] fields = clazz.getDeclaredFields();
-                for (Field field : fields) {
-                    if ("admin".equals(field.getName()))
-                        continue;
-                    if (!field.getType().equals(boolean.class))
-                        continue;
-                    Integer code = fieldNameAndCode.get(field.getName().toLowerCase());
-                    if (code == null) {
-                        throw new AclPlugRuntimeException(
-                            String.format("field nonexistent in code  fieldName is %s", field.getName()));
-                    }
-                    field.setAccessible(true);
-                    codeAndField.put(code, field);
+        public void setAccessKey(String accessKey) {
+            this.accessKey = accessKey;
+        }
 
-                }
-                if (codeAndField.isEmpty()) {
-                    throw new AclPlugRuntimeException(String.format("PlainAccessResource nonexistent code , name %s",
-                        plainAccessResource.getClass().getName()));
-                }
-                classTocodeAndMentod.put(clazz, codeAndField);
-            }
-            Iterator<Entry<Integer, Field>> it = codeAndField.entrySet().iterator();
-            Map<Integer, Boolean> authority = new HashMap<>();
-            try {
-                while (it.hasNext()) {
-                    Entry<Integer, Field> e = it.next();
-                    authority.put(e.getKey(), (Boolean) e.getValue().get(plainAccessResource));
-                }
-            } catch (IllegalArgumentException | IllegalAccessException e) {
-                throw new AclPlugRuntimeException(
-                    String.format("analysis on failure PlainAccessResource is %s", PlainAccessResource.class.getName()), e);
-            }
-            return authority;
+        public String getSecretKey() {
+            return secretKey;
+        }
+
+        public void setSecretKey(String secretKey) {
+            this.secretKey = secretKey;
+        }
+
+        public String getWhiteRemoteAddress() {
+            return whiteRemoteAddress;
+        }
+
+        public void setWhiteRemoteAddress(String whiteRemoteAddress) {
+            this.whiteRemoteAddress = whiteRemoteAddress;
+        }
+
+        public boolean isAdmin() {
+            return admin;
+        }
+
+        public void setAdmin(boolean admin) {
+            this.admin = admin;
+        }
+
+        public String getDefaultTopicPerm() {
+            return defaultTopicPerm;
+        }
+
+        public void setDefaultTopicPerm(String defaultTopicPerm) {
+            this.defaultTopicPerm = defaultTopicPerm;
+        }
+
+        public String getDefaultGroupPerm() {
+            return defaultGroupPerm;
+        }
+
+        public void setDefaultGroupPerm(String defaultGroupPerm) {
+            this.defaultGroupPerm = defaultGroupPerm;
+        }
+
+        public List<String> getTopics() {
+            return topics;
+        }
+
+        public void setTopics(List<String> topics) {
+            this.topics = topics;
+        }
+
+        public List<String> getGroups() {
+            return groups;
+        }
+
+        public void setGroups(List<String> groups) {
+            this.groups = groups;
         }
 
     }
 
-    public static class BrokerAccessControlTransport {
-
-        private BrokerAccessControl onlyNetAddress;
-
-        private List<BrokerAccessControl> list;
-
-        public BrokerAccessControl getOnlyNetAddress() {
-            return onlyNetAddress;
-        }
-
-        public void setOnlyNetAddress(BrokerAccessControl onlyNetAddress) {
-            this.onlyNetAddress = onlyNetAddress;
-        }
-
-        public List<BrokerAccessControl> getList() {
-            return list;
-        }
-
-        public void setList(List<BrokerAccessControl> list) {
-            this.list = list;
-        }
-
-        @Override
-        public String toString() {
-            return "BorkerAccessControlTransport [onlyNetAddress=" + onlyNetAddress + ", list=" + list + "]";
-        }
-    }
 }

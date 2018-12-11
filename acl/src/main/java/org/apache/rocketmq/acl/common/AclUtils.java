@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.SortedMap;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.acl.plain.AclPlugRuntimeException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.yaml.snakeyaml.Yaml;
 
@@ -34,7 +33,7 @@ public class AclUtils {
         try {
             StringBuilder sb = new StringBuilder("");
             for (Map.Entry<String, String> entry : fieldsMap.entrySet()) {
-                if (!SessionCredentials.Signature.equals(entry.getKey())) {
+                if (!SessionCredentials.SIGNATURE.equals(entry.getKey())) {
                     sb.append(entry.getValue());
                 }
             }
@@ -44,7 +43,6 @@ public class AclUtils {
             throw new RuntimeException("incompatible exception.", e);
         }
     }
-
 
     public static byte[] combineBytes(byte[] b1, byte[] b2) {
         int size = (null != b1 ? b1.length : 0) + (null != b2 ? b2.length : 0);
@@ -56,7 +54,6 @@ public class AclUtils {
         return total;
     }
 
-
     public static String calSignature(byte[] data, String secretKey) {
         String signature = AclSigner.calSignature(data, secretKey);
         return signature;
@@ -64,7 +61,7 @@ public class AclUtils {
 
     public static void verify(String netaddress, int index) {
         if (!AclUtils.isScope(netaddress, index)) {
-            throw new AclPlugRuntimeException(String.format("netaddress examine scope Exception netaddress is %s", netaddress));
+            throw new AclException(String.format("netaddress examine scope Exception netaddress is %s", netaddress));
         }
     }
 
@@ -128,15 +125,16 @@ public class AclUtils {
             fis = new FileInputStream(new File(path));
             return ymal.loadAs(fis, clazz);
         } catch (Exception e) {
-            throw new AclPlugRuntimeException(String.format("The transport.yml file for Plain mode was not found , paths %s", path), e);
+            throw new AclException(String.format("The  file for Plain mode was not found , paths %s", path), e);
         } finally {
             if (fis != null) {
                 try {
                     fis.close();
                 } catch (IOException e) {
-                    throw new AclPlugRuntimeException("close transport fileInputStream Exception", e);
+                    throw new AclException("close transport fileInputStream Exception", e);
                 }
             }
         }
     }
+
 }
