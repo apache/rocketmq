@@ -98,6 +98,9 @@ public class DefaultMQProducerWithTraceTest {
         customTraceTopicproducer.setNamesrvAddr("127.0.0.1:9878");
         message = new Message(topic, new byte[] {'a', 'b' ,'c'});
         asyncArrayDispatcher = (AsyncArrayDispatcher)producer.getTraceDispatcher();
+        asyncArrayDispatcher.setTraceTopicName(customerTraceTopic);
+        asyncArrayDispatcher.getHostProducer();
+        asyncArrayDispatcher.getHostConsumer();
         traceProducer = asyncArrayDispatcher.getTraceProducer();
 
         producer.start();
