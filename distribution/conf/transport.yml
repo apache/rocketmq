@@ -19,13 +19,13 @@ onlyNetAddress:
     - broker-a
 
 list:
-  - account: RocketMQ
+  - accessKey: RocketMQ
     signature: 1234567
     remoteAddr: 192.168.0.*
     permitSendTopic:
       - TopicTest
       - test2
-  - account: RocketMQ
+  - accessKey: RocketMQ
     signature: 1234567
     remoteAddr: 192.168.2.1
     permitSendTopic:

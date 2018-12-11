@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.acl.plain;
+package org.apache.rocketmq.acl.common;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.acl.common.AclUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -125,7 +125,17 @@ public class AclUtilsTest {
         Assert.assertFalse(isMinus);
     }
 
+    @SuppressWarnings("unchecked")
+    @Test
     public void getYamlDataObjectTest() {
 
+        Map<String, Object> map = AclUtils.getYamlDataObject("src/test/resources/conf/transport.yml", Map.class);
+        Assert.assertFalse(map.isEmpty());
+    }
+
+    @Test(expected = Exception.class)
+    public void getYamlDataObjectExceptionTest() {
+
+        AclUtils.getYamlDataObject("transport.yml", Map.class);
     }
 }
