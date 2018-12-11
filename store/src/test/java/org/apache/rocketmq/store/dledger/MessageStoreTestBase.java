@@ -21,6 +21,8 @@ import org.junit.Assert;
 public class MessageStoreTestBase extends StoreTestBase {
 
     protected DefaultMessageStore createDledgerMessageStore(String base, String group, String selfId, String peers, String leaderId, boolean createAbort) throws Exception {
+        System.setProperty("dledger.disk.ratio.check", "0.95");
+        System.setProperty("dledger.disk.ratio.clean", "0.95");
         baseDirs.add(base);
         MessageStoreConfig storeConfig = new MessageStoreConfig();
         storeConfig.setMapedFileSizeCommitLog(1024 * 100);

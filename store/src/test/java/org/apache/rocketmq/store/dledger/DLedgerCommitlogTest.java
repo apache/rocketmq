@@ -111,7 +111,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         msgInner.setTopic(topic);
         msgInner.setQueueId(0);
         PutMessageResult putMessageResult = leaderStore.putMessage(msgInner);
-        Assert.assertEquals(PutMessageStatus.FLUSH_SLAVE_TIMEOUT, putMessageResult.getPutMessageStatus());
+        Assert.assertEquals(PutMessageStatus.OS_PAGECACHE_BUSY, putMessageResult.getPutMessageStatus());
 
         Thread.sleep(1000);
 
