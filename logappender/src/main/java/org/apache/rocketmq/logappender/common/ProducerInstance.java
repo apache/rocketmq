@@ -63,7 +63,7 @@ public class ProducerInstance {
             return p;
         }
 
-        DefaultMQProducer defaultMQProducer = new DefaultMQProducer(group,false);
+        DefaultMQProducer defaultMQProducer = new DefaultMQProducer(group);
         defaultMQProducer.setNamesrvAddr(nameServerAddress);
         MQProducer beforeProducer = null;
         beforeProducer = getProducerInstance().producerMap.putIfAbsent(genKey, defaultMQProducer);

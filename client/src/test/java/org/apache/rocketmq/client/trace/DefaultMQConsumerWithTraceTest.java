@@ -100,21 +100,23 @@ public class DefaultMQConsumerWithTraceTest {
     private RebalancePushImpl rebalancePushImpl;
     private DefaultMQPushConsumer pushConsumer;
     private DefaultMQPushConsumer normalPushConsumer;
+    private DefaultMQPushConsumer customTraceTopicpushConsumer;
+
 
     private AsyncArrayDispatcher asyncArrayDispatcher;
     private MQClientInstance mQClientTraceFactory;
     @Mock
     private MQClientAPIImpl mQClientTraceAPIImpl;
     private DefaultMQProducer traceProducer;
-
+    private String customerTraceTopic = "rmq_track_trace_topic_12345";
 
     @Before
     public void init() throws Exception {
         consumerGroup = "FooBarGroup" + System.currentTimeMillis();
-        pushConsumer = new DefaultMQPushConsumer(consumerGroup,true);
+        pushConsumer = new DefaultMQPushConsumer(consumerGroup,true,"");
         consumerGroupNormal = "FooBarGroup" + System.currentTimeMillis();
-        normalPushConsumer = new DefaultMQPushConsumer(consumerGroupNormal,false);
-
+        normalPushConsumer = new DefaultMQPushConsumer(consumerGroupNormal,false,"");
+        customTraceTopicpushConsumer = new DefaultMQPushConsumer(consumerGroup,true,customerTraceTopic);
         pushConsumer.setNamesrvAddr("127.0.0.1:9876");
         pushConsumer.setPullInterval(60 * 1000);
 
