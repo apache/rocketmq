@@ -24,9 +24,9 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-import static org.apache.rocketmq.acl.common.SessionCredentials.AccessKey;
-import static org.apache.rocketmq.acl.common.SessionCredentials.SecurityToken;
-import static org.apache.rocketmq.acl.common.SessionCredentials.Signature;
+import static org.apache.rocketmq.acl.common.SessionCredentials.ACCESS_KEY;
+import static org.apache.rocketmq.acl.common.SessionCredentials.SECURITY_TOKEN;
+import static org.apache.rocketmq.acl.common.SessionCredentials.SIGNATURE;
 
 public class AclClientRPCHook implements RPCHook {
     private final SessionCredentials sessionCredentials;
@@ -42,11 +42,11 @@ public class AclClientRPCHook implements RPCHook {
         byte[] total = AclUtils.combineRequestContent(request,
             parseRequestContent(request, sessionCredentials.getAccessKey(), sessionCredentials.getSecurityToken()));
         String signature = AclUtils.calSignature(total, sessionCredentials.getSecretKey());
-        request.addExtField(Signature, signature);
-        request.addExtField(AccessKey, sessionCredentials.getAccessKey());
+        request.addExtField(SIGNATURE, signature);
+        request.addExtField(ACCESS_KEY, sessionCredentials.getAccessKey());
 
         if (sessionCredentials.getSecurityToken() != null) {
-            request.addExtField(SecurityToken, sessionCredentials.getSecurityToken());
+            request.addExtField(SECURITY_TOKEN, sessionCredentials.getSecurityToken());
         }
     }
 
@@ -59,9 +59,9 @@ public class AclClientRPCHook implements RPCHook {
         CommandCustomHeader header = request.readCustomHeader();
         // sort property
         SortedMap<String, String> map = new TreeMap<String, String>();
-        map.put(AccessKey, ak);
+        map.put(ACCESS_KEY, ak);
         if (securityToken != null) {
-            map.put(SecurityToken, securityToken);
+            map.put(SECURITY_TOKEN, securityToken);
         }
         try {
             // add header properties

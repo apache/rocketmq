@@ -16,8 +16,9 @@
  */
 package org.apache.rocketmq.acl.common;
 
-import com.alibaba.fastjson.JSONArray;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.acl.plain.PlainAccessResource;
@@ -93,7 +94,7 @@ public class PermissionTest {
         Permission.setTopicPerm(plainAccessResource, false, null);
         Assert.assertNull(resourcePermMap);
 
-        JSONArray groups = new JSONArray();
+        List<String> groups = new ArrayList<>();
         Permission.setTopicPerm(plainAccessResource, false, groups);
         Assert.assertNull(resourcePermMap);
 
@@ -112,7 +113,7 @@ public class PermissionTest {
         perm = resourcePermMap.get(PlainAccessResource.getRetryTopic("groupC"));
         Assert.assertEquals(perm, Permission.PUB);
 
-        JSONArray topics = new JSONArray();
+        List<String> topics = new ArrayList<>();
         topics.add("topicA=DENY");
         topics.add("topicB=PUB|SUB");
         topics.add("topicC=PUB");
@@ -128,7 +129,7 @@ public class PermissionTest {
         perm = resourcePermMap.get("topicC");
         Assert.assertEquals(perm, Permission.PUB);
 
-        JSONArray erron = new JSONArray();
+        List<String> erron = new ArrayList<>();
         erron.add("");
         Permission.setTopicPerm(plainAccessResource, false, erron);
     }

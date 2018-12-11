@@ -16,11 +16,12 @@
  */
 package org.apache.rocketmq.acl.common;
 
-import com.alibaba.fastjson.JSONArray;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.plain.PlainAccessResource;
+import org.apache.rocketmq.common.protocol.RequestCode;
 
 public class Permission {
 
@@ -33,15 +34,15 @@ public class Permission {
 
     static {
         //  UPDATE_AND_CREATE_TOPIC
-        ADMIN_CODE.add(17);
+        ADMIN_CODE.add(RequestCode.UPDATE_AND_CREATE_TOPIC);
         //  UPDATE_BROKER_CONFIG
-        ADMIN_CODE.add(25);
+        ADMIN_CODE.add(RequestCode.UPDATE_BROKER_CONFIG);
         //  DELETE_TOPIC_IN_BROKER
-        ADMIN_CODE.add(215);
+        ADMIN_CODE.add(RequestCode.DELETE_TOPIC_IN_BROKER);
         // UPDATE_AND_CREATE_SUBSCRIPTIONGROUP
-        ADMIN_CODE.add(200);
+        ADMIN_CODE.add(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP);
         // DELETE_SUBSCRIPTIONGROUP
-        ADMIN_CODE.add(207);
+        ADMIN_CODE.add(RequestCode.DELETE_SUBSCRIPTIONGROUP);
     }
 
     public static boolean checkPermission(byte neededPerm, byte ownedPerm) {
@@ -76,16 +77,16 @@ public class Permission {
         }
     }
 
-    public static void setTopicPerm(PlainAccessResource plainAccessResource, Boolean isTopic, JSONArray topicArray) {
+    public static void setTopicPerm(PlainAccessResource plainAccessResource, Boolean isTopic, List<String> topicArray) {
         if (topicArray == null || topicArray.isEmpty()) {
             return;
         }
-        for (int i = 0; i < topicArray.size(); i++) {
-            String[] topicPrem = StringUtils.split(topicArray.getString(i), "=");
+        for (String topic : topicArray) {
+            String[] topicPrem = StringUtils.split(topic, "=");
             if (topicPrem.length == 2) {
                 plainAccessResource.addResourceAndPerm(isTopic ? topicPrem[0] : PlainAccessResource.getRetryTopic(topicPrem[0]), fromStringGetPermission(topicPrem[1]));
             } else {
-                throw new AclException(String.format("%s Permission config erron %s", isTopic ? "topic" : "group", topicArray.getString(i)));
+                throw new AclException(String.format("%s Permission config erron %s", isTopic ? "topic" : "group", topic));
             }
         }
     }

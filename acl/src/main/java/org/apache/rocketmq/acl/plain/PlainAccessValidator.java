@@ -49,12 +49,11 @@ public class PlainAccessValidator implements AccessValidator {
         PlainAccessResource accessResource = new PlainAccessResource();
         accessResource.setWhiteRemoteAddress(remoteAddr);
         accessResource.setRequestCode(request.getCode());
-        accessResource.setAccessKey(request.getExtFields().get(SessionCredentials.AccessKey));
-        accessResource.setSignature(request.getExtFields().get(SessionCredentials.Signature));
-        accessResource.setSecretToken(request.getExtFields().get(SessionCredentials.SecurityToken));
+        accessResource.setAccessKey(request.getExtFields().get(SessionCredentials.ACCESS_KEY));
+        accessResource.setSignature(request.getExtFields().get(SessionCredentials.SIGNATURE));
+        accessResource.setSecretToken(request.getExtFields().get(SessionCredentials.SECURITY_TOKEN));
 
         try {
-            // resource 和 permission 转换
             switch (request.getCode()) {
                 case RequestCode.SEND_MESSAGE:
                     accessResource.addResourceAndPerm(request.getExtFields().get("topic"), Permission.PUB);
@@ -111,7 +110,7 @@ public class PlainAccessValidator implements AccessValidator {
         // content
         SortedMap<String, String> map = new TreeMap<String, String>();
         for (Map.Entry<String, String> entry : request.getExtFields().entrySet()) {
-            if (!SessionCredentials.Signature.equals(entry.getKey())) {
+            if (!SessionCredentials.SIGNATURE.equals(entry.getKey())) {
                 map.put(entry.getKey(), entry.getValue());
             }
         }

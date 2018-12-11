@@ -56,7 +56,7 @@ public class PlainAccessResource implements AccessResource {
     }
 
     public static boolean isRetryTopic(String topic) {
-        return (null != topic && topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX));
+        return null != topic && topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
     }
 
     public static String getRetryTopic(String group) {

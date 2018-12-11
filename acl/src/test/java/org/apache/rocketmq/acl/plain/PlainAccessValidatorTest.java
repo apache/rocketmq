@@ -70,7 +70,7 @@ public class PlainAccessValidatorTest {
         AclClientRPCHook aclClient = new AclClientRPCHook(sessionCredentials);
 
         SendMessageRequestHeader messageRequestHeader = new SendMessageRequestHeader();
-        messageRequestHeader.setTopic("topicA");
+        messageRequestHeader.setTopic("topicB");
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, messageRequestHeader);
         aclClient.doBeforeRequest("", remotingCommand);
 
