@@ -46,7 +46,7 @@ public class RMQNormalConsumer extends AbstractMQConsumer {
     }
 
     public void create(boolean useTLS) {
-        consumer = new DefaultMQPushConsumer(consumerGroup,false);
+        consumer = new DefaultMQPushConsumer(consumerGroup);
         consumer.setInstanceName(RandomUtil.getStringByUUID());
         consumer.setNamesrvAddr(nsAddr);
         try {

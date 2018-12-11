@@ -76,6 +76,7 @@ public class DefaultMQProducerWithTraceTest {
     private AsyncArrayDispatcher asyncArrayDispatcher;
 
     private DefaultMQProducer producer;
+    private DefaultMQProducer customTraceTopicproducer;
     private DefaultMQProducer traceProducer;
     private DefaultMQProducer normalProducer;
 
@@ -84,14 +85,17 @@ public class DefaultMQProducerWithTraceTest {
     private String producerGroupPrefix = "FooBar_PID";
     private String producerGroupTemp = producerGroupPrefix + System.currentTimeMillis();
     private String producerGroupTraceTemp = MixAll.RMQ_SYS_TRACK_TRACE_TOPIC + System.currentTimeMillis();
-    
+    private String customerTraceTopic = "rmq_track_trace_topic_12345";
+
     @Before
     public void init() throws Exception {
 
-        normalProducer = new DefaultMQProducer(producerGroupTemp,false);
-        producer = new DefaultMQProducer(producerGroupTemp,true);
+        customTraceTopicproducer = new DefaultMQProducer(producerGroupTemp,false, customerTraceTopic);
+        normalProducer = new DefaultMQProducer(producerGroupTemp,false,"");
+        producer = new DefaultMQProducer(producerGroupTemp,true,"");
         producer.setNamesrvAddr("127.0.0.1:9876");
         normalProducer.setNamesrvAddr("127.0.0.1:9877");
+        customTraceTopicproducer.setNamesrvAddr("127.0.0.1:9878");
         message = new Message(topic, new byte[] {'a', 'b' ,'c'});
         asyncArrayDispatcher = (AsyncArrayDispatcher)producer.getTraceDispatcher();
         traceProducer = asyncArrayDispatcher.getTraceProducer();
