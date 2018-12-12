@@ -71,9 +71,7 @@ public class BrokerOuterAPI {
     }
 
     public BrokerOuterAPI(final NettyClientConfig nettyClientConfig, RPCHook rpcHook) {
-        this.remotingClient = RemotingClientFactory.getClient();
-        this.remotingClient.init(nettyClientConfig, null);
-//        this.remotingClient = new NettyRemotingClient(nettyClientConfig);
+        this.remotingClient = RemotingClientFactory.createInstance().init(nettyClientConfig, null);
         this.remotingClient.registerRPCHook(rpcHook);
     }
 

@@ -95,7 +95,7 @@ public class NettyRemotingServer extends NettyRemotingServerAbstract implements 
     }
 
     @Override
-    public void init(NettyServerConfig serverConfig, ChannelEventListener channelEventListener) {
+    public RemotingServer init(NettyServerConfig serverConfig, ChannelEventListener channelEventListener) {
         this.nettyServerConfig = serverConfig;
         super.init(nettyServerConfig.getServerOnewaySemaphoreValue(), nettyServerConfig.getServerAsyncSemaphoreValue());
         this.serverBootstrap = new ServerBootstrap();
@@ -126,6 +126,7 @@ public class NettyRemotingServer extends NettyRemotingServerAbstract implements 
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(serverConfig.getServerWorkerThreads(),
             ThreadUtils.newGenericThreadFactory("NettyWorkerThreads", serverConfig.getServerWorkerThreads()));
         loadSslContext();
+        return this;
     }
 
     public void loadSslContext() {

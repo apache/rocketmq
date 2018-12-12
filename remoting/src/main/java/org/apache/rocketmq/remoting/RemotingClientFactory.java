@@ -4,7 +4,7 @@ import java.util.Map;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.util.RemotingUtil;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.util.ServiceProvider;
 
 public class RemotingClientFactory {
@@ -13,21 +13,21 @@ public class RemotingClientFactory {
     private RemotingClientFactory() {
     }
 
-    private static Map<String, RemotingClient> clients;
+    private static Map<String, String> paths;
 
     private static final String CLIENT_LOCATION = "META-INF/service/org.apache.rocketmq.remoting.RemotingClient";
 
     static {
         log.info("begin load client");
-        clients = ServiceProvider.load(CLIENT_LOCATION, RemotingClient.class);
-        log.info("end load client, size:{}", clients.size());
+        paths = ServiceProvider.loadPath(CLIENT_LOCATION);
+        log.info("end load client, size:{}", paths.size());
     }
 
-    public static RemotingClient getClient(String protocolType) {
-        return clients.get(protocolType);
+    public static RemotingClient createInstance(String protocol) {
+        return ServiceProvider.createInstance(paths.get(protocol), RemotingClient.class);
     }
 
-    public static RemotingClient getClient() {
-        return clients.get(RemotingUtil.DEFAULT_PROTOCOL);
+    public static RemotingClient createInstance() {
+        return ServiceProvider.createInstance(paths.get(RemotingUtil.DEFAULT_PROTOCOL), RemotingClient.class);
     }
 }

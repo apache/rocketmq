@@ -86,7 +86,7 @@ public class NettyRemotingClient extends NettyRemotingClientAbstract implements 
     }
 
     @Override
-    public void init(NettyClientConfig nettyClientConfig, ChannelEventListener channelEventListener) {
+    public RemotingClient init(NettyClientConfig nettyClientConfig, ChannelEventListener channelEventListener) {
         this.nettyClientConfig = nettyClientConfig;
         this.channelEventListener = channelEventListener;
         this.eventLoopGroupWorker = new NioEventLoopGroup(nettyClientConfig.getClientWorkerThreads(), ThreadUtils.newGenericThreadFactory("NettyClientEpollIoThreads",
@@ -107,6 +107,7 @@ public class NettyRemotingClient extends NettyRemotingClientAbstract implements 
                 throw new RuntimeException("Failed to create SSLContext", e);
             }
         }
+        return this;
     }
 
     @Override

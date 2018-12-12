@@ -64,7 +64,7 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
     }
 
     @Override
-    public void init(NettyClientConfig clientConfig, ChannelEventListener channelEventListener) {
+    public RemotingClient init(NettyClientConfig clientConfig, ChannelEventListener channelEventListener) {
         this.nettyClientConfig = clientConfig;
         this.channelEventListener = channelEventListener;
         this.ioGroup = new NioEventLoopGroup(clientConfig.getClientWorkerThreads(), ThreadUtils.newGenericThreadFactory("NettyClientEpollIoThreads",
@@ -75,6 +75,7 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(clientConfig.getClientWorkerThreads(),
             ThreadUtils.newGenericThreadFactory("NettyClientWorkerThreads", clientConfig.getClientWorkerThreads()));
         buildSslContext();
+        return this;
     }
 
     private void buildSslContext() {

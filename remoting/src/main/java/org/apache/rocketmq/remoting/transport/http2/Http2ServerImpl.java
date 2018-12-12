@@ -74,7 +74,7 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
     }
 
     @Override
-    public void init(NettyServerConfig nettyServerConfig, ChannelEventListener channelEventListener) {
+    public RemotingServer init(NettyServerConfig nettyServerConfig, ChannelEventListener channelEventListener) {
         super.init(nettyServerConfig.getServerOnewaySemaphoreValue(), nettyServerConfig.getServerAsyncSemaphoreValue());
         this.serverBootstrap = new ServerBootstrap();
         this.serverConfig = nettyServerConfig;
@@ -100,6 +100,7 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
             ThreadUtils.newGenericThreadFactory("NettyWorkerThreads", serverConfig.getServerWorkerThreads()));
         this.port = nettyServerConfig.getListenPort();
         buildHttp2SslContext();
+        return this;
     }
 
     private void buildHttp2SslContext() {

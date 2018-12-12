@@ -53,5 +53,5 @@ public interface RemotingClient extends RemotingService {
 
     boolean isChannelWritable(final String addr);
 
-    void init(NettyClientConfig nettyClientConfig, ChannelEventListener channelEventListener);
+    RemotingClient init(NettyClientConfig nettyClientConfig, ChannelEventListener channelEventListener);
 }

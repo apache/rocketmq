@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.util;
 
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
+import org.apache.rocketmq.remoting.util.ServiceProvider;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

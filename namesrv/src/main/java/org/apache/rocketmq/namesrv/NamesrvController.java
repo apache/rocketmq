@@ -77,7 +77,7 @@ public class NamesrvController {
 
         this.kvConfigManager.load();
 
-        this.remotingServer = RemotingServerFactory.getRemotingServer();
+        this.remotingServer = RemotingServerFactory.createInstance();
         this.remotingServer.init(this.nettyServerConfig, this.brokerHousekeepingService);
 //        this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 

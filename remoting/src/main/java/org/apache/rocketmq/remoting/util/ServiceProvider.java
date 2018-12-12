@@ -15,6 +15,7 @@ package org.apache.rocketmq.remoting.util;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -91,11 +92,10 @@ public class ServiceProvider {
         }
     }
 
-    public static <T> Map<String, T> load(String path, Class<?> clazz) {
-        LOG.info("Looking for a resource file of name [{}] ...", path);
-        Map<String, T> services = new ConcurrentHashMap<String, T>();
+    public static Map<String, String> loadPath(String path) {
+        LOG.info("Load path looking for a resource file of name [{}] ...", path);
+        Map<String, String> pathMap = new HashMap<String, String>();
         try {
-
             final InputStream is = getResourceAsStream(getContextClassLoader(), path);
             if (is != null) {
                 BufferedReader reader;
@@ -106,29 +106,35 @@ public class ServiceProvider {
                 }
                 String serviceName = reader.readLine();
                 while (serviceName != null && !"".equals(serviceName)) {
-                    LOG.info(
-                        "Creating an instance as specified by file {} which was present in the path of the context classloader.",
-                        path);
                     String[] service = serviceName.split("=");
-                    if (service.length != 2) {
-                        continue;
-                    } else {
-                        if (services.containsKey(service[0])) {
+                    if (service.length == 2) {
+                        if (pathMap.containsKey(service[0])) {
                             continue;
                         } else {
-                            LOG.info("Begin to load protocol: " + service[0]);
-                            services.put(service[0], (T) initService(getContextClassLoader(), service[1], clazz));
+                            pathMap.put(service[0], service[1]);
                         }
+                    } else {
+                        continue;
                     }
                     serviceName = reader.readLine();
                 }
                 reader.close();
-            } else {
-                // is == null
-                LOG.warn("No resource file with name [{}] found.", path);
             }
-        } catch (Exception e) {
-            LOG.error("Error occured when looking for resource file " + path, e);
+        } catch (Exception ex) {
+            LOG.error("Error occured when looking for resource file " + path, ex);
+        }
+        return pathMap;
+    }
+
+    public static <T> Map<String, T> load(String path, Class<?> clazz) {
+        LOG.info("Load map is looking for a resource file of name [{}] ...", path);
+        Map<String, T> services = new HashMap<String, T>();
+        Map<String, String> pathMaps = loadPath(path);
+        for (Map.Entry<String, String> entry : pathMaps.entrySet()) {
+            T instance = (T) createInstance(entry.getValue(), clazz);
+            if (instance != null && !services.containsKey(entry.getKey())) {
+                services.put(entry.getKey(), instance);
+            }
         }
         return services;
     }
@@ -145,17 +151,21 @@ public class ServiceProvider {
                 }
                 String serviceName = reader.readLine();
                 reader.close();
-                if (serviceName != null && !"".equals(serviceName)) {
-                    return initService(getContextClassLoader(), serviceName, clazz);
-                } else {
-                    LOG.warn("ServiceName is empty!");
-                    return null;
-                }
+                return createInstance(serviceName, clazz);
             } catch (Exception e) {
                 LOG.warn("Error occurred when looking for resource file " + name, e);
             }
         }
         return null;
+    }
+
+    public static <T> T createInstance(String serviceName, Class<?> clazz) {
+        if (serviceName != null && !"".equals(serviceName)) {
+            return initService(getContextClassLoader(), serviceName, clazz);
+        } else {
+            LOG.warn("ServiceName is empty!");
+            return null;
+        }
     }
 
     protected static <T> T initService(ClassLoader classLoader, String serviceName, Class<?> clazz) {
