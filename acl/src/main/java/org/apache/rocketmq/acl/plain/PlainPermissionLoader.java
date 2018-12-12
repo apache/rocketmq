@@ -28,16 +28,15 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -46,13 +45,14 @@ public class PlainPermissionLoader {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.ACL_PLUG_LOGGER_NAME);
 
+
     private String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
-    private String fileName = System.getProperty("romcketmq.acl.plain.fileName", "/conf/transport.yml");
+    //TODO  rename transport to plain_acl.yml
+    private String fileName = System.getProperty("rocketmq.acl.plain.file", "/conf/transport.yml");
 
-    private Map<String/** account **/
-        , List<PlainAccessResource>> plainAccessResourceMap = new HashMap<>();
+    private Map<String/** AccessKey **/, PlainAccessResource> plainAccessResourceMap = new HashMap<>();
 
     private List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<>();
 
@@ -61,6 +61,7 @@ public class PlainPermissionLoader {
     private boolean isWatchStart;
 
     public PlainPermissionLoader() {
+        //TODO test what will happen if initialize failed
         initialize();
         watch();
     }
@@ -76,25 +77,24 @@ public class PlainPermissionLoader {
         JSONArray globalWhiteRemoteAddressesList = accessControlTransport.getJSONArray("globalWhiteRemoteAddresses");
         if (globalWhiteRemoteAddressesList != null && !globalWhiteRemoteAddressesList.isEmpty()) {
             for (int i = 0; i < globalWhiteRemoteAddressesList.size(); i++) {
-                setGlobalWhite(globalWhiteRemoteAddressesList.getString(i));
+                addGlobalWhiteRemoteAddress(globalWhiteRemoteAddressesList.getString(i));
             }
         }
 
         JSONArray accounts = accessControlTransport.getJSONArray("accounts");
-        List<PlainAccess> plainAccessList = accounts.toJavaList(PlainAccess.class);
+        List<PlainAccessConfig> plainAccessList = accounts.toJavaList(PlainAccessConfig.class);
         if (plainAccessList != null && !plainAccessList.isEmpty()) {
-            for (PlainAccess plainAccess : plainAccessList) {
-                this.setPlainAccessResource(getPlainAccessResource(plainAccess));
+            for (PlainAccessConfig plainAccess : plainAccessList) {
+                this.addPlainAccessResource(getPlainAccessResource(plainAccess));
             }
         }
     }
 
     private void watch() {
         String version = System.getProperty("java.version");
-        log.info("java.version is : {}", version);
         String[] str = StringUtils.split(version, ".");
         if (Integer.valueOf(str[1]) < 7) {
-            log.warn("wacth need jdk 1.7 support , current version no support");
+            log.warn("Watch need jdk equal or greater than 1.7, current version is {}", str[1]);
             return;
         }
         try {
@@ -106,41 +106,41 @@ public class PlainPermissionLoader {
                 public void run() {
                     while (true) {
                         try {
-                            while (true) {
-                                WatchKey watchKey = watcher.take();
-                                List<WatchEvent<?>> watchEvents = watchKey.pollEvents();
-                                for (WatchEvent<?> event : watchEvents) {
-                                    if ("transport.yml".equals(event.context().toString())
-                                        && (StandardWatchEventKinds.ENTRY_MODIFY.equals(event.kind())
-                                        || StandardWatchEventKinds.ENTRY_CREATE.equals(event.kind()))) {
-                                        log.info("transprot.yml make a difference  change is : ", event.toString());
-                                        PlainPermissionLoader.this.cleanAuthenticationInfo();
-                                        initialize();
-                                    }
+                            WatchKey watchKey = watcher.take();
+                            List<WatchEvent<?>> watchEvents = watchKey.pollEvents();
+                            for (WatchEvent<?> event : watchEvents) {
+                                //TODO use variable instead of raw text
+                                if ("transport.yml".equals(event.context().toString())
+                                    && (StandardWatchEventKinds.ENTRY_MODIFY.equals(event.kind())
+                                    || StandardWatchEventKinds.ENTRY_CREATE.equals(event.kind()))) {
+                                    log.info("transprot.yml make a difference  change is : ", event.toString());
+                                    PlainPermissionLoader.this.clearPermissionInfo();
+                                    initialize();
                                 }
-                                watchKey.reset();
                             }
+                            watchKey.reset();
                         } catch (InterruptedException e) {
                             log.error(e.getMessage(), e);
+                            UtilAll.sleep(3000);
+
                         }
                     }
                 }
-
                 @Override
                 public String getServiceName() {
-                    return "watcherServcie";
+                    return "AclWatcherService";
                 }
 
             };
             watcherServcie.start();
-            log.info("succeed start watcherServcie");
+            log.info("Succeed to start AclWatcherService");
             this.isWatchStart = true;
         } catch (IOException e) {
-            log.error(e.getMessage(), e);
+            log.error("Failed to start AclWatcherService", e);
         }
     }
 
-    PlainAccessResource getPlainAccessResource(PlainAccess plainAccess) {
+    PlainAccessResource getPlainAccessResource(PlainAccessConfig plainAccess) {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
         plainAccessResource.setAccessKey(plainAccess.getAccessKey());
         plainAccessResource.setSecretKey(plainAccess.getSecretKey());
@@ -148,110 +148,114 @@ public class PlainPermissionLoader {
 
         plainAccessResource.setAdmin(plainAccess.isAdmin());
 
-        plainAccessResource.setDefaultGroupPerm(Permission.fromStringGetPermission(plainAccess.getDefaultGroupPerm()));
-        plainAccessResource.setDefaultTopicPerm(Permission.fromStringGetPermission(plainAccess.getDefaultTopicPerm()));
+        plainAccessResource.setDefaultGroupPerm(Permission.parsePermFromString(plainAccess.getDefaultGroupPerm()));
+        plainAccessResource.setDefaultTopicPerm(Permission.parsePermFromString(plainAccess.getDefaultTopicPerm()));
 
-        Permission.setTopicPerm(plainAccessResource, false, plainAccess.getGroups());
-        Permission.setTopicPerm(plainAccessResource, true, plainAccess.getTopics());
+        Permission.parseResourcePerms(plainAccessResource, false, plainAccess.getGroupPerms());
+        Permission.parseResourcePerms(plainAccessResource, true, plainAccess.getTopicPerms());
         return plainAccessResource;
     }
 
-    void checkPerm(PlainAccessResource needCheckplainAccessResource, PlainAccessResource plainAccessResource) {
-        if (!plainAccessResource.isAdmin() && Permission.checkAdminCode(needCheckplainAccessResource.getRequestCode())) {
-            throw new AclException(String.format("accessKey is %s  remoteAddress is %s , is not admin Premission . RequestCode is %d", plainAccessResource.getAccessKey(), plainAccessResource.getWhiteRemoteAddress(), needCheckplainAccessResource.getRequestCode()));
+    void checkPerm(PlainAccessResource needCheckedAccess, PlainAccessResource ownedAccess) {
+        if (Permission.needAdminPerm(needCheckedAccess.getRequestCode()) && !ownedAccess.isAdmin()) {
+            throw new AclException(String.format("Need admin permission for request code=%d, but accessKey=%s is not", needCheckedAccess.getRequestCode(), ownedAccess.getAccessKey()));
         }
-        Map<String, Byte> needCheckTopicAndGourpPerm = needCheckplainAccessResource.getResourcePermMap();
-        Map<String, Byte> topicAndGourpPerm = plainAccessResource.getResourcePermMap();
+        Map<String, Byte> needCheckedPermMap = needCheckedAccess.getResourcePermMap();
+        Map<String, Byte> ownedPermMap = ownedAccess.getResourcePermMap();
 
-        Iterator<Entry<String, Byte>> it = topicAndGourpPerm.entrySet().iterator();
-        Byte perm;
-        while (it.hasNext()) {
-            Entry<String, Byte> e = it.next();
-            if ((perm = needCheckTopicAndGourpPerm.get(e.getKey())) != null && Permission.checkPermission(perm, e.getValue())) {
+        for (Map.Entry<String, Byte> needCheckedEntry : needCheckedPermMap.entrySet()) {
+            String resource = needCheckedEntry.getKey();
+            Byte neededPerm = needCheckedEntry.getValue();
+            boolean isGroup = PlainAccessResource.isRetryTopic(resource);
+
+            if (!ownedPermMap.containsKey(resource)) {
+                //Check the default perm
+                byte ownedPerm = isGroup ? needCheckedAccess.getDefaultGroupPerm() :
+                    needCheckedAccess.getDefaultTopicPerm();
+                if (!Permission.checkPermission(neededPerm, ownedPerm)) {
+                    throw new AclException(String.format("No default permission for %s", PlainAccessResource.printStr(resource, isGroup)));
+                }
                 continue;
             }
-            byte neededPerm = PlainAccessResource.isRetryTopic(e.getKey()) ? needCheckplainAccessResource.getDefaultGroupPerm() :
-                needCheckplainAccessResource.getDefaultTopicPerm();
-            if (!Permission.checkPermission(neededPerm, e.getValue())) {
-                throw new AclException(String.format("", e.toString()));
+            if (!Permission.checkPermission(neededPerm, ownedPermMap.get(resource))) {
+                throw new AclException(String.format("No default permission for %s", PlainAccessResource.printStr(resource, isGroup)));
             }
         }
     }
 
-    void cleanAuthenticationInfo() {
+    void clearPermissionInfo() {
         this.plainAccessResourceMap.clear();
         this.globalWhiteRemoteAddressStrategy.clear();
     }
 
-    public void setPlainAccessResource(PlainAccessResource plainAccessResource) throws AclException {
-        if (plainAccessResource.getAccessKey() == null || plainAccessResource.getSecretKey() == null
+    public void addPlainAccessResource(PlainAccessResource plainAccessResource) throws AclException {
+        if (plainAccessResource.getAccessKey() == null
+            || plainAccessResource.getSecretKey() == null
             || plainAccessResource.getAccessKey().length() <= 6
             || plainAccessResource.getSecretKey().length() <= 6) {
             throw new AclException(String.format(
-                "The account password cannot be null and is longer than 6, account is %s  password is %s",
+                "The accessKey=%s and secretKey=%s cannot be null and length should longer than 6",
                 plainAccessResource.getAccessKey(), plainAccessResource.getSecretKey()));
         }
         try {
             RemoteAddressStrategy remoteAddressStrategy = remoteAddressStrategyFactory
-                .getNetaddressStrategy(plainAccessResource);
-            List<PlainAccessResource> accessControlAddressList = plainAccessResourceMap.get(plainAccessResource.getAccessKey());
-            if (accessControlAddressList == null) {
-                accessControlAddressList = new ArrayList<>();
-                plainAccessResourceMap.put(plainAccessResource.getAccessKey(), accessControlAddressList);
-            }
+                .getRemoteAddressStrategy(plainAccessResource);
             plainAccessResource.setRemoteAddressStrategy(remoteAddressStrategy);
 
-            accessControlAddressList.add(plainAccessResource);
-            log.info("authenticationInfo is {}", plainAccessResource.toString());
-        } catch (Exception e) {
-            throw new AclException(
-                String.format("Exception info %s  %s", e.getMessage(), plainAccessResource.toString()), e);
-        }
-    }
-
-    private void setGlobalWhite(String remoteAddresses) {
-        globalWhiteRemoteAddressStrategy.add(remoteAddressStrategyFactory.getNetaddressStrategy(remoteAddresses));
-    }
-
-    public void eachCheckPlainAccessResource(PlainAccessResource plainAccessResource) {
-
-        List<PlainAccessResource> plainAccessResourceAddressList = plainAccessResourceMap.get(plainAccessResource.getAccessKey());
-        boolean isDistinguishAccessKey = false;
-        if (plainAccessResourceAddressList != null) {
-            for (PlainAccessResource plainAccess : plainAccessResourceAddressList) {
-                if (!plainAccess.getRemoteAddressStrategy().match(plainAccessResource)) {
-                    isDistinguishAccessKey = true;
-                    continue;
-                }
-                String signature = AclUtils.calSignature(plainAccessResource.getContent(), plainAccess.getSecretKey());
-                if (signature.equals(plainAccessResource.getSignature())) {
-                    checkPerm(plainAccess, plainAccessResource);
-                    return;
-                } else {
-                    throw new AclException(String.format("signature is erron. erron accessKe is %s , erron reomiteAddress %s", plainAccess.getAccessKey(), plainAccessResource.getWhiteRemoteAddress()));
-                }
+            if (plainAccessResourceMap.containsKey(plainAccessResource.getAccessKey())) {
+                log.warn("Duplicate acl config  for {}, the newly one may overwrite the old", plainAccessResource.getAccessKey());
             }
+            plainAccessResourceMap.put(plainAccessResource.getAccessKey(), plainAccessResource);
+        } catch (Exception e) {
+            throw new AclException(String.format("Load plain access resource failed %s  %s", e.getMessage(), plainAccessResource.toString()), e);
         }
+    }
 
-        if (plainAccessResource.getAccessKey() == null && !globalWhiteRemoteAddressStrategy.isEmpty()) {
+    private void addGlobalWhiteRemoteAddress(String remoteAddresses) {
+        globalWhiteRemoteAddressStrategy.add(remoteAddressStrategyFactory.getRemoteAddressStrategy(remoteAddresses));
+    }
+
+    public void validate(PlainAccessResource plainAccessResource) {
+
+        //Step 1, check the global white remote addr
+        if (plainAccessResource.getAccessKey() == null) {
+            if (globalWhiteRemoteAddressStrategy.isEmpty()) {
+                throw new AclException(String.format("No accessKey is configured and no global white remote addr is configured"));
+            }
             for (RemoteAddressStrategy remoteAddressStrategy : globalWhiteRemoteAddressStrategy) {
                 if (remoteAddressStrategy.match(plainAccessResource)) {
                     return;
                 }
             }
+            throw new AclException(String.format("No accessKey is configured and no global white remote addr is matched"));
         }
-        if (isDistinguishAccessKey) {
-            throw new AclException(String.format("client ip  not in WhiteRemoteAddress . erron accessKe is %s , erron reomiteAddress %s", plainAccessResource.getAccessKey(), plainAccessResource.getWhiteRemoteAddress()));
-        } else {
-            throw new AclException(String.format("It is not make Access and make client ip .erron accessKe is %s , erron reomiteAddress %s", plainAccessResource.getAccessKey(), plainAccessResource.getWhiteRemoteAddress()));
+
+        if (!plainAccessResourceMap.containsKey(plainAccessResource.getAccessKey())) {
+            throw new AclException(String.format("No acl config for %s", plainAccessResource.getAccessKey()));
         }
+
+        //Step 2, check the white addr for accesskey
+        PlainAccessResource ownedAccess = plainAccessResourceMap.get(plainAccessResource.getAccessKey());
+        if (ownedAccess.getRemoteAddressStrategy().match(plainAccessResource)) {
+            return;
+        }
+
+
+        //Step 3, check the signature
+        String signature = AclUtils.calSignature(plainAccessResource.getContent(), ownedAccess.getSecretKey());
+        if (!signature.equals(plainAccessResource.getSignature())) {
+            throw new AclException(String.format("Check signature failed for accessKey=%s", plainAccessResource.getAccessKey()));
+        }
+        //Step 4, check perm of each resource
+
+        checkPerm(plainAccessResource, ownedAccess);
     }
 
     public boolean isWatchStart() {
         return isWatchStart;
     }
 
-    static class PlainAccess {
+    static class PlainAccessConfig {
 
         private String accessKey;
 
@@ -265,9 +269,9 @@ public class PlainPermissionLoader {
 
         private String defaultGroupPerm;
 
-        private List<String> topics;
+        private List<String> topicPerms;
 
-        private List<String> groups;
+        private List<String> groupPerms;
 
         public String getAccessKey() {
             return accessKey;
@@ -317,20 +321,20 @@ public class PlainPermissionLoader {
             this.defaultGroupPerm = defaultGroupPerm;
         }
 
-        public List<String> getTopics() {
-            return topics;
+        public List<String> getTopicPerms() {
+            return topicPerms;
         }
 
-        public void setTopics(List<String> topics) {
-            this.topics = topics;
+        public void setTopicPerms(List<String> topicPerms) {
+            this.topicPerms = topicPerms;
         }
 
-        public List<String> getGroups() {
-            return groups;
+        public List<String> getGroupPerms() {
+            return groupPerms;
         }
 
-        public void setGroups(List<String> groups) {
-            this.groups = groups;
+        public void setGroupPerms(List<String> groupPerms) {
+            this.groupPerms = groupPerms;
         }
 
     }

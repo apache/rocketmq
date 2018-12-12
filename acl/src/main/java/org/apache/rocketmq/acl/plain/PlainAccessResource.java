@@ -59,6 +59,23 @@ public class PlainAccessResource implements AccessResource {
         return null != topic && topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
     }
 
+    public static String printStr(String resource, boolean isGroup) {
+        if (resource == null) {
+            return null;
+        }
+        if (isGroup) {
+            return String.format("%s:%s", "group", getGroupFromRetryTopic(resource));
+        } else {
+            return String.format("%s:%s", "topic", resource);
+        }
+    }
+
+    public static String getGroupFromRetryTopic(String retryTopic) {
+        if (retryTopic == null) {
+            return null;
+        }
+        return retryTopic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
+    }
     public static String getRetryTopic(String group) {
         if (group == null) {
             return null;

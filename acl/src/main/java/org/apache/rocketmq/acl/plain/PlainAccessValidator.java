@@ -120,7 +120,7 @@ public class PlainAccessValidator implements AccessValidator {
 
     @Override
     public void validate(AccessResource accessResource) {
-        aclPlugEngine.eachCheckPlainAccessResource((PlainAccessResource) accessResource);
+        aclPlugEngine.validate((PlainAccessResource) accessResource);
     }
 
 }

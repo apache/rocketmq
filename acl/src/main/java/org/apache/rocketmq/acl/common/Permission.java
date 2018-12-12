@@ -55,7 +55,7 @@ public class Permission {
         return (neededPerm & ownedPerm) > 0;
     }
 
-    public static byte fromStringGetPermission(String permString) {
+    public static byte parsePermFromString(String permString) {
         if (permString == null) {
             return Permission.DENY;
         }
@@ -77,21 +77,21 @@ public class Permission {
         }
     }
 
-    public static void setTopicPerm(PlainAccessResource plainAccessResource, Boolean isTopic, List<String> topicArray) {
-        if (topicArray == null || topicArray.isEmpty()) {
+    public static void parseResourcePerms(PlainAccessResource plainAccessResource, Boolean isTopic, List<String> resources) {
+        if (resources == null || resources.isEmpty()) {
             return;
         }
-        for (String topic : topicArray) {
-            String[] topicPrem = StringUtils.split(topic, "=");
-            if (topicPrem.length == 2) {
-                plainAccessResource.addResourceAndPerm(isTopic ? topicPrem[0] : PlainAccessResource.getRetryTopic(topicPrem[0]), fromStringGetPermission(topicPrem[1]));
+        for (String resource : resources) {
+            String[] items = StringUtils.split(resource, "=");
+            if (items.length == 2) {
+                plainAccessResource.addResourceAndPerm(isTopic ? items[0].trim() : PlainAccessResource.getRetryTopic(items[0].trim()), parsePermFromString(items[1].trim()));
             } else {
-                throw new AclException(String.format("%s Permission config erron %s", isTopic ? "topic" : "group", topic));
+                throw new AclException(String.format("Parse resource permission failed for %s:%s", isTopic ? "topic" : "group", resource));
             }
         }
     }
 
-    public static boolean checkAdminCode(Integer code) {
+    public static boolean needAdminPerm(Integer code) {
         return ADMIN_CODE.contains(code);
     }
 }

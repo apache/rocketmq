@@ -27,7 +27,7 @@ import java.util.Set;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.Permission;
-import org.apache.rocketmq.acl.plain.PlainPermissionLoader.PlainAccess;
+import org.apache.rocketmq.acl.plain.PlainPermissionLoader.PlainAccessConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -90,7 +90,7 @@ public class PlainPermissionLoaderTest {
     @Test
     public void getPlainAccessResourceTest() {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
-        PlainAccess plainAccess = new PlainAccess();
+        PlainAccessConfig plainAccess = new PlainAccessConfig();
 
         plainAccess.setAccessKey("RocketMQ");
         plainAccessResource = plainPermissionLoader.getPlainAccessResource(plainAccess);
@@ -120,7 +120,7 @@ public class PlainPermissionLoaderTest {
         groups.add("groupA=DENY");
         groups.add("groupB=PUB|SUB");
         groups.add("groupC=PUB");
-        plainAccess.setGroups(groups);
+        plainAccess.setGroupPerms(groups);
         plainAccessResource = plainPermissionLoader.getPlainAccessResource(plainAccess);
         Map<String, Byte> resourcePermMap = plainAccessResource.getResourcePermMap();
         Assert.assertEquals(resourcePermMap.size(), 3);
@@ -133,7 +133,7 @@ public class PlainPermissionLoaderTest {
         topics.add("topicA=DENY");
         topics.add("topicB=PUB|SUB");
         topics.add("topicC=PUB");
-        plainAccess.setTopics(topics);
+        plainAccess.setTopicPerms(topics);
         plainAccessResource = plainPermissionLoader.getPlainAccessResource(plainAccess);
         resourcePermMap = plainAccessResource.getResourcePermMap();
         Assert.assertEquals(resourcePermMap.size(), 6);
@@ -170,25 +170,25 @@ public class PlainPermissionLoaderTest {
     @Test(expected = AclException.class)
     public void accountNullTest() {
         plainAccessResource.setAccessKey(null);
-        plainPermissionLoader.setPlainAccessResource(plainAccessResource);
+        plainPermissionLoader.addPlainAccessResource(plainAccessResource);
     }
 
     @Test(expected = AclException.class)
     public void accountThanTest() {
         plainAccessResource.setAccessKey("123");
-        plainPermissionLoader.setPlainAccessResource(plainAccessResource);
+        plainPermissionLoader.addPlainAccessResource(plainAccessResource);
     }
 
     @Test(expected = AclException.class)
     public void passWordtNullTest() {
         plainAccessResource.setAccessKey(null);
-        plainPermissionLoader.setPlainAccessResource(plainAccessResource);
+        plainPermissionLoader.addPlainAccessResource(plainAccessResource);
     }
 
     @Test(expected = AclException.class)
     public void passWordThanTest() {
         plainAccessResource.setAccessKey("123");
-        plainPermissionLoader.setPlainAccessResource(plainAccessResource);
+        plainPermissionLoader.addPlainAccessResource(plainAccessResource);
     }
 
     @Test(expected = AclException.class)
@@ -200,11 +200,11 @@ public class PlainPermissionLoaderTest {
     @SuppressWarnings("unchecked")
     @Test
     public void cleanAuthenticationInfoTest() throws IllegalAccessException {
-        //plainPermissionLoader.setPlainAccessResource(plainAccessResource);
+        //plainPermissionLoader.addPlainAccessResource(plainAccessResource);
         Map<String, List<PlainAccessResource>> plainAccessResourceMap = (Map<String, List<PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionLoader, "plainAccessResourceMap", true);
         Assert.assertFalse(plainAccessResourceMap.isEmpty());
 
-        plainPermissionLoader.cleanAuthenticationInfo();
+        plainPermissionLoader.clearPermissionInfo();
         plainAccessResourceMap = (Map<String, List<PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionLoader, "plainAccessResourceMap", true);
         Assert.assertTrue(plainAccessResourceMap.isEmpty());
     }
