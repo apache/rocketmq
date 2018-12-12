@@ -29,28 +29,28 @@ public class PermissionTest {
 
     @Test
     public void fromStringGetPermissionTest() {
-        byte perm = Permission.fromStringGetPermission("PUB");
+        byte perm = Permission.parsePermFromString("PUB");
         Assert.assertEquals(perm, Permission.PUB);
 
-        perm = Permission.fromStringGetPermission("SUB");
+        perm = Permission.parsePermFromString("SUB");
         Assert.assertEquals(perm, Permission.SUB);
 
-        perm = Permission.fromStringGetPermission("ANY");
+        perm = Permission.parsePermFromString("ANY");
         Assert.assertEquals(perm, Permission.ANY);
 
-        perm = Permission.fromStringGetPermission("PUB|SUB");
+        perm = Permission.parsePermFromString("PUB|SUB");
         Assert.assertEquals(perm, Permission.ANY);
 
-        perm = Permission.fromStringGetPermission("SUB|PUB");
+        perm = Permission.parsePermFromString("SUB|PUB");
         Assert.assertEquals(perm, Permission.ANY);
 
-        perm = Permission.fromStringGetPermission("DENY");
+        perm = Permission.parsePermFromString("DENY");
         Assert.assertEquals(perm, Permission.DENY);
 
-        perm = Permission.fromStringGetPermission("1");
+        perm = Permission.parsePermFromString("1");
         Assert.assertEquals(perm, Permission.DENY);
 
-        perm = Permission.fromStringGetPermission(null);
+        perm = Permission.parsePermFromString(null);
         Assert.assertEquals(perm, Permission.DENY);
 
     }
@@ -91,17 +91,17 @@ public class PermissionTest {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
         Map<String, Byte> resourcePermMap = plainAccessResource.getResourcePermMap();
 
-        Permission.setTopicPerm(plainAccessResource, false, null);
+        Permission.parseResourcePerms(plainAccessResource, false, null);
         Assert.assertNull(resourcePermMap);
 
         List<String> groups = new ArrayList<>();
-        Permission.setTopicPerm(plainAccessResource, false, groups);
+        Permission.parseResourcePerms(plainAccessResource, false, groups);
         Assert.assertNull(resourcePermMap);
 
         groups.add("groupA=DENY");
         groups.add("groupB=PUB|SUB");
         groups.add("groupC=PUB");
-        Permission.setTopicPerm(plainAccessResource, false, groups);
+        Permission.parseResourcePerms(plainAccessResource, false, groups);
         resourcePermMap = plainAccessResource.getResourcePermMap();
 
         byte perm = resourcePermMap.get(PlainAccessResource.getRetryTopic("groupA"));
@@ -118,7 +118,7 @@ public class PermissionTest {
         topics.add("topicB=PUB|SUB");
         topics.add("topicC=PUB");
 
-        Permission.setTopicPerm(plainAccessResource, true, topics);
+        Permission.parseResourcePerms(plainAccessResource, true, topics);
 
         perm = resourcePermMap.get("topicA");
         Assert.assertEquals(perm, Permission.DENY);
@@ -131,7 +131,7 @@ public class PermissionTest {
 
         List<String> erron = new ArrayList<>();
         erron.add("");
-        Permission.setTopicPerm(plainAccessResource, false, erron);
+        Permission.parseResourcePerms(plainAccessResource, false, erron);
     }
 
     @Test
@@ -144,7 +144,7 @@ public class PermissionTest {
         code.add(207);
 
         for (int i = 0; i < 400; i++) {
-            boolean boo = Permission.checkAdminCode(i);
+            boolean boo = Permission.needAdminPerm(i);
             if (boo) {
                 Assert.assertTrue(code.contains(i));
             }

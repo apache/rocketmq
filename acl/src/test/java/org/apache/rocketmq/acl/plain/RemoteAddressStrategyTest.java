@@ -27,35 +27,35 @@ public class RemoteAddressStrategyTest {
     @Test
     public void NetaddressStrategyFactoryTest() {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
-        RemoteAddressStrategy remoteAddressStrategy = remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        RemoteAddressStrategy remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         Assert.assertEquals(remoteAddressStrategy, RemoteAddressStrategyFactory.NULL_NET_ADDRESS_STRATEGY);
 
         plainAccessResource.setWhiteRemoteAddress("*");
-        remoteAddressStrategy = remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         Assert.assertEquals(remoteAddressStrategy, RemoteAddressStrategyFactory.NULL_NET_ADDRESS_STRATEGY);
 
         plainAccessResource.setWhiteRemoteAddress("127.0.0.1");
-        remoteAddressStrategy = remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         Assert.assertEquals(remoteAddressStrategy.getClass(), RemoteAddressStrategyFactory.OneRemoteAddressStrategy.class);
 
         plainAccessResource.setWhiteRemoteAddress("127.0.0.1,127.0.0.2,127.0.0.3");
-        remoteAddressStrategy = remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         Assert.assertEquals(remoteAddressStrategy.getClass(), RemoteAddressStrategyFactory.MultipleRemoteAddressStrategy.class);
 
         plainAccessResource.setWhiteRemoteAddress("127.0.0.{1,2,3}");
-        remoteAddressStrategy = remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         Assert.assertEquals(remoteAddressStrategy.getClass(), RemoteAddressStrategyFactory.MultipleRemoteAddressStrategy.class);
 
         plainAccessResource.setWhiteRemoteAddress("127.0.0.1-200");
-        remoteAddressStrategy = remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         Assert.assertEquals(remoteAddressStrategy.getClass(), RemoteAddressStrategyFactory.RangeRemoteAddressStrategy.class);
 
         plainAccessResource.setWhiteRemoteAddress("127.0.0.*");
-        remoteAddressStrategy = remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         Assert.assertEquals(remoteAddressStrategy.getClass(), RemoteAddressStrategyFactory.RangeRemoteAddressStrategy.class);
 
         plainAccessResource.setWhiteRemoteAddress("127.0.1-20.*");
-        remoteAddressStrategy = remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         Assert.assertEquals(remoteAddressStrategy.getClass(), RemoteAddressStrategyFactory.RangeRemoteAddressStrategy.class);
     }
 
@@ -63,9 +63,9 @@ public class RemoteAddressStrategyTest {
     public void verifyTest() {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
         plainAccessResource.setWhiteRemoteAddress("127.0.0.1");
-        remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         plainAccessResource.setWhiteRemoteAddress("256.0.0.1");
-        remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
     }
 
     @Test
@@ -77,7 +77,7 @@ public class RemoteAddressStrategyTest {
     public void oneNetaddressStrategyTest() {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
         plainAccessResource.setWhiteRemoteAddress("127.0.0.1");
-        RemoteAddressStrategy remoteAddressStrategy = remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        RemoteAddressStrategy remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         plainAccessResource.setWhiteRemoteAddress("");
         boolean match = remoteAddressStrategy.match(plainAccessResource);
         Assert.assertFalse(match);
@@ -95,11 +95,11 @@ public class RemoteAddressStrategyTest {
     public void multipleNetaddressStrategyTest() {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
         plainAccessResource.setWhiteRemoteAddress("127.0.0.1,127.0.0.2,127.0.0.3");
-        RemoteAddressStrategy remoteAddressStrategy = remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        RemoteAddressStrategy remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         multipleNetaddressStrategyTest(remoteAddressStrategy);
 
         plainAccessResource.setWhiteRemoteAddress("127.0.0.{1,2,3}");
-        remoteAddressStrategy = remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         multipleNetaddressStrategyTest(remoteAddressStrategy);
 
     }
@@ -108,7 +108,7 @@ public class RemoteAddressStrategyTest {
     public void multipleNetaddressStrategyExceptionTest() {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
         plainAccessResource.setWhiteRemoteAddress("127.0.0.1,2,3}");
-        remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
     }
 
     private void multipleNetaddressStrategyTest(RemoteAddressStrategy remoteAddressStrategy) {
@@ -140,14 +140,14 @@ public class RemoteAddressStrategyTest {
         String head = "127.0.0.";
         PlainAccessResource plainAccessResource = new PlainAccessResource();
         plainAccessResource.setWhiteRemoteAddress("127.0.0.1-200");
-        RemoteAddressStrategy remoteAddressStrategy = remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        RemoteAddressStrategy remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         rangeNetaddressStrategyTest(remoteAddressStrategy, head, 1, 200, true);
         plainAccessResource.setWhiteRemoteAddress("127.0.0.*");
-        remoteAddressStrategy = remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         rangeNetaddressStrategyTest(remoteAddressStrategy, head, 0, 255, true);
 
         plainAccessResource.setWhiteRemoteAddress("127.0.1-200.*");
-        remoteAddressStrategy = remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         rangeNetaddressStrategyThirdlyTest(remoteAddressStrategy, head, 1, 200);
     }
 
@@ -196,7 +196,7 @@ public class RemoteAddressStrategyTest {
     private void rangeNetaddressStrategyExceptionTest(String netaddress) {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
         plainAccessResource.setWhiteRemoteAddress(netaddress);
-        remoteAddressStrategyFactory.getNetaddressStrategy(plainAccessResource);
+        remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
     }
 
 }

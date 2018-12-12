@@ -26,28 +26,29 @@ public class RemoteAddressStrategyFactory {
 
     public static final NullRemoteAddressStrategy NULL_NET_ADDRESS_STRATEGY = new NullRemoteAddressStrategy();
 
-    public RemoteAddressStrategy getNetaddressStrategy(PlainAccessResource plainAccessResource) {
-        return getNetaddressStrategy(plainAccessResource.getWhiteRemoteAddress());
+    public RemoteAddressStrategy getRemoteAddressStrategy(PlainAccessResource plainAccessResource) {
+        return getRemoteAddressStrategy(plainAccessResource.getWhiteRemoteAddress());
 
     }
 
-    public RemoteAddressStrategy getNetaddressStrategy(String netaddress) {
-        if (StringUtils.isBlank(netaddress) || "*".equals(netaddress)) {
+    public RemoteAddressStrategy getRemoteAddressStrategy(String remoteAddr) {
+        //TODO if the white addr is not configured, should reject it.
+        if (StringUtils.isBlank(remoteAddr) || "*".equals(remoteAddr)) {
             return NULL_NET_ADDRESS_STRATEGY;
         }
-        if (netaddress.endsWith("}")) {
-            String[] strArray = StringUtils.split(netaddress, ".");
+        if (remoteAddr.endsWith("}")) {
+            String[] strArray = StringUtils.split(remoteAddr, ".");
             String four = strArray[3];
             if (!four.startsWith("{")) {
-                throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress", netaddress));
+                throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress", remoteAddr));
             }
-            return new MultipleRemoteAddressStrategy(AclUtils.getAddreeStrArray(netaddress, four));
-        } else if (AclUtils.isColon(netaddress)) {
-            return new MultipleRemoteAddressStrategy(StringUtils.split(netaddress, ","));
-        } else if (AclUtils.isAsterisk(netaddress) || AclUtils.isMinus(netaddress)) {
-            return new RangeRemoteAddressStrategy(netaddress);
+            return new MultipleRemoteAddressStrategy(AclUtils.getAddreeStrArray(remoteAddr, four));
+        } else if (AclUtils.isColon(remoteAddr)) {
+            return new MultipleRemoteAddressStrategy(StringUtils.split(remoteAddr, ","));
+        } else if (AclUtils.isAsterisk(remoteAddr) || AclUtils.isMinus(remoteAddr)) {
+            return new RangeRemoteAddressStrategy(remoteAddr);
         }
-        return new OneRemoteAddressStrategy(netaddress);
+        return new OneRemoteAddressStrategy(remoteAddr);
 
     }
 
@@ -103,10 +104,10 @@ public class RemoteAddressStrategyFactory {
 
         private int index;
 
-        public RangeRemoteAddressStrategy(String netaddress) {
-            String[] strArray = StringUtils.split(netaddress, ".");
+        public RangeRemoteAddressStrategy(String remoteAddr) {
+            String[] strArray = StringUtils.split(remoteAddr, ".");
             if (analysis(strArray, 2) || analysis(strArray, 3)) {
-                AclUtils.verify(netaddress, index - 1);
+                AclUtils.verify(remoteAddr, index - 1);
                 StringBuffer sb = new StringBuffer().append(strArray[0].trim()).append(".").append(strArray[1].trim()).append(".");
                 if (index == 3) {
                     sb.append(strArray[2].trim()).append(".");

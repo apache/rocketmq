@@ -26,11 +26,11 @@ accounts:
   admin: false
   defaultTopicPerm: DENY
   defaultGroupPerm: SUB
-  topics:
+  topicPerms:
   - topicA=DENY
   - topicB=PUB|SUB
   - topicC=SUB
-  groups:
+  groupPerms:
   # the group should convert to retry topic
   - groupA=DENY
   - groupB=SUB
