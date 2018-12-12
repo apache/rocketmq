@@ -14,49 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.netty;
+package org.apache.rocketmq.remoting.transport.rocketmq;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.MessageToByteEncoder;
 import java.nio.ByteBuffer;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.netty.CodecHelper;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class NettyDecoder extends LengthFieldBasedFrameDecoder {
+public class NettyEncoder extends MessageToByteEncoder<RemotingCommand> {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
-    private static final int FRAME_MAX_LENGTH =
-        Integer.parseInt(System.getProperty("com.rocketmq.remoting.frameMaxLength", "16777216"));
-
-    public NettyDecoder() {
-        super(FRAME_MAX_LENGTH, 0, 4, 0, 4);
-    }
-
     @Override
-    public Object decode(ChannelHandlerContext ctx, ByteBuf in) throws Exception {
-        ByteBuf frame = null;
+    public void encode(ChannelHandlerContext ctx, RemotingCommand remotingCommand, ByteBuf out) {
         try {
-            frame = (ByteBuf) super.decode(ctx, in);
-            if (null == frame) {
-                return null;
+            ByteBuffer byteBuffer = CodecHelper.encodeHeader(remotingCommand);
+            out.writeBytes(byteBuffer);
+            byte[] body = remotingCommand.getBody();
+            if (body != null) {
+                out.writeBytes(body);
             }
-
-            ByteBuffer byteBuffer = frame.nioBuffer();
-
-            return RemotingCommand.decode(byteBuffer);
         } catch (Exception e) {
-            log.error("decode exception, " + RemotingHelper.parseChannelRemoteAddr(ctx.channel()), e);
-            RemotingUtil.closeChannel(ctx.channel());
-        } finally {
-            if (null != frame) {
-                frame.release();
+            log.error("encode exception, " + RemotingHelper.parseChannelRemoteAddr(ctx.channel()), e);
+            if (remotingCommand != null) {
+                log.error(remotingCommand.toString());
             }
+            RemotingUtil.closeChannel(ctx.channel());
         }
-
-        return null;
     }
 }

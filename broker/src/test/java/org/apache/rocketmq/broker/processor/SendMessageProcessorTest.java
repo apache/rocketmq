@@ -217,7 +217,7 @@ public class SendMessageProcessorTest {
         header.setSysFlag(sysFlag);
         RemotingCommand request = RemotingCommand.createRequestCommand(requestCode, header);
         request.setBody(new byte[] {'a'});
-        request.makeCustomHeaderToNet();
+//        request.makeCustomHeaderToNet();
         return request;
     }
 
@@ -240,7 +240,7 @@ public class SendMessageProcessorTest {
 
         RemotingCommand request = RemotingCommand.createRequestCommand(requestCode, requestHeader);
         request.setBody(new byte[] {'a'});
-        request.makeCustomHeaderToNet();
+//        request.makeCustomHeaderToNet();
         return request;
     }
 
@@ -253,7 +253,7 @@ public class SendMessageProcessorTest {
         requestHeader.setOffset(123L);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(requestCode, requestHeader);
-        request.makeCustomHeaderToNet();
+//        request.makeCustomHeaderToNet();
         return request;
     }
 

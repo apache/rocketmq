@@ -17,12 +17,10 @@
 
 package org.apache.rocketmq.remoting.netty;
 
-
 import io.netty.util.internal.logging.InternalLogLevel;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class NettyLogger {
 
@@ -51,6 +49,30 @@ public class NettyLogger {
     private static class NettyBridgeLogger implements io.netty.util.internal.logging.InternalLogger {
 
         private InternalLogger logger = null;
+
+        @Override public void trace(Throwable throwable) {
+
+        }
+
+        @Override public void debug(Throwable throwable) {
+
+        }
+
+        @Override public void info(Throwable throwable) {
+
+        }
+
+        @Override public void warn(Throwable throwable) {
+
+        }
+
+        @Override public void error(Throwable throwable) {
+
+        }
+
+        @Override public void log(InternalLogLevel level, Throwable throwable) {
+
+        }
 
         public NettyBridgeLogger(String name) {
             logger = InternalLoggerFactory.getLogger(name);

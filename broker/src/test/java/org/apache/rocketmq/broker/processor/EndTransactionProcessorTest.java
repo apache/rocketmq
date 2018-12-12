@@ -146,7 +146,7 @@ public class EndTransactionProcessorTest {
     private RemotingCommand createEndTransactionMsgCommand(int status, boolean isCheckMsg) {
         EndTransactionRequestHeader header = createEndTransactionRequestHeader(status, isCheckMsg);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, header);
-        request.makeCustomHeaderToNet();
+//        request.makeCustomHeaderToNet();
         return request;
     }
 }

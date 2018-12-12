@@ -18,6 +18,7 @@ package org.apache.rocketmq.remoting.protocol;
 
 import java.util.Arrays;
 import java.util.List;
+import org.apache.rocketmq.remoting.serialize.RemotingSerializable;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

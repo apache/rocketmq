@@ -15,28 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.protocol;
+package org.apache.rocketmq.remoting.serialize;
 
-public enum SerializeType {
-    JSON((byte) 0),
-    ROCKETMQ((byte) 1);
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-    private byte code;
+public interface Serializer {
+    SerializeType type();
 
-    SerializeType(byte code) {
-        this.code = code;
-    }
+    <T> T deserializer(final byte[] content, final Class<T> c);
 
-    public static SerializeType valueOf(byte code) {
-        for (SerializeType serializeType : SerializeType.values()) {
-            if (serializeType.getCode() == code) {
-                return serializeType;
-            }
-        }
-        return null;
-    }
+    byte[] serializer(final Object object);
 
-    public byte getCode() {
-        return code;
-    }
+    RemotingCommand deserializer(final byte[] content);
 }

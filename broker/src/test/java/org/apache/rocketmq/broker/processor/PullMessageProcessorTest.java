@@ -204,7 +204,7 @@ public class PullMessageProcessorTest {
         requestHeader.setSysFlag(0);
         requestHeader.setSubVersion(100L);
         RemotingCommand request = RemotingCommand.createRequestCommand(requestCode, requestHeader);
-        request.makeCustomHeaderToNet();
+//        request.makeCustomHeaderToNet();
         return request;
     }
 

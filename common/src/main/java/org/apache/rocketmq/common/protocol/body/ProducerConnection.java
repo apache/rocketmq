@@ -18,7 +18,7 @@
 package org.apache.rocketmq.common.protocol.body;
 
 import java.util.HashSet;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.remoting.serialize.RemotingSerializable;
 
 public class ProducerConnection extends RemotingSerializable {
     private HashSet<Connection> connectionSet = new HashSet<Connection>();

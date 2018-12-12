@@ -18,7 +18,7 @@
 package org.apache.rocketmq.common.protocol;
 
 import org.apache.rocketmq.common.protocol.body.ConsumeStatus;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.remoting.serialize.RemotingSerializable;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

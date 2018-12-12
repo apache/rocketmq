@@ -17,11 +17,15 @@
 package org.apache.rocketmq.remoting.netty;
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.timeout.IdleState;
+import io.netty.handler.timeout.IdleStateEvent;
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -33,13 +37,16 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.common.Pair;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
 import org.apache.rocketmq.remoting.common.ServiceThread;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -49,6 +56,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
+import org.apache.rocketmq.remoting.util.ThreadUtils;
 
 public abstract class NettyRemotingAbstract {
 
@@ -60,12 +68,12 @@ public abstract class NettyRemotingAbstract {
     /**
      * Semaphore to limit maximum number of on-going one-way requests, which protects system memory footprint.
      */
-    protected final Semaphore semaphoreOneway;
+    protected Semaphore semaphoreOneway;
 
     /**
      * Semaphore to limit maximum number of on-going asynchronous requests, which protects system memory footprint.
      */
-    protected final Semaphore semaphoreAsync;
+    protected Semaphore semaphoreAsync;
 
     /**
      * This map caches all on-going requests.
@@ -83,10 +91,11 @@ public abstract class NettyRemotingAbstract {
     /**
      * Executor to feed netty events to user defined {@link ChannelEventListener}.
      */
-    protected final NettyEventExecutor nettyEventExecutor = new NettyEventExecutor();
+    protected NettyEventExecutor nettyEventExecutor = new NettyEventExecutor();
 
     /**
-     * The default request processor to use in case there is no exact match in {@link #processorTable} per request code.
+     * The default request processor to use in case there is no exact match in {@link #processorTable} per request
+     * code.
      */
     protected Pair<NettyRequestProcessor, ExecutorService> defaultRequestProcessor;
 
@@ -99,6 +108,13 @@ public abstract class NettyRemotingAbstract {
         NettyLogger.initNettyLogger();
     }
 
+    protected ScheduledExecutorService houseKeepingService = ThreadUtils.newSingleThreadScheduledExecutor("HouseKeepingService", true);
+
+    public NettyRemotingAbstract() {
+        this.semaphoreOneway = new Semaphore(65535, true);
+        this.semaphoreAsync = new Semaphore(65535, true);
+    }
+
     /**
      * Constructor, specifying capacity of one-way and asynchronous semaphores.
      *
@@ -106,6 +122,11 @@ public abstract class NettyRemotingAbstract {
      * @param permitsAsync Number of permits for asynchronous requests.
      */
     public NettyRemotingAbstract(final int permitsOneway, final int permitsAsync) {
+        this.semaphoreOneway = new Semaphore(permitsOneway, true);
+        this.semaphoreAsync = new Semaphore(permitsAsync, true);
+    }
+
+    public void init(final int permitsOneway, final int permitsAsync) {
         this.semaphoreOneway = new Semaphore(permitsOneway, true);
         this.semaphoreAsync = new Semaphore(permitsAsync, true);
     }
@@ -329,6 +350,15 @@ public abstract class NettyRemotingAbstract {
      */
     public abstract ExecutorService getCallbackExecutor();
 
+    protected void startUpHouseKeepingService() {
+        this.houseKeepingService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                scanResponseTable();
+            }
+        }, 3000, 1000, TimeUnit.MICROSECONDS);
+    }
+
     /**
      * <p>
      * This method is periodically invoked to scan and expire deprecated request.
@@ -355,6 +385,21 @@ public abstract class NettyRemotingAbstract {
             } catch (Throwable e) {
                 log.warn("scanResponseTable, operationComplete Exception", e);
             }
+        }
+    }
+
+    public void start() {
+        if (getChannelEventListener() != null) {
+            nettyEventExecutor.start();
+        }
+    }
+
+    public void shutdown() {
+        if (this.nettyEventExecutor != null) {
+            this.nettyEventExecutor.shutdown();
+        }
+        if (this.houseKeepingService != null) {
+            this.houseKeepingService.shutdown();
         }
     }
 
@@ -410,7 +455,7 @@ public abstract class NettyRemotingAbstract {
             final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreAsync);
             long costTime = System.currentTimeMillis() - beginStartTime;
             if (timeoutMillis < costTime) {
-                throw new RemotingTooMuchRequestException("invokeAsyncImpl call timeout");
+                throw new RemotingTimeoutException("invokeAsyncImpl call timeout");
             }
 
             final ResponseFuture responseFuture = new ResponseFuture(channel, opaque, timeoutMillis - costTime, invokeCallback, once);
@@ -465,6 +510,7 @@ public abstract class NettyRemotingAbstract {
 
     /**
      * mark the request of the specified channel as fail and to invoke fail callback immediately
+     *
      * @param channel the channel which is close already
      */
     protected void failFast(final Channel channel) {
@@ -570,4 +616,15 @@ public abstract class NettyRemotingAbstract {
             return NettyEventExecutor.class.getSimpleName();
         }
     }
+
+    public class NettyServerHandler extends SimpleChannelInboundHandler<RemotingCommand> {
+
+        @Override
+        protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
+            processMessageReceived(ctx, msg);
+        }
+    }
+
+
+
 }

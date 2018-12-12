@@ -18,7 +18,7 @@
 package org.apache.rocketmq.common.protocol.header;
 
 import java.util.List;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.remoting.serialize.RemotingSerializable;
 
 public class GetConsumerListByGroupResponseBody extends RemotingSerializable {
     private List<String> consumerIdList;

@@ -14,15 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.protocol;
+package org.apache.rocketmq.remoting.serialize;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class RocketMQSerializable {
+public class RocketMQSerializable implements Serializer {
     private static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
 
     public static byte[] rocketMQProtocolEncode(RemotingCommand cmd) {
@@ -200,5 +201,26 @@ public class RocketMQSerializable {
             }
         }
         return true;
+    }
+
+    @Override
+    public SerializeType type() {
+        return SerializeType.ROCKETMQ;
+    }
+
+    @Override
+    public <T> T deserializer(byte[] content, Class<T> c) {
+        //Fixme
+        return null;
+    }
+
+    @Override
+    public byte[] serializer(Object object) {
+        return rocketMQProtocolEncode((RemotingCommand) object);
+    }
+
+    @Override
+    public RemotingCommand deserializer(byte[] content) {
+        return rocketMQProtocolDecode(content);
     }
 }

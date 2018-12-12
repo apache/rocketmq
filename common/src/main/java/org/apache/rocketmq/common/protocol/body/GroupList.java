@@ -17,7 +17,7 @@
 package org.apache.rocketmq.common.protocol.body;
 
 import java.util.HashSet;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.remoting.serialize.RemotingSerializable;
 
 public class GroupList extends RemotingSerializable {
     private HashSet<String> groupList = new HashSet<String>();

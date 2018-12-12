@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.protocol;
+package org.apache.rocketmq.remoting.serialize;
 
 import com.alibaba.fastjson.JSON;
 import java.nio.charset.Charset;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public abstract class RemotingSerializable {
+public class RemotingSerializable implements Serializer {
     private final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
 
     public static byte[] encode(final Object obj) {
@@ -57,5 +58,25 @@ public abstract class RemotingSerializable {
 
     public String toJson(final boolean prettyFormat) {
         return toJson(this, prettyFormat);
+    }
+
+    @Override
+    public SerializeType type() {
+        return SerializeType.JSON;
+    }
+
+    @Override
+    public <T> T deserializer(byte[] content, Class<T> c) {
+        return decode(content, c);
+    }
+
+    @Override
+    public byte[] serializer(Object object) {
+        return encode(object);
+    }
+
+    @Override
+    public RemotingCommand deserializer(byte[] content) {
+        return decode(content, RemotingCommand.class);
     }
 }

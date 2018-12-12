@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.common.protocol.body;
 
-import org.apache.rocketmq.remoting.protocol.LanguageCode;
+import org.apache.rocketmq.remoting.serialize.LanguageCode;
 
 public class Connection {
     private String clientId;

@@ -19,7 +19,7 @@ package org.apache.rocketmq.remoting.netty;
 public class NettyServerConfig implements Cloneable {
     private int listenPort = 8888;
     private int serverWorkerThreads = 8;
-    private int serverCallbackExecutorThreads = 0;
+    private int serverCallbackExecutorThreads = 8;
     private int serverSelectorThreads = 3;
     private int serverOnewaySemaphoreValue = 256;
     private int serverAsyncSemaphoreValue = 64;
@@ -28,6 +28,33 @@ public class NettyServerConfig implements Cloneable {
     private int serverSocketSndBufSize = NettySystemConfig.socketSndbufSize;
     private int serverSocketRcvBufSize = NettySystemConfig.socketRcvbufSize;
     private boolean serverPooledByteBufAllocatorEnable = true;
+    private int serverAcceptorThreads = 1;
+    private int connectionChannelReaderIdleSeconds = 0;
+    private int connectionChannelWriterIdleSeconds = 0;
+
+    public int getConnectionChannelReaderIdleSeconds() {
+        return connectionChannelReaderIdleSeconds;
+    }
+
+    public void setConnectionChannelReaderIdleSeconds(int connectionChannelReaderIdleSeconds) {
+        this.connectionChannelReaderIdleSeconds = connectionChannelReaderIdleSeconds;
+    }
+
+    public int getConnectionChannelWriterIdleSeconds() {
+        return connectionChannelWriterIdleSeconds;
+    }
+
+    public void setConnectionChannelWriterIdleSeconds(int connectionChannelWriterIdleSeconds) {
+        this.connectionChannelWriterIdleSeconds = connectionChannelWriterIdleSeconds;
+    }
+
+    public int getServerAcceptorThreads() {
+        return serverAcceptorThreads;
+    }
+
+    public void setServerAcceptorThreads(int serverAcceptorThreads) {
+        this.serverAcceptorThreads = serverAcceptorThreads;
+    }
 
     /**
      * make make install

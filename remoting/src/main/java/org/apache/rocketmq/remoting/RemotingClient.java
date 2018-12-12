@@ -22,6 +22,7 @@ import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
+import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -51,4 +52,6 @@ public interface RemotingClient extends RemotingService {
     ExecutorService getCallbackExecutor();
 
     boolean isChannelWritable(final String addr);
+
+    void init(NettyClientConfig nettyClientConfig, ChannelEventListener channelEventListener);
 }

@@ -84,4 +84,33 @@ public class QueryMessageTransfer extends AbstractReferenceCounted implements Fi
     protected void deallocate() {
         this.queryMessageResult.release();
     }
+
+
+    @Override
+    public long transferred() {
+        return transferred;
+    }
+
+
+    @Override
+    public FileRegion retain() {
+        super.retain();
+        return this;
+    }
+
+    @Override
+    public FileRegion retain(int increment) {
+        super.retain(increment);
+        return this;
+    }
+
+    @Override
+    public FileRegion touch() {
+        return this;
+    }
+
+    @Override
+    public FileRegion touch(Object hint) {
+        return this;
+    }
 }

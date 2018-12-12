@@ -29,7 +29,7 @@ import org.apache.rocketmq.filter.FilterFactory;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.filter.util.BloomFilter;
 import org.apache.rocketmq.filter.util.BloomFilterData;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.remoting.serialize.RemotingSerializable;
 
 import java.util.Collection;
 import java.util.HashSet;

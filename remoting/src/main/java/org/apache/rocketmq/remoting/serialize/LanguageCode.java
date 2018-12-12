@@ -15,8 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.protocol;
+package org.apache.rocketmq.remoting.serialize;
 
+import org.msgpack.annotation.MessagePackOrdinalEnum;
+
+@MessagePackOrdinalEnum
 public enum LanguageCode {
     JAVA((byte) 0),
     CPP((byte) 1),

@@ -31,7 +31,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
-import org.apache.rocketmq.remoting.protocol.LanguageCode;
+import org.apache.rocketmq.remoting.serialize.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Before;
@@ -115,7 +115,7 @@ public class ClientManageProcessorTest {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UNREGISTER_CLIENT, requestHeader);
         request.setLanguage(LanguageCode.JAVA);
         request.setVersion(100);
-        request.makeCustomHeaderToNet();
+//        request.makeCustomHeaderToNet();
         return request;
     }
 
@@ -126,7 +126,7 @@ public class ClientManageProcessorTest {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UNREGISTER_CLIENT, requestHeader);
         request.setLanguage(LanguageCode.JAVA);
         request.setVersion(100);
-        request.makeCustomHeaderToNet();
+//        request.makeCustomHeaderToNet();
         return request;
     }
 }

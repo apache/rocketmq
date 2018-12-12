@@ -84,4 +84,34 @@ public class ManyMessageTransfer extends AbstractReferenceCounted implements Fil
     protected void deallocate() {
         this.getMessageResult.release();
     }
+
+
+
+    @Override
+    public long transferred() {
+        return transferred;
+    }
+
+
+    @Override
+    public FileRegion retain() {
+        super.retain();
+        return this;
+    }
+
+    @Override
+    public FileRegion retain(int increment) {
+        super.retain(increment);
+        return this;
+    }
+
+    @Override
+    public FileRegion touch() {
+        return this;
+    }
+
+    @Override
+    public FileRegion touch(Object hint) {
+        return this;
+    }
 }
