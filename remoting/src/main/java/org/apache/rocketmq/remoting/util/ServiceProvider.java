@@ -31,8 +31,12 @@ public class ServiceProvider {
     private static ClassLoader thisClassLoader;
 
     /**
-     * JDK1.3+ <a href= "http://java.sun.com/j2se/1.3/docs/guide/jar/jar.html#Service%20Provider" > 'Service Provider' specification</a>.
+     * JDK1.3+ <a href= "http://java.sun.com/j2se/1.3/docs/guide/jar/jar.html#Service%20Provider" > 'Service Provider'
+     * specification</a>.
      */
+    public static final String TRANSACTION_SERVICE_ID = "META-INF/service/org.apache.rocketmq.broker.transaction.TransactionalMessageService";
+
+    public static final String TRANSACTION_LISTENER_ID = "META-INF/service/org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener";
 
     static {
         thisClassLoader = getClassLoader(ServiceProvider.class);
@@ -129,7 +133,7 @@ public class ServiceProvider {
         return services;
     }
 
-    public static <T> T loadClass(String name, String path, Class<?> clazz) {
+    public static <T> T loadClass(String name, Class<?> clazz) {
         final InputStream is = getResourceAsStream(getContextClassLoader(), name);
         if (is != null) {
             BufferedReader reader;
