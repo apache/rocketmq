@@ -1,5 +1,8 @@
 package org.apache.rocketmq.store.dledger;
 
+import io.openmessaging.storage.dledger.DLedgerServer;
+import io.openmessaging.storage.dledger.store.file.DLedgerMmapFileStore;
+import io.openmessaging.storage.dledger.store.file.MmapFileList;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,13 +22,70 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
 
     @Test
+    public void testTruncateCQ() throws Exception {
+        String base =  createBaseDir();
+        String peers = String.format("n0-localhost:%d", nextPort());
+        String group = UUID.randomUUID().toString();
+        String topic = UUID.randomUUID().toString();
+        {
+            DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
+            DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) messageStore.getCommitLog();
+            DLedgerServer dLedgerServer = dLedgerCommitLog.getdLedgerServer();
+            DLedgerMmapFileStore dLedgerMmapFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();
+            MmapFileList mmapFileList = dLedgerMmapFileStore.getDataFileList();
+            Thread.sleep(2000);
+            doPutMessages(messageStore, topic, 0, 2000, 0);
+            Thread.sleep(100);
+            Assert.assertEquals(24, mmapFileList.getMappedFiles().size());
+            System.out.println(mmapFileList.getMappedFiles().size());
+            Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
+            Assert.assertEquals(2000, messageStore.getMaxOffsetInQueue(topic, 0));
+            Assert.assertEquals(0, messageStore.dispatchBehindBytes());
+            doGetMessages(messageStore, topic, 0, 2000, 0);
+            messageStore.shutdown();
+        }
+
+        {
+            //Abnormal recover, left some commitlogs
+            DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, true, 4);
+            DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) messageStore.getCommitLog();
+            DLedgerServer dLedgerServer = dLedgerCommitLog.getdLedgerServer();
+            DLedgerMmapFileStore dLedgerMmapFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();
+            MmapFileList mmapFileList = dLedgerMmapFileStore.getDataFileList();
+            Thread.sleep(1000);
+            Assert.assertEquals(20, mmapFileList.getMappedFiles().size());
+            Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
+            Assert.assertEquals(1700, messageStore.getMaxOffsetInQueue(topic, 0));
+            Assert.assertEquals(0, messageStore.dispatchBehindBytes());
+            doGetMessages(messageStore, topic, 0, 1700, 0);
+            messageStore.shutdown();
+        }
+        {
+            //Abnormal recover, left none commitlogs
+            DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, true, 20);
+            DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) messageStore.getCommitLog();
+            DLedgerServer dLedgerServer = dLedgerCommitLog.getdLedgerServer();
+            DLedgerMmapFileStore dLedgerMmapFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();
+            MmapFileList mmapFileList = dLedgerMmapFileStore.getDataFileList();
+            Thread.sleep(1000);
+            Assert.assertEquals(0, mmapFileList.getMappedFiles().size());
+            Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
+            Assert.assertEquals(0, messageStore.getMaxOffsetInQueue(topic, 0));
+            Assert.assertEquals(0, messageStore.dispatchBehindBytes());
+            messageStore.shutdown();
+        }
+    }
+
+
+
+    @Test
     public void testRecover() throws Exception {
         String base =  createBaseDir();
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
         String topic = UUID.randomUUID().toString();
         {
-            DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false);
+            DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
             Thread.sleep(1000);
             doPutMessages(messageStore, topic, 0, 1000, 0);
             Thread.sleep(100);
@@ -38,7 +98,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
         {
             //normal recover
-            DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false);
+            DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
             Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(1000, messageStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, messageStore.dispatchBehindBytes());
@@ -48,7 +108,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
         {
             //abnormal recover
-            DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, true);
+            DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, true, 0);
             Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(1000, messageStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, messageStore.dispatchBehindBytes());
@@ -64,7 +124,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         String base =  createBaseDir();
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
-        DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false);
+        DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
         Thread.sleep(1000);
         String topic = UUID.randomUUID().toString();
 
@@ -104,7 +164,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
     public void testCommittedPos() throws Exception {
         String peers = String.format("n0-localhost:%d;n1-localhost:%d", nextPort(), nextPort());
         String group = UUID.randomUUID().toString();
-        DefaultMessageStore leaderStore = createDledgerMessageStore(createBaseDir(), group,"n0", peers, "n0", false);
+        DefaultMessageStore leaderStore = createDledgerMessageStore(createBaseDir(), group,"n0", peers, "n0", false, 0);
 
         String topic = UUID.randomUUID().toString();
         MessageExtBrokerInner msgInner =  buildMessage();
@@ -119,7 +179,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         Assert.assertEquals(0, leaderStore.getMaxOffsetInQueue(topic, 0));
 
 
-        DefaultMessageStore followerStore = createDledgerMessageStore(createBaseDir(), group,"n1", peers, "n0", false);
+        DefaultMessageStore followerStore = createDledgerMessageStore(createBaseDir(), group,"n1", peers, "n0", false, 0);
         Thread.sleep(2000);
 
         Assert.assertEquals(1, leaderStore.getMaxOffsetInQueue(topic, 0));

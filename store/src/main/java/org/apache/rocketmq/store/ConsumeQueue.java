@@ -421,6 +421,7 @@ public class ConsumeQueue {
         final long cqOffset) {
 
         if (offset + size <= this.maxPhysicOffset) {
+            log.warn("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}", maxPhysicOffset, offset);
             return true;
         }
 
