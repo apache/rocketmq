@@ -53,7 +53,6 @@ import org.apache.rocketmq.filter.expression.LogicExpression;
 import org.apache.rocketmq.filter.expression.MQFilterException;
 import org.apache.rocketmq.filter.expression.PropertyExpression;
 import org.apache.rocketmq.filter.expression.UnaryExpression;
-import org.apache.rocketmq.filter.util.LRUCache;
 
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -201,7 +200,7 @@ BooleanExpression JmsSelector() :
 }
 {
     (
-        left = orExpression()
+        left = orExpression() <EOF>
     )
     {
         return asBooleanExpression(left);
@@ -497,7 +496,7 @@ String stringLitteral() :
         String image = t.image;
         for( int i=1; i < image.length()-1; i++ ) {
             char c = image.charAt(i);
-            if( c == '\'' )
+            if( c == 39 )
                 i++;
             rc.append(c);
         }
