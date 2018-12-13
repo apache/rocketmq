@@ -1,7 +1,9 @@
 package org.apache.rocketmq.store.dledger;
 
+import io.openmessaging.storage.dledger.DLedgerConfig;
 import io.openmessaging.storage.dledger.DLedgerServer;
 import java.io.File;
+import java.util.Arrays;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -20,7 +22,7 @@ import org.junit.Assert;
 
 public class MessageStoreTestBase extends StoreTestBase {
 
-    protected DefaultMessageStore createDledgerMessageStore(String base, String group, String selfId, String peers, String leaderId, boolean createAbort) throws Exception {
+    protected DefaultMessageStore createDledgerMessageStore(String base, String group, String selfId, String peers, String leaderId, boolean createAbort, int deleteFileNum) throws Exception {
         System.setProperty("dledger.disk.ratio.check", "0.95");
         System.setProperty("dledger.disk.ratio.clean", "0.95");
         baseDirs.add(base);
@@ -40,8 +42,8 @@ public class MessageStoreTestBase extends StoreTestBase {
         DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig,  new BrokerStatsManager("DLedgerCommitlogTest"), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
 
         }, new BrokerConfig());
+        DLedgerServer dLegerServer = ((DLedgerCommitLog) defaultMessageStore.getCommitLog()).getdLedgerServer();
         if (leaderId != null) {
-            DLedgerServer dLegerServer = ((DLedgerCommitLog) defaultMessageStore.getCommitLog()).getdLedgerServer();
             dLegerServer.getdLedgerConfig().setEnableLeaderElector(false);
             if (selfId.equals(leaderId)) {
                 dLegerServer.getMemberState().changeToLeader(-1);
@@ -53,6 +55,23 @@ public class MessageStoreTestBase extends StoreTestBase {
         if (createAbort) {
             String fileName = StorePathConfigHelper.getAbortFile(storeConfig.getStorePathRootDir());
             makeSureFileExists(fileName);
+        }
+        if (deleteFileNum > 0) {
+            DLedgerConfig config = dLegerServer.getdLedgerConfig();
+            if (deleteFileNum > 0) {
+                File dir = new File(config.getDataStorePath());
+                File[] files = dir.listFiles();
+                if (files != null) {
+                    Arrays.sort(files);
+                    for (int i = files.length - 1; i >= 0; i--) {
+                        File file = files[i];
+                        file.delete();
+                        if (files.length - i >= deleteFileNum) {
+                            break;
+                        }
+                    }
+                }
+            }
         }
         Assert.assertTrue(defaultMessageStore.load());
         defaultMessageStore.start();

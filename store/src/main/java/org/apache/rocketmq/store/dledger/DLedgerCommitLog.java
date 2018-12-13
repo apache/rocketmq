@@ -253,12 +253,18 @@ public class DLedgerCommitLog extends CommitLog {
         dLedgerFileStore.load();
         if (dLedgerFileList.getMappedFiles().size() > 0) {
             dLedgerFileStore.recover();
+            dividedCommitlogOffset = dLedgerFileList.getFirstMappedFile().getFileFromOffset();
             MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
             if (mappedFile != null) {
                 dLedgerConfig.setEnableDiskForceClean(false);
-                dividedCommitlogOffset = mappedFile.getFileFromOffset() + mappedFile.getFileSize();
             } else {
                 hasSetOriginalDledgerEnableForceClean.set(true);
+            }
+            long maxPhyOffset = dLedgerFileList.getMaxWrotePosition();
+            // Clear ConsumeQueue redundant data
+            if (maxPhyOffsetOfConsumeQueue >= maxPhyOffset) {
+                log.warn("[TruncateCQ]maxPhyOffsetOfConsumeQueue({}) >= processOffset({}), truncate dirty logic files", maxPhyOffsetOfConsumeQueue, maxPhyOffset);
+                this.defaultMessageStore.truncateDirtyLogicFiles(maxPhyOffset);
             }
             return;
         }

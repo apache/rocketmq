@@ -38,7 +38,7 @@ public class MixCommitlogTest extends MessageStoreTestBase {
             recoverOriginalStore.shutdown();
         }
         {
-            DefaultMessageStore dledgerStore = createDledgerMessageStore(base, group, "n0", peers, null, true);
+            DefaultMessageStore dledgerStore = createDledgerMessageStore(base, group, "n0", peers, null, true, 0);
             DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) dledgerStore.getCommitLog();
             Assert.assertFalse(dLedgerCommitLog.getdLedgerServer().getdLedgerConfig().isEnableDiskForceClean());
             Assert.assertEquals(dividedOffset, dLedgerCommitLog.getDividedCommitlogOffset());
@@ -52,7 +52,7 @@ public class MixCommitlogTest extends MessageStoreTestBase {
             dledgerStore.shutdown();
         }
         {
-            DefaultMessageStore recoverDledgerStore = createDledgerMessageStore(base, group, "n0", peers, null, true);
+            DefaultMessageStore recoverDledgerStore = createDledgerMessageStore(base, group, "n0", peers, null, true, 0);
             DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) recoverDledgerStore.getCommitLog();
             Assert.assertFalse(dLedgerCommitLog.getdLedgerServer().getdLedgerConfig().isEnableDiskForceClean());
             Assert.assertEquals(dividedOffset, dLedgerCommitLog.getDividedCommitlogOffset());
@@ -88,7 +88,7 @@ public class MixCommitlogTest extends MessageStoreTestBase {
         }
         long maxPhysicalOffset;
         {
-            DefaultMessageStore dledgerStore = createDledgerMessageStore(base, group, "n0", peers, null, true);
+            DefaultMessageStore dledgerStore = createDledgerMessageStore(base, group, "n0", peers, null, true, 0);
             DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) dledgerStore.getCommitLog();
             Assert.assertFalse(dLedgerCommitLog.getdLedgerServer().getdLedgerConfig().isEnableDiskForceClean());
             Assert.assertEquals(dividedOffset, dLedgerCommitLog.getDividedCommitlogOffset());
