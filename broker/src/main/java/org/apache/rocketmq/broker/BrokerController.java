@@ -400,6 +400,29 @@ public class BrokerController {
                     }
                 }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
             }
+
+            if (!messageStoreConfig.isEnableDLegerCommitLog()) {
+                if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
+                    if (this.messageStoreConfig.getHaMasterAddress() != null && this.messageStoreConfig.getHaMasterAddress().length() >= 6) {
+                        this.messageStore.updateHaMasterAddress(this.messageStoreConfig.getHaMasterAddress());
+                        this.updateMasterHAServerAddrPeriodically = false;
+                    } else {
+                        this.updateMasterHAServerAddrPeriodically = true;
+                    }
+                } else {
+                    this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                BrokerController.this.printMasterAndSlaveDiff();
+                            } catch (Throwable e) {
+                                log.error("schedule printMasterAndSlaveDiff error.", e);
+                            }
+                        }
+                    }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
+                }
+            }
+
             if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
                 // Register a listener to reload SslContext
                 try {
