@@ -97,7 +97,7 @@ public abstract class ServiceThread implements Runnable {
 
     @Deprecated
     public void stop(final boolean interrupt) {
-        if (!started.compareAndSet(true, false)) {
+        if (!started.get()) {
             return;
         }
         this.stopped = true;
@@ -113,7 +113,7 @@ public abstract class ServiceThread implements Runnable {
     }
 
     public void makeStop() {
-        if (!started.compareAndSet(true, false)) {
+        if (!started.get()) {
             return;
         }
         this.stopped = true;
