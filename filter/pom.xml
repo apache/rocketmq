@@ -38,4 +38,26 @@
             <artifactId>rocketmq-srvutil</artifactId>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>javacc-maven-plugin</artifactId>
+                <version>2.6</version>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <configuration>
+                            <sourceDirectory>${basedir}/src/main/java/org/apache/rocketmq/filter/parser</sourceDirectory>
+                            <outputDirectory>${basedir}/target/generated-sources/javacc</outputDirectory>
+                        </configuration>
+                        <goals>
+                            <goal>javacc</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
