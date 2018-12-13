@@ -100,6 +100,11 @@ public abstract class NettyRemotingAbstract {
     protected Pair<NettyRequestProcessor, ExecutorService> defaultRequestProcessor;
 
     /**
+     * Used for async execute task for aysncInvokeMethod
+     */
+    private ExecutorService asyncExecuteService = ThreadUtils.newFixedThreadPool(5, 10000, "asyncExecute", false);
+
+    /**
      * SSL context via which to create {@link SslHandler}.
      */
     protected volatile SslContext sslContext;
@@ -445,38 +450,66 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
-    public void invokeAsyncImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis,
+    abstract protected Channel getAndCreateChannel(final String addr, long timeout) throws InterruptedException;
+
+    public void invokeAsyncImpl(final Channel channel, final RemotingCommand request,
+        final long timeoutMillis,
         final InvokeCallback invokeCallback)
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
-        long beginStartTime = System.currentTimeMillis();
-        final int opaque = request.getOpaque();
-        boolean acquired = this.semaphoreAsync.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);
+        invokeAsyncImpl(null, channel, request, timeoutMillis, invokeCallback);
+    }
+
+    public void invokeAsyncImpl(final String addr, final RemotingCommand request,
+        final long timeoutMillis,
+        final InvokeCallback invokeCallback)
+        throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
+        invokeAsyncImpl(addr, null, request, timeoutMillis, invokeCallback);
+    }
+
+    public void invokeAsyncImpl(final String addr, final Channel currentChannel, final RemotingCommand request,
+        final long timeoutMillis,
+        final InvokeCallback invokeCallback)
+        throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
+        final long beginStartTime = System.currentTimeMillis();
+        boolean acquired = semaphoreAsync.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);
         if (acquired) {
-            final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreAsync);
+            SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(semaphoreAsync);
             long costTime = System.currentTimeMillis() - beginStartTime;
             if (timeoutMillis < costTime) {
-                throw new RemotingTimeoutException("invokeAsyncImpl call timeout");
+                once.release();
+                throw new RemotingTimeoutException("InvokeAsyncImpl call timeout");
             }
-
-            final ResponseFuture responseFuture = new ResponseFuture(channel, opaque, timeoutMillis - costTime, invokeCallback, once);
-            this.responseTable.put(opaque, responseFuture);
-            try {
-                channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
-                    @Override
-                    public void operationComplete(ChannelFuture f) throws Exception {
-                        if (f.isSuccess()) {
-                            responseFuture.setSendRequestOK(true);
-                            return;
+            final int opaque = request.getOpaque();
+            final ResponseFuture responseFuture = new ResponseFuture(currentChannel, opaque, timeoutMillis, invokeCallback, once);
+            responseTable.put(opaque, responseFuture);
+            asyncExecuteService.submit(new Runnable() {
+                @Override
+                public void run() {
+                    Channel channel = currentChannel;
+                    final String remotingAddr = RemotingHelper.parseChannelRemoteAddr(channel);
+                    try {
+                        if (channel == null) {
+                            channel = getAndCreateChannel(addr, timeoutMillis);
+                            responseFuture.setProcessChannel(channel);
                         }
+                        channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
+                            @Override
+                            public void operationComplete(ChannelFuture f) throws Exception {
+                                if (f.isSuccess()) {
+                                    responseFuture.setSendRequestOK(true);
+                                    return;
+                                }
+                                requestFail(opaque);
+                                log.warn("send a request command to channel <{}> failed.", remotingAddr);
+                            }
+                        });
+                    } catch (Exception ex) {
+                        responseFuture.release();
                         requestFail(opaque);
-                        log.warn("send a request command to channel <{}> failed.", RemotingHelper.parseChannelRemoteAddr(channel));
+                        log.warn("send a request command to channel <" + RemotingHelper.parseChannelRemoteAddr(channel) + "> Exception", ex);
                     }
-                });
-            } catch (Exception e) {
-                responseFuture.release();
-                log.warn("send a request command to channel <" + RemotingHelper.parseChannelRemoteAddr(channel) + "> Exception", e);
-                throw new RemotingSendRequestException(RemotingHelper.parseChannelRemoteAddr(channel), e);
-            }
+                }
+            });
         } else {
             if (timeoutMillis <= 0) {
                 throw new RemotingTooMuchRequestException("invokeAsyncImpl invoke too fast");
@@ -527,7 +560,8 @@ public abstract class NettyRemotingAbstract {
     }
 
     public void invokeOnewayImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis)
-        throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
+        throws
+        InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         request.markOnewayRPC();
         boolean acquired = this.semaphoreOneway.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);
         if (acquired) {
@@ -624,7 +658,5 @@ public abstract class NettyRemotingAbstract {
             processMessageReceived(ctx, msg);
         }
     }
-
-
 
 }

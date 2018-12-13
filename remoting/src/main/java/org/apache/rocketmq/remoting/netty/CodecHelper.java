@@ -45,7 +45,6 @@ public class CodecHelper {
         byte[] headerData = new byte[headerLength];
         byteBuffer.get(headerData);
         RemotingCommand cmd = headerDecode(headerData, getProtocolType(oriHeaderLen));
-        System.out.println("cmd: " + cmd);
         int bodyLength = length - 4 - headerLength;
         byte[] bodyData = null;
         if (bodyLength > 0) {

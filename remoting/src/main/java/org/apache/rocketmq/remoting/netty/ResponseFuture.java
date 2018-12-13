@@ -26,7 +26,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ResponseFuture {
     private final int opaque;
-    private final Channel processChannel;
+    private Channel processChannel;
     private final long timeoutMillis;
     private final InvokeCallback invokeCallback;
     private final long beginTimestamp = System.currentTimeMillis();
@@ -119,6 +119,10 @@ public class ResponseFuture {
 
     public Channel getProcessChannel() {
         return processChannel;
+    }
+
+    public void setProcessChannel(Channel processChannel) {
+        this.processChannel = processChannel;
     }
 
     @Override

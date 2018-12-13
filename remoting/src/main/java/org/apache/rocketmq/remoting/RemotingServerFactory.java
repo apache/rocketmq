@@ -19,9 +19,7 @@ public class RemotingServerFactory {
     private static final String SERVER_LOCATION = "META-INF/service/org.apache.rocketmq.remoting.RemotingServer";
 
     static {
-        log.info("begin load server");
         protocolPathMap = ServiceProvider.loadPath(SERVER_LOCATION);
-        log.info("end load server, size:{}", protocolPathMap.size());
     }
 
 

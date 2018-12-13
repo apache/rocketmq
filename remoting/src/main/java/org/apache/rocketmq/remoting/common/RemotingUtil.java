@@ -41,7 +41,7 @@ public class RemotingUtil {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
     private static boolean isLinuxPlatform = false;
     private static boolean isWindowsPlatform = false;
-    public static final String DEFAULT_PROTOCOL = "http2";
+    public static final String DEFAULT_PROTOCOL = "rocketmq";
     public static final String REMOTING_CHARSET = "UTF-8";
 
     static {

@@ -18,9 +18,7 @@ public class RemotingClientFactory {
     private static final String CLIENT_LOCATION = "META-INF/service/org.apache.rocketmq.remoting.RemotingClient";
 
     static {
-        log.info("begin load client");
         paths = ServiceProvider.loadPath(CLIENT_LOCATION);
-        log.info("end load client, size:{}", paths.size());
     }
 
     public static RemotingClient createInstance(String protocol) {

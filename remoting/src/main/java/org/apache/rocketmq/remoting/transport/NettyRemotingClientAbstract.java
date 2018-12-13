@@ -32,6 +32,7 @@ import java.util.Random;
 import java.util.Timer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -39,11 +40,17 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.netty.NettyEvent;
 import org.apache.rocketmq.remoting.netty.NettyEventType;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.util.ThreadUtils;
 
 public abstract class NettyRemotingClientAbstract extends NettyRemotingAbstract {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
@@ -53,6 +60,10 @@ public abstract class NettyRemotingClientAbstract extends NettyRemotingAbstract 
     private final AtomicReference<String> namesrvAddrChoosed = new AtomicReference<String>();
     private final AtomicInteger namesrvIndex = new AtomicInteger(initValueIndex());
     private final Lock lockNamesrvChannel = new ReentrantLock();
+    /**
+     * Used for async execute task for aysncInvokeMethod
+     */
+    private ExecutorService asyncExecuteService = ThreadUtils.newFixedThreadPool(5, 10000, "asyncExecute", false);
 
     private final Lock lockChannelTables = new ReentrantLock();
     private static final long LOCK_TIMEOUT_MILLIS = 3000;
@@ -169,6 +180,7 @@ public abstract class NettyRemotingClientAbstract extends NettyRemotingAbstract 
         }
     }
 
+    @Override
     protected Channel getAndCreateChannel(final String addr, long timeout) throws InterruptedException {
         if (null == addr) {
             return getAndCreateNameserverChannel(timeout);
