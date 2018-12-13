@@ -27,10 +27,11 @@ public abstract class ServiceThread implements Runnable {
 
     private static final long JOIN_TIME = 90 * 1000;
 
-    protected Thread thread;
+    private Thread thread;
     protected final CountDownLatch2 waitPoint = new CountDownLatch2(1);
     protected volatile AtomicBoolean hasNotified = new AtomicBoolean(false);
     protected volatile boolean stopped = false;
+    protected boolean isDaemon = false;
 
     //Make it able to restart the thread
     private final AtomicBoolean started = new AtomicBoolean(false);
@@ -48,6 +49,7 @@ public abstract class ServiceThread implements Runnable {
         }
         stopped = false;
         this.thread = new Thread(this, getServiceName());
+        this.thread.setDaemon(isDaemon);
         this.thread.start();
     }
 
@@ -56,7 +58,7 @@ public abstract class ServiceThread implements Runnable {
     }
 
     public void shutdown(final boolean interrupt) {
-        log.info("Try to start service thread:{} started:{} lastThread:{}", getServiceName(), started.get(), thread);
+        log.info("Try to shutdown service thread:{} started:{} lastThread:{}", getServiceName(), started.get(), thread);
         if (!started.compareAndSet(true, false)) {
             return;
         }
@@ -88,12 +90,14 @@ public abstract class ServiceThread implements Runnable {
         return JOIN_TIME;
     }
 
+    @Deprecated
     public void stop() {
         this.stop(false);
     }
 
+    @Deprecated
     public void stop(final boolean interrupt) {
-        if (!started.get()) {
+        if (!started.compareAndSet(true, false)) {
             return;
         }
         this.stopped = true;
@@ -109,7 +113,7 @@ public abstract class ServiceThread implements Runnable {
     }
 
     public void makeStop() {
-        if (!started.get()) {
+        if (!started.compareAndSet(true, false)) {
             return;
         }
         this.stopped = true;
@@ -146,5 +150,13 @@ public abstract class ServiceThread implements Runnable {
 
     public boolean isStopped() {
         return stopped;
+    }
+
+    public boolean isDaemon() {
+        return isDaemon;
+    }
+
+    public void setDaemon(boolean daemon) {
+        isDaemon = daemon;
     }
 }
