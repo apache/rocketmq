@@ -32,8 +32,10 @@ public class RemoteAddressStrategyFactory {
     }
 
     public RemoteAddressStrategy getRemoteAddressStrategy(String remoteAddr) {
-        //TODO if the white addr is not configured, should reject it.
-        if (StringUtils.isBlank(remoteAddr) || "*".equals(remoteAddr)) {
+        if (StringUtils.isBlank(remoteAddr)) {
+            throw new AclException("Must fill in the white list address");
+        }
+        if ("*".equals(remoteAddr)) {
             return NULL_NET_ADDRESS_STRATEGY;
         }
         if (remoteAddr.endsWith("}")) {

@@ -76,6 +76,7 @@ public class PlainAccessResource implements AccessResource {
         }
         return retryTopic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
     }
+
     public static String getRetryTopic(String group) {
         if (group == null) {
             return null;
