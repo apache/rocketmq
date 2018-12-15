@@ -14,43 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.example.filter;
 
-import java.io.File;
-import java.io.IOException;
+package org.apache.rocketmq.example.schedule;
+
 import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
-import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageExt;
 
-public class Consumer {
+public class ScheduledMessageConsumer {
+    public static void main(String[] args) throws Exception {
 
-    public static void main(String[] args) throws InterruptedException, MQClientException, IOException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("ConsumerGroupNamecc4");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name");
 
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        File classFile = new File(classLoader.getResource("MessageFilterImpl.java").getFile());
-
-        String filterCode = MixAll.file2String(classFile);
-        consumer.subscribe("TopicTest", "org.apache.rocketmq.example.filter.MessageFilterImpl",
-            filterCode);
+        consumer.subscribe("ScheduledMsgTest", "*");
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
-
             @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> messages,
                 ConsumeConcurrentlyContext context) {
-                System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
+                for (MessageExt message : messages) {
+
+                    // Print approximate delay time period
+                    System.out.printf("Receive message[msgId=" + message.getMsgId() + "] "
+                        + (System.currentTimeMillis() - message.getStoreTimestamp()) + "ms later %n");
+                }
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
 
         consumer.start();
-
-        System.out.printf("Consumer Started.%n");
     }
 }

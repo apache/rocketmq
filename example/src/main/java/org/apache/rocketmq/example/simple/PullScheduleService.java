@@ -29,7 +29,8 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 public class PullScheduleService {
 
     public static void main(String[] args) throws MQClientException {
-        final MQPullConsumerScheduleService scheduleService = new MQPullConsumerScheduleService("GroupName1");
+
+        final MQPullConsumerScheduleService scheduleService = new MQPullConsumerScheduleService("please_rename_unique_group_name");
 
         scheduleService.setMessageModel(MessageModel.CLUSTERING);
         scheduleService.registerPullTaskCallback("TopicTest", new PullTaskCallback() {
