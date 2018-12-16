@@ -1,6 +1,0 @@
-This directory contains examples of client code that uses RocketMQ.
-
-Notice:
-
-    1. Start name server and broker firstly.
-    2. Don't forget to specify name server addresses before runing the demo.

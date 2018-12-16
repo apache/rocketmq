@@ -31,9 +31,8 @@ public class SqlFilterConsumer {
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name");
 
-        /*
-        * Don't forget to set enablePropertyFilter=true in broker
-        */
+
+        // Don't forget to set enablePropertyFilter=true in broker
         consumer.subscribe("SqlFilterTest",
             MessageSelector.bySql("(TAGS is not null and TAGS in ('TagA', 'TagB'))" +
                 "and (a is not null and a between 0 and 3)"));

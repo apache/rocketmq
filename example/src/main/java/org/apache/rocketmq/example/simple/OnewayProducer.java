@@ -29,11 +29,9 @@ public class OnewayProducer {
         producer.start();
         for (int i = 0; i < 100; i++) {
 
-            Message msg = new Message("TopicTest" /* Topic */,
-                "TagA" /* Tag */,
-                ("Hello RocketMQ " +
-                    i).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
-            );
+            Message msg = new Message("TopicTest",
+                "TagA",
+                ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
 
             // One-way transmission is used for cases requiring moderate reliability, such as log collection.
             producer.sendOneway(msg);

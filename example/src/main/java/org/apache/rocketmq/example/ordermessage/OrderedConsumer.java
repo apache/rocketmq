@@ -28,7 +28,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 public class OrderedConsumer {
 
     public static void main(String[] args) throws MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_3");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name");
 
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
 
@@ -40,18 +40,18 @@ public class OrderedConsumer {
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context) {
 
                 /*
-                 * AutoCommit defaults is true and RocketMQ will commit offset automatically
-                 * But if you set AutoCommit to false, the offset can only be commited by returning ConsumeOrderlyStatus.COMMIT
+                 * The default value of AutoCommit is true and RocketMQ will commit offset automatically
+                 * but if you set AutoCommit to false, the offset can only be commited by returning ConsumeOrderlyStatus.COMMIT
                  */
                 context.setAutoCommit(false);
 
                 /*
-                 * Messages with the same orderID should be consumed sequentially
+                 * Messages with the same orderID will be consumed sequentially
                  */
                 System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
 
                 /*
-                 * Returning ConsumeOrderlyStatus.SUCCESS means the message was consumed successfully,
+                 * Returning ConsumeOrderlyStatus.SUCCESS means the messages was consumed successfully,
                  * but the offset will not be committed if AutoCommit is false
                  *
                  * {@code
@@ -79,7 +79,7 @@ public class OrderedConsumer {
 
 
                 /*
-                 * Returning ConsumeOrderlyStatus.COMMIT means the message was consumed successfully and the offset will be committed
+                 * Returning ConsumeOrderlyStatus.COMMIT means the max offset of the list will be committed
                  */
                 return ConsumeOrderlyStatus.COMMIT;
             }

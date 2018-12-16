@@ -31,14 +31,14 @@ public class SplitBatchProducer {
         DefaultMQProducer producer = new DefaultMQProducer("BatchProducerGroupName");
         producer.start();
 
-        // large batch
+        // Large batch
         String topic = "LargeBatchTest";
         List<Message> messages = new ArrayList<>(100 * 1000);
         for (int i = 0; i < 100 * 1000; i++) {
             messages.add(new Message(topic, "Tag", "OrderID" + i, ("Hello world " + i).getBytes()));
         }
 
-        // split the large batch into small ones:
+        // Split the large batch into small ones:
         ListSplitter splitter = new ListSplitter(messages);
         while (splitter.hasNext()) {
             List<Message> listItem = splitter.next();
@@ -75,15 +75,15 @@ class ListSplitter implements Iterator<List<Message>> {
             for (Map.Entry<String, String> entry : properties.entrySet()) {
                 tmpSize += entry.getKey().length() + entry.getValue().length();
             }
+            // For log overhead
             tmpSize = tmpSize + 20;
-            // for log overhead
             if (tmpSize > sizeLimit) {
                 /*
-                 * it is unexpected that single message exceeds the sizeLimit
+                 * It is unexpected that single message exceeds the sizeLimit
                  * here just let it go, otherwise it will block the splitting process
                  */
                 if (nextIndex - currIndex == 0) {
-                    // if the next sublist has no element, add this one and then break, otherwise just break
+                    // If the next sublist has no element, add this one and then break, otherwise just break
                     nextIndex++;
                 }
                 break;

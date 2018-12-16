@@ -30,7 +30,7 @@ public class SimpleBatchProducer {
 
         /*
          * If you just send messages of no more than 1MiB at a time, it is easy to use batch
-         * Messages of the same batch should have: same topic, same waitStoreMsgOK and no schedule support
+         * messages of the same batch should have: same topic, same waitStoreMsgOK and no schedule support
          */
         String topic = "BatchTest";
         List<Message> messages = new ArrayList<>();
