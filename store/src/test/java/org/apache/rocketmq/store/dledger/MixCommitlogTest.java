@@ -2,10 +2,53 @@ package org.apache.rocketmq.store.dledger;
 
 import java.util.UUID;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.StoreTestBase;
+import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class MixCommitlogTest extends MessageStoreTestBase {
+
+
+
+    @Test
+    public void testFallBehindCQ() throws Exception {
+        String base =  createBaseDir();
+        String topic = UUID.randomUUID().toString();
+        String peers = String.format("n0-localhost:%d", nextPort());
+        String group = UUID.randomUUID().toString();
+        {
+            DefaultMessageStore originalStore = createMessageStore(base, false);
+            doPutMessages(originalStore, topic, 0, 1000, 0);
+            Assert.assertEquals(11, originalStore.getMaxPhyOffset()/originalStore.getMessageStoreConfig().getMapedFileSizeCommitLog());
+            Thread.sleep(500);
+            Assert.assertEquals(0, originalStore.getMinOffsetInQueue(topic, 0));
+            Assert.assertEquals(1000, originalStore.getMaxOffsetInQueue(topic, 0));
+            Assert.assertEquals(0, originalStore.dispatchBehindBytes());
+            doGetMessages(originalStore, topic, 0, 1000, 0);
+            originalStore.shutdown();
+        }
+        //delete the cq files
+        {
+            StoreTestBase.deleteFile(StorePathConfigHelper.getStorePathConsumeQueue(base));
+        }
+        {
+            DefaultMessageStore dledgerStore = createDledgerMessageStore(base, group, "n0", peers, null, true, 0);
+            Thread.sleep(2000);
+            Assert.assertEquals(0, dledgerStore.getMinOffsetInQueue(topic, 0));
+            Assert.assertEquals(1000, dledgerStore.getMaxOffsetInQueue(topic, 0));
+            Assert.assertEquals(0, dledgerStore.dispatchBehindBytes());
+            doGetMessages(dledgerStore, topic, 0, 1000, 0);
+            doPutMessages(dledgerStore, topic, 0, 1000, 1000);
+            Thread.sleep(500);
+            Assert.assertEquals(0, dledgerStore.getMinOffsetInQueue(topic, 0));
+            Assert.assertEquals(2000, dledgerStore.getMaxOffsetInQueue(topic, 0));
+            Assert.assertEquals(0, dledgerStore.dispatchBehindBytes());
+            doGetMessages(dledgerStore, topic, 0, 2000, 0);
+            dledgerStore.shutdown();
+        }
+    }
+
 
 
     @Test
