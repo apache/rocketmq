@@ -63,7 +63,7 @@ public class PlainPermissionLoaderTest {
 
         System.setProperty("java.version", "1.6.11");
         System.setProperty("rocketmq.home.dir", "src/test/resources");
-        System.setProperty("romcketmq.acl.plain.fileName", "/conf/transport.yml");
+        System.setProperty("romcketmq.acl.plain.fileName", "/conf/plain_acl.yml");
         plainPermissionLoader = new PlainPermissionLoader();
 
     }
@@ -154,16 +154,16 @@ public class PlainPermissionLoaderTest {
     public void checkPerm() {
 
         PlainAccessResource plainAccessResource = new PlainAccessResource();
-        plainAccessResource.addResourceAndPerm("pub", Permission.PUB);
-        plainPermissionLoader.checkPerm(PUBPlainAccessResource, plainAccessResource);
-        plainAccessResource.addResourceAndPerm("sub", Permission.SUB);
-        plainPermissionLoader.checkPerm(ANYPlainAccessResource, plainAccessResource);
+        plainAccessResource.addResourceAndPerm("topicA", Permission.PUB);
+        plainPermissionLoader.checkPerm(plainAccessResource, PUBPlainAccessResource);
+        plainAccessResource.addResourceAndPerm("topicB", Permission.SUB);
+        plainPermissionLoader.checkPerm(plainAccessResource, ANYPlainAccessResource);
 
         plainAccessResource = new PlainAccessResource();
-        plainAccessResource.addResourceAndPerm("sub", Permission.SUB);
-        plainPermissionLoader.checkPerm(SUBPlainAccessResource, plainAccessResource);
-        plainAccessResource.addResourceAndPerm("pub", Permission.PUB);
-        plainPermissionLoader.checkPerm(ANYPlainAccessResource, plainAccessResource);
+        plainAccessResource.addResourceAndPerm("topicB", Permission.SUB);
+        plainPermissionLoader.checkPerm(plainAccessResource, SUBPlainAccessResource);
+        plainAccessResource.addResourceAndPerm("topicA", Permission.PUB);
+        plainPermissionLoader.checkPerm(plainAccessResource, ANYPlainAccessResource);
 
     }
 
@@ -226,7 +226,7 @@ public class PlainPermissionLoaderTest {
         System.setProperty("rocketmq.home.dir", "src/test/resources/watch");
         File file = new File("src/test/resources/watch/conf");
         file.mkdirs();
-        File transport = new File("src/test/resources/watch/conf/transport.yml");
+        File transport = new File("src/test/resources/watch/conf/plain_acl.yml");
         transport.createNewFile();
 
         FileWriter writer = new FileWriter(transport);
@@ -240,9 +240,9 @@ public class PlainPermissionLoaderTest {
         PlainPermissionLoader plainPermissionLoader = new PlainPermissionLoader();
 
         Map<String, List<PlainAccessResource>> plainAccessResourceMap = (Map<String, List<PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionLoader, "plainAccessResourceMap", true);
-        Assert.assertEquals(plainAccessResourceMap.get("rokcetmq").size(), 1);
+        Assert.assertNotNull(plainAccessResourceMap.get("rokcetmq"));
 
-        writer = new FileWriter(new File("src/test/resources/watch/conf/transport.yml"), true);
+        writer = new FileWriter(new File("src/test/resources/watch/conf/plain_acl.yml"), true);
         writer.write("- accessKey: rokcet1\r\n");
         writer.write("  secretKey: aliyun1\r\n");
         writer.write("  whiteRemoteAddress: 127.0.0.1\r\n");
@@ -256,7 +256,7 @@ public class PlainPermissionLoaderTest {
             e.printStackTrace();
         }
         plainAccessResourceMap = (Map<String, List<PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionLoader, "plainAccessResourceMap", true);
-        Assert.assertEquals(plainAccessResourceMap.get("rokcet1").size(), 1);
+        Assert.assertNotNull(plainAccessResourceMap.get("rokcet1"));
 
         transport.delete();
         file.delete();
@@ -267,7 +267,7 @@ public class PlainPermissionLoaderTest {
 
     @Test(expected = AclException.class)
     public void initializeTest() {
-        System.setProperty("romcketmq.acl.plain.fileName", "/conf/transport-null.yml");
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_null.yml");
         new PlainPermissionLoader();
 
     }

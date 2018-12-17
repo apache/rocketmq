@@ -24,14 +24,18 @@ public class RemoteAddressStrategyTest {
 
     RemoteAddressStrategyFactory remoteAddressStrategyFactory = new RemoteAddressStrategyFactory();
 
-    @Test
-    public void NetaddressStrategyFactoryTest() {
+    @Test(expected = AclException.class)
+    public void netaddressStrategyFactoryExceptionTest() {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
-        RemoteAddressStrategy remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
-        Assert.assertEquals(remoteAddressStrategy, RemoteAddressStrategyFactory.NULL_NET_ADDRESS_STRATEGY);
+        remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
+    }
+
+    @Test
+    public void netaddressStrategyFactoryTest() {
+        PlainAccessResource plainAccessResource = new PlainAccessResource();
 
         plainAccessResource.setWhiteRemoteAddress("*");
-        remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
+        RemoteAddressStrategy remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         Assert.assertEquals(remoteAddressStrategy, RemoteAddressStrategyFactory.NULL_NET_ADDRESS_STRATEGY);
 
         plainAccessResource.setWhiteRemoteAddress("127.0.0.1");

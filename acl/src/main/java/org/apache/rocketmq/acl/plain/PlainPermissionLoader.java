@@ -45,12 +45,12 @@ public class PlainPermissionLoader {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.ACL_PLUG_LOGGER_NAME);
 
+    private static final String DEFAULT_PLAIN_ACL_FILE = "/conf/plain_acl.yml";
 
     private String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
-    //TODO  rename transport to plain_acl.yml
-    private String fileName = System.getProperty("rocketmq.acl.plain.file", "/conf/transport.yml");
+    private String fileName = System.getProperty("rocketmq.acl.plain.file", DEFAULT_PLAIN_ACL_FILE);
 
     private Map<String/** AccessKey **/, PlainAccessResource> plainAccessResourceMap = new HashMap<>();
 
@@ -61,7 +61,6 @@ public class PlainPermissionLoader {
     private boolean isWatchStart;
 
     public PlainPermissionLoader() {
-        //TODO test what will happen if initialize failed
         initialize();
         watch();
     }
@@ -97,9 +96,15 @@ public class PlainPermissionLoader {
             log.warn("Watch need jdk equal or greater than 1.7, current version is {}", str[1]);
             return;
         }
+
         try {
+            int fileIndex = fileName.lastIndexOf("/") + 1;
+            String watchDirectory = fileName.substring(0, fileIndex);
+            final String watchFileName = fileName.substring(fileIndex);
+            log.info("watch directory is {} , watch directory file name is {} ", fileHome + watchDirectory, watchFileName);
+
             final WatchService watcher = FileSystems.getDefault().newWatchService();
-            Path p = Paths.get(fileHome + "/conf/");
+            Path p = Paths.get(fileHome + watchDirectory);
             p.register(watcher, StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_CREATE);
             ServiceThread watcherServcie = new ServiceThread() {
 
@@ -109,11 +114,10 @@ public class PlainPermissionLoader {
                             WatchKey watchKey = watcher.take();
                             List<WatchEvent<?>> watchEvents = watchKey.pollEvents();
                             for (WatchEvent<?> event : watchEvents) {
-                                //TODO use variable instead of raw text
-                                if ("transport.yml".equals(event.context().toString())
+                                if (watchFileName.equals(event.context().toString())
                                     && (StandardWatchEventKinds.ENTRY_MODIFY.equals(event.kind())
                                     || StandardWatchEventKinds.ENTRY_CREATE.equals(event.kind()))) {
-                                    log.info("transprot.yml make a difference  change is : ", event.toString());
+                                    log.info("{} make a difference  change is : {}", watchFileName, event.toString());
                                     PlainPermissionLoader.this.clearPermissionInfo();
                                     initialize();
                                 }
@@ -126,6 +130,7 @@ public class PlainPermissionLoader {
                         }
                     }
                 }
+
                 @Override
                 public String getServiceName() {
                     return "AclWatcherService";
@@ -239,7 +244,6 @@ public class PlainPermissionLoader {
         if (ownedAccess.getRemoteAddressStrategy().match(plainAccessResource)) {
             return;
         }
-
 
         //Step 3, check the signature
         String signature = AclUtils.calSignature(plainAccessResource.getContent(), ownedAccess.getSecretKey());

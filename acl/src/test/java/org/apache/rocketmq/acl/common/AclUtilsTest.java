@@ -129,13 +129,13 @@ public class AclUtilsTest {
     @Test
     public void getYamlDataObjectTest() {
 
-        Map<String, Object> map = AclUtils.getYamlDataObject("src/test/resources/conf/transport.yml", Map.class);
+        Map<String, Object> map = AclUtils.getYamlDataObject("src/test/resources/conf/plain_acl.yml", Map.class);
         Assert.assertFalse(map.isEmpty());
     }
 
     @Test(expected = Exception.class)
     public void getYamlDataObjectExceptionTest() {
 
-        AclUtils.getYamlDataObject("transport.yml", Map.class);
+        AclUtils.getYamlDataObject("plain_acl.yml", Map.class);
     }
 }
