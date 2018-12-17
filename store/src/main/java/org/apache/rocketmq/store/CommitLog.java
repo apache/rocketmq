@@ -212,6 +212,12 @@ public class CommitLog {
                 log.warn("maxPhyOffsetOfConsumeQueue({}) >= processOffset({}), truncate dirty logic files", maxPhyOffsetOfConsumeQueue, processOffset);
                 this.defaultMessageStore.truncateDirtyLogicFiles(processOffset);
             }
+        } else {
+            // Commitlog case files are deleted
+            log.warn("The commitlog files are deleted, and delete the consume queue files");
+            this.mappedFileQueue.setFlushedWhere(0);
+            this.mappedFileQueue.setCommittedWhere(0);
+            this.defaultMessageStore.destroyLogics();
         }
     }
 
@@ -396,6 +402,7 @@ public class CommitLog {
         this.confirmOffset = phyOffset;
     }
 
+    @Deprecated
     public void recoverAbnormally(long maxPhyOffsetOfConsumeQueue) {
         // recover by the minimum time stamp
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();

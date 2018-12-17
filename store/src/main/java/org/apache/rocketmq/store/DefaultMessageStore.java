@@ -236,7 +236,6 @@ public class DefaultMessageStore implements MessageStore {
                 }
             }
         }
-
         log.info("[SetReputOffset] maxPhysicalPosInLogicQueue={} clMaxOffset={} clConfirmedOffset={}",
             maxPhysicalPosInLogicQueue, this.commitLog.getMaxOffset(), this.commitLog.getConfirmOffset());
         long reputOffset;
@@ -255,6 +254,13 @@ public class DefaultMessageStore implements MessageStore {
             this.haService.start();
             this.handleScheduleMessageService(messageStoreConfig.getBrokerRole());
         }
+
+        //Finish dispatching the messages fall behind
+        while (this.dispatchBehindBytes() != 0) {
+            Thread.sleep(1000);
+            log.info("Try to finish doing reput the messages fall behind during the starting, reputOffset={} maxOffset={} behind={}", this.reputMessageService.getReputFromOffset(), this.getMaxPhyOffset(), this.dispatchBehindBytes());
+        }
+        this.recoverTopicQueueTable();
 
         this.createTempFile();
         this.addScheduleTask();
@@ -1064,6 +1070,7 @@ public class DefaultMessageStore implements MessageStore {
         return false;
     }
 
+    @Override
     public long dispatchBehindBytes() {
         return this.reputMessageService.behind();
     }

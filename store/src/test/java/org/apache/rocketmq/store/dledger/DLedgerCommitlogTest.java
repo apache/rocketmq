@@ -37,7 +37,6 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             doPutMessages(messageStore, topic, 0, 2000, 0);
             Thread.sleep(100);
             Assert.assertEquals(24, mmapFileList.getMappedFiles().size());
-            System.out.println(mmapFileList.getMappedFiles().size());
             Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(2000, messageStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, messageStore.dispatchBehindBytes());

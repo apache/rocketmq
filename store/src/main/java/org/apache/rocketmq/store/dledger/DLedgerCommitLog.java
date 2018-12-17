@@ -270,13 +270,8 @@ public class DLedgerCommitLog extends CommitLog {
         }
         //Indicate that, it is the first time to load mixed commitlog, need to recover the old commitlog
         isInrecoveringOldCommitlog = true;
-        //TODO only do the normal recover
         //No need the abnormal recover
-        if (lastOk) {
-            super.recoverNormally(maxPhyOffsetOfConsumeQueue);
-        } else {
-            super.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
-        }
+        super.recoverNormally(maxPhyOffsetOfConsumeQueue);
         isInrecoveringOldCommitlog = false;
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
         if (mappedFile == null) {
@@ -302,11 +297,10 @@ public class DLedgerCommitLog extends CommitLog {
             byteBuffer.putInt(mappedFile.getFileSize() - mappedFile.getWrotePosition());
             byteBuffer.putInt(BLANK_MAGIC_CODE);
             mappedFile.flush(0);
-            //TODO already set
-            mappedFile.setWrotePosition(mappedFile.getFileSize());
-            mappedFile.setCommittedPosition(mappedFile.getFileSize());
-            mappedFile.setFlushedPosition(mappedFile.getFileSize());
         }
+        mappedFile.setWrotePosition(mappedFile.getFileSize());
+        mappedFile.setCommittedPosition(mappedFile.getFileSize());
+        mappedFile.setFlushedPosition(mappedFile.getFileSize());
         dLedgerFileList.getLastMappedFile(dividedCommitlogOffset);
         log.info("Will set the initial commitlog offset={} for dledger", dividedCommitlogOffset);
     }
