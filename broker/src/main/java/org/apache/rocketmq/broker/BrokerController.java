@@ -806,9 +806,7 @@ public class BrokerController {
             this.filterServerManager.start();
         }
 
-        if (messageStoreConfig.isEnableDLegerCommitLog()) {
-            changeToSlave(((DLedgerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getId());
-        } else {
+        if (!messageStoreConfig.isEnableDLegerCommitLog()) {
             startProcessorByHa(messageStoreConfig.getBrokerRole());
             handleSlaveSynchronize(messageStoreConfig.getBrokerRole());
         }
