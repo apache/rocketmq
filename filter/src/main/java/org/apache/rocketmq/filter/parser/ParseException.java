@@ -44,8 +44,8 @@ public class ParseException extends Exception {
      * "expectedTokenSequences", and "TOKEN_IMAGE" set.
      */
     public ParseException(Token currentTokenVal,
-        int[][] expectedTokenSequencesVal,
-        String[] tokenImageVal
+                          int[][] expectedTokenSequencesVal,
+                          String[] tokenImageVal
     ) {
         super(initialise(currentTokenVal, expectedTokenSequencesVal, tokenImageVal));
         currentToken = currentTokenVal;
@@ -103,8 +103,8 @@ public class ParseException extends Exception {
      * gets displayed.
      */
     private static String initialise(Token currentToken,
-        int[][] expectedTokenSequences,
-        String[] tokenImage) {
+                                     int[][] expectedTokenSequences,
+                                     String[] tokenImage) {
         String eol = System.getProperty("line.separator", "\n");
         StringBuffer expected = new StringBuffer();
         int maxSize = 0;
@@ -131,7 +131,7 @@ public class ParseException extends Exception {
             }
             retval += " " + tokenImage[tok.kind];
             retval += " \"";
-            retval += add_escapes(tok.image);
+            retval += addEscapes(tok.image);
             retval += " \"";
             tok = tok.next;
         }
@@ -156,7 +156,7 @@ public class ParseException extends Exception {
      * when these raw version cannot be used as part of an ASCII
      * string literal.
      */
-    static String add_escapes(String str) {
+    static String addEscapes(String str) {
         StringBuffer retval = new StringBuffer();
         char ch;
         for (int i = 0; i < str.length(); i++) {

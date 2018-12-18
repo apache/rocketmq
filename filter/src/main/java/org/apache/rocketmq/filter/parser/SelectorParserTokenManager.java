@@ -363,10 +363,10 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
     }
 
     static final long[] JJ_BIT_VEC_0 = {
-        0xfffffffffffffffeL, 0xffffffffffffffffL, 0xffffffffffffffffL, 0xffffffffffffffffL
+            0xfffffffffffffffeL, 0xffffffffffffffffL, 0xffffffffffffffffL, 0xffffffffffffffffL
     };
     static final long[] JJ_BIT_VEC_2 = {
-        0x0L, 0x0L, 0xffffffffffffffffL, 0xffffffffffffffffL
+            0x0L, 0x0L, 0xffffffffffffffffL, 0xffffffffffffffffL
     };
 
     private int jjMoveNfa_0(int startState, int curPos) {
@@ -702,8 +702,8 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
     }
 
     static final int[] JJ_NEXT_STATES = {
-        30, 31, 36, 37, 24, 25, 26, 1, 2, 4, 8, 9, 11, 20, 21, 34,
-        35, 38, 39,
+            30, 31, 36, 37, 24, 25, 26, 1, 2, 4, 8, 9, 11, 20, 21, 34,
+            35, 38, 39,
     };
 
     private static final boolean jjCanMove_0(int hiByte, int i1, int i2, long l1, long l2) {
@@ -721,24 +721,24 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
      * Token literal values.
      */
     public static final String[] JJ_STR_LITERAL_IMAGES = {
-        "", null, null, null, null, null, null, null, null, null, null, null, null,
-        null, null, null, null, null, null, null, null, null, "\75", "\74\76", "\76",
-        "\76\75", "\74", "\74\75", "\50", "\54", "\51", "\53", "\55"};
+            "", null, null, null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null, null, "\75", "\74\76", "\76",
+            "\76\75", "\74", "\74\75", "\50", "\54", "\51", "\53", "\55"};
 
     /**
      * Lexer state names.
      */
     public static final String[] LEX_STATE_NAMES = {
-        "DEFAULT",
+            "DEFAULT",
     };
     static final long[] JJ_TO_TOKEN = {
-        0x1fff7ff01L,
+            0x1fff7ff01L,
     };
     static final long[] JJ_TO_SKIP = {
-        0xfeL,
+            0xfeL,
     };
     static final long[] JJ_TO_SPECIAL = {
-        0x3eL,
+            0x3eL,
     };
     protected SimpleCharStream inputStream;
     private final int[] jjrounds = new int[40];
@@ -793,7 +793,7 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
     public void SwitchTo(int lexState) {
         if (lexState >= 1 || lexState < 0)
             throw new TokenMgrError("Error: Ignoring invalid lexical state : " + lexState + ". State unchanged.",
-                TokenMgrError.INVALID_LEXICAL_STATE);
+                    TokenMgrError.INVALID_LEXICAL_STATE);
         else
             curLexState = lexState;
     }
@@ -806,7 +806,7 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
         final int beginColumn;
         final int endColumn;
         String im = JJ_STR_LITERAL_IMAGES[jjmatchedKind];
-        curTokenImage = (im == null) ? inputStream.GetImage() : im;
+        curTokenImage = (im == null) ? inputStream.getImage() : im;
         beginLine = inputStream.getBeginLine();
         beginColumn = inputStream.getBeginColumn();
         endLine = inputStream.getEndLine();
@@ -839,7 +839,7 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
         EOFLoop:
         for (; ; ) {
             try {
-                curChar = inputStream.BeginToken();
+                curChar = inputStream.beginToken();
             } catch (java.io.IOException e) {
                 jjmatchedKind = 0;
                 matchedToken = jjFillToken();
@@ -879,7 +879,7 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
                 inputStream.backup(1);
             } catch (java.io.IOException e1) {
                 eofSeen = true;
-                errorAfter = curPos <= 1 ? "" : inputStream.GetImage();
+                errorAfter = curPos <= 1 ? "" : inputStream.getImage();
                 if (curChar == '\n' || curChar == '\r') {
                     errorLine++;
                     errorColumn = 0;
@@ -888,10 +888,10 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
             }
             if (!eofSeen) {
                 inputStream.backup(1);
-                errorAfter = curPos <= 1 ? "" : inputStream.GetImage();
+                errorAfter = curPos <= 1 ? "" : inputStream.getImage();
             }
             throw new TokenMgrError(eofSeen, curLexState, errorLine, errorColumn, errorAfter, curChar,
-                TokenMgrError.LEXICAL_ERROR);
+                    TokenMgrError.LEXICAL_ERROR);
         }
     }
 
