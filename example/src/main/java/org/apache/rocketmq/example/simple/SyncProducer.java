@@ -28,7 +28,7 @@ public class SyncProducer {
         producer.setRetryTimesWhenSendFailed(0);
         producer.start();
 
-        for (int i = 0; i < 128; i++) {
+        for (int i = 0; i < 100; i++) {
             Message msg = new Message("TopicTest",
                 "TagA",
                 "OrderID188",

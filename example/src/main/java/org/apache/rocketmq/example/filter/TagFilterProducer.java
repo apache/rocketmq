@@ -29,7 +29,7 @@ public class TagFilterProducer {
 
         String[] tags = new String[] {"TagA", "TagB", "TagC"};
 
-        for (int i = 0; i < 600; i++) {
+        for (int i = 0; i < 60; i++) {
             Message msg = new Message("TagFilterTest",
                 tags[i % tags.length],
                 "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
