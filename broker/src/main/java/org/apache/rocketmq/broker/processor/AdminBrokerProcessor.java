@@ -216,6 +216,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return getBrokerAclConfigVersion(ctx, request);
             case RequestCode.UPDATE_GLOBAL_WHITE_ADDRS_CONFIG:
                 return updateGlobalWhiteAddrsConfig(ctx, request);
+            case RequestCode.RESUME_CHECK_HALF_MESSAGE:
+                return resumeCheckHalfMessage(ctx, request);
             default:
                 break;
         }
@@ -1518,4 +1520,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         return response;
     }
+
+
+    private RemotingCommand resumeCheckHalfMessage(ChannelHandlerContext ctx, RemotingCommand request) {
+        return null;
+    }
+
 }

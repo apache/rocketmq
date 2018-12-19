@@ -270,6 +270,46 @@ public class TopicConfigManager extends ConfigManager {
         return topicConfig;
     }
 
+    public TopicConfig createTopicOfTranCheckMaxTime(final int clientDefaultTopicQueueNums, final int perm) {
+        TopicConfig topicConfig = this.topicConfigTable.get(MixAll.TRANS_CHECK_MAX_TIME_TOPIC);
+        if (topicConfig != null)
+            return topicConfig;
+
+        boolean createNew = false;
+
+        try {
+            if (this.lockTopicConfigTable.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+                try {
+                    topicConfig = this.topicConfigTable.get(MixAll.TRANS_CHECK_MAX_TIME_TOPIC);
+                    if (topicConfig != null)
+                        return topicConfig;
+
+                    topicConfig = new TopicConfig(MixAll.TRANS_CHECK_MAX_TIME_TOPIC);
+                    topicConfig.setReadQueueNums(clientDefaultTopicQueueNums);
+                    topicConfig.setWriteQueueNums(clientDefaultTopicQueueNums);
+                    topicConfig.setPerm(perm);
+                    topicConfig.setTopicSysFlag(0);
+
+                    log.info("create new topic {}", topicConfig);
+                    this.topicConfigTable.put(MixAll.TRANS_CHECK_MAX_TIME_TOPIC, topicConfig);
+                    createNew = true;
+                    this.dataVersion.nextVersion();
+                    this.persist();
+                } finally {
+                    this.lockTopicConfigTable.unlock();
+                }
+            }
+        } catch (InterruptedException e) {
+            log.error("create TRANS_CHECK_MAX_TIME_TOPIC exception", e);
+        }
+
+        if (createNew) {
+            this.brokerController.registerBrokerAll(false, true,true);
+        }
+
+        return topicConfig;
+    }
+
     public void updateTopicUnitFlag(final String topic, final boolean unit) {
 
         TopicConfig topicConfig = this.topicConfigTable.get(topic);
