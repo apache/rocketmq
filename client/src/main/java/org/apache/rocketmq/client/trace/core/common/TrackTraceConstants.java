@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.client.trace.core.common;
 
-import org.apache.rocketmq.common.MixAll;
-
 public class TrackTraceConstants {
     public static final String NAMESRV_ADDR = "NAMESRV_ADDR";
     public static final String ADDRSRV_URL = "ADDRSRV_URL";
@@ -27,7 +25,7 @@ public class TrackTraceConstants {
     public static final String WAKE_UP_NUM = "WakeUpNum";
     public static final String MAX_MSG_SIZE = "MaxMsgSize";
     public static final String GROUP_NAME = "_INNER_TRACE_PRODUCER";
-    public static final String TRACE_TOPIC = MixAll.RMQ_SYS_TRACK_TRACE_TOPIC;
+    public static final String TRACE_TOPIC = "TRACK_TRACE_TOPIC_NAME";
     public static final char CONTENT_SPLITOR = (char) 1;
     public static final char FIELD_SPLITOR = (char) 2;
     public static final String TRACE_DISPATCHER_TYPE = "DispatcherType";

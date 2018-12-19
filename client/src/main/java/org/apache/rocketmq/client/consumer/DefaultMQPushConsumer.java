@@ -289,9 +289,10 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param rpcHook RPC hook to execute before each remoting command.
      * @param allocateMessageQueueStrategy message queue allocating algorithm.
      * @param msgTraceSwitch switch flag instance for message track trace.
+     * @param traceTopicName the name value of message track trace topic.If you don't config,you can use the default trace topic name.
      */
     public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook,
-        AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean msgTraceSwitch) {
+        AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean msgTraceSwitch, final String traceTopicName) {
         this.consumerGroup = consumerGroup;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
@@ -303,6 +304,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
                 tempProperties.put(TrackTraceConstants.MAX_BATCH_NUM, "100");
                 tempProperties.put(TrackTraceConstants.INSTANCE_NAME, "PID_CLIENT_INNER_TRACE_PRODUCER");
                 tempProperties.put(TrackTraceConstants.TRACE_DISPATCHER_TYPE, TrackTraceDispatcherType.CONSUMER.name());
+                if (!UtilAll.isBlank(traceTopicName)) {
+                    tempProperties.put(TrackTraceConstants.TRACE_TOPIC, traceTopicName);
+                } else {
+                    tempProperties.put(TrackTraceConstants.TRACE_TOPIC, MixAll.RMQ_SYS_TRACK_TRACE_TOPIC);
+                }
                 AsyncArrayDispatcher dispatcher = new AsyncArrayDispatcher(tempProperties);
                 dispatcher.setHostConsumer(this.getDefaultMQPushConsumerImpl());
                 traceDispatcher = dispatcher;
@@ -329,9 +335,10 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      *
      * @param consumerGroup Consumer group.
      * @param msgTraceSwitch switch flag instance for message track trace.
+     * @param traceTopicName the name value of message track trace topic.If you don't config,you can use the default trace topic name.
      */
-    public DefaultMQPushConsumer(final String consumerGroup, boolean msgTraceSwitch) {
-        this(consumerGroup, null, new AllocateMessageQueueAveragely(), msgTraceSwitch);
+    public DefaultMQPushConsumer(final String consumerGroup, boolean msgTraceSwitch, final String traceTopicName) {
+        this(consumerGroup, null, new AllocateMessageQueueAveragely(), msgTraceSwitch, traceTopicName);
     }
 
     /**

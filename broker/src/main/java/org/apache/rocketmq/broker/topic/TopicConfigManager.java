@@ -126,7 +126,7 @@ public class TopicConfigManager extends ConfigManager {
         }
         {
             if (this.brokerController.getBrokerConfig().isAutoTraceBrokerEnable()) {
-                String topic = MixAll.RMQ_SYS_TRACK_TRACE_TOPIC;
+                String topic = this.brokerController.getBrokerConfig().getMsgTrackTopicName();
                 TopicConfig topicConfig = new TopicConfig(topic);
                 this.systemTopicList.add(topic);
                 topicConfig.setReadQueueNums(1);
