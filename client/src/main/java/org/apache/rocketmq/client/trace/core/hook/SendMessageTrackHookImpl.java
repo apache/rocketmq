@@ -20,11 +20,10 @@ import org.apache.rocketmq.client.hook.SendMessageContext;
 import org.apache.rocketmq.client.hook.SendMessageHook;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.client.trace.core.common.TrackTraceBean;
-import org.apache.rocketmq.client.trace.core.common.TrackTraceConstants;
 import org.apache.rocketmq.client.trace.core.common.TrackTraceContext;
 import org.apache.rocketmq.client.trace.core.common.TrackTraceType;
 import org.apache.rocketmq.client.trace.core.dispatch.AsyncDispatcher;
-import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.client.trace.core.dispatch.impl.AsyncArrayDispatcher;
 import java.util.ArrayList;
 
 public class SendMessageTrackHookImpl implements SendMessageHook {
@@ -43,7 +42,7 @@ public class SendMessageTrackHookImpl implements SendMessageHook {
     @Override
     public void sendMessageBefore(SendMessageContext context) {
         //if it is message track trace data,then it doesn't recorded
-        if (context == null || context.getMessage().getTopic().startsWith(MixAll.SYSTEM_TOPIC_PREFIX)) {
+        if (context == null || context.getMessage().getTopic().startsWith(((AsyncArrayDispatcher) localDispatcher).getTraceTopicName())) {
             return;
         }
         //build the context content of TuxeTraceContext
@@ -67,7 +66,7 @@ public class SendMessageTrackHookImpl implements SendMessageHook {
     @Override
     public void sendMessageAfter(SendMessageContext context) {
         //if it is message track trace data,then it doesn't recorded
-        if (context == null || context.getMessage().getTopic().startsWith(TrackTraceConstants.TRACE_TOPIC)
+        if (context == null || context.getMessage().getTopic().startsWith(((AsyncArrayDispatcher) localDispatcher).getTraceTopicName())
             || context.getMqTraceContext() == null) {
             return;
         }

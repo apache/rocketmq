@@ -24,7 +24,7 @@ import org.apache.rocketmq.test.util.RandomUtil;
 public class ProducerFactory {
 
     public static DefaultMQProducer getRMQProducer(String ns) {
-        DefaultMQProducer producer = new DefaultMQProducer(RandomUtil.getStringByUUID(),false);
+        DefaultMQProducer producer = new DefaultMQProducer(RandomUtil.getStringByUUID());
         producer.setNamesrvAddr(ns);
         try {
             producer.start();
