@@ -18,29 +18,34 @@
 package org.apache.rocketmq.broker;
 
 import static org.apache.rocketmq.store.stats.BrokerStatsManager.TOPIC_PUT_NUMS;
+import static org.junit.Assert.assertEquals;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
-import org.junit.Before;
+import org.junit.After;
 import org.junit.Test;
 
 public class BrokerStatsManagerTest {
 
     private BrokerStatsManager brokerStatsManager;
     private ThreadPoolExecutor executor;
-    @Before
-    public void init() {
-        brokerStatsManager = new BrokerStatsManager("DefaultCluster");
-        executor = new ThreadPoolExecutor(100, 200, 10, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(1000), new ThreadFactoryImpl("testMultiThread"));
-    }
 
     @Test
     public void test_getAndCreateStatsItem_multiThread() throws InterruptedException {
+        for (int i = 0; i < 5; i++) {
+            assertEquals(20000L, test_unit().longValue());
+        }
+    }
 
-        for(int i =0; i < 10000; i++) {
+    public AtomicLong test_unit() throws InterruptedException {
+        brokerStatsManager = new BrokerStatsManager("DefaultCluster");
+        executor = new ThreadPoolExecutor(100, 200, 10, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<Runnable>(10000), new ThreadFactoryImpl("testMultiThread"));
+        for (int i = 0; i < 10000; i++) {
             executor.submit(new Runnable() {
                 @Override
                 public void run() {
@@ -48,7 +53,17 @@ public class BrokerStatsManagerTest {
                 }
             });
         }
-        Thread.sleep(5000);
-        System.out.println(brokerStatsManager.getStatsItem(TOPIC_PUT_NUMS,"topicTest").getValue());
+        while (true) {
+            if (executor.getCompletedTaskCount() == 10000) {
+                break;
+            }
+            Thread.sleep(1000);
+        }
+        return brokerStatsManager.getStatsItem(TOPIC_PUT_NUMS, "topicTest").getValue();
+    }
+
+    @After
+    public void shutdown() {
+        executor.shutdown();
     }
 }
