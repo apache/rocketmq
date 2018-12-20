@@ -19,12 +19,13 @@ import org.apache.rocketmq.test.base.IntegrationTestBase;
 import org.apache.rocketmq.test.factory.ConsumerFactory;
 import org.apache.rocketmq.test.factory.ProducerFactory;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.rocketmq.test.base.IntegrationTestBase.nextPort;
 import static sun.util.locale.BaseLocale.SEP;
 
-public class ProduceAndConsumeTest {
+public class DLedgerProduceAndConsumeIT {
 
     public BrokerConfig buildBrokerConfig(String cluster, String brokerName) {
         BrokerConfig brokerConfig =  new BrokerConfig();
@@ -58,7 +59,7 @@ public class ProduceAndConsumeTest {
         BrokerConfig brokerConfig = buildBrokerConfig(cluster, brokerName);
         MessageStoreConfig storeConfig = buildStoreConfig(brokerName, peers, selfId);
         BrokerController brokerController = IntegrationTestBase.createAndStartBroker(storeConfig, brokerConfig);
-        Thread.sleep(1000);
+        Thread.sleep(3000);
 
         Assert.assertEquals(BrokerRole.SYNC_MASTER, storeConfig.getBrokerRole());
 
@@ -97,6 +98,8 @@ public class ProduceAndConsumeTest {
             Assert.assertArrayEquals(("Hello" + i).getBytes(), messageExt.getBody());
         }
 
+        producer.shutdown();
+        consumer.shutdown();
         brokerController.shutdown();
     }
 }

@@ -50,10 +50,10 @@ public class IntegrationTestBase {
     protected static final int COMMIT_LOG_SIZE = 1024 * 1024 * 100;
     protected static final int INDEX_NUM = 1000;
 
-    private static final AtomicInteger port = new AtomicInteger(50000);
+    private static final AtomicInteger port = new AtomicInteger(40000);
 
     public static synchronized int nextPort() {
-        return port.addAndGet(5);
+        return port.addAndGet(random.nextInt(10) + 10);
     }
     protected static Random random = new Random();
 
@@ -110,7 +110,7 @@ public class IntegrationTestBase {
         namesrvConfig.setKvConfigPath(baseDir + SEP + "namesrv" + SEP + "kvConfig.json");
         namesrvConfig.setConfigStorePath(baseDir + SEP + "namesrv" + SEP + "namesrv.properties");
 
-        nameServerNettyServerConfig.setListenPort(9000 + random.nextInt(1000));
+        nameServerNettyServerConfig.setListenPort(nextPort());
         NamesrvController namesrvController = new NamesrvController(namesrvConfig, nameServerNettyServerConfig);
         try {
             Assert.assertTrue(namesrvController.initialize());
