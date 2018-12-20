@@ -54,6 +54,8 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
     @CFNullable
     private boolean m; //batch
 
+    private String n; //enode addr
+
     public static SendMessageRequestHeader createSendMessageRequestHeaderV1(final SendMessageRequestHeaderV2 v2) {
         SendMessageRequestHeader v1 = new SendMessageRequestHeader();
         v1.setProducerGroup(v2.a);
@@ -69,6 +71,7 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
         v1.setUnitMode(v2.k);
         v1.setMaxReconsumeTimes(v2.l);
         v1.setBatch(v2.m);
+        v1.setEnodeAddr(v2.n);
         return v1;
     }
 
@@ -87,6 +90,7 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
         v2.k = v1.isUnitMode();
         v2.l = v1.getMaxReconsumeTimes();
         v2.m = v1.isBatch();
+        v2.n = v1.getEnodeAddr();
         return v2;
     }
 
@@ -196,5 +200,13 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
 
     public void setM(boolean m) {
         this.m = m;
+    }
+
+    public String getN() {
+        return n;
+    }
+
+    public void setN(String n) {
+        this.n = n;
     }
 }

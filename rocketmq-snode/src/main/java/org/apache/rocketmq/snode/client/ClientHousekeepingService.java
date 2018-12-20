@@ -14,13 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.client;
+package org.apache.rocketmq.snode.client;
 
 import io.netty.channel.Channel;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -29,17 +28,18 @@ import org.apache.rocketmq.remoting.ChannelEventListener;
 
 public class ClientHousekeepingService implements ChannelEventListener {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-    private final BrokerController brokerController;
+    private final ProducerManager producerManager;
+    private final ConsumerManager consumerManager;
 
     private ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ClientHousekeepingScheduledThread"));
 
-    public ClientHousekeepingService(final BrokerController brokerController) {
-        this.brokerController = brokerController;
+    public ClientHousekeepingService(final ProducerManager producerManager, final ConsumerManager consumerManager) {
+        this.producerManager = producerManager;
+        this.consumerManager = consumerManager;
     }
 
-    public void start() {
-
+    public void start(long interval) {
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -49,12 +49,12 @@ public class ClientHousekeepingService implements ChannelEventListener {
                     log.error("Error occurred when scan not active client channels.", e);
                 }
             }
-        }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
+        }, 1000 * 10, interval, TimeUnit.MILLISECONDS);
     }
 
     private void scanExceptionChannel() {
-        this.brokerController.getProducerManager().scanNotActiveChannel();
-        this.brokerController.getConsumerManager().scanNotActiveChannel();
+        this.producerManager.scanNotActiveChannel();
+        //this.consumerManager.scanNotActiveChannel();
     }
 
     public void shutdown() {
@@ -68,22 +68,19 @@ public class ClientHousekeepingService implements ChannelEventListener {
 
     @Override
     public void onChannelClose(String remoteAddr, Channel channel) {
-        this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
-        this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
-        this.brokerController.getFilterServerManager().doChannelCloseEvent(remoteAddr, channel);
+        this.producerManager.doChannelCloseEvent(remoteAddr, channel);
+        this.producerManager.doChannelCloseEvent(remoteAddr, channel);
     }
 
     @Override
     public void onChannelException(String remoteAddr, Channel channel) {
-        this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
-        this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
-        this.brokerController.getFilterServerManager().doChannelCloseEvent(remoteAddr, channel);
+        this.producerManager.doChannelCloseEvent(remoteAddr, channel);
+        this.consumerManager.doChannelCloseEvent(remoteAddr, channel);
     }
 
     @Override
     public void onChannelIdle(String remoteAddr, Channel channel) {
-        this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
-        this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
-        this.brokerController.getFilterServerManager().doChannelCloseEvent(remoteAddr, channel);
+        this.producerManager.doChannelCloseEvent(remoteAddr, channel);
+        this.consumerManager.doChannelCloseEvent(remoteAddr, channel);
     }
 }

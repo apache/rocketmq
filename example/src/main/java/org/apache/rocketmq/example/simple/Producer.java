@@ -43,7 +43,6 @@ public class Producer {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
         producer.shutdown();
     }
 }

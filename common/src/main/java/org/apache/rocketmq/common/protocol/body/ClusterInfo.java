@@ -20,7 +20,9 @@ package org.apache.rocketmq.common.protocol.body;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.serialize.RemotingSerializable;
 
@@ -56,6 +58,26 @@ public class ClusterInfo extends RemotingSerializable {
             }
         }
 
+        return addrs.toArray(new String[] {});
+    }
+
+    public String[] retrieveAllMasterAddrByCluster(String cluster) {
+        List<String> addrs = new ArrayList<String>();
+        if (clusterAddrTable.containsKey(cluster)) {
+            Set<String> brokerNames = clusterAddrTable.get(cluster);
+            for (String brokerName : brokerNames) {
+                BrokerData brokerData = brokerAddrTable.get(brokerName);
+                if (null != brokerData) {
+                    HashMap<Long, String> brokerAddrs = brokerData.getBrokerAddrs();
+                    for (Map.Entry<Long, String> entry : brokerAddrs.entrySet()) {
+                        if (MixAll.MASTER_ID == entry.getKey()) {
+                            addrs.add(entry.getValue());
+                        }
+                    }
+
+                }
+            }
+        }
         return addrs.toArray(new String[] {});
     }
 

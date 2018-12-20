@@ -353,7 +353,8 @@ public class MQClientAPIImpl {
         final long timeoutMillis,
         final RemotingCommand request
     ) throws RemotingException, MQBrokerException, InterruptedException {
-        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        String addrS = "localhost:11911";//TODO FIXME
+        RemotingCommand response = this.remotingClient.invokeSync(addrS, request, timeoutMillis);
         assert response != null;
         return this.processSendResponse(brokerName, msg, response);
     }
@@ -557,14 +558,15 @@ public class MQClientAPIImpl {
     }
 
     public PullResult pullMessage(
-        final String addr,
+         String addr,
         final PullMessageRequestHeader requestHeader,
         final long timeoutMillis,
         final CommunicationMode communicationMode,
         final PullCallback pullCallback
     ) throws RemotingException, MQBrokerException, InterruptedException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
-
+        requestHeader.setEnodeAddr(addr);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SNODE_PULL_MESSAGE, requestHeader);
+         addr = "localhost:11911"; //TODO FIXME
         switch (communicationMode) {
             case ONEWAY:
                 assert false;
@@ -647,7 +649,7 @@ public class MQClientAPIImpl {
 
         PullMessageResponseHeader responseHeader =
             (PullMessageResponseHeader) response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
-
+        log.info("response header: {}", responseHeader.getSuggestWhichBrokerId());
         return new PullResultExt(pullStatus, responseHeader.getNextBeginOffset(), responseHeader.getMinOffset(),
             responseHeader.getMaxOffset(), null, responseHeader.getSuggestWhichBrokerId(), response.getBody());
     }
@@ -728,11 +730,12 @@ public class MQClientAPIImpl {
         final String consumerGroup,
         final long timeoutMillis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
         MQBrokerException, InterruptedException {
+
         GetConsumerListByGroupRequestHeader requestHeader = new GetConsumerListByGroupRequestHeader();
         requestHeader.setConsumerGroup(consumerGroup);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_LIST_BY_GROUP, requestHeader);
-
-        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
+        String addrS = "localhost:11911";//TODO FIXME
+        RemotingCommand response = this.remotingClient.invokeSync(addrS,
             request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {

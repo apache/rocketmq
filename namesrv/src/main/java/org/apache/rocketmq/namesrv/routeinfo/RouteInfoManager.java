@@ -33,6 +33,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.protocol.route.SnodeData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
@@ -54,6 +55,8 @@ public class RouteInfoManager {
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
+    private final HashMap<String/* snodeName*/, SnodeData> snodeTable;
+    private final HashMap<String/* clusterName*/, Set<String/*snodeName*/>> snodeCluster;
 
     public RouteInfoManager() {
         this.topicQueueTable = new HashMap<String, List<QueueData>>(1024);
@@ -61,6 +64,8 @@ public class RouteInfoManager {
         this.clusterAddrTable = new HashMap<String, Set<String>>(32);
         this.brokerLiveTable = new HashMap<String, BrokerLiveInfo>(256);
         this.filterServerTable = new HashMap<String, List<String>>(256);
+        this.snodeTable = new HashMap<>(256);
+        this.snodeCluster = new HashMap<>(256);
     }
 
     public byte[] getAllClusterInfo() {
@@ -97,6 +102,32 @@ public class RouteInfoManager {
         }
 
         return topicList.encode();
+    }
+
+    public void registerSnode(
+        final String clusterName,
+        final String snodeName,
+        final String snodeAddr) {
+        try {
+            this.lock.writeLock().lockInterruptibly();
+            Set<String> snodeSet = this.snodeCluster.get(clusterName);
+            if (snodeSet == null) {
+                snodeSet = new HashSet<>();
+                snodeSet.add(snodeName);
+                this.snodeCluster.put(clusterName, snodeSet);
+            } else {
+                snodeSet.add(snodeName);
+            }
+            SnodeData snodeData = new SnodeData();
+            snodeData.setAddr(snodeAddr);
+            snodeData.setSnodeName(snodeName);
+            snodeData.setClusterName(clusterName);
+            snodeTable.put(snodeName, snodeData);
+        } catch (Exception ex) {
+            log.error("Register snode error", ex);
+        } finally {
+            this.lock.writeLock().unlock();
+        }
     }
 
     public RegisterBrokerResult registerBroker(

@@ -167,4 +167,9 @@ public class RequestCode {
     public static final int QUERY_CONSUME_QUEUE = 321;
 
     public static final int QUERY_DATA_VERSION = 322;
+
+    public static final int REGISTER_SNODE = 350;
+
+    public static final int SNODE_PULL_MESSAGE = 351;
+
 }

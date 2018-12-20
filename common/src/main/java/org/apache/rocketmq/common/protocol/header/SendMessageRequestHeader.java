@@ -52,6 +52,8 @@ public class SendMessageRequestHeader implements CommandCustomHeader {
     private boolean batch = false;
     private Integer maxReconsumeTimes;
 
+    private String enodeAddr;
+
     @Override
     public void checkFields() throws RemotingCommandException {
     }
@@ -158,5 +160,13 @@ public class SendMessageRequestHeader implements CommandCustomHeader {
 
     public void setBatch(boolean batch) {
         this.batch = batch;
+    }
+
+    public String getEnodeAddr() {
+        return enodeAddr;
+    }
+
+    public void setEnodeAddr(String enodeAddr) {
+        this.enodeAddr = enodeAddr;
     }
 }

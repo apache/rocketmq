@@ -27,6 +27,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.protocol.header.namesrv.RegisterSnodeRequestHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.NamesrvUtil;
@@ -77,7 +78,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 request);
         }
 
-
         switch (request.getCode()) {
             case RequestCode.PUT_KV_CONFIG:
                 return this.putKVConfig(ctx, request);
@@ -122,10 +122,24 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 return this.updateConfig(ctx, request);
             case RequestCode.GET_NAMESRV_CONFIG:
                 return this.getConfig(ctx, request);
+            case RequestCode.REGISTER_SNODE:
+                return this.registerSnode(ctx, request);
             default:
                 break;
         }
         return null;
+    }
+
+    public RemotingCommand registerSnode(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final RegisterSnodeRequestHeader requestHeader =
+            (RegisterSnodeRequestHeader) request.decodeCommandCustomHeader(RegisterSnodeRequestHeader.class);
+        this.namesrvController.getRouteInfoManager().registerSnode(
+            requestHeader.getClusterName(),
+            requestHeader.getSnodeName(),
+            requestHeader.getSnodeAddr());
+        return response;
     }
 
     @Override
@@ -280,7 +294,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final RegisterBrokerResponseHeader responseHeader = (RegisterBrokerResponseHeader) response.readCustomHeader();
         final RegisterBrokerRequestHeader requestHeader =
             (RegisterBrokerRequestHeader) request.decodeCommandCustomHeader(RegisterBrokerRequestHeader.class);
-        log.info("requestHeader：  " + requestHeader );
+        log.info("requestHeader：  " + requestHeader);
         if (!checksum(ctx, request, requestHeader)) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("crc32 not match");

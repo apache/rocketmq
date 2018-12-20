@@ -37,4 +37,5 @@ public class LoggerName {
     public static final String PROTECTION_LOGGER_NAME = "RocketmqProtection";
     public static final String WATER_MARK_LOGGER_NAME = "RocketmqWaterMark";
     public static final String FILTER_LOGGER_NAME = "RocketmqFilter";
+    public static final String SNODE_LOGGER_NAME = "RocketmqSnode";
 }

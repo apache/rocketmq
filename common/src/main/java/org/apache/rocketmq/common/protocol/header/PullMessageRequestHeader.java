@@ -48,6 +48,16 @@ public class PullMessageRequestHeader implements CommandCustomHeader {
     private Long subVersion;
     private String expressionType;
 
+    private String enodeAddr;
+
+    public String getEnodeAddr() {
+        return enodeAddr;
+    }
+
+    public void setEnodeAddr(String enodeAddr) {
+        this.enodeAddr = enodeAddr;
+    }
+
     @Override
     public void checkFields() throws RemotingCommandException {
     }
