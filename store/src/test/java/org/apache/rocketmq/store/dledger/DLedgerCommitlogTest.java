@@ -174,7 +174,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
         Thread.sleep(1000);
 
-        Assert.assertTrue(leaderStore.getCommitLog().getMaxOffset() > 0);
+        Assert.assertEquals(0, leaderStore.getCommitLog().getMaxOffset());
         Assert.assertEquals(0, leaderStore.getMaxOffsetInQueue(topic, 0));
 
 
@@ -183,6 +183,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
         Assert.assertEquals(1, leaderStore.getMaxOffsetInQueue(topic, 0));
         Assert.assertEquals(1, followerStore.getMaxOffsetInQueue(topic, 0));
+        Assert.assertTrue(leaderStore.getCommitLog().getMaxOffset() > 0);
 
 
         leaderStore.destroy();
