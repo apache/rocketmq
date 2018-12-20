@@ -133,6 +133,7 @@ public class MixCommitlogTest extends MessageStoreTestBase {
         {
             DefaultMessageStore dledgerStore = createDledgerMessageStore(base, group, "n0", peers, null, true, 0);
             DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) dledgerStore.getCommitLog();
+            Assert.assertTrue(dledgerStore.getMessageStoreConfig().isCleanFileForciblyEnable());
             Assert.assertFalse(dLedgerCommitLog.getdLedgerServer().getdLedgerConfig().isEnableDiskForceClean());
             Assert.assertEquals(dividedOffset, dLedgerCommitLog.getDividedCommitlogOffset());
             Thread.sleep(2000);
@@ -143,6 +144,7 @@ public class MixCommitlogTest extends MessageStoreTestBase {
             Assert.assertEquals(0, dledgerStore.dispatchBehindBytes());
             Assert.assertEquals(0, dledgerStore.getMinPhyOffset());
             maxPhysicalOffset = dledgerStore.getMaxPhyOffset();
+            Assert.assertTrue(maxPhysicalOffset > 0);
 
             doGetMessages(dledgerStore, topic, 0, 2000, 0);
 
@@ -156,13 +158,15 @@ public class MixCommitlogTest extends MessageStoreTestBase {
             }
             Assert.assertEquals(dividedOffset, dledgerStore.getMinPhyOffset());
             Assert.assertEquals(maxPhysicalOffset, dledgerStore.getMaxPhyOffset());
+
+            Assert.assertTrue(dledgerStore.getMessageStoreConfig().isCleanFileForciblyEnable());
             Assert.assertTrue(dLedgerCommitLog.getdLedgerServer().getdLedgerConfig().isEnableDiskForceClean());
 
-            dLedgerCommitLog.getdLedgerServer().getdLedgerConfig().setEnableDiskForceClean(false);
+            //Test fresh
+            dledgerStore.getMessageStoreConfig().setCleanFileForciblyEnable(false);
             for (int i = 0; i < 100; i++) {
                 Assert.assertEquals(Integer.MAX_VALUE, dledgerStore.getCommitLog().deleteExpiredFile(System.currentTimeMillis(), 0, 0, true));
             }
-            //should not change the value
             Assert.assertFalse(dLedgerCommitLog.getdLedgerServer().getdLedgerConfig().isEnableDiskForceClean());
             doGetMessages(dledgerStore, topic, 0, 1000, 1000);
             dledgerStore.shutdown();
