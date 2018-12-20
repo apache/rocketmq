@@ -70,11 +70,6 @@ public class DLedgerCommitLog extends CommitLog {
     private long dividedCommitlogOffset = -1;
 
 
-    //The old commitlog should be deleted before the dledger commitlog
-    private final boolean originalDledgerEnableForceClean;
-    private final AtomicBoolean hasSetOriginalDledgerEnableForceClean = new AtomicBoolean(false);
-
-
     private boolean isInrecoveringOldCommitlog = false;
 
     public DLedgerCommitLog(final DefaultMessageStore defaultMessageStore) {
@@ -87,7 +82,7 @@ public class DLedgerCommitLog extends CommitLog {
         dLedgerConfig.setStoreBaseDir(defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
         dLedgerConfig.setMappedFileSizeForEntryData(defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog());
         dLedgerConfig.setDeleteWhen(defaultMessageStore.getMessageStoreConfig().getDeleteWhen());
-        originalDledgerEnableForceClean =  dLedgerConfig.isEnableDiskForceClean();
+        dLedgerConfig.setFileReservedHours(defaultMessageStore.getMessageStoreConfig().getFileReservedTime() + 1);
         id = Integer.valueOf(dLedgerConfig.getSelfId().substring(1)) + 1;
         dLedgerServer = new DLedgerServer(dLedgerConfig);
         dLedgerFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();
@@ -110,6 +105,17 @@ public class DLedgerCommitLog extends CommitLog {
         }
 
         return true;
+    }
+
+    private void refreshConfig() {
+        dLedgerConfig.setEnableDiskForceClean(defaultMessageStore.getMessageStoreConfig().isCleanFileForciblyEnable());
+        dLedgerConfig.setDeleteWhen(defaultMessageStore.getMessageStoreConfig().getDeleteWhen());
+        dLedgerConfig.setFileReservedHours(defaultMessageStore.getMessageStoreConfig().getFileReservedTime() + 1);
+    }
+
+    private void disableDeleteDledger() {
+        dLedgerConfig.setEnableDiskForceClean(false);
+        dLedgerConfig.setFileReservedHours(Integer.MAX_VALUE);
     }
 
     @Override
@@ -177,11 +183,11 @@ public class DLedgerCommitLog extends CommitLog {
         final boolean cleanImmediately
     ) {
         if (mappedFileQueue.getMappedFiles().isEmpty()) {
-            if (hasSetOriginalDledgerEnableForceClean.compareAndSet(false, true)) {
-                dLedgerConfig.setEnableDiskForceClean(originalDledgerEnableForceClean);
-            }
+            refreshConfig();
             //To prevent too much log in defaultMessageStore
             return  Integer.MAX_VALUE;
+        } else {
+            disableDeleteDledger();
         }
         int count = super.deleteExpiredFile(expiredTime, deleteFilesInterval, intervalForcibly, cleanImmediately);
         if (count > 0 || mappedFileQueue.getMappedFiles().size() != 1) {
@@ -251,16 +257,14 @@ public class DLedgerCommitLog extends CommitLog {
         return null;
     }
 
-    private void recover(long maxPhyOffsetOfConsumeQueue, boolean lastOk) {
+    private void recover(long maxPhyOffsetOfConsumeQueue) {
         dLedgerFileStore.load();
         if (dLedgerFileList.getMappedFiles().size() > 0) {
             dLedgerFileStore.recover();
             dividedCommitlogOffset = dLedgerFileList.getFirstMappedFile().getFileFromOffset();
             MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
             if (mappedFile != null) {
-                dLedgerConfig.setEnableDiskForceClean(false);
-            } else {
-                hasSetOriginalDledgerEnableForceClean.set(true);
+                disableDeleteDledger();
             }
             long maxPhyOffset = dLedgerFileList.getMaxWrotePosition();
             // Clear ConsumeQueue redundant data
@@ -277,7 +281,6 @@ public class DLedgerCommitLog extends CommitLog {
         isInrecoveringOldCommitlog = false;
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
         if (mappedFile == null) {
-            hasSetOriginalDledgerEnableForceClean.set(true);
             return;
         }
         ByteBuffer byteBuffer =  mappedFile.sliceByteBuffer();
@@ -309,12 +312,12 @@ public class DLedgerCommitLog extends CommitLog {
 
     @Override
     public void recoverNormally(long maxPhyOffsetOfConsumeQueue) {
-        recover(maxPhyOffsetOfConsumeQueue, true);
+        recover(maxPhyOffsetOfConsumeQueue);
     }
 
     @Override
     public void recoverAbnormally(long maxPhyOffsetOfConsumeQueue)  {
-        recover(maxPhyOffsetOfConsumeQueue, false);
+        recover(maxPhyOffsetOfConsumeQueue);
     }
 
     @Override
