@@ -86,6 +86,7 @@ public class DLedgerCommitLog extends CommitLog {
         dLedgerConfig.setPeers(defaultMessageStore.getMessageStoreConfig().getdLegerPeers());
         dLedgerConfig.setStoreBaseDir(defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
         dLedgerConfig.setMappedFileSizeForEntryData(defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog());
+        dLedgerConfig.setDeleteWhen(defaultMessageStore.getMessageStoreConfig().getDeleteWhen());
         originalDledgerEnableForceClean =  dLedgerConfig.isEnableDiskForceClean();
         id = Integer.valueOf(dLedgerConfig.getSelfId().substring(1)) + 1;
         dLedgerServer = new DLedgerServer(dLedgerConfig);
@@ -129,25 +130,26 @@ public class DLedgerCommitLog extends CommitLog {
 
     @Override
     public long getMaxOffset() {
-        if (this.dLedgerFileStore.getCommittedPos() != -1) {
-            return dLedgerFileStore.getCommittedPos();
-        } else {
-            return this.dLedgerFileList.getMaxWrotePosition();
+        if (dividedCommitlogOffset > 0 && dLedgerFileStore.getCommittedPos() < 0) {
+            return dividedCommitlogOffset;
         }
+        if (dLedgerFileStore.getCommittedPos() == -1) {
+            return 0;
+        }
+        return dLedgerFileStore.getCommittedPos();
     }
 
     @Override
     public long getMinOffset() {
-        if (mappedFileQueue.getMappedFiles().isEmpty()) {
-            return dLedgerFileList.getMinOffset();
+        if (!mappedFileQueue.getMappedFiles().isEmpty()) {
+            return mappedFileQueue.getMinOffset();
         }
-        return mappedFileQueue.getMinOffset();
+        return dLedgerFileList.getMinOffset();
     }
 
     @Override
     public long getConfirmOffset() {
-        return this.dLedgerFileStore.getCommittedPos() == -1 ? getMaxOffset()
-            : this.dLedgerFileStore.getCommittedPos();
+        return this.getMaxOffset();
     }
 
     @Override

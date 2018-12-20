@@ -51,27 +51,32 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
             @Override public void run() {
                 long start = System.currentTimeMillis();
                 try {
-                    boolean succ = false;
+                    boolean succ = true;
                     log.info("Begin handling broker role change term={} role={} currStoreRole={}", term, role, messageStore.getMessageStoreConfig().getBrokerRole());
                     switch (role) {
                         case CANDIDATE:
                             if (messageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
                                 brokerController.changeToSlave(dLedgerCommitLog.getId());
                             }
-                            succ = true;
                             break;
                         case FOLLOWER:
                             brokerController.changeToSlave(dLedgerCommitLog.getId());
-                            succ = true;
                             break;
                         case LEADER:
-                            while (dLegerServer.getMemberState().isLeader()
-                                &&  (dLegerServer.getdLedgerStore().getLedgerEndIndex() != dLegerServer.getdLedgerStore().getCommittedIndex() ||  messageStore.dispatchBehindBytes() != 0)) {
-                                DLedgerUtils.sleep(100);
+                            while (true) {
+                                if (!dLegerServer.getMemberState().isLeader()) {
+                                    succ = false;
+                                    break;
+                                }
+                                if (dLegerServer.getdLedgerStore().getLedgerEndIndex() == -1) {
+                                    break;
+                                }
+                                if (dLegerServer.getdLedgerStore().getLedgerEndIndex() == dLegerServer.getdLedgerStore().getCommittedIndex()
+                                    && messageStore.dispatchBehindBytes() == 0) {
+                                    break;
+                                }
+                                Thread.sleep(100);
                             }
-                            succ = dLegerServer.getMemberState().isLeader()
-                                && dLegerServer.getdLedgerStore().getLedgerEndIndex() == dLegerServer.getdLedgerStore().getCommittedIndex()
-                                && messageStore.dispatchBehindBytes() == 0;
                             if (succ) {
                                 messageStore.recoverTopicQueueTable();
                                 brokerController.changeToMaster(BrokerRole.SYNC_MASTER);

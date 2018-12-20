@@ -222,45 +222,50 @@ public class DefaultMessageStore implements MessageStore {
 
         lockFile.getChannel().write(ByteBuffer.wrap("lock".getBytes()));
         lockFile.getChannel().force(true);
-
-        this.flushConsumeQueueService.start();
-        this.commitLog.start();
-        this.storeStatsService.start();
-
-        //calculate the reput offset from the consume queue itself
-        long maxPhysicalPosInLogicQueue = commitLog.getMinOffset();
-        for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
-            for (ConsumeQueue logic : maps.values()) {
-                if (logic.getMaxPhysicOffset() > maxPhysicalPosInLogicQueue) {
-                    maxPhysicalPosInLogicQueue = logic.getMaxPhysicOffset();
+        {
+            /**
+             * 1. calculate the reput offset according to the consume queue;
+             * 2. make sure the lagged messages to be dispatched before starting the commitlog, especially when the broker role are automatically changed.
+             */
+            long maxPhysicalPosInLogicQueue = commitLog.getMinOffset();
+            for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
+                for (ConsumeQueue logic : maps.values()) {
+                    if (logic.getMaxPhysicOffset() > maxPhysicalPosInLogicQueue) {
+                        maxPhysicalPosInLogicQueue = logic.getMaxPhysicOffset();
+                    }
                 }
             }
+            log.info("[SetReputOffset] maxPhysicalPosInLogicQueue={} clMaxOffset={} clConfirmedOffset={}",
+                maxPhysicalPosInLogicQueue, this.commitLog.getMaxOffset(), this.commitLog.getConfirmOffset());
+            long reputOffset;
+            if (this.getMessageStoreConfig().isDuplicationEnable()) {
+                reputOffset = Math.min(maxPhysicalPosInLogicQueue, this.commitLog.getConfirmOffset());
+            } else {
+                reputOffset = Math.min(maxPhysicalPosInLogicQueue, this.commitLog.getMaxOffset());
+            }
+            if (reputOffset < 0) {
+                reputOffset = 0;
+            }
+            this.reputMessageService.setReputFromOffset(reputOffset);
+            this.reputMessageService.start();
+
+            //Finish dispatching the messages fall behind
+            //Note that, if dledger is enabled, the maxOffset maybe -1, so here only require the dispatchBehindBytes > 0
+            while (this.dispatchBehindBytes() > 0) {
+                Thread.sleep(1000);
+                log.info("Try to finish doing reput the messages fall behind during the starting, reputOffset={} maxOffset={} behind={}", this.reputMessageService.getReputFromOffset(), this.getMaxPhyOffset(), this.dispatchBehindBytes());
+            }
+            this.recoverTopicQueueTable();
         }
-        log.info("[SetReputOffset] maxPhysicalPosInLogicQueue={} clMaxOffset={} clConfirmedOffset={}",
-            maxPhysicalPosInLogicQueue, this.commitLog.getMaxOffset(), this.commitLog.getConfirmOffset());
-        long reputOffset;
-        if (this.getMessageStoreConfig().isDuplicationEnable()) {
-            reputOffset = Math.min(maxPhysicalPosInLogicQueue, this.commitLog.getConfirmOffset());
-        } else {
-            reputOffset = Math.min(maxPhysicalPosInLogicQueue, this.commitLog.getMaxOffset());
-        }
-        if (reputOffset < 0) {
-            reputOffset = 0;
-        }
-        this.reputMessageService.setReputFromOffset(reputOffset);
-        this.reputMessageService.start();
 
         if (!messageStoreConfig.isEnableDLegerCommitLog()) {
             this.haService.start();
             this.handleScheduleMessageService(messageStoreConfig.getBrokerRole());
         }
 
-        //Finish dispatching the messages fall behind
-        while (this.dispatchBehindBytes() != 0) {
-            Thread.sleep(1000);
-            log.info("Try to finish doing reput the messages fall behind during the starting, reputOffset={} maxOffset={} behind={}", this.reputMessageService.getReputFromOffset(), this.getMaxPhyOffset(), this.dispatchBehindBytes());
-        }
-        this.recoverTopicQueueTable();
+        this.flushConsumeQueueService.start();
+        this.commitLog.start();
+        this.storeStatsService.start();
 
         this.createTempFile();
         this.addScheduleTask();
