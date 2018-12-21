@@ -31,7 +31,6 @@ import io.openmessaging.storage.dledger.utils.DLedgerUtils;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
