@@ -16,25 +16,34 @@ package org.apache.rocketmq.snode.processor;/*
  */
 
 import io.netty.channel.ChannelHandlerContext;
+import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.snode.service.SnodeOuterService;
+import org.apache.rocketmq.snode.SnodeController;
 
 public class SendMessageProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
 
-    private final SnodeOuterService snodeOuterService;
+    private final SnodeController snodeController;
 
-    public SendMessageProcessor(final SnodeOuterService snodeOuterService) {
-        this.snodeOuterService = snodeOuterService;
+    public SendMessageProcessor(final SnodeController snodeController) {
+        this.snodeController = snodeController;
     }
 
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
-        return snodeOuterService.sendMessage(request);
+        CompletableFuture<RemotingCommand> responseFuture = snodeController.getSnodeOuterService().sendMessage(request);
+        responseFuture.whenComplete((data, ex) -> {
+            if (ex == null) {
+                snodeController.getSnodeServer().sendResponse(ctx, data);
+            } else {
+                log.error("Send Message error: {}", ex);
+            }
+        });
+        return null;
     }
 
     @Override

@@ -16,11 +16,14 @@ package org.apache.rocketmq.snode.service.impl;/*
  */
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.util.concurrent.CompleteFuture;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -31,22 +34,23 @@ import org.apache.rocketmq.common.namesrv.TopAddressing;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.common.protocol.header.NotifyConsumerIdsChangedRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.common.protocol.header.namesrv.RegisterSnodeRequestHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.RemotingClientFactory;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.config.SnodeConfig;
+import org.apache.rocketmq.snode.constant.SnodeConstant;
 import org.apache.rocketmq.snode.service.SnodeOuterService;
 
 public class SnodeOuterServiceImpl implements SnodeOuterService {
@@ -58,7 +62,6 @@ public class SnodeOuterServiceImpl implements SnodeOuterService {
     private static SnodeOuterServiceImpl snodeOuterService;
     private final ConcurrentMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> enodeTable =
         new ConcurrentHashMap<>();
-    private final long defaultTimeoutMills = 3000L;
 
     private SnodeOuterServiceImpl() {
 
@@ -97,7 +100,7 @@ public class SnodeOuterServiceImpl implements SnodeOuterService {
             String enodeAddr = entry.getValue().get(MixAll.MASTER_ID);
             if (enodeAddr != null) {
                 try {
-                    RemotingCommand response = this.client.invokeSync(enodeAddr, remotingCommand, defaultTimeoutMills);
+                    RemotingCommand response = this.client.invokeSync(enodeAddr, remotingCommand, SnodeConstant.defaultTimeoutMills);
                 } catch (Exception ex) {
                     log.warn("Send heart beat faild:{} ,ex:{}", enodeAddr, ex);
                 }
@@ -106,27 +109,19 @@ public class SnodeOuterServiceImpl implements SnodeOuterService {
     }
 
     @Override
-    public RemotingCommand sendMessage(RemotingCommand request) {
-        try {
-            SendMessageRequestHeaderV2 sendMessageRequestHeaderV2 = (SendMessageRequestHeaderV2) request.decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
-            RemotingCommand response =
-                this.client.invokeSync(sendMessageRequestHeaderV2.getN(), request, defaultTimeoutMills);
-            return response;
-        } catch (Exception ex) {
-            log.error("Send message async error:", ex);
-        }
-        return null;
-    }
-
-    @Override
-    public RemotingCommand pullMessage(RemotingCommand request) {
+    public CompletableFuture<RemotingCommand> pullMessage(final ChannelHandlerContext context,
+        RemotingCommand request) {
         try {
             final PullMessageRequestHeader requestHeader =
                 (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
-            RemotingCommand remotingCommand =  this.client.invokeSync(requestHeader.getEnodeAddr(), request, 20 * defaultTimeoutMills);
-            log.info("Pull message response:{}", remotingCommand);
-            log.info("Pull message response:{}", remotingCommand.getBody().length);
-            return remotingCommand;
+            this.client.invokeAsync(requestHeader.getEnodeAddr(), request, SnodeConstant.defaultTimeoutMills, new InvokeCallback() {
+                @Override
+                public void operationComplete(ResponseFuture responseFuture) {
+                    RemotingCommand response = responseFuture.getResponseCommand();
+                    snodeController.getSnodeServer().sendResponse(context, response);
+                }
+            });
+            return null;
         } catch (Exception ex) {
             log.error("pull message async error:", ex);
         }
@@ -176,7 +171,7 @@ public class SnodeOuterServiceImpl implements SnodeOuterService {
     public void updateEnodeAddr(String clusterName) throws InterruptedException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         synchronized (this) {
-            ClusterInfo clusterInfo = getBrokerClusterInfo(defaultTimeoutMills);
+            ClusterInfo clusterInfo = getBrokerClusterInfo(SnodeConstant.defaultTimeoutMills);
             if (clusterInfo != null) {
                 HashMap<String, Set<String>> brokerAddrs = clusterInfo.getClusterAddrTable();
                 for (Map.Entry<String, Set<String>> entry : brokerAddrs.entrySet()) {
@@ -212,12 +207,27 @@ public class SnodeOuterServiceImpl implements SnodeOuterService {
         if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
             for (String nameServer : nameServerAddressList) {
                 try {
-                    this.client.invokeSync(nameSrvAddr, remotingCommand, 3000L);
+                    this.client.invokeSync(nameSrvAddr, remotingCommand, SnodeConstant.heartbeatTimeout);
                 } catch (Exception ex) {
                     log.warn("Register Snode to Nameserver addr: {} error, ex:{} ", nameServer, ex);
                 }
             }
         }
+    }
+
+    @Override
+    public CompletableFuture<RemotingCommand> sendMessage(RemotingCommand request) {
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        try {
+            SendMessageRequestHeaderV2 sendMessageRequestHeaderV2 = (SendMessageRequestHeaderV2) request.decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
+            this.client.invokeAsync(sendMessageRequestHeaderV2.getN(), request, SnodeConstant.defaultTimeoutMills, (responseFuture) -> {
+                future.complete(responseFuture.getResponseCommand());
+            });
+        } catch (Exception ex) {
+            log.error("Send message async error:{}", ex);
+            future.completeExceptionally(ex);
+        }
+        return future;
     }
 
     @Override
@@ -235,7 +245,7 @@ public class SnodeOuterServiceImpl implements SnodeOuterService {
             RemotingCommand.createRequestCommand(RequestCode.NOTIFY_CONSUMER_IDS_CHANGED, requestHeader);
 
         try {
-            this.snodeController.getSnodeServer().invokeOneway(channel, request, 10);
+            this.snodeController.getSnodeServer().invokeOneway(channel, request, SnodeConstant.oneWaytimeout);
         } catch (Exception e) {
             log.error("notifyConsumerIdsChanged exception, " + consumerGroup, e.getMessage());
         }

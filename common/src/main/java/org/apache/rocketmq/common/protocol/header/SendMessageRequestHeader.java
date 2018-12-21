@@ -50,6 +50,7 @@ public class SendMessageRequestHeader implements CommandCustomHeader {
     private boolean unitMode = false;
     @CFNullable
     private boolean batch = false;
+
     private Integer maxReconsumeTimes;
 
     private String enodeAddr;

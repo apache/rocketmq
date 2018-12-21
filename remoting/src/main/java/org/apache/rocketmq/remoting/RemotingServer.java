@@ -17,6 +17,7 @@
 package org.apache.rocketmq.remoting;
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.remoting.common.Pair;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -53,4 +54,5 @@ public interface RemotingServer extends RemotingService {
 
     RemotingServer init(NettyServerConfig nettyServerConfig, ChannelEventListener channelEventListener);
 
+    void sendResponse(final ChannelHandlerContext channel, RemotingCommand remotingCommand);
 }

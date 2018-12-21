@@ -16,6 +16,9 @@ package org.apache.rocketmq.snode.service;/*
  */
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.util.concurrent.CompleteFuture;
+import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
@@ -27,9 +30,10 @@ import org.apache.rocketmq.snode.config.SnodeConfig;
 public interface SnodeOuterService {
     void sendHearbeat(RemotingCommand remotingCommand);
 
-    RemotingCommand sendMessage(RemotingCommand remotingCommand);
+    CompletableFuture<RemotingCommand> sendMessage(final RemotingCommand request);
 
-    RemotingCommand pullMessage(RemotingCommand remotingCommand);
+    CompletableFuture<RemotingCommand> pullMessage(final ChannelHandlerContext context,
+        final RemotingCommand remotingCommand);
 
     void saveSubscriptionData(RemotingCommand remotingCommand);
 

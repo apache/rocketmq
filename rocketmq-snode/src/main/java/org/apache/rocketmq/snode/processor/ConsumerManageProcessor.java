@@ -80,11 +80,11 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
                 response.setRemark(null);
                 return response;
             } else {
-                log.warn("getAllClientId failed, {} {}", requestHeader.getConsumerGroup(),
+                log.warn("Get all client failed, {} {}", requestHeader.getConsumerGroup(),
                     RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
             }
         } else {
-            log.warn("getConsumerGroupInfo failed, {} {}", requestHeader.getConsumerGroup(),
+            log.warn("GetConsumerGroupInfo failed, {} {}", requestHeader.getConsumerGroup(),
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
         }
 

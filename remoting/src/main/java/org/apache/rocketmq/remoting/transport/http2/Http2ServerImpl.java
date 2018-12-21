@@ -4,6 +4,7 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
@@ -240,4 +241,8 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
         return this.channelEventListener;
     }
 
+    @Override
+    public void sendResponse(ChannelHandlerContext channel, RemotingCommand remotingCommand) {
+
+    }
 }
