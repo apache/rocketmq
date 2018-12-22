@@ -28,11 +28,13 @@ import org.apache.rocketmq.common.message.MessageExt;
 public class PushConsumer {
 
     public static void main(String[] args) throws InterruptedException, MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1");
-        consumer.subscribe("Jodie_topic_1023", "*");
+
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name");
+
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-        //wrong time format 2017_0422_221800
-        consumer.setConsumeTimestamp("20170422221800");
+
+        consumer.subscribe("TopicTest", "*");
+
         consumer.registerMessageListener(new MessageListenerConcurrently() {
 
             @Override
@@ -41,6 +43,7 @@ public class PushConsumer {
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
+
         consumer.start();
         System.out.printf("Consumer Started.%n");
     }

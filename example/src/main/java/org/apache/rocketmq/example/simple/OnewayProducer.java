@@ -14,36 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.example.simple;
 
-import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
-public class Producer {
-    public static void main(String[] args) throws MQClientException, InterruptedException {
+public class OnewayProducer {
+    public static void main(String[] args) throws Exception {
 
-        DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName");
+        DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
 
         producer.start();
+        for (int i = 0; i < 100; i++) {
 
-        for (int i = 0; i < 128; i++)
-            try {
-                {
-                    Message msg = new Message("TopicTest",
-                        "TagA",
-                        "OrderID188",
-                        "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
-                    SendResult sendResult = producer.send(msg);
-                    System.out.printf("%s%n", sendResult);
-                }
+            Message msg = new Message("TopicTest",
+                "TagA",
+                ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
 
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            // One-way transmission is used for cases requiring moderate reliability, such as log collection.
+            producer.sendOneway(msg);
 
+        }
         producer.shutdown();
     }
 }

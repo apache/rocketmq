@@ -22,17 +22,19 @@ import java.util.Set;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class PullConsumer {
     private static final Map<MessageQueue, Long> OFFSE_TABLE = new HashMap<MessageQueue, Long>();
 
     public static void main(String[] args) throws MQClientException {
-        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer("please_rename_unique_group_name_5");
+
+        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer("please_rename_unique_group_name");
 
         consumer.start();
 
-        Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest1");
+        Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");
         for (MessageQueue mq : mqs) {
             System.out.printf("Consume from the queue: %s%n", mq);
             SINGLE_MQ:
@@ -44,6 +46,8 @@ public class PullConsumer {
                     putMessageQueueOffset(mq, pullResult.getNextBeginOffset());
                     switch (pullResult.getPullStatus()) {
                         case FOUND:
+                            for (MessageExt msg : pullResult.getMsgFoundList())
+                                System.out.printf("%s%n", msg);
                             break;
                         case NO_MATCHED_MSG:
                             break;
