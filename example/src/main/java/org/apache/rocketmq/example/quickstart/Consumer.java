@@ -30,12 +30,12 @@ import org.apache.rocketmq.common.message.MessageExt;
  */
 public class Consumer {
 
-    public static void main(String[] args) throws InterruptedException, MQClientException {
+    public static void main(String[] args) throws MQClientException {
 
         /*
          * Instantiate with specified consumer group name.
          */
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name");
 
         /*
          * Specify name server addresses.

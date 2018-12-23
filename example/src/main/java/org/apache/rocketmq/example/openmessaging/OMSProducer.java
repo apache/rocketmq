@@ -26,7 +26,7 @@ import io.openmessaging.producer.SendResult;
 import java.nio.charset.Charset;
 import java.util.concurrent.CountDownLatch;
 
-public class SimpleProducer {
+public class OMSProducer {
     public static void main(String[] args) {
         final MessagingAccessPoint messagingAccessPoint =
             OMS.getMessagingAccessPoint("oms:rocketmq://localhost:9876/default:default");
@@ -42,7 +42,7 @@ public class SimpleProducer {
         {
             Message message = producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8")));
             SendResult sendResult = producer.send(message);
-            //final Void aVoid = result.get(3000L);
+            // final Void aVoid = result.get(3000L);
             System.out.printf("Send async message OK, msgId: %s%n", sendResult.messageId());
         }
 
