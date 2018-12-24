@@ -21,19 +21,26 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class RemoteAddressStrategyFactory {
 
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.ACL_PLUG_LOGGER_NAME);
+
     public static final NullRemoteAddressStrategy NULL_NET_ADDRESS_STRATEGY = new NullRemoteAddressStrategy();
+
+    public static final BlankRemoteAddressStrategy BLANK_NET_ADDRESS_STRATEGY = new BlankRemoteAddressStrategy();
 
     public RemoteAddressStrategy getRemoteAddressStrategy(PlainAccessResource plainAccessResource) {
         return getRemoteAddressStrategy(plainAccessResource.getWhiteRemoteAddress());
-
     }
 
     public RemoteAddressStrategy getRemoteAddressStrategy(String remoteAddr) {
         if (StringUtils.isBlank(remoteAddr)) {
-            throw new AclException("Must fill in the white list address");
+            log.warn("white list address is null");
+            return BLANK_NET_ADDRESS_STRATEGY;
         }
         if ("*".equals(remoteAddr)) {
             return NULL_NET_ADDRESS_STRATEGY;
@@ -58,6 +65,14 @@ public class RemoteAddressStrategyFactory {
         @Override
         public boolean match(PlainAccessResource plainAccessResource) {
             return true;
+        }
+
+    }
+
+    public static class BlankRemoteAddressStrategy implements RemoteAddressStrategy {
+        @Override
+        public boolean match(PlainAccessResource plainAccessResource) {
+            return false;
         }
 
     }

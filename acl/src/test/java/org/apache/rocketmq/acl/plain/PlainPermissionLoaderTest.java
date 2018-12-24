@@ -227,6 +227,7 @@ public class PlainPermissionLoaderTest {
         File file = new File("src/test/resources/watch/conf");
         file.mkdirs();
         File transport = new File("src/test/resources/watch/conf/plain_acl.yml");
+        transport.delete();
         transport.createNewFile();
 
         FileWriter writer = new FileWriter(transport);
@@ -257,11 +258,6 @@ public class PlainPermissionLoaderTest {
         }
         plainAccessResourceMap = (Map<String, List<PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionLoader, "plainAccessResourceMap", true);
         Assert.assertNotNull(plainAccessResourceMap.get("rokcet1"));
-
-        transport.delete();
-        file.delete();
-        file = new File("src/test/resources/watch");
-        file.delete();
 
     }
 
