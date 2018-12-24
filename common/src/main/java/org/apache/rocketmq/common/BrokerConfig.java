@@ -171,7 +171,11 @@ public class BrokerConfig {
     @ImportantField
     private long transactionCheckInterval = 60 * 1000;
 
-    private boolean enableAcl;
+    /**
+     * Acl feature switch
+     */
+    @ImportantField
+    private boolean enableAcl = false;
 
 
     public static String localHostName() {
