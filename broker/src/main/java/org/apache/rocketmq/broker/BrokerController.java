@@ -499,6 +499,7 @@ public class BrokerController {
 
         List<AccessValidator> accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
         if (accessValidators == null || accessValidators.isEmpty()) {
+            log.info("The broker dose not load the AccessValidator");
             return;
         }
 

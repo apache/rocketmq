@@ -42,6 +42,21 @@ public class BrokerControllerTest {
         brokerController.shutdown();
     }
 
+    @Test
+    public void testBrokerStartAclEnabled() throws Exception {
+        BrokerConfig brokerConfigAclEnabled = new BrokerConfig();
+        brokerConfigAclEnabled.setEnableAcl(true);
+        
+        BrokerController brokerController = new BrokerController(
+            brokerConfigAclEnabled,
+            new NettyServerConfig(),
+            new NettyClientConfig(),
+            new MessageStoreConfig());
+        assertThat(brokerController.initialize());
+        brokerController.start();
+        brokerController.shutdown();
+    }
+
     @After
     public void destroy() {
         UtilAll.deleteFile(new File(new MessageStoreConfig().getStorePathRootDir()));

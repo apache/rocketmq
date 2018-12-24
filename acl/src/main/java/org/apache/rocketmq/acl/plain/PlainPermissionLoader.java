@@ -81,8 +81,8 @@ public class PlainPermissionLoader {
         }
 
         JSONArray accounts = accessControlTransport.getJSONArray("accounts");
-        List<PlainAccessConfig> plainAccessList = accounts.toJavaList(PlainAccessConfig.class);
-        if (plainAccessList != null && !plainAccessList.isEmpty()) {
+        if (accounts != null && !accounts.isEmpty()) {
+            List<PlainAccessConfig> plainAccessList = accounts.toJavaList(PlainAccessConfig.class);
             for (PlainAccessConfig plainAccess : plainAccessList) {
                 this.addPlainAccessResource(getPlainAccessResource(plainAccess));
             }
@@ -168,6 +168,11 @@ public class PlainPermissionLoader {
         Map<String, Byte> needCheckedPermMap = needCheckedAccess.getResourcePermMap();
         Map<String, Byte> ownedPermMap = ownedAccess.getResourcePermMap();
 
+        if (needCheckedPermMap == null) {
+            //if the needCheckedPermMap is null,then return
+            return;
+        }
+
         for (Map.Entry<String, Byte> needCheckedEntry : needCheckedPermMap.entrySet()) {
             String resource = needCheckedEntry.getKey();
             Byte neededPerm = needCheckedEntry.getValue();
@@ -223,16 +228,14 @@ public class PlainPermissionLoader {
     public void validate(PlainAccessResource plainAccessResource) {
 
         //Step 1, check the global white remote addr
+        for (RemoteAddressStrategy remoteAddressStrategy : globalWhiteRemoteAddressStrategy) {
+            if (remoteAddressStrategy.match(plainAccessResource)) {
+                return;
+            }
+        }
+
         if (plainAccessResource.getAccessKey() == null) {
-            if (globalWhiteRemoteAddressStrategy.isEmpty()) {
-                throw new AclException(String.format("No accessKey is configured and no global white remote addr is configured"));
-            }
-            for (RemoteAddressStrategy remoteAddressStrategy : globalWhiteRemoteAddressStrategy) {
-                if (remoteAddressStrategy.match(plainAccessResource)) {
-                    return;
-                }
-            }
-            throw new AclException(String.format("No accessKey is configured and no global white remote addr is matched"));
+            throw new AclException(String.format("No accessKey is configured"));
         }
 
         if (!plainAccessResourceMap.containsKey(plainAccessResource.getAccessKey())) {

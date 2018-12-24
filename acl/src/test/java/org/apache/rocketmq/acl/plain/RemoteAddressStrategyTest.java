@@ -24,10 +24,12 @@ public class RemoteAddressStrategyTest {
 
     RemoteAddressStrategyFactory remoteAddressStrategyFactory = new RemoteAddressStrategyFactory();
 
-    @Test(expected = AclException.class)
+    @Test
     public void netaddressStrategyFactoryExceptionTest() {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
         remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
+        Assert.assertEquals(remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource).getClass(),
+            RemoteAddressStrategyFactory.BlankRemoteAddressStrategy.class);
     }
 
     @Test
@@ -61,6 +63,10 @@ public class RemoteAddressStrategyTest {
         plainAccessResource.setWhiteRemoteAddress("127.0.1-20.*");
         remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         Assert.assertEquals(remoteAddressStrategy.getClass(), RemoteAddressStrategyFactory.RangeRemoteAddressStrategy.class);
+
+        plainAccessResource.setWhiteRemoteAddress("");
+        remoteAddressStrategy = remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
+        Assert.assertEquals(remoteAddressStrategy.getClass(), RemoteAddressStrategyFactory.BlankRemoteAddressStrategy.class);
     }
 
     @Test(expected = AclException.class)
@@ -76,6 +82,12 @@ public class RemoteAddressStrategyTest {
     public void nullNetaddressStrategyTest() {
         boolean isMatch = RemoteAddressStrategyFactory.NULL_NET_ADDRESS_STRATEGY.match(new PlainAccessResource());
         Assert.assertTrue(isMatch);
+    }
+
+    @Test
+    public void blankNetaddressStrategyTest() {
+        boolean isMatch = RemoteAddressStrategyFactory.BLANK_NET_ADDRESS_STRATEGY.match(new PlainAccessResource());
+        Assert.assertFalse(isMatch);
     }
 
     public void oneNetaddressStrategyTest() {
