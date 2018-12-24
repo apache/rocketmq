@@ -135,13 +135,13 @@ public class DLedgerCommitLog extends CommitLog {
 
     @Override
     public long getMaxOffset() {
-        if (dividedCommitlogOffset > 0 && dLedgerFileStore.getCommittedPos() < 0) {
-            return dividedCommitlogOffset;
+        if (dLedgerFileStore.getCommittedPos() > 0) {
+            return dLedgerFileStore.getCommittedPos();
         }
-        if (dLedgerFileStore.getCommittedPos() == -1) {
-            return 0;
+        if (dLedgerFileList.getMinOffset() > 0) {
+            return dLedgerFileList.getMinOffset();
         }
-        return dLedgerFileStore.getCommittedPos();
+        return 0;
     }
 
     @Override

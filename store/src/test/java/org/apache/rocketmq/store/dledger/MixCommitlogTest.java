@@ -85,6 +85,8 @@ public class MixCommitlogTest extends MessageStoreTestBase {
             DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) dledgerStore.getCommitLog();
             Assert.assertFalse(dLedgerCommitLog.getdLedgerServer().getdLedgerConfig().isEnableDiskForceClean());
             Assert.assertEquals(dividedOffset, dLedgerCommitLog.getDividedCommitlogOffset());
+            Assert.assertEquals(0, dledgerStore.dispatchBehindBytes());
+            Assert.assertEquals(dividedOffset, dLedgerCommitLog.getMaxOffset());
             Thread.sleep(2000);
             doPutMessages(dledgerStore, topic, 0, 1000, 1000);
             Thread.sleep(500);
