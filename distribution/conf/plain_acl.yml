@@ -13,22 +13,28 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-onlyNetAddress:
-  remoteAddr: 192.168.0.*
-  noPermitPullTopic:
-    - broker-a
+globalWhiteRemoteAddresses:
 
-list:
-  - accessKey: RocketMQ
-    signature: 1234567
-    remoteAddr: 192.168.0.*
-    permitSendTopic:
-      - TopicTest
-      - test2
-  - accessKey: RocketMQ
-    signature: 1234567
-    remoteAddr: 192.168.2.1
-    permitSendTopic:
-      - test3
-      - test4
+accounts:
+- accessKey: RocketMQ
+  secretKey: 12345678
+  whiteRemoteAddress:
+  admin: false
+  defaultTopicPerm: DENY
+  defaultGroupPerm: SUB
+  topicPerms:
+  - topicA=DENY
+  - topicB=PUB|SUB
+  - topicC=SUB
+  groupPerms:
+  # the group should convert to retry topic
+  - groupA=DENY
+  - groupB=PUB|SUB
+  - groupC=SUB
+
+- accessKey: aliyun.com
+  secretKey: 12345678
+  whiteRemoteAddress: 192.168.1.*
+  # if it is admin, it could access all resources
+  admin: true
     
