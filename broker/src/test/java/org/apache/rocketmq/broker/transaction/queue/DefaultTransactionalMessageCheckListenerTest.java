@@ -26,11 +26,13 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -38,6 +40,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DefaultTransactionalMessageCheckListenerTest {
 
     private DefaultTransactionalMessageCheckListener listener;
+    @Mock
+    private MessageStore messageStore;
 
     @Spy
     private BrokerController brokerController = new BrokerController(new BrokerConfig(),
@@ -49,14 +53,13 @@ public class DefaultTransactionalMessageCheckListenerTest {
     public void init() throws Exception {
         listener = new DefaultTransactionalMessageCheckListener();
         listener.setBrokerController(brokerController);
-        brokerController.initialize();
-        brokerController.start();
+        brokerController.setMessageStore(messageStore);
 
     }
 
     @After
     public void destroy() {
-        brokerController.shutdown();
+//        brokerController.shutdown();
     }
     @Test
     public void testResolveHalfMsg() {
