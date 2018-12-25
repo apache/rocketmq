@@ -47,7 +47,7 @@ public class PlainAccessValidator implements AccessValidator {
     @Override
     public AccessResource parse(RemotingCommand request, String remoteAddr) {
         PlainAccessResource accessResource = new PlainAccessResource();
-        accessResource.setWhiteRemoteAddress(remoteAddr);
+        accessResource.setWhiteRemoteAddress(remoteAddr.split(":")[0]);
         accessResource.setRequestCode(request.getCode());
         accessResource.setAccessKey(request.getExtFields().get(SessionCredentials.ACCESS_KEY));
         accessResource.setSignature(request.getExtFields().get(SessionCredentials.SIGNATURE));

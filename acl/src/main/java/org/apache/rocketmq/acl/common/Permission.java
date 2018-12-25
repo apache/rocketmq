@@ -64,12 +64,10 @@ public class Permission {
                 return Permission.PUB;
             case "SUB":
                 return Permission.SUB;
-            case "ANY":
-                return Permission.ANY;
             case "PUB|SUB":
-                return Permission.ANY;
+                return Permission.PUB | Permission.SUB;
             case "SUB|PUB":
-                return Permission.ANY;
+                return Permission.PUB | Permission.SUB;
             case "DENY":
                 return Permission.DENY;
             default:
