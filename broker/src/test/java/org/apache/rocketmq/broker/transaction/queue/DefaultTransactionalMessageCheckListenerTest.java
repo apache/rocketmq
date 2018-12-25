@@ -27,6 +27,7 @@ import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,6 +54,10 @@ public class DefaultTransactionalMessageCheckListenerTest {
 
     }
 
+    @After
+    public void destroy() {
+        brokerController.shutdown();
+    }
     @Test
     public void testResolveHalfMsg() {
         listener.resolveHalfMsg(createMessageExt());
