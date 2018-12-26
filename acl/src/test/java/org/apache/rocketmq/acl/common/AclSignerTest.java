@@ -4,13 +4,9 @@ import org.junit.Test;
 
 public class AclSignerTest {
 
-    @Test
+    @Test(expected = Exception.class)
     public void calSignatureExceptionTest(){
-        try {
-            AclSigner.calSignature(new byte[]{},"");
-        }catch (Exception e){
-
-        }
+        AclSigner.calSignature(new byte[]{},"");
     }
 
     @Test
