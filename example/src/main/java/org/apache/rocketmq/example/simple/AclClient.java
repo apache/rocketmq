@@ -20,6 +20,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.rocketmq.acl.common.AclClientRPCHook;
+import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
@@ -36,25 +39,22 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 /**
  *
- * English explain
- * 1. broker module src/test/resources/META-INF/service/org.apache.rocketmq.acl.AccessValidator copy to src/java/resources/META-INF/service.
+ * 1. view the /conf/plain_acl.yml file under the distribution module, pay attention to the accessKey,secretKey,
+ * globalWhiteRemoteAddresses and whiteRemoteAddress and some other attributes.
  *
- * 2. view the /conf/transport.yml file under the distribution module, pay attention to the account password, IP.
- *
- * 3. Modify ALC_RCP_HOOK_ACCOUT and ACL_RCP_HOOK_PASSWORD to the corresponding account password in transport.yml
+ * 2. Modify ACL_ACCESS_KEY and ACL_SECRET_KEY to the corresponding accessKey and secretKey in plain_acl.yml
  *
  */
 public class AclClient {
 
     private static final Map<MessageQueue, Long> OFFSE_TABLE = new HashMap<MessageQueue, Long>();
 
-    private static final String ACL_RCPHOOK_ACCOUT = "RocketMQ";
+    private static final String ACL_ACCESS_KEY = "RocketMQ";
 
-    private static final String ACL_RCPHOOK_PASSWORD = "1234567";
+    private static final String ACL_SECRET_KEY = "1234567";
 
     public static void main(String[] args) throws MQClientException, InterruptedException {
         producer();
@@ -170,37 +170,6 @@ public class AclClient {
     }
 
     static RPCHook getAclRPCHook() {
-        return new AclRPCHook(ACL_RCPHOOK_ACCOUT, ACL_RCPHOOK_PASSWORD);
-    }
-
-    static class AclRPCHook implements RPCHook {
-
-        private String account;
-
-        private String password;
-
-        public AclRPCHook(String account, String password) {
-            this.account = account;
-            this.password = password;
-        }
-
-        @Override
-        public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
-
-            HashMap<String, String> ext = request.getExtFields();
-            if (ext == null) {
-                ext = new HashMap<>();
-                request.setExtFields(ext);
-            }
-            ext.put("account", this.account);
-            ext.put("password", this.password);
-        }
-
-        @Override
-        public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
-            //do nothing
-
-        }
-
+        return new AclClientRPCHook(new SessionCredentials(ACL_ACCESS_KEY,ACL_SECRET_KEY));
     }
 }
