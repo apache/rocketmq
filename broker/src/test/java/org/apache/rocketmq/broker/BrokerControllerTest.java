@@ -24,6 +24,7 @@ import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,6 +43,7 @@ public class BrokerControllerTest {
         brokerController.shutdown();
     }
 
+    @Ignore
     @Test
     public void testBrokerStartAclEnabled() throws Exception {
         BrokerConfig brokerConfigAclEnabled = new BrokerConfig();
