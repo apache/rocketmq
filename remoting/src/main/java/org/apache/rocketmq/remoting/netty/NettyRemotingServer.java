@@ -336,6 +336,10 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         return this.publicExecutor;
     }
 
+    /**
+     * It's highly recommended to share one stateless handler with all the server-side channels.
+     * The more the channels, the less the space waste.
+     */
     private void prepareSharableHandlers() {
         handshakeHandler = new HandshakeHandler(TlsSystemConfig.tlsMode);
         encoder = new NettyEncoder();
