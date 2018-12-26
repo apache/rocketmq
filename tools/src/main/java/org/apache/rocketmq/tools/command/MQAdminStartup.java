@@ -261,7 +261,7 @@ public class MQAdminStartup {
         String secretKey = yamlDataObject.getString("secretKey");
 
         if (StringUtils.isBlank(accessKey) || StringUtils.isBlank(secretKey)) {
-            System.out.printf("accessKey or secretKey is blank, admin have no permission to the broker.%n");
+            System.out.printf("AccessKey or secretKey is blank, the acl is not enabled.%n");
             return null;
         }
         return new AclClientRPCHook(new SessionCredentials(accessKey,secretKey));
