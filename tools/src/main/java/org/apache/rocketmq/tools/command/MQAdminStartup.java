@@ -25,6 +25,7 @@ import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.SessionCredentials;
@@ -252,13 +253,17 @@ public class MQAdminStartup {
                 JSONObject.class);
 
         if (yamlDataObject == null || yamlDataObject.isEmpty()) {
-            System.out.printf("%s file  is not data" + fileHome + fileName);
+            System.out.printf(" file %s is not exit , acl is not be enabled, admin have no permission to the broker.%n" ,fileHome + fileName);
             return null;
         }
         // admin ak sk
         String accessKey = yamlDataObject.getString("accessKey");
         String secretKey = yamlDataObject.getString("secretKey");
-        return new AclClientRPCHook(new SessionCredentials(accessKey,secretKey));
 
+        if (StringUtils.isBlank(accessKey) || StringUtils.isBlank(secretKey)) {
+            System.out.printf("accessKey or secretKey is blank, admin have no permission to the broker.%n");
+            return null;
+        }
+        return new AclClientRPCHook(new SessionCredentials(accessKey,secretKey));
     }
 }
