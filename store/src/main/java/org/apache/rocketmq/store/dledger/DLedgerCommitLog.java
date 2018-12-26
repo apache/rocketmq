@@ -75,6 +75,7 @@ public class DLedgerCommitLog extends CommitLog {
         super(defaultMessageStore);
         dLedgerConfig =  new DLedgerConfig();
         dLedgerConfig.setEnableDiskForceClean(defaultMessageStore.getMessageStoreConfig().isCleanFileForciblyEnable());
+        dLedgerConfig.setStoreType(DLedgerConfig.FILE);
         dLedgerConfig.setSelfId(defaultMessageStore.getMessageStoreConfig().getdLegerSelfId());
         dLedgerConfig.setGroup(defaultMessageStore.getMessageStoreConfig().getdLegerGroup());
         dLedgerConfig.setPeers(defaultMessageStore.getMessageStoreConfig().getdLegerPeers());
@@ -114,7 +115,7 @@ public class DLedgerCommitLog extends CommitLog {
 
     private void disableDeleteDledger() {
         dLedgerConfig.setEnableDiskForceClean(false);
-        dLedgerConfig.setFileReservedHours(Integer.MAX_VALUE);
+        dLedgerConfig.setFileReservedHours(24 * 365 * 10);
     }
 
     @Override
