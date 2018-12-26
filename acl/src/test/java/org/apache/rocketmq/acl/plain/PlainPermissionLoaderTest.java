@@ -108,14 +108,6 @@ public class PlainPermissionLoaderTest {
         plainAccessResource = plainPermissionLoader.getPlainAccessResource(plainAccess);
         Assert.assertEquals(plainAccessResource.isAdmin(), true);
 
-        plainAccess.setDefaultGroupPerm("ANY");
-        plainAccessResource = plainPermissionLoader.getPlainAccessResource(plainAccess);
-        Assert.assertEquals(plainAccessResource.getDefaultGroupPerm(), Permission.ANY);
-
-        plainAccess.setDefaultTopicPerm("ANY");
-        plainAccessResource = plainPermissionLoader.getPlainAccessResource(plainAccess);
-        Assert.assertEquals(plainAccessResource.getDefaultTopicPerm(), Permission.ANY);
-
         List<String> groups = new ArrayList<String>();
         groups.add("groupA=DENY");
         groups.add("groupB=PUB|SUB");
@@ -126,7 +118,7 @@ public class PlainPermissionLoaderTest {
         Assert.assertEquals(resourcePermMap.size(), 3);
 
         Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupA")).byteValue(), Permission.DENY);
-        Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupB")).byteValue(), Permission.ANY);
+        Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupB")).byteValue(), Permission.PUB|Permission.SUB);
         Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupC")).byteValue(), Permission.PUB);
 
         List<String> topics = new ArrayList<String>();
@@ -139,7 +131,7 @@ public class PlainPermissionLoaderTest {
         Assert.assertEquals(resourcePermMap.size(), 6);
 
         Assert.assertEquals(resourcePermMap.get("topicA").byteValue(), Permission.DENY);
-        Assert.assertEquals(resourcePermMap.get("topicB").byteValue(), Permission.ANY);
+        Assert.assertEquals(resourcePermMap.get("topicB").byteValue(), Permission.PUB|Permission.SUB);
         Assert.assertEquals(resourcePermMap.get("topicC").byteValue(), Permission.PUB);
     }
 

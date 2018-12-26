@@ -19,17 +19,16 @@ package org.apache.rocketmq.tools.command;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.common.AclClientRPCHook;
+import org.apache.rocketmq.acl.common.AclUtils;
+import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -79,7 +78,6 @@ import org.apache.rocketmq.tools.command.topic.UpdateOrderConfCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicPermSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 import org.slf4j.LoggerFactory;
-import org.yaml.snakeyaml.Yaml;
 
 public class MQAdminStartup {
     protected static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
@@ -250,62 +248,22 @@ public class MQAdminStartup {
 
     public static RPCHook getAclRPCHook(CommandLine commandLine) {
         String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
-        File file = new File(fileHome + "/conf/tools.yml");
-        if (!file.exists()) {
-            System.out.printf("file %s is not exist \n", file.getPath());
+        String fileName = "/conf/tools.yml";
+        JSONObject yamlDataObject = AclUtils.getYamlDataObject(fileHome + fileName ,
+                JSONObject.class);
+
+        if (yamlDataObject == null || yamlDataObject.isEmpty()) {
+            System.out.printf(" Cannot find conf file %s, acl is not be enabled.%n" ,fileHome + fileName);
             return null;
         }
-        Yaml ymal = new Yaml();
-        FileInputStream fis = null;
-        Map<String, Map<String, Object>> map = null;
-        try {
-            fis = new FileInputStream(file);
-            map = ymal.loadAs(fis, Map.class);
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (fis != null) {
-                try {
-                    fis.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        if (map == null || map.isEmpty()) {
-            System.out.printf("file %s is no data", file.getPath());
+        // admin ak sk
+        String accessKey = yamlDataObject.getString("accessKey");
+        String secretKey = yamlDataObject.getString("secretKey");
+
+        if (StringUtils.isBlank(accessKey) || StringUtils.isBlank(secretKey)) {
+            System.out.printf("AccessKey or secretKey is blank, the acl is not enabled.%n");
             return null;
         }
-
-        final Map<String, Map<String, Object>> newMap = map;
-        return new RPCHook() {
-
-            @Override
-            public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
-                System.out.printf("remoteAddr is %s code %d \n", remoteAddr, request.getCode());
-                String fastRemoteAddr = null;
-                if (remoteAddr != null) {
-                    String[] ipAndPost = StringUtils.split(remoteAddr, ":");
-                    Integer fastPost = Integer.valueOf(ipAndPost[1]) + 2;
-                    fastRemoteAddr = ipAndPost[0] + ":" + fastPost.toString();
-                }
-                Map<String, Object> map;
-                if ((map = newMap.get(remoteAddr)) != null || (map = newMap.get(fastRemoteAddr)) != null || (map = newMap.get("all")) != null) {
-                    HashMap<String, String> ext = request.getExtFields();
-                    if (ext == null) {
-                        ext = new HashMap<>();
-                        request.setExtFields(ext);
-                    }
-                    ext.put("account", map.get("account").toString());
-                    ext.put("password", map.get("password").toString());
-                }
-
-            }
-
-            @Override
-            public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
-            }
-        };
-
+        return new AclClientRPCHook(new SessionCredentials(accessKey,secretKey));
     }
 }
