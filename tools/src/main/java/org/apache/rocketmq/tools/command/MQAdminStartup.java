@@ -253,7 +253,7 @@ public class MQAdminStartup {
                 JSONObject.class);
 
         if (yamlDataObject == null || yamlDataObject.isEmpty()) {
-            System.out.printf(" file %s is not exit , acl is not be enabled, admin have no permission to the broker.%n" ,fileHome + fileName);
+            System.out.printf(" Cannot find conf file %s, acl is not be enabled.%n" ,fileHome + fileName);
             return null;
         }
         // admin ak sk
