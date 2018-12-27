@@ -79,10 +79,10 @@ public class MomentStatsItemSet {
         if (null == statsItem) {
             statsItem =
                 new MomentStatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);
-            MomentStatsItem prev = this.statsItemTable.put(statsKey, statsItem);
+            MomentStatsItem prev = this.statsItemTable.putIfAbsent(statsKey, statsItem);
 
-            if (null == prev) {
-
+            if (null != prev) {
+                statsItem = prev;
                 // statsItem.init();
             }
         }
