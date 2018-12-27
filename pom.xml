@@ -259,6 +259,7 @@
                         <exclude>src/test/resources/certs/*</exclude>
                         <exclude>src/test/**/*.log</exclude>
                         <exclude>src/test/resources/META-INF/service/*</exclude>
+                        <exclude>src/main/resources/META-INF/service/*</exclude>
                         <exclude>*/target/**</exclude>
                         <exclude>*/*.iml</exclude>
                     </excludes>
