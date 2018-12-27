@@ -15,48 +15,48 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.broker;
-
-import static org.apache.rocketmq.store.stats.BrokerStatsManager.TOPIC_PUT_NUMS;
-import static org.junit.Assert.assertEquals;
+package org.apache.rocketmq.common.stats;
 
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
-import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Test;
 
-public class BrokerStatsManagerTest {
+import static org.junit.Assert.assertEquals;
 
-    private BrokerStatsManager brokerStatsManager;
+public class StatsItemSetTest {
+
     private ThreadPoolExecutor executor;
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     @Test
     public void test_getAndCreateStatsItem_multiThread() throws InterruptedException {
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 50; i++) {
             assertEquals(20000L, test_unit().longValue());
         }
     }
 
     @Test
     public void test_getAndCreateMomentStatsItem_multiThread() throws InterruptedException {
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 50; i++) {
             assertEquals(10, test_unit_moment().longValue());
         }
     }
 
     private AtomicLong test_unit() throws InterruptedException {
-        brokerStatsManager = new BrokerStatsManager("DefaultCluster");
+        final StatsItemSet statsItemSet = new StatsItemSet("topicTest", scheduler, null);
         executor = new ThreadPoolExecutor(100, 200, 10, TimeUnit.SECONDS,
-                new ArrayBlockingQueue<Runnable>(10000), new ThreadFactoryImpl("testMultiThread"));
+            new ArrayBlockingQueue<Runnable>(10000), new ThreadFactoryImpl("testMultiThread"));
         for (int i = 0; i < 10000; i++) {
             executor.submit(new Runnable() {
                 @Override
                 public void run() {
-                    brokerStatsManager.incTopicPutNums("topicTest", 2, 1);
+                    statsItemSet.addValue("topicTest", 2, 1);
                 }
             });
         }
@@ -66,18 +66,18 @@ public class BrokerStatsManagerTest {
             }
             Thread.sleep(1000);
         }
-        return brokerStatsManager.getStatsItem(TOPIC_PUT_NUMS, "topicTest").getValue();
+        return statsItemSet.getStatsItem("topicTest").getValue();
     }
 
     private AtomicLong test_unit_moment() throws InterruptedException {
-        brokerStatsManager = new BrokerStatsManager("DefaultCluster");
+        final MomentStatsItemSet statsItemSet = new MomentStatsItemSet("topicTest", scheduler, null);
         executor = new ThreadPoolExecutor(100, 200, 10, TimeUnit.SECONDS,
-                new ArrayBlockingQueue<Runnable>(10000), new ThreadFactoryImpl("testMultiThread"));
+            new ArrayBlockingQueue<Runnable>(10000), new ThreadFactoryImpl("testMultiThread"));
         for (int i = 0; i < 10000; i++) {
             executor.submit(new Runnable() {
                 @Override
                 public void run() {
-                    brokerStatsManager.getMomentStatsItemSetFallTime().setValue("test",10);
+                    statsItemSet.setValue("test", 10);
                 }
             });
         }
@@ -87,7 +87,7 @@ public class BrokerStatsManagerTest {
             }
             Thread.sleep(1000);
         }
-        return brokerStatsManager.getMomentStatsItemSetFallTime().getAndCreateStatsItem("test").getValue();
+        return statsItemSet.getAndCreateStatsItem("test").getValue();
     }
 
     @After
