@@ -259,6 +259,7 @@
                         <exclude>src/test/resources/META-INF/service/*</exclude>
                         <exclude>*/target/**</exclude>
                         <exclude>*/*.iml</exclude>
+                        <exclude>docs/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>
