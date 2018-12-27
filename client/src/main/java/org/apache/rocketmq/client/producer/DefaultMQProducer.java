@@ -655,6 +655,16 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.defaultMQProducerImpl.setCallbackExecutor(callbackExecutor);
     }
 
+    /**
+     * Sets an Executor to be used for executing asynchronous send. If the Executor is not set, {@link
+     * DefaultMQProducerImpl#defaultAsyncSenderExecutor} will be used.
+     *
+     * @param asyncSenderExecutor the instance of Executor
+     */
+    public void setAsyncSenderExecutor(final ExecutorService asyncSenderExecutor) {
+        this.defaultMQProducerImpl.setAsyncSenderExecutor(asyncSenderExecutor);
+    }
+
     private MessageBatch batch(Collection<Message> msgs) throws MQClientException {
         MessageBatch msgBatch;
         try {
