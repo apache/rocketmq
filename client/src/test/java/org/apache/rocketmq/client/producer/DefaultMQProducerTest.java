@@ -167,10 +167,7 @@ public class DefaultMQProducerTest {
 
     @Test
     public void testSendMessageAsync_Success() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
-        ExecutorService callbackExecutor = Executors.newSingleThreadExecutor();
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        when(mQClientAPIImpl.getRemotingClient()).thenReturn((nettyRemotingClient));
-        when(nettyRemotingClient.getCallbackExecutor()).thenReturn(callbackExecutor);
         producer.send(message, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
@@ -186,15 +183,11 @@ public class DefaultMQProducerTest {
             }
         });
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
-        callbackExecutor.shutdown();
     }
     @Test
     public void testSendMessageAsync() throws RemotingException, MQClientException, InterruptedException {
         final AtomicInteger cc = new AtomicInteger(0);
         final CountDownLatch countDownLatch = new CountDownLatch(6);
-        ExecutorService callbackExecutor = Executors.newSingleThreadExecutor();
-        when(mQClientAPIImpl.getRemotingClient()).thenReturn((nettyRemotingClient));
-        when(nettyRemotingClient.getCallbackExecutor()).thenReturn(callbackExecutor);
 
         SendCallback sendCallback = new SendCallback() {
             @Override
@@ -226,16 +219,13 @@ public class DefaultMQProducerTest {
         producer.send(message,messageQueueSelector,null,sendCallback,1000);
 
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
-        callbackExecutor.shutdown();
         assertThat(cc.get()).isEqualTo(6);
     }
 
     @Test
     public void testSendMessageAsync_BodyCompressed() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
-        ExecutorService callbackExecutor = Executors.newSingleThreadExecutor();
+
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        when(mQClientAPIImpl.getRemotingClient()).thenReturn((nettyRemotingClient));
-        when(nettyRemotingClient.getCallbackExecutor()).thenReturn(callbackExecutor);
         producer.send(bigMessage, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
@@ -251,7 +241,6 @@ public class DefaultMQProducerTest {
             }
         });
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
-        callbackExecutor.shutdown();
     }
 
     @Test
