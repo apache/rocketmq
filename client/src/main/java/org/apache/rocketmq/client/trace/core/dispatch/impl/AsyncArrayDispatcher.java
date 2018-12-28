@@ -49,6 +49,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.rocketmq.remoting.RPCHook;
 
 /**
  * Created by zongtanghu on 2018/11/6.
@@ -74,7 +75,7 @@ public class AsyncArrayDispatcher implements AsyncDispatcher {
     private String dispatcherId = UUID.randomUUID().toString();
     private String traceTopicName;
 
-    public AsyncArrayDispatcher(Properties properties) throws MQClientException {
+    public AsyncArrayDispatcher(Properties properties, RPCHook rpcHook) throws MQClientException {
         dispatcherType = properties.getProperty(TrackTraceConstants.TRACE_DISPATCHER_TYPE);
         int queueSize = Integer.parseInt(properties.getProperty(TrackTraceConstants.ASYNC_BUFFER_SIZE, "2048"));
         // queueSize is greater than or equal to the n power of 2 of value
@@ -92,7 +93,7 @@ public class AsyncArrayDispatcher implements AsyncDispatcher {
             TimeUnit.MILLISECONDS, //
             this.appenderQueue, //
             new ThreadFactoryImpl("MQTraceSendThread_"));
-        traceProducer = TrackTraceProducerFactory.getTraceDispatcherProducer(properties);
+        traceProducer = TrackTraceProducerFactory.getTraceDispatcherProducer(properties, rpcHook);
     }
 
     public String getTraceTopicName() {
