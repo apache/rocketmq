@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.trace.core.dispatch.impl;
+package org.apache.rocketmq.client.trace;
 
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -26,11 +26,6 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.client.trace.core.common.TrackTraceConstants;
-import org.apache.rocketmq.client.trace.core.common.TrackTraceContext;
-import org.apache.rocketmq.client.trace.core.common.TrackTraceDataEncoder;
-import org.apache.rocketmq.client.trace.core.common.TrackTraceTransferBean;
-import org.apache.rocketmq.client.trace.core.dispatch.AsyncDispatcher;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -51,10 +46,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.remoting.RPCHook;
 
-/**
- * Created by zongtanghu on 2018/11/6.
- */
-public class AsyncArrayDispatcher implements AsyncDispatcher {
+public class AsyncTraceDispatcher implements TraceDispatcher {
 
     private final static InternalLogger log = ClientLogger.getLog();
     private final int queueSize;
@@ -64,7 +56,7 @@ public class AsyncArrayDispatcher implements AsyncDispatcher {
     // the last discard number of log
     private AtomicLong discardCount;
     private Thread worker;
-    private ArrayBlockingQueue<TrackTraceContext> traceContextQueue;
+    private ArrayBlockingQueue<TraceContext> traceContextQueue;
     private ArrayBlockingQueue<Runnable> appenderQueue;
     private volatile Thread shutDownHook;
     private volatile boolean stopped = false;
@@ -75,17 +67,17 @@ public class AsyncArrayDispatcher implements AsyncDispatcher {
     private String dispatcherId = UUID.randomUUID().toString();
     private String traceTopicName;
 
-    public AsyncArrayDispatcher(Properties properties, RPCHook rpcHook) throws MQClientException {
-        dispatcherType = properties.getProperty(TrackTraceConstants.TRACE_DISPATCHER_TYPE);
-        int queueSize = Integer.parseInt(properties.getProperty(TrackTraceConstants.ASYNC_BUFFER_SIZE, "2048"));
+    public AsyncTraceDispatcher(Properties properties, RPCHook rpcHook) throws MQClientException {
+        dispatcherType = properties.getProperty(TraceConstants.TRACE_DISPATCHER_TYPE);
+        int queueSize = Integer.parseInt(properties.getProperty(TraceConstants.ASYNC_BUFFER_SIZE, "2048"));
         // queueSize is greater than or equal to the n power of 2 of value
         queueSize = 1 << (32 - Integer.numberOfLeadingZeros(queueSize - 1));
         this.queueSize = queueSize;
-        batchSize = Integer.parseInt(properties.getProperty(TrackTraceConstants.MAX_BATCH_NUM, "1"));
+        batchSize = Integer.parseInt(properties.getProperty(TraceConstants.MAX_BATCH_NUM, "1"));
         this.discardCount = new AtomicLong(0L);
-        traceContextQueue = new ArrayBlockingQueue<TrackTraceContext>(1024);
+        traceContextQueue = new ArrayBlockingQueue<TraceContext>(1024);
         appenderQueue = new ArrayBlockingQueue<Runnable>(queueSize);
-        traceTopicName = properties.getProperty(TrackTraceConstants.TRACE_TOPIC);
+        traceTopicName = properties.getProperty(TraceConstants.TRACE_TOPIC);
         this.traceExecuter = new ThreadPoolExecutor(//
             10, //
             20, //
@@ -93,7 +85,7 @@ public class AsyncArrayDispatcher implements AsyncDispatcher {
             TimeUnit.MILLISECONDS, //
             this.appenderQueue, //
             new ThreadFactoryImpl("MQTraceSendThread_"));
-        traceProducer = TrackTraceProducerFactory.getTraceDispatcherProducer(properties, rpcHook);
+        traceProducer = TraceProducerFactory.getTraceDispatcherProducer(properties, rpcHook);
     }
 
     public String getTraceTopicName() {
@@ -125,8 +117,8 @@ public class AsyncArrayDispatcher implements AsyncDispatcher {
     }
 
     public void start(Properties properties) throws MQClientException {
-        TrackTraceProducerFactory.registerTraceDispatcher(dispatcherId, properties.getProperty(TrackTraceConstants.NAMESRV_ADDR));
-        this.worker = new Thread(new AsyncRunnable(), "MQ-AsyncArrayDispatcher-Thread-" + dispatcherId);
+        TraceProducerFactory.registerTraceDispatcher(dispatcherId, properties.getProperty(TraceConstants.NAMESRV_ADDR));
+        this.worker = new Thread(new AsyncRunnable(), "MQ-AsyncTraceDispatcher-Thread-" + dispatcherId);
         this.worker.setDaemon(true);
         this.worker.start();
         this.registerShutDownHook();
@@ -134,7 +126,7 @@ public class AsyncArrayDispatcher implements AsyncDispatcher {
 
     @Override
     public boolean append(final Object ctx) {
-        boolean result = traceContextQueue.offer((TrackTraceContext) ctx);
+        boolean result = traceContextQueue.offer((TraceContext) ctx);
         if (!result) {
             log.info("buffer full" + discardCount.incrementAndGet() + " ,context is " + ctx);
         }
@@ -159,7 +151,7 @@ public class AsyncArrayDispatcher implements AsyncDispatcher {
     public void shutdown() {
         this.stopped = true;
         this.traceExecuter.shutdown();
-        TrackTraceProducerFactory.unregisterTraceDispatcher(dispatcherId);
+        TraceProducerFactory.unregisterTraceDispatcher(dispatcherId);
         this.removeShutdownHook();
     }
 
@@ -197,9 +189,9 @@ public class AsyncArrayDispatcher implements AsyncDispatcher {
         @Override
         public void run() {
             while (!stopped) {
-                List<TrackTraceContext> contexts = new ArrayList<TrackTraceContext>(batchSize);
+                List<TraceContext> contexts = new ArrayList<TraceContext>(batchSize);
                 for (int i = 0; i < batchSize; i++) {
-                    TrackTraceContext context = null;
+                    TraceContext context = null;
                     try {
                         //get track trace data element from blocking Queue — traceContextQueue
                         context = traceContextQueue.poll(5, TimeUnit.MILLISECONDS);
@@ -214,7 +206,7 @@ public class AsyncArrayDispatcher implements AsyncDispatcher {
                 if (contexts.size() > 0) {
                     AsyncAppenderRequest request = new AsyncAppenderRequest(contexts);
                     traceExecuter.submit(request);
-                } else if (AsyncArrayDispatcher.this.stopped) {
+                } else if (AsyncTraceDispatcher.this.stopped) {
                     this.stopped = true;
                 }
             }
@@ -223,13 +215,13 @@ public class AsyncArrayDispatcher implements AsyncDispatcher {
     }
 
     class AsyncAppenderRequest implements Runnable {
-        List<TrackTraceContext> contextList;
+        List<TraceContext> contextList;
 
-        public AsyncAppenderRequest(final List<TrackTraceContext> contextList) {
+        public AsyncAppenderRequest(final List<TraceContext> contextList) {
             if (contextList != null) {
                 this.contextList = contextList;
             } else {
-                this.contextList = new ArrayList<TrackTraceContext>(1);
+                this.contextList = new ArrayList<TraceContext>(1);
             }
         }
 
@@ -238,9 +230,9 @@ public class AsyncArrayDispatcher implements AsyncDispatcher {
             sendTraceData(contextList);
         }
         
-        public void sendTraceData(List<TrackTraceContext> contextList) {
-            Map<String, List<TrackTraceTransferBean>> transBeanMap = new HashMap<String, List<TrackTraceTransferBean>>();
-            for (TrackTraceContext context : contextList) {
+        public void sendTraceData(List<TraceContext> contextList) {
+            Map<String, List<TraceTransferBean>> transBeanMap = new HashMap<String, List<TraceTransferBean>>();
+            for (TraceContext context : contextList) {
                 if (context.getTraceBeans().isEmpty()) {
                     continue;
                 }
@@ -248,15 +240,15 @@ public class AsyncArrayDispatcher implements AsyncDispatcher {
                 String topic = context.getTraceBeans().get(0).getTopic();
                 //2.use  original message entity's topic as key
                 String key = topic;
-                List<TrackTraceTransferBean> transBeanList = transBeanMap.get(key);
+                List<TraceTransferBean> transBeanList = transBeanMap.get(key);
                 if (transBeanList == null) {
-                    transBeanList = new ArrayList<TrackTraceTransferBean>();
+                    transBeanList = new ArrayList<TraceTransferBean>();
                     transBeanMap.put(key, transBeanList);
                 }
-                TrackTraceTransferBean traceData = TrackTraceDataEncoder.encoderFromContextBean(context);
+                TraceTransferBean traceData = TraceDataEncoder.encoderFromContextBean(context);
                 transBeanList.add(traceData);
             }
-            for (Map.Entry<String, List<TrackTraceTransferBean>> entry : transBeanMap.entrySet()) {
+            for (Map.Entry<String, List<TraceTransferBean>> entry : transBeanMap.entrySet()) {
                 flushData(entry.getValue());
             }
         }
@@ -264,7 +256,7 @@ public class AsyncArrayDispatcher implements AsyncDispatcher {
         /**
          * batch sending data actually
          */
-        private void flushData(List<TrackTraceTransferBean> transBeanList) {
+        private void flushData(List<TraceTransferBean> transBeanList) {
             if (transBeanList.size() == 0) {
                 return;
             }
@@ -273,7 +265,7 @@ public class AsyncArrayDispatcher implements AsyncDispatcher {
             int count = 0;
             Set<String> keySet = new HashSet<String>();
 
-            for (TrackTraceTransferBean bean : transBeanList) {
+            for (TraceTransferBean bean : transBeanList) {
                 // keyset of message track trace includes msgId of or original message
                 keySet.addAll(bean.getTransKey());
                 buffer.append(bean.getTransData());

@@ -14,11 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.trace.core.dispatch.impl;
+package org.apache.rocketmq.client.trace;
 
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.client.trace.core.common.TrackTraceConstants;
 import org.apache.rocketmq.common.namesrv.TopAddressing;
 
 import java.util.Map;
@@ -27,7 +26,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.remoting.RPCHook;
 
-public class TrackTraceProducerFactory {
+@Deprecated
+public class TraceProducerFactory {
 
     private static Map<String, Object> dispatcherTable = new ConcurrentHashMap<String, Object>();
     private static AtomicBoolean isStarted = new AtomicBoolean(false);
@@ -38,18 +38,18 @@ public class TrackTraceProducerFactory {
         if (traceProducer == null) {
 
             traceProducer = new DefaultMQProducer(rpcHook);
-            traceProducer.setProducerGroup(TrackTraceConstants.GROUP_NAME);
+            traceProducer.setProducerGroup(TraceConstants.GROUP_NAME);
             traceProducer.setSendMsgTimeout(5000);
-            traceProducer.setInstanceName(properties.getProperty(TrackTraceConstants.INSTANCE_NAME, String.valueOf(System.currentTimeMillis())));
-            String nameSrv = properties.getProperty(TrackTraceConstants.NAMESRV_ADDR);
+            traceProducer.setInstanceName(properties.getProperty(TraceConstants.INSTANCE_NAME, String.valueOf(System.currentTimeMillis())));
+            String nameSrv = properties.getProperty(TraceConstants.NAMESRV_ADDR);
             if (nameSrv == null) {
-                TopAddressing topAddressing = new TopAddressing(properties.getProperty(TrackTraceConstants.ADDRSRV_URL));
+                TopAddressing topAddressing = new TopAddressing(properties.getProperty(TraceConstants.ADDRSRV_URL));
                 nameSrv = topAddressing.fetchNSAddr();
             }
             traceProducer.setNamesrvAddr(nameSrv);
             traceProducer.setVipChannelEnabled(false);
             //the max size of message is 128K
-            int maxSize = Integer.parseInt(properties.getProperty(TrackTraceConstants.MAX_MSG_SIZE, "128000"));
+            int maxSize = Integer.parseInt(properties.getProperty(TraceConstants.MAX_MSG_SIZE, "128000"));
             traceProducer.setMaxMessageSize(maxSize - 10 * 1000);
         }
         return traceProducer;

@@ -53,7 +53,6 @@ import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
-import org.apache.rocketmq.client.trace.core.dispatch.impl.AsyncArrayDispatcher;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -103,7 +102,7 @@ public class DefaultMQConsumerWithTraceTest {
     private DefaultMQPushConsumer customTraceTopicpushConsumer;
 
 
-    private AsyncArrayDispatcher asyncArrayDispatcher;
+    private AsyncTraceDispatcher asyncTraceDispatcher;
     private MQClientInstance mQClientTraceFactory;
     @Mock
     private MQClientAPIImpl mQClientTraceAPIImpl;
@@ -120,8 +119,8 @@ public class DefaultMQConsumerWithTraceTest {
         pushConsumer.setNamesrvAddr("127.0.0.1:9876");
         pushConsumer.setPullInterval(60 * 1000);
 
-        asyncArrayDispatcher = (AsyncArrayDispatcher)pushConsumer.getTraceDispatcher();
-        traceProducer = asyncArrayDispatcher.getTraceProducer();
+        asyncTraceDispatcher = (AsyncTraceDispatcher)pushConsumer.getTraceDispatcher();
+        traceProducer = asyncTraceDispatcher.getTraceProducer();
 
 
         pushConsumer.registerMessageListener(new MessageListenerConcurrently() {

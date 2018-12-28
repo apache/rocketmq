@@ -31,11 +31,11 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.client.trace.core.common.TrackTraceConstants;
-import org.apache.rocketmq.client.trace.core.common.TrackTraceDispatcherType;
-import org.apache.rocketmq.client.trace.core.dispatch.AsyncDispatcher;
-import org.apache.rocketmq.client.trace.core.dispatch.impl.AsyncArrayDispatcher;
-import org.apache.rocketmq.client.trace.core.hook.ConsumeMessageTraceHookImpl;
+import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
+import org.apache.rocketmq.client.trace.TraceConstants;
+import org.apache.rocketmq.client.trace.TraceDispatcher;
+import org.apache.rocketmq.client.trace.TraceDispatcherType;
+import org.apache.rocketmq.client.trace.hook.ConsumeMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -259,7 +259,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Interface of asynchronous transfer data
      */
-    private AsyncDispatcher traceDispatcher = null;
+    private TraceDispatcher traceDispatcher = null;
 
     /**
      * Default constructor.
@@ -299,17 +299,17 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         if (msgTraceSwitch) {
             try {
                 Properties tempProperties = new Properties();
-                tempProperties.put(TrackTraceConstants.MAX_MSG_SIZE, "128000");
-                tempProperties.put(TrackTraceConstants.ASYNC_BUFFER_SIZE, "2048");
-                tempProperties.put(TrackTraceConstants.MAX_BATCH_NUM, "100");
-                tempProperties.put(TrackTraceConstants.INSTANCE_NAME, "PID_CLIENT_INNER_TRACE_PRODUCER");
-                tempProperties.put(TrackTraceConstants.TRACE_DISPATCHER_TYPE, TrackTraceDispatcherType.CONSUMER.name());
+                tempProperties.put(TraceConstants.MAX_MSG_SIZE, "128000");
+                tempProperties.put(TraceConstants.ASYNC_BUFFER_SIZE, "2048");
+                tempProperties.put(TraceConstants.MAX_BATCH_NUM, "100");
+                tempProperties.put(TraceConstants.INSTANCE_NAME, "PID_CLIENT_INNER_TRACE_PRODUCER");
+                tempProperties.put(TraceConstants.TRACE_DISPATCHER_TYPE, TraceDispatcherType.CONSUMER.name());
                 if (!UtilAll.isBlank(traceTopicName)) {
-                    tempProperties.put(TrackTraceConstants.TRACE_TOPIC, traceTopicName);
+                    tempProperties.put(TraceConstants.TRACE_TOPIC, traceTopicName);
                 } else {
-                    tempProperties.put(TrackTraceConstants.TRACE_TOPIC, MixAll.RMQ_SYS_TRACK_TRACE_TOPIC);
+                    tempProperties.put(TraceConstants.TRACE_TOPIC, MixAll.RMQ_SYS_TRACK_TRACE_TOPIC);
                 }
-                AsyncArrayDispatcher dispatcher = new AsyncArrayDispatcher(tempProperties, rpcHook);
+                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(tempProperties, rpcHook);
                 dispatcher.setHostConsumer(this.getDefaultMQPushConsumerImpl());
                 traceDispatcher = dispatcher;
 
@@ -586,7 +586,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         if (null != traceDispatcher) {
             try {
                 Properties tempProperties = new Properties();
-                tempProperties.put(TrackTraceConstants.NAMESRV_ADDR, this.getNamesrvAddr());
+                tempProperties.put(TraceConstants.NAMESRV_ADDR, this.getNamesrvAddr());
                 traceDispatcher.start(tempProperties);
             } catch (MQClientException e) {
                 log.warn("trace dispatcher start failed ", e);
@@ -772,11 +772,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.consumeTimeout = consumeTimeout;
     }
 
-    public AsyncDispatcher getTraceDispatcher() {
+    public TraceDispatcher getTraceDispatcher() {
         return traceDispatcher;
     }
 
-    public void setTraceDispatcher(AsyncDispatcher traceDispatcher) {
+    public void setTraceDispatcher(TraceDispatcher traceDispatcher) {
         this.traceDispatcher = traceDispatcher;
     }
 }

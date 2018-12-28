@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.trace.core.hook;
+package org.apache.rocketmq.client.trace.hook;
 
 import org.apache.rocketmq.client.hook.SendMessageContext;
 import org.apache.rocketmq.client.hook.SendMessageHook;
 import org.apache.rocketmq.client.producer.SendStatus;
-import org.apache.rocketmq.client.trace.core.common.TrackTraceBean;
-import org.apache.rocketmq.client.trace.core.common.TrackTraceContext;
-import org.apache.rocketmq.client.trace.core.common.TrackTraceType;
-import org.apache.rocketmq.client.trace.core.dispatch.AsyncDispatcher;
-import org.apache.rocketmq.client.trace.core.dispatch.impl.AsyncArrayDispatcher;
+import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
+import org.apache.rocketmq.client.trace.TraceContext;
+import org.apache.rocketmq.client.trace.TraceDispatcher;
+import org.apache.rocketmq.client.trace.TraceBean;
+import org.apache.rocketmq.client.trace.TraceType;
 import java.util.ArrayList;
 
-public class SendMessageTrackHookImpl implements SendMessageHook {
+public class SendMessageTraceHookImpl implements SendMessageHook {
 
-    private AsyncDispatcher localDispatcher;
+    private TraceDispatcher localDispatcher;
 
-    public SendMessageTrackHookImpl(AsyncDispatcher localDispatcher) {
+    public SendMessageTraceHookImpl(TraceDispatcher localDispatcher) {
         this.localDispatcher = localDispatcher;
     }
 
@@ -42,18 +42,18 @@ public class SendMessageTrackHookImpl implements SendMessageHook {
     @Override
     public void sendMessageBefore(SendMessageContext context) {
         //if it is message track trace data,then it doesn't recorded
-        if (context == null || context.getMessage().getTopic().startsWith(((AsyncArrayDispatcher) localDispatcher).getTraceTopicName())) {
+        if (context == null || context.getMessage().getTopic().startsWith(((AsyncTraceDispatcher) localDispatcher).getTraceTopicName())) {
             return;
         }
         //build the context content of TuxeTraceContext
-        TrackTraceContext tuxeContext = new TrackTraceContext();
-        tuxeContext.setTraceBeans(new ArrayList<TrackTraceBean>(1));
+        TraceContext tuxeContext = new TraceContext();
+        tuxeContext.setTraceBeans(new ArrayList<TraceBean>(1));
         context.setMqTraceContext(tuxeContext);
-        tuxeContext.setTraceType(TrackTraceType.Pub);
+        tuxeContext.setTraceType(TraceType.Pub);
         tuxeContext.setGroupName(context.getProducerGroup());
 
         //build the data bean object of message track trace
-        TrackTraceBean traceBean = new TrackTraceBean();
+        TraceBean traceBean = new TraceBean();
         traceBean.setTopic(context.getMessage().getTopic());
         traceBean.setTags(context.getMessage().getTags());
         traceBean.setKeys(context.getMessage().getKeys());
@@ -66,7 +66,7 @@ public class SendMessageTrackHookImpl implements SendMessageHook {
     @Override
     public void sendMessageAfter(SendMessageContext context) {
         //if it is message track trace data,then it doesn't recorded
-        if (context == null || context.getMessage().getTopic().startsWith(((AsyncArrayDispatcher) localDispatcher).getTraceTopicName())
+        if (context == null || context.getMessage().getTopic().startsWith(((AsyncTraceDispatcher) localDispatcher).getTraceTopicName())
             || context.getMqTraceContext() == null) {
             return;
         }
@@ -80,8 +80,8 @@ public class SendMessageTrackHookImpl implements SendMessageHook {
             return;
         }
 
-        TrackTraceContext tuxeContext = (TrackTraceContext) context.getMqTraceContext();
-        TrackTraceBean traceBean = tuxeContext.getTraceBeans().get(0);
+        TraceContext tuxeContext = (TraceContext) context.getMqTraceContext();
+        TraceBean traceBean = tuxeContext.getTraceBeans().get(0);
         int costTime = (int) ((System.currentTimeMillis() - tuxeContext.getTimeStamp()) / tuxeContext.getTraceBeans().size());
         tuxeContext.setCostTime(costTime);
         if (context.getSendResult().getSendStatus().equals(SendStatus.SEND_OK)) {

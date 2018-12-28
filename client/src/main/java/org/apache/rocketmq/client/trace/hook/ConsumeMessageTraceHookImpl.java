@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.trace.core.hook;
+package org.apache.rocketmq.client.trace.hook;
 
 import org.apache.rocketmq.client.consumer.listener.ConsumeReturnType;
 import org.apache.rocketmq.client.hook.ConsumeMessageContext;
 import org.apache.rocketmq.client.hook.ConsumeMessageHook;
-import org.apache.rocketmq.client.trace.core.common.TrackTraceBean;
-import org.apache.rocketmq.client.trace.core.common.TrackTraceContext;
-import org.apache.rocketmq.client.trace.core.common.TrackTraceType;
-import org.apache.rocketmq.client.trace.core.dispatch.AsyncDispatcher;
+import org.apache.rocketmq.client.trace.TraceContext;
+import org.apache.rocketmq.client.trace.TraceDispatcher;
+import org.apache.rocketmq.client.trace.TraceBean;
+import org.apache.rocketmq.client.trace.TraceType;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -32,9 +32,9 @@ import java.util.List;
 
 public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
 
-    private AsyncDispatcher localDispatcher;
+    private TraceDispatcher localDispatcher;
 
-    public ConsumeMessageTraceHookImpl(AsyncDispatcher localDispatcher) {
+    public ConsumeMessageTraceHookImpl(TraceDispatcher localDispatcher) {
         this.localDispatcher = localDispatcher;
     }
 
@@ -48,11 +48,11 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
         if (context == null || context.getMsgList() == null || context.getMsgList().isEmpty()) {
             return;
         }
-        TrackTraceContext traceContext = new TrackTraceContext();
+        TraceContext traceContext = new TraceContext();
         context.setMqTraceContext(traceContext);
-        traceContext.setTraceType(TrackTraceType.SubBefore);//
+        traceContext.setTraceType(TraceType.SubBefore);//
         traceContext.setGroupName(context.getConsumerGroup());//
-        List<TrackTraceBean> beans = new ArrayList<TrackTraceBean>();
+        List<TraceBean> beans = new ArrayList<TraceBean>();
         for (MessageExt msg : context.getMsgList()) {
             if (msg == null) {
                 continue;
@@ -64,7 +64,7 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
                 // if trace switch is false ,skip it
                 continue;
             }
-            TrackTraceBean traceBean = new TrackTraceBean();
+            TraceBean traceBean = new TraceBean();
             traceBean.setTopic(msg.getTopic());//
             traceBean.setMsgId(msg.getMsgId());//
             traceBean.setTags(msg.getTags());//
@@ -87,14 +87,14 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
         if (context == null || context.getMsgList() == null || context.getMsgList().isEmpty()) {
             return;
         }
-        TrackTraceContext subBeforeContext = (TrackTraceContext) context.getMqTraceContext();
+        TraceContext subBeforeContext = (TraceContext) context.getMqTraceContext();
 
         if (subBeforeContext.getTraceBeans() == null || subBeforeContext.getTraceBeans().size() < 1) {
             // if subbefore bean is null ,skip it
             return;
         }
-        TrackTraceContext subAfterContext = new TrackTraceContext();
-        subAfterContext.setTraceType(TrackTraceType.SubAfter);//
+        TraceContext subAfterContext = new TraceContext();
+        subAfterContext.setTraceType(TraceType.SubAfter);//
         subAfterContext.setRegionId(subBeforeContext.getRegionId());//
         subAfterContext.setGroupName(subBeforeContext.getGroupName());//
         subAfterContext.setRequestId(subBeforeContext.getRequestId());//

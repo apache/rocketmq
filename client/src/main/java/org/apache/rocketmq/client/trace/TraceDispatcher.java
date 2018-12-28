@@ -14,10 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.trace.core.common;
+package org.apache.rocketmq.client.trace;
 
-public enum TrackTraceType {
-    Pub,
-    SubBefore,
-    SubAfter,
+import java.util.Properties;
+import org.apache.rocketmq.client.exception.MQClientException;
+import java.io.IOException;
+
+/**
+ * Interface of asynchronous transfer data
+ */
+public interface TraceDispatcher {
+
+    /**
+     * Initialize asynchronous transfer data module
+     */
+    void start(Properties properties) throws MQClientException;
+
+    /**
+     * append the transfering data
+     * @param ctx data infomation
+     * @return
+     */
+    boolean append(Object ctx);
+
+    /**
+     * write flush action
+     *
+     * @throws IOException
+     */
+    void flush() throws IOException;
+
+    /**
+     * close the track trace Hook
+     */
+    void shutdown();
 }

@@ -14,38 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.trace.core.dispatch;
+package org.apache.rocketmq.client.trace;
 
-import java.util.Properties;
-import org.apache.rocketmq.client.exception.MQClientException;
-import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- * Interface of asynchronous transfer data
+ * track trace transfering bean
  */
-public interface AsyncDispatcher {
+public class TraceTransferBean {
+    private String transData;
+    private Set<String> transKey = new HashSet<String>();
 
-    /**
-     * Initialize asynchronous transfer data module
-     */
-    void start(Properties properties) throws MQClientException;
+    public String getTransData() {
+        return transData;
+    }
 
-    /**
-     * append the transfering data
-     * @param ctx data infomation
-     * @return
-     */
-    boolean append(Object ctx);
+    public void setTransData(String transData) {
+        this.transData = transData;
+    }
 
-    /**
-     * write flush action
-     *
-     * @throws IOException
-     */
-    void flush() throws IOException;
+    public Set<String> getTransKey() {
+        return transKey;
+    }
 
-    /**
-     * close the track trace Hook
-     */
-    void shutdown();
+    public void setTransKey(Set<String> transKey) {
+        this.transKey = transKey;
+    }
 }

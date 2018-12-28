@@ -40,14 +40,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
-/**
- *
- * 1. view the /conf/plain_acl.yml file under the distribution module, pay attention to the accessKey,secretKey,
- * globalWhiteRemoteAddresses and whiteRemoteAddress and some other attributes.
- *
- * 2. Modify ACL_ACCESS_KEY and ACL_SECRET_KEY to the corresponding accessKey and secretKey in plain_acl.yml
- *
- */
+
 public class AclClient {
 
     private static final Map<MessageQueue, Long> OFFSE_TABLE = new HashMap<MessageQueue, Long>();
