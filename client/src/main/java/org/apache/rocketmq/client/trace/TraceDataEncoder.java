@@ -22,12 +22,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * encode/decode for Track Trace Data
+ * encode/decode for Trace Data
  */
 public class TraceDataEncoder {
 
     /**
-     * resolving traceContext list From track trace data String
+     * resolving traceContext list From trace data String
      *
      * @param traceData
      * @return
@@ -101,7 +101,7 @@ public class TraceDataEncoder {
     }
 
     /**
-     * Encoding the trace context into track data strings and keyset sets
+     * Encoding the trace context into data strings and keyset sets
      *
      * @param ctx
      * @return
@@ -110,7 +110,7 @@ public class TraceDataEncoder {
         if (ctx == null) {
             return null;
         }
-        //build message track trace of the transfering entity content bean
+        //build message trace of the transfering entity content bean
         TraceTransferBean transferBean = new TraceTransferBean();
         StringBuilder sb = new StringBuilder(256);
         switch (ctx.getTraceType()) {

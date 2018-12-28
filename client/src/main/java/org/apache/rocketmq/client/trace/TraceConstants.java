@@ -17,16 +17,9 @@
 package org.apache.rocketmq.client.trace;
 
 public class TraceConstants {
-    public static final String NAMESRV_ADDR = "NAMESRV_ADDR";
-    public static final String ADDRSRV_URL = "ADDRSRV_URL";
-    public static final String INSTANCE_NAME = "InstanceName";
-    public static final String ASYNC_BUFFER_SIZE = "AsyncBufferSize";
-    public static final String MAX_BATCH_NUM = "MaxBatchNum";
-    public static final String WAKE_UP_NUM = "WakeUpNum";
-    public static final String MAX_MSG_SIZE = "MaxMsgSize";
+
     public static final String GROUP_NAME = "_INNER_TRACE_PRODUCER";
-    public static final String TRACE_TOPIC = "TRACK_TRACE_TOPIC_NAME";
     public static final char CONTENT_SPLITOR = (char) 1;
     public static final char FIELD_SPLITOR = (char) 2;
-    public static final String TRACE_DISPATCHER_TYPE = "DispatcherType";
+    public static final String TRACE_INSTANCE_NAME = "PID_CLIENT_INNER_TRACE_PRODUCER";
 }

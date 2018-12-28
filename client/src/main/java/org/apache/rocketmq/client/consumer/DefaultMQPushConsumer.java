@@ -18,7 +18,6 @@ package org.apache.rocketmq.client.consumer;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
@@ -32,9 +31,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
-import org.apache.rocketmq.client.trace.TraceConstants;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
-import org.apache.rocketmq.client.trace.TraceDispatcherType;
 import org.apache.rocketmq.client.trace.hook.ConsumeMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
@@ -288,8 +285,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param consumerGroup Consume queue.
      * @param rpcHook RPC hook to execute before each remoting command.
      * @param allocateMessageQueueStrategy message queue allocating algorithm.
-     * @param msgTraceSwitch switch flag instance for message track trace.
-     * @param traceTopicName the name value of message track trace topic.If you don't config,you can use the default trace topic name.
+     * @param msgTraceSwitch switch flag instance for message trace.
+     * @param traceTopicName the name value of message trace topic.If you don't config,you can use the default trace topic name.
      */
     public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean msgTraceSwitch, final String traceTopicName) {
@@ -298,21 +295,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
         if (msgTraceSwitch) {
             try {
-                Properties tempProperties = new Properties();
-                tempProperties.put(TraceConstants.MAX_MSG_SIZE, "128000");
-                tempProperties.put(TraceConstants.ASYNC_BUFFER_SIZE, "2048");
-                tempProperties.put(TraceConstants.MAX_BATCH_NUM, "100");
-                tempProperties.put(TraceConstants.INSTANCE_NAME, "PID_CLIENT_INNER_TRACE_PRODUCER");
-                tempProperties.put(TraceConstants.TRACE_DISPATCHER_TYPE, TraceDispatcherType.CONSUMER.name());
-                if (!UtilAll.isBlank(traceTopicName)) {
-                    tempProperties.put(TraceConstants.TRACE_TOPIC, traceTopicName);
-                } else {
-                    tempProperties.put(TraceConstants.TRACE_TOPIC, MixAll.RMQ_SYS_TRACK_TRACE_TOPIC);
-                }
-                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(tempProperties, rpcHook);
+                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(traceTopicName, rpcHook);
                 dispatcher.setHostConsumer(this.getDefaultMQPushConsumerImpl());
                 traceDispatcher = dispatcher;
-
                 this.getDefaultMQPushConsumerImpl().registerConsumeMessageHook(
                     new ConsumeMessageTraceHookImpl(traceDispatcher));
             } catch (Throwable e) {
@@ -334,8 +319,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Constructor specifying consumer group.
      *
      * @param consumerGroup Consumer group.
-     * @param msgTraceSwitch switch flag instance for message track trace.
-     * @param traceTopicName the name value of message track trace topic.If you don't config,you can use the default trace topic name.
+     * @param msgTraceSwitch switch flag instance for message trace.
+     * @param traceTopicName the name value of message trace topic.If you don't config,you can use the default trace topic name.
      */
     public DefaultMQPushConsumer(final String consumerGroup, boolean msgTraceSwitch, final String traceTopicName) {
         this(consumerGroup, null, new AllocateMessageQueueAveragely(), msgTraceSwitch, traceTopicName);
@@ -585,9 +570,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.defaultMQPushConsumerImpl.start();
         if (null != traceDispatcher) {
             try {
-                Properties tempProperties = new Properties();
-                tempProperties.put(TraceConstants.NAMESRV_ADDR, this.getNamesrvAddr());
-                traceDispatcher.start(tempProperties);
+                traceDispatcher.start(this.getNamesrvAddr());
             } catch (MQClientException e) {
                 log.warn("trace dispatcher start failed ", e);
             }
