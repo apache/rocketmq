@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.client.trace;
 
-import java.util.Properties;
 import org.apache.rocketmq.client.exception.MQClientException;
 import java.io.IOException;
 
@@ -28,7 +27,7 @@ public interface TraceDispatcher {
     /**
      * Initialize asynchronous transfer data module
      */
-    void start(Properties properties) throws MQClientException;
+    void start(String nameSrvAddr) throws MQClientException;
 
     /**
      * append the transfering data
@@ -45,7 +44,7 @@ public interface TraceDispatcher {
     void flush() throws IOException;
 
     /**
-     * close the track trace Hook
+     * close the trace Hook
      */
     void shutdown();
 }
