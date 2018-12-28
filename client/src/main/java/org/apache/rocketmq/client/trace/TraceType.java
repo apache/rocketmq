@@ -14,31 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.trace.core.common;
+package org.apache.rocketmq.client.trace;
 
-import java.util.HashSet;
-import java.util.Set;
-
-/**
- * track trace transfering bean
- */
-public class TrackTraceTransferBean {
-    private String transData;
-    private Set<String> transKey = new HashSet<String>();
-
-    public String getTransData() {
-        return transData;
-    }
-
-    public void setTransData(String transData) {
-        this.transData = transData;
-    }
-
-    public Set<String> getTransKey() {
-        return transKey;
-    }
-
-    public void setTransKey(Set<String> transKey) {
-        this.transKey = transKey;
-    }
+public enum TraceType {
+    Pub,
+    SubBefore,
+    SubAfter,
 }

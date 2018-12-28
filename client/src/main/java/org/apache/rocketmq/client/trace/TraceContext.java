@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.trace.core.common;
+package org.apache.rocketmq.client.trace;
 
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 
@@ -23,9 +23,9 @@ import java.util.List;
 /**
  * The context of Track Trace
  */
-public class TrackTraceContext implements Comparable<TrackTraceContext> {
+public class TraceContext implements Comparable<TraceContext> {
 
-    private TrackTraceType traceType;
+    private TraceType traceType;
     private long timeStamp = System.currentTimeMillis();
     private String regionId = "";
     private String regionName = "";
@@ -34,7 +34,7 @@ public class TrackTraceContext implements Comparable<TrackTraceContext> {
     private boolean isSuccess = true;
     private String requestId = MessageClientIDSetter.createUniqID();
     private int contextCode = 0;
-    private List<TrackTraceBean> traceBeans;
+    private List<TraceBean> traceBeans;
 
     public int getContextCode() {
         return contextCode;
@@ -44,11 +44,11 @@ public class TrackTraceContext implements Comparable<TrackTraceContext> {
         this.contextCode = contextCode;
     }
 
-    public List<TrackTraceBean> getTraceBeans() {
+    public List<TraceBean> getTraceBeans() {
         return traceBeans;
     }
 
-    public void setTraceBeans(List<TrackTraceBean> traceBeans) {
+    public void setTraceBeans(List<TraceBean> traceBeans) {
         this.traceBeans = traceBeans;
     }
 
@@ -60,11 +60,11 @@ public class TrackTraceContext implements Comparable<TrackTraceContext> {
         this.regionId = regionId;
     }
 
-    public TrackTraceType getTraceType() {
+    public TraceType getTraceType() {
         return traceType;
     }
 
-    public void setTraceType(TrackTraceType traceType) {
+    public void setTraceType(TraceType traceType) {
         this.traceType = traceType;
     }
 
@@ -117,7 +117,7 @@ public class TrackTraceContext implements Comparable<TrackTraceContext> {
     }
 
     @Override
-    public int compareTo(TrackTraceContext o) {
+    public int compareTo(TraceContext o) {
         return (int) (this.timeStamp - o.getTimeStamp());
     }
 
@@ -127,10 +127,10 @@ public class TrackTraceContext implements Comparable<TrackTraceContext> {
         sb.append(traceType).append("_").append(groupName)
             .append("_").append(regionId).append("_").append(isSuccess).append("_");
         if (traceBeans != null && traceBeans.size() > 0) {
-            for (TrackTraceBean bean : traceBeans) {
+            for (TraceBean bean : traceBeans) {
                 sb.append(bean.getMsgId() + "_" + bean.getTopic() + "_");
             }
         }
-        return "TrackTraceContext{" + sb.toString() + '}';
+        return "TraceContext{" + sb.toString() + '}';
     }
 }
