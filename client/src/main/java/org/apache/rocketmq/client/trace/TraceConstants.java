@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.trace.core.common;
+package org.apache.rocketmq.client.trace;
 
-public class TrackTraceConstants {
+public class TraceConstants {
     public static final String NAMESRV_ADDR = "NAMESRV_ADDR";
     public static final String ADDRSRV_URL = "ADDRSRV_URL";
     public static final String INSTANCE_NAME = "InstanceName";

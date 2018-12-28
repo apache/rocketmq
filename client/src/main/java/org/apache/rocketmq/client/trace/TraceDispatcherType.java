@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.trace.core.common;
+package org.apache.rocketmq.client.trace;
 
-public enum TrackTraceDispatcherType {
+public enum TraceDispatcherType {
     PRODUCER,
     CONSUMER
 }
