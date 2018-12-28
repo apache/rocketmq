@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.rocketmq.remoting.RPCHook;
 
 public class TrackTraceProducerFactory {
 
@@ -33,10 +34,10 @@ public class TrackTraceProducerFactory {
     private static DefaultMQProducer traceProducer;
 
 
-    public static DefaultMQProducer getTraceDispatcherProducer(Properties properties) {
+    public static DefaultMQProducer getTraceDispatcherProducer(Properties properties, RPCHook rpcHook) {
         if (traceProducer == null) {
 
-            traceProducer = new DefaultMQProducer();
+            traceProducer = new DefaultMQProducer(rpcHook);
             traceProducer.setProducerGroup(TrackTraceConstants.GROUP_NAME);
             traceProducer.setSendMsgTimeout(5000);
             traceProducer.setInstanceName(properties.getProperty(TrackTraceConstants.INSTANCE_NAME, String.valueOf(System.currentTimeMillis())));

@@ -153,4 +153,16 @@ public class PermissionTest {
             }
         }
     }
+
+    @Test
+    public void AclExceptionTest(){
+        AclException aclException = new AclException("CAL_SIGNATURE_FAILED",10015);
+        AclException aclExceptionWithMessage = new AclException("CAL_SIGNATURE_FAILED",10015,"CAL_SIGNATURE_FAILED Exception");
+        Assert.assertEquals(aclException.getCode(),10015);
+        Assert.assertEquals(aclExceptionWithMessage.getStatus(),"CAL_SIGNATURE_FAILED");
+        aclException.setCode(10016);
+        Assert.assertEquals(aclException.getCode(),10016);
+        aclException.setStatus("netaddress examine scope Exception netaddress");
+        Assert.assertEquals(aclException.getStatus(),"netaddress examine scope Exception netaddress");
+    }
 }
