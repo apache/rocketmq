@@ -51,7 +51,6 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
         context.setMqTraceContext(tuxeContext);
         tuxeContext.setTraceType(TraceType.Pub);
         tuxeContext.setGroupName(context.getProducerGroup());
-
         //build the data bean object of message trace
         TraceBean traceBean = new TraceBean();
         traceBean.setTopic(context.getMessage().getTopic());
