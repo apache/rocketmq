@@ -132,7 +132,7 @@ public class MQAdminStartup {
                             System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, namesrvAddr);
                         }
 
-                        cmd.execute(commandLine, options, getAclRPCHook(commandLine));
+                        cmd.execute(commandLine, options, getAclRPCHook());
                     } else {
                         System.out.printf("The sub command %s not exist.%n", args[0]);
                     }
@@ -246,7 +246,7 @@ public class MQAdminStartup {
         subCommandList.add(command);
     }
 
-    public static RPCHook getAclRPCHook(CommandLine commandLine) {
+    public static RPCHook getAclRPCHook() {
         String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
         String fileName = "/conf/tools.yml";
         JSONObject yamlDataObject = AclUtils.getYamlDataObject(fileHome + fileName ,

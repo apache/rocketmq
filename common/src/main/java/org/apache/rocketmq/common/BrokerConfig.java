@@ -52,8 +52,6 @@ public class BrokerConfig {
     private boolean autoCreateSubscriptionGroup = true;
     private String messageStorePlugIn = "";
     @ImportantField
-    private boolean autoTraceBrokerEnable = false;
-    @ImportantField
     private String msgTraceTopicName = MixAll.RMQ_SYS_TRACE_TOPIC;
     /**
      * thread numbers for send message thread pool, since spin lock will be used by default since 4.0.x, the default
@@ -749,14 +747,6 @@ public class BrokerConfig {
 
     public void setWaitTimeMillsInTransactionQueue(long waitTimeMillsInTransactionQueue) {
         this.waitTimeMillsInTransactionQueue = waitTimeMillsInTransactionQueue;
-    }
-
-    public boolean isAutoTraceBrokerEnable() {
-        return autoTraceBrokerEnable;
-    }
-
-    public void setAutoTraceBrokerEnable(boolean autoTraceBrokerEnable) {
-        this.autoTraceBrokerEnable = autoTraceBrokerEnable;
     }
 
     public String getMsgTraceTopicName() {

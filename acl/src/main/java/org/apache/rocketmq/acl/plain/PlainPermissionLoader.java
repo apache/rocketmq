@@ -43,7 +43,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class PlainPermissionLoader {
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.ACL_PLUG_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     private static final String DEFAULT_PLAIN_ACL_FILE = "/conf/plain_acl.yml";
 

@@ -758,8 +758,4 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     public TraceDispatcher getTraceDispatcher() {
         return traceDispatcher;
     }
-
-    public void setTraceDispatcher(TraceDispatcher traceDispatcher) {
-        this.traceDispatcher = traceDispatcher;
-    }
 }
