@@ -18,7 +18,6 @@ package org.apache.rocketmq.client.producer;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
@@ -28,12 +27,9 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
-import org.apache.rocketmq.client.trace.TraceConstants;
-import org.apache.rocketmq.client.trace.TraceDispatcherType;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.hook.SendMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
@@ -158,31 +154,18 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      *
      * @param producerGroup Producer group, see the name-sake field.
      * @param rpcHook RPC hook to execute per each remoting command execution.
-     * @param msgTraceSwitch switch flag instance for message track trace.
-     * @param traceTopicName the name value of message track trace topic.If you don't config,you can use the default trace topic name.
+     * @param msgTraceSwitch switch flag instance for message trace.
+     * @param traceTopicName the name value of message trace topic.If you don't config,you can use the default trace topic name.
      */
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean msgTraceSwitch,final String traceTopicName) {
         this.producerGroup = producerGroup;
         defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
-        //if client open the message track trace feature
-        //TODO wrap this code to TraceDispatcherFactory
+        //if client open the message trace feature
         if (msgTraceSwitch) {
             try {
-                Properties tempProperties = new Properties();
-                tempProperties.put(TraceConstants.MAX_MSG_SIZE, "128000");
-                tempProperties.put(TraceConstants.ASYNC_BUFFER_SIZE, "2048");
-                tempProperties.put(TraceConstants.MAX_BATCH_NUM, "100");
-                tempProperties.put(TraceConstants.INSTANCE_NAME, "PID_CLIENT_INNER_TRACE_PRODUCER");
-                tempProperties.put(TraceConstants.TRACE_DISPATCHER_TYPE, TraceDispatcherType.PRODUCER.name());
-                if (!UtilAll.isBlank(traceTopicName)) {
-                    tempProperties.put(TraceConstants.TRACE_TOPIC, traceTopicName);
-                } else {
-                    tempProperties.put(TraceConstants.TRACE_TOPIC, MixAll.RMQ_SYS_TRACK_TRACE_TOPIC);
-                }
-                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(tempProperties, rpcHook);
+                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(traceTopicName, rpcHook);
                 dispatcher.setHostProducer(this.getDefaultMQProducerImpl());
                 traceDispatcher = dispatcher;
-
                 this.getDefaultMQProducerImpl().registerSendMessageHook(
                     new SendMessageTraceHookImpl(traceDispatcher));
             } catch (Throwable e) {
@@ -204,8 +187,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Constructor specifying producer group.
      *
      * @param producerGroup Producer group, see the name-sake field.
-     * @param msgTraceSwitch switch flag instance for message track trace.
-     * @param traceTopicName the name value of message track trace topic.If you don't config,you can use the default trace topic name.
+     * @param msgTraceSwitch switch flag instance for message trace.
+     * @param traceTopicName the name value of message trace topic.If you don't config,you can use the default trace topic name.
      */
     public DefaultMQProducer(final String producerGroup, boolean msgTraceSwitch, final String traceTopicName) {
         this(producerGroup, null, msgTraceSwitch, traceTopicName);
@@ -235,12 +218,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void start() throws MQClientException {
         this.defaultMQProducerImpl.start();
-        //TODO wrap this code to TraceDispatcherFactory
         if (null != traceDispatcher) {
             try {
-                Properties tempProperties = new Properties();
-                tempProperties.put(TraceConstants.NAMESRV_ADDR, this.getNamesrvAddr());
-                traceDispatcher.start(tempProperties);
+                traceDispatcher.start(this.getNamesrvAddr());
             } catch (MQClientException e) {
                 log.warn("trace dispatcher start failed ", e);
             }

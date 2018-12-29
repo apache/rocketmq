@@ -21,7 +21,7 @@ import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import java.util.List;
 
 /**
- * The context of Track Trace
+ * The context of Trace
  */
 public class TraceContext implements Comparable<TraceContext> {
 

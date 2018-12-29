@@ -36,12 +36,12 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
 
     @Override
     public String hookName() {
-        return "SendMessageTrackHook";
+        return "SendMessageTraceHook";
     }
 
     @Override
     public void sendMessageBefore(SendMessageContext context) {
-        //if it is message track trace data,then it doesn't recorded
+        //if it is message trace data,then it doesn't recorded
         if (context == null || context.getMessage().getTopic().startsWith(((AsyncTraceDispatcher) localDispatcher).getTraceTopicName())) {
             return;
         }
@@ -51,8 +51,7 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
         context.setMqTraceContext(tuxeContext);
         tuxeContext.setTraceType(TraceType.Pub);
         tuxeContext.setGroupName(context.getProducerGroup());
-
-        //build the data bean object of message track trace
+        //build the data bean object of message trace
         TraceBean traceBean = new TraceBean();
         traceBean.setTopic(context.getMessage().getTopic());
         traceBean.setTags(context.getMessage().getTags());
@@ -65,7 +64,7 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
 
     @Override
     public void sendMessageAfter(SendMessageContext context) {
-        //if it is message track trace data,then it doesn't recorded
+        //if it is message trace data,then it doesn't recorded
         if (context == null || context.getMessage().getTopic().startsWith(((AsyncTraceDispatcher) localDispatcher).getTraceTopicName())
             || context.getMqTraceContext() == null) {
             return;

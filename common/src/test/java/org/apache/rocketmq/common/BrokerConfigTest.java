@@ -37,10 +37,10 @@ public class BrokerConfigTest {
         brokerConfig.setBrokerName("broker-a");
         brokerConfig.setBrokerId(0);
         brokerConfig.setBrokerClusterName("DefaultCluster");
-        brokerConfig.setMsgTrackTopicName("RMQ_SYS_TRACK_TRACE_TOPIC4");
+        brokerConfig.setMsgTraceTopicName("RMQ_SYS_TRACE_TOPIC4");
         assertThat(brokerConfig.getBrokerClusterName()).isEqualTo("DefaultCluster");
         assertThat(brokerConfig.getNamesrvAddr()).isEqualTo("127.0.0.1:9876");
-        assertThat(brokerConfig.getMsgTrackTopicName()).isEqualTo("RMQ_SYS_TRACK_TRACE_TOPIC4");
+        assertThat(brokerConfig.getMsgTraceTopicName()).isEqualTo("RMQ_SYS_TRACE_TOPIC4");
         assertThat(brokerConfig.getBrokerId()).isEqualTo(0);
         assertThat(brokerConfig.getBrokerName()).isEqualTo("broker-a");
         assertThat(brokerConfig.isAutoCreateTopicEnable()).isEqualTo(false);

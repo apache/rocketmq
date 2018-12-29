@@ -83,8 +83,8 @@ public class DefaultMQProducerWithTraceTest {
     private String topic = "FooBar";
     private String producerGroupPrefix = "FooBar_PID";
     private String producerGroupTemp = producerGroupPrefix + System.currentTimeMillis();
-    private String producerGroupTraceTemp = MixAll.RMQ_SYS_TRACK_TRACE_TOPIC + System.currentTimeMillis();
-    private String customerTraceTopic = "rmq_track_trace_topic_12345";
+    private String producerGroupTraceTemp = MixAll.RMQ_SYS_TRACE_TOPIC + System.currentTimeMillis();
+    private String customerTraceTopic = "rmq_trace_topic_12345";
 
     @Before
     public void init() throws Exception {
