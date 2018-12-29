@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.acl.common;//package com.aliyun.openservices.ons.api.impl.rocketmq.spas;
+package org.apache.rocketmq.acl.common;
 
 public enum SigningAlgorithm {
     HmacSHA1,
