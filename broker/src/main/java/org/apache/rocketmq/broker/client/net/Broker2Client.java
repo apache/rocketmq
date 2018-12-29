@@ -119,10 +119,8 @@ public class Broker2Client {
         Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>();
 
         for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
-            MessageQueue mq = new MessageQueue();
-            mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
-            mq.setTopic(topic);
-            mq.setQueueId(i);
+            String brokerName = this.brokerController.getBrokerConfig().getBrokerName();
+            MessageQueue mq = new MessageQueue(topic, brokerName, i);
 
             long consumerOffset =
                 this.brokerController.getConsumerOffsetManager().queryOffset(group, topic, i);
@@ -247,14 +245,14 @@ public class Broker2Client {
         }
 
         for (Map.Entry<Channel, ClientChannelInfo> entry : channelInfoTable.entrySet()) {
-            int version = entry.getValue().getVersion();
+            MQVersion.Version version = MQVersion.value2Version(entry.getValue().getVersion());
             String clientId = entry.getValue().getClientId();
-            if (version < MQVersion.Version.V3_0_7_SNAPSHOT.ordinal()) {
+            if (version.compareTo(MQVersion.Version.V3_0_7_SNAPSHOT) < 0) {
                 result.setCode(ResponseCode.SYSTEM_ERROR);
                 result.setRemark("the client does not support this feature. version="
-                    + MQVersion.getVersionDesc(version));
+                    + version.name());
                 log.warn("[get-consumer-status] the client does not support this feature. version={}",
-                    RemotingHelper.parseChannelRemoteAddr(entry.getKey()), MQVersion.getVersionDesc(version));
+                    RemotingHelper.parseChannelRemoteAddr(entry.getKey()), version.name());
                 return result;
             } else if (UtilAll.isBlank(originClientId) || originClientId.equals(clientId)) {
                 try {
