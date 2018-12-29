@@ -115,7 +115,7 @@ public class EnodeServiceImpl implements EnodeService {
     public CompletableFuture<RemotingCommand> sendMessage(RemotingCommand request) {
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         try {
-            String enodeName = null;
+            String enodeName;
             if (request.getCode() == RequestCode.SEND_MESSAGE_V2) {
                 SendMessageRequestHeaderV2 sendMessageRequestHeaderV2 = (SendMessageRequestHeaderV2) request.decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
                 enodeName = sendMessageRequestHeaderV2.getN();
@@ -124,7 +124,6 @@ public class EnodeServiceImpl implements EnodeService {
                 enodeName = consumerSendMsgBackRequestHeader.getEnodeName();
             }
             String enodeAddress = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
-            log.info("Receive request: {}", request);
             this.snodeController.getRemotingClient().invokeAsync(enodeAddress, request, SnodeConstant.defaultTimeoutMills, (responseFuture) -> {
                 future.complete(responseFuture.getResponseCommand());
             });
