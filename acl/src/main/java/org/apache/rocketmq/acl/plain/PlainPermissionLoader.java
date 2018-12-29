@@ -44,7 +44,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class PlainPermissionLoader {
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     private static final String DEFAULT_PLAIN_ACL_FILE = "/conf/plain_acl.yml";
 
@@ -102,7 +102,7 @@ public class PlainPermissionLoader {
             int fileIndex = fileName.lastIndexOf("/") + 1;
             String watchDirectory = fileName.substring(0, fileIndex);
             final String watchFileName = fileName.substring(fileIndex);
-            log.info("watch directory is {} , watch directory file name is {} ", fileHome + File.separator + watchDirectory, watchFileName);
+            log.info("watch directory is {} , watch file name is {} ", fileHome + File.separator + watchDirectory, watchFileName);
 
             final WatchService watcher = FileSystems.getDefault().newWatchService();
             Path p = Paths.get(fileHome +  File.separator + watchDirectory);
@@ -119,6 +119,8 @@ public class PlainPermissionLoader {
                                     && (StandardWatchEventKinds.ENTRY_MODIFY.equals(event.kind())
                                     || StandardWatchEventKinds.ENTRY_CREATE.equals(event.kind()))) {
                                     log.info("{} make a difference  change is : {}", watchFileName, event.toString());
+                                    //TODO do a retain
+                                    //Clearing the info, may result in a non-available time
                                     PlainPermissionLoader.this.clearPermissionInfo();
                                     initialize();
                                 }
