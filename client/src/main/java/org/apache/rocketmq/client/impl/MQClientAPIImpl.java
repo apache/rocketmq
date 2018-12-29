@@ -353,8 +353,7 @@ public class MQClientAPIImpl {
         final long timeoutMillis,
         final RemotingCommand request
     ) throws RemotingException, MQBrokerException, InterruptedException {
-        String addrS = "localhost:11911";//TODO FIXME
-        RemotingCommand response = this.remotingClient.invokeSync(addrS, request, timeoutMillis);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         return this.processSendResponse(brokerName, msg, response);
     }
@@ -566,7 +565,6 @@ public class MQClientAPIImpl {
     ) throws RemotingException, MQBrokerException, InterruptedException {
         requestHeader.setEnodeAddr(addr);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SNODE_PULL_MESSAGE, requestHeader);
-         addr = "localhost:11911"; //TODO FIXME
         switch (communicationMode) {
             case ONEWAY:
                 assert false;
@@ -649,7 +647,6 @@ public class MQClientAPIImpl {
 
         PullMessageResponseHeader responseHeader =
             (PullMessageResponseHeader) response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
-        log.info("response header: {}", responseHeader.getSuggestWhichBrokerId());
         return new PullResultExt(pullStatus, responseHeader.getNextBeginOffset(), responseHeader.getMinOffset(),
             responseHeader.getMaxOffset(), null, responseHeader.getSuggestWhichBrokerId(), response.getBody());
     }
@@ -734,8 +731,7 @@ public class MQClientAPIImpl {
         GetConsumerListByGroupRequestHeader requestHeader = new GetConsumerListByGroupRequestHeader();
         requestHeader.setConsumerGroup(consumerGroup);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_LIST_BY_GROUP, requestHeader);
-        String addrS = "localhost:11911";//TODO FIXME
-        RemotingCommand response = this.remotingClient.invokeSync(addrS,
+        RemotingCommand response = this.remotingClient.invokeSync(addr,
             request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
@@ -940,6 +936,7 @@ public class MQClientAPIImpl {
     }
 
     public void consumerSendMessageBack(
+        final String brokerName,
         final String addr,
         final MessageExt msg,
         final String consumerGroup,
@@ -956,6 +953,7 @@ public class MQClientAPIImpl {
         requestHeader.setDelayLevel(delayLevel);
         requestHeader.setOriginMsgId(msg.getMsgId());
         requestHeader.setMaxReconsumeTimes(maxConsumeRetryTimes);
+        requestHeader.setEnodeName(brokerName);
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
             request, timeoutMillis);

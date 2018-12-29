@@ -43,7 +43,7 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
                 List<Channel> channels = (List<Channel>) args[0];
                 if (channels != null && snodeController.getSnodeConfig().isNotifyConsumerIdsChangedEnable()) {
                     for (Channel chl : channels) {
-                        this.snodeController.getSnodeOuterService().notifyConsumerIdsChanged(chl, group);
+                        this.snodeController.getEnodeService().notifyConsumerIdsChanged(chl, group);
                     }
                 }
                 break;

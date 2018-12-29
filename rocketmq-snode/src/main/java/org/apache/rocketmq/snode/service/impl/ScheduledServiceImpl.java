@@ -26,21 +26,22 @@ import org.apache.rocketmq.common.protocol.heartbeat.SnodeData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.config.SnodeConfig;
 import org.apache.rocketmq.snode.service.ScheduledService;
-import org.apache.rocketmq.snode.service.SnodeOuterService;
 
 public class ScheduledServiceImpl implements ScheduledService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
 
-    private SnodeOuterService snodeOuterService;
+    private SnodeController snodeController;
+
     private SnodeConfig snodeConfig;
 
     private final RemotingCommand enodeHeartbeat;
 
-    public ScheduledServiceImpl(SnodeOuterService snodeOuterService, SnodeConfig snodeConfig) {
-        this.snodeOuterService = snodeOuterService;
-        this.snodeConfig = snodeConfig;
+    public ScheduledServiceImpl(SnodeController snodeController) {
+        this.snodeController = snodeController;
+        this.snodeConfig = snodeController.getSnodeConfig();
         enodeHeartbeat = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
         HeartbeatData heartbeatData = new HeartbeatData();
         heartbeatData.setClientID(snodeConfig.getSnodeName());
@@ -64,7 +65,7 @@ public class ScheduledServiceImpl implements ScheduledService {
             @Override
             public void run() {
                 try {
-                    snodeOuterService.sendHearbeat(enodeHeartbeat);
+                    snodeController.getEnodeService().sendHearbeat(enodeHeartbeat);
                 } catch (Exception e) {
                     log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", e);
                 }
@@ -76,7 +77,7 @@ public class ScheduledServiceImpl implements ScheduledService {
                 @Override
                 public void run() {
                     try {
-                        snodeOuterService.fetchNameServerAddr();
+                        snodeController.getNnodeService().fetchNnodeAdress();
                     } catch (Throwable e) {
                         log.error("ScheduledTask fetchNameServerAddr exception", e);
                     }
@@ -87,7 +88,7 @@ public class ScheduledServiceImpl implements ScheduledService {
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                snodeOuterService.registerSnode(snodeConfig);
+                snodeController.getNnodeService().registerSnode(snodeConfig);
             }
         }, 1000 * 10, Math.max(10000, Math.min(snodeConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
 
@@ -95,13 +96,45 @@ public class ScheduledServiceImpl implements ScheduledService {
             @Override
             public void run() {
                 try {
-                    snodeOuterService.updateEnodeAddr(snodeConfig.getClusterName());
+                    snodeController.getEnodeService().updateEnodeAddr(snodeConfig.getClusterName());
                 } catch (Exception ex) {
                     log.warn("Update broker addr error:{}", ex);
                 }
             }
         }, 1000 * 10, Math.max(10000, Math.min(snodeConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
 
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    snodeController.getNnodeService().updateTopicRouteDataByTopic();
+                } catch (Exception ex) {
+                    log.warn("Update broker addr error:{}", ex);
+                }
+            }
+        }, 1000 * 10, Math.max(10000, Math.min(snodeConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
+
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    snodeController.getNnodeService().updateEnodeClusterInfo();
+                } catch (Exception ex) {
+                    log.warn("Update broker addr error:{}", ex);
+                }
+            }
+        }, 1000 * 10, Math.max(10000, Math.min(snodeConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
+
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    snodeController.getConsumerOffsetManager().persist();
+                } catch (Throwable e) {
+                    log.error("ScheduledTask fetchNameServerAddr exception", e);
+                }
+            }
+        }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
     }
 
     @Override

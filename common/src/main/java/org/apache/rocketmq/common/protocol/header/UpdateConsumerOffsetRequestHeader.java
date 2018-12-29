@@ -34,6 +34,8 @@ public class UpdateConsumerOffsetRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private Long commitOffset;
 
+    private String enodeName;
+
     @Override
     public void checkFields() throws RemotingCommandException {
     }
@@ -68,5 +70,13 @@ public class UpdateConsumerOffsetRequestHeader implements CommandCustomHeader {
 
     public void setCommitOffset(Long commitOffset) {
         this.commitOffset = commitOffset;
+    }
+
+    public String getEnodeName() {
+        return enodeName;
+    }
+
+    public void setEnodeName(String enodeName) {
+        this.enodeName = enodeName;
     }
 }

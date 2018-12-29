@@ -21,6 +21,8 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
+import static org.apache.rocketmq.client.ClientConfig.SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY;
+
 public class SnodeConfig {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
@@ -59,6 +61,8 @@ public class SnodeConfig {
     private boolean autoCreateSubscriptionGroup = true;
 
     private int listenPort = 11911;
+
+    private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "true"));
 
     public void setSnodeHeartBeatInterval(long snodeHeartBeatInterval) {
         this.snodeHeartBeatInterval = snodeHeartBeatInterval;
@@ -219,5 +223,13 @@ public class SnodeConfig {
 
     public void setAutoCreateSubscriptionGroup(boolean autoCreateSubscriptionGroup) {
         this.autoCreateSubscriptionGroup = autoCreateSubscriptionGroup;
+    }
+
+    public boolean isVipChannelEnabled() {
+        return vipChannelEnabled;
+    }
+
+    public void setVipChannelEnabled(boolean vipChannelEnabled) {
+        this.vipChannelEnabled = vipChannelEnabled;
     }
 }

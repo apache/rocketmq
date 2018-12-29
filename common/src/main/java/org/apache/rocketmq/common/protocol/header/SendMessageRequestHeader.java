@@ -53,7 +53,7 @@ public class SendMessageRequestHeader implements CommandCustomHeader {
 
     private Integer maxReconsumeTimes;
 
-    private String enodeAddr;
+    private String enodeName;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -163,11 +163,30 @@ public class SendMessageRequestHeader implements CommandCustomHeader {
         this.batch = batch;
     }
 
-    public String getEnodeAddr() {
-        return enodeAddr;
+    public String getEnodeName() {
+        return enodeName;
     }
 
-    public void setEnodeAddr(String enodeAddr) {
-        this.enodeAddr = enodeAddr;
+    public void setEnodeName(String enodeName) {
+        this.enodeName = enodeName;
+    }
+
+    @Override public String toString() {
+        return "SendMessageRequestHeader{" +
+            "producerGroup='" + producerGroup + '\'' +
+            ", topic='" + topic + '\'' +
+            ", defaultTopic='" + defaultTopic + '\'' +
+            ", defaultTopicQueueNums=" + defaultTopicQueueNums +
+            ", queueId=" + queueId +
+            ", sysFlag=" + sysFlag +
+            ", bornTimestamp=" + bornTimestamp +
+            ", flag=" + flag +
+            ", properties='" + properties + '\'' +
+            ", reconsumeTimes=" + reconsumeTimes +
+            ", unitMode=" + unitMode +
+            ", batch=" + batch +
+            ", maxReconsumeTimes=" + maxReconsumeTimes +
+            ", enodeName='" + enodeName + '\'' +
+            '}';
     }
 }

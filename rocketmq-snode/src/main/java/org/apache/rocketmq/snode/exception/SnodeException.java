@@ -1,4 +1,4 @@
-package org.apache.rocketmq.snode.service;/*
+package org.apache.rocketmq.snode.exception;/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -15,12 +15,27 @@ package org.apache.rocketmq.snode.service;/*
  * limitations under the License.
  */
 
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.help.FAQUrl;
 
-public interface SendTransferService {
-    RemotingCommand sendMessage(RemotingCommand request);
+public class SnodeException extends RuntimeException {
+    private static final long serialVersionUID = 5975020272601250368L;
 
-    boolean start();
+    private final int responseCode;
+    private final String errorMessage;
 
-    void shutdown();
+    public SnodeException(int responseCode, String errorMessage) {
+        super(FAQUrl.attachDefaultURL("CODE: " + UtilAll.responseCode2String(responseCode) + "  DESC: "
+            + errorMessage));
+        this.responseCode = responseCode;
+        this.errorMessage = errorMessage;
+    }
+
+    public int getResponseCode() {
+        return responseCode;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
 }

@@ -38,12 +38,6 @@ public class SubscriptionGroupManager extends ConfigManager {
     private final DataVersion dataVersion = new DataVersion();
     private transient SnodeController snodeController;
 
-    public enum SUBSCRIPTION_EVENT {
-        CREATE,
-        UPDATE,
-        DELETE
-    }
-
     public SubscriptionGroupManager() {
         this.init();
     }
@@ -104,14 +98,14 @@ public class SubscriptionGroupManager extends ConfigManager {
     public void updateSubscriptionGroupConfig(final SubscriptionGroupConfig config) {
         SubscriptionGroupConfig old = this.subscriptionGroupTable.put(config.getGroupName(), config);
         if (old != null) {
-            log.info("update subscription group config, old: {} new: {}", old, config);
+            log.info("Update subscription group config, old: {} new: {}", old, config);
         } else {
-            log.info("create new subscription group, {}", config);
+            log.info("Create new subscription group, {}", config);
         }
 
         this.dataVersion.nextVersion();
 
-        this.persistToEnode(SUBSCRIPTION_EVENT.UPDATE, config);
+        this.persistToEnode(config);
     }
 
     public void disableConsume(final String groupName) {
@@ -133,7 +127,7 @@ public class SubscriptionGroupManager extends ConfigManager {
                     log.info("auto create a subscription group, {}", subscriptionGroupConfig.toString());
                 }
                 this.dataVersion.nextVersion();
-                this.persistToEnode(SUBSCRIPTION_EVENT.CREATE, subscriptionGroupConfig);
+                this.persistToEnode(subscriptionGroupConfig);
             }
         }
 
@@ -188,13 +182,13 @@ public class SubscriptionGroupManager extends ConfigManager {
         if (old != null) {
             log.info("delete subscription group OK, subscription group:{}", old);
             this.dataVersion.nextVersion();
-            this.persistToEnode(SUBSCRIPTION_EVENT.DELETE, old);
+            this.persistToEnode(old);
         } else {
             log.warn("delete subscription group failed, subscription groupName: {} not exist", groupName);
         }
     }
 
-    void persistToEnode(SUBSCRIPTION_EVENT event, SubscriptionGroupConfig config) {
-
+    void persistToEnode(SubscriptionGroupConfig config) {
+        this.snodeController.getEnodeService().persistSubscriptionGroupConfig(config);
     }
 }

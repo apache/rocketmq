@@ -181,6 +181,7 @@ public class NettyRemotingClient extends NettyRemotingClientAbstract implements 
         throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
         long beginStartTime = System.currentTimeMillis();
         final Channel channel = this.getAndCreateChannel(addr, timeoutMillis);
+
         if (channel != null && channel.isActive()) {
             try {
                 if (this.rpcHook != null) {

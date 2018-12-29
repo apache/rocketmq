@@ -35,7 +35,8 @@ public class SendMessageProcessor implements NettyRequestProcessor {
 
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
-        CompletableFuture<RemotingCommand> responseFuture = snodeController.getSnodeOuterService().sendMessage(request);
+        log.info("-----Receive sendback request: {}", request);
+        CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().sendMessage(request);
         responseFuture.whenComplete((data, ex) -> {
             if (ex == null) {
                 snodeController.getSnodeServer().sendResponse(ctx, data);

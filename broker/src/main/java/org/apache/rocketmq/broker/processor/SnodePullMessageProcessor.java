@@ -24,7 +24,6 @@ import io.netty.channel.FileRegion;
 import java.nio.ByteBuffer;
 import java.util.List;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.filter.ExpressionForRetryMessageFilter;
@@ -34,22 +33,18 @@ import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.pagecache.ManyMessageTransfer;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.filter.FilterAPI;
-import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.topic.OffsetMovedEvent;
-import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -95,23 +90,50 @@ public class SnodePullMessageProcessor implements NettyRequestProcessor {
 
         response.setOpaque(request.getOpaque());
 
-        log.info("receive PullMessage request command, {}", request);
         final boolean hasSuspendFlag = PullSysFlag.hasSuspendFlag(requestHeader.getSysFlag());
         final boolean hasCommitOffsetFlag = PullSysFlag.hasCommitOffsetFlag(requestHeader.getSysFlag());
-        final boolean hasSubscriptionFlag = PullSysFlag.hasSubscriptionFlag(requestHeader.getSysFlag());
+
+        ConsumerFilterData consumerFilterData = null;
+        SubscriptionData subscriptionData;
+        try {
+            subscriptionData = FilterAPI.build(
+                requestHeader.getTopic(), requestHeader.getSubscription(), requestHeader.getExpressionType()
+            );
+            if (!ExpressionType.isTagType(subscriptionData.getExpressionType())) {
+                consumerFilterData = ConsumerFilterManager.build(
+                    requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getSubscription(),
+                    requestHeader.getExpressionType(), requestHeader.getSubVersion()
+                );
+                assert consumerFilterData != null;
+            }
+        } catch (Exception e) {
+            log.warn("Parse the consumer's subscription[{}] failed, group: {}", requestHeader.getSubscription(),
+                requestHeader.getConsumerGroup());
+            response.setCode(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
+            response.setRemark("parse the consumer's subscription failed");
+            return response;
+        }
 
         final long suspendTimeoutMillisLong = hasSuspendFlag ? requestHeader.getSuspendTimeoutMillis() : 0;
         if (!PermName.isReadable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
             response.setCode(ResponseCode.NO_PERMISSION);
-            response.setRemark(String.format("the broker[%s] pulling message is forbidden", this.brokerController.getBrokerConfig().getBrokerIP1()));
+            response.setRemark(String.format("The broker[%s] pulling message is forbidden", this.brokerController.getBrokerConfig().getBrokerIP1()));
             return response;
+        }
+
+        MessageFilter messageFilter;
+        if (this.brokerController.getBrokerConfig().isFilterSupportRetry()) {
+            messageFilter = new ExpressionForRetryMessageFilter(subscriptionData, consumerFilterData,
+                this.brokerController.getConsumerFilterManager());
+        } else {
+            messageFilter = new ExpressionMessageFilter(subscriptionData, consumerFilterData,
+                this.brokerController.getConsumerFilterManager());
         }
 
         final GetMessageResult getMessageResult =
             this.brokerController.getMessageStore().getMessage(requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                requestHeader.getQueueId(), requestHeader.getQueueOffset(), requestHeader.getMaxMsgNums(), null);
+                requestHeader.getQueueId(), requestHeader.getQueueOffset(), requestHeader.getMaxMsgNums(), messageFilter);
 
-        log.info("Get message response:{}",getMessageResult);
         if (getMessageResult != null) {
             response.setRemark(getMessageResult.getStatus().name());
             responseHeader.setNextBeginOffset(getMessageResult.getNextBeginOffset());
@@ -136,19 +158,6 @@ public class SnodePullMessageProcessor implements NettyRequestProcessor {
                     break;
             }
 
-//            if (this.brokerController.getBrokerConfig().isSlaveReadEnable()) {
-//                // consume too slow ,redirect to another machine
-//                if (getMessageResult.isSuggestPullingFromSlave()) {
-//                    responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getWhichBrokerWhenConsumeSlowly());
-//                }
-//                // consume ok
-//                else {
-//                    responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getBrokerId());
-//                }
-//            } else {
-//                responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
-//            }
-
             switch (getMessageResult.getStatus()) {
                 case FOUND:
                     response.setCode(ResponseCode.SUCCESS);
@@ -162,7 +171,7 @@ public class SnodePullMessageProcessor implements NettyRequestProcessor {
                         response.setCode(ResponseCode.PULL_OFFSET_MOVED);
 
                         // XXX: warn and notify me
-                        log.info("the broker store no queue data, fix the request offset {} to {}, Topic: {} QueueId: {} Consumer Group: {}",
+                        log.info("The broker store no queue data, fix the request offset {} to {}, Topic: {} QueueId: {} Consumer Group: {}",
                             requestHeader.getQueueOffset(),
                             getMessageResult.getNextBeginOffset(),
                             requestHeader.getTopic(),
@@ -182,7 +191,7 @@ public class SnodePullMessageProcessor implements NettyRequestProcessor {
                 case OFFSET_OVERFLOW_BADLY:
                     response.setCode(ResponseCode.PULL_OFFSET_MOVED);
                     // XXX: warn and notify me
-                    log.info("the request offset: {} over flow badly, broker max offset: {}, consumer: {}",
+                    log.info("The request offset: {} over flow badly, broker max offset: {}, consumer: {}",
                         requestHeader.getQueueOffset(), getMessageResult.getMaxOffset(), channel.remoteAddress());
                     break;
                 case OFFSET_OVERFLOW_ONE:
@@ -190,7 +199,7 @@ public class SnodePullMessageProcessor implements NettyRequestProcessor {
                     break;
                 case OFFSET_TOO_SMALL:
                     response.setCode(ResponseCode.PULL_OFFSET_MOVED);
-                    log.info("the request offset too small. group={}, topic={}, requestOffset={}, brokerMinOffset={}, clientIp={}",
+                    log.info("The request offset too small. group={}, topic={}, requestOffset={}, brokerMinOffset={}, clientIp={}",
                         requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueOffset(),
                         getMessageResult.getMinOffset(), channel.remoteAddress());
                     break;
@@ -267,12 +276,12 @@ public class SnodePullMessageProcessor implements NettyRequestProcessor {
                                 public void operationComplete(ChannelFuture future) throws Exception {
                                     getMessageResult.release();
                                     if (!future.isSuccess()) {
-                                        log.error("transfer many message by pagecache failed, {}", channel.remoteAddress(), future.cause());
+                                        log.error("Transfer many message by pagecache failed, {}", channel.remoteAddress(), future.cause());
                                     }
                                 }
                             });
                         } catch (Throwable e) {
-                            log.error("transfer many message by pagecache exception", e);
+                            log.error("Transfer many message by pagecache exception", e);
                             getMessageResult.release();
                         }
 
@@ -291,7 +300,7 @@ public class SnodePullMessageProcessor implements NettyRequestProcessor {
                         long offset = requestHeader.getQueueOffset();
                         int queueId = requestHeader.getQueueId();
                         PullRequest pullRequest = new PullRequest(request, channel, pollingTimeMills,
-                            this.brokerController.getMessageStore().now(), offset, null, null);
+                            this.brokerController.getMessageStore().now(), offset, subscriptionData, messageFilter, true);
                         this.brokerController.getPullRequestHoldService().suspendPullRequest(topic, queueId, pullRequest);
                         response = null;
                         break;
@@ -407,7 +416,7 @@ public class SnodePullMessageProcessor implements NettyRequestProcessor {
     }
 
     public void executeRequestWhenWakeup(final Channel channel,
-        final RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand request) {
         Runnable run = new Runnable() {
             @Override
             public void run() {
@@ -422,7 +431,7 @@ public class SnodePullMessageProcessor implements NettyRequestProcessor {
                                 @Override
                                 public void operationComplete(ChannelFuture future) throws Exception {
                                     if (!future.isSuccess()) {
-                                        log.error("processRequestWrapper response to {} failed",
+                                        log.error("ProcessRequestWrapper snode response to {} failed",
                                             future.channel().remoteAddress(), future.cause());
                                         log.error(request.toString());
                                         log.error(response.toString());
@@ -430,7 +439,7 @@ public class SnodePullMessageProcessor implements NettyRequestProcessor {
                                 }
                             });
                         } catch (Throwable e) {
-                            log.error("processRequestWrapper process request over, but response failed", e);
+                            log.error("ProcessRequestWrapper snode process request over, but response failed", e);
                             log.error(request.toString());
                             log.error(response.toString());
                         }

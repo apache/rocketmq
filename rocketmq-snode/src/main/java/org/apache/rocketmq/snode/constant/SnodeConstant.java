@@ -22,4 +22,6 @@ public class SnodeConstant {
 
     public static final long defaultTimeoutMills = 3000L;
 
+    public static final long CONSUMER_TIMEOUT_MILLIS_WHEN_SUSPEND = 1000 * 30;
+
 }

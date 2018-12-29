@@ -24,10 +24,20 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseHeader;
+import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
+import org.apache.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
@@ -38,16 +48,27 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
 
     private final SnodeController snodeController;
 
-    public ConsumerManageProcessor(final SnodeController snodeController) {
-        this.snodeController = snodeController;
+    public ConsumerManageProcessor(final SnodeController brokerController) {
+        this.snodeController = brokerController;
     }
 
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
-        throws RemotingCommandException {
+        throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException, RemotingCommandException {
         switch (request.getCode()) {
             case RequestCode.GET_CONSUMER_LIST_BY_GROUP:
                 return this.getConsumerListByGroup(ctx, request);
+            case RequestCode.UPDATE_CONSUMER_OFFSET:
+                return this.updateConsumerOffset(ctx, request);
+            case RequestCode.QUERY_CONSUMER_OFFSET:
+                return this.queryConsumerOffset(ctx, request);
+            case RequestCode.SEARCH_OFFSET_BY_TIMESTAMP:
+                return searchOffsetByTimestamp(ctx, request);
+            case RequestCode.GET_MAX_OFFSET:
+                return getMaxOffset(ctx, request);
+            case RequestCode.GET_MIN_OFFSET:
+                return getMinOffset(ctx, request);
             default:
                 break;
         }
@@ -57,6 +78,45 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
     @Override
     public boolean rejectRequest() {
         return false;
+    }
+
+    public RemotingCommand searchOffsetByTimestamp(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final SearchOffsetRequestHeader requestHeader =
+            (SearchOffsetRequestHeader) request
+                .decodeCommandCustomHeader(SearchOffsetRequestHeader.class);
+        try {
+            return this.snodeController.getEnodeService().getOffsetByTimestamp(requestHeader.getEnodeName(), request);
+        } catch (Exception ex) {
+            log.error("Search offset by timestamp error:{}", ex);
+        }
+        return null;
+    }
+
+    public RemotingCommand getMinOffset(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final GetMinOffsetRequestHeader requestHeader =
+            (GetMinOffsetRequestHeader) request
+                .decodeCommandCustomHeader(GetMinOffsetRequestHeader.class);
+        try {
+            return this.snodeController.getEnodeService().getMinOffsetInQueue(requestHeader.getEnodeName(), requestHeader.getTopic(), requestHeader.getQueueId());
+        } catch (Exception ex) {
+            log.error("Get min offset error:{}", ex);
+        }
+        return null;
+    }
+
+    public RemotingCommand getMaxOffset(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final GetMaxOffsetRequestHeader requestHeader =
+            (GetMaxOffsetRequestHeader) request
+                .decodeCommandCustomHeader(GetMaxOffsetRequestHeader.class);
+        try {
+            return this.snodeController.getEnodeService().getMaxOffsetInQueue(requestHeader.getEnodeName(), request);
+        } catch (Exception ex) {
+            log.error("Get min offset error:{}", ex);
+        }
+        return null;
     }
 
     public RemotingCommand getConsumerListByGroup(ChannelHandlerContext ctx, RemotingCommand request)
@@ -80,7 +140,7 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
                 response.setRemark(null);
                 return response;
             } else {
-                log.warn("Get all client failed, {} {}", requestHeader.getConsumerGroup(),
+                log.warn("GetAllClientId failed, {} {}", requestHeader.getConsumerGroup(),
                     RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
             }
         } else {
@@ -89,8 +149,53 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         }
 
         response.setCode(ResponseCode.SYSTEM_ERROR);
-        response.setRemark("no consumer for this group, " + requestHeader.getConsumerGroup());
+        response.setRemark("No consumer for this group, " + requestHeader.getConsumerGroup());
         return response;
     }
 
+    private RemotingCommand updateConsumerOffset(ChannelHandlerContext ctx, RemotingCommand request)
+        throws RemotingCommandException {
+        final RemotingCommand response =
+            RemotingCommand.createResponseCommand(UpdateConsumerOffsetResponseHeader.class);
+        final UpdateConsumerOffsetRequestHeader requestHeader =
+            (UpdateConsumerOffsetRequestHeader) request
+                .decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
+        this.snodeController.getConsumerOffsetManager().commitOffset(requestHeader.getEnodeName(), RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getConsumerGroup(),
+            requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+    private RemotingCommand queryConsumerOffset(ChannelHandlerContext ctx, RemotingCommand request)
+        throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException, RemotingCommandException {
+        final RemotingCommand response =
+            RemotingCommand.createResponseCommand(QueryConsumerOffsetResponseHeader.class);
+        final QueryConsumerOffsetResponseHeader responseHeader =
+            (QueryConsumerOffsetResponseHeader) response.readCustomHeader();
+        final QueryConsumerOffsetRequestHeader requestHeader =
+            (QueryConsumerOffsetRequestHeader) request
+                .decodeCommandCustomHeader(QueryConsumerOffsetRequestHeader.class);
+
+        long offset =
+            this.snodeController.getConsumerOffsetManager().queryOffset(requestHeader.getEnodeName(),
+                requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
+
+        if (offset < 0) {
+            log.info("Load offset from enode server, enodeName: {}, consumer group: {}, topic: {}, queueId: {}",
+                requestHeader.getEnodeName(),
+                requestHeader.getConsumerGroup(),
+                requestHeader.getTopic(),
+                requestHeader.getQueueId());
+            return this.snodeController.getEnodeService().loadOffset(requestHeader.getEnodeName(), requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                requestHeader.getQueueId());
+        } else {
+            responseHeader.setOffset(offset);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+            return response;
+        }
+    }
 }
+

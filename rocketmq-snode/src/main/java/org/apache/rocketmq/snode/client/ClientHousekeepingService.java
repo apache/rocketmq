@@ -54,7 +54,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
 
     private void scanExceptionChannel() {
         this.producerManager.scanNotActiveChannel();
-        //this.consumerManager.scanNotActiveChannel();
+        this.consumerManager.scanNotActiveChannel();
     }
 
     public void shutdown() {

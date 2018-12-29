@@ -36,11 +36,11 @@ public class ProducerManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long LOCK_TIMEOUT_MILLIS = 3000;
     private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
-    private static final int GET_AVALIABLE_CHANNEL_RETRY_COUNT = 3;
     private final Lock groupChannelLock = new ReentrantLock();
     private final HashMap<String /* group name */, HashMap<Channel, ClientChannelInfo>> groupChannelTable =
-        new HashMap<String, HashMap<Channel, ClientChannelInfo>>();
+        new HashMap<>();
     private PositiveAtomicCounter positiveAtomicCounter = new PositiveAtomicCounter();
+
     public ProducerManager() {
 
     }
@@ -144,7 +144,7 @@ public class ProducerManager {
                     clientChannelInfoFound = channelTable.get(clientChannelInfo.getChannel());
                     if (null == clientChannelInfoFound) {
                         channelTable.put(clientChannelInfo.getChannel(), clientChannelInfo);
-                        log.info("new producer connected, group: {} channel: {}", group,
+                        log.info("New producer connected, group: {} channel: {}", group,
                             clientChannelInfo.toString());
                     }
                 } finally {
@@ -158,7 +158,7 @@ public class ProducerManager {
                 log.warn("ProducerManager registerProducer lock timeout");
             }
         } catch (InterruptedException e) {
-            log.error("", e);
+            log.error("Register Producer error: {}", e);
         }
     }
 
@@ -170,13 +170,13 @@ public class ProducerManager {
                     if (null != channelTable && !channelTable.isEmpty()) {
                         ClientChannelInfo old = channelTable.remove(clientChannelInfo.getChannel());
                         if (old != null) {
-                            log.info("unregister a producer[{}] from groupChannelTable {}", group,
+                            log.info("Unregister a producer[{}] from groupChannelTable {}", group,
                                 clientChannelInfo.toString());
                         }
 
                         if (channelTable.isEmpty()) {
                             this.groupChannelTable.remove(group);
-                            log.info("unregister a producer group[{}] from groupChannelTable", group);
+                            log.info("Unregister a producer group[{}] from groupChannelTable", group);
                         }
                     }
                 } finally {
@@ -190,35 +190,35 @@ public class ProducerManager {
         }
     }
 
-    public Channel getAvaliableChannel(String groupId) {
-        HashMap<Channel, ClientChannelInfo> channelClientChannelInfoHashMap = groupChannelTable.get(groupId);
-        List<Channel> channelList = new ArrayList<Channel>();
-        if (channelClientChannelInfoHashMap != null) {
-            for (Channel channel : channelClientChannelInfoHashMap.keySet()) {
-                channelList.add(channel);
-            }
-            int size = channelList.size();
-            if (0 == size) {
-                log.warn("Channel list is empty. groupId={}", groupId);
-                return null;
-            }
-
-            int index = positiveAtomicCounter.incrementAndGet() % size;
-            Channel channel = channelList.get(index);
-            int count = 0;
-            boolean isOk = channel.isActive() && channel.isWritable();
-            while (count++ < GET_AVALIABLE_CHANNEL_RETRY_COUNT) {
-                if (isOk) {
-                    return channel;
-                }
-                index = (++index) % size;
-                channel = channelList.get(index);
-                isOk = channel.isActive() && channel.isWritable();
-            }
-        } else {
-            log.warn("Check transaction failed, channel table is empty. groupId={}", groupId);
-            return null;
-        }
-        return null;
-    }
+//    public Channel getAvaliableChannel(String groupId) {
+//        HashMap<Channel, ClientChannelInfo> channelClientChannelInfoHashMap = groupChannelTable.get(groupId);
+//        List<Channel> channelList = new ArrayList<Channel>();
+//        if (channelClientChannelInfoHashMap != null) {
+//            for (Channel channel : channelClientChannelInfoHashMap.keySet()) {
+//                channelList.add(channel);
+//            }
+//            int size = channelList.size();
+//            if (0 == size) {
+//                log.warn("Channel list is empty. groupId={}", groupId);
+//                return null;
+//            }
+//
+//            int index = positiveAtomicCounter.incrementAndGet() % size;
+//            Channel channel = channelList.get(index);
+//            int count = 0;
+//            boolean isOk = channel.isActive() && channel.isWritable();
+//            while (count++ < GET_AVALIABLE_CHANNEL_RETRY_COUNT) {
+//                if (isOk) {
+//                    return channel;
+//                }
+//                index = (++index) % size;
+//                channel = channelList.get(index);
+//                isOk = channel.isActive() && channel.isWritable();
+//            }
+//        } else {
+//            log.warn("Check transaction failed, channel table is empty. groupId={}", groupId);
+//            return null;
+//        }
+//        return null;
+//    }
 }

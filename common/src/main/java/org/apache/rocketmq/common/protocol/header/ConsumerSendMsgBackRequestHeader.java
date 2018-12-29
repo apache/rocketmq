@@ -35,6 +35,8 @@ public class ConsumerSendMsgBackRequestHeader implements CommandCustomHeader {
     private boolean unitMode = false;
     private Integer maxReconsumeTimes;
 
+    private String enodeName;
+
     @Override
     public void checkFields() throws RemotingCommandException {
 
@@ -96,9 +98,24 @@ public class ConsumerSendMsgBackRequestHeader implements CommandCustomHeader {
         this.maxReconsumeTimes = maxReconsumeTimes;
     }
 
-    @Override
-    public String toString() {
-        return "ConsumerSendMsgBackRequestHeader [group=" + group + ", originTopic=" + originTopic + ", originMsgId=" + originMsgId
-            + ", delayLevel=" + delayLevel + ", unitMode=" + unitMode + ", maxReconsumeTimes=" + maxReconsumeTimes + "]";
+    public String getEnodeName() {
+        return enodeName;
+    }
+
+    public void setEnodeName(String enodeName) {
+        this.enodeName = enodeName;
+    }
+
+    @Override public String toString() {
+        return "ConsumerSendMsgBackRequestHeader{" +
+            "offset=" + offset +
+            ", group='" + group + '\'' +
+            ", delayLevel=" + delayLevel +
+            ", originMsgId='" + originMsgId + '\'' +
+            ", originTopic='" + originTopic + '\'' +
+            ", unitMode=" + unitMode +
+            ", maxReconsumeTimes=" + maxReconsumeTimes +
+            ", enodeName='" + enodeName + '\'' +
+            '}';
     }
 }

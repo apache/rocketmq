@@ -127,34 +127,37 @@ public class PullRequestHoldService extends ServiceThread {
                     if (newestOffset <= request.getPullFromThisOffset()) {
                         newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
                     }
-
-                    if (newestOffset > request.getPullFromThisOffset()) {
-                        boolean match = request.getMessageFilter().isMatchedByConsumeQueue(tagsCode,
-                            new ConsumeQueueExt.CqExtUnit(tagsCode, msgStoreTime, filterBitMap));
-                        // match by bit map, need eval again when properties is not null.
-                        if (match && properties != null) {
-                            match = request.getMessageFilter().isMatchedByCommitLog(null, properties);
-                        }
-
-                        if (match) {
-                            try {
-                                if (request.getMessageFilter() == null && request.getSubscriptionData() == null) {
-                                    this.brokerController.getSnodePullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
-                                        request.getRequestCommand());
-                                } else {
-                                    this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
-                                        request.getRequestCommand());
-                                }
-                            } catch (Throwable e) {
-                                log.error("execute request when wakeup failed.", e);
+                    try {
+                        if (newestOffset > request.getPullFromThisOffset()) {
+                            boolean match = request.getMessageFilter().isMatchedByConsumeQueue(tagsCode,
+                                new ConsumeQueueExt.CqExtUnit(tagsCode, msgStoreTime, filterBitMap));
+                            // match by bit map, need eval again when properties is not null.
+                            if (match && properties != null) {
+                                match = request.getMessageFilter().isMatchedByCommitLog(null, properties);
                             }
-                            continue;
+
+                            if (match) {
+                                try {
+                                    if (request.isSnodeRequest()) {
+                                        this.brokerController.getSnodePullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
+                                            request.getRequestCommand());
+                                    } else {
+                                        this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
+                                            request.getRequestCommand());
+                                    }
+                                } catch (Throwable e) {
+                                    log.error("execute request when wakeup failed.", e);
+                                }
+                                continue;
+                            }
                         }
+                    } catch (Exception ex) {
+                        log.error("Error occurred:{}", ex);
                     }
 
                     if (System.currentTimeMillis() >= (request.getSuspendTimestamp() + request.getTimeoutMillis())) {
                         try {
-                            if (request.getMessageFilter() == null && request.getSubscriptionData() == null) {
+                            if (request.isSnodeRequest()) {
                                 this.brokerController.getSnodePullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
                                     request.getRequestCommand());
                             } else {
@@ -166,7 +169,6 @@ public class PullRequestHoldService extends ServiceThread {
                         }
                         continue;
                     }
-
                     replayList.add(request);
                 }
 
@@ -177,3 +179,4 @@ public class PullRequestHoldService extends ServiceThread {
         }
     }
 }
+

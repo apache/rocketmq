@@ -71,7 +71,7 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
         v1.setUnitMode(v2.k);
         v1.setMaxReconsumeTimes(v2.l);
         v1.setBatch(v2.m);
-        v1.setEnodeAddr(v2.n);
+        v1.setEnodeName(v2.n);
         return v1;
     }
 
@@ -90,7 +90,7 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
         v2.k = v1.isUnitMode();
         v2.l = v1.getMaxReconsumeTimes();
         v2.m = v1.isBatch();
-        v2.n = v1.getEnodeAddr();
+        v2.n = v1.getEnodeName();
         return v2;
     }
 

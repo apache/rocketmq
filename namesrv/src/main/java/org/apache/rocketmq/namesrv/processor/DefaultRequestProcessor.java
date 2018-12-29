@@ -379,7 +379,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
     private RemotingCommand getBrokerClusterInfo(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-
         byte[] content = this.namesrvController.getRouteInfoManager().getAllClusterInfo();
         response.setBody(content);
 

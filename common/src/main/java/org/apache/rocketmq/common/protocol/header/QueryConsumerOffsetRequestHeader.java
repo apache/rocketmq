@@ -32,6 +32,8 @@ public class QueryConsumerOffsetRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private Integer queueId;
 
+    private String enodeName;
+
     @Override
     public void checkFields() throws RemotingCommandException {
     }
@@ -58,5 +60,13 @@ public class QueryConsumerOffsetRequestHeader implements CommandCustomHeader {
 
     public void setQueueId(Integer queueId) {
         this.queueId = queueId;
+    }
+
+    public String getEnodeName() {
+        return enodeName;
+    }
+
+    public void setEnodeName(String enodeName) {
+        this.enodeName = enodeName;
     }
 }
