@@ -18,6 +18,7 @@ package org.apache.rocketmq.acl.plain;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -66,21 +67,21 @@ public class PlainPermissionLoader {
     }
 
     public void initialize() {
-        JSONObject accessControlTransport = AclUtils.getYamlDataObject(fileHome + fileName,
+        JSONObject plainAclConfData = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
             JSONObject.class);
 
-        if (accessControlTransport == null || accessControlTransport.isEmpty()) {
-            throw new AclException(String.format("%s file  is not data", fileHome + fileName));
+        if (plainAclConfData == null || plainAclConfData.isEmpty()) {
+            throw new AclException(String.format("%s file  is not data", fileHome + File.separator + fileName));
         }
-        log.info("BorkerAccessControlTransport data is : ", accessControlTransport.toString());
-        JSONArray globalWhiteRemoteAddressesList = accessControlTransport.getJSONArray("globalWhiteRemoteAddresses");
+        log.info("Broker plain acl conf data is : ", plainAclConfData.toString());
+        JSONArray globalWhiteRemoteAddressesList = plainAclConfData.getJSONArray("globalWhiteRemoteAddresses");
         if (globalWhiteRemoteAddressesList != null && !globalWhiteRemoteAddressesList.isEmpty()) {
             for (int i = 0; i < globalWhiteRemoteAddressesList.size(); i++) {
                 addGlobalWhiteRemoteAddress(globalWhiteRemoteAddressesList.getString(i));
             }
         }
 
-        JSONArray accounts = accessControlTransport.getJSONArray("accounts");
+        JSONArray accounts = plainAclConfData.getJSONArray("accounts");
         if (accounts != null && !accounts.isEmpty()) {
             List<PlainAccessConfig> plainAccessList = accounts.toJavaList(PlainAccessConfig.class);
             for (PlainAccessConfig plainAccess : plainAccessList) {
@@ -101,10 +102,10 @@ public class PlainPermissionLoader {
             int fileIndex = fileName.lastIndexOf("/") + 1;
             String watchDirectory = fileName.substring(0, fileIndex);
             final String watchFileName = fileName.substring(fileIndex);
-            log.info("watch directory is {} , watch directory file name is {} ", fileHome + watchDirectory, watchFileName);
+            log.info("watch directory is {} , watch directory file name is {} ", fileHome + File.separator + watchDirectory, watchFileName);
 
             final WatchService watcher = FileSystems.getDefault().newWatchService();
-            Path p = Paths.get(fileHome + watchDirectory);
+            Path p = Paths.get(fileHome +  File.separator + watchDirectory);
             p.register(watcher, StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_CREATE);
             ServiceThread watcherServcie = new ServiceThread() {
 

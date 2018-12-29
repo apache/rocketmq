@@ -28,6 +28,7 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.acl.plain.PlainPermissionLoader.PlainAccessConfig;
+import org.apache.rocketmq.common.UtilAll;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,9 +62,8 @@ public class PlainPermissionLoaderTest {
         ANYPlainAccessResource = clonePlainAccessResource(Permission.ANY);
         DENYPlainAccessResource = clonePlainAccessResource(Permission.DENY);
 
-        System.setProperty("java.version", "1.6.11");
         System.setProperty("rocketmq.home.dir", "src/test/resources");
-        System.setProperty("romcketmq.acl.plain.fileName", "/conf/plain_acl.yml");
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml");
         plainPermissionLoader = new PlainPermissionLoader();
 
     }
@@ -211,46 +211,56 @@ public class PlainPermissionLoaderTest {
         Assert.assertFalse(plainPermissionLoader.isWatchStart());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
-    public void watchTest() throws IOException, IllegalAccessException {
+    public void testWatch() throws IOException, IllegalAccessException {
         System.setProperty("java.version", "1.7.11");
-        System.setProperty("rocketmq.home.dir", "src/test/resources/watch");
-        File file = new File("src/test/resources/watch/conf");
-        file.mkdirs();
-        File transport = new File("src/test/resources/watch/conf/plain_acl.yml");
+        System.setProperty("rocketmq.home.dir", "src/test/resources/conf");
+        System.setProperty("rocketmq.acl.plain.file", "watch/plain_acl_watch.yml");
+        String fileName = "src/test/resources/conf/watch/plain_acl_watch.yml";
+        File transport = new File(fileName);
         transport.delete();
         transport.createNewFile();
 
         FileWriter writer = new FileWriter(transport);
         writer.write("accounts:\r\n");
-        writer.write("- accessKey: rokcetmq\r\n");
-        writer.write("  secretKey: aliyun11\r\n");
+        writer.write("- accessKey: rocketmq\r\n");
+        writer.write("  secretKey: 12345678\r\n");
         writer.write("  whiteRemoteAddress: 127.0.0.1\r\n");
         writer.write("  admin: true\r\n");
         writer.flush();
         writer.close();
+
+        System.out.println(System.getProperty("rocketmq.acl.plain.file"));
         PlainPermissionLoader plainPermissionLoader = new PlainPermissionLoader();
+        Assert.assertTrue(plainPermissionLoader.isWatchStart());
 
-        Map<String, List<PlainAccessResource>> plainAccessResourceMap = (Map<String, List<PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionLoader, "plainAccessResourceMap", true);
-        Assert.assertNotNull(plainAccessResourceMap.get("rokcetmq"));
+        {
+            Map<String, PlainAccessResource> plainAccessResourceMap = (Map<String, PlainAccessResource>) FieldUtils.readDeclaredField(plainPermissionLoader, "plainAccessResourceMap", true);
+            PlainAccessResource accessResource = plainAccessResourceMap.get("rocketmq");
+            Assert.assertNotNull(accessResource);
+            Assert.assertEquals(accessResource.getSecretKey(), "12345678");
+            Assert.assertTrue(accessResource.isAdmin());
 
-        writer = new FileWriter(new File("src/test/resources/watch/conf/plain_acl.yml"), true);
-        writer.write("- accessKey: rokcet1\r\n");
-        writer.write("  secretKey: aliyun1\r\n");
+        }
+
+        writer = new FileWriter(new File(fileName), true);
+        writer.write("- accessKey: rocketmq1\r\n");
+        writer.write("  secretKey: 88888888\r\n");
         writer.write("  whiteRemoteAddress: 127.0.0.1\r\n");
-        writer.write("  admin: true\r\n");
+        writer.write("  admin: false\r\n");
         writer.flush();
         writer.close();
 
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        plainAccessResourceMap = (Map<String, List<PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionLoader, "plainAccessResourceMap", true);
-        Assert.assertNotNull(plainAccessResourceMap.get("rokcet1"));
+        UtilAll.sleep(1000);
+        {
+            Map<String, PlainAccessResource> plainAccessResourceMap = (Map<String, PlainAccessResource>) FieldUtils.readDeclaredField(plainPermissionLoader, "plainAccessResourceMap", true);
+            PlainAccessResource accessResource = plainAccessResourceMap.get("rocketmq1");
+            Assert.assertNotNull(accessResource);
+            Assert.assertEquals(accessResource.getSecretKey(), "88888888");
+            Assert.assertFalse(accessResource.isAdmin());
 
+        }
+        transport.delete();
     }
 
     @Test(expected = AclException.class)
