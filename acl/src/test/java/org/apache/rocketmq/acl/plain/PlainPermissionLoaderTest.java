@@ -223,20 +223,19 @@ public class PlainPermissionLoaderTest {
 
         FileWriter writer = new FileWriter(transport);
         writer.write("accounts:\r\n");
-        writer.write("- accessKey: rocketmq\r\n");
+        writer.write("- accessKey: watchrocketmq\r\n");
         writer.write("  secretKey: 12345678\r\n");
         writer.write("  whiteRemoteAddress: 127.0.0.1\r\n");
         writer.write("  admin: true\r\n");
         writer.flush();
         writer.close();
 
-        System.out.println(System.getProperty("rocketmq.acl.plain.file"));
         PlainPermissionLoader plainPermissionLoader = new PlainPermissionLoader();
         Assert.assertTrue(plainPermissionLoader.isWatchStart());
 
         {
             Map<String, PlainAccessResource> plainAccessResourceMap = (Map<String, PlainAccessResource>) FieldUtils.readDeclaredField(plainPermissionLoader, "plainAccessResourceMap", true);
-            PlainAccessResource accessResource = plainAccessResourceMap.get("rocketmq");
+            PlainAccessResource accessResource = plainAccessResourceMap.get("watchrocketmq");
             Assert.assertNotNull(accessResource);
             Assert.assertEquals(accessResource.getSecretKey(), "12345678");
             Assert.assertTrue(accessResource.isAdmin());
@@ -244,7 +243,7 @@ public class PlainPermissionLoaderTest {
         }
 
         writer = new FileWriter(new File(fileName), true);
-        writer.write("- accessKey: rocketmq1\r\n");
+        writer.write("- accessKey: watchrocketmq1\r\n");
         writer.write("  secretKey: 88888888\r\n");
         writer.write("  whiteRemoteAddress: 127.0.0.1\r\n");
         writer.write("  admin: false\r\n");
@@ -254,7 +253,7 @@ public class PlainPermissionLoaderTest {
         UtilAll.sleep(1000);
         {
             Map<String, PlainAccessResource> plainAccessResourceMap = (Map<String, PlainAccessResource>) FieldUtils.readDeclaredField(plainPermissionLoader, "plainAccessResourceMap", true);
-            PlainAccessResource accessResource = plainAccessResourceMap.get("rocketmq1");
+            PlainAccessResource accessResource = plainAccessResourceMap.get("watchrocketmq1");
             Assert.assertNotNull(accessResource);
             Assert.assertEquals(accessResource.getSecretKey(), "88888888");
             Assert.assertFalse(accessResource.isAdmin());
