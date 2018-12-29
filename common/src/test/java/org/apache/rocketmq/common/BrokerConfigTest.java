@@ -33,7 +33,6 @@ public class BrokerConfigTest {
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setNamesrvAddr("127.0.0.1:9876");
         brokerConfig.setAutoCreateTopicEnable(false);
-        brokerConfig.setAutoTraceBrokerEnable(true);
         brokerConfig.setBrokerName("broker-a");
         brokerConfig.setBrokerId(0);
         brokerConfig.setBrokerClusterName("DefaultCluster");
@@ -44,7 +43,5 @@ public class BrokerConfigTest {
         assertThat(brokerConfig.getBrokerId()).isEqualTo(0);
         assertThat(brokerConfig.getBrokerName()).isEqualTo("broker-a");
         assertThat(brokerConfig.isAutoCreateTopicEnable()).isEqualTo(false);
-        assertThat(brokerConfig.isAutoTraceBrokerEnable()).isEqualTo(true);
-
     }
 }

@@ -850,7 +850,4 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         return traceDispatcher;
     }
 
-    public void setTraceDispatcher(TraceDispatcher traceDispatcher) {
-        this.traceDispatcher = traceDispatcher;
-    }
 }

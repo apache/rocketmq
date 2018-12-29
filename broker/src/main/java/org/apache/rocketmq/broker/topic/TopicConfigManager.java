@@ -125,14 +125,12 @@ public class TopicConfigManager extends ConfigManager {
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
-            if (this.brokerController.getBrokerConfig().isAutoTraceBrokerEnable()) {
-                String topic = this.brokerController.getBrokerConfig().getMsgTraceTopicName();
-                TopicConfig topicConfig = new TopicConfig(topic);
-                this.systemTopicList.add(topic);
-                topicConfig.setReadQueueNums(1);
-                topicConfig.setWriteQueueNums(1);
-                this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
-            }
+            String topic = this.brokerController.getBrokerConfig().getMsgTraceTopicName();
+            TopicConfig topicConfig = new TopicConfig(topic);
+            this.systemTopicList.add(topic);
+            topicConfig.setReadQueueNums(1);
+            topicConfig.setWriteQueueNums(1);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
     }
 
@@ -163,10 +161,6 @@ public class TopicConfigManager extends ConfigManager {
                     topicConfig = this.topicConfigTable.get(topic);
                     if (topicConfig != null)
                         return topicConfig;
-
-                    if (this.brokerController.getBrokerConfig().isAutoTraceBrokerEnable()) {
-                        return topicConfig;
-                    }
 
                     TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);
                     if (defaultTopicConfig != null) {
