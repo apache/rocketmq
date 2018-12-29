@@ -87,7 +87,7 @@ import static org.mockito.Mockito.when;
 public class DefaultMQConsumerWithTraceTest {
     private String consumerGroup;
     private String consumerGroupNormal;
-    private String producerGroupTraceTemp = MixAll.RMQ_SYS_TRACK_TRACE_TOPIC + System.currentTimeMillis();
+    private String producerGroupTraceTemp = MixAll.RMQ_SYS_TRACE_TOPIC + System.currentTimeMillis();
 
     private String topic = "FooBar";
     private String brokerName = "BrokerA";
@@ -107,7 +107,7 @@ public class DefaultMQConsumerWithTraceTest {
     @Mock
     private MQClientAPIImpl mQClientTraceAPIImpl;
     private DefaultMQProducer traceProducer;
-    private String customerTraceTopic = "rmq_track_trace_topic_12345";
+    private String customerTraceTopic = "rmq_trace_topic_12345";
 
     @Before
     public void init() throws Exception {
