@@ -53,6 +53,8 @@ public class BrokerConfig {
     private String messageStorePlugIn = "";
     @ImportantField
     private String msgTraceTopicName = MixAll.RMQ_SYS_TRACE_TOPIC;
+    @ImportantField
+    private boolean traceTopicEnable = false;
     /**
      * thread numbers for send message thread pool, since spin lock will be used by default since 4.0.x, the default
      * value is 1.
@@ -176,8 +178,7 @@ public class BrokerConfig {
      * Acl feature switch
      */
     @ImportantField
-    private boolean enableAcl = false;
-
+    private boolean aclEnable = false;
 
     public static String localHostName() {
         try {
@@ -717,14 +718,6 @@ public class BrokerConfig {
         this.transactionCheckInterval = transactionCheckInterval;
     }
 
-    public boolean isEnableAcl() {
-        return enableAcl;
-    }
-
-    public void setEnableAcl(boolean isAclPlug) {
-        this.enableAcl = isAclPlug;
-    }
-
     public int getEndTransactionThreadPoolNums() {
         return endTransactionThreadPoolNums;
     }
@@ -756,5 +749,20 @@ public class BrokerConfig {
     public void setMsgTraceTopicName(String msgTraceTopicName) {
         this.msgTraceTopicName = msgTraceTopicName;
     }
+    
+    public boolean isTraceTopicEnable() {
+        return traceTopicEnable;
+    }
 
+    public void setTraceTopicEnable(boolean traceTopicEnable) {
+        this.traceTopicEnable = traceTopicEnable;
+    }
+
+    public boolean isAclEnable() {
+        return aclEnable;
+    }
+
+    public void setAclEnable(boolean aclEnable) {
+        this.aclEnable = aclEnable;
+    }
 }

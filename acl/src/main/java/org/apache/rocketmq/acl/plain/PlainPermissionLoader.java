@@ -119,7 +119,6 @@ public class PlainPermissionLoader {
                                     && (StandardWatchEventKinds.ENTRY_MODIFY.equals(event.kind())
                                     || StandardWatchEventKinds.ENTRY_CREATE.equals(event.kind()))) {
                                     log.info("{} make a difference  change is : {}", watchFileName, event.toString());
-                                    //TODO do a retain
                                     //Clearing the info, may result in a non-available time
                                     PlainPermissionLoader.this.clearPermissionInfo();
                                     initialize();
