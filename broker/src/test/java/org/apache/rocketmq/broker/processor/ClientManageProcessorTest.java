@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.HashMap;
 import java.util.UUID;
@@ -28,9 +27,12 @@ import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumerData;
+import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
+import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
+import org.apache.rocketmq.remoting.ClientConfig;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.serialize.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -43,17 +45,16 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.apache.rocketmq.broker.processor.PullMessageProcessorTest.createConsumerData;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ClientManageProcessorTest {
     private ClientManageProcessor clientManageProcessor;
     @Spy
-    private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(), new MessageStoreConfig());
+    private BrokerController brokerController = new BrokerController(new BrokerConfig(), new ServerConfig(), new ClientConfig(), new MessageStoreConfig());
     @Mock
     private ChannelHandlerContext handlerContext;
     @Mock
-    private Channel channel;
+    private NettyChannelImpl channel;
 
     private ClientChannelInfo clientChannelInfo;
     private String clientId = UUID.randomUUID().toString();
@@ -62,7 +63,7 @@ public class ClientManageProcessorTest {
 
     @Before
     public void init() {
-        when(handlerContext.channel()).thenReturn(channel);
+//        when(handlerContext.channel()).thenReturn(channel);
         clientManageProcessor = new ClientManageProcessor(brokerController);
         clientChannelInfo = new ClientChannelInfo(channel, clientId, LanguageCode.JAVA, 100);
         brokerController.getProducerManager().registerProducer(group, clientChannelInfo);
@@ -81,12 +82,13 @@ public class ClientManageProcessorTest {
     @Test
     public void processRequest_UnRegisterProducer() throws Exception {
         brokerController.getProducerManager().registerProducer(group, clientChannelInfo);
-        HashMap<Channel, ClientChannelInfo> channelMap = brokerController.getProducerManager().getGroupChannelTable().get(group);
+        HashMap<RemotingChannel, ClientChannelInfo> channelMap = brokerController.getProducerManager().getGroupChannelTable().get(group);
         assertThat(channelMap).isNotNull();
         assertThat(channelMap.get(channel)).isEqualTo(clientChannelInfo);
 
         RemotingCommand request = createUnRegisterProducerCommand();
-        RemotingCommand response = clientManageProcessor.processRequest(handlerContext, request);
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
+        RemotingCommand response = clientManageProcessor.processRequest(nettyChannelHandlerContext, request);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
 
@@ -100,8 +102,9 @@ public class ClientManageProcessorTest {
         assertThat(consumerGroupInfo).isNotNull();
 
         RemotingCommand request = createUnRegisterConsumerCommand();
-        RemotingCommand response = clientManageProcessor.processRequest(handlerContext, request);
-        assertThat(response).isNotNull();
+
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
+        RemotingCommand response = clientManageProcessor.processRequest(nettyChannelHandlerContext, request);        assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
 
         consumerGroupInfo = brokerController.getConsumerManager().getConsumerGroupInfo(group);

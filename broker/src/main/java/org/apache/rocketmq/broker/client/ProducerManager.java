@@ -32,6 +32,7 @@ import org.apache.rocketmq.broker.util.PositiveAtomicCounter;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 
@@ -41,15 +42,16 @@ public class ProducerManager {
     private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
     private static final int GET_AVALIABLE_CHANNEL_RETRY_COUNT = 3;
     private final Lock groupChannelLock = new ReentrantLock();
-    private final HashMap<String /* group name */, HashMap<Channel, ClientChannelInfo>> groupChannelTable =
-        new HashMap<String, HashMap<Channel, ClientChannelInfo>>();
+    private final HashMap<String /* group name */, HashMap<RemotingChannel, ClientChannelInfo>> groupChannelTable =
+        new HashMap<>();
     private PositiveAtomicCounter positiveAtomicCounter = new PositiveAtomicCounter();
+
     public ProducerManager() {
     }
 
-    public HashMap<String, HashMap<Channel, ClientChannelInfo>> getGroupChannelTable() {
-        HashMap<String /* group name */, HashMap<Channel, ClientChannelInfo>> newGroupChannelTable =
-            new HashMap<String, HashMap<Channel, ClientChannelInfo>>();
+    public HashMap<String, HashMap<RemotingChannel, ClientChannelInfo>> getGroupChannelTable() {
+        HashMap<String /* group name */, HashMap<RemotingChannel, ClientChannelInfo>> newGroupChannelTable =
+            new HashMap<>();
         try {
             if (this.groupChannelLock.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
@@ -68,14 +70,14 @@ public class ProducerManager {
         try {
             if (this.groupChannelLock.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
-                    for (final Map.Entry<String, HashMap<Channel, ClientChannelInfo>> entry : this.groupChannelTable
+                    for (final Map.Entry<String, HashMap<RemotingChannel, ClientChannelInfo>> entry : this.groupChannelTable
                         .entrySet()) {
                         final String group = entry.getKey();
-                        final HashMap<Channel, ClientChannelInfo> chlMap = entry.getValue();
+                        final HashMap<RemotingChannel, ClientChannelInfo> chlMap = entry.getValue();
 
-                        Iterator<Entry<Channel, ClientChannelInfo>> it = chlMap.entrySet().iterator();
+                        Iterator<Entry<RemotingChannel, ClientChannelInfo>> it = chlMap.entrySet().iterator();
                         while (it.hasNext()) {
-                            Entry<Channel, ClientChannelInfo> item = it.next();
+                            Entry<RemotingChannel, ClientChannelInfo> item = it.next();
                             // final Integer id = item.getKey();
                             final ClientChannelInfo info = item.getValue();
 
@@ -84,8 +86,8 @@ public class ProducerManager {
                                 it.remove();
                                 log.warn(
                                     "SCAN: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
-                                    RemotingHelper.parseChannelRemoteAddr(info.getChannel()), group);
-                                RemotingUtil.closeChannel(info.getChannel());
+                                    RemotingHelper.parseChannelRemoteAddr(info.getChannel().remoteAddress()), group);
+                                info.getChannel().close();
                             }
                         }
                     }
@@ -105,10 +107,10 @@ public class ProducerManager {
             try {
                 if (this.groupChannelLock.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                     try {
-                        for (final Map.Entry<String, HashMap<Channel, ClientChannelInfo>> entry : this.groupChannelTable
+                        for (final Map.Entry<String, HashMap<RemotingChannel, ClientChannelInfo>> entry : this.groupChannelTable
                             .entrySet()) {
                             final String group = entry.getKey();
-                            final HashMap<Channel, ClientChannelInfo> clientChannelInfoTable =
+                            final HashMap<RemotingChannel, ClientChannelInfo> clientChannelInfoTable =
                                 entry.getValue();
                             final ClientChannelInfo clientChannelInfo =
                                 clientChannelInfoTable.remove(channel);
@@ -137,7 +139,7 @@ public class ProducerManager {
 
             if (this.groupChannelLock.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
-                    HashMap<Channel, ClientChannelInfo> channelTable = this.groupChannelTable.get(group);
+                    HashMap<RemotingChannel, ClientChannelInfo> channelTable = this.groupChannelTable.get(group);
                     if (null == channelTable) {
                         channelTable = new HashMap<>();
                         this.groupChannelTable.put(group, channelTable);
@@ -168,7 +170,7 @@ public class ProducerManager {
         try {
             if (this.groupChannelLock.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
-                    HashMap<Channel, ClientChannelInfo> channelTable = this.groupChannelTable.get(group);
+                    HashMap<RemotingChannel, ClientChannelInfo> channelTable = this.groupChannelTable.get(group);
                     if (null != channelTable && !channelTable.isEmpty()) {
                         ClientChannelInfo old = channelTable.remove(clientChannelInfo.getChannel());
                         if (old != null) {
@@ -192,11 +194,11 @@ public class ProducerManager {
         }
     }
 
-    public Channel getAvaliableChannel(String groupId) {
-        HashMap<Channel, ClientChannelInfo> channelClientChannelInfoHashMap = groupChannelTable.get(groupId);
-        List<Channel> channelList = new ArrayList<Channel>();
+    public RemotingChannel getAvaliableChannel(String groupId) {
+        HashMap<RemotingChannel, ClientChannelInfo> channelClientChannelInfoHashMap = groupChannelTable.get(groupId);
+        List<RemotingChannel> channelList = new ArrayList<>();
         if (channelClientChannelInfoHashMap != null) {
-            for (Channel channel : channelClientChannelInfoHashMap.keySet()) {
+            for (RemotingChannel channel : channelClientChannelInfoHashMap.keySet()) {
                 channelList.add(channel);
             }
             int size = channelList.size();
@@ -206,7 +208,7 @@ public class ProducerManager {
             }
 
             int index = positiveAtomicCounter.incrementAndGet() % size;
-            Channel channel = channelList.get(index);
+            RemotingChannel channel = channelList.get(index);
             int count = 0;
             boolean isOk = channel.isActive() && channel.isWritable();
             while (count++ < GET_AVALIABLE_CHANNEL_RETRY_COUNT) {

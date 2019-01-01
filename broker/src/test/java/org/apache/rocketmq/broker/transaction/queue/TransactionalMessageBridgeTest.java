@@ -25,8 +25,8 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.ClientConfig;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.GetMessageResult;
@@ -61,8 +61,8 @@ public class TransactionalMessageBridgeTest {
     private TransactionalMessageBridge transactionBridge;
 
     @Spy
-    private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(),
-        new NettyClientConfig(), new MessageStoreConfig());
+    private BrokerController brokerController = new BrokerController(new BrokerConfig(), new ServerConfig(),
+        new ClientConfig(), new MessageStoreConfig());
 
     @Mock
     private MessageStore messageStore;

@@ -33,8 +33,9 @@ import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHead
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
+import org.apache.rocketmq.remoting.ClientConfig;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
@@ -70,7 +71,7 @@ public class SendMessageProcessorTest {
     @Mock
     private ChannelHandlerContext handlerContext;
     @Spy
-    private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(), new MessageStoreConfig());
+    private BrokerController brokerController = new BrokerController(new BrokerConfig(), new ServerConfig(), new ClientConfig(), new MessageStoreConfig());
     @Mock
     private MessageStore messageStore;
 
@@ -181,7 +182,9 @@ public class SendMessageProcessorTest {
         final RemotingCommand request = createSendMsgBackCommand(RequestCode.CONSUMER_SEND_MSG_BACK);
 
         sendMessageProcessor = new SendMessageProcessor(brokerController);
-        final RemotingCommand response = sendMessageProcessor.processRequest(handlerContext, request);
+
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
+        RemotingCommand response = sendMessageProcessor.processRequest(nettyChannelHandlerContext, request);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
@@ -199,7 +202,10 @@ public class SendMessageProcessorTest {
                 return null;
             }
         }).when(handlerContext).writeAndFlush(any(Object.class));
-        RemotingCommand responseToReturn = sendMessageProcessor.processRequest(handlerContext, request);
+
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
+        RemotingCommand responseToReturn = sendMessageProcessor.processRequest(nettyChannelHandlerContext, request);
+
         if (responseToReturn != null) {
             assertThat(response[0]).isNull();
             response[0] = responseToReturn;
@@ -207,6 +213,7 @@ public class SendMessageProcessorTest {
         assertThat(response[0].getCode()).isEqualTo(ResponseCode.SUCCESS);
 
     }
+
     private RemotingCommand createSendTransactionMsgCommand(int requestCode) {
         SendMessageRequestHeader header = createSendMsgRequestHeader();
         int sysFlag = header.getSysFlag();
@@ -267,7 +274,9 @@ public class SendMessageProcessorTest {
                 return null;
             }
         }).when(handlerContext).writeAndFlush(any(Object.class));
-        RemotingCommand responseToReturn = sendMessageProcessor.processRequest(handlerContext, request);
+
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
+        RemotingCommand responseToReturn = sendMessageProcessor.processRequest(nettyChannelHandlerContext, request);
         if (responseToReturn != null) {
             assertThat(response[0]).isNull();
             response[0] = responseToReturn;

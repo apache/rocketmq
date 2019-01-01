@@ -29,8 +29,9 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
+import org.apache.rocketmq.remoting.ClientConfig;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
@@ -60,7 +61,7 @@ public class EndTransactionProcessorTest {
 
     @Spy
     private BrokerController
-        brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(),
+        brokerController = new BrokerController(new BrokerConfig(), new ServerConfig(), new ClientConfig(),
         new MessageStoreConfig());
 
     @Mock
@@ -76,7 +77,7 @@ public class EndTransactionProcessorTest {
         endTransactionProcessor = new EndTransactionProcessor(brokerController);
     }
 
-    private OperationResult createResponse(int status){
+    private OperationResult createResponse(int status) {
         OperationResult response = new OperationResult();
         response.setPrepareMessage(createDefaultMessageExt());
         response.setResponseCode(status);
@@ -90,7 +91,9 @@ public class EndTransactionProcessorTest {
         when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult
             (PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         RemotingCommand request = createEndTransactionMsgCommand(MessageSysFlag.TRANSACTION_COMMIT_TYPE, false);
-        RemotingCommand response = endTransactionProcessor.processRequest(handlerContext, request);
+
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
+        RemotingCommand response = endTransactionProcessor.processRequest(nettyChannelHandlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
 
@@ -100,14 +103,16 @@ public class EndTransactionProcessorTest {
         when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult
             (PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         RemotingCommand request = createEndTransactionMsgCommand(MessageSysFlag.TRANSACTION_COMMIT_TYPE, true);
-        RemotingCommand response = endTransactionProcessor.processRequest(handlerContext, request);
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
+        RemotingCommand response = endTransactionProcessor.processRequest(nettyChannelHandlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
 
     @Test
     public void testProcessRequest_NotType() throws RemotingCommandException {
         RemotingCommand request = createEndTransactionMsgCommand(MessageSysFlag.TRANSACTION_NOT_TYPE, true);
-        RemotingCommand response = endTransactionProcessor.processRequest(handlerContext, request);
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
+        RemotingCommand response = endTransactionProcessor.processRequest(nettyChannelHandlerContext, request);
         assertThat(response).isNull();
     }
 
@@ -115,7 +120,8 @@ public class EndTransactionProcessorTest {
     public void testProcessRequest_RollBack() throws RemotingCommandException {
         when(transactionMsgService.rollbackMessage(any(EndTransactionRequestHeader.class))).thenReturn(createResponse(ResponseCode.SUCCESS));
         RemotingCommand request = createEndTransactionMsgCommand(MessageSysFlag.TRANSACTION_ROLLBACK_TYPE, true);
-        RemotingCommand response = endTransactionProcessor.processRequest(handlerContext, request);
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
+        RemotingCommand response = endTransactionProcessor.processRequest(nettyChannelHandlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
 

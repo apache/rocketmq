@@ -86,9 +86,9 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.RemotingServerFactory;
 import org.apache.rocketmq.remoting.common.TlsMode;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.ClientConfig;
+import org.apache.rocketmq.remoting.RequestProcessor;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.remoting.transport.rocketmq.NettyRemotingServer;
@@ -107,8 +107,8 @@ public class BrokerController {
     private static final InternalLogger LOG_PROTECTION = InternalLoggerFactory.getLogger(LoggerName.PROTECTION_LOGGER_NAME);
     private static final InternalLogger LOG_WATER_MARK = InternalLoggerFactory.getLogger(LoggerName.WATER_MARK_LOGGER_NAME);
     private final BrokerConfig brokerConfig;
-    private final NettyServerConfig nettyServerConfig;
-    private final NettyClientConfig nettyClientConfig;
+    private final ServerConfig nettyServerConfig;
+    private final ClientConfig nettyClientConfig;
     private final MessageStoreConfig messageStoreConfig;
     private final ConsumerOffsetManager consumerOffsetManager;
     private final ConsumerManager consumerManager;
@@ -162,8 +162,8 @@ public class BrokerController {
 
     public BrokerController(
         final BrokerConfig brokerConfig,
-        final NettyServerConfig nettyServerConfig,
-        final NettyClientConfig nettyClientConfig,
+        final ServerConfig nettyServerConfig,
+        final ClientConfig nettyClientConfig,
         final MessageStoreConfig messageStoreConfig
     ) {
         this.brokerConfig = brokerConfig;
@@ -210,7 +210,7 @@ public class BrokerController {
         return brokerConfig;
     }
 
-    public NettyServerConfig getNettyServerConfig() {
+    public ServerConfig getNettyServerConfig() {
         return nettyServerConfig;
     }
 
@@ -251,7 +251,7 @@ public class BrokerController {
             this.remotingServer = RemotingServerFactory.createInstance();
             this.remotingServer.init(this.nettyServerConfig, this.clientHousekeepingService);
 //            this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
-            NettyServerConfig fastConfig = (NettyServerConfig) this.nettyServerConfig.clone();
+            ServerConfig fastConfig = (ServerConfig) this.nettyServerConfig.clone();
             fastConfig.setListenPort(nettyServerConfig.getListenPort() - 2);
 //            this.fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
             this.fastRemotingServer = RemotingServerFactory.createInstance();
@@ -520,7 +520,7 @@ public class BrokerController {
         /**
          * QueryMessageProcessor
          */
-        NettyRequestProcessor queryProcessor = new QueryMessageProcessor(this);
+        RequestProcessor queryProcessor = new QueryMessageProcessor(this);
         this.remotingServer.registerProcessor(RequestCode.QUERY_MESSAGE, queryProcessor, this.queryMessageExecutor);
         this.remotingServer.registerProcessor(RequestCode.VIEW_MESSAGE_BY_ID, queryProcessor, this.queryMessageExecutor);
 

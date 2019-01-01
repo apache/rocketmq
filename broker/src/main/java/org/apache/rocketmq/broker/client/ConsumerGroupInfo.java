@@ -31,14 +31,15 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.RemotingChannel;
 
 public class ConsumerGroupInfo {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final String groupName;
     private final ConcurrentMap<String/* Topic */, SubscriptionData> subscriptionTable =
         new ConcurrentHashMap<String, SubscriptionData>();
-    private final ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable =
-        new ConcurrentHashMap<Channel, ClientChannelInfo>(16);
+    private final ConcurrentMap<RemotingChannel, ClientChannelInfo> channelInfoTable =
+        new ConcurrentHashMap<>(16);
     private volatile ConsumeType consumeType;
     private volatile MessageModel messageModel;
     private volatile ConsumeFromWhere consumeFromWhere;
@@ -53,9 +54,9 @@ public class ConsumerGroupInfo {
     }
 
     public ClientChannelInfo findChannel(final String clientId) {
-        Iterator<Entry<Channel, ClientChannelInfo>> it = this.channelInfoTable.entrySet().iterator();
+        Iterator<Entry<RemotingChannel, ClientChannelInfo>> it = this.channelInfoTable.entrySet().iterator();
         while (it.hasNext()) {
-            Entry<Channel, ClientChannelInfo> next = it.next();
+            Entry<RemotingChannel, ClientChannelInfo> next = it.next();
             if (next.getValue().getClientId().equals(clientId)) {
                 return next.getValue();
             }
@@ -68,12 +69,12 @@ public class ConsumerGroupInfo {
         return subscriptionTable;
     }
 
-    public ConcurrentMap<Channel, ClientChannelInfo> getChannelInfoTable() {
+    public ConcurrentMap<RemotingChannel, ClientChannelInfo> getChannelInfoTable() {
         return channelInfoTable;
     }
 
-    public List<Channel> getAllChannel() {
-        List<Channel> result = new ArrayList<>();
+    public List<RemotingChannel> getAllChannel() {
+        List<RemotingChannel> result = new ArrayList<>();
 
         result.addAll(this.channelInfoTable.keySet());
 
@@ -83,10 +84,10 @@ public class ConsumerGroupInfo {
     public List<String> getAllClientId() {
         List<String> result = new ArrayList<>();
 
-        Iterator<Entry<Channel, ClientChannelInfo>> it = this.channelInfoTable.entrySet().iterator();
+        Iterator<Entry<RemotingChannel, ClientChannelInfo>> it = this.channelInfoTable.entrySet().iterator();
 
         while (it.hasNext()) {
-            Entry<Channel, ClientChannelInfo> entry = it.next();
+            Entry<RemotingChannel, ClientChannelInfo> entry = it.next();
             ClientChannelInfo clientChannelInfo = entry.getValue();
             result.add(clientChannelInfo.getClientId());
         }
