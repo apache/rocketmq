@@ -186,10 +186,6 @@ public class PlainPermissionLoader {
         return plainAccessResource;
     }
 
-    private void addGlobalWhiteRemoteAddress(String remoteAddresses) {
-        globalWhiteRemoteAddressStrategy.add(remoteAddressStrategyFactory.getRemoteAddressStrategy(remoteAddresses));
-    }
-
     public void validate(PlainAccessResource plainAccessResource) {
         try {
             this.lock.readLock().lockInterruptibly();

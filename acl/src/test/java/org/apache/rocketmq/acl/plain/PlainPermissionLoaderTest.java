@@ -157,7 +157,13 @@ public class PlainPermissionLoaderTest {
         plainPermissionLoader.checkPerm(plainAccessResource, ANYPlainAccessResource);
 
     }
+    @Test(expected = AclException.class)
+    public void checkErrorPerm() {
 
+        plainAccessResource = new PlainAccessResource();
+        plainAccessResource.addResourceAndPerm("topicF", Permission.SUB);
+        plainPermissionLoader.checkPerm(plainAccessResource, SUBPlainAccessResource);
+    }
     @Test(expected = AclException.class)
     public void accountNullTest() {
         plainAccessConfig.setAccessKey(null);
