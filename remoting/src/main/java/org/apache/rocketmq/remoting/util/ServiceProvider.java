@@ -15,7 +15,9 @@ package org.apache.rocketmq.remoting.util;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -92,6 +94,39 @@ public class ServiceProvider {
         }
     }
 
+    public static <T> List<T> loadServiceList(String name, Class<?> clazz) {
+        LOG.info("Looking for a resource file of name [{}] ...", name);
+        List<T> services = new ArrayList<T>();
+        try {
+            ArrayList<String> names = new ArrayList<String>();
+            final InputStream is = getResourceAsStream(getContextClassLoader(), name);
+            if (is != null) {
+                BufferedReader reader;
+                try {
+                    reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+                } catch (java.io.UnsupportedEncodingException e) {
+                    reader = new BufferedReader(new InputStreamReader(is));
+                }
+                String serviceName = reader.readLine();
+                while (serviceName != null && !"".equals(serviceName)) {
+                    if (!names.contains(serviceName)) {
+                        T instance = createInstance(serviceName, clazz);
+                        services.add(instance);
+                    }
+                    names.add(serviceName);
+                    serviceName = reader.readLine();
+                }
+                reader.close();
+            } else {
+                // is == null
+                LOG.warn("No resource file with name [{}] found.", name);
+            }
+        } catch (Exception e) {
+            LOG.error("Error occured when looking for resource file " + name, e);
+        }
+        return services;
+    }
+
     public static Map<String, String> loadPath(String path) {
         LOG.info("Load path looking for a resource file of name [{}] ...", path);
         Map<String, String> pathMap = new HashMap<String, String>();
@@ -121,7 +156,7 @@ public class ServiceProvider {
                 reader.close();
             }
         } catch (Exception ex) {
-            LOG.error("Error occured when looking for resource file " + path, ex);
+            LOG.error("Error occurred when looking for resource file " + path, ex);
         }
         return pathMap;
     }

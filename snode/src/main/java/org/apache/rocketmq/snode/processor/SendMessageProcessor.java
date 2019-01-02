@@ -23,6 +23,9 @@ import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
+import org.apache.rocketmq.snode.interceptor.ExceptionContext;
+import org.apache.rocketmq.snode.interceptor.RequestContext;
+import org.apache.rocketmq.snode.interceptor.ResponseContext;
 
 public class SendMessageProcessor implements RequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
@@ -35,11 +38,23 @@ public class SendMessageProcessor implements RequestProcessor {
 
     @Override
     public RemotingCommand processRequest(RemotingChannel remotingChannel, RemotingCommand request) {
+        if (this.snodeController.getSendMessageInterceptorGroup() != null) {
+            RequestContext requestContext = new RequestContext(request, remotingChannel);
+            this.snodeController.getSendMessageInterceptorGroup().beforeRequest(requestContext);
+        }
         CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().sendMessage(request);
         responseFuture.whenComplete((data, ex) -> {
             if (ex == null) {
+                if (this.snodeController.getSendMessageInterceptorGroup() != null) {
+                    ResponseContext responseContext = new ResponseContext(request, remotingChannel, data);
+                    this.snodeController.getSendMessageInterceptorGroup().afterRequest(responseContext);
+                }
                 remotingChannel.reply(data);
             } else {
+                if (this.snodeController.getSendMessageInterceptorGroup() != null) {
+                    ExceptionContext exceptionContext = new ExceptionContext(request, remotingChannel, ex, null);
+                    this.snodeController.getSendMessageInterceptorGroup().onException(exceptionContext);
+                }
                 log.error("Send Message error: {}", ex);
             }
         });

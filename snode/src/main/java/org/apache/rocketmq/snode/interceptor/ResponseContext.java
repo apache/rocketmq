@@ -1,4 +1,4 @@
-/*
+package org.apache.rocketmq.snode.interceptor;/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,12 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.mqtrace;
 
-public interface SendMessageHook {
-    String hookName();
+import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-    void sendMessageBefore(final SendMessageContext context);
+public class ResponseContext extends RequestContext {
+    private RemotingCommand response;
 
-    void sendMessageAfter(final SendMessageContext context);
+    public ResponseContext(RemotingCommand request, RemotingChannel remotingChannel, RemotingCommand response) {
+        super(request, remotingChannel);
+        this.response = response;
+    }
+
+    public RemotingCommand getResponse() {
+        return response;
+    }
+
+    public void setResponse(RemotingCommand response) {
+        this.response = response;
+    }
 }

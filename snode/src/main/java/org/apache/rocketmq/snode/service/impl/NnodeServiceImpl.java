@@ -93,7 +93,7 @@ public class NnodeServiceImpl implements NnodeService {
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINTO_BY_TOPIC, requestHeader);
         RemotingCommand response = this.snodeController.getRemotingClient().invokeSync(null, request, SnodeConstant.defaultTimeoutMills);
-        log.info("getTopicRouteInfoFromNameServer response: " + response);
+        log.info("GetTopicRouteInfoFromNameServer response: " + response);
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.TOPIC_NOT_EXIST: {

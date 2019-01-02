@@ -49,7 +49,5 @@ public interface RemotingClient extends RemotingService {
 
     ExecutorService getCallbackExecutor();
 
-    boolean isChannelWritable(final String addr);
-
     RemotingClient init(ClientConfig nettyClientConfig, ChannelEventListener channelEventListener);
 }

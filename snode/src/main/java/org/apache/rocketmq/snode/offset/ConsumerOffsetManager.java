@@ -42,7 +42,7 @@ public class ConsumerOffsetManager {
     private static final String TOPIC_GROUP_SEPARATOR = "@";
 
     private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
-        new ConcurrentHashMap<String, ConcurrentMap<Integer, Long>>(512);
+        new ConcurrentHashMap<>(512);
 
     private transient SnodeController snodeController;
 
@@ -206,7 +206,6 @@ public class ConsumerOffsetManager {
     public void setOffsetTable(ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> offsetTable) {
         this.offsetTable = offsetTable;
     }
-
 
     public Map<Integer, Long> queryOffset(final String enodeName, final String group, final String topic) {
         // topic@group

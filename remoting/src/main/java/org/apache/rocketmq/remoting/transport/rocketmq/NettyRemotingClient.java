@@ -273,15 +273,6 @@ public class NettyRemotingClient extends NettyRemotingClientAbstract implements 
     }
 
     @Override
-    public boolean isChannelWritable(String addr) {
-        ChannelWrapper cw = this.channelTables.get(addr);
-        if (cw != null && cw.isOK()) {
-            return cw.isWritable();
-        }
-        return true;
-    }
-
-    @Override
     public List<String> getNameServerAddressList() {
         return this.namesrvAddrList.get();
     }

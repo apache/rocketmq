@@ -32,6 +32,9 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.client.ConsumerGroupInfo;
+import org.apache.rocketmq.snode.interceptor.ExceptionContext;
+import org.apache.rocketmq.snode.interceptor.RequestContext;
+import org.apache.rocketmq.snode.interceptor.ResponseContext;
 
 public class PullMessageProcessor implements RequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
@@ -45,8 +48,21 @@ public class PullMessageProcessor implements RequestProcessor {
     @Override
     public RemotingCommand processRequest(RemotingChannel remotingChannel,
         RemotingCommand request) throws RemotingCommandException {
-        RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
+        if (this.snodeController.getConsumeMessageInterceptorGroup() != null) {
+            RequestContext requestContext = new RequestContext(request, remotingChannel);
+            this.snodeController.getConsumeMessageInterceptorGroup().beforeRequest(requestContext);
+        }
+        RemotingCommand response = pullMessage(remotingChannel, request);
+        if (this.snodeController.getConsumeMessageInterceptorGroup() != null && response != null) {
+            ResponseContext responseContext = new ResponseContext(request, remotingChannel, response);
+            this.snodeController.getSendMessageInterceptorGroup().afterRequest(responseContext);
+        }
+        return response;
+    }
 
+    private RemotingCommand pullMessage(RemotingChannel remotingChannel,
+        RemotingCommand request) throws RemotingCommandException {
+        RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
         final PullMessageRequestHeader requestHeader =
             (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
 
@@ -72,14 +88,13 @@ public class PullMessageProcessor implements RequestProcessor {
             response.setRemark("The consumer group[" + requestHeader.getConsumerGroup() + "] can not consume by broadcast way");
             return response;
         }
-
-        SubscriptionData subscriptionData = consumerGroupInfo.findSubscriptionData(requestHeader.getTopic());
-        if (null == subscriptionData) {
+        if ((consumerGroupInfo == null) || (consumerGroupInfo.findSubscriptionData(requestHeader.getTopic()) == null)) {
             log.warn("The consumer's subscription not exist, group: {}, topic:{}", requestHeader.getConsumerGroup(), requestHeader.getTopic());
             response.setCode(ResponseCode.SUBSCRIPTION_NOT_EXIST);
             response.setRemark("The consumer's subscription not exist" + FAQUrl.suggestTodo(FAQUrl.SAME_GROUP_DIFFERENT_TOPIC));
             return response;
         }
+        SubscriptionData subscriptionData = consumerGroupInfo.findSubscriptionData(requestHeader.getTopic());
 
         if (subscriptionData.getSubVersion() < requestHeader.getSubVersion()) {
             log.warn("The broker's subscription is not latest, group: {} {}", requestHeader.getConsumerGroup(),
@@ -92,8 +107,16 @@ public class PullMessageProcessor implements RequestProcessor {
         CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().pullMessage(request);
         responseFuture.whenComplete((data, ex) -> {
             if (ex == null) {
+                if (this.snodeController.getConsumeMessageInterceptorGroup() != null) {
+                    ResponseContext responseContext = new ResponseContext(request, remotingChannel, data);
+                    this.snodeController.getSendMessageInterceptorGroup().afterRequest(responseContext);
+                }
                 remotingChannel.reply(data);
             } else {
+                if (this.snodeController.getConsumeMessageInterceptorGroup() != null) {
+                    ExceptionContext exceptionContext = new ExceptionContext(request, remotingChannel, ex, null);
+                    this.snodeController.getConsumeMessageInterceptorGroup().onException(exceptionContext);
+                }
                 log.error("Pull message error: {}", ex);
             }
         });

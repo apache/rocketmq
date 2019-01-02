@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.mqtrace;
+package org.apache.rocketmq.snode.interceptor;
+public interface Interceptor {
+    void beforeSendMessage(RequestContext requestContext);
 
-public interface SendMessageHook {
-    String hookName();
+    void afterSendMessage(ResponseContext responseContext);
 
-    void sendMessageBefore(final SendMessageContext context);
-
-    void sendMessageAfter(final SendMessageContext context);
+    void onException(ExceptionContext exceptionContext);
 }

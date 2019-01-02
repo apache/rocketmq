@@ -15,6 +15,7 @@ package org.apache.rocketmq.snode;/*
  * limitations under the License.
  */
 
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -39,6 +40,9 @@ import org.apache.rocketmq.snode.client.DefaultConsumerIdsChangeListener;
 import org.apache.rocketmq.snode.client.ProducerManager;
 import org.apache.rocketmq.snode.client.SubscriptionGroupManager;
 import org.apache.rocketmq.snode.config.SnodeConfig;
+import org.apache.rocketmq.snode.interceptor.InterceptorFactory;
+import org.apache.rocketmq.snode.interceptor.InterceptorGroup;
+import org.apache.rocketmq.snode.interceptor.Interceptor;
 import org.apache.rocketmq.snode.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.snode.processor.ConsumerManageProcessor;
 import org.apache.rocketmq.snode.processor.HearbeatProcessor;
@@ -76,6 +80,8 @@ public class SnodeController {
     private SendMessageProcessor sendMessageProcessor;
     private PullMessageProcessor pullMessageProcessor;
     private HearbeatProcessor hearbeatProcessor;
+    private InterceptorGroup consumeMessageInterceptorGroup;
+    private InterceptorGroup sendMessageInterceptorGroup;
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "SnodeControllerScheduledThread"));
@@ -161,7 +167,25 @@ public class SnodeController {
     public boolean initialize() {
         this.snodeServer = RemotingServerFactory.createInstance().init(this.nettyServerConfig, this.clientHousekeepingService);
         this.registerProcessor();
+        initInterceptorGroup();
         return true;
+    }
+
+    private void initInterceptorGroup() {
+        List<Interceptor> consumeMessageInterceptors = InterceptorFactory.getInstance().loadConsumeMessageInterceptors();
+        if (consumeMessageInterceptors != null) {
+            this.consumeMessageInterceptorGroup = new InterceptorGroup();
+            for (Interceptor interceptor : consumeMessageInterceptors) {
+                this.consumeMessageInterceptorGroup.registerInterceptor(interceptor);
+            }
+        }
+        List<Interceptor> sendMessageInterceptors = InterceptorFactory.getInstance().loadSendMessageInterceptors();
+        if (sendMessageInterceptors != null) {
+            this.sendMessageInterceptorGroup = new InterceptorGroup();
+            for (Interceptor interceptor : sendMessageInterceptors) {
+                this.sendMessageInterceptorGroup.registerInterceptor(interceptor);
+            }
+        }
     }
 
     public void registerProcessor() {
@@ -201,32 +225,16 @@ public class SnodeController {
         return producerManager;
     }
 
-    public void setProducerManager(ProducerManager producerManager) {
-        this.producerManager = producerManager;
-    }
-
     public RemotingServer getSnodeServer() {
         return snodeServer;
-    }
-
-    public void setSnodeServer(RemotingServer snodeServer) {
-        this.snodeServer = snodeServer;
     }
 
     public ConsumerManager getConsumerManager() {
         return consumerManager;
     }
 
-    public void setConsumerManager(ConsumerManager consumerManager) {
-        this.consumerManager = consumerManager;
-    }
-
     public SubscriptionGroupManager getSubscriptionGroupManager() {
         return subscriptionGroupManager;
-    }
-
-    public void setSubscriptionGroupManager(SubscriptionGroupManager subscriptionGroupManager) {
-        this.subscriptionGroupManager = subscriptionGroupManager;
     }
 
     public ClientConfig getNettyClientConfig() {
@@ -237,31 +245,23 @@ public class SnodeController {
         return enodeService;
     }
 
-    public void setEnodeService(EnodeService enodeService) {
-        this.enodeService = enodeService;
-    }
-
     public NnodeService getNnodeService() {
         return nnodeService;
-    }
-
-    public void setNnodeService(NnodeService nnodeService) {
-        this.nnodeService = nnodeService;
     }
 
     public RemotingClient getRemotingClient() {
         return remotingClient;
     }
 
-    public void setRemotingClient(RemotingClient remotingClient) {
-        this.remotingClient = remotingClient;
-    }
-
     public ConsumerOffsetManager getConsumerOffsetManager() {
         return consumerOffsetManager;
     }
 
-    public void setConsumerOffsetManager(ConsumerOffsetManager consumerOffsetManager) {
-        this.consumerOffsetManager = consumerOffsetManager;
+    public InterceptorGroup getConsumeMessageInterceptorGroup() {
+        return consumeMessageInterceptorGroup;
+    }
+
+    public InterceptorGroup getSendMessageInterceptorGroup() {
+        return sendMessageInterceptorGroup;
     }
 }

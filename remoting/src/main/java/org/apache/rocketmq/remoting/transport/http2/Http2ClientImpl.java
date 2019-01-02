@@ -267,15 +267,6 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
     }
 
     @Override
-    public boolean isChannelWritable(String addr) {
-        ChannelWrapper cw = this.channelTables.get(addr);
-        if (cw != null && cw.isOK()) {
-            return cw.isWritable();
-        }
-        return true;
-    }
-
-    @Override
     public List<String> getNameServerAddressList() {
         return this.namesrvAddrList.get();
     }
