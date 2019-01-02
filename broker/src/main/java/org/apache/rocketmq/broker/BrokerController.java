@@ -492,7 +492,7 @@ public class BrokerController {
     }
 
     private void initialAcl() {
-        if (!this.brokerConfig.isEnableAcl()) {
+        if (!this.brokerConfig.isAclEnable()) {
             log.info("The broker dose not enable acl");
             return;
         }
