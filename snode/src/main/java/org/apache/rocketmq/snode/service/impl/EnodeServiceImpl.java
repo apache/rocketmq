@@ -47,6 +47,7 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.serialize.RemotingSerializable;
@@ -81,8 +82,7 @@ public class EnodeServiceImpl implements EnodeService {
     }
 
     @Override
-    public CompletableFuture<RemotingCommand> pullMessage(final ChannelHandlerContext context,
-        RemotingCommand request) {
+    public CompletableFuture<RemotingCommand> pullMessage(RemotingCommand request) {
 
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         try {
@@ -106,7 +106,7 @@ public class EnodeServiceImpl implements EnodeService {
                 }
             });
         } catch (Exception ex) {
-            log.error("pull message async error:", ex);
+            log.error("Pull message async error:", ex);
             future.completeExceptionally(ex);
         }
         return future;

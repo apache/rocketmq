@@ -102,6 +102,10 @@ public class SnodeStartup {
                 in.close();
             }
         }
+        if (null == snodeConfig.getRocketmqHome()) {
+            System.out.printf("Please set the %s variable in your environment to match the location of the RocketMQ installation", MixAll.ROCKETMQ_HOME_ENV);
+            System.exit(-2);
+        }
 
         LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
         JoranConfigurator configurator = new JoranConfigurator();
@@ -135,7 +139,7 @@ public class SnodeStartup {
     }
 
     private static Options buildCommandlineOptions(final Options options) {
-        Option opt = new Option("c", "configFile", true, "Broker config properties file");
+        Option opt = new Option("c", "configFile", true, "SNode config properties file");
         opt.setRequired(false);
         options.addOption(opt);
         return options;

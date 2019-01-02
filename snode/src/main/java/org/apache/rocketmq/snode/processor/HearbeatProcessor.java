@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.snode.processor;
 
-import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -29,11 +28,8 @@ import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
-import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
-import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.apache.rocketmq.remoting.RequestProcessor;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.client.ClientChannelInfo;
@@ -49,23 +45,21 @@ public class HearbeatProcessor implements RequestProcessor {
     @Override
     public RemotingCommand processRequest(RemotingChannel remotingChannel,
         RemotingCommand request) throws Exception {
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = (NettyChannelHandlerContextImpl)remotingChannel;
-        ChannelHandlerContext ctx = nettyChannelHandlerContext.getChannelHandlerContext();
         switch (request.getCode()) {
             case RequestCode.HEART_BEAT:
-                return heartbeat(ctx, request);
+                return heartbeat(remotingChannel, request);
             case RequestCode.UNREGISTER_CLIENT:
-                return unregister(ctx, request);
+                return unregister(remotingChannel, request);
             default:
                 break;
         }
         return null;
     }
 
-    private RemotingCommand heartbeat(ChannelHandlerContext ctx, RemotingCommand request) {
+    private RemotingCommand heartbeat(RemotingChannel remotingChannel, RemotingCommand request) {
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
-            new NettyChannelImpl(ctx.channel()),
+            remotingChannel,
             heartbeatData.getClientID(),
             request.getLanguage(),
             request.getVersion()
@@ -100,7 +94,7 @@ public class HearbeatProcessor implements RequestProcessor {
                 if (changed) {
                     log.info("registerConsumer info changed {} {}",
                         data.toString(),
-                        RemotingHelper.parseChannelRemoteAddr(ctx.channel())
+                        RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress())
                     );
                 }
             }
@@ -111,14 +105,14 @@ public class HearbeatProcessor implements RequestProcessor {
         return response;
     }
 
-    private RemotingCommand unregister(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
+    private RemotingCommand unregister(RemotingChannel remotingChannel, RemotingCommand request) throws Exception {
         final RemotingCommand response =
             RemotingCommand.createResponseCommand(UnregisterClientResponseHeader.class);
         final UnregisterClientRequestHeader requestHeader =
             (UnregisterClientRequestHeader) request.decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
 
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
-            new NettyChannelImpl(ctx.channel()),
+            remotingChannel,
             requestHeader.getClientID(),
             request.getLanguage(),
             request.getVersion());

@@ -48,7 +48,5 @@ public interface RemotingServer extends RemotingService {
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException,
         RemotingSendRequestException;
 
-    RemotingServer init(ServerConfig nettyServerConfig, ChannelEventListener channelEventListener);
-
-    void sendResponse(final RemotingChannel remotingChannel, RemotingCommand remotingCommand);
+    RemotingServer init(ServerConfig serverConfig, ChannelEventListener channelEventListener);
 }

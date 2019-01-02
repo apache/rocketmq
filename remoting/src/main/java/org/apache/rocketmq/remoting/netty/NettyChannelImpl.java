@@ -71,8 +71,24 @@ public class NettyChannelImpl implements RemotingChannel {
     }
 
     @Override
-    public void reply(final RemotingCommand command) {
-        channel.writeAndFlush(command);
+    public void reply(final RemotingCommand response) {
+        if (response != null) {
+            response.markResponseType();
+            try {
+                channel.writeAndFlush(response).addListener(new ChannelFutureListener() {
+                    @Override
+                    public void operationComplete(ChannelFuture future) {
+                        if (!future.isSuccess()) {
+                            log.error("ProcessRequestWrapper response to {} failed",
+                                future.channel().remoteAddress(), future.cause());
+                        }
+                    }
+                });
+            } catch (Throwable e) {
+                log.error("ProcessRequestWrapper process request over, but response failed", e);
+                log.error(response.toString());
+            }
+        }
     }
 
     public io.netty.channel.Channel getChannel() {

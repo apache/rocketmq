@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.snode.processor;
 
-import io.netty.channel.ChannelHandlerContext;
 import java.util.List;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
@@ -34,13 +33,12 @@ import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHe
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
-import org.apache.rocketmq.remoting.RequestProcessor;
-import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.client.ConsumerGroupInfo;
@@ -57,23 +55,20 @@ public class ConsumerManageProcessor implements RequestProcessor {
     @Override
     public RemotingCommand processRequest(RemotingChannel remotingChannel,
         RemotingCommand request) throws InterruptedException, RemotingTimeoutException,
-        RemotingSendRequestException, RemotingConnectException, RemotingCommandException  {
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = (NettyChannelHandlerContextImpl)remotingChannel;
-        ChannelHandlerContext ctx = nettyChannelHandlerContext.getChannelHandlerContext();
-
+        RemotingSendRequestException, RemotingConnectException, RemotingCommandException {
         switch (request.getCode()) {
             case RequestCode.GET_CONSUMER_LIST_BY_GROUP:
-                return this.getConsumerListByGroup(ctx, request);
+                return this.getConsumerListByGroup(remotingChannel, request);
             case RequestCode.UPDATE_CONSUMER_OFFSET:
-                return this.updateConsumerOffset(ctx, request);
+                return this.updateConsumerOffset(remotingChannel, request);
             case RequestCode.QUERY_CONSUMER_OFFSET:
-                return this.queryConsumerOffset(ctx, request);
+                return this.queryConsumerOffset(remotingChannel, request);
             case RequestCode.SEARCH_OFFSET_BY_TIMESTAMP:
-                return searchOffsetByTimestamp(ctx, request);
+                return searchOffsetByTimestamp(remotingChannel, request);
             case RequestCode.GET_MAX_OFFSET:
-                return getMaxOffset(ctx, request);
+                return getMaxOffset(remotingChannel, request);
             case RequestCode.GET_MIN_OFFSET:
-                return getMinOffset(ctx, request);
+                return getMinOffset(remotingChannel, request);
             default:
                 break;
         }
@@ -85,7 +80,7 @@ public class ConsumerManageProcessor implements RequestProcessor {
         return false;
     }
 
-    public RemotingCommand searchOffsetByTimestamp(ChannelHandlerContext ctx,
+    public RemotingCommand searchOffsetByTimestamp(RemotingChannel remotingChannel,
         RemotingCommand request) throws RemotingCommandException {
         final SearchOffsetRequestHeader requestHeader =
             (SearchOffsetRequestHeader) request
@@ -98,7 +93,7 @@ public class ConsumerManageProcessor implements RequestProcessor {
         return null;
     }
 
-    public RemotingCommand getMinOffset(ChannelHandlerContext ctx,
+    public RemotingCommand getMinOffset(RemotingChannel remotingChannel,
         RemotingCommand request) throws RemotingCommandException {
         final GetMinOffsetRequestHeader requestHeader =
             (GetMinOffsetRequestHeader) request
@@ -111,7 +106,7 @@ public class ConsumerManageProcessor implements RequestProcessor {
         return null;
     }
 
-    public RemotingCommand getMaxOffset(ChannelHandlerContext ctx,
+    public RemotingCommand getMaxOffset(RemotingChannel remotingChannel,
         RemotingCommand request) throws RemotingCommandException {
         final GetMaxOffsetRequestHeader requestHeader =
             (GetMaxOffsetRequestHeader) request
@@ -124,7 +119,7 @@ public class ConsumerManageProcessor implements RequestProcessor {
         return null;
     }
 
-    public RemotingCommand getConsumerListByGroup(ChannelHandlerContext ctx, RemotingCommand request)
+    public RemotingCommand getConsumerListByGroup(RemotingChannel remotingChannel, RemotingCommand request)
         throws RemotingCommandException {
         final RemotingCommand response =
             RemotingCommand.createResponseCommand(GetConsumerListByGroupResponseHeader.class);
@@ -146,11 +141,11 @@ public class ConsumerManageProcessor implements RequestProcessor {
                 return response;
             } else {
                 log.warn("GetAllClientId failed, {} {}", requestHeader.getConsumerGroup(),
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                    RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()));
             }
         } else {
             log.warn("GetConsumerGroupInfo failed, {} {}", requestHeader.getConsumerGroup(),
-                RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()));
         }
 
         response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -158,21 +153,21 @@ public class ConsumerManageProcessor implements RequestProcessor {
         return response;
     }
 
-    private RemotingCommand updateConsumerOffset(ChannelHandlerContext ctx, RemotingCommand request)
+    private RemotingCommand updateConsumerOffset(RemotingChannel remotingChannel, RemotingCommand request)
         throws RemotingCommandException {
         final RemotingCommand response =
             RemotingCommand.createResponseCommand(UpdateConsumerOffsetResponseHeader.class);
         final UpdateConsumerOffsetRequestHeader requestHeader =
             (UpdateConsumerOffsetRequestHeader) request
                 .decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
-        this.snodeController.getConsumerOffsetManager().commitOffset(requestHeader.getEnodeName(), RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getConsumerGroup(),
+        this.snodeController.getConsumerOffsetManager().commitOffset(requestHeader.getEnodeName(), RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()), requestHeader.getConsumerGroup(),
             requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
 
-    private RemotingCommand queryConsumerOffset(ChannelHandlerContext ctx, RemotingCommand request)
+    private RemotingCommand queryConsumerOffset(RemotingChannel remotingChannel, RemotingCommand request)
         throws InterruptedException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException, RemotingCommandException {
         final RemotingCommand response =

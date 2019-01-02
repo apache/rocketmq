@@ -15,7 +15,6 @@ package org.apache.rocketmq.snode.processor;/*
  * limitations under the License.
  */
 
-import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -39,7 +38,7 @@ public class SendMessageProcessor implements RequestProcessor {
         CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().sendMessage(request);
         responseFuture.whenComplete((data, ex) -> {
             if (ex == null) {
-                snodeController.getSnodeServer().sendResponse(remotingChannel, data);
+                remotingChannel.reply(data);
             } else {
                 log.error("Send Message error: {}", ex);
             }

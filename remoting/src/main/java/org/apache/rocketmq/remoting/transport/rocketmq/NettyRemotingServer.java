@@ -350,27 +350,4 @@ public class NettyRemotingServer extends NettyRemotingServerAbstract implements 
     public void push(String addr, String sessionId, RemotingCommand remotingCommand) {
 
     }
-
-    @Override
-    public void sendResponse(RemotingChannel remotingChannel, RemotingCommand response) {
-        NettyChannelHandlerContextImpl channelHandlerContext = (NettyChannelHandlerContextImpl) remotingChannel;
-        ChannelHandlerContext ctx = channelHandlerContext.getChannelHandlerContext();
-        if (response != null) {
-            response.markResponseType();
-            try {
-                ctx.writeAndFlush(response).addListener(new ChannelFutureListener() {
-                    @Override
-                    public void operationComplete(ChannelFuture future) throws Exception {
-                        if (!future.isSuccess()) {
-                            log.error("processRequestWrapper response to {} failed",
-                                future.channel().remoteAddress(), future.cause());
-                        }
-                    }
-                });
-            } catch (Throwable e) {
-                log.error("processRequestWrapper process request over, but response failed", e);
-                log.error(response.toString());
-            }
-        }
-    }
 }

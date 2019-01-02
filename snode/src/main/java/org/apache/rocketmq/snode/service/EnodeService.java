@@ -15,7 +15,6 @@ package org.apache.rocketmq.snode.service;/*
  * limitations under the License.
  */
 
-import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.TopicConfig;
@@ -32,8 +31,7 @@ public interface EnodeService {
 
     CompletableFuture<RemotingCommand> sendMessage(final RemotingCommand request);
 
-    CompletableFuture<RemotingCommand> pullMessage(final ChannelHandlerContext context,
-        final RemotingCommand remotingCommand);
+    CompletableFuture<RemotingCommand> pullMessage(final RemotingCommand request);
 
     void notifyConsumerIdsChanged(final RemotingChannel channel, final String consumerGroup);
 

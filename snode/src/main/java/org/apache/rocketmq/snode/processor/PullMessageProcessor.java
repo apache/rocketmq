@@ -15,7 +15,6 @@ package org.apache.rocketmq.snode.processor;/*
  * limitations under the License.
  */
 
-import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
@@ -30,10 +29,6 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.exception.RemotingConnectException;
-import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
-import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
-import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.client.ConsumerGroupInfo;
@@ -50,9 +45,6 @@ public class PullMessageProcessor implements RequestProcessor {
     @Override
     public RemotingCommand processRequest(RemotingChannel remotingChannel,
         RemotingCommand request) throws RemotingCommandException {
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = (NettyChannelHandlerContextImpl) remotingChannel;
-        ChannelHandlerContext ctx = nettyChannelHandlerContext.getChannelHandlerContext();
-
         RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
 
         final PullMessageRequestHeader requestHeader =
@@ -97,10 +89,10 @@ public class PullMessageProcessor implements RequestProcessor {
             return response;
         }
 
-        CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().pullMessage(ctx, request);
+        CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().pullMessage(request);
         responseFuture.whenComplete((data, ex) -> {
             if (ex == null) {
-                this.snodeController.getSnodeServer().sendResponse(remotingChannel, data);
+                remotingChannel.reply(data);
             } else {
                 log.error("Pull message error: {}", ex);
             }
