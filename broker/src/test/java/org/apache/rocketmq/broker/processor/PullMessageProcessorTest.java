@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.processor;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -69,6 +70,8 @@ public class PullMessageProcessorTest {
     private BrokerController brokerController = new BrokerController(new BrokerConfig(), new ServerConfig(), new ClientConfig(), new MessageStoreConfig());
     @Mock
     private ChannelHandlerContext handlerContext;
+    @Mock
+    private Channel channel;
     @Mock
     private MessageStore messageStore;
     private ClientChannelInfo clientChannelInfo;

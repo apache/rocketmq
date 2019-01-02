@@ -1,4 +1,4 @@
-package org.apache.rocketmq.snode.service;/*
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,7 +14,7 @@ package org.apache.rocketmq.snode.service;/*
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+package org.apache.rocketmq.snode.service;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.TopicConfig;
