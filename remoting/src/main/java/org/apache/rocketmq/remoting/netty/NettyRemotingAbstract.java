@@ -17,15 +17,12 @@
 package org.apache.rocketmq.remoting.netty;
 
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
-import io.netty.handler.timeout.IdleState;
-import io.netty.handler.timeout.IdleStateEvent;
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -42,11 +39,11 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
+import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.common.Pair;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
 import org.apache.rocketmq.remoting.common.ServiceThread;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -85,8 +82,8 @@ public abstract class NettyRemotingAbstract {
      * This container holds all processors per request code, aka, for each incoming request, we may look up the
      * responding processor in this map to handle the request.
      */
-    protected final HashMap<Integer/* request code */, Pair<NettyRequestProcessor, ExecutorService>> processorTable =
-        new HashMap<Integer, Pair<NettyRequestProcessor, ExecutorService>>(64);
+    protected final HashMap<Integer/* request code */, Pair<RequestProcessor, ExecutorService>> processorTable =
+        new HashMap<Integer, Pair<RequestProcessor, ExecutorService>>(64);
 
     /**
      * Executor to feed netty events to user defined {@link ChannelEventListener}.
@@ -97,7 +94,7 @@ public abstract class NettyRemotingAbstract {
      * The default request processor to use in case there is no exact match in {@link #processorTable} per request
      * code.
      */
-    protected Pair<NettyRequestProcessor, ExecutorService> defaultRequestProcessor;
+    protected Pair<RequestProcessor, ExecutorService> defaultRequestProcessor;
 
     /**
      * Used for async execute task for aysncInvokeMethod
@@ -170,10 +167,11 @@ public abstract class NettyRemotingAbstract {
      */
     public void processMessageReceived(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
         final RemotingCommand cmd = msg;
+        final RemotingChannel remotingChannel = new NettyChannelHandlerContextImpl(ctx);
         if (cmd != null) {
             switch (cmd.getType()) {
                 case REQUEST_COMMAND:
-                    processRequestCommand(ctx, cmd);
+                    processRequestCommand(remotingChannel, cmd);
                     break;
                 case RESPONSE_COMMAND:
                     processResponseCommand(ctx, cmd);
@@ -187,12 +185,14 @@ public abstract class NettyRemotingAbstract {
     /**
      * Process incoming request command issued by remote peer.
      *
-     * @param ctx channel handler context.
+     * @param remotingChannel channel handler context.
      * @param cmd request command.
      */
-    public void processRequestCommand(final ChannelHandlerContext ctx, final RemotingCommand cmd) {
-        final Pair<NettyRequestProcessor, ExecutorService> matched = this.processorTable.get(cmd.getCode());
-        final Pair<NettyRequestProcessor, ExecutorService> pair = null == matched ? this.defaultRequestProcessor : matched;
+    public void processRequestCommand(final RemotingChannel remotingChannel, final RemotingCommand cmd) {
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = (NettyChannelHandlerContextImpl) remotingChannel;
+        final ChannelHandlerContext ctx = nettyChannelHandlerContext.getChannelHandlerContext();
+        final Pair<RequestProcessor, ExecutorService> matched = this.processorTable.get(cmd.getCode());
+        final Pair<RequestProcessor, ExecutorService> pair = null == matched ? this.defaultRequestProcessor : matched;
         final int opaque = cmd.getOpaque();
 
         if (pair != null) {
@@ -205,7 +205,7 @@ public abstract class NettyRemotingAbstract {
                             rpcHook.doBeforeRequest(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd);
                         }
 
-                        final RemotingCommand response = pair.getObject1().processRequest(ctx, cmd);
+                        final RemotingCommand response = pair.getObject1().processRequest(remotingChannel, cmd);
                         if (rpcHook != null) {
                             rpcHook.doAfterResponse(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, response);
                         }
@@ -620,16 +620,16 @@ public abstract class NettyRemotingAbstract {
                     if (event != null && listener != null) {
                         switch (event.getType()) {
                             case IDLE:
-                                listener.onChannelIdle(event.getRemoteAddr(), event.getChannel());
+                                listener.onChannelIdle(event.getRemoteAddr(), new NettyChannelImpl(event.getChannel()));
                                 break;
                             case CLOSE:
-                                listener.onChannelClose(event.getRemoteAddr(), event.getChannel());
+                                listener.onChannelClose(event.getRemoteAddr(), new NettyChannelImpl(event.getChannel()));
                                 break;
                             case CONNECT:
-                                listener.onChannelConnect(event.getRemoteAddr(), event.getChannel());
+                                listener.onChannelConnect(event.getRemoteAddr(), new NettyChannelImpl(event.getChannel()));
                                 break;
                             case EXCEPTION:
-                                listener.onChannelException(event.getRemoteAddr(), event.getChannel());
+                                listener.onChannelException(event.getRemoteAddr(), new NettyChannelImpl(event.getChannel()));
                                 break;
                             default:
                                 break;

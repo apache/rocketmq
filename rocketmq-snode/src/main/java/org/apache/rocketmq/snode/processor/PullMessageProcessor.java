@@ -27,12 +27,18 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.RequestProcessor;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.client.ConsumerGroupInfo;
 
-public class PullMessageProcessor implements NettyRequestProcessor {
+public class PullMessageProcessor implements RequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
 
     private final SnodeController snodeController;
@@ -42,7 +48,11 @@ public class PullMessageProcessor implements NettyRequestProcessor {
     }
 
     @Override
-    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
+    public RemotingCommand processRequest(RemotingChannel remotingChannel,
+        RemotingCommand request) throws RemotingCommandException {
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = (NettyChannelHandlerContextImpl) remotingChannel;
+        ChannelHandlerContext ctx = nettyChannelHandlerContext.getChannelHandlerContext();
+
         RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
 
         final PullMessageRequestHeader requestHeader =
@@ -90,7 +100,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().pullMessage(ctx, request);
         responseFuture.whenComplete((data, ex) -> {
             if (ex == null) {
-                this.snodeController.getSnodeServer().sendResponse(ctx, data);
+                this.snodeController.getSnodeServer().sendResponse(remotingChannel, data);
             } else {
                 log.error("Pull message error: {}", ex);
             }

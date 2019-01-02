@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.remoting;
 
-import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
@@ -26,9 +25,6 @@ import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.serialize.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -46,12 +42,12 @@ public class RemotingServerTest {
     private static RemotingClient remotingClient;
 
     public static RemotingServer createRemotingServer() throws InterruptedException {
-        NettyServerConfig config = new NettyServerConfig();
+        ServerConfig config = new ServerConfig();
         RemotingServer remotingServer = new NettyRemotingServer(config);
-        remotingServer.registerProcessor(0, new NettyRequestProcessor() {
+        remotingServer.registerProcessor(0, new RequestProcessor() {
             @Override
-            public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
-                request.setRemark("Hi " + ctx.channel().remoteAddress());
+            public RemotingCommand processRequest(RemotingChannel ctx, RemotingCommand request) {
+                request.setRemark("Hi " + ctx.remoteAddress());
                 return request;
             }
 
@@ -67,10 +63,10 @@ public class RemotingServerTest {
     }
 
     public static RemotingClient createRemotingClient() {
-        return createRemotingClient(new NettyClientConfig());
+        return createRemotingClient(new ClientConfig());
     }
 
-    public static RemotingClient createRemotingClient(NettyClientConfig nettyClientConfig) {
+    public static RemotingClient createRemotingClient(ClientConfig nettyClientConfig) {
         RemotingClient client = new NettyRemotingClient(nettyClientConfig);
         client.start();
         return client;

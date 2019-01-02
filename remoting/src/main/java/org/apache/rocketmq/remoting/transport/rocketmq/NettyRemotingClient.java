@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.security.cert.CertificateException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import javax.xml.ws.AsyncHandler;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
@@ -46,8 +45,8 @@ import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.ClientConfig;
+import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.netty.TlsHelper;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.NettyRemotingClientAbstract;
@@ -56,7 +55,7 @@ import org.apache.rocketmq.remoting.util.ThreadUtils;
 public class NettyRemotingClient extends NettyRemotingClientAbstract implements RemotingClient {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
-    private NettyClientConfig nettyClientConfig;
+    private ClientConfig nettyClientConfig;
     private Bootstrap bootstrap = new Bootstrap();
     private EventLoopGroup eventLoopGroupWorker;
 
@@ -75,18 +74,18 @@ public class NettyRemotingClient extends NettyRemotingClientAbstract implements 
         super();
     }
 
-    public NettyRemotingClient(final NettyClientConfig nettyClientConfig) {
+    public NettyRemotingClient(final ClientConfig nettyClientConfig) {
         this(nettyClientConfig, null);
     }
 
-    public NettyRemotingClient(final NettyClientConfig nettyClientConfig,
+    public NettyRemotingClient(final ClientConfig nettyClientConfig,
         final ChannelEventListener channelEventListener) {
         super(nettyClientConfig.getClientOnewaySemaphoreValue(), nettyClientConfig.getClientAsyncSemaphoreValue());
         init(nettyClientConfig, channelEventListener);
     }
 
     @Override
-    public RemotingClient init(NettyClientConfig nettyClientConfig, ChannelEventListener channelEventListener) {
+    public RemotingClient init(ClientConfig nettyClientConfig, ChannelEventListener channelEventListener) {
         this.nettyClientConfig = nettyClientConfig;
         this.channelEventListener = channelEventListener;
         this.eventLoopGroupWorker = new NioEventLoopGroup(nettyClientConfig.getClientWorkerThreads(), ThreadUtils.newGenericThreadFactory("NettyClientEpollIoThreads",
@@ -263,13 +262,13 @@ public class NettyRemotingClient extends NettyRemotingClientAbstract implements 
     }
 
     @Override
-    public void registerProcessor(int requestCode, NettyRequestProcessor processor, ExecutorService executor) {
+    public void registerProcessor(int requestCode, RequestProcessor processor, ExecutorService executor) {
         ExecutorService executorThis = executor;
         if (null == executor) {
             executorThis = this.publicExecutor;
         }
 
-        Pair<NettyRequestProcessor, ExecutorService> pair = new Pair<NettyRequestProcessor, ExecutorService>(processor, executorThis);
+        Pair<RequestProcessor, ExecutorService> pair = new Pair<RequestProcessor, ExecutorService>(processor, executorThis);
         this.processorTable.put(requestCode, pair);
     }
 

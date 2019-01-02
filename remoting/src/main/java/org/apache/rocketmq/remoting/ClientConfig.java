@@ -14,9 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.netty;
+package org.apache.rocketmq.remoting;
 
-public class NettyClientConfig {
+import org.apache.rocketmq.remoting.netty.NettySystemConfig;
+
+public class ClientConfig {
     /**
      * Worker thread number
      */

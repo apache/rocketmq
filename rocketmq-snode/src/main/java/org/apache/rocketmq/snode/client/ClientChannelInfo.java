@@ -16,28 +16,28 @@
  */
 package org.apache.rocketmq.snode.client;
 
-import io.netty.channel.Channel;
+import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.serialize.LanguageCode;
 
 public class ClientChannelInfo {
-    private final Channel channel;
+    private final RemotingChannel channel;
     private final String clientId;
     private final LanguageCode language;
     private final int version;
     private volatile long lastUpdateTimestamp = System.currentTimeMillis();
 
-    public ClientChannelInfo(Channel channel) {
+    public ClientChannelInfo(RemotingChannel channel) {
         this(channel, null, null, 0);
     }
 
-    public ClientChannelInfo(Channel channel, String clientId, LanguageCode language, int version) {
+    public ClientChannelInfo(RemotingChannel channel, String clientId, LanguageCode language, int version) {
         this.channel = channel;
         this.clientId = clientId;
         this.language = language;
         this.version = version;
     }
 
-    public Channel getChannel() {
+    public RemotingChannel getChannel() {
         return channel;
     }
 

@@ -17,7 +17,6 @@
 package org.apache.rocketmq.client.impl;
 
 import java.lang.reflect.Field;
-import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.hook.SendMessageContext;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
@@ -34,7 +33,7 @@ import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.Before;
@@ -56,7 +55,7 @@ import static org.mockito.Mockito.doThrow;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MQClientAPIImplTest {
-    private MQClientAPIImpl mqClientAPI = new MQClientAPIImpl(new NettyClientConfig(), null, null, new ClientConfig());
+    private MQClientAPIImpl mqClientAPI = new MQClientAPIImpl(new ClientConfig(), null, null, new org.apache.rocketmq.client.ClientConfig());
     @Mock
     private RemotingClient remotingClient;
     @Mock

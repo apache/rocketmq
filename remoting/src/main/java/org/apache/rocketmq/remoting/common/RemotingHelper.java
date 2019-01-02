@@ -63,6 +63,10 @@ public class RemotingHelper {
             return "";
         }
         SocketAddress remote = channel.remoteAddress();
+        return parseChannelRemoteAddr(remote);
+    }
+
+    public static String parseChannelRemoteAddr(final SocketAddress remote) {
         final String addr = remote != null ? remote.toString() : "";
 
         if (addr.length() > 0) {

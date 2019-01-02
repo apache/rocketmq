@@ -34,7 +34,7 @@ import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.RemotingServerFactory;
 import org.apache.rocketmq.remoting.common.TlsMode;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.remoting.transport.rocketmq.NettyRemotingServer;
 import org.apache.rocketmq.srvutil.FileWatchService;
@@ -44,7 +44,7 @@ public class NamesrvController {
 
     private final NamesrvConfig namesrvConfig;
 
-    private final NettyServerConfig nettyServerConfig;
+    private final ServerConfig nettyServerConfig;
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "NSScheduledThread"));
@@ -60,7 +60,7 @@ public class NamesrvController {
     private Configuration configuration;
     private FileWatchService fileWatchService;
 
-    public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
+    public NamesrvController(NamesrvConfig namesrvConfig, ServerConfig nettyServerConfig) {
         this.namesrvConfig = namesrvConfig;
         this.nettyServerConfig = nettyServerConfig;
         this.kvConfigManager = new KVConfigManager(this);
@@ -178,7 +178,7 @@ public class NamesrvController {
         return namesrvConfig;
     }
 
-    public NettyServerConfig getNettyServerConfig() {
+    public ServerConfig getNettyServerConfig() {
         return nettyServerConfig;
     }
 

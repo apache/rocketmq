@@ -40,7 +40,8 @@ import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.assertj.core.util.Maps;
 import org.junit.Before;
@@ -57,7 +58,7 @@ public class DefaultRequestProcessorTest {
 
     private NamesrvConfig namesrvConfig;
 
-    private NettyServerConfig nettyServerConfig;
+    private ServerConfig nettyServerConfig;
 
     private RouteInfoManager routeInfoManager;
 
@@ -66,7 +67,7 @@ public class DefaultRequestProcessorTest {
     @Before
     public void init() throws Exception {
         namesrvConfig = new NamesrvConfig();
-        nettyServerConfig = new NettyServerConfig();
+        nettyServerConfig = new ServerConfig();
         routeInfoManager = new RouteInfoManager();
 
         namesrvController = new NamesrvController(namesrvConfig, nettyServerConfig);
@@ -166,8 +167,8 @@ public class DefaultRequestProcessorTest {
 
         ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
         when(ctx.channel()).thenReturn(null);
-
-        RemotingCommand response = defaultRequestProcessor.processRequest(ctx, request);
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(ctx);
+        RemotingCommand response = defaultRequestProcessor.processRequest(nettyChannelHandlerContext, request);
 
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(response.getRemark()).isNull();
@@ -195,7 +196,8 @@ public class DefaultRequestProcessorTest {
         ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
         when(ctx.channel()).thenReturn(null);
 
-        RemotingCommand response = defaultRequestProcessor.processRequest(ctx, request);
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(ctx);
+        RemotingCommand response = defaultRequestProcessor.processRequest(nettyChannelHandlerContext, request);
 
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(response.getRemark()).isNull();
@@ -219,11 +221,12 @@ public class DefaultRequestProcessorTest {
 
         //Register broker
         RemotingCommand regRequest = genSampleRegisterCmd(true);
-        defaultRequestProcessor.processRequest(ctx, regRequest);
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(ctx);
+        RemotingCommand response = defaultRequestProcessor.processRequest(nettyChannelHandlerContext, regRequest);
 
         //Unregister broker
         RemotingCommand unregRequest = genSampleRegisterCmd(false);
-        RemotingCommand unregResponse = defaultRequestProcessor.processRequest(ctx, unregRequest);
+        RemotingCommand unregResponse = defaultRequestProcessor.processRequest(nettyChannelHandlerContext, unregRequest);
 
         assertThat(unregResponse.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(unregResponse.getRemark()).isNull();

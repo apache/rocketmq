@@ -15,12 +15,12 @@ package org.apache.rocketmq.snode.service;/*
  * limitations under the License.
  */
 
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -35,7 +35,7 @@ public interface EnodeService {
     CompletableFuture<RemotingCommand> pullMessage(final ChannelHandlerContext context,
         final RemotingCommand remotingCommand);
 
-    void notifyConsumerIdsChanged(final Channel channel, final String consumerGroup);
+    void notifyConsumerIdsChanged(final RemotingChannel channel, final String consumerGroup);
 
     RemotingCommand creatTopic(String enodeName, TopicConfig topicConfig)throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException ;
 

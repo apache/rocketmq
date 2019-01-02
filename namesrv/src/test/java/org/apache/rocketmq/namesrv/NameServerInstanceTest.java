@@ -17,7 +17,7 @@
 package org.apache.rocketmq.namesrv;
 
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.junit.After;
 import org.junit.Before;
 
@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class NameServerInstanceTest {
     protected NamesrvController nameSrvController = null;
-    protected NettyServerConfig nettyServerConfig = new NettyServerConfig();
+    protected ServerConfig nettyServerConfig = new ServerConfig();
     protected NamesrvConfig namesrvConfig = new NamesrvConfig();
 
     @Before

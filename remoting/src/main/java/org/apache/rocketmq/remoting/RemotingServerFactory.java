@@ -22,10 +22,10 @@ public class RemotingServerFactory {
         protocolPathMap = ServiceProvider.loadPath(SERVER_LOCATION);
     }
 
-
     public static RemotingServer createInstance(String protocol) {
         return ServiceProvider.createInstance(protocolPathMap.get(protocol), RemotingClient.class);
     }
+
     public static RemotingServer createInstance() {
         return ServiceProvider.createInstance(protocolPathMap.get(RemotingUtil.DEFAULT_PROTOCOL), RemotingServer.class);
     }

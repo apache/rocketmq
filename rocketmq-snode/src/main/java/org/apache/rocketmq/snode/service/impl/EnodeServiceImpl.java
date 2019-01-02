@@ -42,6 +42,7 @@ import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.InvokeCallback;
+import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -136,7 +137,7 @@ public class EnodeServiceImpl implements EnodeService {
 
     @Override
     public void notifyConsumerIdsChanged(
-        final Channel channel,
+        final RemotingChannel channel,
         final String consumerGroup) {
         if (null == consumerGroup) {
             log.error("NotifyConsumerIdsChanged consumerGroup is null");

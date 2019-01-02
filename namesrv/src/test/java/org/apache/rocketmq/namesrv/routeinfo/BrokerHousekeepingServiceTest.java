@@ -19,7 +19,7 @@ package org.apache.rocketmq.namesrv.routeinfo;
 
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.namesrv.NamesrvController;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -31,7 +31,7 @@ public class BrokerHousekeepingServiceTest {
     public static void setup() {
         NamesrvController namesrvController = new NamesrvController(
             new NamesrvConfig(),
-            new NettyServerConfig()
+            new ServerConfig()
         );
         brokerHousekeepingService = new BrokerHousekeepingService(namesrvController);
     }

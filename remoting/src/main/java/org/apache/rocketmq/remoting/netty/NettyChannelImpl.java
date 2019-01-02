@@ -18,12 +18,20 @@
 package org.apache.rocketmq.remoting.netty;
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import java.net.SocketAddress;
-import org.apache.rocketmq.remoting.api.channel.ChunkRegion;
-import org.apache.rocketmq.remoting.api.channel.RemotingChannel;
-import org.apache.rocketmq.remoting.api.command.RemotingCommand;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class NettyChannelImpl implements RemotingChannel {
+    public static final String ROCKETMQ_REMOTING = "RocketmqRemoting";
+
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(ROCKETMQ_REMOTING);
+
     private final io.netty.channel.Channel channel;
 
     public NettyChannelImpl(Channel channel) {
@@ -52,17 +60,19 @@ public class NettyChannelImpl implements RemotingChannel {
 
     @Override
     public void close() {
-        channel.close();
+        final String addrRemote = RemotingHelper.parseChannelRemoteAddr(channel);
+        channel.close().addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture future) throws Exception {
+                log.info("CloseChannel: close the connection to remote address[{}] result: {}", addrRemote,
+                    future.isSuccess());
+            }
+        });
     }
 
     @Override
     public void reply(final RemotingCommand command) {
         channel.writeAndFlush(command);
-    }
-
-    @Override
-    public void reply(final ChunkRegion fileRegion) {
-        channel.writeAndFlush(fileRegion);
     }
 
     public io.netty.channel.Channel getChannel() {

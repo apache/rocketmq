@@ -16,10 +16,8 @@
  */
 package org.apache.rocketmq.snode.client;
 
-import io.netty.channel.Channel;
-import java.util.Collection;
 import java.util.List;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.snode.SnodeController;
 
 //TODO Filter implementation
@@ -40,9 +38,9 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
                 if (args == null || args.length < 1) {
                     return;
                 }
-                List<Channel> channels = (List<Channel>) args[0];
+                List<RemotingChannel> channels = (List<RemotingChannel>) args[0];
                 if (channels != null && snodeController.getSnodeConfig().isNotifyConsumerIdsChangedEnable()) {
-                    for (Channel chl : channels) {
+                    for (RemotingChannel chl : channels) {
                         this.snodeController.getEnodeService().notifyConsumerIdsChanged(chl, group);
                     }
                 }

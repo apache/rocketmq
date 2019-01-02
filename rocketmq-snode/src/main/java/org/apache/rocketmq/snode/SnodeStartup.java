@@ -32,8 +32,8 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.TlsMode;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.ClientConfig;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.config.SnodeConfig;
@@ -81,8 +81,8 @@ public class SnodeStartup {
         }
 
         final SnodeConfig snodeConfig = new SnodeConfig();
-        final NettyServerConfig nettyServerConfig = new NettyServerConfig();
-        final NettyClientConfig nettyClientConfig = new NettyClientConfig();
+        final ServerConfig nettyServerConfig = new ServerConfig();
+        final ClientConfig nettyClientConfig = new ClientConfig();
 
         nettyServerConfig.setListenPort(snodeConfig.getListenPort());
 

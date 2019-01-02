@@ -30,8 +30,8 @@ import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.RemotingClientFactory;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.RemotingServerFactory;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.ClientConfig;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.snode.client.ClientHousekeepingService;
 import org.apache.rocketmq.snode.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.snode.client.ConsumerManager;
@@ -55,8 +55,8 @@ public class SnodeController {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
 
     private final SnodeConfig snodeConfig;
-    private final NettyServerConfig nettyServerConfig;
-    private final NettyClientConfig nettyClientConfig;
+    private final ServerConfig nettyServerConfig;
+    private final ClientConfig nettyClientConfig;
     private RemotingClient remotingClient;
     private RemotingServer snodeServer;
     private ExecutorService sendMessageExecutor;
@@ -80,8 +80,8 @@ public class SnodeController {
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "SnodeControllerScheduledThread"));
 
-    public SnodeController(NettyServerConfig nettyServerConfig,
-        NettyClientConfig nettyClientConfig,
+    public SnodeController(ServerConfig nettyServerConfig,
+        ClientConfig nettyClientConfig,
         SnodeConfig snodeConfig) {
         this.nettyClientConfig = nettyClientConfig;
         this.nettyServerConfig = nettyServerConfig;
@@ -159,7 +159,7 @@ public class SnodeController {
     }
 
     public boolean initialize() {
-        this.snodeServer = RemotingServerFactory.createInstance().init(this.nettyServerConfig, null);
+        this.snodeServer = RemotingServerFactory.createInstance().init(this.nettyServerConfig, this.clientHousekeepingService);
         this.registerProcessor();
         return true;
     }
@@ -229,7 +229,7 @@ public class SnodeController {
         this.subscriptionGroupManager = subscriptionGroupManager;
     }
 
-    public NettyClientConfig getNettyClientConfig() {
+    public ClientConfig getNettyClientConfig() {
         return nettyClientConfig;
     }
 

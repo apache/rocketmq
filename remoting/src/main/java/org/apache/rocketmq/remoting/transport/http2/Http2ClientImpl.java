@@ -34,17 +34,17 @@ import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.transport.rocketmq.NettyDecoder;
 import org.apache.rocketmq.remoting.transport.rocketmq.NettyEncoder;
-import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.NettyRemotingClientAbstract;
 import org.apache.rocketmq.remoting.util.ThreadUtils;
 
 public class Http2ClientImpl extends NettyRemotingClientAbstract implements RemotingClient {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
-    private NettyClientConfig nettyClientConfig;
+    private ClientConfig nettyClientConfig;
     private final Bootstrap bootstrap = new Bootstrap();
     private EventLoopGroup ioGroup;
     private ExecutorService publicExecutor;
@@ -53,7 +53,7 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
     private RPCHook rpcHook;
 
-    public Http2ClientImpl(final NettyClientConfig clientConfig,
+    public Http2ClientImpl(final ClientConfig clientConfig,
         final ChannelEventListener channelEventListener) {
         super(clientConfig.getClientOnewaySemaphoreValue(), clientConfig.getClientAsyncSemaphoreValue());
         init(clientConfig, channelEventListener);
@@ -64,7 +64,7 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
     }
 
     @Override
-    public RemotingClient init(NettyClientConfig clientConfig, ChannelEventListener channelEventListener) {
+    public RemotingClient init(ClientConfig clientConfig, ChannelEventListener channelEventListener) {
         this.nettyClientConfig = clientConfig;
         this.channelEventListener = channelEventListener;
         this.ioGroup = new NioEventLoopGroup(clientConfig.getClientWorkerThreads(), ThreadUtils.newGenericThreadFactory("NettyClientEpollIoThreads",
@@ -240,13 +240,13 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
     }
 
     @Override
-    public void registerProcessor(int requestCode, NettyRequestProcessor processor, ExecutorService executor) {
+    public void registerProcessor(int requestCode, RequestProcessor processor, ExecutorService executor) {
         ExecutorService executorThis = executor;
         if (null == executor) {
             executorThis = this.publicExecutor;
         }
 
-        Pair<NettyRequestProcessor, ExecutorService> pair = new Pair<NettyRequestProcessor, ExecutorService>(processor, executorThis);
+        Pair<RequestProcessor, ExecutorService> pair = new Pair<RequestProcessor, ExecutorService>(processor, executorThis);
         this.processorTable.put(requestCode, pair);
     }
 

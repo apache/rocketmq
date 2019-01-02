@@ -35,7 +35,7 @@ import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExtImpl;
@@ -60,7 +60,7 @@ public class ClusterTestRequestProcessorTest {
     public void init() throws NoSuchFieldException, IllegalAccessException, RemotingException, MQClientException, InterruptedException {
         NamesrvController namesrvController = new NamesrvController(
             new NamesrvConfig(),
-            new NettyServerConfig()
+            new ServerConfig()
         );
 
         clusterTestProcessor = new ClusterTestRequestProcessor(namesrvController, "default-producer");

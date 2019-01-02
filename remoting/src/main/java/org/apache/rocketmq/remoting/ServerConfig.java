@@ -14,9 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.netty;
+package org.apache.rocketmq.remoting;
 
-public class NettyServerConfig implements Cloneable {
+import org.apache.rocketmq.remoting.netty.NettySystemConfig;
+
+public class ServerConfig implements Cloneable {
     private int listenPort = 8888;
     private int serverWorkerThreads = 8;
     private int serverCallbackExecutorThreads = 8;
@@ -155,6 +157,6 @@ public class NettyServerConfig implements Cloneable {
 
     @Override
     public Object clone() throws CloneNotSupportedException {
-        return (NettyServerConfig) super.clone();
+        return (ServerConfig) super.clone();
     }
 }

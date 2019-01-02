@@ -2,9 +2,7 @@ package org.apache.rocketmq.remoting.transport.http2;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
@@ -35,6 +33,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.common.Pair;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -42,10 +41,11 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.netty.ChannelStatisticsHandler;
+import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.apache.rocketmq.remoting.transport.rocketmq.NettyDecoder;
 import org.apache.rocketmq.remoting.transport.rocketmq.NettyEncoder;
-import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.RequestProcessor;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.NettyRemotingServerAbstract;
 import org.apache.rocketmq.remoting.util.JvmUtils;
@@ -59,13 +59,13 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
     private EventLoopGroup ioGroup;
     private EventExecutorGroup workerGroup;
     private Class<? extends ServerSocketChannel> socketChannelClass;
-    private NettyServerConfig serverConfig;
+    private ServerConfig serverConfig;
     private ChannelEventListener channelEventListener;
     private ExecutorService publicExecutor;
     private int port;
     private RPCHook rpcHook;
 
-    public Http2ServerImpl(NettyServerConfig nettyServerConfig, ChannelEventListener channelEventListener) {
+    public Http2ServerImpl(ServerConfig nettyServerConfig, ChannelEventListener channelEventListener) {
         super(nettyServerConfig.getServerOnewaySemaphoreValue(), nettyServerConfig.getServerAsyncSemaphoreValue());
         init(nettyServerConfig, channelEventListener);
     }
@@ -75,7 +75,7 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
     }
 
     @Override
-    public RemotingServer init(NettyServerConfig nettyServerConfig, ChannelEventListener channelEventListener) {
+    public RemotingServer init(ServerConfig nettyServerConfig, ChannelEventListener channelEventListener) {
         super.init(nettyServerConfig.getServerOnewaySemaphoreValue(), nettyServerConfig.getServerAsyncSemaphoreValue());
         this.serverBootstrap = new ServerBootstrap();
         this.serverConfig = nettyServerConfig;
@@ -120,18 +120,18 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
     }
 
     @Override
-    public void registerProcessor(int requestCode, NettyRequestProcessor processor, ExecutorService executor) {
+    public void registerProcessor(int requestCode, RequestProcessor processor, ExecutorService executor) {
         ExecutorService executorThis = executor;
         if (null == executor) {
             executorThis = this.publicExecutor;
         }
-        Pair<NettyRequestProcessor, ExecutorService> pair = new Pair<NettyRequestProcessor, ExecutorService>(processor, executorThis);
+        Pair<RequestProcessor, ExecutorService> pair = new Pair<RequestProcessor, ExecutorService>(processor, executorThis);
         this.processorTable.put(requestCode, pair);
     }
 
     @Override
-    public void registerDefaultProcessor(NettyRequestProcessor processor, ExecutorService executor) {
-        this.defaultRequestProcessor = new Pair<NettyRequestProcessor, ExecutorService>(processor, executor);
+    public void registerDefaultProcessor(RequestProcessor processor, ExecutorService executor) {
+        this.defaultRequestProcessor = new Pair<RequestProcessor, ExecutorService>(processor, executor);
     }
 
     @Override
@@ -140,7 +140,7 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
     }
 
     @Override
-    public Pair<NettyRequestProcessor, ExecutorService> getProcessorPair(int requestCode) {
+    public Pair<RequestProcessor, ExecutorService> getProcessorPair(int requestCode) {
         return processorTable.get(requestCode);
     }
 
@@ -150,21 +150,24 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
     }
 
     @Override
-    public RemotingCommand invokeSync(final Channel channel, final RemotingCommand request, final long timeoutMillis)
+    public RemotingCommand invokeSync(final RemotingChannel remotingChannel, final RemotingCommand request,
+        final long timeoutMillis)
         throws InterruptedException, RemotingSendRequestException, RemotingTimeoutException {
-        return this.invokeSyncImpl(channel, request, timeoutMillis);
+        return this.invokeSyncImpl(((NettyChannelImpl) remotingChannel).getChannel(), request, timeoutMillis);
     }
 
     @Override
-    public void invokeAsync(Channel channel, RemotingCommand request, long timeoutMillis, InvokeCallback invokeCallback)
+    public void invokeAsync(RemotingChannel remotingChannel, RemotingCommand request, long timeoutMillis,
+        InvokeCallback invokeCallback)
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
-        this.invokeAsyncImpl(channel, request, timeoutMillis, invokeCallback);
+        this.invokeAsyncImpl(((NettyChannelImpl) remotingChannel).getChannel(), request, timeoutMillis, invokeCallback);
     }
 
     @Override
-    public void invokeOneway(Channel channel, RemotingCommand request, long timeoutMillis) throws InterruptedException,
+    public void invokeOneway(RemotingChannel remotingChannel, RemotingCommand request,
+        long timeoutMillis) throws InterruptedException,
         RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
-        this.invokeOnewayImpl(channel, request, timeoutMillis);
+        this.invokeOnewayImpl(((NettyChannelImpl) remotingChannel).getChannel(), request, timeoutMillis);
     }
 
     private void applyOptions(ServerBootstrap bootstrap) {
@@ -242,7 +245,7 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
     }
 
     @Override
-    public void sendResponse(ChannelHandlerContext channel, RemotingCommand remotingCommand) {
+    public void sendResponse(RemotingChannel channel, RemotingCommand remotingCommand) {
 
     }
 }

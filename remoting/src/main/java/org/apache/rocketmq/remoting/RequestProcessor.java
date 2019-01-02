@@ -14,16 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.netty;
+package org.apache.rocketmq.remoting;
 
-import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 /**
  * Common remoting command processor
  */
-public interface NettyRequestProcessor {
-    RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
+public interface RequestProcessor {
+    RemotingCommand processRequest(RemotingChannel remotingChannel, RemotingCommand request)
         throws Exception;
 
     boolean rejectRequest();

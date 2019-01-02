@@ -30,8 +30,8 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.namesrv.NamesrvController;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.ClientConfig;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.test.util.MQAdmin;
 import org.apache.rocketmq.test.util.TestUtils;
@@ -101,7 +101,7 @@ public class IntegrationTestBase {
     public static NamesrvController createAndStartNamesrv() {
         String baseDir = createBaseDir();
         NamesrvConfig namesrvConfig = new NamesrvConfig();
-        NettyServerConfig nameServerNettyServerConfig = new NettyServerConfig();
+        ServerConfig nameServerNettyServerConfig = new ServerConfig();
         namesrvConfig.setKvConfigPath(baseDir + SEP + "namesrv" + SEP + "kvConfig.json");
         namesrvConfig.setConfigStorePath(baseDir + SEP + "namesrv" + SEP + "namesrv.properties");
 
@@ -123,8 +123,8 @@ public class IntegrationTestBase {
     public static BrokerController createAndStartBroker(String nsAddr) {
         String baseDir = createBaseDir();
         BrokerConfig brokerConfig = new BrokerConfig();
-        NettyServerConfig nettyServerConfig = new NettyServerConfig();
-        NettyClientConfig nettyClientConfig = new NettyClientConfig();
+        ServerConfig nettyServerConfig = new ServerConfig();
+        ClientConfig nettyClientConfig = new ClientConfig();
         MessageStoreConfig storeConfig = new MessageStoreConfig();
         brokerConfig.setBrokerName(BROKER_NAME_PREFIX + BROKER_INDEX.getAndIncrement());
         brokerConfig.setBrokerIP1("127.0.0.1");

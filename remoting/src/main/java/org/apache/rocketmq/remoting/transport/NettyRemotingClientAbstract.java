@@ -60,10 +60,6 @@ public abstract class NettyRemotingClientAbstract extends NettyRemotingAbstract 
     private final AtomicReference<String> namesrvAddrChoosed = new AtomicReference<String>();
     private final AtomicInteger namesrvIndex = new AtomicInteger(initValueIndex());
     private final Lock lockNamesrvChannel = new ReentrantLock();
-    /**
-     * Used for async execute task for aysncInvokeMethod
-     */
-    private ExecutorService asyncExecuteService = ThreadUtils.newFixedThreadPool(5, 10000, "asyncExecute", false);
 
     private final Lock lockChannelTables = new ReentrantLock();
     private static final long LOCK_TIMEOUT_MILLIS = 3000;

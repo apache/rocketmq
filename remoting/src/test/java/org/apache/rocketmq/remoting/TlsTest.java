@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.TlsHelper;
 import org.apache.rocketmq.remoting.serialize.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -94,7 +93,7 @@ public class TlsTest {
         tlsClientKeyPassword = "1234";
         tlsServerKeyPassword = "";
 
-        NettyClientConfig clientConfig = new NettyClientConfig();
+        ClientConfig clientConfig = new ClientConfig();
         clientConfig.setUseTLS(true);
 
         if ("serverRejectsUntrustedClientCert".equals(name.getMethodName())) {
@@ -174,7 +173,7 @@ public class TlsTest {
         requestThenAssertResponse();
 
         //Start another client
-        NettyClientConfig clientConfig = new NettyClientConfig();
+        ClientConfig clientConfig = new ClientConfig();
         clientConfig.setUseTLS(true);
         RemotingClient remotingClient = RemotingServerTest.createRemotingClient(clientConfig);
         requestThenAssertResponse(remotingClient);
