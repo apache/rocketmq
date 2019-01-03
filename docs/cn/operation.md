@@ -147,11 +147,11 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 
 #### 8.2.1 Topic相关
 
-<table border=0 cellpadding=0 cellspacing=0 width=606>
- <col width=163>
- <col width=135>
- <col width=149>
- <col width=159>
+<table border=0 cellpadding=0 cellspacing=0 width=714>
+ <col width=177>
+ <col width=175>
+ <col width=177>
+ <col width=185>
  <tr height=23>
   <td height=23 class=xl63 width=163 style='height:17.0pt;width:122pt'>名称</td>
   <td class=xl64 width=135 style='width:101pt'>含义</td>
@@ -458,9 +458,11 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 
 #### 8.2.3 Broker相关
 
-<table border=0 cellpadding=0 cellspacing=0 width=452>
- <col width=191>
- <col width=87 span=3 style='width:65pt'>
+<table border=0 cellpadding=0 cellspacing=0 width=714>
+ <col width=177>
+ <col width=175>
+ <col width=177>
+ <col width=185>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl65 width=191 style='height:17.0pt;width:143pt'>名称</td>
   <td class=xl66 width=87 style='width:65pt'>含义</td>
@@ -638,8 +640,11 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 
 #### 8.2.4 消息相关
 
-<table border=0 cellpadding=0 cellspacing=0 width=348>
- <col width=87 span=4 style='width:65pt'>
+<table border=0 cellpadding=0 cellspacing=0 width=714>
+ <col width=177>
+ <col width=175>
+ <col width=177>
+ <col width=185>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl65 width=87 style='height:17.0pt;width:65pt'>名称</td>
   <td class=xl66 width=87 style='width:65pt'>含义</td>
@@ -968,8 +973,11 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 
 #### 8.2.5 消费者、消费组相关
 
-<table border=0 cellpadding=0 cellspacing=0 width=348>
- <col width=87 span=4 style='width:65pt'>
+<table border=0 cellpadding=0 cellspacing=0 width=714>
+ <col width=177>
+ <col width=175>
+ <col width=177>
+ <col width=185>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl65 width=87 style='height:17.0pt;width:65pt'>名称</td>
   <td class=xl66 width=87 style='width:65pt'>含义</td>
@@ -1160,8 +1168,11 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 
 #### 8.2.6 连接相关
 
-<table border=0 cellpadding=0 cellspacing=0 width=348>
- <col width=87 span=4 style='width:65pt'>
+<table border=0 cellpadding=0 cellspacing=0 width=714>
+ <col width=177>
+ <col width=175>
+ <col width=177>
+ <col width=185>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl65 width=87 style='height:17.0pt;width:65pt'>名称</td>
   <td class=xl66 width=87 style='width:65pt'>含义</td>
@@ -1211,8 +1222,11 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 
 #### 8.2.7 Namesrv相关
 
-<table border=0 cellpadding=0 cellspacing=0 width=348>
- <col width=87 span=4 style='width:65pt'>
+<table border=0 cellpadding=0 cellspacing=0 width=714>
+ <col width=177>
+ <col width=175>
+ <col width=177>
+ <col width=185>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl65 width=87 style='height:17.0pt;width:65pt'>名称</td>
   <td class=xl66 width=87 style='width:65pt'>含义</td>
@@ -1302,8 +1316,11 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 
 #### 8.2.8 其他
 
-<table border=0 cellpadding=0 cellspacing=0 width=348>
- <col width=87 span=4 style='width:65pt'>
+<table border=0 cellpadding=0 cellspacing=0 width=714>
+ <col width=177>
+ <col width=175>
+ <col width=177>
+ <col width=185>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl65 width=87 style='height:17.0pt;width:65pt'>名称</td>
   <td class=xl66 width=87 style='width:65pt'>含义</td>
