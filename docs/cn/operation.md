@@ -153,10 +153,10 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  <col width=177>
  <col width=185>
  <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl65 width=191 style='height:17.0pt;width:143pt'>名称</td>
-  <td class=xl66 width=87 style='width:65pt'>含义</td>
-  <td class=xl66 width=87 style='width:65pt'>命令选项</td>
-  <td class=xl66 width=87 style='width:65pt'>说明</td>
+  <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>名称</td>
+  <td class=xl64 width=175 style='width:131pt'>含义</td>
+  <td class=xl64 width=177 style='width:133pt'>命令选项</td>
+  <td class=xl64 width=185 style='width:139pt'>说明</td>
  </tr>
  <tr height=132 style='height:99.0pt'>
   <td rowspan=8 height=593 class=xl68 width=163 style='border-bottom:1.0pt;
@@ -464,10 +464,10 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  <col width=177>
  <col width=185>
  <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl65 width=191 style='height:17.0pt;width:143pt'>名称</td>
-  <td class=xl66 width=87 style='width:65pt'>含义</td>
-  <td class=xl66 width=87 style='width:65pt'>命令选项</td>
-  <td class=xl66 width=87 style='width:65pt'>说明</td>
+  <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>名称</td>
+  <td class=xl64 width=175 style='width:131pt'>含义</td>
+  <td class=xl64 width=177 style='width:133pt'>命令选项</td>
+  <td class=xl64 width=185 style='width:139pt'>说明</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td rowspan=6 height=206 class=xl69 width=191 style='border-bottom:1.0pt;
@@ -645,11 +645,11 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  <col width=175>
  <col width=177>
  <col width=185>
- <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl65 width=191 style='height:17.0pt;width:143pt'>名称</td>
-  <td class=xl66 width=87 style='width:65pt'>含义</td>
-  <td class=xl66 width=87 style='width:65pt'>命令选项</td>
-  <td class=xl66 width=87 style='width:65pt'>说明</td>
+<tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>名称</td>
+  <td class=xl64 width=175 style='width:131pt'>含义</td>
+  <td class=xl64 width=177 style='width:133pt'>命令选项</td>
+  <td class=xl64 width=185 style='width:139pt'>说明</td>
  </tr>
  <tr height=128 style='mso-height-source:userset;height:96.0pt'>
   <td rowspan=3 height=208 class=xl69 width=87 style='border-bottom:1.0pt;
@@ -978,11 +978,11 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  <col width=175>
  <col width=177>
  <col width=185>
- <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl65 width=191 style='height:17.0pt;width:143pt'>名称</td>
-  <td class=xl66 width=87 style='width:65pt'>含义</td>
-  <td class=xl66 width=87 style='width:65pt'>命令选项</td>
-  <td class=xl66 width=87 style='width:65pt'>说明</td>
+<tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>名称</td>
+  <td class=xl64 width=175 style='width:131pt'>含义</td>
+  <td class=xl64 width=177 style='width:133pt'>命令选项</td>
+  <td class=xl64 width=185 style='width:139pt'>说明</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td rowspan=4 height=158 class=xl69 width=87 style='border-bottom:1.0pt;
@@ -1173,11 +1173,11 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  <col width=175>
  <col width=177>
  <col width=185>
- <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl65 width=191 style='height:17.0pt;width:143pt'>名称</td>
-  <td class=xl66 width=87 style='width:65pt'>含义</td>
-  <td class=xl66 width=87 style='width:65pt'>命令选项</td>
-  <td class=xl66 width=87 style='width:65pt'>说明</td>
+<tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>名称</td>
+  <td class=xl64 width=175 style='width:131pt'>含义</td>
+  <td class=xl64 width=177 style='width:133pt'>命令选项</td>
+  <td class=xl64 width=185 style='width:139pt'>说明</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td rowspan=3 height=119 class=xl69 width=87 style='border-bottom:1.0pt
@@ -1227,11 +1227,11 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  <col width=175>
  <col width=177>
  <col width=185>
- <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl65 width=191 style='height:17.0pt;width:143pt'>名称</td>
-  <td class=xl66 width=87 style='width:65pt'>含义</td>
-  <td class=xl66 width=87 style='width:65pt'>命令选项</td>
-  <td class=xl66 width=87 style='width:65pt'>说明</td>
+<tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>名称</td>
+  <td class=xl64 width=175 style='width:131pt'>含义</td>
+  <td class=xl64 width=177 style='width:133pt'>命令选项</td>
+  <td class=xl64 width=185 style='width:139pt'>说明</td>
  </tr>
  <tr height=21 style='height:16.0pt'>
   <td rowspan=5 height=143 class=xl69 width=87 style='border-bottom:1.0pt
@@ -1321,11 +1321,11 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  <col width=175>
  <col width=177>
  <col width=185>
- <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl65 width=191 style='height:17.0pt;width:143pt'>名称</td>
-  <td class=xl66 width=87 style='width:65pt'>含义</td>
-  <td class=xl66 width=87 style='width:65pt'>命令选项</td>
-  <td class=xl66 width=87 style='width:65pt'>说明</td>
+<tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>名称</td>
+  <td class=xl64 width=175 style='width:131pt'>含义</td>
+  <td class=xl64 width=177 style='width:133pt'>命令选项</td>
+  <td class=xl64 width=185 style='width:139pt'>说明</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td rowspan=2 height=80 class=xl69 width=87 style='border-bottom:1.0pt
