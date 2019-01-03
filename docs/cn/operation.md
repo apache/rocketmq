@@ -645,13 +645,13 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  <col width=175>
  <col width=177>
  <col width=185>
-<tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>名称</td>
-  <td class=xl64 width=175 style='width:131pt'>含义</td>
-  <td class=xl64 width=177 style='width:133pt'>命令选项</td>
-  <td class=xl64 width=185 style='width:139pt'>说明</td>
+<tr height=23>
+  <td height=23 width=177>名称</td>
+  <td class=xl64 width=175>含义</td>
+  <td class=xl64 width=177>命令选项</td>
+  <td class=xl64 width=185>说明</td>
  </tr>
- <tr height=128 style='mso-height-source:userset;height:96.0pt'>
+ <tr height=128 style='height:96.0pt'>
   <td rowspan=3 height=208 class=xl69 width=87 style='border-bottom:1.0pt;
   height:156.0pt;border-top:none;width:65pt'>queryMsgById</td>
   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt;
@@ -716,7 +716,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
   <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
  </tr>
- <tr height=47 style='mso-height-source:userset;height:35.0pt'>
+ <tr height=47>
   <td rowspan=6 height=209 class=xl69 width=87 style='border-bottom:1.0pt;
   height:156.0pt;border-top:none;width:65pt'>queryMsgByUniqueKey</td>
   <td rowspan=6 class=xl72 width=87 style='border-bottom:1.0pt;
@@ -1322,22 +1322,19 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  <col width=177>
  <col width=185>
 <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl63 width=177 style='height:17.0pt;width:133pt'>名称</td>
-  <td class=xl64 width=175 style='width:131pt'>含义</td>
-  <td class=xl64 width=177 style='width:133pt'>命令选项</td>
-  <td class=xl64 width=185 style='width:139pt'>说明</td>
+  <td height=23 width=177>名称</td>
+  <td width=175>含义</td>
+  <td width=177>命令选项</td>
+  <td width=185>说明</td>
  </tr>
- <tr height=57 style='height:43.0pt'>
-  <td rowspan=2 height=80 class=xl69 width=87 style='border-bottom:1.0pt
-  height:60.0pt;border-top:none;width:65pt'>startMonitoring</td>
-  <td rowspan=2 class=xl71 width=87 style='border-bottom:1.0pt
-  border-top:none;width:65pt'>开启监控进程，监控消息误删、重试队列消息数等</td>
-  <td class=xl67 width=87 style='width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+ <tr height=57>
+  <td rowspan=2 height=80 width=87>开启监控进程，监控消息误删、重试队列消息数等</td>
+  <td width=87>-n</td>
+  <td width=87>nameserve 服务地址，格式 ip:port</td>
  </tr>
- <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
-  <td class=xl68 width=87 style='width:65pt'>打印帮助</td>
+ <tr height=23>
+  <td height=23 width=87>-h</td>
+  <td width=87>打印帮助</td>
  </tr>
 </table>
 
