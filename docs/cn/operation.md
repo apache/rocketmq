@@ -378,15 +378,8 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-t</td>
   <td class=xl66 width=159 style='width:119pt'>指定topic</td>
  </tr>
- <![if supportMisalignedColumns]>
- <tr height=0 style='display:none'>
-  <td width=163 style='width:122pt'></td>
-  <td width=135 style='width:101pt'></td>
-  <td width=149 style='width:112pt'></td>
-  <td width=159 style='width:119pt'></td>
- </tr>
- <![endif]>
 </table>
+
 
 #### 8.2.2 集群相关
 
@@ -460,18 +453,10 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td height=57 class=xl65 width=177 style='height:43.0pt;width:133pt'>-n</td>
   <td class=xl66 width=185 style='width:139pt'>nameserve 服务地址，格式 ip:port</td>
  </tr>
- <![if supportMisalignedColumns]>
- <tr height=0 style='display:none'>
-  <td width=177 style='width:133pt'></td>
-  <td width=175 style='width:131pt'></td>
-  <td width=177 style='width:133pt'></td>
-  <td width=185 style='width:139pt'></td>
- </tr>
- <![endif]>
 </table>
 
-#### 8.2.3 Broker相关
 
+#### 8.2.3 Broker相关
 
 <table border=0 cellpadding=0 cellspacing=0 width=452>
  <col width=191>
@@ -648,15 +633,8 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-c</td>
   <td class=xl68 width=87 style='width:65pt'>发送次数</td>
  </tr>
- <![if supportMisalignedColumns]>
- <tr height=0 style='display:none'>
-  <td width=191 style='width:143pt'></td>
-  <td width=87 style='width:65pt'></td>
-  <td width=87 style='width:65pt'></td>
-  <td width=87 style='width:65pt'></td>
- </tr>
- <![endif]>
 </table>
+
 
 #### 8.2.4 消息相关
 
@@ -762,7 +740,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td class=xl68 width=87 style='width:65pt'>topic名称</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
-  <td rowspan=5 height=149 class=xl69 width=87 style='border-bottom:1.0pt solid black;
+  <td rowspan=5 height=149 class=xl69 width=87 style='border-bottom:1.0pt
   height:111.0pt;border-top:none;width:65pt'>checkMsgSendRT</td>
   <td rowspan=5 class=xl72 width=87 style='border-bottom:1.0pt;
   border-top:none;width:65pt'>检测向topic发消息的RT，功能类似clusterRT</td>
@@ -985,15 +963,8 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td height=39 class=xl67 width=87 style='height:29.0pt;width:65pt'>-c</td>
   <td class=xl68 width=87 style='width:65pt'>是否重置c++客户端offset</td>
  </tr>
- <![if supportMisalignedColumns]>
- <tr height=0 style='display:none'>
-  <td width=87 style='width:65pt'></td>
-  <td width=87 style='width:65pt'></td>
-  <td width=87 style='width:65pt'></td>
-  <td width=87 style='width:65pt'></td>
- </tr>
- <![endif]>
 </table>
+
 
 #### 8.2.5 消费者、消费组相关
 
@@ -1182,15 +1153,8 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-o</td>
   <td class=xl68 width=87 style='width:65pt'>暂未使用</td>
  </tr>
- <![if supportMisalignedColumns]>
- <tr height=0 style='display:none'>
-  <td width=87 style='width:65pt'></td>
-  <td width=87 style='width:65pt'></td>
-  <td width=87 style='width:65pt'></td>
-  <td width=87 style='width:65pt'></td>
- </tr>
- <![endif]>
 </table>
+
 
 
 
@@ -1240,20 +1204,12 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
   <td class=xl68 width=87 style='width:65pt'>打印帮助</td>
  </tr>
- <![if supportMisalignedColumns]>
- <tr height=0 style='display:none'>
-  <td width=87 style='width:65pt'></td>
-  <td width=87 style='width:65pt'></td>
-  <td width=87 style='width:65pt'></td>
-  <td width=87 style='width:65pt'></td>
- </tr>
- <![endif]>
 </table>
 
 
 
-#### 8.2.7 Namesrv相关
 
+#### 8.2.7 Namesrv相关
 
 <table border=0 cellpadding=0 cellspacing=0 width=348>
  <col width=87 span=4 style='width:65pt'>
@@ -1339,15 +1295,8 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-v</td>
   <td class=xl67 width=87 style='width:65pt'>value</td>
  </tr>
- <![if supportMisalignedColumns]>
- <tr height=0 style='display:none'>
-  <td width=87 style='width:65pt'></td>
-  <td width=87 style='width:65pt'></td>
-  <td width=87 style='width:65pt'></td>
-  <td width=87 style='width:65pt'></td>
- </tr>
- <![endif]>
 </table>
+
 
 
 
@@ -1373,15 +1322,8 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
   <td class=xl68 width=87 style='width:65pt'>打印帮助</td>
  </tr>
- <![if supportMisalignedColumns]>
- <tr height=0 style='display:none'>
-  <td width=87 style='width:65pt'></td>
-  <td width=87 style='width:65pt'></td>
-  <td width=87 style='width:65pt'></td>
-  <td width=87 style='width:65pt'></td>
- </tr>
- <![endif]>
 </table>
+
 
 ### 8.3   运维常见问题
 
