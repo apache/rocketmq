@@ -307,10 +307,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         log.debug("receive SendMessage request command, {}", request);
 
-        final long startTimstamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
-        if (this.brokerController.getMessageStore().now() < startTimstamp) {
+        final long startTimestamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
+        if (this.brokerController.getMessageStore().now() < startTimestamp) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(String.format("broker unable to service, until %s", UtilAll.timeMillisToHumanString2(startTimstamp)));
+            response.setRemark(String.format("broker unable to service, until %s", UtilAll.timeMillisToHumanString2(startTimestamp)));
             return response;
         }
 
@@ -485,10 +485,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         log.debug("Receive SendMessage request command {}", request);
 
-        final long startTimstamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
-        if (this.brokerController.getMessageStore().now() < startTimstamp) {
+        final long startTimestamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
+        if (this.brokerController.getMessageStore().now() < startTimestamp) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(String.format("broker unable to service, until %s", UtilAll.timeMillisToHumanString2(startTimstamp)));
+            response.setRemark(String.format("broker unable to service, until %s", UtilAll.timeMillisToHumanString2(startTimestamp)));
             return response;
         }
 
