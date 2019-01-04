@@ -47,9 +47,9 @@ public class PlainPermissionLoader {
 
     private String fileName = System.getProperty("rocketmq.acl.plain.file", DEFAULT_PLAIN_ACL_FILE);
 
-    private final Map<String/** AccessKey **/, PlainAccessResource> plainAccessResourceMap = new HashMap<>();
+    private  Map<String/** AccessKey **/, PlainAccessResource> plainAccessResourceMap = new HashMap<>();
 
-    private final List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<>();
+    private  List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<>();
 
     private RemoteAddressStrategyFactory remoteAddressStrategyFactory = new RemoteAddressStrategyFactory();
 
@@ -89,18 +89,8 @@ public class PlainPermissionLoader {
             }
         }
 
-        this.lock.writeLock().lock();
-        try {
-            this.globalWhiteRemoteAddressStrategy.clear();
-            this.plainAccessResourceMap.clear();
-            this.globalWhiteRemoteAddressStrategy.addAll(globalWhiteRemoteAddressStrategy);
-            this.plainAccessResourceMap.putAll(plainAccessResourceMap);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-        } finally {
-            this.lock.writeLock().unlock();
-        }
-
+        this.globalWhiteRemoteAddressStrategy = globalWhiteRemoteAddressStrategy;
+        this.plainAccessResourceMap = plainAccessResourceMap;
     }
 
     private void watch() {
@@ -187,42 +177,36 @@ public class PlainPermissionLoader {
     }
 
     public void validate(PlainAccessResource plainAccessResource) {
-        try {
-            this.lock.readLock().lockInterruptibly();
-            //Step 1, check the global white remote addr
-            for (RemoteAddressStrategy remoteAddressStrategy : globalWhiteRemoteAddressStrategy) {
-                if (remoteAddressStrategy.match(plainAccessResource)) {
-                    return;
-                }
-            }
 
-            if (plainAccessResource.getAccessKey() == null) {
-                throw new AclException(String.format("No accessKey is configured"));
-            }
-
-            if (!plainAccessResourceMap.containsKey(plainAccessResource.getAccessKey())) {
-                throw new AclException(String.format("No acl config for %s", plainAccessResource.getAccessKey()));
-            }
-
-            //Step 2, check the white addr for accesskey
-            PlainAccessResource ownedAccess = plainAccessResourceMap.get(plainAccessResource.getAccessKey());
-            if (ownedAccess.getRemoteAddressStrategy().match(plainAccessResource)) {
+        //Step 1, check the global white remote addr
+        for (RemoteAddressStrategy remoteAddressStrategy : globalWhiteRemoteAddressStrategy) {
+            if (remoteAddressStrategy.match(plainAccessResource)) {
                 return;
             }
-
-            //Step 3, check the signature
-            String signature = AclUtils.calSignature(plainAccessResource.getContent(), ownedAccess.getSecretKey());
-            if (!signature.equals(plainAccessResource.getSignature())) {
-                throw new AclException(String.format("Check signature failed for accessKey=%s", plainAccessResource.getAccessKey()));
-            }
-            //Step 4, check perm of each resource
-
-            checkPerm(plainAccessResource, ownedAccess);
-        } catch (InterruptedException e) {
-            log.error("PlainPermissionLoader validate InterruptedException");
-        } finally {
-            this.lock.readLock().unlock();
         }
+
+        if (plainAccessResource.getAccessKey() == null) {
+            throw new AclException(String.format("No accessKey is configured"));
+        }
+
+        if (!plainAccessResourceMap.containsKey(plainAccessResource.getAccessKey())) {
+            throw new AclException(String.format("No acl config for %s", plainAccessResource.getAccessKey()));
+        }
+
+        //Step 2, check the white addr for accesskey
+        PlainAccessResource ownedAccess = plainAccessResourceMap.get(plainAccessResource.getAccessKey());
+        if (ownedAccess.getRemoteAddressStrategy().match(plainAccessResource)) {
+            return;
+        }
+
+        //Step 3, check the signature
+        String signature = AclUtils.calSignature(plainAccessResource.getContent(), ownedAccess.getSecretKey());
+        if (!signature.equals(plainAccessResource.getSignature())) {
+            throw new AclException(String.format("Check signature failed for accessKey=%s", plainAccessResource.getAccessKey()));
+        }
+        //Step 4, check perm of each resource
+
+        checkPerm(plainAccessResource, ownedAccess);
     }
 
     public boolean isWatchStart() {
