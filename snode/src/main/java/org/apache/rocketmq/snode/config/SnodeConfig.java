@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.snode.config;
+
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -59,6 +60,13 @@ public class SnodeConfig {
     private boolean notifyConsumerIdsChangedEnable = true;
 
     private boolean autoCreateSubscriptionGroup = true;
+
+    private int snodePushMessageMinPoolSize = 10;
+
+    private int snodePushMessageMaxPoolSize = 20;
+
+    private int snodePushMessageThreadPoolQueueCapacity = 10000;
+
 
     private int listenPort = 11911;
 
@@ -231,5 +239,29 @@ public class SnodeConfig {
 
     public void setVipChannelEnabled(boolean vipChannelEnabled) {
         this.vipChannelEnabled = vipChannelEnabled;
+    }
+
+    public int getSnodePushMessageMinPoolSize() {
+        return snodePushMessageMinPoolSize;
+    }
+
+    public void setSnodePushMessageMinPoolSize(int snodePushMessageMinPoolSize) {
+        this.snodePushMessageMinPoolSize = snodePushMessageMinPoolSize;
+    }
+
+    public int getSnodePushMessageMaxPoolSize() {
+        return snodePushMessageMaxPoolSize;
+    }
+
+    public void setSnodePushMessageMaxPoolSize(int snodePushMessageMaxPoolSize) {
+        this.snodePushMessageMaxPoolSize = snodePushMessageMaxPoolSize;
+    }
+
+    public int getSnodePushMessageThreadPoolQueueCapacity() {
+        return snodePushMessageThreadPoolQueueCapacity;
+    }
+
+    public void setSnodePushMessageThreadPoolQueueCapacity(int snodePushMessageThreadPoolQueueCapacity) {
+        this.snodePushMessageThreadPoolQueueCapacity = snodePushMessageThreadPoolQueueCapacity;
     }
 }

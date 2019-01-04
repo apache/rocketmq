@@ -72,28 +72,22 @@ public class ClientHousekeepingService implements ChannelEventListener {
 
     @Override
     public void onChannelClose(String remoteAddr, RemotingChannel remotingChannel) {
-        NettyChannelImpl nettyChannel = (NettyChannelImpl) remotingChannel;
-        Channel channel = nettyChannel.getChannel();
-        log.info("Remoting channel closed: {}", RemotingHelper.parseChannelRemoteAddr(channel.remoteAddress()));
-        this.producerManager.doChannelCloseEvent(remoteAddr, channel);
-        this.producerManager.doChannelCloseEvent(remoteAddr, channel);
+        log.info("Remoting channel closed: {}", RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()));
+        this.producerManager.doChannelCloseEvent(remoteAddr, remotingChannel);
+        this.producerManager.doChannelCloseEvent(remoteAddr, remotingChannel);
     }
 
     @Override
     public void onChannelException(String remoteAddr, RemotingChannel remotingChannel) {
-        NettyChannelImpl nettyChannel = (NettyChannelImpl) remotingChannel;
-        Channel channel = nettyChannel.getChannel();
-        log.info("Remoting channel exception: {}", RemotingHelper.parseChannelRemoteAddr(channel.remoteAddress()));
-        this.producerManager.doChannelCloseEvent(remoteAddr, channel);
-        this.consumerManager.doChannelCloseEvent(remoteAddr, channel);
+        log.info("Remoting channel exception: {}", RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()));
+        this.producerManager.doChannelCloseEvent(remoteAddr, remotingChannel);
+        this.consumerManager.doChannelCloseEvent(remoteAddr, remotingChannel);
     }
 
     @Override
     public void onChannelIdle(String remoteAddr, RemotingChannel remotingChannel) {
-        NettyChannelImpl nettyChannel = (NettyChannelImpl) remotingChannel;
-        Channel channel = nettyChannel.getChannel();
-        log.info("Remoting channel idle: {}", RemotingHelper.parseChannelRemoteAddr(channel.remoteAddress()));
-        this.producerManager.doChannelCloseEvent(remoteAddr, channel);
-        this.consumerManager.doChannelCloseEvent(remoteAddr, channel);
+        log.info("Remoting channel idle: {}", RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()));
+        this.producerManager.doChannelCloseEvent(remoteAddr, remotingChannel);
+        this.consumerManager.doChannelCloseEvent(remoteAddr, remotingChannel);
     }
 }

@@ -99,7 +99,7 @@ public class ProducerManager {
         }
     }
 
-    public void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
+    public void doChannelCloseEvent(final String remoteAddr, final RemotingChannel channel) {
         if (channel != null) {
             try {
                 if (this.groupChannelLock.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {

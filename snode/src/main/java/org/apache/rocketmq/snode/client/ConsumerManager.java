@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.snode.client;
 
-import io.netty.channel.Channel;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -32,24 +31,20 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class ConsumerManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
     private final ConcurrentMap<String/* Group */, ConsumerGroupInfo> consumerTable =
         new ConcurrentHashMap<>(1024);
+
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
+
+    private final ConcurrentHashMap<String/*Topic*/, ConcurrentHashMap<Integer/*QueueId*/, ClientChannelInfo>> topicConsumerTable = new ConcurrentHashMap<>(2048);
 
     public ConsumerManager(final ConsumerIdsChangeListener consumerIdsChangeListener) {
         this.consumerIdsChangeListener = consumerIdsChangeListener;
     }
-
-    /**
-     * public ClientChannelInfo findChannel(final String group, final String clientId) { ConsumerGroupInfo
-     * consumerGroupInfo = this.consumerTable.get(group); if (consumerGroupInfo != null) { return
-     * consumerGroupInfo.findChannel(clientId); } return null; }
-     **/
 
     public SubscriptionData findSubscriptionData(final String group, final String topic) {
         ConsumerGroupInfo consumerGroupInfo = this.getConsumerGroupInfo(group);
@@ -73,11 +68,18 @@ public class ConsumerManager {
         return 0;
     }
 
-    public void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
+    private void removePushSession(final ConsumerGroupInfo info, final RemotingChannel channel) {
+        Set<SubscriptionData> subscriptionDataSet = info.getSubscriotionDataSet(channel);
+        removeConsumerTopicTable(subscriptionDataSet, channel);
+
+    }
+
+    public void doChannelCloseEvent(final String remoteAddr, final RemotingChannel channel) {
         Iterator<Entry<String, ConsumerGroupInfo>> it = this.consumerTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, ConsumerGroupInfo> next = it.next();
             ConsumerGroupInfo info = next.getValue();
+            removePushSession(info, channel);
             boolean removed = info.doChannelCloseEvent(remoteAddr, channel);
             if (removed) {
                 if (info.getChannelInfoTable().isEmpty()) {
@@ -109,12 +111,13 @@ public class ConsumerManager {
                 consumeFromWhere);
         boolean r2 = consumerGroupInfo.updateSubscription(subList);
 
+        consumerGroupInfo.updateChannelSubscription(clientChannelInfo, subList);
+
         if (r1 || r2) {
             if (isNotifyConsumerIdsChangedEnable) {
                 this.consumerIdsChangeListener.handle(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
             }
         }
-
         this.consumerIdsChangeListener.handle(ConsumerGroupEvent.REGISTER, group, subList);
 
         return r1 || r2;
@@ -125,6 +128,8 @@ public class ConsumerManager {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (null != consumerGroupInfo) {
             consumerGroupInfo.unregisterChannel(clientChannelInfo);
+            consumerGroupInfo.removeChannelSubscription(clientChannelInfo.getChannel());
+            removePushSession(consumerGroupInfo, clientChannelInfo.getChannel());
             if (consumerGroupInfo.getChannelInfoTable().isEmpty()) {
                 ConsumerGroupInfo remove = this.consumerTable.remove(group);
                 if (remove != null) {
@@ -184,4 +189,47 @@ public class ConsumerManager {
         }
         return groups;
     }
+
+    public void updateTopicConsumerTable(Set<SubscriptionData> subscriptionDataSet,
+        ClientChannelInfo clientChannelInfo) {
+        for (SubscriptionData subscriptionData : subscriptionDataSet) {
+            String topic = subscriptionData.getTopic();
+            for (Integer queueId : subscriptionData.getQueueIdSet()) {
+                ConcurrentHashMap<Integer, ClientChannelInfo> clientChannelInfoMap = this.topicConsumerTable.get(topic);
+                if (clientChannelInfoMap == null) {
+                    clientChannelInfoMap = new ConcurrentHashMap<>();
+                    ConcurrentHashMap prev = this.topicConsumerTable.putIfAbsent(topic, clientChannelInfoMap);
+                    if (prev != null) {
+                        clientChannelInfoMap = prev;
+                    }
+                }
+                clientChannelInfoMap.put(queueId, clientChannelInfo);
+            }
+        }
+    }
+
+    public ClientChannelInfo getClientInfoTable(String topic, long queueId) {
+        ConcurrentHashMap<Integer, ClientChannelInfo> clientChannelInfoMap = this.topicConsumerTable.get(topic);
+        if (clientChannelInfoMap != null) {
+            return clientChannelInfoMap.get(queueId);
+        }
+        return null;
+    }
+
+    public void removeConsumerTopicTable(Set<SubscriptionData> subscriptionDataSet,
+        RemotingChannel remotingChannel) {
+        for (SubscriptionData subscriptionData : subscriptionDataSet) {
+            String topic = subscriptionData.getTopic();
+            for (Integer queueId : subscriptionData.getQueueIdSet()) {
+                ConcurrentHashMap<Integer, ClientChannelInfo> clientChannelInfoMap = this.topicConsumerTable.get(topic);
+                if (clientChannelInfoMap != null) {
+                    ClientChannelInfo old = clientChannelInfoMap.get(queueId);
+                    if (old != null && old.getChannel() == remotingChannel) {
+                        clientChannelInfoMap.remove(queueId, old);
+                    }
+                }
+            }
+        }
+    }
+
 }

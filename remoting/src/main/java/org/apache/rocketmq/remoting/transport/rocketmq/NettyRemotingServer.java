@@ -347,7 +347,9 @@ public class NettyRemotingServer extends NettyRemotingServerAbstract implements 
     }
 
     @Override
-    public void push(String addr, String sessionId, RemotingCommand remotingCommand) {
-
+    public void push(RemotingChannel remotingChannel, RemotingCommand request,
+        long timeoutMillis) throws InterruptedException,
+        RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
+        this.invokeOneway(remotingChannel, request, timeoutMillis);
     }
 }

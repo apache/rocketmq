@@ -119,7 +119,7 @@ public class RouteInfoManager {
                 snodeSet.add(snodeName);
             }
             SnodeData snodeData = new SnodeData();
-            snodeData.setAddr(snodeAddr);
+            snodeData.setAddress(snodeAddr);
             snodeData.setSnodeName(snodeName);
             snodeData.setClusterName(clusterName);
             snodeTable.put(snodeName, snodeData);

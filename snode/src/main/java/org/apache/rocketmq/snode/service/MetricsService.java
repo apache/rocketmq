@@ -1,4 +1,4 @@
-/*
+package org.apache.rocketmq.snode.service;/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,19 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.service;
 
-import org.apache.rocketmq.remoting.RemotingChannel;
+public interface MetricsService {
 
-public interface PushService {
-    boolean registerPushSession(String consumerGroup);
-
-    void unregisterPushSession(String consumerGroup);
-
-    void pushMessage(final String messageId, final byte[] message, final Integer queueId, final String topic,
-        final long queueOffset);
-
-    void start();
-
-    void shutdown();
 }

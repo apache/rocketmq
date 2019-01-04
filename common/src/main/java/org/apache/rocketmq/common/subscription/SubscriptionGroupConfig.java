@@ -38,6 +38,8 @@ public class SubscriptionGroupConfig {
 
     private boolean notifyConsumerIdsChangedEnable = true;
 
+    private boolean realPushEnable = false;
+
     public String getGroupName() {
         return groupName;
     }
@@ -110,6 +112,14 @@ public class SubscriptionGroupConfig {
         this.notifyConsumerIdsChangedEnable = notifyConsumerIdsChangedEnable;
     }
 
+    public boolean isRealPushEnable() {
+        return realPushEnable;
+    }
+
+    public void setRealPushEnable(boolean realPushEnable) {
+        this.realPushEnable = realPushEnable;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -118,6 +128,7 @@ public class SubscriptionGroupConfig {
         result = prime * result + (consumeBroadcastEnable ? 1231 : 1237);
         result = prime * result + (consumeEnable ? 1231 : 1237);
         result = prime * result + (consumeFromMinEnable ? 1231 : 1237);
+        result = prime * result + (realPushEnable ? 1231 : 1237);
         result = prime * result + (notifyConsumerIdsChangedEnable ? 1231 : 1237);
         result = prime * result + ((groupName == null) ? 0 : groupName.hashCode());
         result = prime * result + retryMaxTimes;
@@ -144,6 +155,8 @@ public class SubscriptionGroupConfig {
             return false;
         if (consumeFromMinEnable != other.consumeFromMinEnable)
             return false;
+        if (realPushEnable != other.realPushEnable)
+            return false;
         if (groupName == null) {
             if (other.groupName != null)
                 return false;
@@ -160,13 +173,18 @@ public class SubscriptionGroupConfig {
         return true;
     }
 
-    @Override
-    public String toString() {
-        return "SubscriptionGroupConfig [groupName=" + groupName + ", consumeEnable=" + consumeEnable
-            + ", consumeFromMinEnable=" + consumeFromMinEnable + ", consumeBroadcastEnable="
-            + consumeBroadcastEnable + ", retryQueueNums=" + retryQueueNums + ", retryMaxTimes="
-            + retryMaxTimes + ", brokerId=" + brokerId + ", whichBrokerWhenConsumeSlowly="
-            + whichBrokerWhenConsumeSlowly + ", notifyConsumerIdsChangedEnable="
-            + notifyConsumerIdsChangedEnable + "]";
+    @Override public String toString() {
+        return "SubscriptionGroupConfig{" +
+            "groupName='" + groupName + '\'' +
+            ", consumeEnable=" + consumeEnable +
+            ", consumeFromMinEnable=" + consumeFromMinEnable +
+            ", consumeBroadcastEnable=" + consumeBroadcastEnable +
+            ", retryQueueNums=" + retryQueueNums +
+            ", retryMaxTimes=" + retryMaxTimes +
+            ", brokerId=" + brokerId +
+            ", whichBrokerWhenConsumeSlowly=" + whichBrokerWhenConsumeSlowly +
+            ", notifyConsumerIdsChangedEnable=" + notifyConsumerIdsChangedEnable +
+            ", realPushEnable=" + realPushEnable +
+            '}';
     }
 }

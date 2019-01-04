@@ -18,7 +18,7 @@ package org.apache.rocketmq.common.protocol.route;/*
 public class SnodeData {
     private String snodeName;
 
-    private String addr;
+    private String address;
 
     private String clusterName;
 
@@ -38,19 +38,19 @@ public class SnodeData {
         this.snodeName = snodeName;
     }
 
-    public String getAddr() {
-        return addr;
+    public String getAddress() {
+        return address;
     }
 
-    public void setAddr(String addr) {
-        this.addr = addr;
+    public void setAddress(String address) {
+        this.address = address;
     }
 
     @Override
     public String toString() {
         return "SnodeData{" +
             "snodeName='" + snodeName + '\'' +
-            ", addr='" + addr + '\'' +
+            ", address='" + address + '\'' +
             ", clusterName='" + clusterName + '\'' +
             '}';
     }

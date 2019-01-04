@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.snode.client;
 
-import io.netty.channel.Channel;
+import java.nio.channels.Channel;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -40,6 +40,8 @@ public class ConsumerGroupInfo {
         new ConcurrentHashMap<>();
     private final ConcurrentMap<RemotingChannel, ClientChannelInfo> channelInfoTable =
         new ConcurrentHashMap<>(16);
+    private ConcurrentHashMap<RemotingChannel, Set<SubscriptionData>> channelSubscriptionTable = new ConcurrentHashMap<>(2048);
+
     private volatile ConsumeType consumeType;
     private volatile MessageModel messageModel;
     private volatile ConsumeFromWhere consumeFromWhere;
@@ -51,6 +53,10 @@ public class ConsumerGroupInfo {
         this.consumeType = consumeType;
         this.messageModel = messageModel;
         this.consumeFromWhere = consumeFromWhere;
+    }
+
+    public Set<SubscriptionData> getSubscriotionDataSet(RemotingChannel remotingChannel) {
+        return channelSubscriptionTable.get(remotingChannel);
     }
 
     public ClientChannelInfo findChannel(final String clientId) {
@@ -102,16 +108,29 @@ public class ConsumerGroupInfo {
         }
     }
 
-    public boolean doChannelCloseEvent(final String remoteAddr, final Channel channel) {
+    public boolean doChannelCloseEvent(final String remoteAddr, final RemotingChannel channel) {
+        final Set<SubscriptionData> subscriptionDataSet = this.channelSubscriptionTable.remove(channel);
+        if (subscriptionDataSet != null) {
+            log.warn("NETTY EVENT: remove not active channel[{}] from subscription table groupChannelTable, consumer group: {}",
+                subscriptionDataSet.toString(), groupName);
+        }
         final ClientChannelInfo info = this.channelInfoTable.remove(channel);
         if (info != null) {
-            log.warn(
-                "NETTY EVENT: remove not active channel[{}] from ConsumerGroupInfo groupChannelTable, consumer group: {}",
+            log.warn("NETTY EVENT: remove not active channel[{}] from ConsumerGroupInfo groupChannelTable, consumer group: {}",
                 info.toString(), groupName);
             return true;
         }
 
         return false;
+    }
+
+    public void updateChannelSubscription(final ClientChannelInfo newClient,
+        final Set<SubscriptionData> subscriptionDataSet) {
+        this.channelSubscriptionTable.put(newClient.getChannel(), subscriptionDataSet);
+    }
+
+    public void removeChannelSubscription(final RemotingChannel remotingChannel) {
+        this.channelSubscriptionTable.remove(remotingChannel);
     }
 
     public boolean updateChannel(final ClientChannelInfo infoNew, ConsumeType consumeType,

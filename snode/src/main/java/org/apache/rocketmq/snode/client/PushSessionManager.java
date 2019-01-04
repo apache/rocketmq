@@ -1,4 +1,4 @@
-package org.apache.rocketmq.snode.client;/*
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,10 +14,43 @@ package org.apache.rocketmq.snode.client;/*
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.snode.client;
 
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PushSessionManager {
-    private ConcurrentHashMap<String/*topic*/, PushSession> topicPushSessionMap = new ConcurrentHashMap<>(1024);
-    
+    private final ConcurrentHashMap<String/*Topic*/, ConcurrentHashMap<Integer/*QueueId*/, ClientChannelInfo>> topicConsumerTable = new ConcurrentHashMap<>(2048);
+
+    public void updateTopicConsumerTable(String topic, int queueId, ClientChannelInfo clientChannelInfo) {
+        ConcurrentHashMap<Integer, ClientChannelInfo> clientChannelInfoMap = this.topicConsumerTable.get(topic);
+
+        if (clientChannelInfoMap == null) {
+            clientChannelInfoMap = new ConcurrentHashMap<>();
+            ConcurrentHashMap prev = this.topicConsumerTable.putIfAbsent(topic, clientChannelInfoMap);
+            if (prev != null) {
+                clientChannelInfoMap = prev;
+            }
+        }
+        clientChannelInfoMap.put(queueId, clientChannelInfo);
+    }
+
+    public ClientChannelInfo getClientInfoTable(String topic, long queueId) {
+        ConcurrentHashMap<Integer, ClientChannelInfo> clientChannelInfoMap = this.topicConsumerTable.get(topic);
+        if (clientChannelInfoMap != null) {
+            return clientChannelInfoMap.get(queueId);
+        }
+        return null;
+    }
+
+    public void removeConsumerTopicTable(String topic, Integer queueId, ClientChannelInfo clientChannelInfo) {
+        ConcurrentHashMap<Integer, ClientChannelInfo> clientChannelInfoMap = this.topicConsumerTable.get(topic);
+        if (clientChannelInfoMap != null) {
+            ClientChannelInfo old = clientChannelInfoMap.get(queueId);
+            //TODO Thread safe issue: wait for the next heartbeat
+            if (old == clientChannelInfo) {
+                clientChannelInfoMap.remove(queueId, clientChannelInfo);
+            }
+        }
+
+    }
 }

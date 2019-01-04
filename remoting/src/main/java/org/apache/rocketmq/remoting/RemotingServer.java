@@ -34,7 +34,9 @@ public interface RemotingServer extends RemotingService {
 
     Pair<RequestProcessor, ExecutorService> getProcessorPair(final int requestCode);
 
-    void push(final String addr, final String sessionId, RemotingCommand remotingCommand);
+    void push(RemotingChannel remotingChannel, RemotingCommand request,
+        long timeoutMillis) throws InterruptedException,
+        RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException;
 
     RemotingCommand invokeSync(final RemotingChannel remotingChannel, final RemotingCommand request,
         final long timeoutMillis) throws InterruptedException, RemotingSendRequestException,

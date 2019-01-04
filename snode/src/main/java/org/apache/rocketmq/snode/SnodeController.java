@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.snode;
+
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -38,6 +39,7 @@ import org.apache.rocketmq.snode.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.snode.client.ConsumerManager;
 import org.apache.rocketmq.snode.client.DefaultConsumerIdsChangeListener;
 import org.apache.rocketmq.snode.client.ProducerManager;
+import org.apache.rocketmq.snode.client.PushSessionManager;
 import org.apache.rocketmq.snode.client.SubscriptionGroupManager;
 import org.apache.rocketmq.snode.config.SnodeConfig;
 import org.apache.rocketmq.snode.interceptor.InterceptorFactory;
@@ -45,14 +47,16 @@ import org.apache.rocketmq.snode.interceptor.InterceptorGroup;
 import org.apache.rocketmq.snode.interceptor.Interceptor;
 import org.apache.rocketmq.snode.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.snode.processor.ConsumerManageProcessor;
-import org.apache.rocketmq.snode.processor.HearbeatProcessor;
+import org.apache.rocketmq.snode.processor.HeartbeatProcessor;
 import org.apache.rocketmq.snode.processor.PullMessageProcessor;
 import org.apache.rocketmq.snode.processor.SendMessageProcessor;
 import org.apache.rocketmq.snode.service.EnodeService;
 import org.apache.rocketmq.snode.service.NnodeService;
+import org.apache.rocketmq.snode.service.PushService;
 import org.apache.rocketmq.snode.service.ScheduledService;
 import org.apache.rocketmq.snode.service.impl.EnodeServiceImpl;
 import org.apache.rocketmq.snode.service.impl.NnodeServiceImpl;
+import org.apache.rocketmq.snode.service.impl.PushServiceImpl;
 import org.apache.rocketmq.snode.service.impl.ScheduledServiceImpl;
 
 public class SnodeController {
@@ -79,9 +83,11 @@ public class SnodeController {
     private ConsumerManageProcessor consumerManageProcessor;
     private SendMessageProcessor sendMessageProcessor;
     private PullMessageProcessor pullMessageProcessor;
-    private HearbeatProcessor hearbeatProcessor;
+    private HeartbeatProcessor hearbeatProcessor;
     private InterceptorGroup consumeMessageInterceptorGroup;
     private InterceptorGroup sendMessageInterceptorGroup;
+    private PushSessionManager pushSessionManager;
+    private PushService pushService;
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "SnodeControllerScheduledThread"));
@@ -156,8 +162,11 @@ public class SnodeController {
         this.consumerOffsetManager = new ConsumerOffsetManager(this);
         this.consumerManageProcessor = new ConsumerManageProcessor(this);
         this.sendMessageProcessor = new SendMessageProcessor(this);
-        this.hearbeatProcessor = new HearbeatProcessor(this);
+        this.hearbeatProcessor = new HeartbeatProcessor(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
+        this.pushSessionManager = new PushSessionManager();
+        this.pushService = new PushServiceImpl(this);
+
     }
 
     public SnodeConfig getSnodeConfig() {
@@ -219,6 +228,7 @@ public class SnodeController {
         this.remotingClient.shutdown();
         this.scheduledService.shutdown();
         this.clientHousekeepingService.shutdown();
+        this.pushService.shutdown();
     }
 
     public ProducerManager getProducerManager() {
@@ -263,5 +273,13 @@ public class SnodeController {
 
     public InterceptorGroup getSendMessageInterceptorGroup() {
         return sendMessageInterceptorGroup;
+    }
+
+    public PushSessionManager getPushSessionManager() {
+        return pushSessionManager;
+    }
+
+    public PushService getPushService() {
+        return pushService;
     }
 }

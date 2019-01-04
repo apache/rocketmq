@@ -161,7 +161,8 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
     }
 
     @Override
-    public void push(String addr, String sessionId, RemotingCommand remotingCommand) {
+    public void push(RemotingChannel remotingChannel, RemotingCommand request,
+        long timeoutMillis) throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
 
     }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.snode.processor;
 
+import java.util.List;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -34,11 +35,11 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.client.ClientChannelInfo;
 
-public class HearbeatProcessor implements RequestProcessor {
+public class HeartbeatProcessor implements RequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
     private final SnodeController snodeController;
 
-    public HearbeatProcessor(SnodeController snodeController) {
+    public HeartbeatProcessor(SnodeController snodeController) {
         this.snodeController = snodeController;
     }
 
@@ -96,6 +97,10 @@ public class HearbeatProcessor implements RequestProcessor {
                         data.toString(),
                         RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress())
                     );
+                }
+
+                if (subscriptionGroupConfig.isRealPushEnable()) {
+                    this.snodeController.getConsumerManager().updateTopicConsumerTable(data.getSubscriptionDataSet(), clientChannelInfo);
                 }
             }
         }

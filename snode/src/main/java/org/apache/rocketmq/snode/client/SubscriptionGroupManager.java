@@ -30,7 +30,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.serialize.RemotingSerializable;
 import org.apache.rocketmq.snode.SnodeController;
 
-public class SubscriptionGroupManager extends ConfigManager {
+public class SubscriptionGroupManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     private final ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
@@ -134,18 +134,10 @@ public class SubscriptionGroupManager extends ConfigManager {
         return subscriptionGroupConfig;
     }
 
-    @Override
     public String encode() {
         return this.encode(false);
     }
 
-    @Override
-    public String configFilePath() {
-        //TODO  get subscription persist request code
-        return null;
-    }
-
-    @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
             SubscriptionGroupManager obj = RemotingSerializable.fromJson(jsonString, SubscriptionGroupManager.class);
