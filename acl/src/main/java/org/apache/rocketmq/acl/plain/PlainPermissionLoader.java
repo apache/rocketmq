@@ -19,28 +19,20 @@ package org.apache.rocketmq.acl.plain;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.lang3.StringUtils;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.ServiceThread;
-import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.srvutil.FileWatchService;
 
 public class PlainPermissionLoader {
 
@@ -48,25 +40,31 @@ public class PlainPermissionLoader {
 
     private static final String DEFAULT_PLAIN_ACL_FILE = "/conf/plain_acl.yml";
 
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
     private String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
     private String fileName = System.getProperty("rocketmq.acl.plain.file", DEFAULT_PLAIN_ACL_FILE);
 
-    private Map<String/** AccessKey **/, PlainAccessResource> plainAccessResourceMap = new HashMap<>();
+    private  Map<String/** AccessKey **/, PlainAccessResource> plainAccessResourceMap = new HashMap<>();
 
-    private List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<>();
+    private  List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<>();
 
     private RemoteAddressStrategyFactory remoteAddressStrategyFactory = new RemoteAddressStrategyFactory();
 
     private boolean isWatchStart;
 
     public PlainPermissionLoader() {
-        initialize();
+        load();
         watch();
     }
 
-    public void initialize() {
+    public void load() {
+
+        Map<String, PlainAccessResource> plainAccessResourceMap = new HashMap<>();
+        List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<>();
+
         JSONObject plainAclConfData = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
             JSONObject.class);
 
@@ -77,90 +75,40 @@ public class PlainPermissionLoader {
         JSONArray globalWhiteRemoteAddressesList = plainAclConfData.getJSONArray("globalWhiteRemoteAddresses");
         if (globalWhiteRemoteAddressesList != null && !globalWhiteRemoteAddressesList.isEmpty()) {
             for (int i = 0; i < globalWhiteRemoteAddressesList.size(); i++) {
-                addGlobalWhiteRemoteAddress(globalWhiteRemoteAddressesList.getString(i));
+                globalWhiteRemoteAddressStrategy.add(remoteAddressStrategyFactory.
+                        getRemoteAddressStrategy(globalWhiteRemoteAddressesList.getString(i)));
             }
         }
 
         JSONArray accounts = plainAclConfData.getJSONArray("accounts");
         if (accounts != null && !accounts.isEmpty()) {
-            List<PlainAccessConfig> plainAccessList = accounts.toJavaList(PlainAccessConfig.class);
-            for (PlainAccessConfig plainAccess : plainAccessList) {
-                this.addPlainAccessResource(getPlainAccessResource(plainAccess));
+            List<PlainAccessConfig> plainAccessConfigList = accounts.toJavaList(PlainAccessConfig.class);
+            for (PlainAccessConfig plainAccessConfig : plainAccessConfigList) {
+                PlainAccessResource plainAccessResource = buildPlainAccessResource(plainAccessConfig);
+                plainAccessResourceMap.put(plainAccessResource.getAccessKey(),plainAccessResource);
             }
         }
+
+        this.globalWhiteRemoteAddressStrategy = globalWhiteRemoteAddressStrategy;
+        this.plainAccessResourceMap = plainAccessResourceMap;
     }
 
     private void watch() {
-        String version = System.getProperty("java.version");
-        String[] str = StringUtils.split(version, ".");
-        if (Integer.valueOf(str[1]) < 7) {
-            log.warn("Watch need jdk equal or greater than 1.7, current version is {}", str[1]);
-            return;
-        }
-
         try {
-            int fileIndex = fileName.lastIndexOf("/") + 1;
-            String watchDirectory = fileName.substring(0, fileIndex);
-            final String watchFileName = fileName.substring(fileIndex);
-            log.info("watch directory is {} , watch file name is {} ", fileHome + File.separator + watchDirectory, watchFileName);
-
-            final WatchService watcher = FileSystems.getDefault().newWatchService();
-            Path p = Paths.get(fileHome +  File.separator + watchDirectory);
-            p.register(watcher, StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_CREATE);
-            ServiceThread watcherServcie = new ServiceThread() {
-
-                public void run() {
-                    while (true) {
-                        try {
-                            WatchKey watchKey = watcher.take();
-                            List<WatchEvent<?>> watchEvents = watchKey.pollEvents();
-                            for (WatchEvent<?> event : watchEvents) {
-                                if (watchFileName.equals(event.context().toString())
-                                    && (StandardWatchEventKinds.ENTRY_MODIFY.equals(event.kind())
-                                    || StandardWatchEventKinds.ENTRY_CREATE.equals(event.kind()))) {
-                                    log.info("{} make a difference  change is : {}", watchFileName, event.toString());
-                                    //Clearing the info, may result in a non-available time
-                                    PlainPermissionLoader.this.clearPermissionInfo();
-                                    initialize();
-                                }
-                            }
-                            watchKey.reset();
-                        } catch (InterruptedException e) {
-                            log.error(e.getMessage(), e);
-                            UtilAll.sleep(3000);
-
-                        }
-                    }
-                }
-
+            String watchFilePath = fileHome + fileName;
+            FileWatchService fileWatchService = new FileWatchService(new String[] {watchFilePath}, new FileWatchService.Listener() {
                 @Override
-                public String getServiceName() {
-                    return "AclWatcherService";
+                public void onChanged(String path) {
+                    log.info("The plain acl yml changed, reload the context");
+                    load();
                 }
-
-            };
-            watcherServcie.start();
+            });
+            fileWatchService.start();
             log.info("Succeed to start AclWatcherService");
             this.isWatchStart = true;
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Failed to start AclWatcherService", e);
         }
-    }
-
-    PlainAccessResource getPlainAccessResource(PlainAccessConfig plainAccess) {
-        PlainAccessResource plainAccessResource = new PlainAccessResource();
-        plainAccessResource.setAccessKey(plainAccess.getAccessKey());
-        plainAccessResource.setSecretKey(plainAccess.getSecretKey());
-        plainAccessResource.setWhiteRemoteAddress(plainAccess.getWhiteRemoteAddress());
-
-        plainAccessResource.setAdmin(plainAccess.isAdmin());
-
-        plainAccessResource.setDefaultGroupPerm(Permission.parsePermFromString(plainAccess.getDefaultGroupPerm()));
-        plainAccessResource.setDefaultTopicPerm(Permission.parsePermFromString(plainAccess.getDefaultTopicPerm()));
-
-        Permission.parseResourcePerms(plainAccessResource, false, plainAccess.getGroupPerms());
-        Permission.parseResourcePerms(plainAccessResource, true, plainAccess.getTopicPerms());
-        return plainAccessResource;
     }
 
     void checkPerm(PlainAccessResource needCheckedAccess, PlainAccessResource ownedAccess) {
@@ -200,31 +148,32 @@ public class PlainPermissionLoader {
         this.globalWhiteRemoteAddressStrategy.clear();
     }
 
-    public void addPlainAccessResource(PlainAccessResource plainAccessResource) throws AclException {
-        if (plainAccessResource.getAccessKey() == null
-            || plainAccessResource.getSecretKey() == null
-            || plainAccessResource.getAccessKey().length() <= 6
-            || plainAccessResource.getSecretKey().length() <= 6) {
+    public PlainAccessResource buildPlainAccessResource(PlainAccessConfig plainAccessConfig) throws AclException {
+        if (plainAccessConfig.getAccessKey() == null
+            || plainAccessConfig.getSecretKey() == null
+            || plainAccessConfig.getAccessKey().length() <= 6
+            || plainAccessConfig.getSecretKey().length() <= 6) {
             throw new AclException(String.format(
                 "The accessKey=%s and secretKey=%s cannot be null and length should longer than 6",
-                plainAccessResource.getAccessKey(), plainAccessResource.getSecretKey()));
+                    plainAccessConfig.getAccessKey(), plainAccessConfig.getSecretKey()));
         }
-        try {
-            RemoteAddressStrategy remoteAddressStrategy = remoteAddressStrategyFactory
-                .getRemoteAddressStrategy(plainAccessResource);
-            plainAccessResource.setRemoteAddressStrategy(remoteAddressStrategy);
+        PlainAccessResource plainAccessResource = new PlainAccessResource();
+        plainAccessResource.setAccessKey(plainAccessConfig.getAccessKey());
+        plainAccessResource.setSecretKey(plainAccessConfig.getSecretKey());
+        plainAccessResource.setWhiteRemoteAddress(plainAccessConfig.getWhiteRemoteAddress());
 
-            if (plainAccessResourceMap.containsKey(plainAccessResource.getAccessKey())) {
-                log.warn("Duplicate acl config  for {}, the newly one may overwrite the old", plainAccessResource.getAccessKey());
-            }
-            plainAccessResourceMap.put(plainAccessResource.getAccessKey(), plainAccessResource);
-        } catch (Exception e) {
-            throw new AclException(String.format("Load plain access resource failed %s  %s", e.getMessage(), plainAccessResource.toString()), e);
-        }
-    }
+        plainAccessResource.setAdmin(plainAccessConfig.isAdmin());
 
-    private void addGlobalWhiteRemoteAddress(String remoteAddresses) {
-        globalWhiteRemoteAddressStrategy.add(remoteAddressStrategyFactory.getRemoteAddressStrategy(remoteAddresses));
+        plainAccessResource.setDefaultGroupPerm(Permission.parsePermFromString(plainAccessConfig.getDefaultGroupPerm()));
+        plainAccessResource.setDefaultTopicPerm(Permission.parsePermFromString(plainAccessConfig.getDefaultTopicPerm()));
+
+        Permission.parseResourcePerms(plainAccessResource, false, plainAccessConfig.getGroupPerms());
+        Permission.parseResourcePerms(plainAccessResource, true, plainAccessConfig.getTopicPerms());
+
+        plainAccessResource.setRemoteAddressStrategy(remoteAddressStrategyFactory.
+                getRemoteAddressStrategy(plainAccessResource.getWhiteRemoteAddress()));
+
+        return plainAccessResource;
     }
 
     public void validate(PlainAccessResource plainAccessResource) {

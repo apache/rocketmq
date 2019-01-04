@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
+import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.common.protocol.RequestCode;
@@ -229,5 +230,41 @@ public class PlainAccessValidatorTest {
         plainAccessValidator.validate(accessResource);
     }
 
+    @Test(expected = AclException.class)
+    public void validateNullAccessKeyTest() {
+        SessionCredentials sessionCredentials=new SessionCredentials();
+        sessionCredentials.setAccessKey("RocketMQ1");
+        sessionCredentials.setSecretKey("1234");
+        AclClientRPCHook aclClientRPCHook=new AclClientRPCHook(sessionCredentials);
+        SendMessageRequestHeader messageRequestHeader = new SendMessageRequestHeader();
+        messageRequestHeader.setTopic("topicB");
+        RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, messageRequestHeader);
+        aclClientRPCHook.doBeforeRequest("", remotingCommand);
 
+        ByteBuffer buf = remotingCommand.encodeHeader();
+        buf.getInt();
+        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
+        buf.position(0);
+        PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.1.1");
+        plainAccessValidator.validate(accessResource);
+    }
+
+    @Test(expected = AclException.class)
+    public void validateErrorSecretKeyTest() {
+        SessionCredentials sessionCredentials=new SessionCredentials();
+        sessionCredentials.setAccessKey("RocketMQ");
+        sessionCredentials.setSecretKey("1234");
+        AclClientRPCHook aclClientRPCHook=new AclClientRPCHook(sessionCredentials);
+        SendMessageRequestHeader messageRequestHeader = new SendMessageRequestHeader();
+        messageRequestHeader.setTopic("topicB");
+        RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, messageRequestHeader);
+        aclClientRPCHook.doBeforeRequest("", remotingCommand);
+
+        ByteBuffer buf = remotingCommand.encodeHeader();
+        buf.getInt();
+        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
+        buf.position(0);
+        PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.1.1");
+        plainAccessValidator.validate(accessResource);
+    }
 }
