@@ -167,7 +167,6 @@ public class RemotingUtil {
         SocketChannel sc = null;
         try {
             sc = SocketChannel.open();
-            sc.configureBlocking(true);
             sc.socket().setSoLinger(false, -1);
             sc.socket().setTcpNoDelay(true);
             sc.socket().setReceiveBufferSize(1024 * 64);
