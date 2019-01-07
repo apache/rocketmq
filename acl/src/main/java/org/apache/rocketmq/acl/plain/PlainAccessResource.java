@@ -24,7 +24,7 @@ import org.apache.rocketmq.common.MixAll;
 
 public class PlainAccessResource implements AccessResource {
 
-    //identify the user
+    // Identify the user
     private String accessKey;
 
     private String secretKey;

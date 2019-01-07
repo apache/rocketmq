@@ -58,7 +58,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private final int maxMsgSize;
     private final DefaultMQProducer traceProducer;
     private final ThreadPoolExecutor traceExecuter;
-    // the last discard number of log
+    // The last discard number of log
     private AtomicLong discardCount;
     private Thread worker;
     private ArrayBlockingQueue<TraceContext> traceContextQueue;
@@ -143,7 +143,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             traceProducerInstance.setSendMsgTimeout(5000);
             traceProducerInstance.setInstanceName(TRACE_INSTANCE_NAME);
             traceProducerInstance.setVipChannelEnabled(false);
-            //the max size of message is 128K
+            // The max size of message is 128K
             traceProducerInstance.setMaxMessageSize(maxMsgSize - 10 * 1000);
         }
         return traceProducerInstance;
@@ -160,7 +160,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
 
     @Override
     public void flush() throws IOException {
-        // the maximum waiting time for refresh,avoid being written all the time, resulting in failure to return.
+        // The maximum waiting time for refresh,avoid being written all the time, resulting in failure to return.
         long end = System.currentTimeMillis() + 500;
         while (traceContextQueue.size() > 0 || appenderQueue.size() > 0 && System.currentTimeMillis() <= end) {
             try {
@@ -263,9 +263,9 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 if (context.getTraceBeans().isEmpty()) {
                     continue;
                 }
-                //1.topic value corresponding to original message entity content
+                // Topic value corresponding to original message entity content
                 String topic = context.getTraceBeans().get(0).getTopic();
-                //2.use  original message entity's topic as key
+                // Use  original message entity's topic as key
                 String key = topic;
                 List<TraceTransferBean> transBeanList = transBeanMap.get(key);
                 if (transBeanList == null) {
@@ -281,26 +281,26 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         }
 
         /**
-         * batch sending data actually
+         * Batch sending data actually
          */
         private void flushData(List<TraceTransferBean> transBeanList) {
             if (transBeanList.size() == 0) {
                 return;
             }
-            // temporary buffer
+            // Temporary buffer
             StringBuilder buffer = new StringBuilder(1024);
             int count = 0;
             Set<String> keySet = new HashSet<String>();
 
             for (TraceTransferBean bean : transBeanList) {
-                // keyset of message trace includes msgId of or original message
+                // Keyset of message trace includes msgId of or original message
                 keySet.addAll(bean.getTransKey());
                 buffer.append(bean.getTransData());
                 count++;
                 // Ensure that the size of the package should not exceed the upper limit.
                 if (buffer.length() >= traceProducer.getMaxMessageSize()) {
                     sendTraceDataByMQ(keySet, buffer.toString());
-                    // clear temporary buffer after finishing
+                    // Clear temporary buffer after finishing
                     buffer.delete(0, buffer.length());
                     keySet.clear();
                     count = 0;
@@ -313,7 +313,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         }
 
         /**
-         * send message trace data
+         * Send message trace data
          *
          * @param keySet the keyset in this batch(including msgId in original message not offsetMsgId)
          * @param data   the message trace data in this batch
@@ -322,7 +322,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             String topic = traceTopicName;
             final Message message = new Message(topic, data.getBytes());
 
-            //keyset of message trace includes msgId of or original message
+            // Keyset of message trace includes msgId of or original message
             message.setKeys(keySet);
             try {
                 Set<String> traceBrokerSet = tryGetMessageQueueBrokerSet(traceProducer.getDefaultMQProducerImpl(), topic);
@@ -337,7 +337,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                     }
                 };
                 if (traceBrokerSet.isEmpty()) {
-                    //no cross set
+                    // No cross set
                     traceProducer.send(message, callback, 5000);
                 } else {
                     traceProducer.send(message, new MessageQueueSelector() {

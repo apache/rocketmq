@@ -150,12 +150,12 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Constructor specifying both producer group and RPC hook.
+     * Constructor specifying producer group, RPC hook, enabled msgTrace flag and customized trace topic name.
      *
      * @param producerGroup Producer group, see the name-sake field.
      * @param rpcHook RPC hook to execute per each remoting command execution.
-     * @param enableMsgTrace switch flag instance for message trace.
-     * @param customizedTraceTopic the name value of message trace topic.If you don't config,you can use the default trace topic name.
+     * @param enableMsgTrace Switch flag instance for message trace.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
      */
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,final String customizedTraceTopic) {
         this.producerGroup = producerGroup;
@@ -184,10 +184,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Constructor specifying producer group.
+     * Constructor specifying producer group and enabled msg trace flag.
      *
      * @param producerGroup Producer group, see the name-sake field.
-     * @param enableMsgTrace switch flag instance for message trace.
+     * @param enableMsgTrace Switch flag instance for message trace.
      */
     public DefaultMQProducer(final String producerGroup, boolean enableMsgTrace) {
         this(producerGroup, null, enableMsgTrace, null);
@@ -195,11 +195,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
 
     /**
-     * Constructor specifying producer group.
+     * Constructor specifying producer group, enabled msgTrace flag and customized trace topic name.
      *
      * @param producerGroup Producer group, see the name-sake field.
-     * @param enableMsgTrace switch flag instance for message trace.
-     * @param customizedTraceTopic the name value of message trace topic.If you don't config,you can use the default trace topic name.
+     * @param enableMsgTrace Switch flag instance for message trace.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
      */
     public DefaultMQProducer(final String producerGroup, boolean enableMsgTrace, final String customizedTraceTopic) {
         this(producerGroup, null, enableMsgTrace, customizedTraceTopic);

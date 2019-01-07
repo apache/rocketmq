@@ -22,12 +22,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * encode/decode for Trace Data
+ * Encode/decode for Trace Data
  */
 public class TraceDataEncoder {
 
     /**
-     * resolving traceContext list From trace data String
+     * Resolving traceContext list From trace data String
      *
      * @param traceData
      * @return
