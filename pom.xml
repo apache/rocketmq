@@ -216,9 +216,6 @@
                     <execution>
                         <id>generate-effective-dependencies-pom</id>
                         <phase>generate-resources</phase>
-                        <!-- <goals>
-                            <goal>effective-pom</goal>
-                        </goals> -->
                         <configuration>
                             <output>${project.build.directory}/effective-pom/effective-dependencies.xml</output>
                         </configuration>

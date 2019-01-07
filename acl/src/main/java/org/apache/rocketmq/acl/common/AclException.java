@@ -17,7 +17,7 @@
 package org.apache.rocketmq.acl.common;
 
 public class AclException extends RuntimeException {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = -7256002576788700354L;
 
     private String status;
     private int code;
@@ -30,12 +30,6 @@ public class AclException extends RuntimeException {
 
     public AclException(String status, int code, String message) {
         super(message);
-        this.status = status;
-        this.code = code;
-    }
-
-    public AclException(String status, int code, Throwable throwable) {
-        super(throwable);
         this.status = status;
         this.code = code;
     }
