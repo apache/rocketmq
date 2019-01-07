@@ -61,7 +61,7 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
             String traceOn = msg.getProperty(MessageConst.PROPERTY_TRACE_SWITCH);
 
             if (traceOn != null && traceOn.equals("false")) {
-                // if trace switch is false ,skip it
+                // If trace switch is false ,skip it
                 continue;
             }
             TraceBean traceBean = new TraceBean();
@@ -90,7 +90,7 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
         TraceContext subBeforeContext = (TraceContext) context.getMqTraceContext();
 
         if (subBeforeContext.getTraceBeans() == null || subBeforeContext.getTraceBeans().size() < 1) {
-            // if subbefore bean is null ,skip it
+            // If subbefore bean is null ,skip it
             return;
         }
         TraceContext subAfterContext = new TraceContext();
@@ -100,7 +100,7 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
         subAfterContext.setRequestId(subBeforeContext.getRequestId());//
         subAfterContext.setSuccess(context.isSuccess());//
 
-        //caculate the cost time for processing messages
+        // Caculate the cost time for processing messages
         int costTime = (int) ((System.currentTimeMillis() - subBeforeContext.getTimeStamp()) / context.getMsgList().size());
         subAfterContext.setCostTime(costTime);//
         subAfterContext.setTraceBeans(subBeforeContext.getTraceBeans());

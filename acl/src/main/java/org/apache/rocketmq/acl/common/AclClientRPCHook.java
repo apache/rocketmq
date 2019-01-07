@@ -57,14 +57,14 @@ public class AclClientRPCHook implements RPCHook {
 
     protected SortedMap<String, String> parseRequestContent(RemotingCommand request, String ak, String securityToken) {
         CommandCustomHeader header = request.readCustomHeader();
-        // sort property
+        // Sort property
         SortedMap<String, String> map = new TreeMap<String, String>();
         map.put(ACCESS_KEY, ak);
         if (securityToken != null) {
             map.put(SECURITY_TOKEN, securityToken);
         }
         try {
-            // add header properties
+            // Add header properties
             if (null != header) {
                 Field[] fields = fieldCache.get(header.getClass());
                 if (null == fields) {

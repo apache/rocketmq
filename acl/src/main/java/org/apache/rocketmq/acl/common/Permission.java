@@ -33,11 +33,11 @@ public class Permission {
     public static final Set<Integer> ADMIN_CODE = new HashSet<Integer>();
 
     static {
-        //  UPDATE_AND_CREATE_TOPIC
+        // UPDATE_AND_CREATE_TOPIC
         ADMIN_CODE.add(RequestCode.UPDATE_AND_CREATE_TOPIC);
-        //  UPDATE_BROKER_CONFIG
+        // UPDATE_BROKER_CONFIG
         ADMIN_CODE.add(RequestCode.UPDATE_BROKER_CONFIG);
-        //  DELETE_TOPIC_IN_BROKER
+        // DELETE_TOPIC_IN_BROKER
         ADMIN_CODE.add(RequestCode.DELETE_TOPIC_IN_BROKER);
         // UPDATE_AND_CREATE_SUBSCRIPTIONGROUP
         ADMIN_CODE.add(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP);

@@ -30,21 +30,21 @@ public interface TraceDispatcher {
     void start(String nameSrvAddr) throws MQClientException;
 
     /**
-     * append the transfering data
+     * Append the transfering data
      * @param ctx data infomation
      * @return
      */
     boolean append(Object ctx);
 
     /**
-     * write flush action
+     * Write flush action
      *
      * @throws IOException
      */
     void flush() throws IOException;
 
     /**
-     * close the trace Hook
+     * Close the trace Hook
      */
     void shutdown();
 }

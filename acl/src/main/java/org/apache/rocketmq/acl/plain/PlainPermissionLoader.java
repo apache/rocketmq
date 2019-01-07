@@ -119,7 +119,7 @@ public class PlainPermissionLoader {
         Map<String, Byte> ownedPermMap = ownedAccess.getResourcePermMap();
 
         if (needCheckedPermMap == null) {
-            //if the needCheckedPermMap is null,then return
+            // If the needCheckedPermMap is null,then return
             return;
         }
 
@@ -129,7 +129,7 @@ public class PlainPermissionLoader {
             boolean isGroup = PlainAccessResource.isRetryTopic(resource);
 
             if (!ownedPermMap.containsKey(resource)) {
-                //Check the default perm
+                // Check the default perm
                 byte ownedPerm = isGroup ? needCheckedAccess.getDefaultGroupPerm() :
                     needCheckedAccess.getDefaultTopicPerm();
                 if (!Permission.checkPermission(neededPerm, ownedPerm)) {
@@ -178,7 +178,7 @@ public class PlainPermissionLoader {
 
     public void validate(PlainAccessResource plainAccessResource) {
 
-        //Step 1, check the global white remote addr
+        // Check the global white remote addr
         for (RemoteAddressStrategy remoteAddressStrategy : globalWhiteRemoteAddressStrategy) {
             if (remoteAddressStrategy.match(plainAccessResource)) {
                 return;
@@ -193,18 +193,18 @@ public class PlainPermissionLoader {
             throw new AclException(String.format("No acl config for %s", plainAccessResource.getAccessKey()));
         }
 
-        //Step 2, check the white addr for accesskey
+        // Check the white addr for accesskey
         PlainAccessResource ownedAccess = plainAccessResourceMap.get(plainAccessResource.getAccessKey());
         if (ownedAccess.getRemoteAddressStrategy().match(plainAccessResource)) {
             return;
         }
 
-        //Step 3, check the signature
+        // Check the signature
         String signature = AclUtils.calSignature(plainAccessResource.getContent(), ownedAccess.getSecretKey());
         if (!signature.equals(plainAccessResource.getSignature())) {
             throw new AclException(String.format("Check signature failed for accessKey=%s", plainAccessResource.getAccessKey()));
         }
-        //Step 4, check perm of each resource
+        // Check perm of each resource
 
         checkPerm(plainAccessResource, ownedAccess);
     }
