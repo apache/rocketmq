@@ -39,7 +39,6 @@ public class RemoteAddressStrategyFactory {
 
     public RemoteAddressStrategy getRemoteAddressStrategy(String remoteAddr) {
         if (StringUtils.isBlank(remoteAddr)) {
-            log.warn("white list address is null");
             return BLANK_NET_ADDRESS_STRATEGY;
         }
         if ("*".equals(remoteAddr)) {
