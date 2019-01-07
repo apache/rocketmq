@@ -125,7 +125,7 @@
         <module>distribution</module>
         <module>openmessaging</module>
         <module>logging</module>
-        <module>rocketmq-snode</module>
+        <module>snode</module>
     </modules>
 
     <build>

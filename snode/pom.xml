@@ -72,10 +72,6 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
-        <!--<dependency>-->
-            <!--<groupId>org.apache.rocketmq</groupId>-->
-            <!--<artifactId>rocketmq-broker</artifactId>-->
-        <!--</dependency>-->
     </dependencies>
 
     <build>

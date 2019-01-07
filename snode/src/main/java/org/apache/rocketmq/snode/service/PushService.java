@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.snode.service;
 
-import org.apache.rocketmq.remoting.RemotingChannel;
-
 public interface PushService {
     boolean registerPushSession(String consumerGroup);
 
