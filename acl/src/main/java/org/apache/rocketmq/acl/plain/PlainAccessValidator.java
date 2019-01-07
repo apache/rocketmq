@@ -111,7 +111,7 @@ public class PlainAccessValidator implements AccessValidator {
         } catch (Throwable t) {
             throw new AclException(t.getMessage(), t);
         }
-        // content
+        // Content
         SortedMap<String, String> map = new TreeMap<String, String>();
         for (Map.Entry<String, String> entry : request.getExtFields().entrySet()) {
             if (!SessionCredentials.SIGNATURE.equals(entry.getKey())) {

@@ -256,7 +256,7 @@ public class MQAdminStartup {
             System.out.printf(" Cannot find conf file %s, acl is not be enabled.%n" ,fileHome + fileName);
             return null;
         }
-        // admin ak sk
+
         String accessKey = yamlDataObject.getString("accessKey");
         String secretKey = yamlDataObject.getString("secretKey");
 

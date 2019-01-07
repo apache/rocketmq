@@ -270,7 +270,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      *
      * @param consumerGroup Consume queue.
      * @param rpcHook RPC hook to execute before each remoting command.
-     * @param allocateMessageQueueStrategy message queue allocating algorithm.
+     * @param allocateMessageQueueStrategy Message queue allocating algorithm.
      */
     public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
@@ -280,13 +280,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     }
 
     /**
-     * Constructor specifying consumer group, RPC hook and message queue allocating algorithm.
+     * Constructor specifying consumer group, RPC hook, message queue allocating algorithm, enabled msg trace flag and customized trace topic name.
      *
      * @param consumerGroup Consume queue.
      * @param rpcHook RPC hook to execute before each remoting command.
      * @param allocateMessageQueueStrategy message queue allocating algorithm.
-     * @param enableMsgTrace switch flag instance for message trace.
-     * @param customizedTraceTopic the name value of message trace topic.If you don't config,you can use the default trace topic name.
+     * @param enableMsgTrace Switch flag instance for message trace.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
      */
     public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean enableMsgTrace, final String customizedTraceTopic) {
@@ -317,21 +317,21 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
 
     /**
-     * Constructor specifying consumer group.
+     * Constructor specifying consumer group and enabled msg trace flag.
      *
      * @param consumerGroup Consumer group.
-     * @param enableMsgTrace switch flag instance for message trace.
+     * @param enableMsgTrace Switch flag instance for message trace.
      */
     public DefaultMQPushConsumer(final String consumerGroup, boolean enableMsgTrace) {
         this(consumerGroup, null, new AllocateMessageQueueAveragely(), enableMsgTrace, null);
     }
 
     /**
-     * Constructor specifying consumer group.
+     * Constructor specifying consumer group, enabled msg trace flag and customized trace topic name.
      *
      * @param consumerGroup Consumer group.
-     * @param enableMsgTrace switch flag instance for message trace.
-     * @param customizedTraceTopic the name value of message trace topic.If you don't config,you can use the default trace topic name.
+     * @param enableMsgTrace Switch flag instance for message trace.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
      */
     public DefaultMQPushConsumer(final String consumerGroup, boolean enableMsgTrace, final String customizedTraceTopic) {
         this(consumerGroup, null, new AllocateMessageQueueAveragely(), enableMsgTrace, customizedTraceTopic);

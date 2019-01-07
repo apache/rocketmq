@@ -24,7 +24,8 @@ public interface AccessValidator {
      * Parse to get the AccessResource(user, resource, needed permission)
      *
      * @param request
-     * @return
+     * @param remoteAddr
+     * @return Plain access resource result,include access key,signature and some other access attributes.
      */
     AccessResource parse(RemotingCommand request, String remoteAddr);
 
