@@ -1,15 +1,15 @@
-## 8 运维管理(operation）
+## 运维管理(operation）
 
-### 8.1   集群搭建
+### 1   集群搭建
 
-#### 8.1.1 单Master模式
+#### 1.1 单Master模式
 
 这种方式风险较大，一旦Broker重启或者宕机时，会导致整个服务不可用。不建议线上环境使用,可以用于本地测试。
 
 ##### 1）启动 NameServer
 
 ```bash
-### 首先启动Name Server，例如机器IP为：192.168.1.1:9876
+### 首先启动Name Server，例如机器IP为：192.161.1:9876
 $ nohup sh mqnamesrv &
  
 ### 验证Name Server 是否启动成功
@@ -20,14 +20,14 @@ The Name Server boot success...
 ##### 2）启动 Broker
 
 ```bash
-### 启动Broker，例如机器IP为：192.168.1.1:9876
+### 启动Broker，例如机器IP为：192.161.1:9876
 $ nohup sh bin/mqbroker -n localhost:9876 &
 ### 验证Name Server 是否启动成功
-$ tail -f ~/logs/rocketmqlogs/broker.log 
+$ tail -f ~/logs/rocketmqlogs/Broker.log 
 The broker[%s, 172.30.30.233:10911] boot success...
 ```
 
-#### 8.1.2 多Master模式
+#### 1.2 多Master模式
 
 一个集群无Slave，全是Master，例如2个Master或者3个Master，这种模式的优缺点如下：
 
@@ -40,7 +40,7 @@ The broker[%s, 172.30.30.233:10911] boot success...
 NameServer需要先于Broker启动，生产环境 需要启动多个保证高可用，一般规模的集群启动3个NameServer即可，各节点的启动命令相同，命令如下：
 
 ```bash
-### 首先启动Name Server，例如机器IP为：192.168.1.1:9876
+### 首先启动Name Server，例如机器IP为：192.161.1:9876
 $ nohup sh mqnamesrv &
  
 ### 验证Name Server 是否启动成功
@@ -52,17 +52,17 @@ The Name Server boot success...
 
 ```bash
 ### 在机器A，启动第一个Master
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-a.properties &
+$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-a.properties &
  
 ### 在机器B，启动第二个Master
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-b.properties &
+$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-b.properties &
 
 ...
 ```
 
-如上启动命令是在单个NameServer情况下使用的。对于多个NameServer的集群，Broker启动命令中 -n后面的地址列表用分号隔开即可，例如 192.168.1.1:9876;192.168.1.2:9876。
+如上启动命令是在单个NameServer情况下使用的。对于多个NameServer的集群，Broker启动命令中 -n后面的地址列表用分号隔开即可，例如 192.161.1:9876;192.161.2:9876。
 
-#### 8.1.3 多Master多Slave模式-异步复制
+#### 1.3 多Master多Slave模式-异步复制
 
 每个Master配置一个Slave，有多对Master-Slave，HA采用异步复制方式，主备有短暂消息延迟，毫秒级，这种模式的优缺点如下：
 
@@ -73,7 +73,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker
 ##### 1）启动NameServer
 
 ```bash
-### 首先启动Name Server，例如机器IP为：192.168.1.1:9876
+### 首先启动Name Server，例如机器IP为：192.161.1:9876
 $ nohup sh mqnamesrv &
  
 ### 验证Name Server 是否启动成功
@@ -85,19 +85,19 @@ The Name Server boot success...
 
 ```bash
 ### 在机器A，启动第一个Master
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-a.properties &
+$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-a.properties &
  
 ### 在机器B，启动第二个Master
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-b.properties &
+$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-b.properties &
  
 ### 在机器C，启动第一个Slave
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-a-s.properties &
+$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-a-s.properties &
  
 ### 在机器D，启动第二个Slave
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-b-s.properties &
+$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-b-s.properties &
 ```
 
-#### 8.1.4 多Master多Slave模式-同步双写
+#### 1.4 多Master多Slave模式-同步双写
 
 每个Master配置一个Slave，有多对Master-Slave，HA采用同步双写方式，主备都写成功，向应用返回成功，这种模式的优缺点如下：
 
@@ -108,7 +108,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broke
 ##### 1）启动NameServer
 
 ```bash
-### 首先启动Name Server，例如机器IP为：192.168.1.1:9876
+### 首先启动Name Server，例如机器IP为：192.161.1:9876
 $ nohup sh mqnamesrv &
  
 ### 验证Name Server 是否启动成功
@@ -120,32 +120,32 @@ The Name Server boot success...
 
 ```bash
 ### 在机器A，启动第一个Master
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-a.properties &
+$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-a.properties &
  
 ### 在机器B，启动第二个Master
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b.properties &
+$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b.properties &
  
 ### 在机器C，启动第一个Slave
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-a-s.properties &
+$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-a-s.properties &
  
 ### 在机器D，启动第二个Slave
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b-s.properties &
+$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b-s.properties &
 ```
 
-以上Broker与Slave配对是通过指定相同的brokerName参数来配对，Master的BrokerId必须是0，Slave的BrokerId必须是大于0的数。另外一个Master下面可以挂载多个Slave，同一Master下的多个Slave通过指定不同的BrokerId来区分。$ROCKETMQ_HOME指的RocketMQ安装目录，需要用户自己设置此环境变量。
+以上Broker与Slave配对是通过指定相同的BrokerName参数来配对，Master的BrokerId必须是0，Slave的BrokerId必须是大于0的数。另外一个Master下面可以挂载多个Slave，同一Master下的多个Slave通过指定不同的BrokerId来区分。$ROCKETMQ_HOME指的RocketMQ安装目录，需要用户自己设置此环境变量。
 
-### 8.2 mqadmin管理工具
+### 2 mqadmin管理工具
 
 > 注意：
 >
 > 1. 执行命令方法：`./mqadmin {command} {args}`
 > 2. 几乎所有命令都需要配置-n表示namesrv地址，格式为ip:port
 > 3. 几乎所有命令都可以通过-h获取帮助
-> 4. 如果既有broker地址（-b）配置项又有clusterName（-c）配置项，则优先以broker地址执行命令，如果不配置broker地址，则对集群中所有主机执行命令，只支持一个broker地址。-b格式为ip:port，port默认是10911
+> 4. 如果既有Broker地址（-b）配置项又有clusterName（-c）配置项，则优先以Broker地址执行命令，如果不配置Broker地址，则对集群中所有主机执行命令，只支持一个Broker地址。-b格式为ip:port，port默认是10911
 > 5. 在tools下可以看到很多命令，但并不是所有命令都能使用，只有在MQAdminStartup中初始化的命令才能使用，你也可以修改这个类，增加或自定义命令
 > 6. 由于版本更新问题，少部分命令可能未及时更新，遇到错误请直接阅读相关命令源码
 
-#### 8.2.1 Topic相关
+#### 2.1 Topic相关
 
 <table border=0 cellpadding=0 cellspacing=0 width=714>
  <col width=177>
@@ -164,8 +164,8 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=8 class=xl70 width=135 style='border-bottom:1.0pt;
   border-top:none;width:101pt'>创建Topic或更新Topic配置</td>
   <td class=xl65 width=149 style='width:112pt'>-b</td>
-  <td class=xl66 width=159 style='width:119pt'>broker 地址，表示 topic 所在
-  broker，只支持单台broker，地址为ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>Broker 地址，表示 topic 所在
+  Broker，只支持单台Broker，地址为ip:port</td>
  </tr>
  <tr height=132 style='height:99.0pt'>
   <td height=132 class=xl65 width=149 style='height:99.0pt;width:112pt'>-c</td>
@@ -286,7 +286,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td rowspan=6 height=518 class=xl68 width=163 style='border-bottom:1.0pt;
-  height:388.0pt;border-top:none;width:122pt'>updateTopicPerm</td>
+  height:380pt;border-top:none;width:122pt'>updateTopicPerm</td>
   <td rowspan=6 class=xl70 width=135 style='border-bottom:1.0pt;
   border-top:none;width:101pt'>更新 Topic 读写权限</td>
   <td class=xl65 width=149 style='width:112pt'>-t</td>
@@ -302,8 +302,8 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=132 style='height:99.0pt'>
   <td height=132 class=xl65 width=149 style='height:99.0pt;width:112pt'>-b</td>
-  <td class=xl66 width=159 style='width:119pt'>broker 地址，表示 topic 所在
-  broker，只支持单台broker，地址为ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>Broker 地址，表示 topic 所在
+  Broker，只支持单台Broker，地址为ip:port</td>
  </tr>
  <tr height=76 style='height:57.0pt'>
   <td height=76 class=xl65 width=149 style='height:57.0pt;width:112pt'>-p</td>
@@ -312,7 +312,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  <tr height=207 style='height:155.0pt'>
   <td height=207 class=xl65 width=149 style='height:155.0pt;width:112pt'>-c</td>
   <td class=xl66 width=159 style='width:119pt'>cluster 名称，表示 topic 所在集群（集群可通过
-  clusterList 查询），-b优先，如果没有-b，则对集群中所有broker执行命令</td>
+  clusterList 查询），-b优先，如果没有-b，则对集群中所有Broker执行命令</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td rowspan=5 height=199 class=xl68 width=163 style='border-bottom:1.0pt;
@@ -340,7 +340,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td rowspan=4 height=198 class=xl68 width=163 style='border-bottom:1.0pt;
-  height:148.0pt;border-top:none;width:122pt'>allocateMQ</td>
+  height:140pt;border-top:none;width:122pt'>allocateMQ</td>
   <td rowspan=4 class=xl70 width=135 style='border-bottom:1.0pt;
   border-top:none;width:101pt'>以平均负载算法计算消费者列表负载消息队列的负载结果</td>
   <td class=xl65 width=149 style='width:112pt'>-t</td>
@@ -381,7 +381,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 </table>
 
 
-#### 8.2.2 集群相关
+#### 2.2 集群相关
 
 <table border=0 cellpadding=0 cellspacing=0 width=714>
  <col width=177>
@@ -399,7 +399,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   height:244.0pt;border-top:none;width:133pt'><span
   style='mso-spacerun:yes'> </span>clusterList</td>
   <td rowspan=4 class=xl70 width=175 style='border-bottom:1.0pt;
-  border-top:none;width:131pt'>查看集群信息，集群、brokerName、brokerId、TPS等信息</td>
+  border-top:none;width:131pt'>查看集群信息，集群、BrokerName、BrokerId、TPS等信息</td>
   <td class=xl65 width=177 style='width:133pt'>-m</td>
   <td class=xl66 width=185 style='width:139pt'>打印更多信息 (增加打印出如下信息 #InTotalYest,
   #OutTotalYest, #InTotalToday ,#OutTotalToday)</td>
@@ -420,7 +420,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=8 height=391 class=xl67 width=177 style='border-bottom:1.0pt;
   height:292.0pt;border-top:none;width:133pt'>clusterRT</td>
   <td rowspan=8 class=xl70 width=175 style='border-bottom:1.0pt;
-  border-top:none;width:131pt'>发送消息检测集群各broker RT。消息发往${brokerName} Topic。</td>
+  border-top:none;width:131pt'>发送消息检测集群各Broker RT。消息发往${BrokerName} Topic。</td>
   <td class=xl65 width=177 style='width:133pt'>-a</td>
   <td class=xl66 width=185 style='width:139pt'>amount，每次探测的探测总数，RT = 总时间 /
   amount</td>
@@ -456,7 +456,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 </table>
 
 
-#### 8.2.3 Broker相关
+#### 2.3 Broker相关
 
 <table border=0 cellpadding=0 cellspacing=0 width=714>
  <col width=177>
@@ -473,9 +473,9 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=6 height=206 class=xl69 width=191 style='border-bottom:1.0pt;
   height:154.0pt;border-top:none;width:143pt'>updateBrokerConfig</td>
   <td rowspan=6 class=xl72 width=87 style='border-bottom:1.0pt;
-  border-top:none;width:65pt'>更新 Broker 配置文件，会修改broker.conf</td>
+  border-top:none;width:65pt'>更新 Broker 配置文件，会修改Broker.conf</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>broker 地址，格式为ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker 地址，格式为ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-c</td>
@@ -499,11 +499,11 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td rowspan=3 height=137 class=xl69 width=191 style='border-bottom:1.0pt;
-  height:103.0pt;border-top:none;width:143pt'>brokerStatus</td>
+  height:103.0pt;border-top:none;width:143pt'>BrokerStatus</td>
   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt;
   border-top:none;width:65pt'>查看 Broker 统计信息、运行状态（你想要的信息几乎都在里面）</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>broker 地址，地址为ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker 地址，地址为ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -515,12 +515,12 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td rowspan=6 height=256 class=xl69 width=191 style='border-bottom:1.0pt;
-  height:192.0pt;border-top:none;width:143pt'>brokerConsumeStats</td>
+  height:192.0pt;border-top:none;width:143pt'>BrokerConsumeStats</td>
   <td rowspan=6 class=xl72 width=87 style='border-bottom:1.0pt;
   border-top:none;width:65pt'>Broker中各个消费者的消费情况，按Message Queue维度返回Consume
   Offset，Broker Offset，Diff，TImestamp等信息</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>broker 地址，地址为ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker 地址，地址为ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-t</td>
@@ -548,7 +548,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=2 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>获取Broker配置</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>broker 地址，地址为ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker 地址，地址为ip:port</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
@@ -560,7 +560,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>从namesrv上清除 Broker写权限</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>broker 地址，地址为ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker 地址，地址为ip:port</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
@@ -584,7 +584,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>broker 地址，地址为ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker 地址，地址为ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-c</td>
@@ -605,7 +605,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>broker 地址，地址为ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker 地址，地址为ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-c</td>
@@ -615,7 +615,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=5 height=199 class=xl69 width=191 style='border-bottom:1.0pt;
   height:149.0pt;border-top:none;width:143pt'>sendMsgStatus</td>
   <td rowspan=5 class=xl72 width=87 style='border-bottom:1.0pt
-  border-top:none;width:65pt'>向broker发消息，返回发送状态和RT</td>
+  border-top:none;width:65pt'>向Broker发消息，返回发送状态和RT</td>
   <td class=xl67 width=87 style='width:65pt'>-n</td>
   <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
  </tr>
@@ -625,7 +625,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>brokerName，注意不同于broker地址</td>
+  <td class=xl68 width=87 style='width:65pt'>BrokerName，注意不同于Broker地址</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl67 width=87 style='height:29.0pt;width:65pt'>-s</td>
@@ -638,7 +638,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 </table>
 
 
-#### 8.2.4 消息相关
+#### 2.4 消息相关
 
 <table border=0 cellpadding=0 cellspacing=0 width=714>
  <col width=177>
@@ -693,8 +693,8 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=6 class=xl72 width=87 style='border-bottom:1.0pt;
   border-top:none;width:65pt'>根据 Offset 查询消息</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>Broker 名称，表示订阅组建在该 broker（这里需要注意
-  填写的是 broker 的名称，不是 broker 的地址，broker 名称可以在 clusterList 查到）</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker 名称，表示订阅组建在该 Broker（这里需要注意
+  填写的是 Broker 的名称，不是 Broker 的地址，Broker 名称可以在 clusterList 查到）</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl67 width=87 style='height:29.0pt;width:65pt'>-i</td>
@@ -798,7 +798,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-b</td>
-  <td class=xl67 width=87 style='width:65pt'>brokerName</td>
+  <td class=xl67 width=87 style='width:65pt'>BrokerName</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-i</td>
@@ -822,7 +822,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-b</td>
-  <td class=xl67 width=87 style='width:65pt'>brokerName</td>
+  <td class=xl67 width=87 style='width:65pt'>BrokerName</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl67 width=87 style='height:29.0pt;width:65pt'>-o</td>
@@ -852,7 +852,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=8 height=282 class=xl69 width=87 style='border-bottom:1.0pt;
   height:210.0pt;border-top:none;width:65pt'>printMsg</td>
   <td rowspan=8 class=xl72 width=87 style='border-bottom:1.0pt;
-  border-top:none;width:65pt'>从broker消费消息并打印，可选时间段</td>
+  border-top:none;width:65pt'>从Broker消费消息并打印，可选时间段</td>
   <td class=xl67 width=87 style='width:65pt'>-h</td>
   <td class=xl68 width=87 style='width:65pt'>打印帮助</td>
  </tr>
@@ -906,7 +906,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-a</td>
-  <td class=xl67 width=87 style='width:65pt'>brokerName</td>
+  <td class=xl67 width=87 style='width:65pt'>BrokerName</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl67 width=87 style='height:29.0pt;width:65pt'>-c</td>
@@ -940,7 +940,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=7 height=410 class=xl69 width=87 style='border-bottom:1.0pt;
   height:307.0pt;border-top:none;width:65pt'>resetOffsetByTime</td>
   <td rowspan=7 class=xl72 width=87 style='border-bottom:1.0pt;
-  border-top:none;width:65pt'>按时间戳重置offset，broker和consumer都会重置</td>
+  border-top:none;width:65pt'>按时间戳重置offset，Broker和consumer都会重置</td>
   <td class=xl67 width=87 style='width:65pt'>-h</td>
   <td class=xl68 width=87 style='width:65pt'>打印帮助</td>
  </tr>
@@ -971,7 +971,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 </table>
 
 
-#### 8.2.5 消费者、消费组相关
+#### 2.5 消费者、消费组相关
 
 <table border=0 cellpadding=0 cellspacing=0 width=714>
  <col width=177>
@@ -986,7 +986,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td rowspan=4 height=158 class=xl69 width=87 style='border-bottom:1.0pt;
-  height:118.0pt;border-top:none;width:65pt'>consumerProgress</td>
+  height:110pt;border-top:none;width:65pt'>consumerProgress</td>
   <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt;
   border-top:none;width:65pt'>查看订阅组消费状态，可以查看具体的client IP的消息积累量</td>
   <td class=xl67 width=87 style='width:65pt'>-g</td>
@@ -1067,7 +1067,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>broker地址</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker地址</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-c</td>
@@ -1099,11 +1099,11 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=207 style='height:155.0pt'>
   <td height=207 class=xl67 width=87 style='height:155.0pt;width:65pt'>-i</td>
-  <td class=xl68 width=87 style='width:65pt'>当slaveReadEnable开启时有效，且还未达到从slave消费时建议从哪个brokerId消费，可以配置备机id，主动从备机消费</td>
+  <td class=xl68 width=87 style='width:65pt'>当slaveReadEnable开启时有效，且还未达到从slave消费时建议从哪个BrokerId消费，可以配置备机id，主动从备机消费</td>
  </tr>
  <tr height=132 style='height:99.0pt'>
   <td height=132 class=xl67 width=87 style='height:99.0pt;width:65pt'>-w</td>
-  <td class=xl68 width=87 style='width:65pt'>如果broker建议从slave消费，配置决定从哪个slave消费，配置brokerId，例如1</td>
+  <td class=xl68 width=87 style='width:65pt'>如果Broker建议从slave消费，配置决定从哪个slave消费，配置BrokerId，例如1</td>
  </tr>
  <tr height=76 style='height:57.0pt'>
   <td height=76 class=xl67 width=87 style='height:57.0pt;width:65pt'>-a</td>
@@ -1113,7 +1113,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=5 height=165 class=xl69 width=87 style='border-bottom:1.0pt
   height:123.0pt;border-top:none;width:65pt'>deleteSubGroup</td>
   <td rowspan=5 class=xl72 width=87 style='border-bottom:1.0pt
-  border-top:none;width:65pt'>从broker删除订阅关系</td>
+  border-top:none;width:65pt'>从Broker删除订阅关系</td>
   <td class=xl67 width=87 style='width:65pt'>-n</td>
   <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
  </tr>
@@ -1123,7 +1123,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>broker地址</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker地址</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-c</td>
@@ -1135,7 +1135,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td rowspan=6 height=172 class=xl69 width=87 style='border-bottom:1.0pt
-  height:128.0pt;border-top:none;width:65pt'>cloneGroupOffset</td>
+  height:120pt;border-top:none;width:65pt'>cloneGroupOffset</td>
   <td rowspan=6 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>在目标群组中使用源群组的offset</td>
   <td class=xl67 width=87 style='width:65pt'>-n</td>
@@ -1166,7 +1166,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 
 
 
-#### 8.2.6 连接相关
+#### 2.6 连接相关
 
 <table border=0 cellpadding=0 cellspacing=0 width=714>
  <col width=177>
@@ -1220,7 +1220,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 
 
 
-#### 8.2.7 Namesrv相关
+#### 2.7 Namesrv相关
 
 <table border=0 cellpadding=0 cellspacing=0 width=714>
  <col width=177>
@@ -1235,7 +1235,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=21 style='height:16.0pt'>
   <td rowspan=5 height=143 class=xl69 width=87 style='border-bottom:1.0pt
-  height:108.0pt;border-top:none;width:65pt'>updateKvConfig</td>
+  height:100pt;border-top:none;width:65pt'>updateKvConfig</td>
   <td rowspan=5 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>更新namesrv的kv配置，目前还未使用</td>
   <td class=xl75 width=87 style='width:65pt'>-s</td>
@@ -1314,7 +1314,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 
 
 
-#### 8.2.8 其他
+#### 2.8 其他
 
 <table border=0 cellpadding=0 cellspacing=0 width=714>
  <col width=177>
@@ -1342,9 +1342,9 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 </table>
 
 
-### 8.3   运维常见问题
+### 3   运维常见问题
 
-#### 8.3.1 RocketMQ的mqadmin命令报错问题
+#### 3.1 RocketMQ的mqadmin命令报错问题
 
 >  问题描述：有时候在部署完RocketMQ集群后，尝试执行“mqadmin”一些运维命令，会出现下面的异常信息：
 >
@@ -1352,9 +1352,9 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 > org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to <null> failed
 > ```
 
-解决方法：可以在部署RocketMQ集群的虚拟机上执行`export NAMESRV_ADDR=ip:9876`（ip指的是集群中部署nameserver组件的机器ip地址）命令之后再使用“mqadmin”的相关命令进行查询，即可得到结果。
+解决方法：可以在部署RocketMQ集群的虚拟机上执行`export NAMESRV_ADDR=ip:9876`（ip指的是集群中部署NameServer组件的机器ip地址）命令之后再使用“mqadmin”的相关命令进行查询，即可得到结果。
 
-#### 8.3.2 RocketMQ生产端和消费端版本不一致导致不能正常消费的问题
+#### 3.2 RocketMQ生产端和消费端版本不一致导致不能正常消费的问题
 
 > 问题描述：同一个生产端发出消息，A消费端可消费，B消费端却无法消费，rocketMQ Console中出现：
 >
@@ -1364,7 +1364,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 
   解决方案：RocketMQ 的jar包：rocketmq-client等包应该保持生产端，消费端使用相同的version。
 
-#### 8.3.3  新增一个topic的消费组时，无法消费历史消息的问题
+#### 3.3  新增一个topic的消费组时，无法消费历史消息的问题
 
 > 问题描述：当同一个topic的新增消费组启动时，消费的消息是当前的offset的消息，并未获取历史消息。    
 
@@ -1376,7 +1376,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
 ```
 
-- 一个新的订阅组第一次启动从队列的最前位置开始消费，后续再启动接着上次消费的进度开始消费,即消费broker未过期的历史消息；
+- 一个新的订阅组第一次启动从队列的最前位置开始消费，后续再启动接着上次消费的进度开始消费,即消费Broker未过期的历史消息；
 
 ```java
 consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
@@ -1388,20 +1388,20 @@ consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
 consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
 ```
 
-#### 8.3.4 如何开启从Slave读数据功能
+#### 3.4 如何开启从Slave读数据功能
 
 在某些情况下，Consumer需要将消费位点重置到1-2天前，这时在内存有限的Master Broker上，CommitLog会承载比较重的IO压力，影响到该Broker的其它消息的读与写。可以开启`slaveReadEnable=true`，当Master Broker发现Consumer的消费位点与CommitLog的最新值的差值的容量超过该机器内存的百分比（`accessMessageInMemoryMaxRatio=40%`），会推荐Consumer从Slave Broker中去读取数据，降低Master Broker的IO。
 
-#### 8.3.5 性能调优问题
+#### 3.5 性能调优问题
 
-异步刷盘建议使用自旋锁，同步刷盘建议使用重入锁，调整broker配置项`useReentrantLockWhenPutMessage`，默认为false；异步刷盘建议开启`TransientStorePoolEnable`；建议关闭transferMsgByHeap，提高拉消息效率；同步刷盘建议适当增大`sendMessageThreadPoolNums`，具体配置需要经过压测。
+异步刷盘建议使用自旋锁，同步刷盘建议使用重入锁，调整Broker配置项`useReentrantLockWhenPutMessage`，默认为false；异步刷盘建议开启`TransientStorePoolEnable`；建议关闭transferMsgByHeap，提高拉消息效率；同步刷盘建议适当增大`sendMessageThreadPoolNums`，具体配置需要经过压测。
 
-#### 8.3.6 在RocketMQ中msgId和offsetMsgId的含义与区别
+#### 3.6 在RocketMQ中msgId和offsetMsgId的含义与区别
 
 我们使用RocketMQ完成生产者客户端消息发送后，通常会看到如下日志打印信息：
 
 ```java
-SendResult [sendStatus=SEND_OK, msgId=0A42333A0DC818B4AAC246C290FD0000, offsetMsgId=0A42333A00002A9F000000000134F1F5, messageQueue=MessageQueue [topic=topicTest1, brokerName=mac.local, queueId=3], queueOffset=4]
+SendResult [sendStatus=SEND_OK, msgId=0A42333A0DC818B4AAC246C290FD0000, offsetMsgId=0A42333A00002A9F000000000134F1F5, messageQueue=MessageQueue [topic=topicTest1, BrokerName=mac.local, queueId=3], queueOffset=4]
 ```
 
 - msgId，对于客户端来说msgId是由客户端producer实例端生成的，具体来说，调用方法`MessageClientIDSetter.createUniqIDBuffer()`生成唯一的Id；
