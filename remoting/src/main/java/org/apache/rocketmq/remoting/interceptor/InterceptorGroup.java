@@ -14,28 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.interceptor;
+package org.apache.rocketmq.remoting.interceptor;
 import java.util.ArrayList;
 import java.util.List;
 
 public class InterceptorGroup {
-    private List<Interceptor> interceptors = new ArrayList<>();
+    private List<Interceptor> interceptors = new ArrayList<Interceptor>();
 
-    public void registerInterceptor(Interceptor sendMessageInterceptor) {
-        if (sendMessageInterceptor != null) {
-            interceptors.add(sendMessageInterceptor);
+    public void registerInterceptor(Interceptor interceptor) {
+        if (interceptor != null) {
+            interceptors.add(interceptor);
         }
     }
 
     public void beforeRequest(RequestContext requestContext) {
         for (Interceptor interceptor : interceptors) {
-            interceptor.beforeSendMessage(requestContext);
+            interceptor.beforeRequest(requestContext);
         }
     }
 
     public void afterRequest(ResponseContext responseContext) {
         for (Interceptor interceptor : interceptors) {
-            interceptor.afterSendMessage(responseContext);
+            interceptor.afterRequest(responseContext);
         }
     }
 

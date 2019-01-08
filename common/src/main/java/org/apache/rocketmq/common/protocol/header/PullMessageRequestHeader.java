@@ -48,14 +48,14 @@ public class PullMessageRequestHeader implements CommandCustomHeader {
     private Long subVersion;
     private String expressionType;
 
-    private String enodeAddr;
+    private String enodeName;
 
-    public String getEnodeAddr() {
-        return enodeAddr;
+    public String getEnodeName() {
+        return enodeName;
     }
 
-    public void setEnodeAddr(String enodeAddr) {
-        this.enodeAddr = enodeAddr;
+    public void setEnodeName(String enodeName) {
+        this.enodeName = enodeName;
     }
 
     @Override

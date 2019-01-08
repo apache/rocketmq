@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.snode.service;
+
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.TopicConfig;
@@ -29,13 +30,14 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 public interface EnodeService {
     void sendHearbeat(RemotingCommand remotingCommand);
 
-    CompletableFuture<RemotingCommand> sendMessage(final RemotingCommand request);
+    CompletableFuture<RemotingCommand> sendMessage(final String enodeName, final RemotingCommand request);
 
-    CompletableFuture<RemotingCommand> pullMessage(final RemotingCommand request);
+    CompletableFuture<RemotingCommand> pullMessage(final String enodeName, final RemotingCommand request);
 
     void notifyConsumerIdsChanged(final RemotingChannel channel, final String consumerGroup);
 
-    RemotingCommand creatTopic(String enodeName, TopicConfig topicConfig)throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException ;
+    RemotingCommand creatTopic(String enodeName,
+        TopicConfig topicConfig) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
 
     void updateEnodeAddr(String clusterName) throws InterruptedException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException, MQBrokerException;

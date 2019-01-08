@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.snode.service.impl;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -79,13 +80,12 @@ public class EnodeServiceImpl implements EnodeService {
     }
 
     @Override
-    public CompletableFuture<RemotingCommand> pullMessage(RemotingCommand request) {
+    public CompletableFuture<RemotingCommand> pullMessage(final String enodeName, final RemotingCommand request) {
 
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         try {
-            final PullMessageRequestHeader requestHeader =
-                (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
-            this.snodeController.getRemotingClient().invokeAsync(requestHeader.getEnodeAddr(), request, SnodeConstant.CONSUMER_TIMEOUT_MILLIS_WHEN_SUSPEND, new InvokeCallback() {
+            String enodeAddress = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
+            this.snodeController.getRemotingClient().invokeAsync(enodeAddress, request, SnodeConstant.CONSUMER_TIMEOUT_MILLIS_WHEN_SUSPEND, new InvokeCallback() {
                 @Override
                 public void operationComplete(ResponseFuture responseFuture) {
                     RemotingCommand response = responseFuture.getResponseCommand();
@@ -110,17 +110,9 @@ public class EnodeServiceImpl implements EnodeService {
     }
 
     @Override
-    public CompletableFuture<RemotingCommand> sendMessage(RemotingCommand request) {
+    public CompletableFuture<RemotingCommand> sendMessage(String enodeName, RemotingCommand request) {
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         try {
-            String enodeName;
-            if (request.getCode() == RequestCode.SEND_MESSAGE_V2) {
-                SendMessageRequestHeaderV2 sendMessageRequestHeaderV2 = (SendMessageRequestHeaderV2) request.decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
-                enodeName = sendMessageRequestHeaderV2.getN();
-            } else {
-                ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = (ConsumerSendMsgBackRequestHeader) request.decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
-                enodeName = consumerSendMsgBackRequestHeader.getEnodeName();
-            }
             String enodeAddress = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
             this.snodeController.getRemotingClient().invokeAsync(enodeAddress, request, SnodeConstant.defaultTimeoutMills, (responseFuture) -> {
                 future.complete(responseFuture.getResponseCommand());
@@ -149,7 +141,7 @@ public class EnodeServiceImpl implements EnodeService {
         try {
             this.snodeController.getSnodeServer().invokeOneway(channel, request, SnodeConstant.oneWaytimeout);
         } catch (Exception e) {
-            log.error("NotifyConsumerIdsChanged exception, " + consumerGroup, e.getMessage());
+            log.error("NotifyConsumerIdsChanged consumer group: {} exception ", consumerGroup, e);
         }
     }
 

@@ -24,8 +24,11 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.util.ServiceProvider;
 
 public class RemotingServerFactory {
+    private static RemotingServerFactory instance = new RemotingServerFactory();
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
+    public static RemotingServerFactory getInstance() {
+        return instance;
+    }
 
     private RemotingServerFactory() {
     }
@@ -38,11 +41,11 @@ public class RemotingServerFactory {
         protocolPathMap = ServiceProvider.loadPath(SERVER_LOCATION);
     }
 
-    public static RemotingServer createInstance(String protocol) {
+    public RemotingServer createRemotingServer(String protocol) {
         return ServiceProvider.createInstance(protocolPathMap.get(protocol), RemotingClient.class);
     }
 
-    public static RemotingServer createInstance() {
+    public RemotingServer createRemotingServer() {
         return ServiceProvider.createInstance(protocolPathMap.get(RemotingUtil.DEFAULT_PROTOCOL), RemotingServer.class);
     }
 }

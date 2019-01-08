@@ -468,7 +468,7 @@ public abstract class NettyRemotingAbstract {
     public void invokeAsyncImpl(final String addr, final Channel currentChannel, final RemotingCommand request,
         final long timeoutMillis,
         final InvokeCallback invokeCallback)
-        throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
+        throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException {
         final long beginStartTime = System.currentTimeMillis();
         boolean acquired = semaphoreAsync.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);
         if (acquired) {

@@ -67,6 +67,10 @@ public class SnodeConfig {
 
     private int snodePushMessageThreadPoolQueueCapacity = 10000;
 
+    private final String sendMessageInterceptorPath = "META-INF/service/org.apache.rocketmq.snode.interceptor.SendMessageInterceptor";
+
+    private final String consumeMessageInterceptorPath = "META-INF/service/org.apache.rocketmq.snode.interceptor.ConsumeMessageInterceptor";
+
 
     private int listenPort = 11911;
 
@@ -263,5 +267,13 @@ public class SnodeConfig {
 
     public void setSnodePushMessageThreadPoolQueueCapacity(int snodePushMessageThreadPoolQueueCapacity) {
         this.snodePushMessageThreadPoolQueueCapacity = snodePushMessageThreadPoolQueueCapacity;
+    }
+
+    public String getSendMessageInterceptorPath() {
+        return sendMessageInterceptorPath;
+    }
+
+    public String getConsumeMessageInterceptorPath() {
+        return consumeMessageInterceptorPath;
     }
 }

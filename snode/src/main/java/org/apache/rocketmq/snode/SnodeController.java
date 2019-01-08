@@ -28,23 +28,22 @@ import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.RemotingClientFactory;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.RemotingServerFactory;
-import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.snode.client.ClientHousekeepingService;
 import org.apache.rocketmq.snode.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.snode.client.ConsumerManager;
 import org.apache.rocketmq.snode.client.DefaultConsumerIdsChangeListener;
 import org.apache.rocketmq.snode.client.ProducerManager;
-import org.apache.rocketmq.snode.client.PushSessionManager;
 import org.apache.rocketmq.snode.client.SubscriptionGroupManager;
 import org.apache.rocketmq.snode.config.SnodeConfig;
-import org.apache.rocketmq.snode.interceptor.InterceptorFactory;
-import org.apache.rocketmq.snode.interceptor.InterceptorGroup;
-import org.apache.rocketmq.snode.interceptor.Interceptor;
+import org.apache.rocketmq.remoting.interceptor.Interceptor;
+import org.apache.rocketmq.remoting.interceptor.InterceptorFactory;
+import org.apache.rocketmq.remoting.interceptor.InterceptorGroup;
 import org.apache.rocketmq.snode.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.snode.processor.ConsumerManageProcessor;
 import org.apache.rocketmq.snode.processor.HeartbeatProcessor;
@@ -86,7 +85,6 @@ public class SnodeController {
     private HeartbeatProcessor hearbeatProcessor;
     private InterceptorGroup consumeMessageInterceptorGroup;
     private InterceptorGroup sendMessageInterceptorGroup;
-    private PushSessionManager pushSessionManager;
     private PushService pushService;
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
@@ -101,14 +99,14 @@ public class SnodeController {
         this.enodeService = new EnodeServiceImpl(this);
         this.nnodeService = new NnodeServiceImpl(this);
         this.scheduledService = new ScheduledServiceImpl(this);
-        this.remotingClient = RemotingClientFactory.createInstance().init(this.getNettyClientConfig(), null);
+        this.remotingClient = RemotingClientFactory.getInstance().createRemotingClient().init(this.getNettyClientConfig(), null);
 
         this.sendMessageExecutor = ThreadUtils.newThreadPoolExecutor(
             snodeConfig.getSnodeSendMessageMinPoolSize(),
             snodeConfig.getSnodeSendMessageMaxPoolSize(),
             3000,
             TimeUnit.MILLISECONDS,
-            new ArrayBlockingQueue<Runnable>(snodeConfig.getSnodeSendThreadPoolQueueCapacity()),
+            new ArrayBlockingQueue<>(snodeConfig.getSnodeSendThreadPoolQueueCapacity()),
             "SnodeSendMessageThread",
             false);
 
@@ -117,7 +115,7 @@ public class SnodeController {
             snodeConfig.getSnodeSendMessageMaxPoolSize(),
             3000,
             TimeUnit.MILLISECONDS,
-            new ArrayBlockingQueue<Runnable>(snodeConfig.getSnodeSendThreadPoolQueueCapacity()),
+            new ArrayBlockingQueue<>(snodeConfig.getSnodeSendThreadPoolQueueCapacity()),
             "SnodePullMessageThread",
             false);
 
@@ -126,7 +124,7 @@ public class SnodeController {
             snodeConfig.getSnodeHeartBeatMaxPoolSize(),
             1000 * 60,
             TimeUnit.MILLISECONDS,
-            new ArrayBlockingQueue<Runnable>(snodeConfig.getSnodeHeartBeatThreadPoolQueueCapacity()),
+            new ArrayBlockingQueue<>(snodeConfig.getSnodeHeartBeatThreadPoolQueueCapacity()),
             "SnodeHeartbeatThread",
             true);
 
@@ -135,7 +133,7 @@ public class SnodeController {
             snodeConfig.getSnodeSendMessageMaxPoolSize(),
             3000,
             TimeUnit.MILLISECONDS,
-            new ArrayBlockingQueue<Runnable>(snodeConfig.getSnodeSendThreadPoolQueueCapacity()),
+            new ArrayBlockingQueue<>(snodeConfig.getSnodeSendThreadPoolQueueCapacity()),
             "SnodePullMessageThread",
             false);
 
@@ -144,7 +142,7 @@ public class SnodeController {
             snodeConfig.getSnodeSendMessageMaxPoolSize(),
             3000,
             TimeUnit.MILLISECONDS,
-            new ArrayBlockingQueue<Runnable>(snodeConfig.getSnodeSendThreadPoolQueueCapacity()),
+            new ArrayBlockingQueue<>(snodeConfig.getSnodeSendThreadPoolQueueCapacity()),
             "ConsumerManagerThread",
             false);
 
@@ -164,7 +162,6 @@ public class SnodeController {
         this.sendMessageProcessor = new SendMessageProcessor(this);
         this.hearbeatProcessor = new HeartbeatProcessor(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
-        this.pushSessionManager = new PushSessionManager();
         this.pushService = new PushServiceImpl(this);
 
     }
@@ -174,22 +171,22 @@ public class SnodeController {
     }
 
     public boolean initialize() {
-        this.snodeServer = RemotingServerFactory.createInstance().init(this.nettyServerConfig, this.clientHousekeepingService);
+        this.snodeServer = RemotingServerFactory.getInstance().createRemotingServer().init(this.nettyServerConfig, this.clientHousekeepingService);
         this.registerProcessor();
         initInterceptorGroup();
         return true;
     }
 
     private void initInterceptorGroup() {
-        List<Interceptor> consumeMessageInterceptors = InterceptorFactory.getInstance().loadConsumeMessageInterceptors();
-        if (consumeMessageInterceptors != null) {
+        List<Interceptor> consumeMessageInterceptors = InterceptorFactory.getInstance().loadInterceptors(this.snodeConfig.getConsumeMessageInterceptorPath());
+        if (consumeMessageInterceptors != null && consumeMessageInterceptors.size() > 0) {
             this.consumeMessageInterceptorGroup = new InterceptorGroup();
             for (Interceptor interceptor : consumeMessageInterceptors) {
                 this.consumeMessageInterceptorGroup.registerInterceptor(interceptor);
             }
         }
-        List<Interceptor> sendMessageInterceptors = InterceptorFactory.getInstance().loadSendMessageInterceptors();
-        if (sendMessageInterceptors != null) {
+        List<Interceptor> sendMessageInterceptors = InterceptorFactory.getInstance().loadInterceptors(this.snodeConfig.getSendMessageInterceptorPath());
+        if (sendMessageInterceptors != null && sendMessageInterceptors.size() > 0) {
             this.sendMessageInterceptorGroup = new InterceptorGroup();
             for (Interceptor interceptor : sendMessageInterceptors) {
                 this.sendMessageInterceptorGroup.registerInterceptor(interceptor);
@@ -273,10 +270,6 @@ public class SnodeController {
 
     public InterceptorGroup getSendMessageInterceptorGroup() {
         return sendMessageInterceptorGroup;
-    }
-
-    public PushSessionManager getPushSessionManager() {
-        return pushSessionManager;
     }
 
     public PushService getPushService() {

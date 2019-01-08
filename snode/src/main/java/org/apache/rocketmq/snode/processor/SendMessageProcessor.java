@@ -15,17 +15,22 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.snode.processor;
+
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
+import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RequestProcessor;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
-import org.apache.rocketmq.snode.interceptor.ExceptionContext;
-import org.apache.rocketmq.snode.interceptor.RequestContext;
-import org.apache.rocketmq.snode.interceptor.ResponseContext;
+import org.apache.rocketmq.remoting.interceptor.ExceptionContext;
+import org.apache.rocketmq.remoting.interceptor.RequestContext;
+import org.apache.rocketmq.remoting.interceptor.ResponseContext;
 
 public class SendMessageProcessor implements RequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
@@ -37,12 +42,30 @@ public class SendMessageProcessor implements RequestProcessor {
     }
 
     @Override
-    public RemotingCommand processRequest(RemotingChannel remotingChannel, RemotingCommand request) {
+    public RemotingCommand processRequest(RemotingChannel remotingChannel,
+        RemotingCommand request) throws RemotingCommandException {
         if (this.snodeController.getSendMessageInterceptorGroup() != null) {
             RequestContext requestContext = new RequestContext(request, remotingChannel);
             this.snodeController.getSendMessageInterceptorGroup().beforeRequest(requestContext);
         }
-        CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().sendMessage(request);
+        String enodeName;
+        SendMessageRequestHeaderV2 sendMessageRequestHeaderV2 = null;
+        boolean isSendBack = false;
+        if (request.getCode() == RequestCode.SEND_MESSAGE_V2) {
+            sendMessageRequestHeaderV2 = (SendMessageRequestHeaderV2) request.decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
+            enodeName = sendMessageRequestHeaderV2.getN();
+        } else {
+            isSendBack = true;
+            ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = (ConsumerSendMsgBackRequestHeader) request.decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
+            enodeName = consumerSendMsgBackRequestHeader.getEnodeName();
+        }
+
+        CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().sendMessage(enodeName, request);
+
+        final String topic = sendMessageRequestHeaderV2.getB();
+        final Integer queueId = sendMessageRequestHeaderV2.getE();
+        final byte[] message = request.getBody();
+        final boolean isNeedPush = !isSendBack;
         responseFuture.whenComplete((data, ex) -> {
             if (ex == null) {
                 if (this.snodeController.getSendMessageInterceptorGroup() != null) {
@@ -50,6 +73,9 @@ public class SendMessageProcessor implements RequestProcessor {
                     this.snodeController.getSendMessageInterceptorGroup().afterRequest(responseContext);
                 }
                 remotingChannel.reply(data);
+                if (isNeedPush) {
+                    this.snodeController.getPushService().pushMessage(topic, queueId, message, data);
+                }
             } else {
                 if (this.snodeController.getSendMessageInterceptorGroup() != null) {
                     ExceptionContext exceptionContext = new ExceptionContext(request, remotingChannel, ex, null);

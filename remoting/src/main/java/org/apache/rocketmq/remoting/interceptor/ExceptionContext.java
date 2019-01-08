@@ -14,19 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.service;
-
+package org.apache.rocketmq.remoting.interceptor;
+import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public interface PushService {
-    boolean registerPushSession(String consumerGroup);
+public class ExceptionContext extends RequestContext {
+    private Throwable throwable;
+    private String remark;
 
-    void unregisterPushSession(String consumerGroup);
+    public ExceptionContext(RemotingCommand request, RemotingChannel remotingChannel, Throwable throwable,
+        String remark) {
+        super(request, remotingChannel);
+        this.throwable = throwable;
+        this.remark = remark;
+    }
 
-    void pushMessage(final String topic, final Integer queueId, final byte[] message,
-        final RemotingCommand response);
+    public Throwable getThrowable() {
+        return throwable;
+    }
 
-    void start();
+    public void setThrowable(Throwable throwable) {
+        this.throwable = throwable;
+    }
 
-    void shutdown();
+    public String getRemark() {
+        return remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
+    }
 }

@@ -100,7 +100,7 @@ public class PullMessageProcessor implements RequestProcessor {
 
         response.setOpaque(request.getOpaque());
 
-        log.debug("receive PullMessage request command, {}", request);
+        log.info("receive PullMessage request command, {}", request);
 
         if (!PermName.isReadable(this.brokerController.getBrokerConfig().getBrokerPermission())) {
             response.setCode(ResponseCode.NO_PERMISSION);

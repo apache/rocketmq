@@ -61,7 +61,6 @@ public class NettyRemotingClient extends NettyRemotingClientAbstract implements 
 
     private ExecutorService publicExecutor;
 
-    private ExecutorService asyncExecutor;
     /**
      * Invoke the callback methods in this executor when process response.
      */

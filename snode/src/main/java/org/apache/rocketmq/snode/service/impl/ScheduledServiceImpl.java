@@ -112,7 +112,7 @@ public class ScheduledServiceImpl implements ScheduledService {
                     log.warn("Update broker addr error:{}", ex);
                 }
             }
-        }, 1000 * 10, Math.max(10000, Math.min(snodeConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
+        }, 0, Math.max(10000, Math.min(snodeConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override

@@ -562,7 +562,6 @@ public class MQClientAPIImpl {
         final CommunicationMode communicationMode,
         final PullCallback pullCallback
     ) throws RemotingException, MQBrokerException, InterruptedException {
-        requestHeader.setEnodeAddr(addr);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SNODE_PULL_MESSAGE, requestHeader);
         switch (communicationMode) {
             case ONEWAY:

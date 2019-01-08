@@ -14,32 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.interceptor;
+package org.apache.rocketmq.remoting.interceptor;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class RequestContext {
-    protected RemotingCommand request;
-    protected RemotingChannel remotingChannel;
+public class ResponseContext extends RequestContext {
+    private RemotingCommand response;
 
-    public RequestContext(RemotingCommand request, RemotingChannel remotingChannel) {
-        this.remotingChannel = remotingChannel;
-        this.request = request;
+    public ResponseContext(RemotingCommand request, RemotingChannel remotingChannel, RemotingCommand response) {
+        super(request, remotingChannel);
+        this.response = response;
     }
 
-    public RemotingCommand getRequest() {
-        return request;
+    public RemotingCommand getResponse() {
+        return response;
     }
 
-    public void setRequest(RemotingCommand request) {
-        this.request = request;
-    }
-
-    public RemotingChannel getRemotingChannel() {
-        return remotingChannel;
-    }
-
-    public void setRemotingChannel(RemotingChannel remotingChannel) {
-        this.remotingChannel = remotingChannel;
+    public void setResponse(RemotingCommand response) {
+        this.response = response;
     }
 }

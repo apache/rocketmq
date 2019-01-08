@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.snode.processor;
+
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
@@ -24,6 +25,7 @@ import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
@@ -32,9 +34,9 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.client.ConsumerGroupInfo;
-import org.apache.rocketmq.snode.interceptor.ExceptionContext;
-import org.apache.rocketmq.snode.interceptor.RequestContext;
-import org.apache.rocketmq.snode.interceptor.ResponseContext;
+import org.apache.rocketmq.remoting.interceptor.ExceptionContext;
+import org.apache.rocketmq.remoting.interceptor.RequestContext;
+import org.apache.rocketmq.remoting.interceptor.ResponseContext;
 
 public class PullMessageProcessor implements RequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
@@ -63,11 +65,9 @@ public class PullMessageProcessor implements RequestProcessor {
     private RemotingCommand pullMessage(RemotingChannel remotingChannel,
         RemotingCommand request) throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
+        response.setOpaque(request.getOpaque());
         final PullMessageRequestHeader requestHeader =
             (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
-
-        ConsumerGroupInfo consumerGroupInfo = snodeController.getConsumerManager().getConsumerGroupInfo(requestHeader.getConsumerGroup());
-
         SubscriptionGroupConfig subscriptionGroupConfig =
             this.snodeController.getSubscriptionGroupManager().findSubscriptionGroupConfig(requestHeader.getConsumerGroup());
         if (null == subscriptionGroupConfig) {
@@ -82,29 +82,53 @@ public class PullMessageProcessor implements RequestProcessor {
             return response;
         }
 
-        if (!subscriptionGroupConfig.isConsumeBroadcastEnable()
-            && consumerGroupInfo.getMessageModel() == MessageModel.BROADCASTING) {
-            response.setCode(ResponseCode.NO_PERMISSION);
-            response.setRemark("The consumer group[" + requestHeader.getConsumerGroup() + "] can not consume by broadcast way");
-            return response;
-        }
-        if ((consumerGroupInfo == null) || (consumerGroupInfo.findSubscriptionData(requestHeader.getTopic()) == null)) {
-            log.warn("The consumer's subscription not exist, group: {}, topic:{}", requestHeader.getConsumerGroup(), requestHeader.getTopic());
-            response.setCode(ResponseCode.SUBSCRIPTION_NOT_EXIST);
-            response.setRemark("The consumer's subscription not exist" + FAQUrl.suggestTodo(FAQUrl.SAME_GROUP_DIFFERENT_TOPIC));
-            return response;
-        }
-        SubscriptionData subscriptionData = consumerGroupInfo.findSubscriptionData(requestHeader.getTopic());
+        final boolean hasSubscriptionFlag = PullSysFlag.hasSubscriptionFlag(requestHeader.getSysFlag());
 
-        if (subscriptionData.getSubVersion() < requestHeader.getSubVersion()) {
-            log.warn("The broker's subscription is not latest, group: {} {}", requestHeader.getConsumerGroup(),
-                subscriptionData.getSubString());
-            response.setCode(ResponseCode.SUBSCRIPTION_NOT_LATEST);
-            response.setRemark("The consumer's subscription not latest");
+        if (requestHeader.getQueueId() < 0) {
+            String errorInfo = String.format("QueueId[%d] is illegal, topic:[%s] consumer:[%s]",
+                requestHeader.getQueueId(), requestHeader.getTopic(), remotingChannel.remoteAddress());
+            log.warn(errorInfo);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(errorInfo);
             return response;
         }
 
-        CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().pullMessage(request);
+        SubscriptionData subscriptionData;
+        if (!hasSubscriptionFlag) {
+            ConsumerGroupInfo consumerGroupInfo =
+                this.snodeController.getConsumerManager().getConsumerGroupInfo(requestHeader.getConsumerGroup());
+            if (null == consumerGroupInfo) {
+                log.warn("The consumer's group info not exist, group: {}", requestHeader.getConsumerGroup());
+                response.setCode(ResponseCode.SUBSCRIPTION_NOT_EXIST);
+                response.setRemark("The consumer's group info not exist" + FAQUrl.suggestTodo(FAQUrl.SAME_GROUP_DIFFERENT_TOPIC));
+                return response;
+            }
+
+            if (!subscriptionGroupConfig.isConsumeBroadcastEnable()
+                && consumerGroupInfo.getMessageModel() == MessageModel.BROADCASTING) {
+                response.setCode(ResponseCode.NO_PERMISSION);
+                response.setRemark("The consumer group[" + requestHeader.getConsumerGroup() + "] can not consume by broadcast way");
+                return response;
+            }
+
+            subscriptionData = consumerGroupInfo.findSubscriptionData(requestHeader.getTopic());
+            if (null == subscriptionData) {
+                log.warn("The consumer's subscription not exist, group: {}, topic:{}", requestHeader.getConsumerGroup(), requestHeader.getTopic());
+                response.setCode(ResponseCode.SUBSCRIPTION_NOT_EXIST);
+                response.setRemark("The consumer's subscription not exist" + FAQUrl.suggestTodo(FAQUrl.SAME_GROUP_DIFFERENT_TOPIC));
+                return response;
+            }
+
+            if (subscriptionData.getSubVersion() < requestHeader.getSubVersion()) {
+                log.warn("The broker's subscription is not latest, group: {} {}", requestHeader.getConsumerGroup(),
+                    subscriptionData.getSubString());
+                response.setCode(ResponseCode.SUBSCRIPTION_NOT_LATEST);
+                response.setRemark("The consumer's subscription not latest");
+                return response;
+            }
+        }
+
+        CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().pullMessage(requestHeader.getEnodeName(), request);
         responseFuture.whenComplete((data, ex) -> {
             if (ex == null) {
                 if (this.snodeController.getConsumeMessageInterceptorGroup() != null) {

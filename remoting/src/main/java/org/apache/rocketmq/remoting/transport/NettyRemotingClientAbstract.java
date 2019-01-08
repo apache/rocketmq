@@ -29,10 +29,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Timer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -40,17 +38,11 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
-import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
-import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
-import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.netty.NettyEvent;
 import org.apache.rocketmq.remoting.netty.NettyEventType;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.remoting.util.ThreadUtils;
 
 public abstract class NettyRemotingClientAbstract extends NettyRemotingAbstract {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
@@ -179,7 +171,7 @@ public abstract class NettyRemotingClientAbstract extends NettyRemotingAbstract 
     @Override
     protected Channel getAndCreateChannel(final String addr, long timeout) throws InterruptedException {
         if (null == addr) {
-            return getAndCreateNameserverChannel(timeout);
+            return getAndCreateNameServerChannel(timeout);
         }
 
         ChannelWrapper cw = this.channelTables.get(addr);
@@ -190,7 +182,7 @@ public abstract class NettyRemotingClientAbstract extends NettyRemotingAbstract 
         return this.createChannel(addr, timeout);
     }
 
-    private Channel getAndCreateNameserverChannel(long timeout) throws InterruptedException {
+    private Channel getAndCreateNameServerChannel(long timeout) throws InterruptedException {
         String addr = this.namesrvAddrChoosed.get();
         if (addr != null) {
             ChannelWrapper cw = this.channelTables.get(addr);

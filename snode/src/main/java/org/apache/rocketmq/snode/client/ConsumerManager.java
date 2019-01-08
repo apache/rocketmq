@@ -85,8 +85,7 @@ public class ConsumerManager {
                 if (info.getChannelInfoTable().isEmpty()) {
                     ConsumerGroupInfo remove = this.consumerTable.remove(next.getKey());
                     if (remove != null) {
-                        log.info("Unregister consumer ok, no any connection, and remove consumer group, {}",
-                            next.getKey());
+                        log.info("Unregister consumer ok, no any connection, and remove consumer group, {}", next.getKey());
                         this.consumerIdsChangeListener.handle(ConsumerGroupEvent.UNREGISTER, next.getKey());
                     }
                 }
@@ -208,7 +207,7 @@ public class ConsumerManager {
         }
     }
 
-    public ClientChannelInfo getClientInfoTable(String topic, long queueId) {
+    public ClientChannelInfo getClientInfoTable(String topic, Integer queueId) {
         ConcurrentHashMap<Integer, ClientChannelInfo> clientChannelInfoMap = this.topicConsumerTable.get(topic);
         if (clientChannelInfoMap != null) {
             return clientChannelInfoMap.get(queueId);

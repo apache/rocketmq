@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.snode.client;
 
-import java.nio.channels.Channel;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;

@@ -14,11 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.interceptor;
-public interface Interceptor {
-    void beforeSendMessage(RequestContext requestContext);
+package org.apache.rocketmq.remoting.interceptor;
 
-    void afterSendMessage(ResponseContext responseContext);
+import java.util.List;
+import org.apache.rocketmq.remoting.util.ServiceProvider;
 
-    void onException(ExceptionContext exceptionContext);
+public class InterceptorFactory {
+    private static InterceptorFactory ourInstance = new InterceptorFactory();
+
+    public static InterceptorFactory getInstance() {
+        return ourInstance;
+    }
+
+    private InterceptorFactory() {
+    }
+
+    public List loadInterceptors(String servicePath) {
+        List<Interceptor> interceptors = ServiceProvider.loadServiceList(servicePath, Interceptor.class);
+        return interceptors;
+    }
+
 }

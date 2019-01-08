@@ -21,7 +21,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.PushMessageHeader;
+import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -45,55 +47,53 @@ public class PushServiceImpl implements PushService {
             this.snodeController.getSnodeConfig().getSnodePushMessageMaxPoolSize(),
             3000,
             TimeUnit.MILLISECONDS,
-            new ArrayBlockingQueue<Runnable>(this.snodeController.getSnodeConfig().getSnodeSendThreadPoolQueueCapacity()),
+            new ArrayBlockingQueue<>(this.snodeController.getSnodeConfig().getSnodeSendThreadPoolQueueCapacity()),
             "SnodePushMessageThread",
             false);
     }
 
     public class PushTask implements Runnable {
-        private AtomicBoolean canceled;
-        private final String messageId;
+        private AtomicBoolean canceled = new AtomicBoolean(false);
         private final byte[] message;
         private final Integer queueId;
         private final String topic;
-        private final long queueOffset;
+        private final RemotingCommand response;
 
-        public PushTask(final String messageId, final byte[] message, final Integer queueId, final String topic,
-            final long queueOffset) {
-            this.messageId = messageId;
+        public PushTask(final String topic, final Integer queueId, final byte[] message,
+            final RemotingCommand response) {
             this.message = message;
             this.queueId = queueId;
             this.topic = topic;
-            this.queueOffset = queueOffset;
+            this.response = response;
         }
 
         @Override
         public void run() {
             if (!canceled.get()) {
-                PushMessageHeader pushMessageHeader = new PushMessageHeader();
-                pushMessageHeader.setMessageId(this.messageId);
-                pushMessageHeader.setQueueOffset(queueOffset);
-                pushMessageHeader.setTopic(topic);
-                pushMessageHeader.setQueueId(queueId);
-                RemotingCommand pushMessage = RemotingCommand.createResponseCommand(PushMessageHeader.class);
-                pushMessage.setBody(message);
-                pushMessage.setCustomHeader(pushMessageHeader);
                 try {
-                    ClientChannelInfo clientChannelInfo = snodeController.getPushSessionManager().getClientInfoTable(topic, queueId);
+                    SendMessageResponseHeader sendMessageResponseHeader = (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
+                    PushMessageHeader pushMessageHeader = new PushMessageHeader();
+                    pushMessageHeader.setQueueOffset(sendMessageResponseHeader.getQueueOffset());
+                    pushMessageHeader.setTopic(topic);
+                    pushMessageHeader.setQueueId(queueId);
+                    RemotingCommand pushMessage = RemotingCommand.createResponseCommand(PushMessageHeader.class);
+                    pushMessage.setBody(message);
+                    pushMessage.setCustomHeader(pushMessageHeader);
+                    pushMessage.setCode(RequestCode.SNODE_PUSH_MESSAGE);
+                    ClientChannelInfo clientChannelInfo = snodeController.getConsumerManager().getClientInfoTable(topic, queueId);
                     if (clientChannelInfo != null) {
+                        log.warn("Push message to topic: {} queueId: {}, message:{}", topic, queueId, pushMessage);
                         RemotingChannel remotingChannel = clientChannelInfo.getChannel();
                         snodeController.getSnodeServer().push(remotingChannel, pushMessage, SnodeConstant.defaultTimeoutMills);
                     } else {
                         log.warn("Get client info to topic: {} queueId: {} is null", topic, queueId);
                     }
                 } catch (Exception ex) {
-                    log.warn("Push message to topic: {} queueId: {} ex:{}", topic, queueId, ex);
+                    log.warn("Push message to topic: {} queueId: {}", topic, queueId, ex);
                 }
+            } else {
+                log.info("Push message to topic: {} queueId: {} canceled!", topic, queueId);
             }
-        }
-
-        public AtomicBoolean getCanceled() {
-            return canceled;
         }
 
         public void setCanceled(AtomicBoolean canceled) {
@@ -113,10 +113,15 @@ public class PushServiceImpl implements PushService {
     }
 
     @Override
-    public void pushMessage(final String messageId, final byte[] message, final Integer queueId, final String topic,
-        final long queueOffset) {
-        PushTask pushTask = new PushTask(messageId, message, queueId, topic, queueOffset);
-        pushMessageExecutorService.submit(pushTask);
+    public void pushMessage(final String topic, final Integer queueId, final byte[] message,
+        final RemotingCommand response) {
+        ClientChannelInfo clientChannelInfo = this.snodeController.getConsumerManager().getClientInfoTable(topic, queueId);
+        if (clientChannelInfo != null) {
+            PushTask pushTask = new PushTask(topic, queueId, message, response);
+            pushMessageExecutorService.submit(pushTask);
+        } else {
+            log.info("Topic: {} QueueId: {} no need to push", topic, queueId);
+        }
     }
 
     @Override

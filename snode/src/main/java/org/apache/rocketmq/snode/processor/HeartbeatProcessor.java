@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.snode.processor;
 
-import java.util.List;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -31,6 +30,8 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
+import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.client.ClientChannelInfo;
@@ -60,7 +61,7 @@ public class HeartbeatProcessor implements RequestProcessor {
     private RemotingCommand heartbeat(RemotingChannel remotingChannel, RemotingCommand request) {
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
-            remotingChannel,
+            new NettyChannelImpl((((NettyChannelHandlerContextImpl) remotingChannel).getChannelHandlerContext().channel())),
             heartbeatData.getClientID(),
             request.getLanguage(),
             request.getVersion()
@@ -99,7 +100,7 @@ public class HeartbeatProcessor implements RequestProcessor {
                     );
                 }
 
-                if (subscriptionGroupConfig.isRealPushEnable()) {
+                if (data.isRealPushEnable()) {
                     this.snodeController.getConsumerManager().updateTopicConsumerTable(data.getSubscriptionDataSet(), clientChannelInfo);
                 }
             }

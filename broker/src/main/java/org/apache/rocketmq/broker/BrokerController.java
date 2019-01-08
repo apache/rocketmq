@@ -248,14 +248,12 @@ public class BrokerController {
         result = result && this.messageStore.load();
 
         if (result) {
-            this.remotingServer = RemotingServerFactory.createInstance();
-            this.remotingServer.init(this.nettyServerConfig, this.clientHousekeepingService);
+            this.remotingServer = RemotingServerFactory.getInstance().createRemotingServer().init(this.nettyServerConfig, this.clientHousekeepingService);
 //            this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
             ServerConfig fastConfig = (ServerConfig) this.nettyServerConfig.clone();
             fastConfig.setListenPort(nettyServerConfig.getListenPort() - 2);
 //            this.fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
-            this.fastRemotingServer = RemotingServerFactory.createInstance();
-            this.fastRemotingServer.init(fastConfig, this.clientHousekeepingService);
+            this.fastRemotingServer = RemotingServerFactory.getInstance().createRemotingServer().init(fastConfig, this.clientHousekeepingService);
 
             this.sendMessageExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getSendMessageThreadPoolNums(),

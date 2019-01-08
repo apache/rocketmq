@@ -77,9 +77,8 @@ public class NamesrvController {
 
         this.kvConfigManager.load();
 
-        this.remotingServer = RemotingServerFactory.createInstance();
+        this.remotingServer = RemotingServerFactory.getInstance().createRemotingServer();
         this.remotingServer.init(this.nettyServerConfig, this.brokerHousekeepingService);
-//        this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
         this.remotingExecutor =
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
