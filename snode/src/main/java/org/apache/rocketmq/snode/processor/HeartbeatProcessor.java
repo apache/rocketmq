@@ -101,7 +101,7 @@ public class HeartbeatProcessor implements RequestProcessor {
                 }
 
                 if (data.isRealPushEnable()) {
-                    this.snodeController.getConsumerManager().updateTopicConsumerTable(data.getSubscriptionDataSet(), clientChannelInfo);
+                    this.snodeController.getConsumerManager().registerPushSession(data.getGroupName(), data.getSubscriptionDataSet(), clientChannelInfo);
                 }
             }
         }

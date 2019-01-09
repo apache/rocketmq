@@ -37,8 +37,8 @@ public class ConsumerGroupInfo {
     private final String groupName;
     private final ConcurrentMap<String/* Topic */, SubscriptionData> subscriptionTable =
         new ConcurrentHashMap<>();
-    private final ConcurrentMap<RemotingChannel, ClientChannelInfo> channelInfoTable =
-        new ConcurrentHashMap<>(16);
+    private final ConcurrentMap<RemotingChannel, ClientChannelInfo> channelInfoTable = new ConcurrentHashMap<>(16);
+
     private ConcurrentHashMap<RemotingChannel, Set<SubscriptionData>> channelSubscriptionTable = new ConcurrentHashMap<>(2048);
 
     private volatile ConsumeType consumeType;
@@ -129,7 +129,10 @@ public class ConsumerGroupInfo {
     }
 
     public void removeChannelSubscription(final RemotingChannel remotingChannel) {
-        this.channelSubscriptionTable.remove(remotingChannel);
+        Set<SubscriptionData> subscriptionDataSet = this.channelSubscriptionTable.remove(remotingChannel);
+        if (subscriptionDataSet != null) {
+            log.debug("Unregister a push session[{}] from consumerGroupInfo {}", this.groupName, subscriptionDataSet);
+        }
     }
 
     public boolean updateChannel(final ClientChannelInfo infoNew, ConsumeType consumeType,

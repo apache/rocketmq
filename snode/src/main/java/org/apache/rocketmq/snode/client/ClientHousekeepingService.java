@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.snode.client;
 
-import io.netty.channel.Channel;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -27,8 +26,9 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
-
+/**
+ * TODO Refactor housekeeping service
+ */
 public class ClientHousekeepingService implements ChannelEventListener {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final ProducerManager producerManager;
@@ -74,7 +74,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
     public void onChannelClose(String remoteAddr, RemotingChannel remotingChannel) {
         log.info("Remoting channel closed: {}", RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()));
         this.producerManager.doChannelCloseEvent(remoteAddr, remotingChannel);
-        this.producerManager.doChannelCloseEvent(remoteAddr, remotingChannel);
+        this.consumerManager.doChannelCloseEvent(remoteAddr, remotingChannel);
     }
 
     @Override

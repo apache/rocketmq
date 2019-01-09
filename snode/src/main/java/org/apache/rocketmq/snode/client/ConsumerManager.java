@@ -32,15 +32,19 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
+/**
+ * TODO Refactor this manager
+ */
 public class ConsumerManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-    private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
-    private final ConcurrentMap<String/* Group */, ConsumerGroupInfo> consumerTable =
-        new ConcurrentHashMap<>(1024);
+
+    private final ConcurrentMap<String/*Group*/, ConsumerGroupInfo> consumerTable = new ConcurrentHashMap<>(1024);
+
+    private final ConcurrentHashMap<String/*Topic*/, ConcurrentHashMap<Integer/*QueueId*/, ConcurrentHashMap<String/*ConsumerGroup*/, ClientChannelInfo>>> topicConsumerTable = new ConcurrentHashMap<>(2048);
 
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
 
-    private final ConcurrentHashMap<String/*Topic*/, ConcurrentHashMap<Integer/*QueueId*/, ClientChannelInfo>> topicConsumerTable = new ConcurrentHashMap<>(2048);
+    private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
 
     public ConsumerManager(final ConsumerIdsChangeListener consumerIdsChangeListener) {
         this.consumerIdsChangeListener = consumerIdsChangeListener;
@@ -68,10 +72,10 @@ public class ConsumerManager {
         return 0;
     }
 
-    private void removePushSession(final ConsumerGroupInfo info, final RemotingChannel channel) {
+    private void clearPushSession(final String consumerGroup, final ConsumerGroupInfo info,
+        final RemotingChannel channel) {
         Set<SubscriptionData> subscriptionDataSet = info.getSubscriotionDataSet(channel);
-        removeConsumerTopicTable(subscriptionDataSet, channel);
-
+        removeConsumerTopicTable(consumerGroup, subscriptionDataSet, channel);
     }
 
     public void doChannelCloseEvent(final String remoteAddr, final RemotingChannel channel) {
@@ -79,7 +83,7 @@ public class ConsumerManager {
         while (it.hasNext()) {
             Entry<String, ConsumerGroupInfo> next = it.next();
             ConsumerGroupInfo info = next.getValue();
-            removePushSession(info, channel);
+            clearPushSession(info.getGroupName(), info, channel);
             boolean removed = info.doChannelCloseEvent(remoteAddr, channel);
             if (removed) {
                 if (info.getChannelInfoTable().isEmpty()) {
@@ -105,9 +109,9 @@ public class ConsumerManager {
             consumerGroupInfo = prev != null ? prev : tmp;
         }
 
-        boolean r1 =
-            consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel,
-                consumeFromWhere);
+        boolean r1 = consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel,
+            consumeFromWhere);
+
         boolean r2 = consumerGroupInfo.updateSubscription(subList);
 
         consumerGroupInfo.updateChannelSubscription(clientChannelInfo, subList);
@@ -128,7 +132,7 @@ public class ConsumerManager {
         if (null != consumerGroupInfo) {
             consumerGroupInfo.unregisterChannel(clientChannelInfo);
             consumerGroupInfo.removeChannelSubscription(clientChannelInfo.getChannel());
-            removePushSession(consumerGroupInfo, clientChannelInfo.getChannel());
+            clearPushSession(group, consumerGroupInfo, clientChannelInfo.getChannel());
             if (consumerGroupInfo.getChannelInfoTable().isEmpty()) {
                 ConsumerGroupInfo remove = this.consumerTable.remove(group);
                 if (remove != null) {
@@ -189,46 +193,67 @@ public class ConsumerManager {
         return groups;
     }
 
-    public void updateTopicConsumerTable(Set<SubscriptionData> subscriptionDataSet,
+    public void registerPushSession(String consumerGroup, Set<SubscriptionData> subscriptionDataSet,
         ClientChannelInfo clientChannelInfo) {
-        for (SubscriptionData subscriptionData : subscriptionDataSet) {
-            String topic = subscriptionData.getTopic();
-            for (Integer queueId : subscriptionData.getQueueIdSet()) {
-                ConcurrentHashMap<Integer, ClientChannelInfo> clientChannelInfoMap = this.topicConsumerTable.get(topic);
-                if (clientChannelInfoMap == null) {
-                    clientChannelInfoMap = new ConcurrentHashMap<>();
-                    ConcurrentHashMap prev = this.topicConsumerTable.putIfAbsent(topic, clientChannelInfoMap);
-                    if (prev != null) {
-                        clientChannelInfoMap = prev;
+        if (clientChannelInfo != null) {
+            for (SubscriptionData subscriptionData : subscriptionDataSet) {
+                String topic = subscriptionData.getTopic();
+                for (Integer queueId : subscriptionData.getQueueIdSet()) {
+                    ConcurrentHashMap<Integer, ConcurrentHashMap<String, ClientChannelInfo>> clientChannelInfoMap = this.topicConsumerTable.get(topic);
+                    if (clientChannelInfoMap == null) {
+                        clientChannelInfoMap = new ConcurrentHashMap<>();
+                        ConcurrentHashMap prev = this.topicConsumerTable.putIfAbsent(topic, clientChannelInfoMap);
+                        if (prev != null) {
+                            clientChannelInfoMap = prev;
+                        }
                     }
+                    log.info("Register push for consumer group: {} topic: {}, queueId: {}", consumerGroup, topic, queueId);
+                    ConcurrentHashMap<String, ClientChannelInfo> consumerGroupChannelTable = clientChannelInfoMap.get(queueId);
+                    if (consumerGroupChannelTable == null) {
+                        consumerGroupChannelTable = new ConcurrentHashMap<>();
+                        ConcurrentHashMap<String, ClientChannelInfo> preMap = clientChannelInfoMap.putIfAbsent(queueId, consumerGroupChannelTable);
+                        if (preMap != null) {
+                            consumerGroupChannelTable = preMap;
+                        }
+                    }
+                    consumerGroupChannelTable.putIfAbsent(consumerGroup, clientChannelInfo);
+                    clientChannelInfoMap.put(queueId, consumerGroupChannelTable);
                 }
-                clientChannelInfoMap.put(queueId, clientChannelInfo);
             }
         }
     }
 
-    public ClientChannelInfo getClientInfoTable(String topic, Integer queueId) {
-        ConcurrentHashMap<Integer, ClientChannelInfo> clientChannelInfoMap = this.topicConsumerTable.get(topic);
+    public ConcurrentHashMap getClientInfoTable(String topic, Integer queueId) {
+        ConcurrentHashMap<Integer, ConcurrentHashMap<String, ClientChannelInfo>> clientChannelInfoMap = this.topicConsumerTable.get(topic);
         if (clientChannelInfoMap != null) {
             return clientChannelInfoMap.get(queueId);
         }
         return null;
     }
 
-    public void removeConsumerTopicTable(Set<SubscriptionData> subscriptionDataSet,
+    public void removeConsumerTopicTable(String consumerGroup, Set<SubscriptionData> subscriptionDataSet,
         RemotingChannel remotingChannel) {
-        for (SubscriptionData subscriptionData : subscriptionDataSet) {
-            String topic = subscriptionData.getTopic();
-            for (Integer queueId : subscriptionData.getQueueIdSet()) {
-                ConcurrentHashMap<Integer, ClientChannelInfo> clientChannelInfoMap = this.topicConsumerTable.get(topic);
-                if (clientChannelInfoMap != null) {
-                    ClientChannelInfo old = clientChannelInfoMap.get(queueId);
-                    if (old != null && old.getChannel() == remotingChannel) {
-                        clientChannelInfoMap.remove(queueId, old);
+        if (subscriptionDataSet != null) {
+            for (SubscriptionData subscriptionData : subscriptionDataSet) {
+                String topic = subscriptionData.getTopic();
+                for (Integer queueId : subscriptionData.getQueueIdSet()) {
+                    ConcurrentHashMap<Integer, ConcurrentHashMap<String, ClientChannelInfo>> clientChannelInfoMap = this.topicConsumerTable.get(topic);
+                    if (clientChannelInfoMap != null) {
+                        ConcurrentHashMap<String, ClientChannelInfo> queueConsumerGroupMap = clientChannelInfoMap.get(queueId);
+                        if (queueConsumerGroupMap != null) {
+                            ClientChannelInfo clientChannelInfo = queueConsumerGroupMap.get(consumerGroup);
+                            if (clientChannelInfo.getChannel().equals(remotingChannel)) {
+                                log.info("Remove push topic: {}, queueId: {}, consumerGroup:{} session", topic, queueId, consumerGroup);
+                                queueConsumerGroupMap.remove(consumerGroup, clientChannelInfo);
+                            }
+                        }
+                        if (clientChannelInfoMap.isEmpty()) {
+                            log.info("All consumer offline, so remove this map");
+                            this.topicConsumerTable.remove(topic, clientChannelInfoMap);
+                        }
                     }
                 }
             }
         }
     }
-
 }
