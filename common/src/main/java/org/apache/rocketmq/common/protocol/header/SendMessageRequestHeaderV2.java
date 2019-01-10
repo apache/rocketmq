@@ -54,7 +54,7 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
     @CFNullable
     private boolean m; //batch
 
-    private String n; //enode addr
+    private String n; //enode name
 
     public static SendMessageRequestHeader createSendMessageRequestHeaderV1(final SendMessageRequestHeaderV2 v2) {
         SendMessageRequestHeader v1 = new SendMessageRequestHeader();
@@ -208,5 +208,24 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
 
     public void setN(String n) {
         this.n = n;
+    }
+
+    @Override public String toString() {
+        return "SendMessageRequestHeaderV2{" +
+            "a='" + a + '\'' +
+            ", b='" + b + '\'' +
+            ", c='" + c + '\'' +
+            ", d=" + d +
+            ", e=" + e +
+            ", f=" + f +
+            ", g=" + g +
+            ", h=" + h +
+            ", i='" + i + '\'' +
+            ", j=" + j +
+            ", k=" + k +
+            ", l=" + l +
+            ", m=" + m +
+            ", n='" + n + '\'' +
+            '}';
     }
 }

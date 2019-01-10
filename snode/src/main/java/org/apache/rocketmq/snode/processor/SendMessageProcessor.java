@@ -35,7 +35,7 @@ import org.apache.rocketmq.remoting.interceptor.ResponseContext;
 public class SendMessageProcessor implements RequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
 
-    private final SnodeController snodeController;
+    private SnodeController snodeController;
 
     public SendMessageProcessor(final SnodeController snodeController) {
         this.snodeController = snodeController;
@@ -53,6 +53,7 @@ public class SendMessageProcessor implements RequestProcessor {
         boolean isSendBack = false;
         if (request.getCode() == RequestCode.SEND_MESSAGE_V2) {
             sendMessageRequestHeaderV2 = (SendMessageRequestHeaderV2) request.decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
+            System.out.println("sendMessageRequestHeaderV2: " + sendMessageRequestHeaderV2);
             enodeName = sendMessageRequestHeaderV2.getN();
         } else {
             isSendBack = true;

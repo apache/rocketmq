@@ -275,4 +275,16 @@ public class SnodeController {
     public PushService getPushService() {
         return pushService;
     }
+
+    public void setNnodeService(NnodeService nnodeService) {
+        this.nnodeService = nnodeService;
+    }
+
+    public void setRemotingClient(RemotingClient remotingClient) {
+        this.remotingClient = remotingClient;
+    }
+
+    public void setEnodeService(EnodeService enodeService) {
+        this.enodeService = enodeService;
+    }
 }
