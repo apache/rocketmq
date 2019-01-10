@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
@@ -39,6 +40,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class DefaultMessageStoreTest {
@@ -267,6 +269,29 @@ public class DefaultMessageStoreTest {
             messageExtBrokerInner.setQueueId(0);
             messageStore.putMessage(messageExtBrokerInner);
         }
+    }
+
+    @Test
+    public void testlookMessageByOffset() throws  Exception{
+        String topic = "LookMessageByOffset %02d";
+        int topicLen = String.format(topic,0).getBytes().length;
+        int bodyLen  = StoreMessage.getBytes().length;
+        MessageBody = StoreMessage.getBytes();
+        for (int i = 0; i < 100; i++) {
+            MessageExtBrokerInner messageExtBrokerInner = buildMessage();
+            messageExtBrokerInner.setTopic(String.format(topic,i));
+            messageExtBrokerInner.setQueueId(0);
+            messageStore.putMessage(messageExtBrokerInner);
+        }
+
+        MessageExt messageExt = messageStore.lookMessageByOffset(0 );
+        assertEquals(messageExt.getTopic(),"LookMessageByOffset 00");
+        //(91+bodyLen+topicLen)*50
+        messageExt = messageStore.lookMessageByOffset((91+topicLen+bodyLen) * 50);
+        assertEquals(messageExt.getTopic(),"LookMessageByOffset 50");
+
+        messageExt = messageStore.lookMessageByOffset((91+topicLen+bodyLen) * 99);
+        assertEquals(messageExt.getTopic(),"LookMessageByOffset 99");
     }
 
     private void damageCommitlog(long offset) throws Exception {
