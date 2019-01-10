@@ -37,6 +37,9 @@ public class ConsumerOffsetManager extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final String TOPIC_GROUP_SEPARATOR = "@";
 
+    /**
+     * ConcurrentMap<queueid, offset>
+     */
     private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
         new ConcurrentHashMap<String, ConcurrentMap<Integer, Long>>(512);
 
@@ -118,20 +121,48 @@ public class ConsumerOffsetManager extends ConfigManager {
         return groups;
     }
 
+    /**
+     * broker记录消费者对应的消费进度
+     * @param clientHost
+     * @param group
+     * @param topic
+     * @param queueId
+     * @param offset
+     */
     public void commitOffset(final String clientHost, final String group, final String topic, final int queueId,
         final long offset) {
         // topic@group
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        /**
+         * broker记录消费者对应的消费进度
+         */
         this.commitOffset(clientHost, key, queueId, offset);
     }
 
+    /**
+     * broker缓存消费者对应的消费进度
+     * @param clientHost
+     * @param key
+     * @param queueId
+     * @param offset
+     */
     private void commitOffset(final String clientHost, final String key, final int queueId, final long offset) {
         ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
+        /**
+         * 新增
+         */
         if (null == map) {
             map = new ConcurrentHashMap<Integer, Long>(32);
             map.put(queueId, offset);
             this.offsetTable.put(key, map);
-        } else {
+        }
+        /**
+         * 修改
+         */
+        else {
+            /**
+             * 缓存queueId对应的offset(消费者上送)，并返回之前broker存储的Offset
+             */
             Long storeOffset = map.put(queueId, offset);
             if (storeOffset != null && offset < storeOffset) {
                 log.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
@@ -139,6 +170,13 @@ public class ConsumerOffsetManager extends ConfigManager {
         }
     }
 
+    /**
+     * 从缓存中查询消费者得消费进度
+     * @param group
+     * @param topic
+     * @param queueId
+     * @return
+     */
     public long queryOffset(final String group, final String topic, final int queueId) {
         // topic@group
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
@@ -164,8 +202,14 @@ public class ConsumerOffsetManager extends ConfigManager {
     @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
+            /**
+             * json转换为ConsumerOffsetManager
+             */
             ConsumerOffsetManager obj = RemotingSerializable.fromJson(jsonString, ConsumerOffsetManager.class);
             if (obj != null) {
+                /**
+                 * 缓存consumerOffset.json下的消费进度到offsetTable
+                 */
                 this.offsetTable = obj.offsetTable;
             }
         }

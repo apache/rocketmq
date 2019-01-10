@@ -119,6 +119,12 @@ public class MixAll {
         return DLQ_GROUP_TOPIC_PREFIX + consumerGroup;
     }
 
+    /**
+     * 是否选择vip通道   普通：10911   vip：10909
+     * @param isChange
+     * @param brokerAddr
+     * @return
+     */
     public static String brokerVIPChannel(final boolean isChange, final String brokerAddr) {
         if (isChange) {
             String[] ipAndPort = brokerAddr.split(":");
@@ -142,20 +148,43 @@ public class MixAll {
         return 0;
     }
 
+    /**
+     * 将str持久化到fileName中
+     * @param str
+     * @param fileName
+     * @throws IOException
+     */
     public static void string2File(final String str, final String fileName) throws IOException {
-
+        /**
+         * 生成tmp文件  并将str中的值写入tmp文件
+         */
         String tmpFile = fileName + ".tmp";
         string2FileNotSafe(str, tmpFile);
 
+        /**
+         * 获得bakFile路径
+         */
         String bakFile = fileName + ".bak";
+        /**
+         * 获取当前fileName中的值
+         */
         String prevContent = file2String(fileName);
         if (prevContent != null) {
+            /**
+             * 将prevContent持久化到bakFile中
+             */
             string2FileNotSafe(prevContent, bakFile);
         }
 
+        /**
+         * 删除fileName文件
+         */
         File file = new File(fileName);
         file.delete();
 
+        /**
+         * 将tmp文件重命名为fileName
+         */
         file = new File(tmpFile);
         file.renameTo(new File(fileName));
     }

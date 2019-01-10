@@ -141,6 +141,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             case RequestCode.SEARCH_OFFSET_BY_TIMESTAMP:
                 return this.searchOffsetByTimestamp(ctx, request);
             case RequestCode.GET_MAX_OFFSET:
+                /**
+                 * 获得当前consumequeue下得最大消费进度
+                 */
                 return this.getMaxOffset(ctx, request);
             case RequestCode.GET_MIN_OFFSET:
                 return this.getMinOffset(ctx, request);
@@ -375,6 +378,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * 获得当前consumequeue下得最大消费进度
+     * @param ctx
+     * @param request
+     * @return
+     * @throws RemotingCommandException
+     */
     private RemotingCommand getMaxOffset(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetMaxOffsetResponseHeader.class);
@@ -382,6 +392,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final GetMaxOffsetRequestHeader requestHeader =
             (GetMaxOffsetRequestHeader) request.decodeCommandCustomHeader(GetMaxOffsetRequestHeader.class);
 
+        /**
+         * 获得当前consumequeue下得最大消费进度
+         */
         long offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
 
         responseHeader.setOffset(offset);

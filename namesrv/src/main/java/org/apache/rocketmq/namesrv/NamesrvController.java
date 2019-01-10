@@ -84,6 +84,9 @@ public class NamesrvController {
 
         this.registerProcessor();
 
+        /**
+         * 移除失效的broker（最后一次注册时间距当前时间  超过2分钟）
+         */
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override

@@ -35,7 +35,10 @@ public class Consumer {
         /*
          * Instantiate with specified consumer group name.
          */
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("consumerGroup1");
+//        consumer.setNamesrvAddr("47.98.130.29:9876");
+        consumer.setNamesrvAddr("192.168.50.65:9876");
+        consumer.setInstanceName("test1");
 
         /*
          * Specify name server addresses.
@@ -52,12 +55,12 @@ public class Consumer {
         /*
          * Specify where to start in case the specified consumer group is a brand new one.
          */
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
 
         /*
          * Subscribe one more more topics to consume.
          */
-        consumer.subscribe("TopicTest", "*");
+        consumer.subscribe("TopicTest", "tagA");
 
         /*
          *  Register callback to execute on arrival of messages fetched from brokers.

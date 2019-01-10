@@ -36,11 +36,26 @@ public class StoreCheckpoint {
     private volatile long logicsMsgTimestamp = 0;
     private volatile long indexMsgTimestamp = 0;
 
+    /**
+     * 处理store/checkpoint文件
+     * @param scpPath
+     * @throws IOException
+     */
     public StoreCheckpoint(final String scpPath) throws IOException {
         File file = new File(scpPath);
+        /**
+         * 父目录是否存在   不存在则创建
+         */
         MappedFile.ensureDirOK(file.getParent());
+
+        /**
+         * checkpoint文件是否存在
+         */
         boolean fileExists = file.exists();
 
+        /**
+         * checkpoint文件转换成MappedByteBuffer
+         */
         this.randomAccessFile = new RandomAccessFile(file, "rw");
         this.fileChannel = this.randomAccessFile.getChannel();
         this.mappedByteBuffer = fileChannel.map(MapMode.READ_WRITE, 0, MappedFile.OS_PAGE_SIZE);
@@ -75,6 +90,9 @@ public class StoreCheckpoint {
         }
     }
 
+    /**
+     * 更改physicMsgTimestamp、logicsMsgTimestamp、indexMsgTimestamp并刷盘到文件
+     */
     public void flush() {
         this.mappedByteBuffer.putLong(0, this.physicMsgTimestamp);
         this.mappedByteBuffer.putLong(8, this.logicsMsgTimestamp);
@@ -98,10 +116,18 @@ public class StoreCheckpoint {
         this.logicsMsgTimestamp = logicsMsgTimestamp;
     }
 
+    /**
+     * 获取checkpoint文件中物理队列消息时间戳、逻辑队列消息时间戳、索引队列消息时间戳这三个时间戳中最小值
+     * @return
+     */
     public long getMinTimestampIndex() {
         return Math.min(this.getMinTimestamp(), this.indexMsgTimestamp);
     }
 
+    /**
+     * 获取checkpoint文件中物理队列消息时间戳、逻辑队列消息时间戳这两个时间戳中最小值
+     * @return
+     */
     public long getMinTimestamp() {
         long min = Math.min(this.physicMsgTimestamp, this.logicsMsgTimestamp);
 

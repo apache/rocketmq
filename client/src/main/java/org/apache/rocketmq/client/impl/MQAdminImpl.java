@@ -185,7 +185,16 @@ public class MQAdminImpl {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
+    /**
+     * 查询MessageQueue下   相应topic对应的消费进度   不区分消费组
+     * @param mq
+     * @return
+     * @throws MQClientException
+     */
     public long maxOffset(MessageQueue mq) throws MQClientException {
+        /**
+         * 获取BrokerName对应的master地址
+         */
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         if (null == brokerAddr) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
@@ -194,6 +203,9 @@ public class MQAdminImpl {
 
         if (brokerAddr != null) {
             try {
+                /**
+                 * 查询MessageQueue下   相应topic对应的消费进度   不区分消费组
+                 */
                 return this.mQClientFactory.getMQClientAPIImpl().getMaxOffset(brokerAddr, mq.getTopic(), mq.getQueueId(), timeoutMillis);
             } catch (Exception e) {
                 throw new MQClientException("Invoke Broker[" + brokerAddr + "] exception", e);

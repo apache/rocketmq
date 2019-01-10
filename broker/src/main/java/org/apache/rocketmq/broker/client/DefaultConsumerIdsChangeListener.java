@@ -37,12 +37,18 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
             return;
         }
         switch (event) {
+            /**
+             * 消费组内得消费者发生变化
+             */
             case CHANGE:
                 if (args == null || args.length < 1) {
                     return;
                 }
                 List<Channel> channels = (List<Channel>) args[0];
                 if (channels != null && brokerController.getBrokerConfig().isNotifyConsumerIdsChangedEnable()) {
+                    /**
+                     * 轮询通知消费组内的消费者  成员发生变化   需要执行负载均衡
+                     */
                     for (Channel chl : channels) {
                         this.brokerController.getBroker2Client().notifyConsumerIdsChanged(chl, group);
                     }
@@ -51,6 +57,9 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
             case UNREGISTER:
                 this.brokerController.getConsumerFilterManager().unRegister(group);
                 break;
+            /**
+             * ？？？？？？？
+             */
             case REGISTER:
                 if (args == null || args.length < 1) {
                     return;

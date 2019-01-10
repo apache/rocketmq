@@ -85,9 +85,15 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 return this.getKVConfig(ctx, request);
             case RequestCode.DELETE_KV_CONFIG:
                 return this.deleteKVConfig(ctx, request);
+            /**
+             * broker向nameserver查询  TopicConfigSerializeWrapper对应的数据版本是否一致   即topic有变化是否已經通知当前nameserver
+             */
             case RequestCode.QUERY_DATA_VERSION:
                 return queryBrokerTopicConfig(ctx, request);
             case RequestCode.REGISTER_BROKER:
+                /**
+                 * 获得broker的版本
+                 */
                 Version brokerVersion = MQVersion.value2Version(request.getVersion());
                 if (brokerVersion.ordinal() >= MQVersion.Version.V3_0_11.ordinal()) {
                     return this.registerBrokerWithFilterServer(ctx, request);
@@ -97,6 +103,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             case RequestCode.UNREGISTER_BROKER:
                 return this.unregisterBroker(ctx, request);
             case RequestCode.GET_ROUTEINTO_BY_TOPIC:
+                /**
+                 * consumer或producer获取topic路由信息
+                 */
                 return this.getRouteInfoByTopic(ctx, request);
             case RequestCode.GET_BROKER_CLUSTER_INFO:
                 return this.getBrokerClusterInfo(ctx, request);
@@ -190,10 +199,20 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * broker启动后   向namesrv注册信息
+     * @param ctx
+     * @param request
+     * @return
+     * @throws RemotingCommandException
+     */
     public RemotingCommand registerBrokerWithFilterServer(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(RegisterBrokerResponseHeader.class);
         final RegisterBrokerResponseHeader responseHeader = (RegisterBrokerResponseHeader) response.readCustomHeader();
+        /**
+         * 从请求参数中解析出头部信息
+         */
         final RegisterBrokerRequestHeader requestHeader =
             (RegisterBrokerRequestHeader) request.decodeCommandCustomHeader(RegisterBrokerRequestHeader.class);
 
@@ -205,6 +224,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
         RegisterBrokerBody registerBrokerBody = new RegisterBrokerBody();
 
+        /**
+         * 解析请求参数   当前交易通常broker会上送自身所有的topic信息
+         */
         if (request.getBody() != null) {
             try {
                 registerBrokerBody = RegisterBrokerBody.decode(request.getBody(), requestHeader.isCompressed());
@@ -216,6 +238,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             registerBrokerBody.getTopicConfigSerializeWrapper().getDataVersion().setTimestamp(0);
         }
 
+        /**
+         * 缓存broker信息
+         */
         RegisterBrokerResult result = this.namesrvController.getRouteInfoManager().registerBroker(
             requestHeader.getClusterName(),
             requestHeader.getBrokerAddr(),
@@ -250,6 +275,14 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return true;
     }
 
+    /**
+     * 查看broker在nameserver中存储的topic版本信息
+     * 每次只查询版本信息  就可以比对双方的topic是否一致
+     * @param ctx
+     * @param request
+     * @return
+     * @throws RemotingCommandException
+     */
     public RemotingCommand queryBrokerTopicConfig(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(QueryDataVersionResponseHeader.class);
@@ -258,11 +291,22 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             (QueryDataVersionRequestHeader) request.decodeCommandCustomHeader(QueryDataVersionRequestHeader.class);
         DataVersion dataVersion = DataVersion.decode(request.getBody(), DataVersion.class);
 
+        /**
+         * nameserver存储的数据版本与broker对应的数据版本是否一致
+         * 即topic信息是否发生变化
+         */
         Boolean changed = this.namesrvController.getRouteInfoManager().isBrokerTopicConfigChanged(requestHeader.getBrokerAddr(), dataVersion);
+
+        /**
+         * 没有变化则修改最后更新时间
+         */
         if (!changed) {
             this.namesrvController.getRouteInfoManager().updateBrokerInfoUpdateTimestamp(requestHeader.getBrokerAddr());
         }
 
+        /**
+         * 查询broker在nameserver中对应的数据版本
+         */
         DataVersion nameSeverDataVersion = this.namesrvController.getRouteInfoManager().queryBrokerTopicConfig(requestHeader.getBrokerAddr());
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
@@ -287,6 +331,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             return response;
         }
 
+        /**
+         * broker内部的topic信息
+         */
         TopicConfigSerializeWrapper topicConfigWrapper;
         if (request.getBody() != null) {
             topicConfigWrapper = TopicConfigSerializeWrapper.decode(request.getBody(), TopicConfigSerializeWrapper.class);
@@ -340,6 +387,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final GetRouteInfoRequestHeader requestHeader =
             (GetRouteInfoRequestHeader) request.decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
 
+        /**
+         * 获取topic对应的路由信息
+         */
         TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(requestHeader.getTopic());
 
         if (topicRouteData != null) {

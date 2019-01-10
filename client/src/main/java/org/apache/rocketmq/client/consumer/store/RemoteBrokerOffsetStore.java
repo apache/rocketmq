@@ -55,6 +55,12 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     public void load() {
     }
 
+    /**
+     * 更新MessageQueue对应的offset
+     * @param mq
+     * @param offset
+     * @param increaseOnly
+     */
     @Override
     public void updateOffset(MessageQueue mq, long offset, boolean increaseOnly) {
         if (mq != null) {
@@ -73,12 +79,22 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         }
     }
 
+    /**
+     * 根据类型   获得MessageQueue的消费进度
+     * @param mq
+     * @param type
+     * @return
+     */
     @Override
     public long readOffset(final MessageQueue mq, final ReadOffsetType type) {
         if (mq != null) {
             switch (type) {
+
                 case MEMORY_FIRST_THEN_STORE:
                 case READ_FROM_MEMORY: {
+                    /**
+                     * 从本地缓存中读取MessageQueue的消费进度
+                     */
                     AtomicLong offset = this.offsetTable.get(mq);
                     if (offset != null) {
                         return offset.get();
@@ -88,8 +104,14 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                 }
                 case READ_FROM_STORE: {
                     try {
+                        /**
+                         * 从broker中查询MessageQueue对应的消费进度
+                         */
                         long brokerOffset = this.fetchConsumeOffsetFromBroker(mq);
                         AtomicLong offset = new AtomicLong(brokerOffset);
+                        /**
+                         * 更新MessageQueue对应的offset
+                         */
                         this.updateOffset(mq, offset.get(), false);
                         return brokerOffset;
                     }
@@ -111,6 +133,10 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         return -1;
     }
 
+    /**
+     * 上报mqs对应的消费进度
+     * @param mqs
+     */
     @Override
     public void persistAll(Set<MessageQueue> mqs) {
         if (null == mqs || mqs.isEmpty())
@@ -122,8 +148,15 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                 MessageQueue mq = entry.getKey();
                 AtomicLong offset = entry.getValue();
                 if (offset != null) {
+                    /**
+                     * 如果mq在mqs中有对应   上报消费进度
+                     * 在有新消费者加入时，负载均衡还没有来得及在offsetTable中移除已经分配给其他消费者的MessageQueue
+                     */
                     if (mqs.contains(mq)) {
                         try {
+                            /**
+                             * 上报消费进度
+                             */
                             this.updateConsumeOffsetToBroker(mq, offset.get());
                             log.info("[persistAll] Group: {} ClientId: {} updateConsumeOffsetToBroker {} {}",
                                 this.groupName,
@@ -140,6 +173,9 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             }
         }
 
+        /**
+         * 移除已经分配给其他消费者的MessageQueue
+         */
         if (!unusedMQ.isEmpty()) {
             for (MessageQueue mq : unusedMQ) {
                 this.offsetTable.remove(mq);
@@ -150,9 +186,15 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
     @Override
     public void persist(MessageQueue mq) {
+        /**
+         * 获取本地消费进度
+         */
         AtomicLong offset = this.offsetTable.get(mq);
         if (offset != null) {
             try {
+                /**
+                 * 向broker上报本地消费进度
+                 */
                 this.updateConsumeOffsetToBroker(mq, offset.get());
                 log.info("[persist] Group: {} ClientId: {} updateConsumeOffsetToBroker {} {}",
                     this.groupName,
@@ -165,6 +207,10 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         }
     }
 
+    /**
+     * 移除offsetTable中对应得MessageQueue的消费进度
+     * @param mq
+     */
     public void removeOffset(MessageQueue mq) {
         if (mq != null) {
             this.offsetTable.remove(mq);
@@ -188,7 +234,8 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
     /**
      * Update the Consumer Offset in one way, once the Master is off, updated to Slave,
-     * here need to be optimized.
+     * here need to be optimized.、
+     * 采用one way形式发送，当Master宕机时，向Slave发送
      */
     private void updateConsumeOffsetToBroker(MessageQueue mq, long offset) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException {
@@ -198,10 +245,14 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     /**
      * Update the Consumer Offset synchronously, once the Master is off, updated to Slave,
      * here need to be optimized.
+     * 同步上报消费进度  当Master宕机时，向Slave发送
      */
     @Override
     public void updateConsumeOffsetToBroker(MessageQueue mq, long offset, boolean isOneway) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException {
+        /**
+         * 获取broker信息 （地址，是否为master，版本号）
+         */
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
 
@@ -211,12 +262,15 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
         if (findBrokerResult != null) {
             UpdateConsumerOffsetRequestHeader requestHeader = new UpdateConsumerOffsetRequestHeader();
-            requestHeader.setTopic(mq.getTopic());
-            requestHeader.setConsumerGroup(this.groupName);
-            requestHeader.setQueueId(mq.getQueueId());
-            requestHeader.setCommitOffset(offset);
+            requestHeader.setTopic(mq.getTopic());//主题
+            requestHeader.setConsumerGroup(this.groupName);//消费组
+            requestHeader.setQueueId(mq.getQueueId());//哪个queue
+            requestHeader.setCommitOffset(offset);//消费进度
 
             if (isOneway) {
+                /**
+                 * 采用Oneway形式  向broker上报消费情况
+                 */
                 this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffsetOneway(
                     findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
             } else {
@@ -228,11 +282,28 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         }
     }
 
+    /**
+     * 从Broker中查询当前消费组下MessageQueue对应的消费Offset
+     * @param mq
+     * @return
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws MQClientException
+     */
     private long fetchConsumeOffsetFromBroker(MessageQueue mq) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException {
+        /**
+         * 通过BrokerName  获取FindBrokerResult
+         * findBrokerResult中的slave和brokerVersion属性，并没有得到应用
+         * 只是用到了brokerAddr（master或slave）
+         */
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
 
+            /**
+             * 更新Topic路由数据信息
+             */
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         }
@@ -243,6 +314,9 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             requestHeader.setConsumerGroup(this.groupName);
             requestHeader.setQueueId(mq.getQueueId());
 
+            /**
+             * 向broker查询Topic、groupName、QueueId对应得消费进度
+             */
             return this.mQClientFactory.getMQClientAPIImpl().queryConsumerOffset(
                 findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
         } else {

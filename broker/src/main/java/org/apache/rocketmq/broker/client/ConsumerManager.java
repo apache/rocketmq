@@ -106,13 +106,23 @@ public class ConsumerManager {
             consumerGroupInfo = prev != null ? prev : tmp;
         }
 
+        /**
+         * 比对消费者的地址是否为全新的   如果不是则比对clientid是否一致
+         */
         boolean r1 =
             consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel,
                 consumeFromWhere);
+
+        /**
+         * 比对消费组订阅的topic是否发生变化，新增或遗弃
+         */
         boolean r2 = consumerGroupInfo.updateSubscription(subList);
 
         if (r1 || r2) {
             if (isNotifyConsumerIdsChangedEnable) {
+                /**
+                 * 通知消费组内得所有消费者
+                 */
                 this.consumerIdsChangeListener.handle(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
             }
         }

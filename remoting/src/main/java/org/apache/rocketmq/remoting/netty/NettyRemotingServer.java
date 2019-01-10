@@ -199,6 +199,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                                 new NettyDecoder(),
                                 new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
                                 new NettyConnectManageHandler(),
+                                /**
+                                 *
+                                 */
                                 new NettyServerHandler()
                             );
                     }
@@ -394,6 +397,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
+            /**
+             *
+             */
             processMessageReceived(ctx, msg);
         }
     }

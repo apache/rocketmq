@@ -215,6 +215,10 @@ public class MQClientAPIImpl {
         return nameSrvAddr;
     }
 
+    /**
+     * 更新namesrv
+     * @param addrs
+     */
     public void updateNameServerAddressList(final String addrs) {
         String[] addrArray = addrs.split(";");
         List<String> list = Arrays.asList(addrArray);
@@ -355,6 +359,9 @@ public class MQClientAPIImpl {
     ) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
+        /**
+         * 组装返回对象
+         */
         return this.processSendResponse(brokerName, msg, response);
     }
 
@@ -556,6 +563,18 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * 拉取消息   普通消费默认为异步查询
+     * @param addr
+     * @param requestHeader
+     * @param timeoutMillis
+     * @param communicationMode
+     * @param pullCallback
+     * @return
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     public PullResult pullMessage(
         final String addr,
         final PullMessageRequestHeader requestHeader,
@@ -582,18 +601,37 @@ public class MQClientAPIImpl {
         return null;
     }
 
+    /**
+     * 异步拉取消息
+     * @param addr
+     * @param request
+     * @param timeoutMillis
+     * @param pullCallback
+     * @throws RemotingException
+     * @throws InterruptedException
+     */
     private void pullMessageAsync(
         final String addr,
         final RemotingCommand request,
         final long timeoutMillis,
         final PullCallback pullCallback
     ) throws RemotingException, InterruptedException {
+        /**
+         * 拉取消息
+         */
         this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
+            /**
+             * 回调函数
+             * @param responseFuture
+             */
             @Override
             public void operationComplete(ResponseFuture responseFuture) {
                 RemotingCommand response = responseFuture.getResponseCommand();
                 if (response != null) {
                     try {
+                        /**
+                         * 处理封装response  转换为PullResult
+                         */
                         PullResult pullResult = MQClientAPIImpl.this.processPullResponse(response);
                         assert pullResult != null;
                         pullCallback.onSuccess(pullResult);
@@ -624,6 +662,13 @@ public class MQClientAPIImpl {
         return this.processPullResponse(response);
     }
 
+    /**
+     * 封装返回对象
+     * @param response
+     * @return
+     * @throws MQBrokerException
+     * @throws RemotingCommandException
+     */
     private PullResult processPullResponse(
         final RemotingCommand response) throws MQBrokerException, RemotingCommandException {
         PullStatus pullStatus = PullStatus.NO_NEW_MSG;
@@ -645,9 +690,16 @@ public class MQClientAPIImpl {
                 throw new MQBrokerException(response.getCode(), response.getRemark());
         }
 
+        /**
+         * 将response转换为PullMessageResponseHeader
+         */
         PullMessageResponseHeader responseHeader =
             (PullMessageResponseHeader) response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
 
+        /**
+         * 返回结果
+         * 无论broker返回的状态是什么   都会包含NextBeginOffset、MinOffset、MaxOffset、SuggestWhichBrokerId
+         */
         return new PullResultExt(pullStatus, responseHeader.getNextBeginOffset(), responseHeader.getMinOffset(),
             responseHeader.getMaxOffset(), null, responseHeader.getSuggestWhichBrokerId(), response.getBody());
     }
@@ -699,13 +751,30 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * 查询MessageQueue下   相应topic对应的消费进度   不区分消费组
+     * @param addr
+     * @param topic
+     * @param queueId
+     * @param timeoutMillis
+     * @return
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     public long getMaxOffset(final String addr, final String topic, final int queueId, final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException {
         GetMaxOffsetRequestHeader requestHeader = new GetMaxOffsetRequestHeader();
+        /**
+         * 请求数据中只包含topic和queueId
+         */
         requestHeader.setTopic(topic);
         requestHeader.setQueueId(queueId);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MAX_OFFSET, requestHeader);
 
+        /**
+         * 向broker发送请求
+         */
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
             request, timeoutMillis);
         assert response != null;
@@ -723,21 +792,42 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * 访问broker   获取当前消费组得消费者列表
+     * @param addr
+     * @param consumerGroup
+     * @param timeoutMillis
+     * @return
+     * @throws RemotingConnectException
+     * @throws RemotingSendRequestException
+     * @throws RemotingTimeoutException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     public List<String> getConsumerIdListByGroup(
         final String addr,
         final String consumerGroup,
         final long timeoutMillis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
         MQBrokerException, InterruptedException {
+        /**
+         * 组建请求对象
+         */
         GetConsumerListByGroupRequestHeader requestHeader = new GetConsumerListByGroupRequestHeader();
         requestHeader.setConsumerGroup(consumerGroup);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_LIST_BY_GROUP, requestHeader);
 
+        /**
+         * 访问broker
+         */
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
             request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 if (response.getBody() != null) {
+                    /**
+                     * 组装返回数据
+                     */
                     GetConsumerListByGroupResponseBody body =
                         GetConsumerListByGroupResponseBody.decode(response.getBody(), GetConsumerListByGroupResponseBody.class);
                     return body.getConsumerIdList();
@@ -799,6 +889,16 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * 向broker查询Topic、groupName、QueueId对应得消费进度
+     * @param addr
+     * @param requestHeader
+     * @param timeoutMillis
+     * @return
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     public long queryConsumerOffset(
         final String addr,
         final QueryConsumerOffsetRequestHeader requestHeader,
@@ -823,6 +923,15 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * 上报消费进度  Sync
+     * @param addr
+     * @param requestHeader
+     * @param timeoutMillis
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     public void updateConsumerOffset(
         final String addr,
         final UpdateConsumerOffsetRequestHeader requestHeader,
@@ -844,6 +953,17 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * 上报消费进度  Oneway
+     * @param addr
+     * @param requestHeader
+     * @param timeoutMillis
+     * @throws RemotingConnectException
+     * @throws RemotingTooMuchRequestException
+     * @throws RemotingTimeoutException
+     * @throws RemotingSendRequestException
+     * @throws InterruptedException
+     */
     public void updateConsumerOffsetOneway(
         final String addr,
         final UpdateConsumerOffsetRequestHeader requestHeader,
@@ -936,6 +1056,18 @@ public class MQClientAPIImpl {
         return response.getCode() == ResponseCode.SUCCESS;
     }
 
+    /**
+     * 消息发送到重试队列
+     * @param addr
+     * @param msg
+     * @param consumerGroup
+     * @param delayLevel
+     * @param timeoutMillis
+     * @param maxConsumeRetryTimes
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     public void consumerSendMessageBack(
         final String addr,
         final MessageExt msg,
@@ -947,13 +1079,16 @@ public class MQClientAPIImpl {
         ConsumerSendMsgBackRequestHeader requestHeader = new ConsumerSendMsgBackRequestHeader();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
 
-        requestHeader.setGroup(consumerGroup);
-        requestHeader.setOriginTopic(msg.getTopic());
-        requestHeader.setOffset(msg.getCommitLogOffset());
-        requestHeader.setDelayLevel(delayLevel);
-        requestHeader.setOriginMsgId(msg.getMsgId());
-        requestHeader.setMaxReconsumeTimes(maxConsumeRetryTimes);
+        requestHeader.setGroup(consumerGroup);//消费组
+        requestHeader.setOriginTopic(msg.getTopic());//主题
+        requestHeader.setOffset(msg.getCommitLogOffset());//消费进度
+        requestHeader.setDelayLevel(delayLevel);//延迟级别
+        requestHeader.setOriginMsgId(msg.getMsgId());//消息id
+        requestHeader.setMaxReconsumeTimes(maxConsumeRetryTimes);//最大重试次数
 
+        /**
+         * 发送交易
+         */
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
             request, timeoutMillis);
         assert response != null;
@@ -1196,6 +1331,15 @@ public class MQClientAPIImpl {
         return getTopicRouteInfoFromNameServer(topic, timeoutMillis, false);
     }
 
+    /**
+     * 得到topic对应的路由信息
+     * @param topic
+     * @param timeoutMillis
+     * @return
+     * @throws RemotingException
+     * @throws MQClientException
+     * @throws InterruptedException
+     */
     public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis)
         throws RemotingException, MQClientException, InterruptedException {
 
@@ -1204,11 +1348,17 @@ public class MQClientAPIImpl {
 
     public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis,
         boolean allowTopicNotExist) throws MQClientException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        /**
+         * 组装请求对象
+         */
         GetRouteInfoRequestHeader requestHeader = new GetRouteInfoRequestHeader();
         requestHeader.setTopic(topic);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINTO_BY_TOPIC, requestHeader);
 
+        /**
+         * 发送请求
+         */
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
@@ -1220,6 +1370,9 @@ public class MQClientAPIImpl {
                 break;
             }
             case ResponseCode.SUCCESS: {
+                /**
+                 * 将返回结果封装为TopicRouteData对象
+                 */
                 byte[] body = response.getBody();
                 if (body != null) {
                     return TopicRouteData.decode(body, TopicRouteData.class);

@@ -80,8 +80,18 @@ public class NamesrvStartup {
         }
 
         final NamesrvConfig namesrvConfig = new NamesrvConfig();
+        /**
+         * 设置RocketmqHome
+         */
+        namesrvConfig.setRocketmqHome("D:\\code\\rocketmq\\distribution");
+
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
+
+        /**
+         * 监听端口
+         */
         nettyServerConfig.setListenPort(9876);
+
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
@@ -136,6 +146,9 @@ public class NamesrvStartup {
             throw new IllegalArgumentException("NamesrvController is null");
         }
 
+        /**
+         * 初始化
+         */
         boolean initResult = controller.initialize();
         if (!initResult) {
             controller.shutdown();

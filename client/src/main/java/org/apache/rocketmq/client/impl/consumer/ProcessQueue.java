@@ -123,6 +123,11 @@ public class ProcessQueue {
         }
     }
 
+    /**
+     * 维护内部对象
+     * @param msgs
+     * @return
+     */
     public boolean putMessage(final List<MessageExt> msgs) {
         boolean dispatchToConsume = false;
         try {
@@ -130,13 +135,22 @@ public class ProcessQueue {
             try {
                 int validMsgCnt = 0;
                 for (MessageExt msg : msgs) {
+                    /**
+                     * msgTreeMap没有当前消息对应的offset记录
+                     */
                     MessageExt old = msgTreeMap.put(msg.getQueueOffset(), msg);
                     if (null == old) {
                         validMsgCnt++;
                         this.queueOffsetMax = msg.getQueueOffset();
+                        /**
+                         * 累计消息大小
+                         */
                         msgSize.addAndGet(msg.getBody().length);
                     }
                 }
+                /**
+                 * 累计消息数量
+                 */
                 msgCount.addAndGet(validMsgCnt);
 
                 if (!msgTreeMap.isEmpty() && !this.consuming) {
@@ -145,9 +159,19 @@ public class ProcessQueue {
                 }
 
                 if (!msgs.isEmpty()) {
+                    /**
+                     * 取从broker获得的最后一条消息
+                     */
                     MessageExt messageExt = msgs.get(msgs.size() - 1);
+
+                    /**
+                     * broker返回的MessageQueue对应的maxoffset
+                     */
                     String property = messageExt.getProperty(MessageConst.PROPERTY_MAX_OFFSET);
                     if (property != null) {
+                        /**
+                         * broker上还有多少消息待消费
+                         */
                         long accTotal = Long.parseLong(property) - messageExt.getQueueOffset();
                         if (accTotal > 0) {
                             this.msgAccCnt = accTotal;
@@ -164,6 +188,10 @@ public class ProcessQueue {
         return dispatchToConsume;
     }
 
+    /**
+     * 计算消息跨度
+     * @return
+     */
     public long getMaxSpan() {
         try {
             this.lockTreeMap.readLock().lockInterruptibly();
@@ -181,6 +209,11 @@ public class ProcessQueue {
         return 0;
     }
 
+    /**
+     * 将消费成功的消息移除本地缓存
+     * @param msgs
+     * @return
+     */
     public long removeMessage(final List<MessageExt> msgs) {
         long result = -1;
         final long now = System.currentTimeMillis();
@@ -189,17 +222,40 @@ public class ProcessQueue {
             this.lastConsumeTimestamp = now;
             try {
                 if (!msgTreeMap.isEmpty()) {
+                    /**
+                     * 设置返回值为当前最大消息的Offset+1
+                     */
                     result = this.queueOffsetMax + 1;
                     int removedCnt = 0;
                     for (MessageExt msg : msgs) {
+                        /**
+                         * 在缓存中移除成功消费的消息
+                         */
                         MessageExt prev = msgTreeMap.remove(msg.getQueueOffset());
+                        /**
+                         * 成功移除  即msgTreeMap含有Offset对应的MessageExt
+                         */
                         if (prev != null) {
+                            /**
+                             * 消息数量减1
+                             */
                             removedCnt--;
+                            /**
+                             * 移除消息对应的字节数
+                             */
                             msgSize.addAndGet(0 - msg.getBody().length);
                         }
                     }
+                    /**
+                     * 移除消息数量
+                     */
                     msgCount.addAndGet(removedCnt);
 
+                    /**
+                     * 如果msgTreeMap不为空   即当前msgs中有消息没有消费成功  需要再次消费
+                     * 则result等于msgTreeMap中第一个消息的offset  并更新到内存中
+                     * 即认为大于result的消息  有再次消费的可能
+                     */
                     if (!msgTreeMap.isEmpty()) {
                         result = msgTreeMap.firstKey();
                     }

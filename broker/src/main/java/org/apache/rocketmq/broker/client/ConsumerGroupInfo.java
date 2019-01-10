@@ -35,8 +35,14 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 public class ConsumerGroupInfo {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final String groupName;
+    /**
+     * 消费组订阅的topic
+     */
     private final ConcurrentMap<String/* Topic */, SubscriptionData> subscriptionTable =
         new ConcurrentHashMap<String, SubscriptionData>();
+    /**
+     * 消费组内消费者个体集合
+     */
     private final ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable =
         new ConcurrentHashMap<Channel, ClientChannelInfo>(16);
     private volatile ConsumeType consumeType;
@@ -80,9 +86,16 @@ public class ConsumerGroupInfo {
         return result;
     }
 
+    /**
+     * 获得消费组下得消费者个数
+     * @return
+     */
     public List<String> getAllClientId() {
         List<String> result = new ArrayList<>();
 
+        /**
+         * 消费者集合
+         */
         Iterator<Entry<Channel, ClientChannelInfo>> it = this.channelInfoTable.entrySet().iterator();
 
         while (it.hasNext()) {
@@ -113,6 +126,14 @@ public class ConsumerGroupInfo {
         return false;
     }
 
+    /**
+     * 比对消费者的地址是否为全新的   如果不是则比对clientid是否一致
+     * @param infoNew
+     * @param consumeType
+     * @param messageModel
+     * @param consumeFromWhere
+     * @return
+     */
     public boolean updateChannel(final ClientChannelInfo infoNew, ConsumeType consumeType,
         MessageModel messageModel, ConsumeFromWhere consumeFromWhere) {
         boolean updated = false;
@@ -120,7 +141,13 @@ public class ConsumerGroupInfo {
         this.messageModel = messageModel;
         this.consumeFromWhere = consumeFromWhere;
 
+        /**
+         * 校验消费者对应的地址
+         */
         ClientChannelInfo infoOld = this.channelInfoTable.get(infoNew.getChannel());
+        /**
+         * 全新的地址  则记录
+         */
         if (null == infoOld) {
             ClientChannelInfo prev = this.channelInfoTable.put(infoNew.getChannel(), infoNew);
             if (null == prev) {
@@ -130,12 +157,19 @@ public class ConsumerGroupInfo {
             }
 
             infoOld = infoNew;
-        } else {
+        }
+        /**
+         * 已有地址  则校验ClientId是否一致
+         */
+        else {
             if (!infoOld.getClientId().equals(infoNew.getClientId())) {
                 log.error("[BUG] consumer channel exist in broker, but clientId not equal. GROUP: {} OLD: {} NEW: {} ",
                     this.groupName,
                     infoOld.toString(),
                     infoNew.toString());
+                /**
+                 * ClientId不一致  则更新channelInfoTable
+                 */
                 this.channelInfoTable.put(infoNew.getChannel(), infoNew);
             }
         }
@@ -146,9 +180,17 @@ public class ConsumerGroupInfo {
         return updated;
     }
 
+    /**
+     * 比对消费组订阅的topic是否发生变化，新增或遗弃
+     * @param subList
+     * @return
+     */
     public boolean updateSubscription(final Set<SubscriptionData> subList) {
         boolean updated = false;
 
+        /**
+         * 是否有新增的订阅topic
+         */
         for (SubscriptionData sub : subList) {
             SubscriptionData old = this.subscriptionTable.get(sub.getTopic());
             if (old == null) {
@@ -160,6 +202,9 @@ public class ConsumerGroupInfo {
                         sub.toString());
                 }
             } else if (sub.getSubVersion() > old.getSubVersion()) {
+                /**
+                 * 推模式
+                 */
                 if (this.consumeType == ConsumeType.CONSUME_PASSIVELY) {
                     log.info("subscription changed, group: {} OLD: {} NEW: {}",
                         this.groupName,
@@ -172,12 +217,18 @@ public class ConsumerGroupInfo {
             }
         }
 
+        /**
+         * 是否有被丢弃的topic
+         */
         Iterator<Entry<String, SubscriptionData>> it = this.subscriptionTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, SubscriptionData> next = it.next();
             String oldTopic = next.getKey();
 
             boolean exist = false;
+            /**
+             * 缓存中的订阅数据和请求的数据做比较   对比是否有topic不再被订阅
+             */
             for (SubscriptionData sub : subList) {
                 if (sub.getTopic().equals(oldTopic)) {
                     exist = true;
@@ -185,6 +236,9 @@ public class ConsumerGroupInfo {
                 }
             }
 
+            /**
+             * 有topic不再被消费组订阅
+             */
             if (!exist) {
                 log.warn("subscription changed, group: {} remove topic {} {}",
                     this.groupName,
@@ -192,6 +246,9 @@ public class ConsumerGroupInfo {
                     next.getValue().toString()
                 );
 
+                /**
+                 * 移除缓存中被遗弃的topic
+                 */
                 it.remove();
                 updated = true;
             }
@@ -206,6 +263,11 @@ public class ConsumerGroupInfo {
         return subscriptionTable.keySet();
     }
 
+    /**
+     * 获得topic对应的SubscriptionData
+     * @param topic
+     * @return
+     */
     public SubscriptionData findSubscriptionData(final String topic) {
         return this.subscriptionTable.get(topic);
     }

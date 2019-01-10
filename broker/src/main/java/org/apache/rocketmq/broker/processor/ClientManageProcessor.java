@@ -55,6 +55,9 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         throws RemotingCommandException {
         switch (request.getCode()) {
             case RequestCode.HEART_BEAT:
+                /**
+                 * 生产者和消费者心跳
+                 */
                 return this.heartBeat(ctx, request);
             case RequestCode.UNREGISTER_CLIENT:
                 return this.unregisterClient(ctx, request);
@@ -73,6 +76,9 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
     public RemotingCommand heartBeat(ChannelHandlerContext ctx, RemotingCommand request) {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        /**
+         * 将请求对象转换为HeartbeatData
+         */
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
             ctx.channel(),
@@ -81,24 +87,59 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             request.getVersion()
         );
 
+        /**
+         * 处理消费者
+         */
         for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
+            /**
+             * 获得消费组的订阅关系  没有则新建并刷盘
+             */
             SubscriptionGroupConfig subscriptionGroupConfig =
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
                     data.getGroupName());
+
+            /**
+             * 消费组中的成员变化时   是否通知消费组中的其他成员
+             */
             boolean isNotifyConsumerIdsChangedEnable = true;
             if (null != subscriptionGroupConfig) {
+                /**
+                 * 获取store/config/subscriptionGroup.json中的配置
+                 * "consumerGroup2":{
+                 * 			"brokerId":0,
+                 * 			"consumeBroadcastEnable":true,
+                 * 			"consumeEnable":true,
+                 * 			"consumeFromMinEnable":true,
+                 * 			"groupName":"consumerGroup2",
+                 * 			"notifyConsumerIdsChangedEnable":true,
+                 * 			"retryMaxTimes":16,
+                 * 			"retryQueueNums":1,
+                 * 			"whichBrokerWhenConsumeSlowly":1
+                 *                }
+                 */
                 isNotifyConsumerIdsChangedEnable = subscriptionGroupConfig.isNotifyConsumerIdsChangedEnable();
                 int topicSysFlag = 0;
                 if (data.isUnitMode()) {
                     topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
                 }
+
+                /**
+                 * 消费组对应的重试队列名称
+                 */
                 String newTopic = MixAll.getRetryTopic(data.getGroupName());
+
+                /**
+                 * 重试队列不存在则创建
+                 */
                 this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
                     newTopic,
                     subscriptionGroupConfig.getRetryQueueNums(),
                     PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
             }
 
+            /**
+             * broker记录消费者信息
+             */
             boolean changed = this.brokerController.getConsumerManager().registerConsumer(
                 data.getGroupName(),
                 clientChannelInfo,
@@ -117,7 +158,13 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             }
         }
 
+        /**
+         * 处理生产者
+         */
         for (ProducerData data : heartbeatData.getProducerDataSet()) {
+            /**
+             * 记录生产者集群信息
+             */
             this.brokerController.getProducerManager().registerProducer(data.getGroupName(),
                 clientChannelInfo);
         }

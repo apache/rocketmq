@@ -20,13 +20,13 @@ public class RunningFlags {
 
     private static final int NOT_READABLE_BIT = 1;
 
-    private static final int NOT_WRITEABLE_BIT = 1 << 1;
+    private static final int NOT_WRITEABLE_BIT = 1 << 1;//10
 
-    private static final int WRITE_LOGICS_QUEUE_ERROR_BIT = 1 << 2;
+    private static final int WRITE_LOGICS_QUEUE_ERROR_BIT = 1 << 2;//100
 
-    private static final int WRITE_INDEX_FILE_ERROR_BIT = 1 << 3;
+    private static final int WRITE_INDEX_FILE_ERROR_BIT = 1 << 3;//1000
 
-    private static final int DISK_FULL_BIT = 1 << 4;
+    private static final int DISK_FULL_BIT = 1 << 4;//10000
 
     private volatile int flagBits = 0;
 
@@ -79,6 +79,9 @@ public class RunningFlags {
 
     //for consume queue, just ignore the DISK_FULL_BIT
     public boolean isCQWriteable() {
+        /**
+         * flagBits和1110做&交易
+         */
         if ((this.flagBits & (NOT_WRITEABLE_BIT | WRITE_LOGICS_QUEUE_ERROR_BIT | WRITE_INDEX_FILE_ERROR_BIT)) == 0) {
             return true;
         }

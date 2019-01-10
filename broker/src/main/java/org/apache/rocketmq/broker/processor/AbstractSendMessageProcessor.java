@@ -161,6 +161,9 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
 
     protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,
         final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
+        /**
+         * topic为顺序
+         */
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
             && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.NO_PERMISSION);
@@ -168,6 +171,10 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 + "] sending message is forbidden");
             return response;
         }
+
+        /**
+         * topic不能等于TBW102
+         */
         if (!this.brokerController.getTopicConfigManager().isTopicCanSendMessage(requestHeader.getTopic())) {
             String errorMsg = "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
             log.warn(errorMsg);
@@ -176,11 +183,21 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             return response;
         }
 
+        /**
+         * 获取TopicConfig
+         */
         TopicConfig topicConfig =
             this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
+
+        /**
+         * broker没有topic的对应
+         */
         if (null == topicConfig) {
             int topicSysFlag = 0;
             if (requestHeader.isUnitMode()) {
+                /**
+                 * topic为重试
+                 */
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
                 } else {
@@ -189,6 +206,10 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             }
 
             log.warn("the topic {} not exist, producer: {}", requestHeader.getTopic(), ctx.channel().remoteAddress());
+
+            /**
+             * 创建topic
+             */
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(
                 requestHeader.getTopic(),
                 requestHeader.getDefaultTopic(),
@@ -196,7 +217,13 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 requestHeader.getDefaultTopicQueueNums(), topicSysFlag);
 
             if (null == topicConfig) {
+                /**
+                 * 是否为重试队列
+                 */
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                    /**
+                     * 创建重试队列   通知nameserver
+                     */
                     topicConfig =
                         this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
                             requestHeader.getTopic(), 1, PermName.PERM_WRITE | PermName.PERM_READ,
@@ -214,6 +241,9 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
 
         int queueIdInt = requestHeader.getQueueId();
         int idValid = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());
+        /**
+         * msg对应的queueid大于topic对应的最大QueueNum
+         */
         if (queueIdInt >= idValid) {
             String errorInfo = String.format("request queueId[%d] is illegal, %s Producer: %s",
                 queueIdInt,
@@ -274,6 +304,12 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         }
     }
 
+    /**
+     * 将request转为SendMessageRequestHeader
+     * @param request
+     * @return
+     * @throws RemotingCommandException
+     */
     protected SendMessageRequestHeader parseRequestHeader(RemotingCommand request)
         throws RemotingCommandException {
 
@@ -285,6 +321,9 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 requestHeaderV2 =
                     (SendMessageRequestHeaderV2) request
                         .decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
+                /**
+                 * 没有break  进入下个case
+                 */
             case RequestCode.SEND_MESSAGE:
                 if (null == requestHeaderV2) {
                     requestHeader =

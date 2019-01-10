@@ -134,14 +134,33 @@ public class TopicConfigManager extends ConfigManager {
         return this.systemTopicList;
     }
 
+    /**
+     * topic不等于TBW102
+     * @param topic
+     * @return
+     */
     public boolean isTopicCanSendMessage(final String topic) {
         return !topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC);
     }
 
+    /**
+     * 获取TopicConfig
+     * @param topic
+     * @return
+     */
     public TopicConfig selectTopicConfig(final String topic) {
         return this.topicConfigTable.get(topic);
     }
 
+    /**
+     * producer正常发送消息时   如果当前topic不存在  则创建
+     * @param topic
+     * @param defaultTopic
+     * @param remoteAddress
+     * @param clientDefaultTopicQueueNums
+     * @param topicSysFlag
+     * @return
+     */
     public TopicConfig createTopicInSendMessageMethod(final String topic, final String defaultTopic,
         final String remoteAddress, final int clientDefaultTopicQueueNums, final int topicSysFlag) {
         TopicConfig topicConfig = null;
@@ -154,17 +173,35 @@ public class TopicConfigManager extends ConfigManager {
                     if (topicConfig != null)
                         return topicConfig;
 
+                    /**
+                     * defaultTopic存在
+                     */
                     TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);
                     if (defaultTopicConfig != null) {
+                        /**
+                         * defaultTopic得值为TBW102
+                         */
                         if (defaultTopic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
+                            /**
+                             * 不允许自动创建topic
+                             */
                             if (!this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
+                                /**
+                                 * 修改权限  只拥有读写权限  但没有PERM_INHERIT权限
+                                 */
                                 defaultTopicConfig.setPerm(PermName.PERM_READ | PermName.PERM_WRITE);
                             }
                         }
 
+                        /**
+                         * 如果拥有PERM_INHERIT   创建topic
+                         */
                         if (PermName.isInherited(defaultTopicConfig.getPerm())) {
                             topicConfig = new TopicConfig(topic);
 
+                            /**
+                             * topic对应的queue数量  不能超过defaultTopicConfig.getWriteQueueNums()
+                             */
                             int queueNums =
                                 clientDefaultTopicQueueNums > defaultTopicConfig.getWriteQueueNums() ? defaultTopicConfig
                                     .getWriteQueueNums() : clientDefaultTopicQueueNums;
@@ -189,16 +226,28 @@ public class TopicConfigManager extends ConfigManager {
                             defaultTopic, remoteAddress);
                     }
 
+                    /**
+                     * topic创建成功   缓存并刷盘
+                     */
                     if (topicConfig != null) {
                         log.info("Create new topic by default topic:[{}] config:[{}] producer:[{}]",
                             defaultTopic, topicConfig, remoteAddress);
 
+                        /**
+                         * 缓存
+                         */
                         this.topicConfigTable.put(topic, topicConfig);
 
+                        /**
+                         * topic信息改变后   必须接着改变对应的数据版本
+                         */
                         this.dataVersion.nextVersion();
 
                         createNew = true;
 
+                        /**
+                         * 刷盘
+                         */
                         this.persist();
                     }
                 } finally {
@@ -209,6 +258,9 @@ public class TopicConfigManager extends ConfigManager {
             log.error("createTopicInSendMessageMethod exception", e);
         }
 
+        /**
+         * 新增topic，是否需要通知nameserver  broker的topic发生变化
+         */
         if (createNew) {
             this.brokerController.registerBrokerAll(false, true,true);
         }
@@ -216,6 +268,14 @@ public class TopicConfigManager extends ConfigManager {
         return topicConfig;
     }
 
+    /**
+     * 如果当前topic不存在  则直接创建  （重试队列和死信队列）
+     * @param topic
+     * @param clientDefaultTopicQueueNums
+     * @param perm
+     * @param topicSysFlag
+     * @return
+     */
     public TopicConfig createTopicInSendMessageBackMethod(
         final String topic,
         final int clientDefaultTopicQueueNums,
@@ -227,6 +287,9 @@ public class TopicConfigManager extends ConfigManager {
 
         boolean createNew = false;
 
+        /**
+         * 直接创建topic
+         */
         try {
             if (this.lockTopicConfigTable.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
@@ -241,9 +304,18 @@ public class TopicConfigManager extends ConfigManager {
                     topicConfig.setTopicSysFlag(topicSysFlag);
 
                     log.info("create new topic {}", topicConfig);
+                    /**
+                     * 缓存
+                     */
                     this.topicConfigTable.put(topic, topicConfig);
                     createNew = true;
+                    /**
+                     * topic信息改变后   必须接着改变对应的数据版本
+                     */
                     this.dataVersion.nextVersion();
+                    /**
+                     * 刷盘
+                     */
                     this.persist();
                 } finally {
                     this.lockTopicConfigTable.unlock();
@@ -253,6 +325,9 @@ public class TopicConfigManager extends ConfigManager {
             log.error("createTopicInSendMessageBackMethod exception", e);
         }
 
+        /**
+         * 新增topic，是否需要通知nameserver  broker的topic发生变化
+         */
         if (createNew) {
             this.brokerController.registerBrokerAll(false, true,true);
         }
@@ -349,6 +424,11 @@ public class TopicConfigManager extends ConfigManager {
         }
     }
 
+    /**
+     * 从topicConfigTable中查询topic是否为顺序
+     * @param topic
+     * @return
+     */
     public boolean isOrderTopic(final String topic) {
         TopicConfig topicConfig = this.topicConfigTable.get(topic);
         if (topicConfig == null) {
@@ -390,11 +470,23 @@ public class TopicConfigManager extends ConfigManager {
     @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
+            /**
+             * 将jsonString转换为TopicConfigSerializeWrapper
+             */
             TopicConfigSerializeWrapper topicConfigSerializeWrapper =
                 TopicConfigSerializeWrapper.fromJson(jsonString, TopicConfigSerializeWrapper.class);
             if (topicConfigSerializeWrapper != null) {
+                /**
+                 * 更新topicConfigTable和dataVersion中的值为配件文件中的值
+                 */
                 this.topicConfigTable.putAll(topicConfigSerializeWrapper.getTopicConfigTable());
+                /**
+                 * 记录数据版本
+                 */
                 this.dataVersion.assignNewOne(topicConfigSerializeWrapper.getDataVersion());
+                /**
+                 * 输出
+                 */
                 this.printLoadDataWhenFirstBoot(topicConfigSerializeWrapper);
             }
         }

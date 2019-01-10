@@ -75,6 +75,9 @@ public class PullRequestHoldService extends ServiceThread {
                 }
 
                 long beginLockTimestamp = this.systemClock.now();
+                /**
+                 *
+                 */
                 this.checkHoldRequest();
                 long costTime = this.systemClock.now() - beginLockTimestamp;
                 if (costTime > 5 * 1000) {
@@ -118,6 +121,9 @@ public class PullRequestHoldService extends ServiceThread {
         String key = this.buildKey(topic, queueId);
         ManyPullRequest mpr = this.pullRequestTable.get(key);
         if (mpr != null) {
+            /**
+             * 清空pullRequestList  返回新list
+             */
             List<PullRequest> requestList = mpr.cloneListAndClear();
             if (requestList != null) {
                 List<PullRequest> replayList = new ArrayList<PullRequest>();

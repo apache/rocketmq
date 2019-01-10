@@ -82,6 +82,10 @@ public class GetMessageResult {
         return messageBufferList;
     }
 
+    /**
+     * selectResult
+     * @param mapedBuffer
+     */
     public void addMessage(final SelectMappedBufferResult mapedBuffer) {
         this.messageMapedList.add(mapedBuffer);
         this.messageBufferList.add(mapedBuffer.getByteBuffer());
@@ -90,6 +94,9 @@ public class GetMessageResult {
             mapedBuffer.getSize() / BrokerStatsManager.SIZE_PER_COUNT);
     }
 
+    /**
+     * 释放
+     */
     public void release() {
         for (SelectMappedBufferResult select : this.messageMapedList) {
             select.release();

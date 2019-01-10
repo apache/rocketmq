@@ -66,6 +66,11 @@ public class TopicPublishInfo {
         this.haveTopicRouterInfo = haveTopicRouterInfo;
     }
 
+    /**
+     * 从messageQueueList中选取一个MessageQueue
+     * @param lastBrokerName
+     * @return
+     */
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
         if (lastBrokerName == null) {
             return selectOneMessageQueue();
@@ -76,10 +81,16 @@ public class TopicPublishInfo {
                 if (pos < 0)
                     pos = 0;
                 MessageQueue mq = this.messageQueueList.get(pos);
+                /**
+                 * 选取不同BrokerName的messageQueue
+                 */
                 if (!mq.getBrokerName().equals(lastBrokerName)) {
                     return mq;
                 }
             }
+            /**
+             * 如果没有不同名字的BrokerName的messageQueue   则选取一个
+             */
             return selectOneMessageQueue();
         }
     }

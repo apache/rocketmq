@@ -56,6 +56,11 @@ public class MessageExt extends Message {
         this.msgId = msgId;
     }
 
+    /**
+     *
+     * @param sysFlag
+     * @return
+     */
     public static TopicFilterType parseTopicFilterType(final int sysFlag) {
         if ((sysFlag & MessageSysFlag.MULTI_TAGS_FLAG) == MessageSysFlag.MULTI_TAGS_FLAG) {
             return TopicFilterType.MULTI_TAG;

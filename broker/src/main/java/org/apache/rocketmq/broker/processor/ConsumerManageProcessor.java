@@ -51,10 +51,19 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         throws RemotingCommandException {
         switch (request.getCode()) {
             case RequestCode.GET_CONSUMER_LIST_BY_GROUP:
+                /**
+                 * 得到消费组内的成员
+                 */
                 return this.getConsumerListByGroup(ctx, request);
             case RequestCode.UPDATE_CONSUMER_OFFSET:
+                /**
+                 * 消费者上报消费进度
+                 */
                 return this.updateConsumerOffset(ctx, request);
             case RequestCode.QUERY_CONSUMER_OFFSET:
+                /**
+                 * 查询消费进度
+                 */
                 return this.queryConsumerOffset(ctx, request);
             default:
                 break;
@@ -67,6 +76,13 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         return false;
     }
 
+    /**
+     * 得到消费组内的成员
+     * @param ctx
+     * @param request
+     * @return
+     * @throws RemotingCommandException
+     */
     public RemotingCommand getConsumerListByGroup(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
         final RemotingCommand response =
@@ -75,10 +91,17 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
             (GetConsumerListByGroupRequestHeader) request
                 .decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
 
+        /**
+         * 获得消费组对应得ConsumerGroupInfo
+         */
         ConsumerGroupInfo consumerGroupInfo =
             this.brokerController.getConsumerManager().getConsumerGroupInfo(
                 requestHeader.getConsumerGroup());
+
         if (consumerGroupInfo != null) {
+            /**
+             * 获得消费组下得消费者个数
+             */
             List<String> clientIds = consumerGroupInfo.getAllClientId();
             if (!clientIds.isEmpty()) {
                 GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
@@ -101,6 +124,13 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * broker记录消费者对应的消费进度
+     * @param ctx
+     * @param request
+     * @return
+     * @throws RemotingCommandException
+     */
     private RemotingCommand updateConsumerOffset(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
         final RemotingCommand response =
@@ -108,6 +138,9 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         final UpdateConsumerOffsetRequestHeader requestHeader =
             (UpdateConsumerOffsetRequestHeader) request
                 .decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
+        /**
+         * broker记录消费者对应的消费进度
+         */
         this.brokerController.getConsumerOffsetManager().commitOffset(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getConsumerGroup(),
             requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
         response.setCode(ResponseCode.SUCCESS);
@@ -115,6 +148,13 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * 查询消费进度
+     * @param ctx
+     * @param request
+     * @return
+     * @throws RemotingCommandException
+     */
     private RemotingCommand queryConsumerOffset(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
         final RemotingCommand response =
@@ -125,6 +165,9 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
             (QueryConsumerOffsetRequestHeader) request
                 .decodeCommandCustomHeader(QueryConsumerOffsetRequestHeader.class);
 
+        /**
+         * 从缓存中查询消费者得消费进度
+         */
         long offset =
             this.brokerController.getConsumerOffsetManager().queryOffset(
                 requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
@@ -134,6 +177,9 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
         } else {
+            /**
+             * 得到当前consumequeue最小得queueoffset
+             */
             long minOffset =
                 this.brokerController.getMessageStore().getMinOffsetInQueue(requestHeader.getTopic(),
                     requestHeader.getQueueId());

@@ -108,6 +108,9 @@ public class BrokerOuterAPI {
             lst.add(addr);
         }
 
+        /**
+         * 缓存NamesrvAddr到namesrvAddrList
+         */
         this.remotingClient.updateNameServerAddressList(lst);
     }
 
@@ -124,6 +127,9 @@ public class BrokerOuterAPI {
         final boolean compressed) {
 
         final List<RegisterBrokerResult> registerBrokerResultList = Lists.newArrayList();
+        /**
+         * 获得nameserver列表
+         */
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
         if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
 
@@ -142,6 +148,9 @@ public class BrokerOuterAPI {
             final int bodyCrc32 = UtilAll.crc32(body);
             requestHeader.setBodyCrc32(bodyCrc32);
             final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
+            /**
+             * 轮询向nameserver发起注册请求
+             */
             for (final String namesrvAddr : nameServerAddressList) {
                 brokerOuterExecutor.execute(new Runnable() {
                     @Override
@@ -171,6 +180,21 @@ public class BrokerOuterAPI {
         return registerBrokerResultList;
     }
 
+    /**
+     * broker向nameserver发起注册请求
+     * @param namesrvAddr
+     * @param oneway
+     * @param timeoutMills
+     * @param requestHeader
+     * @param body
+     * @return
+     * @throws RemotingCommandException
+     * @throws MQBrokerException
+     * @throws RemotingConnectException
+     * @throws RemotingSendRequestException
+     * @throws RemotingTimeoutException
+     * @throws InterruptedException
+     */
     private RegisterBrokerResult registerBroker(
         final String namesrvAddr,
         final boolean oneway,
@@ -182,6 +206,9 @@ public class BrokerOuterAPI {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.REGISTER_BROKER, requestHeader);
         request.setBody(body);
 
+        /**
+         * oneway发送
+         */
         if (oneway) {
             try {
                 this.remotingClient.invokeOneway(namesrvAddr, request, timeoutMills);
@@ -191,6 +218,9 @@ public class BrokerOuterAPI {
             return null;
         }
 
+        /**
+         * 同步发送
+         */
         RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, timeoutMills);
         assert response != null;
         switch (response.getCode()) {
@@ -258,6 +288,16 @@ public class BrokerOuterAPI {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * 向所有的nameserver发起请求   broker存储的topic是否有发生变化
+     * @param clusterName
+     * @param brokerAddr
+     * @param brokerName
+     * @param brokerId
+     * @param topicConfigWrapper
+     * @param timeoutMills
+     * @return
+     */
     public List<Boolean> needRegister(
         final String clusterName,
         final String brokerAddr,
@@ -266,9 +306,15 @@ public class BrokerOuterAPI {
         final TopicConfigSerializeWrapper topicConfigWrapper,
         final int timeoutMills) {
         final List<Boolean> changedList = new CopyOnWriteArrayList<>();
+        /**
+         * 获得nameserver列表
+         */
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
         if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
             final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
+            /**
+             * 向所有的nameserver发起请求
+             */
             for (final String namesrvAddr : nameServerAddressList) {
                 brokerOuterExecutor.execute(new Runnable() {
                     @Override
@@ -280,7 +326,14 @@ public class BrokerOuterAPI {
                             requestHeader.setBrokerName(brokerName);
                             requestHeader.setClusterName(clusterName);
                             RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_DATA_VERSION, requestHeader);
+                            /**
+                             * 只比对DataVersion  TopicConfigSerializeWrapper中一旦topic发生变化则DataVersion也会变化
+                             * 所以在这里只比对DataVersion   而无需比对topic
+                             */
                             request.setBody(topicConfigWrapper.getDataVersion().encode());
+                            /**
+                             * 发送请求
+                             */
                             RemotingCommand response = remotingClient.invokeSync(namesrvAddr, request, timeoutMills);
                             DataVersion nameServerDataVersion = null;
                             Boolean changed = false;
@@ -288,10 +341,16 @@ public class BrokerOuterAPI {
                                 case ResponseCode.SUCCESS: {
                                     QueryDataVersionResponseHeader queryDataVersionResponseHeader =
                                         (QueryDataVersionResponseHeader) response.decodeCommandCustomHeader(QueryDataVersionResponseHeader.class);
+                                    /**
+                                     * 比对头部  判断是否发生变化
+                                     */
                                     changed = queryDataVersionResponseHeader.getChanged();
                                     byte[] body = response.getBody();
                                     if (body != null) {
                                         nameServerDataVersion = DataVersion.decode(body, DataVersion.class);
+                                        /**
+                                         * 比对返回数据  判断是否变化
+                                         */
                                         if (!topicConfigWrapper.getDataVersion().equals(nameServerDataVersion)) {
                                             changed = true;
                                         }

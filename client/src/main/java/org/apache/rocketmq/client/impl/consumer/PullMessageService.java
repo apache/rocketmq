@@ -43,6 +43,11 @@ public class PullMessageService extends ServiceThread {
         this.mQClientFactory = mQClientFactory;
     }
 
+    /**
+     * 在xxxx毫秒后    将pullRequest重新放入pullRequestQueue
+     * @param pullRequest
+     * @param timeDelay
+     */
     public void executePullRequestLater(final PullRequest pullRequest, final long timeDelay) {
         if (!isStopped()) {
             this.scheduledExecutorService.schedule(new Runnable() {
@@ -77,9 +82,16 @@ public class PullMessageService extends ServiceThread {
     }
 
     private void pullMessage(final PullRequest pullRequest) {
+        /**
+         * 得到消费者实例
+         * 消费组下有多个消费者   但由于分机部署  同一个启动程序中不会存在其他的消费实例
+         */
         final MQConsumerInner consumer = this.mQClientFactory.selectConsumer(pullRequest.getConsumerGroup());
         if (consumer != null) {
             DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumer;
+            /**
+             * 拉取消息
+             */
             impl.pullMessage(pullRequest);
         } else {
             log.warn("No matched consumer for the PullRequest {}, drop it", pullRequest);
@@ -92,6 +104,9 @@ public class PullMessageService extends ServiceThread {
 
         while (!this.isStopped()) {
             try {
+                /**
+                 * 从pullRequestQueue中取得PullRequest进行消费
+                 */
                 PullRequest pullRequest = this.pullRequestQueue.take();
                 this.pullMessage(pullRequest);
             } catch (InterruptedException ignored) {

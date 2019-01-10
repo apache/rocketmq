@@ -45,9 +45,16 @@ public class MQClientManager {
     }
 
     public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
+        /**
+         * 服务器ip@InstanceName
+         */
         String clientId = clientConfig.buildMQClientId();
+
         MQClientInstance instance = this.factoryTable.get(clientId);
         if (null == instance) {
+            /**
+             *
+             */
             instance =
                 new MQClientInstance(clientConfig.cloneClientConfig(),
                     this.factoryIndexGenerator.getAndIncrement(), clientId, rpcHook);

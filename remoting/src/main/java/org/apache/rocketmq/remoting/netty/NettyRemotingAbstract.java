@@ -147,6 +147,9 @@ public abstract class NettyRemotingAbstract {
         if (cmd != null) {
             switch (cmd.getType()) {
                 case REQUEST_COMMAND:
+                    /**
+                     *
+                     */
                     processRequestCommand(ctx, cmd);
                     break;
                 case RESPONSE_COMMAND:
@@ -179,6 +182,9 @@ public abstract class NettyRemotingAbstract {
                             rpcHook.doBeforeRequest(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd);
                         }
 
+                        /**
+                         *
+                         */
                         final RemotingCommand response = pair.getObject1().processRequest(ctx, cmd);
                         if (rpcHook != null) {
                             rpcHook.doAfterResponse(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, response);
@@ -287,6 +293,9 @@ public abstract class NettyRemotingAbstract {
                     @Override
                     public void run() {
                         try {
+                            /**
+                             * 执行回调
+                             */
                             responseFuture.executeInvokeCallback();
                         } catch (Throwable e) {
                             log.warn("execute callback in executor exception, and callback throw", e);
@@ -423,6 +432,9 @@ public abstract class NettyRemotingAbstract {
                             responseFuture.setSendRequestOK(true);
                             return;
                         }
+                        /**
+                         * 执行回调
+                         */
                         requestFail(opaque);
                         log.warn("send a request command to channel <{}> failed.", RemotingHelper.parseChannelRemoteAddr(channel));
                     }
@@ -454,6 +466,9 @@ public abstract class NettyRemotingAbstract {
             responseFuture.setSendRequestOK(false);
             responseFuture.putResponse(null);
             try {
+                /**
+                 * 执行回调
+                 */
                 executeInvokeCallback(responseFuture);
             } catch (Throwable e) {
                 log.warn("execute callback in requestFail, and callback throw", e);

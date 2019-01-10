@@ -154,6 +154,9 @@ public class AllocateMappedFileService extends ServiceThread {
         boolean isSuccess = false;
         AllocateRequest req = null;
         try {
+            /**
+             * 如果requestQueue没有值则阻塞
+             */
             req = this.requestQueue.take();
             AllocateRequest expectedRequest = this.requestTable.get(req.getFilePath());
             if (null == expectedRequest) {

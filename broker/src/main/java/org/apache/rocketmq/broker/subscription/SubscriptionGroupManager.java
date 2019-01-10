@@ -43,8 +43,15 @@ public class SubscriptionGroupManager extends ConfigManager {
         this.init();
     }
 
+    /**
+     * 默认的消费者集群
+     * @param brokerController
+     */
     public SubscriptionGroupManager(BrokerController brokerController) {
         this.brokerController = brokerController;
+        /**
+         * 加载
+         */
         this.init();
     }
 
@@ -117,9 +124,17 @@ public class SubscriptionGroupManager extends ConfigManager {
         }
     }
 
+    /**
+     * 根据group  从缓存中查询订阅信息   如果没有  则创建  并刷盘
+     * @param group
+     * @return
+     */
     public SubscriptionGroupConfig findSubscriptionGroupConfig(final String group) {
         SubscriptionGroupConfig subscriptionGroupConfig = this.subscriptionGroupTable.get(group);
         if (null == subscriptionGroupConfig) {
+            /**
+             * 是否允许自动创建订阅 ||  是否是系统消费组（CID_RMQ_SYS_）
+             */
             if (brokerController.getBrokerConfig().isAutoCreateSubscriptionGroup() || MixAll.isSysConsumerGroup(group)) {
                 subscriptionGroupConfig = new SubscriptionGroupConfig();
                 subscriptionGroupConfig.setGroupName(group);
@@ -146,13 +161,29 @@ public class SubscriptionGroupManager extends ConfigManager {
             .getStorePathRootDir());
     }
 
+    /**
+     * 读取的是store/config/subscriptionGroup.json
+     * @param jsonString
+     */
     @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
+            /**
+             * json转换为SubscriptionGroupManager
+             */
             SubscriptionGroupManager obj = RemotingSerializable.fromJson(jsonString, SubscriptionGroupManager.class);
             if (obj != null) {
+                /**
+                 * 缓存消费者消息到subscriptionGroupTable
+                 */
                 this.subscriptionGroupTable.putAll(obj.subscriptionGroupTable);
+                /**
+                 * 记录版本信息
+                 */
                 this.dataVersion.assignNewOne(obj.dataVersion);
+                /**
+                 * 输出消费者信息
+                 */
                 this.printLoadDataWhenFirstBoot(obj);
             }
         }

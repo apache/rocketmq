@@ -47,8 +47,14 @@ public class BrokerData implements Comparable<BrokerData> {
      * @return Broker address.
      */
     public String selectBrokerAddr() {
+        /**
+         * 取master地址
+         */
         String addr = this.brokerAddrs.get(MixAll.MASTER_ID);
 
+        /**
+         * 如果当前没有可用得master   则随机选取一个slave
+         */
         if (addr == null) {
             List<String> addrs = new ArrayList<String>(brokerAddrs.values());
             return addrs.get(random.nextInt(addrs.size()));

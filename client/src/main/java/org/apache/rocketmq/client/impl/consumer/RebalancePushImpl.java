@@ -81,10 +81,26 @@ public class RebalancePushImpl extends RebalanceImpl {
         this.getmQClientFactory().sendHeartbeatToAllBrokerWithLock();
     }
 
+    /**
+     * 移除不再监听的MessageQueue
+     * @param mq
+     * @param pq
+     * @return
+     */
     @Override
     public boolean removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
+        /**
+         * 上报当前消费进度
+         */
         this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
+        /**
+         * 再本地缓存offsetTable中  移除mq
+         */
         this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
+
+        /**
+         * 顺序消费 && 集群模式
+         */
         if (this.defaultMQPushConsumerImpl.isConsumeOrderly()
             && MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) {
             try {
@@ -132,6 +148,10 @@ public class RebalancePushImpl extends RebalanceImpl {
         return ConsumeType.CONSUME_PASSIVELY;
     }
 
+    /**
+     * push模式下在offsetTable中移除当前MessageQueue
+     * @param mq
+     */
     @Override
     public void removeDirtyOffset(final MessageQueue mq) {
         this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
@@ -147,16 +167,29 @@ public class RebalancePushImpl extends RebalanceImpl {
             case CONSUME_FROM_MIN_OFFSET:
             case CONSUME_FROM_MAX_OFFSET:
             case CONSUME_FROM_LAST_OFFSET: {
+                /**
+                 * 从broker（ReadOffsetType.READ_FROM_STORE模式）查询当前消费组下MessageQueue对应的消费Offset
+                 * 并存储在offsetTable
+                 */
                 long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
                 if (lastOffset >= 0) {
                     result = lastOffset;
                 }
                 // First start,no offset
+                /**
+                 * 第一次消费   之前没有消费记录
+                 */
                 else if (-1 == lastOffset) {
+                    /**
+                     * 如果是重试队列  则直接返回0
+                     */
                     if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                         result = 0L;
                     } else {
                         try {
+                            /**
+                             * 查询MessageQueue下   相应topic对应的最大消费进度   不区分消费组
+                             */
                             result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
                         } catch (MQClientException e) {
                             result = -1;

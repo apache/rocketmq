@@ -100,18 +100,36 @@ public class MessageDecoder {
      * @param byteBuffer msg commit log buffer.
      */
     public static Map<String, String> decodeProperties(java.nio.ByteBuffer byteBuffer) {
+        /**
+         *commitlog中  消息对应的topicLength的位置
+         */
         int topicLengthPosition = BODY_SIZE_POSITION + 4 + byteBuffer.getInt(BODY_SIZE_POSITION);
 
+        /**
+         * 获取topic的大小
+         */
         byte topicLength = byteBuffer.get(topicLengthPosition);
 
+        /**
+         * 获取属性值的大小 propertiesLength
+         */
         short propertiesLength = byteBuffer.getShort(topicLengthPosition + 1 + topicLength);
 
+        /**
+         * 移动position到属性数据的位置
+         */
         byteBuffer.position(topicLengthPosition + 1 + topicLength + 2);
 
         if (propertiesLength > 0) {
+            /**
+             * 获得当前message中存储的属性值
+             */
             byte[] properties = new byte[propertiesLength];
             byteBuffer.get(properties);
             String propertiesString = new String(properties, CHARSET_UTF8);
+            /**
+             * 将属性值转换为map
+             */
             Map<String, String> map = string2messageProperties(propertiesString);
             return map;
         }
@@ -396,6 +414,11 @@ public class MessageDecoder {
         return sb.toString();
     }
 
+    /**
+     * 将properties存储到map中
+     * @param properties
+     * @return
+     */
     public static Map<String, String> string2messageProperties(final String properties) {
         Map<String, String> map = new HashMap<String, String>();
         if (properties != null) {
