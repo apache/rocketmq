@@ -208,26 +208,23 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
         final ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
         this.serverBootstrap.group(this.bossGroup, this.ioGroup).
             channel(socketChannelClass).childHandler(new ChannelInitializer<SocketChannel>() {
-            @Override
-            public void initChannel(SocketChannel ch) throws Exception {
-                channels.add(ch);
+                @Override
+                public void initChannel(SocketChannel ch) throws Exception {
+                    channels.add(ch);
 
-                ChannelPipeline cp = ch.pipeline();
-
-                cp.addLast(ChannelStatisticsHandler.NAME, new ChannelStatisticsHandler(channels));
-
-                cp.addLast(workerGroup,
-                    Http2Handler.newHandler(true),
-                    new NettyEncoder(),
-                    new NettyDecoder(),
-                    new IdleStateHandler(serverConfig.getConnectionChannelReaderIdleSeconds(),
-                        serverConfig.getConnectionChannelWriterIdleSeconds(),
-                        serverConfig.getServerChannelMaxIdleTimeSeconds()),
-                    new NettyConnectManageHandler(),
-                    new NettyServerHandler());
-            }
-        });
-
+                    ChannelPipeline cp = ch.pipeline();
+                    cp.addLast(ChannelStatisticsHandler.NAME, new ChannelStatisticsHandler(channels));
+                    cp.addLast(workerGroup,
+                        Http2Handler.newHandler(true),
+                        new NettyEncoder(),
+                        new NettyDecoder(),
+                        new IdleStateHandler(serverConfig.getConnectionChannelReaderIdleSeconds(),
+                            serverConfig.getConnectionChannelWriterIdleSeconds(),
+                            serverConfig.getServerChannelMaxIdleTimeSeconds()),
+                        new NettyConnectManageHandler(),
+                        new NettyServerHandler());
+                }
+            });
         applyOptions(serverBootstrap);
 
         ChannelFuture channelFuture = this.serverBootstrap.bind(this.port).syncUninterruptibly();
