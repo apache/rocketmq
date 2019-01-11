@@ -75,7 +75,7 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
         init(clientConfig, channelEventListener);
     }
 
-    public Http2ClientImpl(){
+    public Http2ClientImpl() {
         super();
     }
 

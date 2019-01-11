@@ -17,16 +17,13 @@
 package org.apache.rocketmq.remoting;
 
 import java.util.Map;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.util.ServiceProvider;
 
 public class RemotingClientFactory {
     private static RemotingClientFactory instance = new RemotingClientFactory();
 
-    public static RemotingClientFactory getInstance(){
+    public static RemotingClientFactory getInstance() {
         return instance;
     }
 
