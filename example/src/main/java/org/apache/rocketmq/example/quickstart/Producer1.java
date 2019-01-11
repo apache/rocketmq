@@ -13,8 +13,8 @@ public class Producer1 {
          * Instantiate with a producer group name.
          */
         DefaultMQProducer producer = new DefaultMQProducer("producerGroup1");
-        producer.setNamesrvAddr("192.168.50.65:9876");
-//        producer.setNamesrvAddr("localhost:9876");
+//        producer.setNamesrvAddr("192.168.50.65:9876");
+        producer.setNamesrvAddr("localhost:9876");
 
         /*
          * Specify name server addresses.
