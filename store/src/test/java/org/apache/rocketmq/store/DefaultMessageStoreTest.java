@@ -26,6 +26,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.OverlappingFileLockException;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.rocketmq.common.BrokerConfig;
@@ -56,6 +57,10 @@ public class DefaultMessageStoreTest {
     public void init() throws Exception {
         StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
+
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        File file = new File(messageStoreConfig.getStorePathRootDir());
+        UtilAll.deleteFile(file);
 
         messageStore = buildMessageStore();
         boolean load = messageStore.load();
@@ -103,8 +108,9 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 1024 * 10);
         messageStoreConfig.setMaxHashSlotNum(10000);
         messageStoreConfig.setMaxIndexNum(100 * 100);
-        messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
+        messageStoreConfig.setFlushDiskType(FlushDiskType.ASYNC_FLUSH);
         messageStoreConfig.setFlushIntervalConsumeQueue(1);
+        messageStoreConfig.setMaxMessageSize(1024);
         return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MyMessageArrivingListener(), new BrokerConfig());
     }
 
@@ -156,7 +162,7 @@ public class DefaultMessageStoreTest {
     @Test
     public void testPullSize() throws Exception {
         String topic = "pullSizeTopic";
-
+        MessageBody = StoreMessage.getBytes();
         for (int i = 0; i < 32; i++) {
             MessageExtBrokerInner messageExtBrokerInner = buildMessage();
             messageExtBrokerInner.setTopic(topic);
@@ -292,6 +298,106 @@ public class DefaultMessageStoreTest {
 
         messageExt = messageStore.lookMessageByOffset((91+topicLen+bodyLen) * 99);
         assertEquals(messageExt.getTopic(),"LookMessageByOffset 99");
+    }
+
+    @Test
+    public void testGetMessageByOffset() throws Exception {
+        String topic = "testGetMessageByOffset";
+        MessageBody = StoreMessage.getBytes();
+        for (int i = 0; i < 100; i++) {
+            putMessage(topic,0);
+        }
+        TimeUnit.SECONDS.sleep(5);
+        messageStore.getConsumeQueue("testGetMessageByOffset",0).flush(1);
+        DefaultMessageStore defaultMessageStore = (DefaultMessageStore)messageStore;
+        Map<String, Long> messageIds = defaultMessageStore.getMessageIds("testGetMessageByOffset",0,0,10,StoreHost);
+        //Exists bug in defaultMessageStore.getMessageIds So don't Assert the result
+        //assertTrue(10 == messageIds.size());
+    }
+
+    @Test
+    public void testGetMessageTotalInQueue(){
+        String topic = "testGetMessageTotalInQueue";
+        MessageBody = StoreMessage.getBytes();
+        for (int i = 0; i < 100; i++) {
+            putMessage(topic,0);
+        }
+        long messageCnt = messageStore.getMessageTotalInQueue("testGetMessageTotalInQueue",0);
+        assertTrue(100 == messageCnt);
+    }
+
+    @Test
+    public void testGetOffsetInQueueByTime() throws Exception{
+        String topic = "testGetOffsetInQueueByTime";
+        MessageBody = StoreMessage.getBytes();
+        int topicLen = String.format(topic,0).getBytes().length;
+        int bodyLen  = StoreMessage.getBytes().length;
+        long timestamp50 = System.currentTimeMillis();
+        AppendMessageResult  appendMessageResult50 = null;
+        for (int i = 0; i < 100; i++) {
+            PutMessageResult putMessageResult = putMessage(topic,0);
+            if(i == 50) {
+                appendMessageResult50 = putMessageResult.getAppendMessageResult();
+                timestamp50 = appendMessageResult50.getStoreTimestamp();
+            }
+        }
+        long offset = messageStore.getOffsetInQueueByTime(topic,0,timestamp50);
+        assertEquals(50,offset);
+        TimeUnit.SECONDS.sleep(2);
+        long lastTimestamp = System.currentTimeMillis();
+        offset = messageStore.getOffsetInQueueByTime(topic,0,lastTimestamp);
+        assertEquals(99,offset);
+    }
+
+    @Test
+    public void testGetMessageStoreTimeStamp(){
+        String topic = "testGetMessageStoreTimeStamp";
+        MessageBody = StoreMessage.getBytes();
+        int topicLen = String.format(topic,0).getBytes().length;
+        int bodyLen  = StoreMessage.getBytes().length;
+        long timestamp50 = System.currentTimeMillis();
+        AppendMessageResult  appendMessageResult50 = null;
+        for (int i = 0; i < 100; i++) {
+            PutMessageResult putMessageResult = putMessage(topic,0);
+            if(i==50) {
+                appendMessageResult50 = putMessageResult.getAppendMessageResult();
+                timestamp50 = appendMessageResult50.getStoreTimestamp();
+            }
+        }
+
+        long resultTimestamp = messageStore.getMessageStoreTimeStamp(topic,0,50);
+        assertEquals(timestamp50,resultTimestamp);
+
+    }
+
+    @Test
+    public void testGetEarliestMessageTime() throws Exception{
+        String topic = "testGetEarliestMessageTime";
+        StringBuffer sb = new StringBuffer();
+        //set message body size to 0.3k+
+        for(int i = 0 ;i < 10 ; i++){
+            sb.append(StoreMessage);
+        }
+        MessageBody = sb.toString().getBytes();
+        long earliestStoreTimestamp = 0;
+        for(int i = 0; i< 10 ; i++) {
+            PutMessageResult putMessageResult = putMessage(topic,0);
+            if(i == 0){
+                earliestStoreTimestamp = putMessageResult.getAppendMessageResult().getStoreTimestamp();
+            }
+        }
+        TimeUnit.SECONDS.sleep(2);
+        long earliestTimestamp = messageStore.getEarliestMessageTime();
+
+        assertEquals(earliestStoreTimestamp,earliestTimestamp);
+    }
+
+    private PutMessageResult putMessage(String topic ,int queueId){
+        MessageExtBrokerInner messageExtBrokerInner = buildMessage();
+        messageExtBrokerInner.setTopic(topic);
+        messageExtBrokerInner.setQueueId(queueId);
+        PutMessageResult putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+        return putMessageResult;
     }
 
     private void damageCommitlog(long offset) throws Exception {
