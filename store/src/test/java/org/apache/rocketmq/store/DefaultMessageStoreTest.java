@@ -166,14 +166,20 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void should_look_message_successfully_when_offset_is_out_of_bound() {
-        int totalCount = 10;
-        for (long i = 0; i < totalCount; i++) {
+    public void should_look_message_failed_and_return_null_when_offset_is_out_of_bound() {
+        final int totalCount = 10;
+        int[] messageLengthArray = new int[totalCount];
+        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) this.messageStore;
+        for (int i = 0; i < totalCount; i++) {
             String messageBody = buildMessageBodyByOffset(StoreMessage, i);
-            messageStore.putMessage(buildMessage(messageBody.getBytes()));
+            System.out.println("messageBody " + i + " length: " + messageBody.getBytes().length);
+            MessageExtBrokerInner msgInner = buildMessage(messageBody.getBytes());
+            messageStore.putMessage(msgInner);
+            messageLengthArray[i] = calculateMessageLength(msgInner);
         }
 
-        MessageExt messageExt = messageStore.lookMessageByOffset(totalCount);
+        int lastOffset = getOffsetByIndex(messageLengthArray, totalCount);
+        MessageExt messageExt = defaultMessageStore.lookMessageByOffset(lastOffset);
 
         assertThat(messageExt).isNull();
     }
