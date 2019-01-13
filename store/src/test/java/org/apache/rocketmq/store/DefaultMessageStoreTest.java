@@ -27,14 +27,15 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.OverlappingFileLockException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
-import org.junit.After;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -62,7 +63,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test(expected = OverlappingFileLockException.class)
-    public void test_repate_restart() throws Exception {
+    public void test_repeat_restart() throws Exception {
         QUEUE_TOTAL = 1;
         MessageBody = StoreMessage.getBytes();
 
@@ -86,7 +87,7 @@ public class DefaultMessageStoreTest {
     }
 
     @After
-    public void destory() {
+    public void destroy() {
         messageStore.shutdown();
         messageStore.destroy();
 
@@ -123,12 +124,70 @@ public class DefaultMessageStoreTest {
         verifyThatMasterIsFunctional(totalMsgs, messageStore);
     }
 
-    private MessageExtBrokerInner buildMessage() {
+    @Test
+    public void should_look_message_successfully_when_offset_is_first() {
+        final int totalCount = 10;
+        int[] messageLengthArray = new int[totalCount];
+        int firstOffset = 0;
+        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) this.messageStore;
+        for (int i = firstOffset; i < totalCount; i++) {
+            String messageBody = buildMessageBodyByOffset(StoreMessage, i);
+            System.out.println("messageBody " + i + " length: " + messageBody.getBytes().length);
+            MessageExtBrokerInner msgInner = buildMessage(messageBody.getBytes());
+            messageStore.putMessage(msgInner);
+            messageLengthArray[i] = calculateMessageLength(msgInner);
+        }
+
+        MessageExt messageExt = messageStore.lookMessageByOffset(firstOffset);
+        MessageExt messageExt1 = defaultMessageStore.lookMessageByOffset(firstOffset, messageLengthArray[firstOffset]);
+
+        assertThat(new String(messageExt.getBody())).isEqualTo(buildMessageBodyByOffset(StoreMessage, firstOffset));
+        assertThat(new String(messageExt1.getBody())).isEqualTo(buildMessageBodyByOffset(StoreMessage, firstOffset));
+    }
+
+    @Test
+    public void should_look_message_successfully_when_offset_is_last() {
+        final int totalCount = 10;
+        int[] messageLengthArray = new int[totalCount];
+        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) this.messageStore;
+        for (int i = 0; i < totalCount; i++) {
+            String messageBody = buildMessageBodyByOffset(StoreMessage, i);
+            System.out.println("messageBody " + i + " length: " + messageBody.getBytes().length);
+            MessageExtBrokerInner msgInner = buildMessage(messageBody.getBytes());
+            messageStore.putMessage(msgInner);
+            messageLengthArray[i] = calculateMessageLength(msgInner);
+        }
+
+        int lastIndex = totalCount - 1;
+        int lastOffset = getOffsetByIndex(messageLengthArray, lastIndex);
+        MessageExt messageExt = defaultMessageStore.lookMessageByOffset(lastOffset, messageLengthArray[lastIndex]);
+
+        assertThat(new String(messageExt.getBody())).isEqualTo(buildMessageBodyByOffset(StoreMessage, lastIndex));
+    }
+
+    @Test
+    public void should_look_message_successfully_when_offset_is_out_of_bound() {
+        int totalCount = 10;
+        for (long i = 0; i < totalCount; i++) {
+            String messageBody = buildMessageBodyByOffset(StoreMessage, i);
+            messageStore.putMessage(buildMessage(messageBody.getBytes()));
+        }
+
+        MessageExt messageExt = messageStore.lookMessageByOffset(totalCount);
+
+        assertThat(messageExt).isNull();
+    }
+
+    private String buildMessageBodyByOffset(String message, long i) {
+        return String.format("%s offset %d", message, i);
+    }
+
+    private MessageExtBrokerInner buildMessage(byte[] messageBody) {
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
         msg.setTopic("FooBar");
         msg.setTags("TAG1");
         msg.setKeys("Hello");
-        msg.setBody(MessageBody);
+        msg.setBody(messageBody);
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
         msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
         msg.setSysFlag(0);
@@ -136,6 +195,33 @@ public class DefaultMessageStoreTest {
         msg.setStoreHost(StoreHost);
         msg.setBornHost(BornHost);
         return msg;
+    }
+
+    private MessageExtBrokerInner buildMessage() {
+        return buildMessage(MessageBody);
+    }
+
+    private int getOffsetByIndex(int[] messageLengthArray, int index) {
+        int result = 0;
+        for (int i = 0; i < index; i++) {
+            result += messageLengthArray[i];
+        }
+        return result;
+    }
+
+    /**
+     * calculate message length
+     *
+     * @param msgInner MessageExtBrokerInner
+     * @return message length
+     */
+    private static int calculateMessageLength(MessageExtBrokerInner msgInner) {
+        int topicLength = msgInner.getTopic().getBytes(MessageDecoder.CHARSET_UTF8).length;
+        int propertiesLength = msgInner.getPropertiesString() == null ? 0 : msgInner.getPropertiesString().getBytes().length;
+        int bodyLength = msgInner.getBody().length;
+
+        // magic code 91 please reference CommitLog#calMsgLength
+        return topicLength + propertiesLength + bodyLength + 91;
     }
 
     private void verifyThatMasterIsFunctional(long totalMsgs, MessageStore master) {
