@@ -92,7 +92,6 @@ public class DefaultMessageStoreTest {
     public void destory() {
         messageStore.shutdown();
         messageStore.destroy();
-
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         File file = new File(messageStoreConfig.getStorePathRootDir());
         UtilAll.deleteFile(file);
@@ -279,20 +278,25 @@ public class DefaultMessageStoreTest {
         int topicLen = String.format(topic,0).getBytes().length;
         int bodyLen  = StoreMessage.getBytes().length;
         MessageBody = StoreMessage.getBytes();
+        long firstOffset = 0;
         for (int i = 0; i < 100; i++) {
             MessageExtBrokerInner messageExtBrokerInner = buildMessage();
             messageExtBrokerInner.setTopic(String.format(topic,i));
             messageExtBrokerInner.setQueueId(0);
-            messageStore.putMessage(messageExtBrokerInner);
+            PutMessageResult putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+            if (i == 0) {
+                firstOffset = putMessageResult.getAppendMessageResult().getWroteOffset();
+            }
+
         }
 
-        MessageExt messageExt = messageStore.lookMessageByOffset(0 );
+        MessageExt messageExt = messageStore.lookMessageByOffset(firstOffset );
         assertEquals(messageExt.getTopic(),"LookMessageByOffset 00");
         //(91+bodyLen+topicLen)*50
-        messageExt = messageStore.lookMessageByOffset((91+topicLen+bodyLen) * 50);
+        messageExt = messageStore.lookMessageByOffset(firstOffset + (91+topicLen+bodyLen) * 50);
         assertEquals(messageExt.getTopic(),"LookMessageByOffset 50");
 
-        messageExt = messageStore.lookMessageByOffset((91+topicLen+bodyLen) * 99);
+        messageExt = messageStore.lookMessageByOffset(firstOffset + (91+topicLen+bodyLen) * 99);
         assertEquals(messageExt.getTopic(),"LookMessageByOffset 99");
     }
 
@@ -367,25 +371,46 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void testGetEarliestMessageTime() throws Exception{
+    public void testGetEarliestMessageTime() throws Exception {
+        messageStore.shutdown();
+        messageStore.destroy();
+        String rootPath = System.getProperty("user.home") + File.separator + "store1";
+        String commitLogPath = System.getProperty("user.home") + File.separator + "store1"
+                + File.separator + "commitlog";
+        File file = new File(rootPath);
+        UtilAll.deleteFile(file);
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setMapedFileSizeCommitLog(1024 * 1024 * 10);
+        messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 1024 * 10);
+        messageStoreConfig.setMaxHashSlotNum(10000);
+        messageStoreConfig.setMaxIndexNum(100 * 100);
+        messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
+        messageStoreConfig.setFlushIntervalConsumeQueue(1);
+        messageStoreConfig.setMaxMessageSize(1024);
+        messageStoreConfig.setStorePathCommitLog(commitLogPath);
+        messageStoreConfig.setStorePathRootDir(rootPath);
+        messageStore = new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MyMessageArrivingListener(), new BrokerConfig());
+        messageStore.load();
+        messageStore.start();
         String topic = "testGetEarliestMessageTime";
         StringBuffer sb = new StringBuffer();
+
         //set message body size to 0.3k+
-        for(int i = 0 ;i < 10 ; i++){
+        for (int i = 0; i < 10; i++) {
             sb.append(StoreMessage);
         }
         MessageBody = sb.toString().getBytes();
         long earliestStoreTimestamp = 0;
-        for(int i = 0; i< 10 ; i++) {
-            PutMessageResult putMessageResult = putMessage(topic,0);
-            if(i == 0){
+        for (int i = 0; i < 10; i++) {
+            PutMessageResult putMessageResult = putMessage(topic, 0);
+            if (i == 0) {
                 earliestStoreTimestamp = putMessageResult.getAppendMessageResult().getStoreTimestamp();
             }
         }
-        TimeUnit.SECONDS.sleep(2);
+
         long earliestTimestamp = messageStore.getEarliestMessageTime();
 
-        assertEquals(earliestStoreTimestamp,earliestTimestamp);
+        assertEquals(earliestStoreTimestamp, earliestTimestamp);
     }
 
     private PutMessageResult putMessage(String topic ,int queueId){
