@@ -75,7 +75,6 @@ public class Consumer {
          *  Launch the consumer instance.
          */
         consumer.start();
-
         System.out.printf("Consumer Started.%n");
     }
 }

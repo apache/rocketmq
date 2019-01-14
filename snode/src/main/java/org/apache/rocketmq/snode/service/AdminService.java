@@ -1,4 +1,4 @@
-/*
+package org.apache.rocketmq.snode.service;/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -15,14 +15,5 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting;
-
-import org.apache.rocketmq.remoting.interceptor.InterceptorGroup;
-
-public interface RemotingService {
-    void start();
-
-    void shutdown();
-
-    void registerInterceptorGroup(InterceptorGroup interceptorGroup);
+public interface AdminService {
 }

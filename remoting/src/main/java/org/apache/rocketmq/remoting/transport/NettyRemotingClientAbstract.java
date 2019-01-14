@@ -38,8 +38,11 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
+import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.apache.rocketmq.remoting.netty.NettyEvent;
 import org.apache.rocketmq.remoting.netty.NettyEventType;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
@@ -72,11 +75,21 @@ public abstract class NettyRemotingClientAbstract extends NettyRemotingAbstract 
         return Math.abs(r.nextInt() % 999) % 999;
     }
 
+    public void closeRemotingChannel(final String addr, final RemotingChannel remotingChannel) {
+        Channel channel = null;
+        if (remotingChannel instanceof NettyChannelImpl) {
+            channel = ((NettyChannelImpl) remotingChannel).getChannel();
+        }
+        if (remotingChannel instanceof NettyChannelHandlerContextImpl) {
+            channel = ((NettyChannelHandlerContextImpl) remotingChannel).getChannelHandlerContext().channel();
+        }
+        closeChannel(addr, channel);
+    }
+
     public void closeChannel(final String addr, final Channel channel) {
         if (null == channel) {
             return;
         }
-
         final String addrRemote = null == addr ? RemotingHelper.parseChannelRemoteAddr(channel) : addr;
 
         try {
@@ -122,7 +135,7 @@ public abstract class NettyRemotingClientAbstract extends NettyRemotingAbstract 
         this.channelTables.clear();
     }
 
-    public void closeChannel(final Channel channel) {
+    private void closeChannel(final Channel channel) {
         if (null == channel) {
             return;
         }
@@ -169,17 +182,23 @@ public abstract class NettyRemotingClientAbstract extends NettyRemotingAbstract 
     }
 
     @Override
-    protected Channel getAndCreateChannel(final String addr, long timeout) throws InterruptedException {
+    protected RemotingChannel getAndCreateChannel(final String addr, long timeout) throws InterruptedException {
+        Channel channel = null;
         if (null == addr) {
-            return getAndCreateNameServerChannel(timeout);
+            channel = getAndCreateNameServerChannel(timeout);
+        } else {
+            ChannelWrapper cw = this.channelTables.get(addr);
+            if (cw != null && cw.isOK()) {
+                channel = cw.getChannel();
+            } else {
+                channel = this.createChannel(addr, timeout);
+            }
         }
-
-        ChannelWrapper cw = this.channelTables.get(addr);
-        if (cw != null && cw.isOK()) {
-            return cw.getChannel();
+        if (channel != null) {
+            RemotingChannel remotingChannel = new NettyChannelImpl(channel);
+            return remotingChannel;
         }
-
-        return this.createChannel(addr, timeout);
+        return null;
     }
 
     private Channel getAndCreateNameServerChannel(long timeout) throws InterruptedException {

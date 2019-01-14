@@ -43,6 +43,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.common.Pair;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -51,6 +52,10 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.ClientConfig;
+import org.apache.rocketmq.remoting.interceptor.Interceptor;
+import org.apache.rocketmq.remoting.interceptor.InterceptorGroup;
+import org.apache.rocketmq.remoting.interceptor.InterceptorInvoker;
+import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.apache.rocketmq.remoting.transport.rocketmq.NettyDecoder;
 import org.apache.rocketmq.remoting.transport.rocketmq.NettyEncoder;
 import org.apache.rocketmq.remoting.RequestProcessor;
@@ -67,7 +72,7 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
     private ExecutorService callbackExecutor;
     private ChannelEventListener channelEventListener;
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
-    private RPCHook rpcHook;
+    private InterceptorGroup interceptorGroup;
 
     public Http2ClientImpl(final ClientConfig clientConfig,
         final ChannelEventListener channelEventListener) {
@@ -75,7 +80,7 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
         init(clientConfig, channelEventListener);
     }
 
-    public Http2ClientImpl(){
+    public Http2ClientImpl() {
         super();
     }
 
@@ -139,12 +144,8 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
     public void shutdown() {
         super.shutdown();
         try {
+            clearChannels();
 
-            for (ChannelWrapper cw : this.channelTables.values()) {
-                this.closeChannel(null, cw.getChannel());
-            }
-
-            this.channelTables.clear();
             if (this.ioGroup != null) {
                 this.ioGroup.shutdownGracefully();
             }
@@ -166,8 +167,8 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
     }
 
     @Override
-    public void registerRPCHook(RPCHook rpcHook) {
-        this.rpcHook = rpcHook;
+    public void registerInterceptorGroup(InterceptorGroup interceptorGroup) {
+        this.interceptorGroup = interceptorGroup;
     }
 
     @Override
@@ -178,31 +179,25 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
     @Override
     public RemotingCommand invokeSync(String addr, final RemotingCommand request, long timeoutMillis)
         throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
-        final Channel channel = this.getAndCreateChannel(addr, timeoutMillis);
-        if (channel != null && channel.isActive()) {
+        final RemotingChannel remotingChannel = this.getAndCreateChannel(addr, timeoutMillis);
+        if (remotingChannel != null && remotingChannel.isActive()) {
             try {
-                if (this.rpcHook != null) {
-                    this.rpcHook.doBeforeRequest(addr, request);
-                }
-                RemotingCommand response = this.invokeSyncImpl(channel, request, timeoutMillis);
-                if (this.rpcHook != null) {
-                    this.rpcHook.doAfterResponse(RemotingHelper.parseChannelRemoteAddr(channel), request, response);
-                }
+                RemotingCommand response = this.invokeSyncWithInterceptor(remotingChannel, request, timeoutMillis);
                 return response;
             } catch (RemotingSendRequestException e) {
-                log.warn("invokeSync: send request exception, so close the channel[{}]", addr);
-                this.closeChannel(addr, channel);
+                log.warn("InvokeSync: send request exception, so close the channel[{}]", addr);
+                this.closeRemotingChannel(addr, remotingChannel);
                 throw e;
             } catch (RemotingTimeoutException e) {
                 if (nettyClientConfig.isClientCloseSocketIfTimeout()) {
-                    this.closeChannel(addr, channel);
-                    log.warn("invokeSync: close socket because of timeout, {}ms, {}", timeoutMillis, addr);
+                    this.closeRemotingChannel(addr, remotingChannel);
+                    log.warn("InvokeSync: close socket because of timeout, {}ms, {}", timeoutMillis, addr);
                 }
-                log.warn("invokeSync: wait response timeout exception, the channel[{}]", addr);
+                log.warn("InvokeSync: wait response timeout exception, the channel[{}]", addr);
                 throw e;
             }
         } else {
-            this.closeChannel(addr, channel);
+            this.closeRemotingChannel(addr, remotingChannel);
             throw new RemotingConnectException(addr);
         }
     }
@@ -211,20 +206,19 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
     public void invokeAsync(String addr, RemotingCommand request, long timeoutMillis, InvokeCallback invokeCallback)
         throws InterruptedException, RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException,
         RemotingSendRequestException {
-        final Channel channel = this.getAndCreateChannel(addr, timeoutMillis);
-        if (channel != null && channel.isActive()) {
+        final RemotingChannel remotingChannel = this.getAndCreateChannel(addr, timeoutMillis);
+
+        if (remotingChannel != null && remotingChannel.isActive()) {
             try {
-                if (this.rpcHook != null) {
-                    this.rpcHook.doBeforeRequest(addr, request);
-                }
-                this.invokeAsyncImpl(channel, request, timeoutMillis, invokeCallback);
+
+                this.invokeAsyncWithInterceptor(remotingChannel, request, timeoutMillis, invokeCallback);
             } catch (RemotingSendRequestException e) {
                 log.warn("invokeAsync: send request exception, so close the channel[{}]", addr);
-                this.closeChannel(addr, channel);
+                this.closeRemotingChannel(addr, remotingChannel);
                 throw e;
             }
         } else {
-            this.closeChannel(addr, channel);
+            this.closeRemotingChannel(addr, remotingChannel);
             throw new RemotingConnectException(addr);
         }
     }
@@ -232,20 +226,17 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
     @Override
     public void invokeOneway(String addr, RemotingCommand request, long timeoutMillis) throws InterruptedException,
         RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
-        final Channel channel = this.getAndCreateChannel(addr, timeoutMillis);
-        if (channel != null && channel.isActive()) {
+        final RemotingChannel remotingChannel = this.getAndCreateChannel(addr, timeoutMillis);
+        if (remotingChannel != null && remotingChannel.isActive()) {
             try {
-                if (this.rpcHook != null) {
-                    this.rpcHook.doBeforeRequest(addr, request);
-                }
-                this.invokeOnewayImpl(channel, request, timeoutMillis);
+                this.invokeOnewayWithInterceptor(remotingChannel, request, timeoutMillis);
             } catch (RemotingSendRequestException e) {
                 log.warn("invokeOneway: send request exception, so close the channel[{}]", addr);
-                this.closeChannel(addr, channel);
+                this.closeRemotingChannel(addr, remotingChannel);
                 throw e;
             }
         } else {
-            this.closeChannel(addr, channel);
+            this.closeRemotingChannel(addr, remotingChannel);
             throw new RemotingConnectException(addr);
         }
     }
@@ -257,13 +248,8 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
 
     @Override
     public void registerProcessor(int requestCode, RequestProcessor processor, ExecutorService executor) {
-        ExecutorService executorThis = executor;
-        if (null == executor) {
-            executorThis = this.publicExecutor;
-        }
-
-        Pair<RequestProcessor, ExecutorService> pair = new Pair<RequestProcessor, ExecutorService>(processor, executorThis);
-        this.processorTable.put(requestCode, pair);
+        executor = (executor == null ? this.publicExecutor : executor);
+        registerNettyProcessor(requestCode, processor, executor);
     }
 
     @Override
@@ -277,8 +263,8 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
     }
 
     @Override
-    public RPCHook getRPCHook() {
-        return this.rpcHook;
+    public InterceptorGroup getInterceptorGroup() {
+        return this.interceptorGroup;
     }
 
     @Override

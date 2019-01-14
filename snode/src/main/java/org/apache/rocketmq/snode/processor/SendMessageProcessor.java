@@ -19,6 +19,7 @@ package org.apache.rocketmq.snode.processor;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -74,7 +75,7 @@ public class SendMessageProcessor implements RequestProcessor {
                     this.snodeController.getSendMessageInterceptorGroup().afterRequest(responseContext);
                 }
                 remotingChannel.reply(data);
-                if (isNeedPush) {
+                if (data.getCode() == ResponseCode.SUCCESS && isNeedPush) {
                     this.snodeController.getPushService().pushMessage(topic, queueId, message, data);
                 }
             } else {

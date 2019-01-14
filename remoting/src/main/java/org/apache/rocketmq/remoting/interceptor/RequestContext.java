@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.remoting.interceptor;
+
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -23,8 +24,8 @@ public class RequestContext {
     protected RemotingChannel remotingChannel;
 
     public RequestContext(RemotingCommand request, RemotingChannel remotingChannel) {
-        this.remotingChannel = remotingChannel;
         this.request = request;
+        this.remotingChannel = remotingChannel;
     }
 
     public RemotingCommand getRequest() {

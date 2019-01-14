@@ -44,7 +44,7 @@ public interface EnodeService {
 
     boolean persistSubscriptionGroupConfig(SubscriptionGroupConfig subscriptionGroupConfig);
 
-    void persistOffsetToEnode(String enodeName, String groupName, String topic, int queueId, long offset);
+    void persistOffset(String enodeName, String groupName, String topic, int queueId, long offset);
 
     RemotingCommand loadOffset(String enodeName, String consumerGroup, String topic,
         int queueId) throws InterruptedException, RemotingTimeoutException,

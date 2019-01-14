@@ -999,7 +999,7 @@ public class BrokerController {
     }
 
     public void registerServerRPCHook(RPCHook rpcHook) {
-        getRemotingServer().registerRPCHook(rpcHook);
+//        getRemotingServer().registerRPCHook(rpcHook);
     }
 
     public RemotingServer getRemotingServer() {

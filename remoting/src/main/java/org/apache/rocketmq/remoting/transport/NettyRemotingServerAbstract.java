@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.remoting.transport;
 
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.timeout.IdleState;
@@ -108,7 +107,4 @@ public abstract class NettyRemotingServerAbstract extends NettyRemotingAbstract 
         }
     }
 
-    @Override protected Channel getAndCreateChannel(String addr, long timeout) throws InterruptedException {
-        return null;
-    }
 }

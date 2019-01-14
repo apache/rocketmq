@@ -16,9 +16,12 @@
  */
 package org.apache.rocketmq.common;
 
+import com.alibaba.fastjson.parser.ParserConfig;
+import com.alibaba.fastjson.util.TypeUtils;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
@@ -28,19 +31,21 @@ import java.net.NetworkInterface;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
-
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.yaml.snakeyaml.Yaml;
 
 public class UtilAll {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
@@ -515,6 +520,25 @@ public class UtilAll {
                 deleteFile(file1);
             }
             file.delete();
+        }
+    }
+
+    public static <T> T getYamlDataObject(String path, Class<T> clazz) {
+        Yaml ymal = new Yaml();
+        FileInputStream fis = null;
+        try {
+            fis = new FileInputStream(new File(path));
+            return ymal.loadAs(fis, clazz);
+        } catch (Exception e) {
+            throw new RuntimeException(String.format("The file for Plain mode was not found , paths %s", path), e);
+        } finally {
+            if (fis != null) {
+                try {
+                    fis.close();
+                } catch (IOException e) {
+                    throw new RuntimeException("close transport fileInputStream Exception", e);
+                }
+            }
         }
     }
 }

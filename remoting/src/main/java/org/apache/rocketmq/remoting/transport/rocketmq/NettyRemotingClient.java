@@ -38,15 +38,24 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.common.Pair;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.RequestProcessor;
+import org.apache.rocketmq.remoting.interceptor.ExceptionContext;
+import org.apache.rocketmq.remoting.interceptor.Interceptor;
+import org.apache.rocketmq.remoting.interceptor.InterceptorGroup;
+import org.apache.rocketmq.remoting.interceptor.InterceptorInvoker;
+import org.apache.rocketmq.remoting.interceptor.RequestContext;
+import org.apache.rocketmq.remoting.interceptor.ResponseContext;
+import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.apache.rocketmq.remoting.netty.TlsHelper;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.NettyRemotingClientAbstract;
@@ -67,7 +76,7 @@ public class NettyRemotingClient extends NettyRemotingClientAbstract implements 
     private ExecutorService callbackExecutor;
     private ChannelEventListener channelEventListener;
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
-    private RPCHook rpcHook;
+    private InterceptorGroup interceptorGroup;
 
     public NettyRemotingClient() {
         super();
@@ -123,7 +132,7 @@ public class NettyRemotingClient extends NettyRemotingClientAbstract implements 
             .option(ChannelOption.SO_RCVBUF, nettyClientConfig.getClientSocketRcvBufSize())
             .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
-                public void initChannel(SocketChannel ch) throws Exception {
+                public void initChannel(SocketChannel ch) {
                     ChannelPipeline pipeline = ch.pipeline();
                     if (nettyClientConfig.isUseTLS()) {
                         if (null != sslContext) {
@@ -165,8 +174,8 @@ public class NettyRemotingClient extends NettyRemotingClientAbstract implements 
     }
 
     @Override
-    public void registerRPCHook(RPCHook rpcHook) {
-        this.rpcHook = rpcHook;
+    public void registerInterceptorGroup(InterceptorGroup interceptorGroup) {
+        this.interceptorGroup = interceptorGroup;
     }
 
     @Override
@@ -178,38 +187,35 @@ public class NettyRemotingClient extends NettyRemotingClientAbstract implements 
     public RemotingCommand invokeSync(String addr, final RemotingCommand request, long timeoutMillis)
         throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
         long beginStartTime = System.currentTimeMillis();
-        final Channel channel = this.getAndCreateChannel(addr, timeoutMillis);
-
-        if (channel != null && channel.isActive()) {
+        final RemotingChannel remotingChannel = this.getAndCreateChannel(addr, timeoutMillis);
+        if (remotingChannel != null && remotingChannel.isActive()) {
             try {
-                if (this.rpcHook != null) {
-                    this.rpcHook.doBeforeRequest(addr, request);
-                }
                 long costTime = System.currentTimeMillis() - beginStartTime;
                 if (timeoutMillis < costTime) {
                     throw new RemotingTimeoutException("invokeSync call timeout");
                 }
-                RemotingCommand response = this.invokeSyncImpl(channel, request, timeoutMillis - costTime);
-                if (this.rpcHook != null) {
-                    this.rpcHook.doAfterResponse(RemotingHelper.parseChannelRemoteAddr(channel), request, response);
-                }
+                RemotingCommand response = this.invokeSyncWithInterceptor(remotingChannel, request, timeoutMillis - costTime);
                 return response;
-            } catch (RemotingSendRequestException e) {
-                log.warn("invokeSync: send request exception, so close the channel[{}]", addr);
-                this.closeChannel(addr, channel);
-                throw e;
-            } catch (RemotingTimeoutException e) {
-                if (nettyClientConfig.isClientCloseSocketIfTimeout()) {
-                    this.closeChannel(addr, channel);
-                    log.warn("invokeSync: close socket because of timeout, {}ms, {}", timeoutMillis, addr);
+            } catch (RemotingException remotingException) {
+                if (remotingException instanceof RemotingSendRequestException) {
+                    log.warn("invokeSync: send request exception, so close the channel[{}]", addr);
+                    this.closeRemotingChannel(addr, remotingChannel);
+                    throw (RemotingSendRequestException) remotingException;
                 }
-                log.warn("invokeSync: wait response timeout exception, the channel[{}]", addr);
-                throw e;
+                if (remotingException instanceof RemotingTimeoutException) {
+                    if (nettyClientConfig.isClientCloseSocketIfTimeout()) {
+                        this.closeRemotingChannel(addr, remotingChannel);
+                        log.warn("invokeSync: close socket because of timeout, {}ms, {}", timeoutMillis, addr);
+                    }
+                    log.warn("invokeSync: wait response timeout exception, the channel[{}]", addr);
+                    throw (RemotingTimeoutException) remotingException;
+                }
             }
         } else {
-            this.closeChannel(addr, channel);
+            this.closeRemotingChannel(addr, remotingChannel);
             throw new RemotingConnectException(addr);
         }
+        return null;
     }
 
     @Override
@@ -217,12 +223,14 @@ public class NettyRemotingClient extends NettyRemotingClientAbstract implements 
         throws InterruptedException, RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException,
         RemotingSendRequestException {
         long beginStartTime = System.currentTimeMillis();
-        final Channel channel = this.getAndCreateChannel(addr, timeoutMillis);
+        final RemotingChannel remotingChannel = this.getAndCreateChannel(addr, timeoutMillis);
+        Channel channel = null;
+        if (remotingChannel instanceof NettyChannelImpl) {
+            channel = ((NettyChannelImpl) remotingChannel).getChannel();
+        }
+
         if (channel != null && channel.isActive()) {
             try {
-                if (this.rpcHook != null) {
-                    this.rpcHook.doBeforeRequest(addr, request);
-                }
                 long costTime = System.currentTimeMillis() - beginStartTime;
                 if (timeoutMillis < costTime) {
                     throw new RemotingTooMuchRequestException("invokeAsync call timeout");
@@ -242,20 +250,17 @@ public class NettyRemotingClient extends NettyRemotingClientAbstract implements 
     @Override
     public void invokeOneway(String addr, RemotingCommand request, long timeoutMillis) throws InterruptedException,
         RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
-        final Channel channel = this.getAndCreateChannel(addr, timeoutMillis);
-        if (channel != null && channel.isActive()) {
+        final RemotingChannel remotingChannel = getAndCreateChannel(addr, timeoutMillis);
+        if (remotingChannel != null && remotingChannel.isActive()) {
             try {
-                if (this.rpcHook != null) {
-                    this.rpcHook.doBeforeRequest(addr, request);
-                }
-                this.invokeOnewayImpl(channel, request, timeoutMillis);
+                this.invokeOnewayWithInterceptor(remotingChannel, request, timeoutMillis);
             } catch (RemotingSendRequestException e) {
-                log.warn("invokeOneway: send request exception, so close the channel[{}]", addr);
-                this.closeChannel(addr, channel);
+                log.warn("InvokeOneway: send request exception, so close the channel[{}]", addr);
+                this.closeRemotingChannel(addr, remotingChannel);
                 throw e;
             }
         } else {
-            this.closeChannel(addr, channel);
+            this.closeRemotingChannel(addr, remotingChannel);
             throw new RemotingConnectException(addr);
         }
     }
@@ -267,7 +272,7 @@ public class NettyRemotingClient extends NettyRemotingClientAbstract implements 
             executorThis = this.publicExecutor;
         }
 
-        Pair<RequestProcessor, ExecutorService> pair = new Pair<RequestProcessor, ExecutorService>(processor, executorThis);
+        Pair<RequestProcessor, ExecutorService> pair = new Pair<>(processor, executorThis);
         this.processorTable.put(requestCode, pair);
     }
 
@@ -282,8 +287,8 @@ public class NettyRemotingClient extends NettyRemotingClientAbstract implements 
     }
 
     @Override
-    public RPCHook getRPCHook() {
-        return this.rpcHook;
+    public InterceptorGroup getInterceptorGroup() {
+        return this.interceptorGroup;
     }
 
     @Override

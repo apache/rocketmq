@@ -14,11 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.service;
+package org.apache.rocketmq.remoting.exception;
 
-import com.google.common.util.concurrent.RateLimiter;
-import com.google.common.util.concurrent.SmoothRateLimiter;
+public class RemotingRuntimeException extends RuntimeException {
+    private final int responseCode;
+    private final String responseMessage;
 
-public class FlowControlService {
-    RateLimiter rateLimiter = SmoothRateLimiter.create()
+    public RemotingRuntimeException(int responseCode, String errorMessage) {
+        this.responseCode = responseCode;
+        this.responseMessage = errorMessage;
+    }
+
+    public int getResponseCode() {
+        return responseCode;
+    }
+
+    public String getResponseMessage() {
+        return responseMessage;
+    }
+
 }

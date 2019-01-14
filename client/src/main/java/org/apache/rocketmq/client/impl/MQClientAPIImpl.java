@@ -145,6 +145,8 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.ClientConfig;
+import org.apache.rocketmq.remoting.interceptor.Interceptor;
+import org.apache.rocketmq.remoting.interceptor.InterceptorGroup;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.serialize.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -169,13 +171,13 @@ public class MQClientAPIImpl {
 
     public MQClientAPIImpl(final ClientConfig nettyClientConfig,
         final ClientRemotingProcessor clientRemotingProcessor,
-        RPCHook rpcHook, final org.apache.rocketmq.client.ClientConfig clientConfig) {
+        InterceptorGroup interceptorGroup, final org.apache.rocketmq.client.ClientConfig clientConfig) {
         this.clientConfig = clientConfig;
         topAddressing = new TopAddressing(MixAll.getWSAddr(), clientConfig.getUnitName());
         this.remotingClient = new NettyRemotingClient(nettyClientConfig, null);
         this.clientRemotingProcessor = clientRemotingProcessor;
 
-        this.remotingClient.registerRPCHook(rpcHook);
+        this.remotingClient.registerInterceptorGroup(interceptorGroup);
         this.remotingClient.registerProcessor(RequestCode.CHECK_TRANSACTION_STATE, this.clientRemotingProcessor, null);
 
         this.remotingClient.registerProcessor(RequestCode.NOTIFY_CONSUMER_IDS_CHANGED, this.clientRemotingProcessor, null);
@@ -556,7 +558,7 @@ public class MQClientAPIImpl {
     }
 
     public PullResult pullMessage(
-         String addr,
+        String addr,
         final PullMessageRequestHeader requestHeader,
         final long timeoutMillis,
         final CommunicationMode communicationMode,

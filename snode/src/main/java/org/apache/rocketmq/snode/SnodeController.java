@@ -34,6 +34,9 @@ import org.apache.rocketmq.remoting.RemotingClientFactory;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.RemotingServerFactory;
 import org.apache.rocketmq.remoting.ServerConfig;
+import org.apache.rocketmq.remoting.interceptor.Interceptor;
+import org.apache.rocketmq.remoting.interceptor.InterceptorFactory;
+import org.apache.rocketmq.remoting.interceptor.InterceptorGroup;
 import org.apache.rocketmq.snode.client.ClientHousekeepingService;
 import org.apache.rocketmq.snode.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.snode.client.ConsumerManager;
@@ -41,9 +44,6 @@ import org.apache.rocketmq.snode.client.DefaultConsumerIdsChangeListener;
 import org.apache.rocketmq.snode.client.ProducerManager;
 import org.apache.rocketmq.snode.client.SubscriptionGroupManager;
 import org.apache.rocketmq.snode.config.SnodeConfig;
-import org.apache.rocketmq.remoting.interceptor.Interceptor;
-import org.apache.rocketmq.remoting.interceptor.InterceptorFactory;
-import org.apache.rocketmq.remoting.interceptor.InterceptorGroup;
 import org.apache.rocketmq.snode.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.snode.processor.ConsumerManageProcessor;
 import org.apache.rocketmq.snode.processor.HeartbeatProcessor;
@@ -82,7 +82,8 @@ public class SnodeController {
     private ConsumerManageProcessor consumerManageProcessor;
     private SendMessageProcessor sendMessageProcessor;
     private PullMessageProcessor pullMessageProcessor;
-    private HeartbeatProcessor hearbeatProcessor;
+    private HeartbeatProcessor heartbeatProcessor;
+    private InterceptorGroup remotingServerInterceptorGroup;
     private InterceptorGroup consumeMessageInterceptorGroup;
     private InterceptorGroup sendMessageInterceptorGroup;
     private PushService pushService;
@@ -160,7 +161,7 @@ public class SnodeController {
         this.consumerOffsetManager = new ConsumerOffsetManager(this);
         this.consumerManageProcessor = new ConsumerManageProcessor(this);
         this.sendMessageProcessor = new SendMessageProcessor(this);
-        this.hearbeatProcessor = new HeartbeatProcessor(this);
+        this.heartbeatProcessor = new HeartbeatProcessor(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
         this.pushService = new PushServiceImpl(this);
 
@@ -170,19 +171,41 @@ public class SnodeController {
         return snodeConfig;
     }
 
+//    private void initFlowControlIntercepterGruop() {
+//        this.remotingServerInterceptorGroup = new InterceptorGroup();
+//        List<Interceptor> remotingServerInterceptors = InterceptorFactory.getInstance().loadInterceptors(this.snodeConfig.getRemotingServerInterceptorPath());
+//        this.remotingServerInterceptorGroup.registerInterceptor(flowControlService);
+//    }
+
+    private void initRemotingServerInterceptorGroup() {
+        List<Interceptor> remotingServerInterceptors = InterceptorFactory.getInstance().loadInterceptors(this.snodeConfig.getRemotingServerInterceptorPath());
+        if (remotingServerInterceptors != null && remotingServerInterceptors.size() > 0) {
+            if (this.remotingServerInterceptorGroup == null) {
+                this.remotingServerInterceptorGroup = new InterceptorGroup();
+            }
+            for (Interceptor interceptor : remotingServerInterceptors) {
+                this.remotingServerInterceptorGroup.registerInterceptor(interceptor);
+                log.warn("Remoting server interceptor: {} registered!", interceptor.interceptorName());
+            }
+        }
+    }
+
     public boolean initialize() {
         this.snodeServer = RemotingServerFactory.getInstance().createRemotingServer().init(this.nettyServerConfig, this.clientHousekeepingService);
         this.registerProcessor();
-        initInterceptorGroup();
+        initSnodeInterceptorGroup();
+        initRemotingServerInterceptorGroup();
+        this.snodeServer.registerInterceptorGroup(this.remotingServerInterceptorGroup);
         return true;
     }
 
-    private void initInterceptorGroup() {
+    private void initSnodeInterceptorGroup() {
         List<Interceptor> consumeMessageInterceptors = InterceptorFactory.getInstance().loadInterceptors(this.snodeConfig.getConsumeMessageInterceptorPath());
         if (consumeMessageInterceptors != null && consumeMessageInterceptors.size() > 0) {
             this.consumeMessageInterceptorGroup = new InterceptorGroup();
             for (Interceptor interceptor : consumeMessageInterceptors) {
                 this.consumeMessageInterceptorGroup.registerInterceptor(interceptor);
+                log.warn("Consume message interceptor: {} registered!", interceptor.interceptorName());
             }
         }
         List<Interceptor> sendMessageInterceptors = InterceptorFactory.getInstance().loadInterceptors(this.snodeConfig.getSendMessageInterceptorPath());
@@ -190,15 +213,17 @@ public class SnodeController {
             this.sendMessageInterceptorGroup = new InterceptorGroup();
             for (Interceptor interceptor : sendMessageInterceptors) {
                 this.sendMessageInterceptorGroup.registerInterceptor(interceptor);
+                log.warn("Send message interceptor: {} registered!", interceptor.interceptorName());
             }
         }
+
     }
 
     public void registerProcessor() {
         this.snodeServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendMessageProcessor, this.sendMessageExecutor);
         this.snodeServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendMessageProcessor, this.sendMessageExecutor);
-        this.snodeServer.registerProcessor(RequestCode.HEART_BEAT, hearbeatProcessor, this.heartbeatExecutor);
-        this.snodeServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, hearbeatProcessor, this.heartbeatExecutor);
+        this.snodeServer.registerProcessor(RequestCode.HEART_BEAT, heartbeatProcessor, this.heartbeatExecutor);
+        this.snodeServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, heartbeatProcessor, this.heartbeatExecutor);
         this.snodeServer.registerProcessor(RequestCode.SNODE_PULL_MESSAGE, pullMessageProcessor, this.pullMessageExecutor);
         this.snodeServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, consumerManageProcessor, this.consumerManageExecutor);
         this.snodeServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
@@ -286,5 +311,14 @@ public class SnodeController {
 
     public void setEnodeService(EnodeService enodeService) {
         this.enodeService = enodeService;
+    }
+
+    public InterceptorGroup getRemotingServerInterceptorGroup() {
+        return remotingServerInterceptorGroup;
+    }
+
+    public void setRemotingServerInterceptorGroup(
+        InterceptorGroup remotingServerInterceptorGroup) {
+        this.remotingServerInterceptorGroup = remotingServerInterceptorGroup;
     }
 }

@@ -72,7 +72,7 @@ public class BrokerOuterAPI {
 
     public BrokerOuterAPI(final ClientConfig nettyClientConfig, RPCHook rpcHook) {
         this.remotingClient = RemotingClientFactory.getInstance().createRemotingClient().init(nettyClientConfig, null);
-        this.remotingClient.registerRPCHook(rpcHook);
+//        this.remotingClient.registerRPCHook(rpcHook);
     }
 
     public void start() {
@@ -193,6 +193,9 @@ public class BrokerOuterAPI {
 
         RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, timeoutMills);
         assert response != null;
+        if (response == null){
+            System.out.println("ssssssssssssss");
+        }
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 RegisterBrokerResponseHeader responseHeader =
@@ -393,6 +396,6 @@ public class BrokerOuterAPI {
     }
 
     public void registerRPCHook(RPCHook rpcHook) {
-        remotingClient.registerRPCHook(rpcHook);
+//        remotingClient.registerRPCHook(rpcHook);
     }
 }

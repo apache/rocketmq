@@ -56,6 +56,8 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
+import org.apache.rocketmq.remoting.interceptor.Interceptor;
+import org.apache.rocketmq.remoting.interceptor.InterceptorGroup;
 import org.apache.rocketmq.remoting.netty.ChannelStatisticsHandler;
 import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.apache.rocketmq.remoting.transport.rocketmq.NettyDecoder;
@@ -79,7 +81,7 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
     private ChannelEventListener channelEventListener;
     private ExecutorService publicExecutor;
     private int port;
-    private RPCHook rpcHook;
+    private InterceptorGroup interceptorGroup;
 
     public Http2ServerImpl(ServerConfig nettyServerConfig, ChannelEventListener channelEventListener) {
         super(nettyServerConfig.getServerOnewaySemaphoreValue(), nettyServerConfig.getServerAsyncSemaphoreValue());
@@ -137,12 +139,8 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
 
     @Override
     public void registerProcessor(int requestCode, RequestProcessor processor, ExecutorService executor) {
-        ExecutorService executorThis = executor;
-        if (null == executor) {
-            executorThis = this.publicExecutor;
-        }
-        Pair<RequestProcessor, ExecutorService> pair = new Pair<RequestProcessor, ExecutorService>(processor, executorThis);
-        this.processorTable.put(requestCode, pair);
+        executor = (executor == null ? this.publicExecutor : executor);
+        registerNettyProcessor(requestCode, processor, executor);
     }
 
     @Override
@@ -242,13 +240,18 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
     }
 
     @Override
-    public void registerRPCHook(RPCHook rpcHook) {
-        this.rpcHook = rpcHook;
+    public void registerInterceptorGroup(InterceptorGroup interceptorGroup) {
+        this.interceptorGroup = interceptorGroup;
     }
 
     @Override
-    public RPCHook getRPCHook() {
-        return this.rpcHook;
+    public InterceptorGroup getInterceptorGroup() {
+        return this.interceptorGroup;
+    }
+
+    @Override
+    protected RemotingChannel getAndCreateChannel(String addr, long timeout) throws InterruptedException {
+        return null;
     }
 
     @Override

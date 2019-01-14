@@ -42,7 +42,6 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
-import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.RequestProcessor;
@@ -53,6 +52,8 @@ import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
+import org.apache.rocketmq.remoting.interceptor.Interceptor;
+import org.apache.rocketmq.remoting.interceptor.InterceptorGroup;
 import org.apache.rocketmq.remoting.netty.FileRegionEncoder;
 import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.apache.rocketmq.remoting.netty.TlsHelper;
@@ -74,9 +75,8 @@ public class NettyRemotingServer extends NettyRemotingServerAbstract implements 
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
     private Class<? extends ServerSocketChannel> socketChannelClass;
 
-    private RPCHook rpcHook;
-
     private int port = 0;
+    private InterceptorGroup interceptorGroup;
 
     private static final String HANDSHAKE_HANDLER_NAME = "handshakeHandler";
     private static final String TLS_HANDLER_NAME = "sslHandler";
@@ -216,24 +216,19 @@ public class NettyRemotingServer extends NettyRemotingServerAbstract implements 
     }
 
     @Override
-    public void registerRPCHook(RPCHook rpcHook) {
-        this.rpcHook = rpcHook;
+    public void registerInterceptorGroup(InterceptorGroup interceptorGroup) {
+        this.interceptorGroup = interceptorGroup;
     }
 
     @Override
     public void registerProcessor(int requestCode, RequestProcessor processor, ExecutorService executor) {
-        ExecutorService executorThis = executor;
-        if (null == executor) {
-            executorThis = this.publicExecutor;
-        }
-
-        Pair<RequestProcessor, ExecutorService> pair = new Pair<RequestProcessor, ExecutorService>(processor, executorThis);
-        this.processorTable.put(requestCode, pair);
+        executor = (executor == null ? this.publicExecutor : executor);
+        registerNettyProcessor(requestCode, processor, executor);
     }
 
     @Override
     public void registerDefaultProcessor(RequestProcessor processor, ExecutorService executor) {
-        this.defaultRequestProcessor = new Pair<RequestProcessor, ExecutorService>(processor, executor);
+        this.defaultRequestProcessor = new Pair<>(processor, executor);
     }
 
     @Override
@@ -273,8 +268,13 @@ public class NettyRemotingServer extends NettyRemotingServerAbstract implements 
     }
 
     @Override
-    public RPCHook getRPCHook() {
-        return this.rpcHook;
+    public InterceptorGroup getInterceptorGroup() {
+        return this.interceptorGroup;
+    }
+
+    @Override
+    protected RemotingChannel getAndCreateChannel(String addr, long timeout) throws InterruptedException {
+        return null;
     }
 
     @Override

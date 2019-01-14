@@ -232,7 +232,7 @@ public class ConsumerOffsetManager {
                 for (Entry<Integer, Long> queueEntry : map.entrySet()) {
                     Integer queueId = queueEntry.getKey();
                     Long offset = queueEntry.getValue();
-                    this.snodeController.getEnodeService().persistOffsetToEnode(enodeName, consumerGroup, topic, queueId, offset);
+                    this.snodeController.getEnodeService().persistOffset(enodeName, consumerGroup, topic, queueId, offset);
                 }
             } else {
                 log.error("Persist offset split keys error:{}", key);

@@ -1,0 +1,19 @@
+snode:
+  countLimit:  # flow control type, only requestCount & requestSize support
+    - flowControlResourceName: 310
+      flowControlGrade: directDeny
+      flowControlBehavior: flowControlBehavior
+      flowControlResourceCount: 100000.00 #QPS
+
+    - flowControlResourceName: overall
+      flowControlGrade: directDeny
+      flowControlBehavior: flowControlBehavior
+      flowControlResourceCount: 100000.00 #QPS
+
+  sizeLimit:
+    - flowControlResourceName: 310
+      flowControlGrade: directDeny
+      flowControlBehavior: flowControlBehavior
+      flowControlResourceCount: 10.00 #MB/S
+
+  topicLimit:

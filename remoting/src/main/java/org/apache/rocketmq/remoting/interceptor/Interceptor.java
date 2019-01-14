@@ -15,7 +15,11 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.remoting.interceptor;
+
 public interface Interceptor {
+
+    String interceptorName();
+
     void beforeRequest(RequestContext requestContext);
 
     void afterRequest(ResponseContext responseContext);

@@ -15,14 +15,15 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.remoting.interceptor;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class InterceptorGroup {
-    private List<Interceptor> interceptors = new ArrayList<Interceptor>();
+    private List<Interceptor> interceptors = new ArrayList<>();
 
-    public void registerInterceptor(Interceptor interceptor) {
-        if (interceptor != null) {
+    public synchronized void registerInterceptor(Interceptor interceptor) {
+        if (interceptor != null && !interceptors.contains(interceptor)) {
             interceptors.add(interceptor);
         }
     }

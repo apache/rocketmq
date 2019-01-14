@@ -71,8 +71,12 @@ public class SnodeConfig {
 
     private final String consumeMessageInterceptorPath = "META-INF/service/org.apache.rocketmq.snode.interceptor.ConsumeMessageInterceptor";
 
+    private final String remotingServerInterceptorPath = "META-INF/service/org.apache.rocketmq.snode.interceptor.RemotingServerInterceptor";
 
     private int listenPort = 11911;
+
+    private double snodeQPSLimit = 10000;
+
 
     private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "true"));
 
@@ -275,5 +279,17 @@ public class SnodeConfig {
 
     public String getConsumeMessageInterceptorPath() {
         return consumeMessageInterceptorPath;
+    }
+
+    public String getRemotingServerInterceptorPath() {
+        return remotingServerInterceptorPath;
+    }
+
+    public double getSnodeQPSLimit() {
+        return snodeQPSLimit;
+    }
+
+    public void setSnodeQPSLimit(double snodeQPSLimit) {
+        this.snodeQPSLimit = snodeQPSLimit;
     }
 }

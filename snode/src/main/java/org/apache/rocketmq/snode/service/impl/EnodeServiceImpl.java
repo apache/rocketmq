@@ -205,7 +205,7 @@ public class EnodeServiceImpl implements EnodeService {
     }
 
     @Override
-    public void persistOffsetToEnode(String enodeName, String groupName, String topic, int queueId, long offset) {
+    public void persistOffset(String enodeName, String groupName, String topic, int queueId, long offset) {
         try {
             String address = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
             UpdateConsumerOffsetRequestHeader requestHeader = new UpdateConsumerOffsetRequestHeader();

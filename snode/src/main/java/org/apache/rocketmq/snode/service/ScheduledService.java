@@ -15,7 +15,9 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.snode.service;
+
 public interface ScheduledService {
     void startScheduleTask();
+
     void shutdown();
 }
