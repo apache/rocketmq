@@ -42,9 +42,9 @@ public class Producer1 {
                 Message msg = new Message("DefaultCluster" /* Topic */,
                         "tagA" /* Tag */,
                         ("Hello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello " +
-                                "RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello" +
-                                " RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello" +
-                                " RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello" +
+//                                "RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello" +
+//                                " RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello" +
+//                                " RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello" +
 
                                 "RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQHello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
                 );

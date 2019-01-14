@@ -215,6 +215,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
          * 消息属性中是否包含重试队列信息   如果没有则设置
          */
         final String retryTopic = msgExt.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
+        /**
+         * 第一次重试
+         */
         if (null == retryTopic) {
             MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_RETRY_TOPIC, msgExt.getTopic());
         }
@@ -252,6 +255,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 return response;
             }
         } else {
+            /**
+             * consumer默认上送  delayLevel=0
+             */
             if (0 == delayLevel) {
                 delayLevel = 3 + msgExt.getReconsumeTimes();
             }

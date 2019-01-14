@@ -589,6 +589,9 @@ public class MQClientAPIImpl {
                 assert false;
                 return null;
             case ASYNC:
+                /**
+                 * default
+                 */
                 this.pullMessageAsync(addr, request, timeoutMillis, pullCallback);
                 return null;
             case SYNC:

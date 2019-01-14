@@ -370,6 +370,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
                                 /**
                                  * 消息消费
+                                 * 消息消费
+                                 * 消息消费
                                  */
                                 DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest(
                                     pullResult.getMsgFoundList(),

@@ -10,7 +10,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 
 import java.util.List;
 
-public class Consumer1 {
+public class Consumer2 {
     public static void main(String[] args) throws InterruptedException, MQClientException {
 
         /*
@@ -52,7 +52,7 @@ public class Consumer1 {
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                                                             ConsumeConcurrentlyContext context) {
                 System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
-                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                return ConsumeConcurrentlyStatus.RECONSUME_LATER;
             }
         });
 

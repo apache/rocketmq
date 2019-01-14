@@ -597,6 +597,7 @@ public class BrokerController {
         this.fastRemotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendProcessor, this.sendMessageExecutor);
         /**
          * PullMessageProcessor
+         * 只有remotingServer  没有fastRemotingServer
          */
         this.remotingServer.registerProcessor(RequestCode.PULL_MESSAGE, this.pullMessageProcessor, this.pullMessageExecutor);
         this.pullMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);

@@ -401,7 +401,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         }
 
         /**
-         * 将消费成功的消息移除本地缓存   并计算当前msgTreeMap中的最小offset（第一个）
+         * 将消费成功的消息移除本地缓存   并计算当前MessageQueue下次消费的offset
          *
          * 无论消息是成功消费  或者暂缓消费    对于当前ProcessQueue内部的msgTreeMap而言都是成功消费
          * 暂缓消费是因为消息将发送到重试队列   所以在当前消息内部   也算是成功消费

@@ -83,7 +83,7 @@ public class ExpressionMessageFilter implements MessageFilter {
         if (ExpressionType.isTagType(subscriptionData.getExpressionType())) {
 
             /**
-             * 未空
+             * 为空
              */
             if (tagsCode == null) {
                 return true;

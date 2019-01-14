@@ -199,7 +199,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             }
 
             /**
-             * 消费组是广播模式   但当前配置不支持广播模式
+             * 消费组是广播模式   但当前broker不支持广播模式
              */
             if (!subscriptionGroupConfig.isConsumeBroadcastEnable()
                 && consumerGroupInfo.getMessageModel() == MessageModel.BROADCASTING) {

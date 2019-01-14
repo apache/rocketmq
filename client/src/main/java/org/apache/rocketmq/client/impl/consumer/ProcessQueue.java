@@ -252,8 +252,8 @@ public class ProcessQueue {
                     msgCount.addAndGet(removedCnt);
 
                     /**
-                     * 如果msgTreeMap不为空   即当前msgs中有消息没有消费成功  需要再次消费
-                     * 则result等于msgTreeMap中第一个消息的offset  并更新到内存中
+                     * 如果msgTreeMap不为空   即当前msgTreeMap中有消息没有消费成功  需要再次消费
+                     * 则result等于msgTreeMap中第一个消息的offset
                      * 即认为大于result的消息  有再次消费的可能
                      */
                     if (!msgTreeMap.isEmpty()) {

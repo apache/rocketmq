@@ -653,6 +653,10 @@ public class DefaultMessageStore implements MessageStore {
                         final int maxFilterMessageCount = Math.max(16000, maxMsgNums * ConsumeQueue.CQ_STORE_UNIT_SIZE);
                         final boolean diskFallRecorded = this.messageStoreConfig.isDiskFallRecorded();
                         ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
+
+                        /**
+                         * 轮询消息
+                         */
                         for (; i < bufferConsumeQueue.getSize() && i < maxFilterMessageCount; i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
                             long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
                             int sizePy = bufferConsumeQueue.getByteBuffer().getInt();
@@ -1425,7 +1429,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         /**
-         *
+         * 期待拉取条数小于等于已经拉取条数
          */
         if (maxMsgNums <= messageTotal) {
             return true;
