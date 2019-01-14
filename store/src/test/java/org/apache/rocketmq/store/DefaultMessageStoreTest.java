@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -138,6 +139,8 @@ public class DefaultMessageStoreTest {
         msg.setBornTimestamp(System.currentTimeMillis());
         msg.setStoreHost(StoreHost);
         msg.setBornHost(BornHost);
+        //setKeys
+        msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
         return msg;
     }
 
@@ -277,6 +280,7 @@ public class DefaultMessageStoreTest {
         String topic = "LookMessageByOffset %02d";
         int topicLen = String.format(topic,0).getBytes().length;
         int bodyLen  = StoreMessage.getBytes().length;
+        int propertyLen = 0;
         MessageBody = StoreMessage.getBytes();
         long firstOffset = 0;
         for (int i = 0; i < 100; i++) {
@@ -286,6 +290,7 @@ public class DefaultMessageStoreTest {
             PutMessageResult putMessageResult = messageStore.putMessage(messageExtBrokerInner);
             if (i == 0) {
                 firstOffset = putMessageResult.getAppendMessageResult().getWroteOffset();
+                propertyLen = messageExtBrokerInner.getPropertiesString().getBytes().length;
             }
 
         }
@@ -293,10 +298,10 @@ public class DefaultMessageStoreTest {
         MessageExt messageExt = messageStore.lookMessageByOffset(firstOffset );
         assertEquals(messageExt.getTopic(),"LookMessageByOffset 00");
         //(91+bodyLen+topicLen)*50
-        messageExt = messageStore.lookMessageByOffset(firstOffset + (91+topicLen+bodyLen) * 50);
+        messageExt = messageStore.lookMessageByOffset(firstOffset + (91+topicLen+bodyLen+propertyLen) * 50);
         assertEquals(messageExt.getTopic(),"LookMessageByOffset 50");
 
-        messageExt = messageStore.lookMessageByOffset(firstOffset + (91+topicLen+bodyLen) * 99);
+        messageExt = messageStore.lookMessageByOffset(firstOffset + (91+topicLen+bodyLen+propertyLen) * 99);
         assertEquals(messageExt.getTopic(),"LookMessageByOffset 99");
     }
 
