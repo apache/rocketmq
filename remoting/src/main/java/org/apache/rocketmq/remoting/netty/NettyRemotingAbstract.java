@@ -297,7 +297,7 @@ public abstract class NettyRemotingAbstract {
                 responseFuture.release();
             }
         } else {
-            log.warn("receive response, but not matched any request: {}， cmd: {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd);
+            log.warn("receive response, but not matched any request: {}, cmd: {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd);
         }
     }
 
