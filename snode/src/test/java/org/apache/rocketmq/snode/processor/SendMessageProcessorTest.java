@@ -104,10 +104,6 @@ public class SendMessageProcessorTest {
         return request;
     }
 
-    private void assertSendMessageResult(int responseCode) throws RemotingCommandException {
-
-    }
-
     RemotingCommand createSendMessageResponse(int responseCode) {
         return RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, null);
     }

@@ -53,7 +53,7 @@ public class SnodeConfig {
 
     private long snodeHeartBeatInterval = 30 * 1000;
 
-    private boolean fetechNameserver = false;
+    private boolean fetechNameServer = false;
 
     private long houseKeepingInterval = 10 * 1000;
 
@@ -75,9 +75,6 @@ public class SnodeConfig {
 
     private int listenPort = 11911;
 
-    private double snodeQPSLimit = 10000;
-
-
     private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "true"));
 
     public void setSnodeHeartBeatInterval(long snodeHeartBeatInterval) {
@@ -92,12 +89,12 @@ public class SnodeConfig {
         this.houseKeepingInterval = houseKeepingInterval;
     }
 
-    public boolean isFetechNameserver() {
-        return fetechNameserver;
+    public boolean isFetechNameServer() {
+        return fetechNameServer;
     }
 
-    public void setFetechNameserver(boolean fetechNameserver) {
-        this.fetechNameserver = fetechNameserver;
+    public void setFetechNameServer(boolean fetechNameServer) {
+        this.fetechNameServer = fetechNameServer;
     }
 
     public long getSnodeHeartBeatInterval() {
@@ -285,11 +282,4 @@ public class SnodeConfig {
         return remotingServerInterceptorPath;
     }
 
-    public double getSnodeQPSLimit() {
-        return snodeQPSLimit;
-    }
-
-    public void setSnodeQPSLimit(double snodeQPSLimit) {
-        this.snodeQPSLimit = snodeQPSLimit;
-    }
 }
