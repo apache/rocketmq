@@ -38,7 +38,7 @@ import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.exception.SnodeException;
 
 public class ConsumerOffsetManager {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
     private static final String TOPIC_GROUP_SEPARATOR = "@";
 
     private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =

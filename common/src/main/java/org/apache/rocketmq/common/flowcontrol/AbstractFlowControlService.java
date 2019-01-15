@@ -17,12 +17,13 @@
 package org.apache.rocketmq.common.flowcontrol;
 
 import com.alibaba.csp.sentinel.SphO;
-import com.alibaba.csp.sentinel.slots.block.RuleConstant;
 import com.alibaba.csp.sentinel.slots.block.flow.FlowRule;
 import com.alibaba.csp.sentinel.slots.block.flow.FlowRuleManager;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -36,12 +37,14 @@ public abstract class AbstractFlowControlService implements Interceptor {
     private final ThreadLocal<Boolean> acquiredThreadLocal = new ThreadLocal<Boolean>();
     private final FlowControlConfig flowControlConfig;
 
+    public final String flowControlNameSeparator = "@";
+
     public AbstractFlowControlService() {
         this.flowControlConfig = new FlowControlConfig();
         loadRules(this.flowControlConfig);
     }
 
-    public abstract String getResourceKey(RequestContext requestContext);
+    public abstract String getResourceName(RequestContext requestContext);
 
     public abstract int getResourceCount(RequestContext requestContext);
 
@@ -51,23 +54,24 @@ public abstract class AbstractFlowControlService implements Interceptor {
 
     @Override
     public void beforeRequest(RequestContext requestContext) {
-        String resourceKey = getResourceKey(requestContext);
+        String resourceName = getResourceName(requestContext);
+        String flowControlType = getFlowControlType();
         int resourceCount = getResourceCount(requestContext);
+        String resourceKey = buildResourceName(flowControlType, resourceName);
+        log.info("resourceKey: {} resourceCount: {}", resourceKey, resourceCount);
         resourceCount = resourceCount == 0 ? 1 : resourceCount;
-        if (resourceKey != null) {
-            boolean acquired = SphO.entry(resourceKey, resourceCount);
-            if (acquired) {
-                this.acquiredThreadLocal.set(true);
-            } else {
-                rejectRequest(requestContext);
-            }
+        boolean acquired = SphO.entry(resourceKey, resourceCount);
+        if (acquired) {
+            this.acquiredThreadLocal.set(true);
+        } else {
+            rejectRequest(requestContext);
         }
     }
 
     @Override
     public void afterRequest(ResponseContext responseContext) {
         Boolean acquired = this.acquiredThreadLocal.get();
-        if (acquired != null && acquired == true) {
+        if (acquired != null && acquired) {
             SphO.exit();
         }
     }
@@ -75,7 +79,7 @@ public abstract class AbstractFlowControlService implements Interceptor {
     @Override
     public void onException(ExceptionContext exceptionContext) {
         Boolean acquired = this.acquiredThreadLocal.get();
-        if (acquired != null && acquired == true) {
+        if (acquired != null && acquired) {
             SphO.exit();
         }
     }
@@ -94,27 +98,39 @@ public abstract class AbstractFlowControlService implements Interceptor {
                 log.warn("Get flow control config null by moduleName: {} ", moduleName);
             }
         } else {
-            log.warn("flowControlConfig is null ");
+            log.warn("FlowControlConfig is null ");
         }
         return null;
     }
 
+    private String buildResourceName(String flowControlType, String flowControlResourceName) {
+        StringBuffer sb = new StringBuffer(32);
+        sb.append(flowControlType).append(flowControlNameSeparator).append(flowControlResourceName);
+        return sb.toString();
+    }
+
     private void loadRules(FlowControlConfig flowControlConfig) {
         Map<String, Map<String, List<FlowControlRule>>> rules = flowControlConfig.getPlainFlowControlRules();
-        for (Map<String, List<FlowControlRule>> flowControlTypeMap : rules.values()) {
-            for (List<FlowControlRule> list : flowControlTypeMap.values()) {
+        List<FlowRule> sentinelRules = new ArrayList<FlowRule>();
+        for (Map<String, List<FlowControlRule>> rulesMap : rules.values()) {
+            Set<Map.Entry<String, List<FlowControlRule>>> entrySet = rulesMap.entrySet();
+            Iterator iterator = entrySet.iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<String, List<FlowControlRule>> entry = (Map.Entry<String, List<FlowControlRule>>) iterator.next();
+                String flowControlType = entry.getKey();
+                List<FlowControlRule> list = entry.getValue();
                 for (FlowControlRule flowControlRule : list) {
-                    List<FlowRule> sentinelRules = new ArrayList<FlowRule>();
                     FlowRule rule1 = new FlowRule();
-                    rule1.setResource(flowControlRule.getFlowControlResourceName());
+                    rule1.setResource(buildResourceName(flowControlType, flowControlRule.getFlowControlResourceName()));
                     rule1.setCount(flowControlRule.getFlowControlResourceCount());
                     rule1.setGrade(flowControlRule.getFlowControlGrade());
                     rule1.setLimitApp("default");
                     sentinelRules.add(rule1);
-                    FlowRuleManager.loadRules(sentinelRules);
                 }
             }
         }
+        FlowRuleManager.loadRules(sentinelRules);
+        log.warn("Load Rules: {}" + FlowRuleManager.getRules());
     }
-
 }
+
