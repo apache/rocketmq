@@ -2198,7 +2198,7 @@ public class DefaultMessageStore implements MessageStore {
                             if (dispatchRequest.isSuccess()) {
                                 if (size > 0) {
                                     /**
-                                     * 写入index和consumequeue文件
+                                     * 将消息写入index和consumequeue文件
                                      */
                                     DefaultMessageStore.this.doDispatch(dispatchRequest);
 
@@ -2209,7 +2209,11 @@ public class DefaultMessageStore implements MessageStore {
                                         && DefaultMessageStore.this.brokerConfig.isLongPollingEnable()) {
 
                                         /**
-                                         * 通知消费者     ？？？？？？
+                                         * 通知消费者
+                                         * consumer在拉取消息时   broker发现消息已经全部消费没有数据可返回时（PULL_NOT_FOUND）
+                                         * 这时broker会缓存consumer的请求   待有消息时会依照缓存中的数据拉取消息并返回给consumer
+                                         *
+                                         * 上面的DefaultMessageStore.this.doDispatch(dispatchRequest)会将新消息写入consumequeue
                                          */
                                         DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
                                             dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,

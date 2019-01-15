@@ -28,6 +28,17 @@ public class NotifyMessageArrivingListener implements MessageArrivingListener {
         this.pullRequestHoldService = pullRequestHoldService;
     }
 
+    /**
+     * consumer在拉取消息时   broker发现消息已经全部消费没有数据可返回时（PULL_NOT_FOUND）
+     * 这时broker会缓存consumer的请求   待有消息时会依照缓存中的数据拉取消息并返回给consumer
+     * @param topic
+     * @param queueId
+     * @param logicOffset
+     * @param tagsCode
+     * @param msgStoreTime
+     * @param filterBitMap
+     * @param properties
+     */
     @Override
     public void arriving(String topic, int queueId, long logicOffset, long tagsCode,
         long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {

@@ -1463,6 +1463,9 @@ public class CommitLog {
             }
         }
 
+        /**
+         * 数据转换   将requestsRead和requestsWrite的值互换
+         */
         private void swapRequests() {
             List<GroupCommitRequest> tmp = this.requestsWrite;
             this.requestsWrite = this.requestsRead;

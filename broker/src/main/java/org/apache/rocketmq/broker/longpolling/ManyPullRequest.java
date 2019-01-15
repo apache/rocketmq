@@ -31,12 +31,16 @@ public class ManyPullRequest {
     }
 
     /**
-     * 清空pullRequestList  返回新list
+     * 将pullRequestList中的值赋值给result并返回    且返回前清空pullRequestList
      * @return
      */
     public synchronized List<PullRequest> cloneListAndClear() {
         if (!this.pullRequestList.isEmpty()) {
+            /**
+             * 返回pullRequestList的数据
+             */
             List<PullRequest> result = (ArrayList<PullRequest>) this.pullRequestList.clone();
+
             /**
              * 清空pullRequestList
              */
