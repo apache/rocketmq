@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.broker.client;
 
-import io.netty.channel.Channel;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -27,14 +25,12 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 import org.apache.rocketmq.broker.util.PositiveAtomicCounter;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class ProducerManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -86,8 +82,8 @@ public class ProducerManager {
                                 it.remove();
                                 log.warn(
                                     "SCAN: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
-                                    RemotingHelper.parseChannelRemoteAddr(info.getChannel().remoteAddress()), group);
-                                info.getChannel().close();
+                                    RemotingHelper.parseChannelRemoteAddr(info.getRemotingChannel().remoteAddress()), group);
+                                info.getRemotingChannel().close();
                             }
                         }
                     }
@@ -102,7 +98,7 @@ public class ProducerManager {
         }
     }
 
-    public void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
+    public void doChannelCloseEvent(final String remoteAddr, final RemotingChannel channel) {
         if (channel != null) {
             try {
                 if (this.groupChannelLock.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
@@ -110,16 +106,12 @@ public class ProducerManager {
                         for (final Map.Entry<String, HashMap<RemotingChannel, ClientChannelInfo>> entry : this.groupChannelTable
                             .entrySet()) {
                             final String group = entry.getKey();
-                            final HashMap<RemotingChannel, ClientChannelInfo> clientChannelInfoTable =
-                                entry.getValue();
-                            final ClientChannelInfo clientChannelInfo =
-                                clientChannelInfoTable.remove(channel);
+                            final HashMap<RemotingChannel, ClientChannelInfo> clientChannelInfoTable = entry.getValue();
+                            final ClientChannelInfo clientChannelInfo = clientChannelInfoTable.remove(channel);
                             if (clientChannelInfo != null) {
-                                log.info(
-                                    "NETTY EVENT: remove channel[{}][{}] from ProducerManager groupChannelTable, producer group: {}",
+                                log.info("NETTY EVENT: remove channel[{}][{}] from ProducerManager groupChannelTable, producer group: {}",
                                     clientChannelInfo.toString(), remoteAddr, group);
                             }
-
                         }
                     } finally {
                         this.groupChannelLock.unlock();
@@ -145,9 +137,9 @@ public class ProducerManager {
                         this.groupChannelTable.put(group, channelTable);
                     }
 
-                    clientChannelInfoFound = channelTable.get(clientChannelInfo.getChannel());
+                    clientChannelInfoFound = channelTable.get(clientChannelInfo.getRemotingChannel());
                     if (null == clientChannelInfoFound) {
-                        channelTable.put(clientChannelInfo.getChannel(), clientChannelInfo);
+                        channelTable.put(clientChannelInfo.getRemotingChannel(), clientChannelInfo);
                         log.info("new producer connected, group: {} channel: {}", group,
                             clientChannelInfo.toString());
                     }
@@ -172,7 +164,7 @@ public class ProducerManager {
                 try {
                     HashMap<RemotingChannel, ClientChannelInfo> channelTable = this.groupChannelTable.get(group);
                     if (null != channelTable && !channelTable.isEmpty()) {
-                        ClientChannelInfo old = channelTable.remove(clientChannelInfo.getChannel());
+                        ClientChannelInfo old = channelTable.remove(clientChannelInfo.getRemotingChannel());
                         if (old != null) {
                             log.info("unregister a producer[{}] from groupChannelTable {}", group,
                                 clientChannelInfo.toString());

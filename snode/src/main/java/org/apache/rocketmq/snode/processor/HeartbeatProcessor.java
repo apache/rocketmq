@@ -61,7 +61,7 @@ public class HeartbeatProcessor implements RequestProcessor {
     private RemotingCommand heartbeat(RemotingChannel remotingChannel, RemotingCommand request) {
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
-            new NettyChannelImpl((((NettyChannelHandlerContextImpl) remotingChannel).getChannelHandlerContext().channel())),
+            new NettyChannelImpl(((NettyChannelHandlerContextImpl) remotingChannel).getChannelHandlerContext().channel()),
             heartbeatData.getClientID(),
             request.getLanguage(),
             request.getVersion()

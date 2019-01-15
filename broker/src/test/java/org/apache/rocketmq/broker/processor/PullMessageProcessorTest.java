@@ -38,11 +38,12 @@ import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.remoting.RemotingChannel;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.ClientConfig;
+import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.ServerConfig;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.netty.CodecHelper;
+import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
@@ -69,9 +70,11 @@ public class PullMessageProcessorTest {
     @Spy
     private BrokerController brokerController = new BrokerController(new BrokerConfig(), new ServerConfig(), new ClientConfig(), new MessageStoreConfig());
     @Mock
-    private ChannelHandlerContext handlerContext;
+    private NettyChannelHandlerContextImpl handlerContext;
+
     @Mock
-    private Channel channel;
+    private ChannelHandlerContext channelHandlerContext;
+
     @Mock
     private MessageStore messageStore;
     private ClientChannelInfo clientChannelInfo;
@@ -82,11 +85,13 @@ public class PullMessageProcessorTest {
     public void init() {
         brokerController.setMessageStore(messageStore);
         pullMessageProcessor = new PullMessageProcessor(brokerController);
-        RemotingChannel mockChannel = mock(RemotingChannel.class);
+        Channel mockChannel = mock(Channel.class);
+        RemotingChannel remotingChannel = mock(RemotingChannel.class);
         when(mockChannel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
-//        when(handlerContext.channel()).thenReturn(mockChannel);
+        when(handlerContext.getChannelHandlerContext()).thenReturn(channelHandlerContext);
+        when(channelHandlerContext.channel()).thenReturn(mockChannel);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());
-        clientChannelInfo = new ClientChannelInfo(mockChannel);
+        clientChannelInfo = new ClientChannelInfo(remotingChannel);
         ConsumerData consumerData = createConsumerData(group, topic);
         brokerController.getConsumerManager().registerConsumer(
             consumerData.getGroupName(),
@@ -102,8 +107,7 @@ public class PullMessageProcessorTest {
     public void testProcessRequest_TopicNotExist() throws RemotingCommandException {
         brokerController.getTopicConfigManager().getTopicConfigTable().remove(topic);
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
-        RemotingCommand response = pullMessageProcessor.processRequest(nettyChannelHandlerContext, request);
+        RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.TOPIC_NOT_EXIST);
         assertThat(response.getRemark()).contains("topic[" + topic + "] not exist");
@@ -113,9 +117,7 @@ public class PullMessageProcessorTest {
     public void testProcessRequest_SubNotExist() throws RemotingCommandException {
         brokerController.getConsumerManager().unregisterConsumer(group, clientChannelInfo, false);
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
-
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
-        RemotingCommand response = pullMessageProcessor.processRequest(nettyChannelHandlerContext, request);
+        RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUBSCRIPTION_NOT_EXIST);
         assertThat(response.getRemark()).contains("consumer's group info not exist");
@@ -125,8 +127,7 @@ public class PullMessageProcessorTest {
     public void testProcessRequest_SubNotLatest() throws RemotingCommandException {
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
         request.addExtField("subVersion", String.valueOf(101));
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
-        RemotingCommand response = pullMessageProcessor.processRequest(nettyChannelHandlerContext, request);
+        RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUBSCRIPTION_NOT_LATEST);
         assertThat(response.getRemark()).contains("subscription not latest");
@@ -138,9 +139,7 @@ public class PullMessageProcessorTest {
         when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(getMessageResult);
 
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
-
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
-        RemotingCommand response = pullMessageProcessor.processRequest(nettyChannelHandlerContext, request);
+        RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
@@ -169,9 +168,7 @@ public class PullMessageProcessorTest {
         consumeMessageHookList.add(consumeMessageHook);
         pullMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
-
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
-        RemotingCommand response = pullMessageProcessor.processRequest(nettyChannelHandlerContext, request);
+        RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(messageContext[0]).isNotNull();
@@ -187,9 +184,7 @@ public class PullMessageProcessorTest {
         when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(getMessageResult);
 
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
-
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
-        RemotingCommand response = pullMessageProcessor.processRequest(nettyChannelHandlerContext, request);
+        RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.PULL_RETRY_IMMEDIATELY);
     }
@@ -201,9 +196,7 @@ public class PullMessageProcessorTest {
         when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(getMessageResult);
 
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
-
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
-        RemotingCommand response = pullMessageProcessor.processRequest(nettyChannelHandlerContext, request);
+        RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.PULL_OFFSET_MOVED);
     }
@@ -220,7 +213,7 @@ public class PullMessageProcessorTest {
         requestHeader.setSysFlag(0);
         requestHeader.setSubVersion(100L);
         RemotingCommand request = RemotingCommand.createRequestCommand(requestCode, requestHeader);
-//        request.makeCustomHeaderToNet();
+        CodecHelper.makeCustomHeaderToNet(request);
         return request;
     }
 

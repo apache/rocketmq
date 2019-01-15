@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.common.flowcontrol;
 
-import org.apache.rocketmq.remoting.interceptor.Interceptor;
-
 public class FlowControlRule {
     private String flowControlResourceName;
     private Integer flowControlGrade;

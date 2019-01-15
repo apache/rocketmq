@@ -16,12 +16,11 @@
  */
 package org.apache.rocketmq.broker.client;
 
-import io.netty.channel.Channel;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.serialize.LanguageCode;
 
 public class ClientChannelInfo {
-    private final RemotingChannel channel;
+    private final RemotingChannel remotingChannel;
     private final String clientId;
     private final LanguageCode language;
     private final int version;
@@ -31,15 +30,15 @@ public class ClientChannelInfo {
         this(channel, null, null, 0);
     }
 
-    public ClientChannelInfo(RemotingChannel channel, String clientId, LanguageCode language, int version) {
-        this.channel = channel;
+    public ClientChannelInfo(RemotingChannel remotingChannel, String clientId, LanguageCode language, int version) {
+        this.remotingChannel = remotingChannel;
         this.clientId = clientId;
         this.language = language;
         this.version = version;
     }
 
-    public RemotingChannel getChannel() {
-        return channel;
+    public RemotingChannel getRemotingChannel() {
+        return remotingChannel;
     }
 
     public String getClientId() {
@@ -66,7 +65,7 @@ public class ClientChannelInfo {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((channel == null) ? 0 : channel.hashCode());
+        result = prime * result + ((remotingChannel == null) ? 0 : remotingChannel.hashCode());
         result = prime * result + ((clientId == null) ? 0 : clientId.hashCode());
         result = prime * result + ((language == null) ? 0 : language.hashCode());
         result = prime * result + (int) (lastUpdateTimestamp ^ (lastUpdateTimestamp >>> 32));
@@ -83,10 +82,10 @@ public class ClientChannelInfo {
         if (getClass() != obj.getClass())
             return false;
         ClientChannelInfo other = (ClientChannelInfo) obj;
-        if (channel == null) {
-            if (other.channel != null)
+        if (remotingChannel == null) {
+            if (other.remotingChannel != null)
                 return false;
-        } else if (this.channel != other.channel) {
+        } else if (this.remotingChannel != other.remotingChannel) {
             return false;
         }
 
@@ -95,7 +94,7 @@ public class ClientChannelInfo {
 
     @Override
     public String toString() {
-        return "ClientChannelInfo [channel=" + channel + ", clientId=" + clientId + ", language=" + language
+        return "ClientChannelInfo [remotingChannel=" + remotingChannel + ", clientId=" + clientId + ", language=" + language
             + ", version=" + version + ", lastUpdateTimestamp=" + lastUpdateTimestamp + "]";
     }
 }

@@ -21,6 +21,7 @@ import io.netty.channel.ChannelFuture;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,35 +38,38 @@ public class ProducerManagerTest {
     private String group = "FooBar";
     private ClientChannelInfo clientInfo;
 
+    private RemotingChannel remotingChannel;
+
     @Mock
-    private RemotingChannel channel;
+    private Channel channel;
 
     @Before
     public void init() {
         producerManager = new ProducerManager();
-        clientInfo = new ClientChannelInfo(channel);
+        remotingChannel = new NettyChannelImpl(channel);
+        clientInfo = new ClientChannelInfo(remotingChannel);
     }
 
     @Test
     public void scanNotActiveChannel() throws Exception {
         producerManager.registerProducer(group, clientInfo);
-        assertThat(producerManager.getGroupChannelTable().get(group).get(channel)).isNotNull();
-
+        assertThat(producerManager.getGroupChannelTable().get(group).get(remotingChannel)).isNotNull();
         Field field = ProducerManager.class.getDeclaredField("CHANNEL_EXPIRED_TIMEOUT");
         field.setAccessible(true);
         long CHANNEL_EXPIRED_TIMEOUT = field.getLong(producerManager);
         clientInfo.setLastUpdateTimestamp(System.currentTimeMillis() - CHANNEL_EXPIRED_TIMEOUT - 10);
-//        when(channel.close()).thenReturn(mock(ChannelFuture.class));
+        when(channel.close()).thenReturn(mock(ChannelFuture.class));
         producerManager.scanNotActiveChannel();
-        assertThat(producerManager.getGroupChannelTable().get(group).get(channel)).isNull();
+        assertThat(producerManager.getGroupChannelTable().get(group).get(remotingChannel)).isNull();
     }
 
     @Test
     public void doChannelCloseEvent() throws Exception {
         producerManager.registerProducer(group, clientInfo);
-        assertThat(producerManager.getGroupChannelTable().get(group).get(channel)).isNotNull();
-//        producerManager.doChannelCloseEvent("127.0.0.1", channel);
-        assertThat(producerManager.getGroupChannelTable().get(group).get(channel)).isNull();
+        assertThat(producerManager.getGroupChannelTable().get(group).get(remotingChannel)).isNotNull();
+        producerManager.doChannelCloseEvent("127.0.0.1", remotingChannel);
+        assertThat(producerManager.getGroupChannelTable().get(group).get(remotingChannel)).isNull();
+
     }
 
     @Test
@@ -73,7 +77,7 @@ public class ProducerManagerTest {
         producerManager.registerProducer(group, clientInfo);
         HashMap<RemotingChannel, ClientChannelInfo> channelMap = producerManager.getGroupChannelTable().get(group);
         assertThat(channelMap).isNotNull();
-        assertThat(channelMap.get(channel)).isEqualTo(clientInfo);
+        assertThat(channelMap.get(remotingChannel)).isEqualTo(clientInfo);
     }
 
     @Test
@@ -81,7 +85,7 @@ public class ProducerManagerTest {
         producerManager.registerProducer(group, clientInfo);
         HashMap<RemotingChannel, ClientChannelInfo> channelMap = producerManager.getGroupChannelTable().get(group);
         assertThat(channelMap).isNotNull();
-        assertThat(channelMap.get(channel)).isEqualTo(clientInfo);
+        assertThat(channelMap.get(remotingChannel)).isEqualTo(clientInfo);
 
         producerManager.unregisterProducer(group, clientInfo);
         channelMap = producerManager.getGroupChannelTable().get(group);

@@ -90,7 +90,7 @@ public class PushServiceImpl implements PushService {
                             RemotingChannel remotingChannel = clientChannelInfoEntry.getValue().getChannel();
                             if (remotingChannel.isWritable()) {
                                 log.warn("Push message to topic: {} queueId: {} consumer group:{}, message:{}", topic, queueId, clientChannelInfoEntry.getKey(), pushMessage);
-                                snodeController.getSnodeServer().push(remotingChannel, pushMessage, SnodeConstant.defaultTimeoutMills);
+                                snodeController.getSnodeServer().push(remotingChannel, pushMessage, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
                             }
                         }
                     } else {

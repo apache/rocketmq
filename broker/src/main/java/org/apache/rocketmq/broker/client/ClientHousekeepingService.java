@@ -74,28 +74,28 @@ public class ClientHousekeepingService implements ChannelEventListener {
         log.info("Remoting channel closed: {}", RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()));
         NettyChannelImpl nettyChannel = (NettyChannelImpl) remotingChannel;
         Channel channel = nettyChannel.getChannel();
-        this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
-        this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
+        this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, remotingChannel);
+        this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, remotingChannel);
         this.brokerController.getFilterServerManager().doChannelCloseEvent(remoteAddr, channel);
     }
 
     @Override
     public void onChannelException(String remoteAddr, RemotingChannel remotingChannel) {
-        log.info("Remoting channel exception: {}", RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()));
         NettyChannelImpl nettyChannel = (NettyChannelImpl) remotingChannel;
         Channel channel = nettyChannel.getChannel();
-        this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
-        this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
+        log.info("Remoting channel exception: {}", RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()));
+        this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, remotingChannel);
+        this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, remotingChannel);
         this.brokerController.getFilterServerManager().doChannelCloseEvent(remoteAddr, channel);
     }
 
     @Override
     public void onChannelIdle(String remoteAddr, RemotingChannel remotingChannel) {
-        log.info("Remoting channel idle: {}", RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()));
         NettyChannelImpl nettyChannel = (NettyChannelImpl) remotingChannel;
         Channel channel = nettyChannel.getChannel();
-        this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
-        this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
+        log.info("Remoting channel idle: {}", RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()));
+        this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, remotingChannel);
+        this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, remotingChannel);
         this.brokerController.getFilterServerManager().doChannelCloseEvent(remoteAddr, channel);
     }
 }

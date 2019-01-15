@@ -54,7 +54,6 @@ public class SendMessageProcessor implements RequestProcessor {
         boolean isSendBack = false;
         if (request.getCode() == RequestCode.SEND_MESSAGE_V2) {
             sendMessageRequestHeaderV2 = (SendMessageRequestHeaderV2) request.decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
-            System.out.println("sendMessageRequestHeaderV2: " + sendMessageRequestHeaderV2);
             enodeName = sendMessageRequestHeaderV2.getN();
         } else {
             isSendBack = true;

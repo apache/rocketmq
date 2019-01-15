@@ -15,12 +15,13 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.snode.constant;
+
 public class SnodeConstant {
-    public static final long heartbeatTimeout = 3000;
+    public static final long HEARTBEAT_TIME_OUT = 3000;
 
-    public static final long oneWaytimeout = 10;
+    public static final long ONE_WAY_TIMEOUT = 10;
 
-    public static final long defaultTimeoutMills = 3000L;
+    public static final long DEFAULT_TIMEOUT_MILLS = 3000L;
 
     public static final long CONSUMER_TIMEOUT_MILLIS_WHEN_SUSPEND = 1000 * 30;
 

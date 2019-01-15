@@ -39,22 +39,28 @@ public class BrokerHousekeepingService implements ChannelEventListener {
 
     @Override
     public void onChannelClose(String remoteAddr, RemotingChannel remotingChannel) {
-        NettyChannelImpl nettyChannel = (NettyChannelImpl) remotingChannel;
-        Channel channel = nettyChannel.getChannel();
-        this.namesrvController.getRouteInfoManager().onChannelDestroy(remoteAddr, channel);
+        if (remotingChannel != null) {
+            NettyChannelImpl nettyChannel = (NettyChannelImpl) remotingChannel;
+            Channel channel = nettyChannel.getChannel();
+            this.namesrvController.getRouteInfoManager().onChannelDestroy(remoteAddr, channel);
+        }
     }
 
     @Override
     public void onChannelException(String remoteAddr, RemotingChannel remotingChannel) {
-        NettyChannelImpl nettyChannel = (NettyChannelImpl) remotingChannel;
-        Channel channel = nettyChannel.getChannel();
-        this.namesrvController.getRouteInfoManager().onChannelDestroy(remoteAddr, channel);
+        if (remotingChannel != null) {
+            NettyChannelImpl nettyChannel = (NettyChannelImpl) remotingChannel;
+            Channel channel = nettyChannel.getChannel();
+            this.namesrvController.getRouteInfoManager().onChannelDestroy(remoteAddr, channel);
+        }
     }
 
     @Override
     public void onChannelIdle(String remoteAddr, RemotingChannel remotingChannel) {
-        NettyChannelImpl nettyChannel = (NettyChannelImpl) remotingChannel;
-        Channel channel = nettyChannel.getChannel();
-        this.namesrvController.getRouteInfoManager().onChannelDestroy(remoteAddr, channel);
+        if (remotingChannel != null) {
+            NettyChannelImpl nettyChannel = (NettyChannelImpl) remotingChannel;
+            Channel channel = nettyChannel.getChannel();
+            this.namesrvController.getRouteInfoManager().onChannelDestroy(remoteAddr, channel);
+        }
     }
 }

@@ -37,13 +37,10 @@ public class FlowControlConfig {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     private String flowControlFileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+
     private static final String DEFAULT_FLOW_CONTROL_FILE = "conf/flowControl.yml";
 
     private String flowControlFileName = System.getProperty("rocketmq.flow.control.file", DEFAULT_FLOW_CONTROL_FILE);
-
-    private List<FlowControlRule> rules;
-
-    public static final String defaultResourceName = "overallFlowControl";
 
     private Map<String/*server name*/, Map<String/*flowControlType*/, List<FlowControlRule>>> plainFlowControlRules;
 

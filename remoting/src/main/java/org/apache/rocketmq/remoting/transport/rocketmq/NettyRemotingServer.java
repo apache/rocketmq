@@ -52,7 +52,6 @@ import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
-import org.apache.rocketmq.remoting.interceptor.Interceptor;
 import org.apache.rocketmq.remoting.interceptor.InterceptorGroup;
 import org.apache.rocketmq.remoting.netty.FileRegionEncoder;
 import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
@@ -222,7 +221,7 @@ public class NettyRemotingServer extends NettyRemotingServerAbstract implements 
 
     @Override
     public void registerProcessor(int requestCode, RequestProcessor processor, ExecutorService executor) {
-        executor = (executor == null ? this.publicExecutor : executor);
+        executor = executor == null ? this.publicExecutor : executor;
         registerNettyProcessor(requestCode, processor, executor);
     }
 

@@ -32,7 +32,7 @@ public class NettyChannelImpl implements RemotingChannel {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(ROCKETMQ_REMOTING);
 
-    private final io.netty.channel.Channel channel;
+    private final Channel channel;
 
     public NettyChannelImpl(Channel channel) {
         this.channel = channel;

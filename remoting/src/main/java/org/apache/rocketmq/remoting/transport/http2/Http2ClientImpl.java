@@ -17,7 +17,6 @@
 package org.apache.rocketmq.remoting.transport.http2;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -41,26 +40,21 @@ import javax.net.ssl.SSLException;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
+import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.InvokeCallback;
-import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RemotingClient;
-import org.apache.rocketmq.remoting.common.Pair;
+import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
-import org.apache.rocketmq.remoting.ClientConfig;
-import org.apache.rocketmq.remoting.interceptor.Interceptor;
 import org.apache.rocketmq.remoting.interceptor.InterceptorGroup;
-import org.apache.rocketmq.remoting.interceptor.InterceptorInvoker;
-import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
-import org.apache.rocketmq.remoting.transport.rocketmq.NettyDecoder;
-import org.apache.rocketmq.remoting.transport.rocketmq.NettyEncoder;
-import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.NettyRemotingClientAbstract;
+import org.apache.rocketmq.remoting.transport.rocketmq.NettyDecoder;
+import org.apache.rocketmq.remoting.transport.rocketmq.NettyEncoder;
 import org.apache.rocketmq.remoting.util.ThreadUtils;
 
 public class Http2ClientImpl extends NettyRemotingClientAbstract implements RemotingClient {
@@ -248,7 +242,7 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
 
     @Override
     public void registerProcessor(int requestCode, RequestProcessor processor, ExecutorService executor) {
-        executor = (executor == null ? this.publicExecutor : executor);
+        executor = executor == null ? this.publicExecutor : executor;
         registerNettyProcessor(requestCode, processor, executor);
     }
 

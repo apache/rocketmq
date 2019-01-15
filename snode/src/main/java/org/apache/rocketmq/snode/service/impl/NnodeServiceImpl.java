@@ -66,7 +66,7 @@ public class NnodeServiceImpl implements NnodeService {
         if (nnodeAddressList != null && nnodeAddressList.size() > 0) {
             for (String nodeAddress : nnodeAddressList) {
                 try {
-                    this.snodeController.getRemotingClient().invokeSync(nodeAddress, remotingCommand, SnodeConstant.heartbeatTimeout);
+                    this.snodeController.getRemotingClient().invokeSync(nodeAddress, remotingCommand, SnodeConstant.HEARTBEAT_TIME_OUT);
                 } catch (Exception ex) {
                     log.warn("Register Snode to Nnode addr: {} error, ex:{} ", nodeAddress, ex);
                 }
@@ -93,7 +93,7 @@ public class NnodeServiceImpl implements NnodeService {
         requestHeader.setTopic(topic);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINTO_BY_TOPIC, requestHeader);
-        RemotingCommand response = this.snodeController.getRemotingClient().invokeSync(null, request, SnodeConstant.defaultTimeoutMills);
+        RemotingCommand response = this.snodeController.getRemotingClient().invokeSync(null, request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
         log.info("GetTopicRouteInfoFromNameServer response: " + response);
         assert response != null;
         switch (response.getCode()) {
@@ -167,7 +167,7 @@ public class NnodeServiceImpl implements NnodeService {
         RemotingSendRequestException, RemotingConnectException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_CLUSTER_INFO, null);
 
-        RemotingCommand response = this.snodeController.getRemotingClient().invokeSync(null, request, SnodeConstant.defaultTimeoutMills);
+        RemotingCommand response = this.snodeController.getRemotingClient().invokeSync(null, request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 ClusterInfo clusterInfo = ClusterInfo.decode(response.getBody(), ClusterInfo.class);

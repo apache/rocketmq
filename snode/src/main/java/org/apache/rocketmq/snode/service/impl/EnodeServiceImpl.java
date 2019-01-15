@@ -29,13 +29,10 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.NotifyConsumerIdsChangedRequestHeader;
-import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -71,7 +68,7 @@ public class EnodeServiceImpl implements EnodeService {
             String enodeAddr = entry.getValue().get(MixAll.MASTER_ID);
             if (enodeAddr != null) {
                 try {
-                    this.snodeController.getRemotingClient().invokeSync(enodeAddr, remotingCommand, SnodeConstant.defaultTimeoutMills);
+                    this.snodeController.getRemotingClient().invokeSync(enodeAddr, remotingCommand, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
                 } catch (Exception ex) {
                     log.warn("Send heart beat faild:{} ,ex:{}", enodeAddr, ex);
                 }
@@ -114,7 +111,7 @@ public class EnodeServiceImpl implements EnodeService {
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         try {
             String enodeAddress = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
-            this.snodeController.getRemotingClient().invokeAsync(enodeAddress, request, SnodeConstant.defaultTimeoutMills, (responseFuture) -> {
+            this.snodeController.getRemotingClient().invokeAsync(enodeAddress, request, SnodeConstant.DEFAULT_TIMEOUT_MILLS, (responseFuture) -> {
                 future.complete(responseFuture.getResponseCommand());
             });
         } catch (Exception ex) {
@@ -139,7 +136,7 @@ public class EnodeServiceImpl implements EnodeService {
             RemotingCommand.createRequestCommand(RequestCode.NOTIFY_CONSUMER_IDS_CHANGED, requestHeader);
 
         try {
-            this.snodeController.getSnodeServer().invokeOneway(channel, request, SnodeConstant.oneWaytimeout);
+            this.snodeController.getSnodeServer().invokeOneway(channel, request, SnodeConstant.ONE_WAY_TIMEOUT);
         } catch (Exception e) {
             log.error("NotifyConsumerIdsChanged consumer group: {} exception ", consumerGroup, e);
         }
@@ -164,7 +161,7 @@ public class EnodeServiceImpl implements EnodeService {
     public void updateEnodeAddr(String clusterName) throws InterruptedException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         synchronized (this) {
-            ClusterInfo clusterInfo = getBrokerClusterInfo(SnodeConstant.defaultTimeoutMills);
+            ClusterInfo clusterInfo = getBrokerClusterInfo(SnodeConstant.DEFAULT_TIMEOUT_MILLS);
             if (clusterInfo != null) {
                 HashMap<String, Set<String>> enodeAddress = clusterInfo.getClusterAddrTable();
                 for (Map.Entry<String, Set<String>> entry : enodeAddress.entrySet()) {
@@ -189,7 +186,7 @@ public class EnodeServiceImpl implements EnodeService {
             String enodeAddress = entry.getValue().get(MixAll.MASTER_ID);
             try {
                 RemotingCommand response = this.snodeController.getRemotingClient().invokeSync(enodeAddress,
-                    request, SnodeConstant.defaultTimeoutMills);
+                    request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
                 if (response != null && response.getCode() == ResponseCode.SUCCESS) {
                     persist = true;
                 } else {
@@ -215,7 +212,7 @@ public class EnodeServiceImpl implements EnodeService {
             requestHeader.setCommitOffset(offset);
             requestHeader.setEnodeName(enodeName);
             RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_CONSUMER_OFFSET, requestHeader);
-            this.snodeController.getRemotingClient().invokeOneway(address, request, SnodeConstant.defaultTimeoutMills);
+            this.snodeController.getRemotingClient().invokeOneway(address, request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
         } catch (Exception ex) {
             log.error("Persist offset to Enode error!");
         }
@@ -231,7 +228,7 @@ public class EnodeServiceImpl implements EnodeService {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MIN_OFFSET, requestHeader);
         String addr = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
         return this.snodeController.getRemotingClient().invokeSync(MixAll.brokerVIPChannel(snodeController.getSnodeConfig().isVipChannelEnabled(), addr),
-            request, SnodeConstant.defaultTimeoutMills);
+            request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
     }
 
     @Override
@@ -246,7 +243,7 @@ public class EnodeServiceImpl implements EnodeService {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_CONSUMER_OFFSET, requestHeader);
         String addr = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
         return this.snodeController.getRemotingClient().invokeSync(MixAll.brokerVIPChannel(this.snodeController.getSnodeConfig().isVipChannelEnabled(), addr),
-            request, SnodeConstant.defaultTimeoutMills);
+            request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
     }
 
     @Override
@@ -254,7 +251,7 @@ public class EnodeServiceImpl implements EnodeService {
         RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, RemotingCommandException {
         String addr = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
         return this.snodeController.getRemotingClient().invokeSync(MixAll.brokerVIPChannel(snodeController.getSnodeConfig().isVipChannelEnabled(), addr),
-            request, SnodeConstant.defaultTimeoutMills);
+            request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
     }
 
     @Override
@@ -262,7 +259,7 @@ public class EnodeServiceImpl implements EnodeService {
         RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         String addr = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
         return this.snodeController.getRemotingClient().invokeSync(MixAll.brokerVIPChannel(snodeController.getSnodeConfig().isVipChannelEnabled(), addr),
-            request, SnodeConstant.defaultTimeoutMills);
+            request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
     }
 
     @Override
@@ -279,6 +276,6 @@ public class EnodeServiceImpl implements EnodeService {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC, requestHeader);
         String address = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
         return this.snodeController.getRemotingClient().invokeSync(address,
-            request, SnodeConstant.defaultTimeoutMills);
+            request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
     }
 }

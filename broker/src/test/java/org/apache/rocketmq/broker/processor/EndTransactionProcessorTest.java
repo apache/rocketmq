@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.processor;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.transaction.OperationResult;
@@ -28,10 +29,11 @@ import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.ServerConfig;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.netty.CodecHelper;
+import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
@@ -49,6 +51,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -57,7 +60,10 @@ public class EndTransactionProcessorTest {
     private EndTransactionProcessor endTransactionProcessor;
 
     @Mock
-    private ChannelHandlerContext handlerContext;
+    private NettyChannelHandlerContextImpl handlerContext;
+
+    @Mock
+    private ChannelHandlerContext channelHandlerContext;
 
     @Spy
     private BrokerController
@@ -74,10 +80,13 @@ public class EndTransactionProcessorTest {
     public void init() {
         brokerController.setMessageStore(messageStore);
         brokerController.setTransactionalMessageService(transactionMsgService);
+        Channel mockChannel = mock(Channel.class);
+        when(handlerContext.getChannelHandlerContext()).thenReturn(channelHandlerContext);
+        when(channelHandlerContext.channel()).thenReturn(mockChannel);
         endTransactionProcessor = new EndTransactionProcessor(brokerController);
     }
 
-    private OperationResult createResponse(int status) {
+    private OperationResult createResponse(int status){
         OperationResult response = new OperationResult();
         response.setPrepareMessage(createDefaultMessageExt());
         response.setResponseCode(status);
@@ -91,9 +100,7 @@ public class EndTransactionProcessorTest {
         when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult
             (PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         RemotingCommand request = createEndTransactionMsgCommand(MessageSysFlag.TRANSACTION_COMMIT_TYPE, false);
-
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
-        RemotingCommand response = endTransactionProcessor.processRequest(nettyChannelHandlerContext, request);
+        RemotingCommand response = endTransactionProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
 
@@ -103,16 +110,14 @@ public class EndTransactionProcessorTest {
         when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult
             (PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         RemotingCommand request = createEndTransactionMsgCommand(MessageSysFlag.TRANSACTION_COMMIT_TYPE, true);
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
-        RemotingCommand response = endTransactionProcessor.processRequest(nettyChannelHandlerContext, request);
+        RemotingCommand response = endTransactionProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
 
     @Test
     public void testProcessRequest_NotType() throws RemotingCommandException {
         RemotingCommand request = createEndTransactionMsgCommand(MessageSysFlag.TRANSACTION_NOT_TYPE, true);
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
-        RemotingCommand response = endTransactionProcessor.processRequest(nettyChannelHandlerContext, request);
+        RemotingCommand response = endTransactionProcessor.processRequest(handlerContext, request);
         assertThat(response).isNull();
     }
 
@@ -120,8 +125,7 @@ public class EndTransactionProcessorTest {
     public void testProcessRequest_RollBack() throws RemotingCommandException {
         when(transactionMsgService.rollbackMessage(any(EndTransactionRequestHeader.class))).thenReturn(createResponse(ResponseCode.SUCCESS));
         RemotingCommand request = createEndTransactionMsgCommand(MessageSysFlag.TRANSACTION_ROLLBACK_TYPE, true);
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = new NettyChannelHandlerContextImpl(handlerContext);
-        RemotingCommand response = endTransactionProcessor.processRequest(nettyChannelHandlerContext, request);
+        RemotingCommand response = endTransactionProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
 
@@ -152,7 +156,7 @@ public class EndTransactionProcessorTest {
     private RemotingCommand createEndTransactionMsgCommand(int status, boolean isCheckMsg) {
         EndTransactionRequestHeader header = createEndTransactionRequestHeader(status, isCheckMsg);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, header);
-//        request.makeCustomHeaderToNet();
+        CodecHelper.makeCustomHeaderToNet(request);
         return request;
     }
 }

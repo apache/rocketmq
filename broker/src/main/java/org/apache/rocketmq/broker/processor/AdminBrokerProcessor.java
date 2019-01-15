@@ -603,7 +603,7 @@ public class AdminBrokerProcessor implements RequestProcessor {
                 connection.setClientId(info.getClientId());
                 connection.setLanguage(info.getLanguage());
                 connection.setVersion(info.getVersion());
-                connection.setClientAddr(RemotingHelper.parseChannelRemoteAddr(info.getChannel().remoteAddress()));
+                connection.setClientAddr(RemotingHelper.parseChannelRemoteAddr(info.getRemotingChannel().remoteAddress()));
 
                 bodydata.getConnectionSet().add(connection);
             }
@@ -638,7 +638,7 @@ public class AdminBrokerProcessor implements RequestProcessor {
                 connection.setClientId(info.getClientId());
                 connection.setLanguage(info.getLanguage());
                 connection.setVersion(info.getVersion());
-                connection.setClientAddr(RemotingHelper.parseChannelRemoteAddr(info.getChannel().remoteAddress()));
+                connection.setClientAddr(RemotingHelper.parseChannelRemoteAddr(info.getRemotingChannel().remoteAddress()));
 
                 bodydata.getConnectionSet().add(connection);
             }
@@ -1278,7 +1278,7 @@ public class AdminBrokerProcessor implements RequestProcessor {
             newRequest.setExtFields(request.getExtFields());
             newRequest.setBody(request.getBody());
 
-            return this.brokerController.getBroker2Client().callClient(clientChannelInfo.getChannel(), newRequest);
+            return this.brokerController.getBroker2Client().callClient(clientChannelInfo.getRemotingChannel(), newRequest);
         } catch (RemotingTimeoutException e) {
             response.setCode(ResponseCode.CONSUME_MSG_TIMEOUT);
             response

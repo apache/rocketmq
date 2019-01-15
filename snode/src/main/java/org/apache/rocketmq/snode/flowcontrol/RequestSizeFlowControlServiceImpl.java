@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.snode.flowcontrol;
 
-import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.flowcontrol.AbstractFlowControlService;

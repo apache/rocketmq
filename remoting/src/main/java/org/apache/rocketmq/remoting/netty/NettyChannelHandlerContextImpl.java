@@ -99,7 +99,7 @@ public class NettyChannelHandlerContextImpl implements RemotingChannel {
 
         final NettyChannelHandlerContextImpl that = (NettyChannelHandlerContextImpl) o;
 
-        return channelHandlerContext != null ? channelHandlerContext.equals(that.channelHandlerContext) : that.channelHandlerContext == null;
+        return channelHandlerContext.channel() != null ? channelHandlerContext.channel().equals(that.channelHandlerContext.channel()) : that.channelHandlerContext.channel() == null;
 
     }
 

@@ -48,24 +48,22 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
-import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RemotingServer;
+import org.apache.rocketmq.remoting.RequestProcessor;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.common.Pair;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
-import org.apache.rocketmq.remoting.interceptor.Interceptor;
 import org.apache.rocketmq.remoting.interceptor.InterceptorGroup;
 import org.apache.rocketmq.remoting.netty.ChannelStatisticsHandler;
 import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
-import org.apache.rocketmq.remoting.transport.rocketmq.NettyDecoder;
-import org.apache.rocketmq.remoting.transport.rocketmq.NettyEncoder;
-import org.apache.rocketmq.remoting.RequestProcessor;
-import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.NettyRemotingServerAbstract;
+import org.apache.rocketmq.remoting.transport.rocketmq.NettyDecoder;
+import org.apache.rocketmq.remoting.transport.rocketmq.NettyEncoder;
 import org.apache.rocketmq.remoting.util.JvmUtils;
 import org.apache.rocketmq.remoting.util.ThreadUtils;
 
@@ -139,7 +137,7 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
 
     @Override
     public void registerProcessor(int requestCode, RequestProcessor processor, ExecutorService executor) {
-        executor = (executor == null ? this.publicExecutor : executor);
+        executor = executor == null ? this.publicExecutor : executor;
         registerNettyProcessor(requestCode, processor, executor);
     }
 
@@ -204,25 +202,23 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
     public void start() {
         super.start();
         final ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
-        this.serverBootstrap.group(this.bossGroup, this.ioGroup).
-            channel(socketChannelClass).childHandler(new ChannelInitializer<SocketChannel>() {
-                @Override
-                public void initChannel(SocketChannel ch) throws Exception {
-                    channels.add(ch);
-
-                    ChannelPipeline cp = ch.pipeline();
-                    cp.addLast(ChannelStatisticsHandler.NAME, new ChannelStatisticsHandler(channels));
-                    cp.addLast(workerGroup,
-                        Http2Handler.newHandler(true),
-                        new NettyEncoder(),
-                        new NettyDecoder(),
-                        new IdleStateHandler(serverConfig.getConnectionChannelReaderIdleSeconds(),
-                            serverConfig.getConnectionChannelWriterIdleSeconds(),
-                            serverConfig.getServerChannelMaxIdleTimeSeconds()),
-                        new NettyConnectManageHandler(),
-                        new NettyServerHandler());
-                }
-            });
+        this.serverBootstrap.group(this.bossGroup, this.ioGroup).channel(socketChannelClass).childHandler(new ChannelInitializer<SocketChannel>() {
+            @Override
+            public void initChannel(SocketChannel ch) {
+                channels.add(ch);
+                ChannelPipeline cp = ch.pipeline();
+                cp.addLast(ChannelStatisticsHandler.NAME, new ChannelStatisticsHandler(channels));
+                cp.addLast(workerGroup,
+                    Http2Handler.newHandler(true),
+                    new NettyEncoder(),
+                    new NettyDecoder(),
+                    new IdleStateHandler(serverConfig.getConnectionChannelReaderIdleSeconds(),
+                        serverConfig.getConnectionChannelWriterIdleSeconds(),
+                        serverConfig.getServerChannelMaxIdleTimeSeconds()),
+                    new NettyConnectManageHandler(),
+                    new NettyServerHandler());
+            }
+        });
         applyOptions(serverBootstrap);
 
         ChannelFuture channelFuture = this.serverBootstrap.bind(this.port).syncUninterruptibly();

@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.broker.client;
 
-import io.netty.channel.Channel;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -25,14 +24,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class ConsumerManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -75,7 +73,7 @@ public class ConsumerManager {
         return 0;
     }
 
-    public void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
+    public void doChannelCloseEvent(final String remoteAddr, final RemotingChannel channel) {
         Iterator<Entry<String, ConsumerGroupInfo>> it = this.consumerTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, ConsumerGroupInfo> next = it.next();
@@ -159,9 +157,9 @@ public class ConsumerManager {
                 if (diff > CHANNEL_EXPIRED_TIMEOUT) {
                     log.warn(
                         "SCAN: remove expired channel from ConsumerManager consumerTable. channel={}, consumerGroup={}",
-                        RemotingHelper.parseChannelRemoteAddr(clientChannelInfo.getChannel().remoteAddress()), group);
+                        RemotingHelper.parseChannelRemoteAddr(clientChannelInfo.getRemotingChannel().remoteAddress()), group);
 
-                    clientChannelInfo.getChannel().close();
+                    clientChannelInfo.getRemotingChannel().close();
                     itChannel.remove();
                 }
             }

@@ -109,7 +109,7 @@ public class RemotingCommandTest {
     @Test
     public void testNotNullField() throws Exception {
         RemotingCommand remotingCommand = new RemotingCommand();
-        Method method = RemotingCommand.class.getDeclaredMethod("isFieldNullable", Field.class);
+        Method method = CodecHelper.class.getDeclaredMethod("isFieldNullable", Field.class);
         method.setAccessible(true);
 
         Field nullString = FieldTestClass.class.getDeclaredField("nullString");

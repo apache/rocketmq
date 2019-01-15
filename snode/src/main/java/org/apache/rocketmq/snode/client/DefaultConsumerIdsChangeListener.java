@@ -20,7 +20,9 @@ import java.util.List;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.snode.SnodeController;
 
-//TODO Filter implementation
+/**
+ * TODO Filter
+ */
 public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListener {
     private final SnodeController snodeController;
 
