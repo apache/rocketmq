@@ -257,11 +257,19 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         } else {
             /**
              * consumer默认上送  delayLevel=0
+             * 则delayLevel的值为3+该消息的重试次数
+             * 下面的逻辑会重试次数+1
+             *
+             * 即consumer发送重试消息时   只会上送delayLevel=0   所以delayLevel的改变只会和重试次数有关
+             * 并随着重试次数的不断累加而累加
              */
             if (0 == delayLevel) {
                 delayLevel = 3 + msgExt.getReconsumeTimes();
             }
 
+            /**
+             * 将delayLevel存储到消息的Property中
+             */
             msgExt.setDelayTimeLevel(delayLevel);
         }
 
@@ -281,6 +289,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgInner.setBornTimestamp(msgExt.getBornTimestamp());
         msgInner.setBornHost(msgExt.getBornHost());
         msgInner.setStoreHost(this.getStoreHost());
+
         /**
          * 重试次数+1
          */
@@ -290,9 +299,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         MessageAccessor.setOriginMessageId(msgInner, UtilAll.isBlank(originMsgId) ? msgExt.getMsgId() : originMsgId);
 
         /**
-         * 存储消息
-         * 存储消息
-         * 存储消息
+         * 存储消息  作为一条全新的消息  再次存储   只是对应的topic和queueid会改变
+         * 存储消息  作为一条全新的消息  再次存储   只是对应的topic和queueid会改变
+         * 存储消息  作为一条全新的消息  再次存储   只是对应的topic和queueid会改变
          */
         PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
         if (putMessageResult != null) {

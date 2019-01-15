@@ -610,7 +610,7 @@ public class ConsumeQueue {
         if (mappedFile != null) {
 
             /**
-             * 文件为新创建且未写入  不是第一个consumequeue文件
+             * 文件未写入  且不是第一个consumequeue文件
              */
             if (mappedFile.isFirstCreateInQueue() && cqOffset != 0 && mappedFile.getWrotePosition() == 0) {
                 this.minLogicOffset = expectLogicOffset;

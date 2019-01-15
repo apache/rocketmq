@@ -465,7 +465,7 @@ public class CommitLog {
                 String tags = propertiesMap.get(MessageConst.PROPERTY_TAGS);
                 if (tags != null && tags.length() > 0) {
                     /**
-                     * 获取tags对应的hash，MessageExt.parseTopicFilterType(sysFlag)目前不起作用
+                     * 获取tags对应的hash
                      */
                     tagsCode = MessageExtBrokerInner.tagsString2tagsCode(MessageExt.parseTopicFilterType(sysFlag), tags);
                 }
@@ -491,7 +491,7 @@ public class CommitLog {
                         }
 
                         /**
-                         * 计算延迟队列的hashcode
+                         * 延迟队列   tagsCode存储的不再是tagscode  而是下次投递的时间
                          */
                         if (delayLevel > 0) {
                             tagsCode = this.defaultMessageStore.getScheduleMessageService().computeDeliverTimestamp(delayLevel,
@@ -793,8 +793,9 @@ public class CommitLog {
                  * 发送到延迟队列
                  */
                 topic = ScheduleMessageService.SCHEDULE_TOPIC;
+
                 /**
-                 * 对应的延迟队列的queueid
+                 * 对应的延迟队列的queueid  delayLevel-1
                  */
                 queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
 

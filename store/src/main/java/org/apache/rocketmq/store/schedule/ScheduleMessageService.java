@@ -51,9 +51,16 @@ public class ScheduleMessageService extends ConfigManager {
     private static final long DELAY_FOR_A_WHILE = 100L;
     private static final long DELAY_FOR_A_PERIOD = 10000L;
 
+    /**
+     * delayLevelTable
+     * 1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h
+     */
     private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
         new ConcurrentHashMap<Integer, Long>(32);
 
+    /**
+     * delayOffset.json内容
+     */
     private final ConcurrentMap<Integer /* level */, Long/* offset */> offsetTable =
         new ConcurrentHashMap<Integer, Long>(32);
 
@@ -97,12 +104,30 @@ public class ScheduleMessageService extends ConfigManager {
         this.offsetTable.put(delayLevel, offset);
     }
 
+    /**
+     * 计算下次投递时间
+     * @param delayLevel
+     * @param storeTimestamp
+     * @return
+     */
     public long computeDeliverTimestamp(final int delayLevel, final long storeTimestamp) {
+        /**
+         * delayLevelTable
+         * 1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h
+         *
+         * 获取delayLevel对应的延迟时间
+         */
         Long time = this.delayLevelTable.get(delayLevel);
         if (time != null) {
+            /**
+             * 计算下次投递时间    当前时间+延迟时间
+             */
             return time + storeTimestamp;
         }
 
+        /**
+         * 否则  1秒后投递
+         */
         return storeTimestamp + 1000;
     }
 
@@ -110,10 +135,16 @@ public class ScheduleMessageService extends ConfigManager {
      * 定时持久化到store/config/delayOffset.json
      */
     public void start() {
-
+        /**
+         * delayLevelTable
+         * 1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h
+         */
         for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) {
             Integer level = entry.getKey();
             Long timeDelay = entry.getValue();
+            /**
+             * delayOffset.json内容
+             */
             Long offset = this.offsetTable.get(level);
             if (null == offset) {
                 offset = 0L;
@@ -242,7 +273,13 @@ public class ScheduleMessageService extends ConfigManager {
     }
 
     class DeliverDelayedMessageTimerTask extends TimerTask {
+        /**
+         * 延迟级别
+         */
         private final int delayLevel;
+        /**
+         * 消费进度
+         */
         private final long offset;
 
         public DeliverDelayedMessageTimerTask(int delayLevel, long offset) {
@@ -266,6 +303,7 @@ public class ScheduleMessageService extends ConfigManager {
         }
 
         /**
+         * 当前日期和投递日期比较
          * @return
          */
         private long correctDeliverTimestamp(final long now, final long deliverTimestamp) {
@@ -295,7 +333,7 @@ public class ScheduleMessageService extends ConfigManager {
 
             if (cq != null) {
                 /**
-                 * 获取offset处之后未读的消息
+                 * 获取对应ConsumeQueue在offset处之后未读的消息
                  */
                 SelectMappedBufferResult bufferCQ = cq.getIndexBuffer(this.offset);
                 if (bufferCQ != null) {
@@ -356,9 +394,9 @@ public class ScheduleMessageService extends ConfigManager {
                                         MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
 
                                         /**
-                                         * 消息存储  重试队列
-                                         * 消息存储  重试队列
-                                         * 消息存储  重试队列
+                                         * 消息存储  重试队列  作为一条全新的消息  再次存储
+                                         * 消息存储  重试队列  作为一条全新的消息  再次存储
+                                         * 消息存储  重试队列  作为一条全新的消息  再次存储
                                          */
                                         PutMessageResult putMessageResult =
                                             ScheduleMessageService.this.defaultMessageStore
@@ -394,7 +432,7 @@ public class ScheduleMessageService extends ConfigManager {
                                 }
                             }//end countdown <= 0
                             /**
-                             * 间隔countdown   再次执行
+                             * 当前delayLevel的消息间隔countdown   从nextOffset处再次执行
                              */
                             else {
                                 ScheduleMessageService.this.timer.schedule(
