@@ -4,20 +4,19 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Calendar;
 import java.util.Map;
 
-import static java.io.File.separator;
 import static org.apache.rocketmq.common.message.MessageDecoder.CHARSET_UTF8;
 import static org.apache.rocketmq.store.ConsumeQueue.CQ_STORE_UNIT_SIZE;
 import static org.junit.Assert.assertEquals;
@@ -27,6 +26,14 @@ public class DefaultMessageStoreCleanFilesTest {
     private DefaultMessageStore messageStore;
     private SocketAddress bornHost;
     private SocketAddress storeHost;
+
+    private String topic = "test";
+    private int queueId = 0;
+    private int fileCountCommitLog = 55;
+    // exactly one message per CommitLog file.
+    private int msgCount = fileCountCommitLog;
+    private int mappedFileSize = 128;
+    private int fileReservedTime = 1;
 
     @Before
     public void init() throws Exception {
@@ -40,124 +47,81 @@ public class DefaultMessageStoreCleanFilesTest {
      */
     @Test
     public void testDeleteExpiredFilesByTimeUp() throws Exception {
-        int mappedFileSize = 128;
-        // the number of hours to keep a log file before deleting it (in hours), default is 72
-        int fileReservedTime = 1;
-        // when to delete,default is at 4 am
         String deleteWhen = Calendar.getInstance().get(Calendar.HOUR_OF_DAY) + "";
-        // the max value of diskMaxUsedSpaceRatio
-        int diskMaxUsedSpaceRatio = 95;
+        int diskMaxUsedSpaceRatio = 95; // the max value of diskMaxUsedSpaceRatio
+        messageStore = initMessageStore(deleteWhen, diskMaxUsedSpaceRatio);
 
-        // initialize messageStore
-        messageStore = initMessageStore(mappedFileSize, fileReservedTime, deleteWhen, diskMaxUsedSpaceRatio);
-
-        String topic = "test";
-        int queueId = 0;
-        String rootDir = messageStore.getMessageStoreConfig().getStorePathRootDir();
-        String storePathCommitLog = messageStore.getMessageStoreConfig().getStorePathCommitLog();
-        String storePathConsumeQueue = StorePathConfigHelper.getStorePathConsumeQueue(rootDir) + separator + topic + separator + queueId;
-        int mappedFileSizeConsumeQueue = messageStore.getMessageStoreConfig().getMapedFileSizeConsumeQueue();
-
-        // build and put 50 messages, exactly one message per CommitLog file.
-        int fileCountCommitLog = 50;
-        int messageCount = fileCountCommitLog;
-        buildAndPutMessages(mappedFileSize, messageCount, topic, queueId);
-
-        // shutdown and reInit messageStore to clean commitLog files in disk after put messages.
-        // use assertEquals(fileCountCommitLog, actualFileCountCommitLogInDisk - 1)?
-        MessageStore temp = messageStore;
-        temp.shutdown();
-        messageStore = initMessageStore(mappedFileSize, fileReservedTime, deleteWhen, diskMaxUsedSpaceRatio);
-        temp.destroy();
+        // build and put 55 messages, exactly one message per CommitLog file.
+        buildAndPutMessagesToMessageStore(msgCount);
 
         // undo comment out the code below, if want to debug this case rather than just run it.
         // Thread.sleep(1000 * 60 + 100);
 
-        int actualFileCountCommitLogInDisk = getMappedFileCountIndisk(mappedFileSize, storePathCommitLog);
-        assertEquals(fileCountCommitLog, actualFileCountCommitLogInDisk);
+        MappedFileQueue commitLogQueue = getMappedFileQueueCommitLog();
+        assertEquals(fileCountCommitLog, commitLogQueue.getMappedFiles().size());
 
-        int actualFileCountConsumeQueueInDisk = getMappedFileCountIndisk(mappedFileSizeConsumeQueue, storePathConsumeQueue);
-        int fileCountConsumeQueue = calculateFileCountConsumeQueue(messageCount);
-        assertEquals(fileCountConsumeQueue, actualFileCountConsumeQueueInDisk);
+        int fileCountConsumeQueue = getFileCountConsumeQueue();
+        MappedFileQueue consumeQueue = getMappedFileQueueConsumeQueue();
+        assertEquals(fileCountConsumeQueue, consumeQueue.getMappedFiles().size());
 
-        // Expire 7 files.
-        // 7 message info per consumeQueue mappedFile.
-        // 1 message per CommitLog mappedFile exactly.
-        expireSomeFiles(mappedFileSize, storePathCommitLog, fileReservedTime);
+        int expireFileCount = 15;
+        expireFiles(commitLogQueue, expireFileCount);
 
-        // delete expired CommitLog files due to time up
-        messageStore.new CleanCommitLogService().run();
-        actualFileCountCommitLogInDisk = getMappedFileCountIndisk(mappedFileSize, storePathCommitLog);
-        assertEquals(fileCountCommitLog - 7, actualFileCountCommitLogInDisk);
+        // magic code 10 reference to MappedFileQueue#DELETE_FILES_BATCH_MAX
+        for (int a = 1, fileCount = expireFileCount; a <= (int) Math.ceil((double) expireFileCount / 10); a++, fileCount -= 10) {
+            getCleanCommitLogService().run();
+            getCleanConsumeQueueService().run();
 
-        // delete expired ConsumeQueue files due to time up
-        messageStore.new CleanConsumeQueueService().run();
-        actualFileCountConsumeQueueInDisk = getMappedFileCountIndisk(mappedFileSizeConsumeQueue, storePathConsumeQueue);
-        assertEquals(fileCountConsumeQueue - 1, actualFileCountConsumeQueueInDisk);
+            int expectDeletedCount = fileCount >= 10 ? a * 10 : ((a - 1) * 10 + fileCount);
+            assertEquals(fileCountCommitLog - expectDeletedCount, commitLogQueue.getMappedFiles().size());
+
+            int msgCountPerFile = getMsgCountPerConsumeQueueMappedFile();
+            int expectDeleteCountConsumeQueue = (int) Math.floor((double) expectDeletedCount / msgCountPerFile);
+            assertEquals(fileCountConsumeQueue - expectDeleteCountConsumeQueue, consumeQueue.getMappedFiles().size());
+        }
     }
 
     /**
      * make sure disk space usage is greater than 10%, less than 85%.
      * if disk space usage is greater than 85%, by default, it will trigger the deletion at once.
      *
-     * @see DefaultMessageStoreCleanFilesTest#testDeleteExpiredFilesImmediatelyBySpaceFull()
+     * @see DefaultMessageStoreCleanFilesTest#testDeleteFilesImmediatelyBySpaceFull()
      */
     @Test
     public void testDeleteExpiredFilesBySpaceFull() throws Exception {
-        int mappedFileSize = 128;
-        // the number of hours to keep a log file before deleting it (in hours), default is 72
-        int fileReservedTime = 1;
-        // when to delete,default is at 4 am
         String deleteWhen = "04";
         // the min value of diskMaxUsedSpaceRatio. make sure disk space usage is greater than 10%
         int diskMaxUsedSpaceRatio = 10;
+        messageStore = initMessageStore(deleteWhen, diskMaxUsedSpaceRatio);
 
-        // initialize messageStore
-        messageStore = initMessageStore(mappedFileSize, fileReservedTime, deleteWhen, diskMaxUsedSpaceRatio);
-
-        String topic = "test";
-        int queueId = 0;
-        String rootDir = messageStore.getMessageStoreConfig().getStorePathRootDir();
-        String storePathCommitLog = messageStore.getMessageStoreConfig().getStorePathCommitLog();
-        String storePathConsumeQueue = StorePathConfigHelper.getStorePathConsumeQueue(rootDir) + separator + topic + separator + queueId;
-        int mappedFileSizeConsumeQueue = messageStore.getMessageStoreConfig().getMapedFileSizeConsumeQueue();
-
-        // build and put 50 messages, exactly one message per CommitLog file.
-        int fileCountCommitLog = 50;
-        int messageCount = fileCountCommitLog;
-        buildAndPutMessages(mappedFileSize, messageCount, topic, queueId);
-
-        // shutdown and reInit messageStore to clean commitLog files in disk after put messages.
-        // use assertEquals(fileCountCommitLog, actualFileCountCommitLogInDisk - 1)?
-        MessageStore temp = messageStore;
-        temp.shutdown();
-        messageStore = initMessageStore(mappedFileSize, fileReservedTime, deleteWhen, diskMaxUsedSpaceRatio);
-        temp.destroy();
+        // build and put 55 messages, exactly one message per CommitLog file.
+        buildAndPutMessagesToMessageStore(msgCount);
 
         // undo comment out the code below, if want to debug this case rather than just run it.
         // Thread.sleep(1000 * 60 + 100);
 
-        int actualFileCountCommitLogInDisk = getMappedFileCountIndisk(mappedFileSize, storePathCommitLog);
-        assertEquals(fileCountCommitLog, actualFileCountCommitLogInDisk);
+        MappedFileQueue commitLogQueue = getMappedFileQueueCommitLog();
+        assertEquals(fileCountCommitLog, commitLogQueue.getMappedFiles().size());
 
-        int actualFileCountConsumeQueueInDisk = getMappedFileCountIndisk(mappedFileSizeConsumeQueue, storePathConsumeQueue);
-        int fileCountConsumeQueue = calculateFileCountConsumeQueue(messageCount);
-        assertEquals(fileCountConsumeQueue, actualFileCountConsumeQueueInDisk);
+        int fileCountConsumeQueue = getFileCountConsumeQueue();
+        MappedFileQueue consumeQueue = getMappedFileQueueConsumeQueue();
+        assertEquals(fileCountConsumeQueue, consumeQueue.getMappedFiles().size());
 
-        // Expire 7 files.
-        // 7 message info per consumeQueue mappedFile.
-        // 1 message per CommitLog mappedFile exactly.
-        expireSomeFiles(mappedFileSize, storePathCommitLog, fileReservedTime);
+        int expireFileCount = 15;
+        expireFiles(commitLogQueue, expireFileCount);
 
-        // delete expired CommitLog files due to space full
-        messageStore.new CleanCommitLogService().run();
-        actualFileCountCommitLogInDisk = getMappedFileCountIndisk(mappedFileSize, storePathCommitLog);
-        assertEquals(fileCountCommitLog - 7, actualFileCountCommitLogInDisk);
+        // magic code 10 reference to MappedFileQueue#DELETE_FILES_BATCH_MAX
+        for (int a = 1, fileCount = expireFileCount; a <= (int) Math.ceil((double) expireFileCount / 10); a++, fileCount -= 10) {
+            getCleanCommitLogService().run();
+            getCleanConsumeQueueService().run();
 
-        // delete expired ConsumeQueue files due to space full
-        messageStore.new CleanConsumeQueueService().run();
-        actualFileCountConsumeQueueInDisk = getMappedFileCountIndisk(mappedFileSizeConsumeQueue, storePathConsumeQueue);
-        assertEquals(fileCountConsumeQueue - 1, actualFileCountConsumeQueueInDisk);
+            int expectDeletedCount = fileCount >= 10 ? a * 10 : ((a - 1) * 10 + fileCount);
+            assertEquals(fileCountCommitLog - expectDeletedCount, commitLogQueue.getMappedFiles().size());
+
+            int msgCountPerFile = getMsgCountPerConsumeQueueMappedFile();
+            int expectDeleteCountConsumeQueue = (int) Math.floor((double) expectDeletedCount / msgCountPerFile);
+            assertEquals(fileCountConsumeQueue - expectDeleteCountConsumeQueue, consumeQueue.getMappedFiles().size());
+        }
     }
 
 
@@ -169,63 +133,43 @@ public class DefaultMessageStoreCleanFilesTest {
      * make sure disk space usage is greater than 10%
      */
     @Test
-    public void testDeleteExpiredFilesImmediatelyBySpaceFull() throws Exception {
-        int mappedFileSize = 128;
-        // the number of hours to keep a log file before deleting it (in hours), default is 72
-        int fileReservedTime = 1;
-        // when to delete,default is at 4 am
+    public void testDeleteFilesImmediatelyBySpaceFull() throws Exception {
         String deleteWhen = "04";
         // the min value of diskMaxUsedSpaceRatio. make sure disk space usage is greater than 10%
         int diskMaxUsedSpaceRatio = 10;
 
-        // initialize messageStore
-        messageStore = initMessageStore(mappedFileSize, fileReservedTime, deleteWhen, diskMaxUsedSpaceRatio);
+        messageStore = initMessageStore(deleteWhen, diskMaxUsedSpaceRatio);
 
-        String topic = "test";
-        int queueId = 0;
-        String rootDir = messageStore.getMessageStoreConfig().getStorePathRootDir();
-        String storePathCommitLog = messageStore.getMessageStoreConfig().getStorePathCommitLog();
-        String storePathConsumeQueue = StorePathConfigHelper.getStorePathConsumeQueue(rootDir) + separator + topic + separator + queueId;
-        int mappedFileSizeConsumeQueue = messageStore.getMessageStoreConfig().getMapedFileSizeConsumeQueue();
+        // build and put 55 messages, exactly one message per CommitLog file.
+        buildAndPutMessagesToMessageStore(msgCount);
 
-        // build and put 50 messages, exactly one message per CommitLog file.
-        int fileCountCommitLog = 50;
-        int messageCount = fileCountCommitLog;
-        buildAndPutMessages(mappedFileSize, messageCount, topic, queueId);
+        // undo comment out the code below, if want to debug this case rather than just run it.
+        // Thread.sleep(1000 * 60 + 100);
 
-        // shutdown and reInit messageStore to clean commitLog files in disk after put messages.
-        // use assertEquals(fileCountCommitLog, actualFileCountCommitLogInDisk - 1)?
-        MessageStore temp = messageStore;
-        temp.shutdown();
-        messageStore = initMessageStore(mappedFileSize, fileReservedTime, deleteWhen, diskMaxUsedSpaceRatio);
-        temp.destroy();
+        MappedFileQueue commitLogQueue = getMappedFileQueueCommitLog();
+        assertEquals(fileCountCommitLog, commitLogQueue.getMappedFiles().size());
 
-        // if want to debug this case, please suspend at line 1217 in DefaultMessageStore.java in thread level
-        // Thread.sleep(1000 * 60 + 100); // does not work here.
+        int fileCountConsumeQueue = getFileCountConsumeQueue();
+        MappedFileQueue consumeQueue = getMappedFileQueueConsumeQueue();
+        assertEquals(fileCountConsumeQueue, consumeQueue.getMappedFiles().size());
 
-        int actualFileCountCommitLogInDisk = getMappedFileCountIndisk(mappedFileSize, storePathCommitLog);
-        assertEquals(fileCountCommitLog, actualFileCountCommitLogInDisk);
-
-        int actualFileCountConsumeQueueInDisk = getMappedFileCountIndisk(mappedFileSizeConsumeQueue, storePathConsumeQueue);
-        int fileCountConsumeQueue = calculateFileCountConsumeQueue(messageCount);
-        assertEquals(fileCountConsumeQueue, actualFileCountConsumeQueueInDisk);
-
-        // Expire 7 files.
-        // 7 message info per consumeQueue mappedFile.
-        // 1 message per CommitLog mappedFile exactly.
         // In this case, there is no need to expire the files.
-        // expireSomeFiles(mappedFileSize, storePath, fileReservedTime);
+        // int expireFileCount = 15;
+        // expireFiles(commitLogQueue, expireFileCount);
 
-        // delete expired  CommitLog files immediately due to space full
-        messageStore.new CleanCommitLogService().run();
-        actualFileCountCommitLogInDisk = getMappedFileCountIndisk(mappedFileSize, storePathCommitLog);
-        // use (fileCountCommitLog - 10) because of MappedFileQueue.DELETE_FILES_BATCH_MAX equals to 10
-        assertEquals(fileCountCommitLog - 10, actualFileCountCommitLogInDisk);
+        // magic code 10 reference to MappedFileQueue#DELETE_FILES_BATCH_MAX
+        for (int a = 1, fileCount = fileCountCommitLog;
+             a <= (int) Math.ceil((double) fileCountCommitLog / 10) && fileCount >= 10;
+             a++, fileCount -= 10) {
+            getCleanCommitLogService().run();
+            getCleanConsumeQueueService().run();
 
-        // delete expired ConsumeQueue files  immediately due to space full
-        messageStore.new CleanConsumeQueueService().run();
-        actualFileCountConsumeQueueInDisk = getMappedFileCountIndisk(mappedFileSizeConsumeQueue, storePathConsumeQueue);
-        assertEquals(fileCountConsumeQueue - 1, actualFileCountConsumeQueueInDisk);
+            assertEquals(fileCountCommitLog - 10 * a, commitLogQueue.getMappedFiles().size());
+
+            int msgCountPerFile = getMsgCountPerConsumeQueueMappedFile();
+            int expectDeleteCountConsumeQueue = (int) Math.floor((double) (a * 10) / msgCountPerFile);
+            assertEquals(fileCountConsumeQueue - expectDeleteCountConsumeQueue, consumeQueue.getMappedFiles().size());
+        }
     }
 
     /**
@@ -234,85 +178,108 @@ public class DefaultMessageStoreCleanFilesTest {
      */
     @Test
     public void testDeleteExpiredFilesManually() throws Exception {
-        int mappedFileSize = 128;
-        // the number of hours to keep a log file before deleting it (in hours), default is 72
-        int fileReservedTime = 1;
-        // when to delete,default is at 4 am
         String deleteWhen = "04";
         // the max value of diskMaxUsedSpaceRatio
         int diskMaxUsedSpaceRatio = 95;
+        messageStore = initMessageStore(deleteWhen, diskMaxUsedSpaceRatio);
+        messageStore.executeDeleteFilesManually();
 
-        // initialize messageStore
-        messageStore = initMessageStore(mappedFileSize, fileReservedTime, deleteWhen, diskMaxUsedSpaceRatio);
-
-        String topic = "test";
-        int queueId = 0;
-        String rootDir = messageStore.getMessageStoreConfig().getStorePathRootDir();
-        String storePathCommitLog = messageStore.getMessageStoreConfig().getStorePathCommitLog();
-        String storePathConsumeQueue = StorePathConfigHelper.getStorePathConsumeQueue(rootDir) + separator + topic + separator + queueId;
-        int mappedFileSizeConsumeQueue = messageStore.getMessageStoreConfig().getMapedFileSizeConsumeQueue();
-
-        // build and put 50 messages, exactly one message per CommitLog file.
-        int fileCountCommitLog = 50;
-        int messageCount = fileCountCommitLog;
-        buildAndPutMessages(mappedFileSize, messageCount, topic, queueId);
-
-        // shutdown and reInit messageStore to clean commitLog files in disk after put messages.
-        // use assertEquals(fileCountCommitLog, actualFileCountCommitLogInDisk - 1)?
-        MessageStore temp = messageStore;
-        temp.shutdown();
-        messageStore = initMessageStore(mappedFileSize, fileReservedTime, deleteWhen, diskMaxUsedSpaceRatio);
-        temp.destroy();
+        // build and put 55 messages, exactly one message per CommitLog file.
+        buildAndPutMessagesToMessageStore(msgCount);
 
         // undo comment out the code below, if want to debug this case rather than just run it.
         // Thread.sleep(1000 * 60 + 100);
 
-        int actualFileCountCommitLogInDisk = getMappedFileCountIndisk(mappedFileSize, storePathCommitLog);
-        assertEquals(fileCountCommitLog, actualFileCountCommitLogInDisk);
+        MappedFileQueue commitLogQueue = getMappedFileQueueCommitLog();
+        assertEquals(fileCountCommitLog, commitLogQueue.getMappedFiles().size());
 
-        int actualFileCountConsumeQueueInDisk = getMappedFileCountIndisk(mappedFileSizeConsumeQueue, storePathConsumeQueue);
-        int fileCountConsumeQueue = calculateFileCountConsumeQueue(messageCount);
-        assertEquals(fileCountConsumeQueue, actualFileCountConsumeQueueInDisk);
+        int fileCountConsumeQueue = getFileCountConsumeQueue();
+        MappedFileQueue consumeQueue = getMappedFileQueueConsumeQueue();
+        assertEquals(fileCountConsumeQueue, consumeQueue.getMappedFiles().size());
 
-        // Expire 7 files.
-        // 7 message info per consumeQueue mappedFile.
-        // 1 message per CommitLog mappedFile exactly.
-        expireSomeFiles(mappedFileSize, storePathCommitLog, fileReservedTime);
+        int expireFileCount = 15;
+        expireFiles(commitLogQueue, expireFileCount);
 
-        // Manually delete expired CommitLog files
-        DefaultMessageStore.CleanCommitLogService cleanCommitLogService = messageStore.new CleanCommitLogService();
-        // messageStore.executeDeleteFilesManually(); // does not take effect here
-        cleanCommitLogService.setManualDeleteFileSeveralTimes(1);
-        cleanCommitLogService.run();
-        actualFileCountCommitLogInDisk = getMappedFileCountIndisk(mappedFileSize, storePathCommitLog);
-        assertEquals(fileCountCommitLog - 7, actualFileCountCommitLogInDisk);
+        // magic code 10 reference to MappedFileQueue#DELETE_FILES_BATCH_MAX
+        for (int a = 1, fileCount = expireFileCount; a <= (int) Math.ceil((double) expireFileCount / 10); a++, fileCount -= 10) {
+            getCleanCommitLogService().run();
+            getCleanConsumeQueueService().run();
 
-        // Manually delete expired ConsumeQueue files
-        messageStore.new CleanConsumeQueueService().run();
-        actualFileCountConsumeQueueInDisk = getMappedFileCountIndisk(mappedFileSizeConsumeQueue, storePathConsumeQueue);
-        assertEquals(fileCountConsumeQueue - 1, actualFileCountConsumeQueueInDisk);
+            int expectDeletedCount = fileCount >= 10 ? a * 10 : ((a - 1) * 10 + fileCount);
+            assertEquals(fileCountCommitLog - expectDeletedCount, commitLogQueue.getMappedFiles().size());
+
+            int msgCountPerFile = getMsgCountPerConsumeQueueMappedFile();
+            int expectDeleteCountConsumeQueue = (int) Math.floor((double) expectDeletedCount / msgCountPerFile);
+            assertEquals(fileCountConsumeQueue - expectDeleteCountConsumeQueue, consumeQueue.getMappedFiles().size());
+        }
     }
 
-    private int calculateFileCountConsumeQueue(int messageCount) {
-        int size = messageStore.getMessageStoreConfig().getMapedFileSizeConsumeQueue();
-        int eachFileContain = size / CQ_STORE_UNIT_SIZE;
-        double fileCount = (double) messageCount / eachFileContain;
+    private DefaultMessageStore.CleanCommitLogService getCleanCommitLogService()
+            throws Exception {
+        Field serviceField = messageStore.getClass().getDeclaredField("cleanCommitLogService");
+        serviceField.setAccessible(true);
+        DefaultMessageStore.CleanCommitLogService cleanCommitLogService =
+                (DefaultMessageStore.CleanCommitLogService) serviceField.get(messageStore);
+        serviceField.setAccessible(false);
+        return cleanCommitLogService;
+    }
+
+    private DefaultMessageStore.CleanConsumeQueueService getCleanConsumeQueueService()
+            throws Exception {
+        Field serviceField = messageStore.getClass().getDeclaredField("cleanConsumeQueueService");
+        serviceField.setAccessible(true);
+        DefaultMessageStore.CleanConsumeQueueService cleanConsumeQueueService =
+                (DefaultMessageStore.CleanConsumeQueueService) serviceField.get(messageStore);
+        serviceField.setAccessible(false);
+        return cleanConsumeQueueService;
+    }
+
+    private MappedFileQueue getMappedFileQueueConsumeQueue()
+            throws Exception {
+        ConsumeQueue consumeQueue = messageStore.getConsumeQueueTable().get(topic).get(queueId);
+        Field queueField = consumeQueue.getClass().getDeclaredField("mappedFileQueue");
+        queueField.setAccessible(true);
+        MappedFileQueue fileQueue = (MappedFileQueue) queueField.get(consumeQueue);
+        queueField.setAccessible(false);
+        return fileQueue;
+    }
+
+    private MappedFileQueue getMappedFileQueueCommitLog() throws Exception {
+        CommitLog commitLog = messageStore.getCommitLog();
+        Field queueField = commitLog.getClass().getDeclaredField("mappedFileQueue");
+        queueField.setAccessible(true);
+        MappedFileQueue fileQueue = (MappedFileQueue) queueField.get(commitLog);
+        queueField.setAccessible(false);
+        return fileQueue;
+    }
+
+    private int getFileCountConsumeQueue() {
+        int countPerFile = getMsgCountPerConsumeQueueMappedFile();
+        double fileCount = (double) msgCount / countPerFile;
         return (int) Math.ceil(fileCount);
     }
 
-    private void buildAndPutMessages(int mappedFileSize, int msgCount, String topic, int queueId) throws Exception {
-        // exactly one message per CommitLog file.
-        int msgLen = topic.getBytes(CHARSET_UTF8).length + 4 /*TOTALSIZE*/ + 4 /*MAGICCODE*/ + 4 /*BODYCRC*/
-                + 4 /*QUEUEID*/ + 4 /*FLAG*/ + 8 /*QUEUEOFFSET*/ + 8 /*PHYSICALOFFSET*/ + 4 /*SYSFLAG*/
-                + 8 /*BORNTIMESTAMP*/ + 8 /*BORNHOST*/ + 8 /*STORETIMESTAMP*/ + 8 /*STOREHOSTADDRESS*/
-                + 4 /*RECONSUMETIMES*/ + 8 /*Prepared Transaction Offset*/ + 4 /*messagebodyLength*/
-                + 1 /*topicLength*/ + 2 /*propertiesLength*/;
+    private int getMsgCountPerConsumeQueueMappedFile() {
+        int size = messageStore.getMessageStoreConfig().getMapedFileSizeConsumeQueue();
+        return size / CQ_STORE_UNIT_SIZE;// 7 in this case
+    }
+
+    private void buildAndPutMessagesToMessageStore(int msgCount) throws Exception {
+        int msgLen = topic.getBytes(CHARSET_UTF8).length + 91;
         int commitLogEndFileMinBlankLength = 4 + 4;
         int singleMsgBodyLen = mappedFileSize - msgLen - commitLogEndFileMinBlankLength;
 
         for (int i = 0; i < msgCount; i++) {
-            MessageExtBrokerInner messageExtBrokerInner = buildMessage(singleMsgBodyLen, topic, queueId);
-            PutMessageResult result = messageStore.putMessage(messageExtBrokerInner);
+            MessageExtBrokerInner msg = new MessageExtBrokerInner();
+            msg.setTopic(topic);
+            msg.setBody(new byte[singleMsgBodyLen]);
+            msg.setKeys(String.valueOf(System.currentTimeMillis()));
+            msg.setQueueId(queueId);
+            msg.setSysFlag(0);
+            msg.setBornTimestamp(System.currentTimeMillis());
+            msg.setStoreHost(storeHost);
+            msg.setBornHost(bornHost);
+            PutMessageResult result = messageStore.putMessage(msg);
             assertTrue(result != null && result.isOk());
         }
 
@@ -320,33 +287,18 @@ public class DefaultMessageStoreCleanFilesTest {
         Thread.sleep(100);
     }
 
-    private void expireSomeFiles(int mappedFileSize, String storePath, int fileReservedTime) {
-        MappedFileQueue tempQueue = new MappedFileQueue(storePath, mappedFileSize, null);
-        tempQueue.load();
-
-        for (int i = 0; i < tempQueue.getMappedFiles().size(); i++) {
-            MappedFile mappedFile = tempQueue.getMappedFiles().get(i);
+    private void expireFiles(MappedFileQueue commitLogQueue, int expireCount) {
+        for (int i = 0; i < commitLogQueue.getMappedFiles().size(); i++) {
+            MappedFile mappedFile = commitLogQueue.getMappedFiles().get(i);
             int reservedTime = fileReservedTime * 60 * 60 * 1000;
-            if (i < 7) {
+            if (i < expireCount) {
                 boolean modified = mappedFile.getFile().setLastModified(System.currentTimeMillis() - reservedTime * 2);
                 assertTrue(modified);
             }
         }
-
-        tempQueue.shutdown(1000);
-        tempQueue.destroy();
     }
 
-    private int getMappedFileCountIndisk(int mappedFileSize, String storePath) {
-        MappedFileQueue tempQueue = new MappedFileQueue(storePath, mappedFileSize, null);
-        tempQueue.load();
-        int size = tempQueue.getMappedFiles().size();
-        tempQueue.shutdown(1000);
-        tempQueue.destroy();
-        return size;
-    }
-
-    private DefaultMessageStore initMessageStore(int mappedFileSize, int fileReservedTime, String deleteWhen, int diskMaxUsedSpaceRatio) throws Exception {
+    private DefaultMessageStore initMessageStore(String deleteWhen, int diskMaxUsedSpaceRatio) throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMapedFileSizeCommitLog(mappedFileSize);
         messageStoreConfig.setMapedFileSizeConsumeQueue(mappedFileSize);
@@ -363,24 +315,12 @@ public class DefaultMessageStoreCleanFilesTest {
         messageStoreConfig.setDeleteWhen(deleteWhen);
         messageStoreConfig.setDiskMaxUsedSpaceRatio(diskMaxUsedSpaceRatio);
 
-        DefaultMessageStore store = new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("test"), new MyMessageArrivingListener(), new BrokerConfig());
+        DefaultMessageStore store = new DefaultMessageStore(messageStoreConfig,
+                new BrokerStatsManager("test"), new MyMessageArrivingListener(), new BrokerConfig());
 
         assertTrue(store.load());
         store.start();
         return store;
-    }
-
-    private MessageExtBrokerInner buildMessage(int singleMsgByte, String topic, int queueId) {
-        MessageExtBrokerInner msg = new MessageExtBrokerInner();
-        msg.setTopic(topic);
-        msg.setBody(new byte[singleMsgByte]);
-        msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(queueId);
-        msg.setSysFlag(0);
-        msg.setBornTimestamp(System.currentTimeMillis());
-        msg.setStoreHost(storeHost);
-        msg.setBornHost(bornHost);
-        return msg;
     }
 
     private class MyMessageArrivingListener implements MessageArrivingListener {
@@ -399,5 +339,4 @@ public class DefaultMessageStoreCleanFilesTest {
         File file = new File(messageStoreConfig.getStorePathRootDir());
         UtilAll.deleteFile(file);
     }
-
 }
