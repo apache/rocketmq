@@ -28,9 +28,7 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class NettyChannelImpl implements RemotingChannel {
-    public static final String ROCKETMQ_REMOTING = "RocketmqRemoting";
-
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(ROCKETMQ_REMOTING);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
     private final Channel channel;
 

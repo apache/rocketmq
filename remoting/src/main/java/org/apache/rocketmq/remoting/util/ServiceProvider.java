@@ -32,14 +32,6 @@ public class ServiceProvider {
      */
     private static ClassLoader thisClassLoader;
 
-    /**
-     * JDK1.3+ <a href= "http://java.sun.com/j2se/1.3/docs/guide/jar/jar.html#Service%20Provider" > 'Service Provider'
-     * specification</a>.
-     */
-    public static final String TRANSACTION_SERVICE_ID = "META-INF/service/org.apache.rocketmq.broker.transaction.TransactionalMessageService";
-
-    public static final String TRANSACTION_LISTENER_ID = "META-INF/service/org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener";
-
     static {
         thisClassLoader = getClassLoader(ServiceProvider.class);
     }
