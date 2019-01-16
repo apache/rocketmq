@@ -6,7 +6,7 @@
 
 在基本样例中我们提供如下的功能场景：
 
-* 使用RocketMQ发送三种类型的消息： 同步消息，异步消息和单向消息。其中前两种消息是可靠的，因为会有发送是否成功的应答。
+* 使用RocketMQ发送三种类型的消息：同步消息，异步消息和单向消息。其中前两种消息是可靠的，因为会有发送是否成功的应答。
 * 使用RocketMQ来消费接收到的消息。
 
 ### 1、加入依赖：
@@ -41,7 +41,7 @@ public class SyncProducer {
         	// 创建消息，并指定Topic，Tag和消息体
         	Message msg = new Message("TopicTest" /* Topic */,
         	"TagA" /* Tag */,
-            ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
+        	("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
         	);
         	// 发送消息到一个Broker
             SendResult sendResult = producer.send(msg);
@@ -115,7 +115,7 @@ public class OnewayProducer {
                 ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
         	);
         	// 发送单向消息，没有任何返回结果
-            producer.sendOneway(msg);
+        	producer.sendOneway(msg);
  
     	}
     	// 如果不再发送消息，关闭Producer实例。
@@ -798,8 +798,8 @@ log4j.appender.mq.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-4r [%t] (%F
 </appender>  
 ```
 
-Open Messaging样例
---------------------
+OpenMessaging样例
+---------------
 
  [OpenMessaging](https://www.google.com/url?q=http://openmessaging.cloud/&sa=D&ust=1546524111089000)旨在建立消息和流处理规范，以为金融、电子商务、物联网和大数据领域提供通用框架及工业级指导方案。在分布式异构环境中，设计原则是面向云、简单、灵活和独立于语言。符合这些规范将帮助企业方便的开发跨平台和操作系统的异构消息传递应用程序。提供了openmessaging-api 0.3.0-alpha的部分实现，下面的示例演示如何基于OpenMessaging访问RocketMQ。
 
