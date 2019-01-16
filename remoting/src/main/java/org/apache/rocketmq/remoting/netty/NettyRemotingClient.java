@@ -579,7 +579,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         if (cw != null && cw.isOK()) {
             return cw.isWritable();
         }
-        return true;
+        return false;
     }
 
     @Override
