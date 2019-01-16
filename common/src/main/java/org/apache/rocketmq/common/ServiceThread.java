@@ -105,6 +105,9 @@ public abstract class ServiceThread implements Runnable {
 
     protected void waitForRunning(long interval) {
         if (hasNotified.compareAndSet(true, false)) {
+            /**
+             * 同步刷盘时会调用swapRequests
+             */
             this.onWaitEnd();
             return;
         }

@@ -70,6 +70,9 @@ public class MappedFile extends ReferenceResource {
      */
     private final AtomicInteger flushedPosition = new AtomicInteger(0);
     protected int fileSize;
+    /**
+     * 对应堆外内存池   TransientStorePool
+     */
     protected FileChannel fileChannel;
     /**
      * Message will put to here first, and then reput to FileChannel if writeBuffer is not null.
@@ -389,6 +392,11 @@ public class MappedFile extends ReferenceResource {
         return this.getFlushedPosition();
     }
 
+    /**
+     * 从堆外内存池中将数据刷到内存fileChannel
+     * @param commitLeastPages
+     * @return
+     */
     public int commit(final int commitLeastPages) {
         if (writeBuffer == null) {
             //no need to commit data to file channel, so just regard wrotePosition as committedPosition.
@@ -400,7 +408,7 @@ public class MappedFile extends ReferenceResource {
         if (this.isAbleToCommit(commitLeastPages)) {
             if (this.hold()) {
                 /**
-                 * commit
+                 * commit  从堆外内存池中将数据刷到内存fileChannel
                  */
                 commit0(commitLeastPages);
                 this.release();
@@ -418,6 +426,10 @@ public class MappedFile extends ReferenceResource {
         return this.committedPosition.get();
     }
 
+    /**
+     * 从堆外内存池中将数据刷到内存fileChannel
+     * @param commitLeastPages
+     */
     protected void commit0(final int commitLeastPages) {
         int writePos = this.wrotePosition.get();
         int lastCommittedPosition = this.committedPosition.get();

@@ -549,6 +549,8 @@ public class MappedFileQueue {
             long tmpTimeStamp = mappedFile.getStoreTimestamp();
             /**
              * 刷盘
+             * 刷盘
+             * 刷盘
              * offset为在当前mappedFile刷盘得位置
              */
             int offset = mappedFile.flush(flushLeastPages);
@@ -582,7 +584,7 @@ public class MappedFileQueue {
         MappedFile mappedFile = this.findMappedFileByOffset(this.committedWhere, this.committedWhere == 0);
         if (mappedFile != null) {
             /**
-             * commit
+             * commit  从堆外内存池中将数据刷到内存fileChannel
              */
             int offset = mappedFile.commit(commitLeastPages);
             long where = mappedFile.getFileFromOffset() + offset;

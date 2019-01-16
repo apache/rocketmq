@@ -904,7 +904,7 @@ public class BrokerController {
         }
 
         /**
-         * 消息应答？？？？
+         * 检查挂起的请求  如果有新消息则返回给consumer
          */
         if (this.pullRequestHoldService != null) {
             this.pullRequestHoldService.start();
