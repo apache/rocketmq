@@ -423,12 +423,14 @@ public class RouteInfoManager {
             if ((last + BROKER_CHANNEL_EXPIRED_TIME) < System.currentTimeMillis()) {
                 RemotingUtil.closeChannel(next.getValue().getChannel());
                 try {
-                    this.lock.writeLock().lockInterruptibly();
-                    it.remove();
-                } catch (Exception e){
-                    log.error("Remove Not Active Broker Exception", e);
-                } finally {
-                    this.lock.writeLock().unlock();
+                    try {
+                        this.lock.writeLock().lockInterruptibly();
+                        it.remove();
+                    } finally {
+                        this.lock.writeLock().unlock();
+                    }
+                } catch (Exception e) {
+                    log.error("pickupTopicRouteData Exception", e);
                 }
                 log.warn("The broker channel expired, {} {}ms", next.getKey(), BROKER_CHANNEL_EXPIRED_TIME);
                 this.onChannelDestroy(next.getKey(), next.getValue().getChannel());
