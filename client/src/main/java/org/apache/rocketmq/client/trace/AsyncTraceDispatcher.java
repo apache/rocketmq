@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.client.trace;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
@@ -33,20 +32,22 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.remoting.RPCHook;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.HashMap;
-import java.util.UUID;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.ArrayList;
-import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.rocketmq.remoting.RPCHook;
+import java.util.UUID;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.HashSet;
+
 
 import static org.apache.rocketmq.client.trace.TraceConstants.TRACE_INSTANCE_NAME;
 
@@ -70,7 +71,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
     private String dispatcherId = UUID.randomUUID().toString();
     private String traceTopicName;
-    private static AtomicBoolean isStarted = new AtomicBoolean(false);
+    private AtomicBoolean isStarted = new AtomicBoolean(false);
 
 
     public AsyncTraceDispatcher(String traceTopicName, RPCHook rpcHook) throws MQClientException {
@@ -87,12 +88,12 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             this.traceTopicName = MixAll.RMQ_SYS_TRACE_TOPIC;
         }
         this.traceExecuter = new ThreadPoolExecutor(//
-            10, //
-            20, //
-            1000 * 60, //
-            TimeUnit.MILLISECONDS, //
-            this.appenderQueue, //
-            new ThreadFactoryImpl("MQTraceSendThread_"));
+                10, //
+                20, //
+                1000 * 60, //
+                TimeUnit.MILLISECONDS, //
+                this.appenderQueue, //
+                new ThreadFactoryImpl("MQTraceSendThread_"));
         traceProducer = getAndCreateTraceProducer(rpcHook);
     }
 
@@ -103,11 +104,11 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     public void setTraceTopicName(String traceTopicName) {
         this.traceTopicName = traceTopicName;
     }
-    
+
     public DefaultMQProducer getTraceProducer() {
         return traceProducer;
     }
-    
+
     public DefaultMQProducerImpl getHostProducer() {
         return hostProducer;
     }
@@ -127,6 +128,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     public void start(String nameSrvAddr) throws MQClientException {
         if (isStarted.compareAndSet(false, true)) {
             traceProducer.setNamesrvAddr(nameSrvAddr);
+            traceProducer.setInstanceName(TRACE_INSTANCE_NAME + "_" + nameSrvAddr);
             traceProducer.start();
         }
         this.worker = new Thread(new AsyncRunnable(), "MQ-AsyncTraceDispatcher-Thread-" + dispatcherId);
@@ -141,7 +143,6 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             traceProducerInstance = new DefaultMQProducer(rpcHook);
             traceProducerInstance.setProducerGroup(TraceConstants.GROUP_NAME);
             traceProducerInstance.setSendMsgTimeout(5000);
-            traceProducerInstance.setInstanceName(TRACE_INSTANCE_NAME);
             traceProducerInstance.setVipChannelEnabled(false);
             // The max size of message is 128K
             traceProducerInstance.setMaxMessageSize(maxMsgSize - 10 * 1000);
@@ -256,7 +257,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         public void run() {
             sendTraceData(contextList);
         }
-        
+
         public void sendTraceData(List<TraceContext> contextList) {
             Map<String, List<TraceTransferBean>> transBeanMap = new HashMap<String, List<TraceTransferBean>>();
             for (TraceContext context : contextList) {
