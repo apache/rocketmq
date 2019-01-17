@@ -17,12 +17,6 @@
 
 package org.apache.rocketmq.client.trace;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -52,11 +46,14 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.nullable;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -66,11 +63,6 @@ public class DefaultMQProducerWithTraceTest {
     private MQClientInstance mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(new ClientConfig());
     @Mock
     private MQClientAPIImpl mQClientAPIImpl;
-
-    @Spy
-    private MQClientInstance mQClientTraceFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(new ClientConfig());
-    @Mock
-    private MQClientAPIImpl mQClientTraceAPIImpl;
 
     private AsyncTraceDispatcher asyncTraceDispatcher;
 
@@ -89,56 +81,52 @@ public class DefaultMQProducerWithTraceTest {
     @Before
     public void init() throws Exception {
 
-        customTraceTopicproducer = new DefaultMQProducer(producerGroupTemp,false, customerTraceTopic);
-        normalProducer = new DefaultMQProducer(producerGroupTemp,false,"");
-        producer = new DefaultMQProducer(producerGroupTemp,true,"");
+        customTraceTopicproducer = new DefaultMQProducer(producerGroupTemp, false, customerTraceTopic);
+        normalProducer = new DefaultMQProducer(producerGroupTemp, false, "");
+        producer = new DefaultMQProducer(producerGroupTemp, true, "");
         producer.setNamesrvAddr("127.0.0.1:9876");
         normalProducer.setNamesrvAddr("127.0.0.1:9877");
         customTraceTopicproducer.setNamesrvAddr("127.0.0.1:9878");
-        message = new Message(topic, new byte[] {'a', 'b' ,'c'});
-        asyncTraceDispatcher = (AsyncTraceDispatcher)producer.getTraceDispatcher();
+        message = new Message(topic, new byte[]{'a', 'b', 'c'});
+        asyncTraceDispatcher = (AsyncTraceDispatcher) producer.getTraceDispatcher();
         asyncTraceDispatcher.setTraceTopicName(customerTraceTopic);
         asyncTraceDispatcher.getHostProducer();
         asyncTraceDispatcher.getHostConsumer();
         traceProducer = asyncTraceDispatcher.getTraceProducer();
 
         producer.start();
-        
+
         Field field = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
         field.setAccessible(true);
         field.set(producer.getDefaultMQProducerImpl(), mQClientFactory);
 
         Field fieldTrace = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
         fieldTrace.setAccessible(true);
-        fieldTrace.set(traceProducer.getDefaultMQProducerImpl(), mQClientTraceFactory);
+        fieldTrace.set(traceProducer.getDefaultMQProducerImpl(), mQClientFactory);
 
         field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
         field.setAccessible(true);
         field.set(mQClientFactory, mQClientAPIImpl);
 
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
-        field.setAccessible(true);
-        field.set(mQClientTraceFactory, mQClientTraceAPIImpl);
 
         producer.getDefaultMQProducerImpl().getmQClientFactory().registerProducer(producerGroupTemp, producer.getDefaultMQProducerImpl());
 
         when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
-            nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class))).thenCallRealMethod();
+                nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class))).thenCallRealMethod();
         when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
-            nullable(SendCallback.class), nullable(TopicPublishInfo.class), nullable(MQClientInstance.class), anyInt(), nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class)))
-            .thenReturn(createSendResult(SendStatus.SEND_OK));
-        
+                nullable(SendCallback.class), nullable(TopicPublishInfo.class), nullable(MQClientInstance.class), anyInt(), nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class)))
+                .thenReturn(createSendResult(SendStatus.SEND_OK));
+
     }
 
     @Test
     public void testSendMessageSync_WithTrace_Success() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
         traceProducer.getDefaultMQProducerImpl().getmQClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
-        when(mQClientTraceAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTraceTopicRoute());
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         try {
             producer.send(message);
-        }catch (MQClientException e){
+        } catch (MQClientException e) {
         }
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
 
@@ -147,11 +135,10 @@ public class DefaultMQProducerWithTraceTest {
     @Test
     public void testSendMessageSync_WithTrace_NoBrokerSet_Exception() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
-        when(mQClientTraceAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTraceTopicRoute());
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         try {
             producer.send(message);
-        }catch (MQClientException e){
+        } catch (MQClientException e) {
         }
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
 
