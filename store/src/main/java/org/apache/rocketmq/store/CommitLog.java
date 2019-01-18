@@ -105,6 +105,9 @@ public class CommitLog {
             this.flushCommitLogService = new FlushRealTimeService();
         }
 
+        /**
+         * 堆外内存
+         */
         this.commitLogService = new CommitRealTimeService();
 
         /**
@@ -141,7 +144,7 @@ public class CommitLog {
         this.flushCommitLogService.start();
 
         /**
-         * CommitRealTimeService   执行commit操作   写入FileChannel
+         * 启动堆外内存    CommitRealTimeService   执行commit操作   写入FileChannel   再FlushRealTimeService刷盘
          */
         if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
             this.commitLogService.start();

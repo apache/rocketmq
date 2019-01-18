@@ -137,19 +137,22 @@ public class DefaultMessageStore implements MessageStore {
         this.scheduleMessageService = new ScheduleMessageService(this);
 
         /**
-         * 初始化 transientStorePool
+         * transientStorePool
          */
         this.transientStorePool = new TransientStorePool(messageStoreConfig);
 
         /**
-         * 是否启用 transientStorePoolEnable
+         * 是否启用 堆外内存  windos没有对应的类库  所以不能在win下执行
          */
         if (messageStoreConfig.isTransientStorePoolEnable()) {
+            /**
+             * 初始化
+             */
             this.transientStorePool.init();
         }
 
         /**
-         * ？？？？
+         *  处理transientStorePool
          */
         this.allocateMappedFileService.start();
 

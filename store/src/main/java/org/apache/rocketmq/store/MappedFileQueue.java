@@ -280,8 +280,9 @@ public class MappedFileQueue {
             MappedFile mappedFile = null;
 
             /**
-             * 每次创建两个   第一个成功后返回  第二个异步创建？？？？？？？？？？？？？？？
+             * 每次创建两个   第一个成功后返回  第二个异步创建
              *
+             * 堆外内存
              */
             if (this.allocateMappedFileService != null) {
                 mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(nextFilePath,

@@ -43,7 +43,7 @@ import sun.nio.ch.DirectBuffer;
 
 public class MappedFile extends ReferenceResource {
     /**
-     * 操作系统内存页  4k    ？？？？？？？？？？？
+     * 操作系统内存页  4k
      */
     public static final int OS_PAGE_SIZE = 1024 * 4;
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -649,14 +649,33 @@ public class MappedFile extends ReferenceResource {
         this.committedPosition.set(pos);
     }
 
+    /**
+     * 文件预热
+     *
+     *  * 第一点，由于仅分配内存并进行mlock系统调用后并不会为程序完全锁定这些内存，因为其中的分页可能是写时复制的。
+     * 因此，就有必要对每个内存页面中写入一个假的值。其中，RocketMQ是在创建并分配MappedFile的过程中，预先写入一些随机值至Mmap映射出的内存空间里。
+     * 第二，调用Mmap进行内存映射后，OS只是建立虚拟内存地址至物理地址的映射表，而实际并没有加载任何文件至内存中。
+     * 程序要访问数据时OS会检查该部分的分页是否已经在内存中，如果不在，则发出一次缺页中断。
+     * 这里，可以想象下1G的CommitLog需要发生多少次缺页中断，才能使得对应的数据才能完全加载至物理内存中（ps：X86的Linux中一个标准页面大小是4KB）？
+     * RocketMQ的做法是，在做Mmap内存映射的同时进行madvise系统调用，
+     * 目的是使OS做一次内存映射后对应的文件数据尽可能多的预加载至内存中，从而达到内存预热的效果。
+     * @param type
+     * @param pages
+     */
     public void warmMappedFile(FlushDiskType type, int pages) {
         long beginTime = System.currentTimeMillis();
         ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
         int flush = 0;
         long time = System.currentTimeMillis();
+        /**
+         * 每4k大小  写入一个0  占位
+         */
         for (int i = 0, j = 0; i < this.fileSize; i += MappedFile.OS_PAGE_SIZE, j++) {
             byteBuffer.put(i, (byte) 0);
             // force flush when flush disk type is sync
+            /**
+             * 同步刷盘时   要及时将数据刷入硬盘
+             */
             if (type == FlushDiskType.SYNC_FLUSH) {
                 if ((i / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE) >= pages) {
                     flush = i;
@@ -664,6 +683,9 @@ public class MappedFile extends ReferenceResource {
                 }
             }
 
+            /**
+             * 每写1000次  睡眠   让出cpu
+             */
             // prevent gc
             if (j % 1000 == 0) {
                 log.info("j={}, costTime={}", j, System.currentTimeMillis() - time);
@@ -677,6 +699,9 @@ public class MappedFile extends ReferenceResource {
         }
 
         // force flush when prepare load finished
+        /**
+         * 预热后   强制刷盘
+         */
         if (type == FlushDiskType.SYNC_FLUSH) {
             log.info("mapped file warm-up done, force to disk, mappedFile={}, costTime={}",
                 this.getFileName(), System.currentTimeMillis() - beginTime);

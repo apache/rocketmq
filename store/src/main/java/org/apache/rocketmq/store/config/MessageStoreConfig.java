@@ -139,8 +139,14 @@ public class MessageStoreConfig {
     private int defaultQueryMaxNum = 32;
 
     @ImportantField
+    /**
+     * 开启堆外内存
+     */
     private boolean transientStorePoolEnable = false;
     private int transientStorePoolSize = 5;
+    /**
+     * 从 transientStorepool中获取 ByteBuffer是否支持快速失败
+     */
     private boolean fastFailIfNoBufferInStorePool = false;
 
     public boolean isDebugLockEnable() {

@@ -48,15 +48,31 @@ public class AllocateMappedFileService extends ServiceThread {
         this.messageStore = messageStore;
     }
 
+    /**
+     * 创建两个文件
+     * @param nextFilePath
+     * @param nextNextFilePath
+     * @param fileSize
+     * @return
+     */
     public MappedFile putRequestAndReturnMappedFile(String nextFilePath, String nextNextFilePath, int fileSize) {
         int canSubmitRequests = 2;
         if (this.messageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+            /**
+             * 从 transientStorepool中获取 ByteBuffer支持快速失败  并且当前为master
+             */
             if (this.messageStore.getMessageStoreConfig().isFastFailIfNoBufferInStorePool()
                 && BrokerRole.SLAVE != this.messageStore.getMessageStoreConfig().getBrokerRole()) { //if broker is slave, don't fast fail even no buffer in pool
+                /**
+                 * 剩余的内存buffer-待处理任务
+                 */
                 canSubmitRequests = this.messageStore.getTransientStorePool().remainBufferNumbs() - this.requestQueue.size();
             }
         }
 
+        /**
+         * 创建下个文件的任务
+         */
         AllocateRequest nextReq = new AllocateRequest(nextFilePath, fileSize);
         boolean nextPutOK = this.requestTable.putIfAbsent(nextFilePath, nextReq) == null;
 
@@ -74,6 +90,9 @@ public class AllocateMappedFileService extends ServiceThread {
             canSubmitRequests--;
         }
 
+        /**
+         * 创建下下个文件的任务
+         */
         AllocateRequest nextNextReq = new AllocateRequest(nextNextFilePath, fileSize);
         boolean nextNextPutOK = this.requestTable.putIfAbsent(nextNextFilePath, nextNextReq) == null;
         if (nextNextPutOK) {
@@ -94,6 +113,9 @@ public class AllocateMappedFileService extends ServiceThread {
             return null;
         }
 
+        /**
+         * 创建下个文件
+         */
         AllocateRequest result = this.requestTable.get(nextFilePath);
         try {
             if (result != null) {
@@ -156,6 +178,7 @@ public class AllocateMappedFileService extends ServiceThread {
         try {
             /**
              * 如果requestQueue没有值则阻塞
+             * 获取第一个任务
              */
             req = this.requestQueue.take();
             AllocateRequest expectedRequest = this.requestTable.get(req.getFilePath());
@@ -164,21 +187,33 @@ public class AllocateMappedFileService extends ServiceThread {
                     + req.getFileSize());
                 return true;
             }
+            /**
+             * requestQueue和requestTable中的对象一致
+             */
             if (expectedRequest != req) {
                 log.warn("never expected here,  maybe cause timeout " + req.getFilePath() + " "
                     + req.getFileSize() + ", req:" + req + ", expectedRequest:" + expectedRequest);
                 return true;
             }
 
+            /**
+             * 创建文件
+             */
             if (req.getMappedFile() == null) {
                 long beginTime = System.currentTimeMillis();
 
                 MappedFile mappedFile;
                 if (messageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
                     try {
+                        /**
+                         * ???????
+                         */
                         mappedFile = ServiceLoader.load(MappedFile.class).iterator().next();
                         mappedFile.init(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool());
                     } catch (RuntimeException e) {
+                        /**
+                         * 默认实现
+                         */
                         log.warn("Use default implementation.");
                         mappedFile = new MappedFile(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool());
                     }
@@ -194,6 +229,16 @@ public class AllocateMappedFileService extends ServiceThread {
                 }
 
                 // pre write mappedFile
+                /**
+                 * 文件预热
+                 * 第一点，由于仅分配内存并进行mlock系统调用后并不会为程序完全锁定这些内存，因为其中的分页可能是写时复制的。
+                 * 因此，就有必要对每个内存页面中写入一个假的值。其中，RocketMQ是在创建并分配MappedFile的过程中，预先写入一些随机值至Mmap映射出的内存空间里。
+                 * 第二，调用Mmap进行内存映射后，OS只是建立虚拟内存地址至物理地址的映射表，而实际并没有加载任何文件至内存中。
+                 * 程序要访问数据时OS会检查该部分的分页是否已经在内存中，如果不在，则发出一次缺页中断。
+                 * 这里，可以想象下1G的CommitLog需要发生多少次缺页中断，才能使得对应的数据才能完全加载至物理内存中（ps：X86的Linux中一个标准页面大小是4KB）？
+                 * RocketMQ的做法是，在做Mmap内存映射的同时进行madvise系统调用，
+                 * 目的是使OS做一次内存映射后对应的文件数据尽可能多的预加载至内存中，从而达到内存预热的效果。
+                 */
                 if (mappedFile.getFileSize() >= this.messageStore.getMessageStoreConfig()
                     .getMapedFileSizeCommitLog()
                     &&
@@ -214,6 +259,9 @@ public class AllocateMappedFileService extends ServiceThread {
             log.warn(this.getServiceName() + " service has exception. ", e);
             this.hasException = true;
             if (null != req) {
+                /**
+                 * 执行失败   放入requestQueue  下次再继续
+                 */
                 requestQueue.offer(req);
                 try {
                     Thread.sleep(1);
@@ -221,6 +269,9 @@ public class AllocateMappedFileService extends ServiceThread {
                 }
             }
         } finally {
+            /**
+             * 唤醒
+             */
             if (req != null && isSuccess)
                 req.getCountDownLatch().countDown();
         }
