@@ -51,7 +51,7 @@ public abstract class ServiceThread implements Runnable {
         synchronized (this) {
             if (!this.hasNotified) {
                 this.hasNotified = true;
-                this.notify();
+                this.notifyAll();
             }
         }
 
@@ -67,6 +67,8 @@ public abstract class ServiceThread implements Runnable {
                 + this.getJointime());
         } catch (InterruptedException e) {
             log.error("Interrupted", e);
+            // clean up state...
+            Thread.currentThread().interrupt();
         }
     }
 
