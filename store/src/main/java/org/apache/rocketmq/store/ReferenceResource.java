@@ -44,13 +44,13 @@ public abstract class ReferenceResource {
         if (this.available) {
             this.available = false;
             this.firstShutdownTimestamp = System.currentTimeMillis();
-            this.release();
-        } else if (this.getRefCount() > 0) {
-            if ((System.currentTimeMillis() - this.firstShutdownTimestamp) >= intervalForcibly) {
-                this.refCount.set(-1000 - this.getRefCount());
-                this.release();
-            }
         }
+
+        if (System.currentTimeMillis() - this.firstShutdownTimestamp >= intervalForcibly) {
+            this.refCount.set(-1000 - this.getRefCount());
+        }
+
+        this.release();
     }
 
     public void release() {

@@ -568,7 +568,7 @@ public class MappedFileQueue {
 
     public void destroy() {
         for (MappedFile mf : this.mappedFiles) {
-            mf.destroy(1000 * 3);
+            mf.destroy(0);
         }
         this.mappedFiles.clear();
         this.flushedWhere = 0;
