@@ -279,13 +279,10 @@ public abstract class NettyRemotingAbstract {
     /**
      * Process response from remote peer to the previous issued requests.
      *
-     * @param remotingChannel channel handler context.
+     * @param remotingChannel remotingChannel.
      * @param cmd response command instance.
      */
     public void processResponseCommand(final RemotingChannel remotingChannel, RemotingCommand cmd) {
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = (NettyChannelHandlerContextImpl) remotingChannel;
-        final ChannelHandlerContext ctx = nettyChannelHandlerContext.getChannelHandlerContext();
-
         final int opaque = cmd.getOpaque();
         final ResponseFuture responseFuture = responseTable.get(opaque);
         if (responseFuture != null) {
@@ -300,6 +297,8 @@ public abstract class NettyRemotingAbstract {
                 responseFuture.release();
             }
         } else {
+            NettyChannelHandlerContextImpl nettyChannelHandlerContext = (NettyChannelHandlerContextImpl) remotingChannel;
+            final ChannelHandlerContext ctx = nettyChannelHandlerContext.getChannelHandlerContext();
             log.warn("receive response, but not matched any request: {}, cmd: {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd);
         }
     }
