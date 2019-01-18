@@ -40,7 +40,6 @@ public class MappedFileQueueTest {
             assertThat(mappedFile.appendMessage(fixedMsg.getBytes())).isTrue();
         }
 
-        mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();
     }
 
@@ -91,7 +90,6 @@ public class MappedFileQueueTest {
         mappedFile = mappedFileQueue.findMappedFileByOffset(1024 * 4 + 100);
         assertThat(mappedFile).isNull();
 
-        mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();
     }
 
@@ -113,7 +111,6 @@ public class MappedFileQueueTest {
         assertThat(mappedFileQueue.findMappedFileByOffset(0, false)).isNull();
         assertThat(mappedFileQueue.findMappedFileByOffset(0, true)).isEqualTo(mappedFile);
 
-        mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();
     }
 
@@ -148,7 +145,6 @@ public class MappedFileQueueTest {
         assertThat(mappedFileQueue.flush(0)).isFalse();
         assertThat(mappedFileQueue.getFlushedWhere()).isEqualTo(1024 * 6);
 
-        mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();
     }
 
@@ -166,7 +162,7 @@ public class MappedFileQueueTest {
         }
 
         assertThat(mappedFileQueue.getMappedMemorySize()).isEqualTo(fixedMsg.length() * 1024);
-        mappedFileQueue.shutdown(1000);
+
         mappedFileQueue.destroy();
     }
 
@@ -198,7 +194,6 @@ public class MappedFileQueueTest {
         first = mappedFileQueue.getFirstMappedFile();
         assertThat(first.getFileFromOffset()).isGreaterThan(0);
 
-        mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();
     }
 
