@@ -19,6 +19,7 @@ package org.apache.rocketmq.remoting;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
@@ -26,25 +27,24 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
-import org.apache.rocketmq.remoting.serialize.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.remoting.transport.rocketmq.NettyRemotingClient;
-import org.apache.rocketmq.remoting.transport.rocketmq.NettyRemotingServer;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.apache.rocketmq.remoting.serialize.LanguageCode;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 
-public class RemotingServerTest {
-    private static RemotingServer remotingServer;
-    private static RemotingClient remotingClient;
+public class RemotingNettyInvokingTest {
 
-    public static RemotingServer createRemotingServer() throws InterruptedException {
-        ServerConfig config = new ServerConfig();
-        RemotingServer remotingServer = new NettyRemotingServer(config);
-        remotingServer.registerProcessor(0, new RequestProcessor() {
+    private RemotingServer remotingServer;
+    private RemotingClient remotingClient;
+    private int defaultRequestCode = 0;
+
+    public RemotingServer createRemotingServer() throws InterruptedException {
+        RemotingServer remotingServer = RemotingServerFactory.getInstance().createRemotingServer().init(new ServerConfig()
+            ,null);
+        remotingServer.registerProcessor(defaultRequestCode, new RequestProcessor() {
             @Override
             public RemotingCommand processRequest(RemotingChannel ctx, RemotingCommand request) {
                 request.setRemark("Hi " + ctx.remoteAddress());
@@ -55,31 +55,25 @@ public class RemotingServerTest {
             public boolean rejectRequest() {
                 return false;
             }
-        }, Executors.newCachedThreadPool());
-
+        }, Executors.newSingleThreadExecutor());
         remotingServer.start();
-
         return remotingServer;
     }
 
-    public static RemotingClient createRemotingClient() {
-        return createRemotingClient(new ClientConfig());
-    }
-
-    public static RemotingClient createRemotingClient(ClientConfig nettyClientConfig) {
-        RemotingClient client = new NettyRemotingClient(nettyClientConfig);
+    public RemotingClient createRemotingClient() {
+        RemotingClient client = RemotingClientFactory.getInstance().createRemotingClient().init(new ClientConfig(), null);
         client.start();
         return client;
     }
 
-    @BeforeClass
-    public static void setup() throws InterruptedException {
+    @Before
+    public void setup() throws InterruptedException {
         remotingServer = createRemotingServer();
         remotingClient = createRemotingClient();
     }
 
-    @AfterClass
-    public static void destroy() {
+    @After
+    public void destroy() {
         remotingClient.shutdown();
         remotingServer.shutdown();
     }
@@ -123,35 +117,34 @@ public class RemotingServerTest {
                 assertThat(responseFuture.getResponseCommand().getExtFields()).hasSize(2);
             }
         });
-        latch.await();
+        latch.await(3000, TimeUnit.SECONDS);
+    }
+
+    class RequestHeader implements CommandCustomHeader {
+        @CFNullable
+        private Integer count;
+
+        @CFNullable
+        private String messageTitle;
+
+        @Override
+        public void checkFields() throws RemotingCommandException {
+        }
+
+        public Integer getCount() {
+            return count;
+        }
+
+        public void setCount(Integer count) {
+            this.count = count;
+        }
+
+        public String getMessageTitle() {
+            return messageTitle;
+        }
+
+        public void setMessageTitle(String messageTitle) {
+            this.messageTitle = messageTitle;
+        }
     }
 }
-
-class RequestHeader implements CommandCustomHeader {
-    @CFNullable
-    private Integer count;
-
-    @CFNullable
-    private String messageTitle;
-
-    @Override
-    public void checkFields() throws RemotingCommandException {
-    }
-
-    public Integer getCount() {
-        return count;
-    }
-
-    public void setCount(Integer count) {
-        this.count = count;
-    }
-
-    public String getMessageTitle() {
-        return messageTitle;
-    }
-
-    public void setMessageTitle(String messageTitle) {
-        this.messageTitle = messageTitle;
-    }
-}
-
