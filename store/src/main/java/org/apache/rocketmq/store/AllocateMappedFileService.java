@@ -71,7 +71,7 @@ public class AllocateMappedFileService extends ServiceThread {
         }
 
         /**
-         * 创建下个文件的任务
+         * 创建下个文件
          */
         AllocateRequest nextReq = new AllocateRequest(nextFilePath, fileSize);
         boolean nextPutOK = this.requestTable.putIfAbsent(nextFilePath, nextReq) == null;
@@ -91,7 +91,7 @@ public class AllocateMappedFileService extends ServiceThread {
         }
 
         /**
-         * 创建下下个文件的任务
+         * 创建下下个文件
          */
         AllocateRequest nextNextReq = new AllocateRequest(nextNextFilePath, fileSize);
         boolean nextNextPutOK = this.requestTable.putIfAbsent(nextNextFilePath, nextNextReq) == null;
@@ -114,7 +114,7 @@ public class AllocateMappedFileService extends ServiceThread {
         }
 
         /**
-         * 创建下个文件
+         * 执行创建下个文件
          */
         AllocateRequest result = this.requestTable.get(nextFilePath);
         try {
@@ -124,6 +124,9 @@ public class AllocateMappedFileService extends ServiceThread {
                     log.warn("create mmap timeout " + result.getFilePath() + " " + result.getFileSize());
                     return null;
                 } else {
+                    /**
+                     * 成功   移除任务   返回堆外内存
+                     */
                     this.requestTable.remove(nextFilePath);
                     return result.getMappedFile();
                 }
@@ -229,20 +232,20 @@ public class AllocateMappedFileService extends ServiceThread {
                 }
 
                 // pre write mappedFile
-                /**
-                 * 文件预热
-                 * 第一点，由于仅分配内存并进行mlock系统调用后并不会为程序完全锁定这些内存，因为其中的分页可能是写时复制的。
-                 * 因此，就有必要对每个内存页面中写入一个假的值。其中，RocketMQ是在创建并分配MappedFile的过程中，预先写入一些随机值至Mmap映射出的内存空间里。
-                 * 第二，调用Mmap进行内存映射后，OS只是建立虚拟内存地址至物理地址的映射表，而实际并没有加载任何文件至内存中。
-                 * 程序要访问数据时OS会检查该部分的分页是否已经在内存中，如果不在，则发出一次缺页中断。
-                 * 这里，可以想象下1G的CommitLog需要发生多少次缺页中断，才能使得对应的数据才能完全加载至物理内存中（ps：X86的Linux中一个标准页面大小是4KB）？
-                 * RocketMQ的做法是，在做Mmap内存映射的同时进行madvise系统调用，
-                 * 目的是使OS做一次内存映射后对应的文件数据尽可能多的预加载至内存中，从而达到内存预热的效果。
-                 */
                 if (mappedFile.getFileSize() >= this.messageStore.getMessageStoreConfig()
                     .getMapedFileSizeCommitLog()
                     &&
                     this.messageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
+                    /**
+                     * 文件预热
+                     * 第一点，由于仅分配内存并进行mlock系统调用后并不会为程序完全锁定这些内存，因为其中的分页可能是写时复制的。
+                     * 因此，就有必要对每个内存页面中写入一个假的值。其中，RocketMQ是在创建并分配MappedFile的过程中，预先写入一些随机值至Mmap映射出的内存空间里。
+                     * 第二，调用Mmap进行内存映射后，OS只是建立虚拟内存地址至物理地址的映射表，而实际并没有加载任何文件至内存中。
+                     * 程序要访问数据时OS会检查该部分的分页是否已经在内存中，如果不在，则发出一次缺页中断。
+                     * 这里，可以想象下1G的CommitLog需要发生多少次缺页中断，才能使得对应的数据才能完全加载至物理内存中（ps：X86的Linux中一个标准页面大小是4KB）？
+                     * RocketMQ的做法是，在做Mmap内存映射的同时进行madvise系统调用，
+                     * 目的是使OS做一次内存映射后对应的文件数据尽可能多的预加载至内存中，从而达到内存预热的效果。
+                     */
                     mappedFile.warmMappedFile(this.messageStore.getMessageStoreConfig().getFlushDiskType(),
                         this.messageStore.getMessageStoreConfig().getFlushLeastPagesWhenWarmMapedFile());
                 }

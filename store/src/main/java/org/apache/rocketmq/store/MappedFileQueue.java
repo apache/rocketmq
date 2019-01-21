@@ -265,7 +265,7 @@ public class MappedFileQueue {
         }
 
         /**
-         * 新建mappedFile
+         * 需要新建mappedFile
          */
         if (createOffset != -1 && needCreate) {
             /**

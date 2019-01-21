@@ -418,6 +418,9 @@ public class MappedFile extends ReferenceResource {
         }
 
         // All dirty data has been committed to FileChannel.
+        /**
+         * 启动堆外内存   文件已经写满   则归还内存
+         */
         if (writeBuffer != null && this.transientStorePool != null && this.fileSize == this.committedPosition.get()) {
             this.transientStorePool.returnBuffer(writeBuffer);
             this.writeBuffer = null;
@@ -700,7 +703,7 @@ public class MappedFile extends ReferenceResource {
 
         // force flush when prepare load finished
         /**
-         * 预热后   强制刷盘
+         * 预热后   模式为同步刷盘的   强制刷盘
          */
         if (type == FlushDiskType.SYNC_FLUSH) {
             log.info("mapped file warm-up done, force to disk, mappedFile={}, costTime={}",
