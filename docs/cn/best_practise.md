@@ -1,16 +1,16 @@
-7 最佳实践(best practice) {#h.wri31g59kesl .c6}
+7 最佳实践(best practice) 
 =========================
 
-7.1 客户端 {#h.ml9txd5nlf7z .c126}
+7.1 客户端 
 ----------
 
       
 相对于RocketMQ的Broker集群，生产者和消费者都是客户端。本小节主要描述生产者和消费者公共的行为配置。
 
-### 7.1.1 客户端寻址方式 {#h.pfx2wmplqyqr .c22 .c97}
+### 7.1.1 客户端寻址方式 
 
 RocketMQ可以令客户端找到Name Server, 然后通过Name
-Server再找到Broker，分别如下，^[[bf]](#cmnt58)^如下所示有多种配置方式，优先级由高到低，高优先级会覆盖低优先级。
+Server再找到Broker，分别如下，如下所示有多种配置方式，优先级由高到低，高优先级会覆盖低优先级。
 
 1.  代码中指定Name Server地址
 
@@ -52,7 +52,7 @@ Server地址。URL已经在代码中写死，可通过修改/etc/hosts文件来�
 推荐使用HTTP静态服务器寻址方式，好处是客户端部署简单，且Name
 Server集群可以热升级。
 
-### 7.1.2 客户端配置 {#h.ku9boo8vuvkc .c97 .c195}
+### 7.1.2 客户端配置 
 
 DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPullConsumer都继承于ClientConfig类，ClientConfig为客户端的公共配置类。客户端的配置都是get、set形式，每个参数都可以用spring来配置，也可以在代码中配置，例如namesrvAddr这个参数可以这样配置，其他参数同理。
 
@@ -60,7 +60,7 @@ DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPul
 | producer.setNamesrvAddr("192.168.0.1:9876");                             |
 +--------------------------------------------------------------------------+
 
-####  1  客户端的公共配置 {#h.pfgk3ubiopgc .c125 .c97}
+####  1  客户端的公共配置 
 
 +--------------------------+--------------------------+--------------------------+
 | 参数名                   | 默认值                   | 说明                     |
@@ -90,7 +90,7 @@ DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPul
 
  
 
-#### 2  Producer配置 {#h.wwx4b4h0hmq4 .c125 .c97}
+#### 2  Producer配置 
 
 +--------------------------+--------------------------+--------------------------+
 | 参数名                   | 默认值                   | 说明                     |
@@ -138,7 +138,7 @@ DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPul
 
  
 
-#### 3  PushConsumer配置 {#h.9xgws025lz5z .c125}
+#### 3  PushConsumer配置 
 
 +--------------------------+--------------------------+--------------------------+
 | 参数名                   | 默认值                   | 说明                     |
@@ -192,7 +192,7 @@ DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPul
 
  
 
-#### 4  PullConsumer配置 {#h.kpos1inag5ta .c125}
+#### 4  PullConsumer配置 
 
 +--------------------------+--------------------------+--------------------------+
 | 参数名                   | 默认值                   | 说明                     |
@@ -228,7 +228,7 @@ DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPul
 
  
 
-#### 5  Message数据结构 {#h.jas8mgs1ce7x .c125}
+#### 5  Message数据结构 
 
 +--------------------------+--------------------------+--------------------------+
 | 字段名                   | 默认值                   | 说明                     |
@@ -258,10 +258,10 @@ DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPul
 | WaitStoreMsgOK           | TRUE                     | 选填，表示消息是否在服务器落盘后才返回应答。 |
 +--------------------------+--------------------------+--------------------------+
 
-7.2   生产者 {#h.jp7uvlwkm5zx .c126}
+7.2   生产者 
 ------------
 
-### 7.2.1 发送消息注意事项 {#h.17wf25m5sw1r .c22 .c97}
+### 7.2.1 发送消息注意事项 
 
      
 一个应用尽可能用一个Topic，而消息子类型则可以用tags来标识。tags可以由应用自由设置。只有生产者在发送消息设置了tags，消费方在订阅消息时才可以利用tags通过broker做消息过滤：
@@ -305,13 +305,13 @@ Broker服务器，则将返回该状态——无Slave服务器可用。
      
 如果返回值是刷盘超时（FLUSH\_DISK\_TIMEOUT）、同步Slave服务器超时（FLUSH\_SLAVE\_TIMEOUT）并且Broker服务器正好关闭，那么丢失的消息是可以找到的。此时有两个选择：一个是放弃该消息，这可能会导致此消息丢失；另一种方法是重新发送消息，这可能会使消息重复。通常推荐重新发送消息，然后在消费端过滤重复消息，除非业务场景能够忍受个别消息的丢失。但请记住，当返回值为无Slave服务器可用（SLAVE\_NOT\_AVAILABLE）时，重新发送消息是无用的。如果发生这种情况，用户应该保留场景、并提醒群集管理器。
 
-### 7.2.2 消息发送失败处理方式 {#h.xa4uqtphteaj .c22 .c97}
+### 7.2.2 消息发送失败处理方式 
 
      Producer的send方法本身支持内部重试，重试逻辑如下：
 
 1.  至多重试2次（同步发送为2次，异步发送为0次）。
 2.  如果发送失败，则轮转到下一个Broker。这个方法的总耗时时间不超过sendMsgTimeout设置的值，默认10s。
-3.  如果本身向broker发送消息产生超时异常，就不会再重试。^[[bg]](#cmnt59)^
+3.  如果本身向broker发送消息产生超时异常，就不会再重试。
 
      
  以上策略也是在一定程度上保证了消息可以发送成功。如果业务对消息可靠性要求比较高，建议应用增加相应的重试逻辑：比如调用send同步方法发送失败时，则尝试将消息存储到db，然后由后台线程定时重试，确保消息一定到达Broker。
@@ -321,7 +321,7 @@ Broker服务器，则将返回该状态——无Slave服务器可用。
 kill -9
 这样暴力方式关闭，造成数据没有及时落盘而丢失。第三、Producer所在机器的可靠性较低，一般为虚拟机，不适合存储重要数据。综上，建议重试过程交由应用来控制。
 
-### 7.2.3选择oneway形式发送 {#h.klj3nc8k8qlo .c22 .c97}
+### 7.2.3选择oneway形式发送 
 
      通常消息的发送是这样一个过程：
 
@@ -332,7 +332,7 @@ kill -9
      
 所以，一次消息发送的耗时时间是上述三个步骤的总和，而某些场景要求耗时非常短，但是对可靠性要求并不高，例如日志收集类应用，此类应用可以采用oneway形式调用，oneway形式只发送请求不等待应答，而发送请求在客户端实现层面仅仅是一个操作系统系统调用的开销，即将数据写入客户端的socket缓冲区，此过程耗时通常在微秒级。
 
-### 7.2.4 其他 {#h.n4kng375x11z .c22 .c97}
+### 7.2.4 其他 
 
 1.  建议消息的大小最好不要超过512K。
 2.  步发送（AsyncSending）
@@ -340,17 +340,17 @@ kill -9
 3.  生产者是线程安全的。
 4.  如果希望在一个JVM中有多个生产者来进行大数据处理，有以下建议：通过一些生产者（3\~5个足以）使用异步发送；为每个生产者的设置实例名，即setInstanceName。
 
-7.3   消费者 {#h.iavrpqqyijrf .c126}
+7.3   消费者 
 ------------
 
-### 7.3.1 消费过程幂等 {#h.y8vznarbyl5r .c22 .c97}
+### 7.3.1 消费过程幂等 
 
       
 RocketMQ无法避免消息重复（Exactly-Once），所以如果业务对消费重复非常敏感，务必要在业务层面进行去重处理。可以借助关系数据库进行去重。首先需要确定消息的唯一键，可以是msgId，也可以是消息内容中的唯一标识字段，例如订单Id等。在消费之前判断唯一键是否在关系数据库中存在。如果不存在则插入，并消费，否则跳过。（实际过程要考虑原子性问题，判断是否存在可以尝试插入，如果报主键冲突，则插入失败，直接跳过）
 
 msgId一定是全局唯一标识符，但是实际使用中，可能会存在相同的消息有两个不同msgId的情况（消费者主动重发、因客户端重投机制导致的重复等），这种情况就需要使业务字段进行重复消费。
 
-### 7.3.2 消费速度慢的处理方式 {#h.ta8n2x8worx0 .c22 .c97}
+### 7.3.2 消费速度慢的处理方式 
 
 1   提高消费并行度
 
@@ -412,7 +412,7 @@ consumeMessageBatchMaxSize 返个参数，默认是
 15ms，即总体性能提高了
 40%。所以应用如果对时延敏感的话，可以把DB部署在SSD硬盘，相比于SCS磁盘，前者的RT会小很多。
 
-### 7.3.3 消费打印日志 {#h.8zs2ftm1hyjd .c22 .c97}
+### 7.3.3 消费打印日志 
 
 如果消息量较少，建议在消费入口方法打印消息，消费耗时等，方便后续排查问题。
 
@@ -430,7 +430,7 @@ consumeMessageBatchMaxSize 返个参数，默认是
 
 如果能打印每条消息消费耗时，那么在排查消费慢等线上问题时，会更方便。
 
-### 7.3.4 其他消费建议 {#h.vihoyvic9tw4 .c22 .c97}
+### 7.3.4 其他消费建议 
 
 1 关于消费者和订阅
 
@@ -473,21 +473,21 @@ setConsumeThreadMax 来改变它。
 将会消费每个存在于 Broker 中的信息。你也可以使用
 CONSUME\_FROM\_TIMESTAMP 来消费在指定时间戳后产生的消息。
 
-7.4   Broker {#h.ijo5708yrgv5 .c98}
+7.4   Broker 
 ------------
 
-### 7.4.1 Broker 角色 {#h.bdmwekmhqw53 .c22 .c97}
+### 7.4.1 Broker 角色
 
        Broker 角色分为
 ASYNC\_MASTER（异步主机）、SYNC\_MASTER（同步主机）以及SLAVE（从机）。如果对消息的可靠性要求比较严格，可以采用
 SYNC\_MASTER加SLAVE的部署方式；如果对消息可靠性要求不高，可以采用ASYNC\_MASTER加SLAVE的部署方式。如果只是测试方便，则可以选择仅ASYNC\_MASTER或仅SYNC\_MASTER的部署方式。
 
-### 7.4.2 FlushDiskType {#h.idn7c6qq2hh1 .c22 .c97}
+### 7.4.2 FlushDiskType 
 
      
   SYNC\_FLUSH（同步刷新）相比于ASYNC\_FLUSH（异步处理）会损失很多性能，但是也更可靠，所以需要根据实际的业务场景做好权衡。
 
-7.5  NameSrv {#h.up3chhwy1tf9 .c98 .c97}
+7.5  NameSrv
 ------------
 
        RocketMQ 中，名称服务器（name
@@ -498,12 +498,12 @@ servers）被设计用来做简单的路由管理。其职责包括：
 
      客户端配置名称服务器的方法参见7.3节
 
-7.6  系统配置 {#h.7hsiy9oxwiaj .c98 .c97}
+7.6  系统配置 
 -------------
 
       本小节主要介绍系统（JVM/OS）相关的配置。
 
-### 7.6.1 JVM选项 {#h.e162rinizmla .c22 .c97}
+### 7.6.1 JVM选项 
 
        推荐使用最新发布的JDK
 1.8版本。通过设置相同的Xms和Xmx值来防止JVM调整堆大小以获得更好的性能。简单的JVM配置如下所示：
@@ -547,7 +547,7 @@ GC，所以官方建议使用rolling GC日志文件：
 |      -Xloggc:/dev/shm/mq\_gc\_%p.log123                                  |
 +--------------------------------------------------------------------------+
 
-### 7.6.2 Linux内核参数 {#h.prxsquc1pe7r .c22 .c97}
+### 7.6.2 Linux内核参数 
 
      
  os.sh脚本在bin文件夹中列出了许多内核参数，可以进行微小的更改然后用于生产用途。下面的参数需要注意，更多细节请参考/proc/sys/vm/\*的文档。
