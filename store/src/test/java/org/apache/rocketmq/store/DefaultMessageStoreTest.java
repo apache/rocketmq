@@ -172,12 +172,15 @@ public class DefaultMessageStoreTest {
         Thread.sleep(100);
         String group = "simple";
         GetMessageResult getMessageResult32 = messageStore.getMessage(group, topic, 0, 0, 32, null);
+        getMessageResult32.release();
         assertThat(getMessageResult32.getMessageBufferList().size()).isEqualTo(32);
 
         GetMessageResult getMessageResult20 = messageStore.getMessage(group, topic, 0, 0, 20, null);
+        getMessageResult20.release();
         assertThat(getMessageResult20.getMessageBufferList().size()).isEqualTo(20);
 
         GetMessageResult getMessageResult45 = messageStore.getMessage(group, topic, 0, 0, 10, null);
+        getMessageResult45.release();
         assertThat(getMessageResult45.getMessageBufferList().size()).isEqualTo(10);
     }
 
@@ -377,26 +380,6 @@ public class DefaultMessageStoreTest {
 
     @Test
     public void testGetEarliestMessageTime() throws Exception {
-        messageStore.shutdown();
-        messageStore.destroy();
-        String rootPath = System.getProperty("user.home") + File.separator + "store1";
-        String commitLogPath = System.getProperty("user.home") + File.separator + "store1"
-                + File.separator + "commitlog";
-        File file = new File(rootPath);
-        UtilAll.deleteFile(file);
-        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        messageStoreConfig.setMapedFileSizeCommitLog(1024 * 1024 * 10);
-        messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 1024 * 10);
-        messageStoreConfig.setMaxHashSlotNum(10000);
-        messageStoreConfig.setMaxIndexNum(100 * 100);
-        messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
-        messageStoreConfig.setFlushIntervalConsumeQueue(1);
-        messageStoreConfig.setMaxMessageSize(1024);
-        messageStoreConfig.setStorePathCommitLog(commitLogPath);
-        messageStoreConfig.setStorePathRootDir(rootPath);
-        messageStore = new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MyMessageArrivingListener(), new BrokerConfig());
-        messageStore.load();
-        messageStore.start();
         String topic = "testGetEarliestMessageTime";
         StringBuffer sb = new StringBuffer();
 
