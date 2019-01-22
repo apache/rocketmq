@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 public class TransactionProducer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
         TransactionListener transactionListener = new TransactionListenerImpl();
-        TransactionMQProducer producer = new TransactionMQProducer("please_rename_unique_group_name");
+        TransactionMQProducer producer = new TransactionMQProducer("TransactionMQProducer");
         ExecutorService executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2000), new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -45,6 +45,11 @@ public class TransactionProducer {
 
         producer.setExecutorService(executorService);
         producer.setTransactionListener(transactionListener);
+        producer.setNamesrvAddr("localhost:9876");
+
+        /**
+         * 生产者启动
+         */
         producer.start();
 
         String[] tags = new String[] {"TagA", "TagB", "TagC", "TagD", "TagE"};
@@ -52,8 +57,14 @@ public class TransactionProducer {
             try {
                 Message msg =
                     new Message("TopicTest1234", tags[i % tags.length], "KEY" + i,
-                        ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
+                        ("事务消息 " + i+","+System.currentTimeMillis()).getBytes(RemotingHelper.DEFAULT_CHARSET));
+                msg.setKeys(System.currentTimeMillis()+"");
+
+                /**
+                 * 发送事务消息
+                 */
                 SendResult sendResult = producer.sendMessageInTransaction(msg, null);
+
                 System.out.printf("%s%n", sendResult);
 
                 Thread.sleep(10);
