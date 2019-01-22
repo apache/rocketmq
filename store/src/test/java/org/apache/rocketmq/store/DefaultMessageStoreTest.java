@@ -130,12 +130,11 @@ public class DefaultMessageStoreTest {
         int queueId = new Random().nextInt(10);
         String topic = "FooBar";
         int firstOffset = 0;
-        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) this.messageStore;
         AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, topic, queueId);
         AppendMessageResult firstResult = appendMessageResultArray[0];
 
         MessageExt messageExt = messageStore.lookMessageByOffset(firstResult.getWroteOffset());
-        MessageExt messageExt1 = defaultMessageStore.lookMessageByOffset(firstResult.getWroteOffset(), firstResult.getWroteBytes());
+        MessageExt messageExt1 = getDefaultMessageStore().lookMessageByOffset(firstResult.getWroteOffset(), firstResult.getWroteBytes());
 
         assertThat(new String(messageExt.getBody())).isEqualTo(buildMessageBodyByOffset(StoreMessage, firstOffset));
         assertThat(new String(messageExt1.getBody())).isEqualTo(buildMessageBodyByOffset(StoreMessage, firstOffset));
@@ -146,12 +145,11 @@ public class DefaultMessageStoreTest {
         final int totalCount = 10;
         int queueId = new Random().nextInt(10);
         String topic = "FooBar";
-        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) this.messageStore;
         AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, topic, queueId);
         int lastIndex = totalCount - 1;
         AppendMessageResult lastResult = appendMessageResultArray[lastIndex];
 
-        MessageExt messageExt = defaultMessageStore.lookMessageByOffset(lastResult.getWroteOffset(), lastResult.getWroteBytes());
+        MessageExt messageExt = getDefaultMessageStore().lookMessageByOffset(lastResult.getWroteOffset(), lastResult.getWroteBytes());
 
         assertThat(new String(messageExt.getBody())).isEqualTo(buildMessageBodyByOffset(StoreMessage, lastIndex));
     }
@@ -161,11 +159,10 @@ public class DefaultMessageStoreTest {
         final int totalCount = 10;
         int queueId = new Random().nextInt(10);
         String topic = "FooBar";
-        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
         AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, topic, queueId);
         long lastOffset = getMaxOffset(appendMessageResultArray);
 
-        MessageExt messageExt = defaultMessageStore.lookMessageByOffset(lastOffset);
+        MessageExt messageExt = getDefaultMessageStore().lookMessageByOffset(lastOffset);
 
         assertThat(messageExt).isNull();
     }
@@ -175,12 +172,11 @@ public class DefaultMessageStoreTest {
         final int totalCount = 10;
         int queueId = new Random().nextInt(10);
         String topic = "FooBar";
-        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
         AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, topic, queueId);
         long minOffset = appendMessageResultArray[0].getLogicsOffset();
         int targetQueueId = 1;
 
-        Map<String, Long> messageIds = defaultMessageStore.getMessageIds(topic, targetQueueId, minOffset, 0, StoreHost);
+        Map<String, Long> messageIds = getDefaultMessageStore().getMessageIds(topic, targetQueueId, minOffset, 0, StoreHost);
 
         assertThat(messageIds).isEmpty();
     }
@@ -189,12 +185,11 @@ public class DefaultMessageStoreTest {
     public void should_return_empty_map_when_max_offset_is_zero() {
         final int totalCount = 10;
         int queueId = new Random().nextInt(10);
-        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
         String topic = "FooBar";
         AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, topic, queueId);
         long minOffset = appendMessageResultArray[0].getLogicsOffset();
 
-        Map<String, Long> messageIds = defaultMessageStore.getMessageIds(topic, queueId, minOffset, 0, StoreHost);
+        Map<String, Long> messageIds = getDefaultMessageStore().getMessageIds(topic, queueId, minOffset, 0, StoreHost);
 
         assertThat(messageIds).isEmpty();
     }
@@ -203,12 +198,11 @@ public class DefaultMessageStoreTest {
     public void should_return_empty_map_when_min_offset_is_large_than_max_offset() {
         final int totalCount = 10;
         int queueId = new Random().nextInt(10);
-        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
         String topic = "FooBar";
         AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, topic, queueId);
         long maxOffset = appendMessageResultArray[totalCount - 1].getLogicsOffset() + 1;
 
-        Map<String, Long> messageIds = defaultMessageStore.getMessageIds(topic, queueId, maxOffset, 1, StoreHost);
+        Map<String, Long> messageIds = getDefaultMessageStore().getMessageIds(topic, queueId, maxOffset, 1, StoreHost);
 
         assertThat(messageIds).isEmpty();
     }
@@ -218,14 +212,13 @@ public class DefaultMessageStoreTest {
     public void should_return_consume_queue_index_map_by_msgId_successfully_when_getMessageIds_by_topic_and_queue_id() throws InterruptedException {
         final int totalCount = 10;
         int queueId = new Random().nextInt(10);
-        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
         String topic = "FooBar";
         AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, "FooBar", queueId);
         long minOffset = appendMessageResultArray[0].getLogicsOffset();
         long maxOffset = getMaxLogicsOffset(appendMessageResultArray);
 
         Thread.sleep(10); // wait async reput service run finish.
-        Map<String, Long> messageIds = defaultMessageStore.getMessageIds(topic, queueId, minOffset, maxOffset, StoreHost);
+        Map<String, Long> messageIds = getDefaultMessageStore().getMessageIds(topic, queueId, minOffset, maxOffset, StoreHost);
 
         assertThat(messageIds).isNotEmpty();
         assertThat(messageIds.size()).isEqualTo(10);
@@ -238,14 +231,13 @@ public class DefaultMessageStoreTest {
     public void should_get_total_message_count_successfully_when_incomming_by_topic_and_queueId() throws InterruptedException {
         final int totalCount = 10;
         int queueId = new Random().nextInt(10);
-        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
         String topic = "FooBar";
         String anotherTopic = "anotherTopic";
         putMessages(totalCount, topic, queueId);
         putMessages(1, anotherTopic, queueId);
 
         Thread.sleep(10); // wait async reput service run finish.
-        long totalInQueue = defaultMessageStore.getMessageTotalInQueue(topic, queueId);
+        long totalInQueue = getDefaultMessageStore().getMessageTotalInQueue(topic, queueId);
 
         assertThat(totalInQueue).isEqualTo(totalCount);
     }
@@ -255,15 +247,14 @@ public class DefaultMessageStoreTest {
         final int totalCount = 10;
         int queueId = 0;
         int anotherQueueId = 1;
-        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
         String topic = "FooBar";
         String anotherTopic = "anotherTopic";
         putMessages(totalCount, topic, queueId);
         putMessages(1, anotherTopic, anotherQueueId);
 
         Thread.sleep(10); // wait async reput service run finish.
-        assertThat(defaultMessageStore.getMessageTotalInQueue(topic, anotherQueueId)).isEqualTo(0);
-        assertThat(defaultMessageStore.getMessageTotalInQueue(anotherTopic, queueId)).isEqualTo(0);
+        assertThat(getDefaultMessageStore().getMessageTotalInQueue(topic, anotherQueueId)).isEqualTo(0);
+        assertThat(getDefaultMessageStore().getMessageTotalInQueue(anotherTopic, queueId)).isEqualTo(0);
     }
 
     @Test
@@ -271,11 +262,10 @@ public class DefaultMessageStoreTest {
         final int totalCount = 10;
         int queueId = 0;
         String topic = "FooBar";
-        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
         AppendMessageResult[] appendMessageResults = putMessages(totalCount, topic, queueId, true);
         Thread.sleep(10);
 
-        ConsumeQueue consumeQueue = defaultMessageStore.findConsumeQueue(topic, queueId);
+        ConsumeQueue consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
         for (AppendMessageResult appendMessageResult : appendMessageResults) {
             long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp());
             SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(offset);
@@ -289,12 +279,11 @@ public class DefaultMessageStoreTest {
         final int totalCount = 10;
         int queueId = 0;
         String topic = "FooBar";
-        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
         AppendMessageResult[] appendMessageResults = putMessages(totalCount, topic, queueId, true);
         Thread.sleep(10);
         int skewing = 2;
 
-        ConsumeQueue consumeQueue = defaultMessageStore.findConsumeQueue(topic, queueId);
+        ConsumeQueue consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
         for (AppendMessageResult appendMessageResult : appendMessageResults) {
             long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() + skewing);
             long offset2 = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
@@ -312,12 +301,11 @@ public class DefaultMessageStoreTest {
         final int totalCount = 10;
         int queueId = 0;
         String topic = "FooBar";
-        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
         AppendMessageResult[] appendMessageResults = putMessages(totalCount, topic, queueId, true);
         Thread.sleep(10);
         int skewing = 20000;
 
-        ConsumeQueue consumeQueue = defaultMessageStore.findConsumeQueue(topic, queueId);
+        ConsumeQueue consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
         for (AppendMessageResult appendMessageResult : appendMessageResults) {
             long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() + skewing);
             long offset2 = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
@@ -342,6 +330,55 @@ public class DefaultMessageStoreTest {
         long offset = messageStore.getOffsetInQueueByTime(topic, wrongQueueId, appendMessageResults[0].getStoreTimestamp());
 
         assertThat(offset).isEqualTo(0);
+    }
+
+    @Test
+    public void should_return_negative_one_when_invoke_getMessageStoreTimeStamp_if_consume_queue_not_found() throws InterruptedException {
+        final int totalCount = 10;
+        int queueId = 0;
+        int wrongQueueId = 1;
+        String topic = "FooBar";
+        putMessages(totalCount, topic, queueId, true);
+        Thread.sleep(10);
+
+        long messageStoreTimeStamp = messageStore.getMessageStoreTimeStamp(topic, wrongQueueId, 0);
+
+        assertThat(messageStoreTimeStamp).isEqualTo(-1);
+    }
+
+    @Test
+    public void should_return_negative_one_when_invoke_getMessageStoreTimeStamp_if_consumeQueueOffset_not_exist() throws InterruptedException {
+        final int totalCount = 10;
+        int queueId = 0;
+        int wrongQueueId = 1;
+        String topic = "FooBar";
+        putMessages(totalCount, topic, queueId, true);
+        Thread.sleep(10);
+
+        long messageStoreTimeStamp = messageStore.getMessageStoreTimeStamp(topic, wrongQueueId, -1);
+
+        assertThat(messageStoreTimeStamp).isEqualTo(-1);
+    }
+
+
+    @Test
+    public void should_get_message_store_timestamp_successfully_when_incomming_by_topic_queueId_and_consumeQueueOffset() throws InterruptedException {
+        final int totalCount = 10;
+        int queueId = 0;
+        String topic = "FooBar";
+        AppendMessageResult[] appendMessageResults = putMessages(totalCount, topic, queueId, true);
+        Thread.sleep(10);
+
+        ConsumeQueue consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
+        int minOffsetInQueue = (int)consumeQueue.getMinOffsetInQueue();
+        for (int i = minOffsetInQueue; i < consumeQueue.getMaxOffsetInQueue(); i++) {
+            long messageStoreTimeStamp = messageStore.getMessageStoreTimeStamp(topic, queueId, i);
+            assertThat(messageStoreTimeStamp).isEqualTo(appendMessageResults[i].getStoreTimestamp());
+        }
+    }
+
+    private DefaultMessageStore getDefaultMessageStore() {
+        return (DefaultMessageStore)this.messageStore;
     }
 
     private AppendMessageResult[] putMessages(int totalCount, String topic, int queueId) {
