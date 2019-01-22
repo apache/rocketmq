@@ -26,6 +26,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.OverlappingFileLockException;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
@@ -132,7 +133,6 @@ public class DefaultMessageStoreTest {
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) this.messageStore;
         for (int i = firstOffset; i < totalCount; i++) {
             String messageBody = buildMessageBodyByOffset(StoreMessage, i);
-            System.out.println("messageBody " + i + " length: " + messageBody.getBytes().length);
             MessageExtBrokerInner msgInner = buildMessage(messageBody.getBytes());
             messageStore.putMessage(msgInner);
             messageLengthArray[i] = calculateMessageLength(msgInner);
@@ -152,7 +152,6 @@ public class DefaultMessageStoreTest {
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) this.messageStore;
         for (int i = 0; i < totalCount; i++) {
             String messageBody = buildMessageBodyByOffset(StoreMessage, i);
-            System.out.println("messageBody " + i + " length: " + messageBody.getBytes().length);
             MessageExtBrokerInner msgInner = buildMessage(messageBody.getBytes());
             messageStore.putMessage(msgInner);
             messageLengthArray[i] = calculateMessageLength(msgInner);
@@ -169,10 +168,9 @@ public class DefaultMessageStoreTest {
     public void should_look_message_failed_and_return_null_when_offset_is_out_of_bound() {
         final int totalCount = 10;
         int[] messageLengthArray = new int[totalCount];
-        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) this.messageStore;
+        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
         for (int i = 0; i < totalCount; i++) {
             String messageBody = buildMessageBodyByOffset(StoreMessage, i);
-            System.out.println("messageBody " + i + " length: " + messageBody.getBytes().length);
             MessageExtBrokerInner msgInner = buildMessage(messageBody.getBytes());
             messageStore.putMessage(msgInner);
             messageLengthArray[i] = calculateMessageLength(msgInner);
@@ -182,6 +180,110 @@ public class DefaultMessageStoreTest {
         MessageExt messageExt = defaultMessageStore.lookMessageByOffset(lastOffset);
 
         assertThat(messageExt).isNull();
+    }
+
+    @Test
+    public void should_return_empty_map_when_consume_queue_can_not_found() {
+        final int totalCount = 10;
+        int queueId = 0;
+        int targetQueueId = 1;
+        AppendMessageResult[] appendMessageResultArray = new AppendMessageResult[totalCount];
+        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
+        for (int i = 0; i < totalCount; i++) {
+            String messageBody = buildMessageBodyByOffset(StoreMessage, i);
+            MessageExtBrokerInner msgInner = buildMessage(messageBody.getBytes());
+            msgInner.setQueueId(queueId);
+            PutMessageResult result = messageStore.putMessage(msgInner);
+            appendMessageResultArray[i] = result.getAppendMessageResult();
+        }
+        String topic = "FooBar";
+        long minOffset = appendMessageResultArray[0].getLogicsOffset();
+
+        Map<String, Long> messageIds = defaultMessageStore.getMessageIds(topic, targetQueueId, minOffset, 0, StoreHost);
+
+        assertThat(messageIds).isEmpty();
+    }
+
+    @Test
+    public void should_return_empty_map_when_max_offset_is_zero() {
+        final int totalCount = 10;
+        int queueId = new Random().nextInt();
+        AppendMessageResult[] appendMessageResultArray = new AppendMessageResult[totalCount];
+        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
+        for (int i = 0; i < totalCount; i++) {
+            String messageBody = buildMessageBodyByOffset(StoreMessage, i);
+            MessageExtBrokerInner msgInner = buildMessage(messageBody.getBytes());
+            msgInner.setQueueId(queueId);
+            PutMessageResult result = messageStore.putMessage(msgInner);
+            appendMessageResultArray[i] = result.getAppendMessageResult();
+        }
+        String topic = "FooBar";
+        long minOffset = appendMessageResultArray[0].getLogicsOffset();
+
+        Map<String, Long> messageIds = defaultMessageStore.getMessageIds(topic, queueId, minOffset, 0, StoreHost);
+
+        assertThat(messageIds).isEmpty();
+    }
+
+    @Test
+    public void should_return_empty_map_when_min_offset_is_large_than_max_offset() {
+        final int totalCount = 10;
+        int queueId = new Random().nextInt();
+        AppendMessageResult[] appendMessageResultArray = new AppendMessageResult[totalCount];
+        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
+        for (int i = 0; i < totalCount; i++) {
+            String messageBody = buildMessageBodyByOffset(StoreMessage, i);
+            MessageExtBrokerInner msgInner = buildMessage(messageBody.getBytes());
+            msgInner.setQueueId(queueId);
+            PutMessageResult result = messageStore.putMessage(msgInner);
+            appendMessageResultArray[i] = result.getAppendMessageResult();
+        }
+        String topic = "FooBar";
+        long maxOffset = appendMessageResultArray[totalCount - 1].getLogicsOffset() + 1;
+
+        Map<String, Long> messageIds = defaultMessageStore.getMessageIds(topic, queueId, maxOffset, 1, StoreHost);
+
+        assertThat(messageIds).isEmpty();
+    }
+
+
+    @Test
+    public void should_return_consume_queue_index_map_by_msgId_successfully_when_getMessageIds_by_topic_and_queue_id() {
+        final int totalCount = 10;
+        int queueId = new Random().nextInt(10);
+        System.out.println("queueId" + queueId);
+        AppendMessageResult[] appendMessageResultArray = new AppendMessageResult[totalCount];
+        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
+        for (int i = 0; i < totalCount; i++) {
+            String messageBody = buildMessageBodyByOffset(StoreMessage, i);
+            MessageExtBrokerInner msgInner = buildMessage(messageBody.getBytes());
+            msgInner.setQueueId(queueId);
+            PutMessageResult result = messageStore.putMessage(msgInner);
+            appendMessageResultArray[i] = result.getAppendMessageResult();
+            assertThat(result.getPutMessageStatus()).isEqualTo(PutMessageStatus.PUT_OK);
+        }
+        String topic = "FooBar";
+        long minOffset = appendMessageResultArray[0].getLogicsOffset();
+        long maxOffset = getMaxOffset(appendMessageResultArray);
+
+        Map<String, Long> messageIds = defaultMessageStore.getMessageIds(topic, queueId, minOffset, maxOffset, StoreHost);
+
+        assertThat(messageIds).isNotEmpty();
+        assertThat(messageIds.size()).isEqualTo(10);
+        for (int i = 0; i < totalCount; i++) {
+            assertThat(messageIds.get(appendMessageResultArray[i].getMsgId())).isEqualTo(i);
+        }
+    }
+
+    private long getMaxOffset(AppendMessageResult[] array) {
+        long maxOffset = 0;
+        for (AppendMessageResult appendMessageResult : array) {
+            long offset = appendMessageResult.getLogicsOffset();
+            if (offset > maxOffset) {
+                maxOffset = offset;
+            }
+        }
+        return maxOffset;
     }
 
     private String buildMessageBodyByOffset(String message, long i) {
