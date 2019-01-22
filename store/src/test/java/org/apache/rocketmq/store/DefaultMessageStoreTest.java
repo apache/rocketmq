@@ -188,7 +188,7 @@ public class DefaultMessageStoreTest {
         int queueId = new Random().nextInt(10);
         String topic = "FooBar";
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
-        AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, queueId, topic);
+        AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, topic, queueId);
         long minOffset = appendMessageResultArray[0].getLogicsOffset();
         int targetQueueId = 1;
 
@@ -203,7 +203,7 @@ public class DefaultMessageStoreTest {
         int queueId = new Random().nextInt(10);
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
         String topic = "FooBar";
-        AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, queueId, topic);
+        AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, topic, queueId);
         long minOffset = appendMessageResultArray[0].getLogicsOffset();
 
         Map<String, Long> messageIds = defaultMessageStore.getMessageIds(topic, queueId, minOffset, 0, StoreHost);
@@ -217,7 +217,7 @@ public class DefaultMessageStoreTest {
         int queueId = new Random().nextInt(10);
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
         String topic = "FooBar";
-        AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, queueId, topic);
+        AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, topic, queueId);
         long maxOffset = appendMessageResultArray[totalCount - 1].getLogicsOffset() + 1;
 
         Map<String, Long> messageIds = defaultMessageStore.getMessageIds(topic, queueId, maxOffset, 1, StoreHost);
@@ -232,7 +232,7 @@ public class DefaultMessageStoreTest {
         int queueId = new Random().nextInt(10);
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
         String topic = "FooBar";
-        AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, queueId, "FooBar");
+        AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, "FooBar", queueId);
         long minOffset = appendMessageResultArray[0].getLogicsOffset();
         long maxOffset = getMaxOffset(appendMessageResultArray);
 
@@ -253,8 +253,8 @@ public class DefaultMessageStoreTest {
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
         String topic = "FooBar";
         String anotherTopic = "anotherTopic";
-        putMessages(totalCount, queueId, topic);
-        putMessages(1, queueId, anotherTopic);
+        putMessages(totalCount, topic, queueId);
+        putMessages(1, anotherTopic, queueId);
 
         Thread.sleep(1); // wait async reput service run finish.
         long totalInQueue = defaultMessageStore.getMessageTotalInQueue(topic, queueId);
@@ -270,15 +270,15 @@ public class DefaultMessageStoreTest {
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
         String topic = "FooBar";
         String anotherTopic = "anotherTopic";
-        putMessages(totalCount, queueId, topic);
-        putMessages(1, anotherQueueId, anotherTopic);
+        putMessages(totalCount, topic, queueId);
+        putMessages(1, anotherTopic, anotherQueueId);
 
         Thread.sleep(1); // wait async reput service run finish.
         assertThat(defaultMessageStore.getMessageTotalInQueue(topic, anotherQueueId)).isEqualTo(0);
         assertThat(defaultMessageStore.getMessageTotalInQueue(anotherTopic, queueId)).isEqualTo(0);
     }
 
-    private AppendMessageResult[] putMessages(int totalCount, int queueId, String topic) {
+    private AppendMessageResult[] putMessages(int totalCount, String topic, int queueId) {
         AppendMessageResult[] appendMessageResultArray = new AppendMessageResult[totalCount];
         for (int i = 0; i < totalCount; i++) {
             String messageBody = buildMessageBodyByOffset(StoreMessage, i);
