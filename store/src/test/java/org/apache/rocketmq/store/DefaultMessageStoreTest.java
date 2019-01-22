@@ -128,18 +128,15 @@ public class DefaultMessageStoreTest {
     @Test
     public void should_look_message_successfully_when_offset_is_first() {
         final int totalCount = 10;
-        int[] messageLengthArray = new int[totalCount];
+        int queueId = new Random().nextInt(10);
+        String topic = "FooBar";
         int firstOffset = 0;
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) this.messageStore;
-        for (int i = firstOffset; i < totalCount; i++) {
-            String messageBody = buildMessageBodyByOffset(StoreMessage, i);
-            MessageExtBrokerInner msgInner = buildMessage(messageBody.getBytes(), "FooBar");
-            messageStore.putMessage(msgInner);
-            messageLengthArray[i] = calculateMessageLength(msgInner);
-        }
+        AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, topic, queueId);
+        AppendMessageResult firstResult = appendMessageResultArray[0];
 
-        MessageExt messageExt = messageStore.lookMessageByOffset(firstOffset);
-        MessageExt messageExt1 = defaultMessageStore.lookMessageByOffset(firstOffset, messageLengthArray[firstOffset]);
+        MessageExt messageExt = messageStore.lookMessageByOffset(firstResult.getWroteOffset());
+        MessageExt messageExt1 = defaultMessageStore.lookMessageByOffset(firstResult.getWroteOffset(), firstResult.getWroteBytes());
 
         assertThat(new String(messageExt.getBody())).isEqualTo(buildMessageBodyByOffset(StoreMessage, firstOffset));
         assertThat(new String(messageExt1.getBody())).isEqualTo(buildMessageBodyByOffset(StoreMessage, firstOffset));
@@ -148,18 +145,14 @@ public class DefaultMessageStoreTest {
     @Test
     public void should_look_message_successfully_when_offset_is_last() {
         final int totalCount = 10;
-        int[] messageLengthArray = new int[totalCount];
+        int queueId = new Random().nextInt(10);
+        String topic = "FooBar";
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) this.messageStore;
-        for (int i = 0; i < totalCount; i++) {
-            String messageBody = buildMessageBodyByOffset(StoreMessage, i);
-            MessageExtBrokerInner msgInner = buildMessage(messageBody.getBytes(), "FooBar");
-            messageStore.putMessage(msgInner);
-            messageLengthArray[i] = calculateMessageLength(msgInner);
-        }
-
+        AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, topic, queueId);
         int lastIndex = totalCount - 1;
-        int lastOffset = getOffsetByIndex(messageLengthArray, lastIndex);
-        MessageExt messageExt = defaultMessageStore.lookMessageByOffset(lastOffset, messageLengthArray[lastIndex]);
+        AppendMessageResult lastResult = appendMessageResultArray[lastIndex];
+
+        MessageExt messageExt = defaultMessageStore.lookMessageByOffset(lastResult.getWroteOffset(), lastResult.getWroteBytes());
 
         assertThat(new String(messageExt.getBody())).isEqualTo(buildMessageBodyByOffset(StoreMessage, lastIndex));
     }
@@ -167,16 +160,12 @@ public class DefaultMessageStoreTest {
     @Test
     public void should_look_message_failed_and_return_null_when_offset_is_out_of_bound() {
         final int totalCount = 10;
-        int[] messageLengthArray = new int[totalCount];
+        int queueId = new Random().nextInt(10);
+        String topic = "FooBar";
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
-        for (int i = 0; i < totalCount; i++) {
-            String messageBody = buildMessageBodyByOffset(StoreMessage, i);
-            MessageExtBrokerInner msgInner = buildMessage(messageBody.getBytes(), "FooBar");
-            messageStore.putMessage(msgInner);
-            messageLengthArray[i] = calculateMessageLength(msgInner);
-        }
+        AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, topic, queueId);
+        long lastOffset = getMaxOffset(appendMessageResultArray);
 
-        int lastOffset = getOffsetByIndex(messageLengthArray, totalCount);
         MessageExt messageExt = defaultMessageStore.lookMessageByOffset(lastOffset);
 
         assertThat(messageExt).isNull();
@@ -234,9 +223,9 @@ public class DefaultMessageStoreTest {
         String topic = "FooBar";
         AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, "FooBar", queueId);
         long minOffset = appendMessageResultArray[0].getLogicsOffset();
-        long maxOffset = getMaxOffset(appendMessageResultArray);
+        long maxOffset = getMaxLogicsOffset(appendMessageResultArray);
 
-        Thread.sleep(1); // wait async reput service run finish.
+        Thread.sleep(10); // wait async reput service run finish.
         Map<String, Long> messageIds = defaultMessageStore.getMessageIds(topic, queueId, minOffset, maxOffset, StoreHost);
 
         assertThat(messageIds).isNotEmpty();
@@ -256,7 +245,7 @@ public class DefaultMessageStoreTest {
         putMessages(totalCount, topic, queueId);
         putMessages(1, anotherTopic, queueId);
 
-        Thread.sleep(1); // wait async reput service run finish.
+        Thread.sleep(10); // wait async reput service run finish.
         long totalInQueue = defaultMessageStore.getMessageTotalInQueue(topic, queueId);
 
         assertThat(totalInQueue).isEqualTo(totalCount);
@@ -273,7 +262,7 @@ public class DefaultMessageStoreTest {
         putMessages(totalCount, topic, queueId);
         putMessages(1, anotherTopic, anotherQueueId);
 
-        Thread.sleep(1); // wait async reput service run finish.
+        Thread.sleep(10); // wait async reput service run finish.
         assertThat(defaultMessageStore.getMessageTotalInQueue(topic, anotherQueueId)).isEqualTo(0);
         assertThat(defaultMessageStore.getMessageTotalInQueue(anotherTopic, queueId)).isEqualTo(0);
     }
@@ -291,7 +280,7 @@ public class DefaultMessageStoreTest {
         return appendMessageResultArray;
     }
 
-    private long getMaxOffset(AppendMessageResult[] array) {
+    private long getMaxLogicsOffset(AppendMessageResult[] array) {
         long maxOffset = 0;
         for (AppendMessageResult appendMessageResult : array) {
             long offset = appendMessageResult.getLogicsOffset();
@@ -300,6 +289,14 @@ public class DefaultMessageStoreTest {
             }
         }
         return maxOffset;
+    }
+
+    private long getMaxOffset(AppendMessageResult[] appendMessageResultArray) {
+        if (appendMessageResultArray == null) {
+            return 0;
+        }
+        AppendMessageResult last = appendMessageResultArray[appendMessageResultArray.length - 1];
+        return last.getWroteOffset() + last.getWroteBytes();
     }
 
     private String buildMessageBodyByOffset(String message, long i) {
