@@ -248,10 +248,9 @@ public class DefaultMessageStoreTest {
 
 
     @Test
-    public void should_return_consume_queue_index_map_by_msgId_successfully_when_getMessageIds_by_topic_and_queue_id() {
+    public void should_return_consume_queue_index_map_by_msgId_successfully_when_getMessageIds_by_topic_and_queue_id() throws InterruptedException {
         final int totalCount = 10;
         int queueId = new Random().nextInt(10);
-        System.out.println("queueId" + queueId);
         AppendMessageResult[] appendMessageResultArray = new AppendMessageResult[totalCount];
         DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
         for (int i = 0; i < totalCount; i++) {
@@ -266,6 +265,7 @@ public class DefaultMessageStoreTest {
         long minOffset = appendMessageResultArray[0].getLogicsOffset();
         long maxOffset = getMaxOffset(appendMessageResultArray);
 
+        Thread.sleep(1); // wait async reput service run finish.
         Map<String, Long> messageIds = defaultMessageStore.getMessageIds(topic, queueId, minOffset, maxOffset, StoreHost);
 
         assertThat(messageIds).isNotEmpty();
