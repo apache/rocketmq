@@ -990,9 +990,11 @@ public class DefaultMessageStore implements MessageStore {
                 SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(nextOffset);
                 if (bufferConsumeQueue != null) {
                     try {
+                        ByteBuffer byteBuffer = bufferConsumeQueue.getByteBuffer().slice();
                         int i = 0;
                         for (; i < bufferConsumeQueue.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
-                            long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
+                            byteBuffer.position(i);
+                            long offsetPy = byteBuffer.getLong();
                             final ByteBuffer msgIdMemory = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);
                             String msgId =
                                 MessageDecoder.createMessageId(msgIdMemory, MessageExt.socketAddress2ByteBuffer(storeHost), offsetPy);
