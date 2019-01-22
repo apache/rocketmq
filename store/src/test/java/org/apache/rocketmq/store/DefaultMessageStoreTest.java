@@ -30,7 +30,6 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -267,7 +266,89 @@ public class DefaultMessageStoreTest {
         assertThat(defaultMessageStore.getMessageTotalInQueue(anotherTopic, queueId)).isEqualTo(0);
     }
 
+    @Test
+    public void should_get_consume_queue_offset_successfully_when_incomming_by_timestamp() throws InterruptedException {
+        final int totalCount = 10;
+        int queueId = 0;
+        String topic = "FooBar";
+        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
+        AppendMessageResult[] appendMessageResults = putMessages(totalCount, topic, queueId, true);
+        Thread.sleep(10);
+
+        ConsumeQueue consumeQueue = defaultMessageStore.findConsumeQueue(topic, queueId);
+        for (AppendMessageResult appendMessageResult : appendMessageResults) {
+            long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp());
+            SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(offset);
+            assertThat(indexBuffer.getByteBuffer().getLong()).isEqualTo(appendMessageResult.getWroteOffset());
+            assertThat(indexBuffer.getByteBuffer().getInt()).isEqualTo(appendMessageResult.getWroteBytes());
+        }
+    }
+
+    @Test
+    public void should_get_consume_queue_offset_successfully_when_timestamp_is_skewing() throws InterruptedException {
+        final int totalCount = 10;
+        int queueId = 0;
+        String topic = "FooBar";
+        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
+        AppendMessageResult[] appendMessageResults = putMessages(totalCount, topic, queueId, true);
+        Thread.sleep(10);
+        int skewing = 2;
+
+        ConsumeQueue consumeQueue = defaultMessageStore.findConsumeQueue(topic, queueId);
+        for (AppendMessageResult appendMessageResult : appendMessageResults) {
+            long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() + skewing);
+            long offset2 = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
+            SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(offset);
+            SelectMappedBufferResult indexBuffer2 = consumeQueue.getIndexBuffer(offset2);
+            assertThat(indexBuffer.getByteBuffer().getLong()).isEqualTo(appendMessageResult.getWroteOffset());
+            assertThat(indexBuffer.getByteBuffer().getInt()).isEqualTo(appendMessageResult.getWroteBytes());
+            assertThat(indexBuffer2.getByteBuffer().getLong()).isEqualTo(appendMessageResult.getWroteOffset());
+            assertThat(indexBuffer2.getByteBuffer().getInt()).isEqualTo(appendMessageResult.getWroteBytes());
+        }
+    }
+
+    @Test
+    public void should_get_min_of_max_consume_queue_offset_when_timestamp_s_skewing_is_large() throws InterruptedException {
+        final int totalCount = 10;
+        int queueId = 0;
+        String topic = "FooBar";
+        DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
+        AppendMessageResult[] appendMessageResults = putMessages(totalCount, topic, queueId, true);
+        Thread.sleep(10);
+        int skewing = 20000;
+
+        ConsumeQueue consumeQueue = defaultMessageStore.findConsumeQueue(topic, queueId);
+        for (AppendMessageResult appendMessageResult : appendMessageResults) {
+            long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() + skewing);
+            long offset2 = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
+            SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(offset);
+            SelectMappedBufferResult indexBuffer2 = consumeQueue.getIndexBuffer(offset2);
+            assertThat(indexBuffer.getByteBuffer().getLong()).isEqualTo(appendMessageResults[totalCount - 1].getWroteOffset());
+            assertThat(indexBuffer.getByteBuffer().getInt()).isEqualTo(appendMessageResults[totalCount - 1].getWroteBytes());
+            assertThat(indexBuffer2.getByteBuffer().getLong()).isEqualTo(appendMessageResults[0].getWroteOffset());
+            assertThat(indexBuffer2.getByteBuffer().getInt()).isEqualTo(appendMessageResults[0].getWroteBytes());
+        }
+    }
+
+    @Test
+    public void should_return_zero_when_consume_queue_not_found() throws InterruptedException {
+        final int totalCount = 10;
+        int queueId = 0;
+        int wrongQueueId = 1;
+        String topic = "FooBar";
+        AppendMessageResult[] appendMessageResults = putMessages(totalCount, topic, queueId, true);
+        Thread.sleep(10);
+
+        long offset = messageStore.getOffsetInQueueByTime(topic, wrongQueueId, appendMessageResults[0].getStoreTimestamp());
+
+        assertThat(offset).isEqualTo(0);
+    }
+
     private AppendMessageResult[] putMessages(int totalCount, String topic, int queueId) {
+        return putMessages(totalCount, topic, queueId, false);
+    }
+
+    private AppendMessageResult[] putMessages(int totalCount, String topic, int queueId, boolean interval) {
         AppendMessageResult[] appendMessageResultArray = new AppendMessageResult[totalCount];
         for (int i = 0; i < totalCount; i++) {
             String messageBody = buildMessageBodyByOffset(StoreMessage, i);
@@ -276,6 +357,13 @@ public class DefaultMessageStoreTest {
             PutMessageResult result = messageStore.putMessage(msgInner);
             appendMessageResultArray[i] = result.getAppendMessageResult();
             assertThat(result.getPutMessageStatus()).isEqualTo(PutMessageStatus.PUT_OK);
+            if (interval) {
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    throw  new RuntimeException("Thread sleep ERROR");
+                }
+            }
         }
         return appendMessageResultArray;
     }
@@ -320,29 +408,6 @@ public class DefaultMessageStoreTest {
 
     private MessageExtBrokerInner buildMessage() {
         return buildMessage(MessageBody, "FooBar");
-    }
-
-    private int getOffsetByIndex(int[] messageLengthArray, int index) {
-        int result = 0;
-        for (int i = 0; i < index; i++) {
-            result += messageLengthArray[i];
-        }
-        return result;
-    }
-
-    /**
-     * calculate message length
-     *
-     * @param msgInner MessageExtBrokerInner
-     * @return message length
-     */
-    private static int calculateMessageLength(MessageExtBrokerInner msgInner) {
-        int topicLength = msgInner.getTopic().getBytes(MessageDecoder.CHARSET_UTF8).length;
-        int propertiesLength = msgInner.getPropertiesString() == null ? 0 : msgInner.getPropertiesString().getBytes().length;
-        int bodyLength = msgInner.getBody().length;
-
-        // magic code 91 please reference CommitLog#calMsgLength
-        return topicLength + propertiesLength + bodyLength + 91;
     }
 
     private void verifyThatMasterIsFunctional(long totalMsgs, MessageStore master) {
