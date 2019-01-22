@@ -742,7 +742,7 @@ public class DefaultMessageStore implements MessageStore {
         return -1;
     }
 
-    private long getStoreTime(SelectMappedBufferResult result) {
+    protected long getStoreTime(SelectMappedBufferResult result) {
         if (result != null) {
             try {
                 final long phyOffset = result.getByteBuffer().getLong();
@@ -760,7 +760,7 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public long getEarliestMessageTime() {
         final long minPhyOffset = this.getMinPhyOffset();
-        final int size = this.messageStoreConfig.getMaxMessageSize() * 2;
+        final int size = (int)Math.min(this.getCommitLog().getMaxOffset(), this.messageStoreConfig.getMaxMessageSize() * 2);
         return this.getCommitLog().pickupStoreTimestamp(minPhyOffset, size);
     }
 

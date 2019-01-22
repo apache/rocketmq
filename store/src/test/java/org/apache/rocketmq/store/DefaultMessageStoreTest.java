@@ -22,6 +22,7 @@ import java.io.RandomAccessFile;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.OverlappingFileLockException;
@@ -38,10 +39,14 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
+@RunWith(MockitoJUnitRunner.class)
 public class DefaultMessageStoreTest {
     private final String StoreMessage = "Once, there was a chance for me!";
     private int QUEUE_TOTAL = 100;
@@ -324,7 +329,7 @@ public class DefaultMessageStoreTest {
         int queueId = 0;
         int wrongQueueId = 1;
         String topic = "FooBar";
-        AppendMessageResult[] appendMessageResults = putMessages(totalCount, topic, queueId, true);
+        AppendMessageResult[] appendMessageResults = putMessages(totalCount, topic, queueId, false);
         Thread.sleep(10);
 
         long offset = messageStore.getOffsetInQueueByTime(topic, wrongQueueId, appendMessageResults[0].getStoreTimestamp());
@@ -338,7 +343,7 @@ public class DefaultMessageStoreTest {
         int queueId = 0;
         int wrongQueueId = 1;
         String topic = "FooBar";
-        putMessages(totalCount, topic, queueId, true);
+        putMessages(totalCount, topic, queueId, false);
         Thread.sleep(10);
 
         long messageStoreTimeStamp = messageStore.getMessageStoreTimeStamp(topic, wrongQueueId, 0);
@@ -366,7 +371,7 @@ public class DefaultMessageStoreTest {
         final int totalCount = 10;
         int queueId = 0;
         String topic = "FooBar";
-        AppendMessageResult[] appendMessageResults = putMessages(totalCount, topic, queueId, true);
+        AppendMessageResult[] appendMessageResults = putMessages(totalCount, topic, queueId, false);
         Thread.sleep(10);
 
         ConsumeQueue consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
@@ -375,6 +380,65 @@ public class DefaultMessageStoreTest {
             long messageStoreTimeStamp = messageStore.getMessageStoreTimeStamp(topic, queueId, i);
             assertThat(messageStoreTimeStamp).isEqualTo(appendMessageResults[i].getStoreTimestamp());
         }
+    }
+
+    @Test
+    public void should_return_negative_one_when_invoke_getEarliestMessageTime_if_message_not_exist() {
+        long earliestMessageTime = messageStore.getEarliestMessageTime();
+
+        assertThat(earliestMessageTime).isEqualTo(-1);
+    }
+
+    @Test
+    public void should_return_the_first_message_store_timestamp_when_invoke_getEarliestMessageTime_if_everything_is_ok() throws InterruptedException {
+        final int totalCount = 10;
+        int queueId = 0;
+        String topic = "FooBar";
+        AppendMessageResult[] appendMessageResults = putMessages(totalCount, topic, queueId, false);
+        Thread.sleep(10);
+
+        long earliestMessageTime = messageStore.getEarliestMessageTime();
+
+        assertThat(earliestMessageTime).isEqualTo(appendMessageResults[0].getStoreTimestamp());
+    }
+
+    @Test
+    public void should_return_negative_one_when_invoke_getStoreTime_if_incomming_param_is_null() {
+        long storeTime = getDefaultMessageStore().getStoreTime(null);
+
+        assertThat(storeTime).isEqualTo(-1);
+    }
+
+    @Test
+    public void should_get_store_time_successfully_when_invoke_getStoreTime_if_everything_is_ok() throws InterruptedException {
+        final int totalCount = 10;
+        int queueId = 0;
+        String topic = "FooBar";
+        AppendMessageResult[] appendMessageResults = putMessages(totalCount, topic, queueId, false);
+        Thread.sleep(10);
+        ConsumeQueue consumeQueue = messageStore.getConsumeQueue(topic, queueId);
+
+        for (int i = 0; i < totalCount; i++) {
+            SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(i);
+            long storeTime = getDefaultMessageStore().getStoreTime(indexBuffer);
+            assertThat(storeTime).isEqualTo(appendMessageResults[i].getStoreTimestamp());
+        }
+    }
+
+    @Test
+    public void should_return_negative_one_when_invoke_getStoreTime_if_phyOffset_is_less_than_commitLog_s_minOffset() {
+        long phyOffset = -10;
+        int size = 138;
+        ByteBuffer byteBuffer = ByteBuffer.allocate(100);
+        byteBuffer.putLong(phyOffset);
+        byteBuffer.putInt(size);
+        byteBuffer.flip();
+        MappedFile mappedFile = mock(MappedFile.class);
+        SelectMappedBufferResult result = new SelectMappedBufferResult(0, byteBuffer, size, mappedFile);
+
+        long storeTime = getDefaultMessageStore().getStoreTime(result);
+
+        assertThat(storeTime).isEqualTo(-1);
     }
 
     private DefaultMessageStore getDefaultMessageStore() {
