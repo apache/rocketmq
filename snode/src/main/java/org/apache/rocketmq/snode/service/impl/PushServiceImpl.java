@@ -16,11 +16,8 @@
  */
 package org.apache.rocketmq.snode.service.impl;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,7 +31,6 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
-import org.apache.rocketmq.snode.client.ClientChannelInfo;
 import org.apache.rocketmq.snode.constant.SnodeConstant;
 import org.apache.rocketmq.snode.service.PushService;
 
@@ -82,15 +78,15 @@ public class PushServiceImpl implements PushService {
                     pushMessageHeader.setQueueId(queueId);
                     RemotingCommand pushMessage = RemotingCommand.createRequestCommand(RequestCode.SNODE_PUSH_MESSAGE, pushMessageHeader);
                     pushMessage.setBody(message);
-                    ConcurrentHashMap consumerGroupTable = snodeController.getConsumerManager().getClientInfoTable(topic, queueId);
-                    if (consumerGroupTable != null) {
-                        Iterator<Map.Entry<String, ClientChannelInfo>> itChannel = consumerGroupTable.entrySet().iterator();
-                        while (itChannel.hasNext()) {
-                            Entry<String, ClientChannelInfo> clientChannelInfoEntry = itChannel.next();
-                            RemotingChannel remotingChannel = clientChannelInfoEntry.getValue().getChannel();
+                    Set<RemotingChannel> consumerTable = snodeController.getSubscriptionManager().getPushableChannel(topic, queueId);
+                    log.info("Push message to consumerTable: {}", consumerTable);
+                    if (consumerTable != null) {
+                        for (RemotingChannel remotingChannel : consumerTable) {
                             if (remotingChannel.isWritable()) {
-                                log.warn("Push message to topic: {} queueId: {} consumer group:{}, message:{}", topic, queueId, clientChannelInfoEntry.getKey(), pushMessage);
+                                log.info("Push message to remotingChannel: {}", remotingChannel.remoteAddress());
                                 snodeController.getSnodeServer().push(remotingChannel, pushMessage, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
+                            } else {
+                                log.warn("Remoting channel is not writable: {}", remotingChannel.remoteAddress());
                             }
                         }
                     } else {
@@ -111,20 +107,10 @@ public class PushServiceImpl implements PushService {
     }
 
     @Override
-    public boolean registerPushSession(String consumerGroup) {
-        return false;
-    }
-
-    @Override
-    public void unregisterPushSession(String consumerGroup) {
-
-    }
-
-    @Override
     public void pushMessage(final String topic, final Integer queueId, final byte[] message,
         final RemotingCommand response) {
-        ConcurrentHashMap<String, ClientChannelInfo> clientChannelInfoTable = this.snodeController.getConsumerManager().getClientInfoTable(topic, queueId);
-        if (clientChannelInfoTable != null) {
+        Set<RemotingChannel> pushableChannels = this.snodeController.getSubscriptionManager().getPushableChannel(topic, queueId);
+        if (pushableChannels != null) {
             PushTask pushTask = new PushTask(topic, queueId, message, response);
             pushMessageExecutorService.submit(pushTask);
         } else {

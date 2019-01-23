@@ -20,6 +20,7 @@ package org.apache.rocketmq.remoting.netty;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
 import java.net.SocketAddress;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -33,6 +34,13 @@ public class NettyChannelImpl implements RemotingChannel {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(ROCKETMQ_REMOTING);
 
     private final Channel channel;
+
+    private ChannelHandlerContext channelHandlerContext;
+
+    public NettyChannelImpl(ChannelHandlerContext channelHandlerContext) {
+        this.channelHandlerContext = channelHandlerContext;
+        this.channel = channelHandlerContext.channel();
+    }
 
     public NettyChannelImpl(Channel channel) {
         this.channel = channel;
@@ -64,7 +72,7 @@ public class NettyChannelImpl implements RemotingChannel {
         channel.close().addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
-                log.info("CloseChannel: close the connection to remote address[{}] result: {}", addrRemote,
+                log.info("CloseChannel NettyChannelImpl: close the connection to remote address[{}] result: {}", addrRemote,
                     future.isSuccess());
             }
         });
@@ -91,8 +99,12 @@ public class NettyChannelImpl implements RemotingChannel {
         }
     }
 
-    public io.netty.channel.Channel getChannel() {
+    public Channel getChannel() {
         return channel;
+    }
+
+    public ChannelHandlerContext getChannelHandlerContext() {
+        return channelHandlerContext;
     }
 
     @Override
@@ -105,7 +117,6 @@ public class NettyChannelImpl implements RemotingChannel {
         final NettyChannelImpl that = (NettyChannelImpl) o;
 
         return channel != null ? channel.equals(that.channel) : that.channel == null;
-
     }
 
     @Override

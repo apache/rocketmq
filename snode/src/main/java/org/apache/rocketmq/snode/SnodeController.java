@@ -38,21 +38,24 @@ import org.apache.rocketmq.remoting.interceptor.Interceptor;
 import org.apache.rocketmq.remoting.interceptor.InterceptorFactory;
 import org.apache.rocketmq.remoting.interceptor.InterceptorGroup;
 import org.apache.rocketmq.snode.client.ClientHousekeepingService;
-import org.apache.rocketmq.snode.client.ConsumerIdsChangeListener;
-import org.apache.rocketmq.snode.client.ConsumerManager;
-import org.apache.rocketmq.snode.client.DefaultConsumerIdsChangeListener;
-import org.apache.rocketmq.snode.client.ProducerManager;
+import org.apache.rocketmq.snode.client.ClientManager;
 import org.apache.rocketmq.snode.client.SubscriptionGroupManager;
+import org.apache.rocketmq.snode.client.SubscriptionManager;
+import org.apache.rocketmq.snode.client.impl.ConsumerManagerImpl;
+import org.apache.rocketmq.snode.client.impl.ProducerManagerImpl;
+import org.apache.rocketmq.snode.client.impl.SubscriptionManagerImpl;
 import org.apache.rocketmq.snode.config.SnodeConfig;
 import org.apache.rocketmq.snode.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.snode.processor.ConsumerManageProcessor;
 import org.apache.rocketmq.snode.processor.HeartbeatProcessor;
 import org.apache.rocketmq.snode.processor.PullMessageProcessor;
 import org.apache.rocketmq.snode.processor.SendMessageProcessor;
+import org.apache.rocketmq.snode.service.ClientService;
 import org.apache.rocketmq.snode.service.EnodeService;
 import org.apache.rocketmq.snode.service.NnodeService;
 import org.apache.rocketmq.snode.service.PushService;
 import org.apache.rocketmq.snode.service.ScheduledService;
+import org.apache.rocketmq.snode.service.impl.ClientServiceImpl;
 import org.apache.rocketmq.snode.service.impl.EnodeServiceImpl;
 import org.apache.rocketmq.snode.service.impl.NnodeServiceImpl;
 import org.apache.rocketmq.snode.service.impl.PushServiceImpl;
@@ -74,8 +77,11 @@ public class SnodeController {
     private NnodeService nnodeService;
     private ExecutorService consumerManagerExecutor;
     private ScheduledService scheduledService;
-    private ProducerManager producerManager;
-    private ConsumerManager consumerManager;
+//    private ProducerManager producerManager;
+//    private ConsumerManager consumerManager;
+    private ClientManager producerManagerImpl;
+    private ClientManager consumerManagerImpl;
+    private SubscriptionManager subscriptionManager;
     private ClientHousekeepingService clientHousekeepingService;
     private SubscriptionGroupManager subscriptionGroupManager;
     private ConsumerOffsetManager consumerOffsetManager;
@@ -87,6 +93,7 @@ public class SnodeController {
     private InterceptorGroup consumeMessageInterceptorGroup;
     private InterceptorGroup sendMessageInterceptorGroup;
     private PushService pushService;
+    private ClientService clientService;
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "SnodeControllerScheduledThread"));
@@ -152,30 +159,27 @@ public class SnodeController {
             log.info("Set user specified name server address: {}", this.snodeConfig.getNamesrvAddr());
         }
 
-        this.producerManager = new ProducerManager();
+//        this.producerManager = new ProducerManager();
 
-        ConsumerIdsChangeListener consumerIdsChangeListener = new DefaultConsumerIdsChangeListener(this);
-        this.consumerManager = new ConsumerManager(consumerIdsChangeListener);
+//        ConsumerIdsChangeListener consumerIdsChangeListener = new DefaultConsumerIdsChangeListener(this);
+//        this.consumerManager = new ConsumerManager(consumerIdsChangeListener);
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
-        this.clientHousekeepingService = new ClientHousekeepingService(this.producerManager, this.consumerManager);
         this.consumerOffsetManager = new ConsumerOffsetManager(this);
         this.consumerManageProcessor = new ConsumerManageProcessor(this);
         this.sendMessageProcessor = new SendMessageProcessor(this);
         this.heartbeatProcessor = new HeartbeatProcessor(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
         this.pushService = new PushServiceImpl(this);
-
+        this.clientService = new ClientServiceImpl(this);
+        this.subscriptionManager = new SubscriptionManagerImpl();
+        this.producerManagerImpl = new ProducerManagerImpl();
+        this.consumerManagerImpl = new ConsumerManagerImpl(this);
+        this.clientHousekeepingService = new ClientHousekeepingService(this.producerManagerImpl, this.consumerManagerImpl);
     }
 
     public SnodeConfig getSnodeConfig() {
         return snodeConfig;
     }
-
-//    private void initFlowControlIntercepterGruop() {
-//        this.remotingServerInterceptorGroup = new InterceptorGroup();
-//        List<Interceptor> remotingServerInterceptors = InterceptorFactory.getInstance().loadInterceptors(this.snodeConfig.getRemotingServerInterceptorPath());
-//        this.remotingServerInterceptorGroup.registerInterceptor(flowControlService);
-//    }
 
     private void initRemotingServerInterceptorGroup() {
         List<Interceptor> remotingServerInterceptors = InterceptorFactory.getInstance().loadInterceptors(this.snodeConfig.getRemotingServerInterceptorPath());
@@ -253,17 +257,17 @@ public class SnodeController {
         this.pushService.shutdown();
     }
 
-    public ProducerManager getProducerManager() {
-        return producerManager;
-    }
+//    public ProducerManager getProducerManager() {
+//        return producerManager;
+//    }
 
     public RemotingServer getSnodeServer() {
         return snodeServer;
     }
 
-    public ConsumerManager getConsumerManager() {
-        return consumerManager;
-    }
+//    public ConsumerManager getConsumerManager() {
+//        return consumerManager;
+//    }
 
     public SubscriptionGroupManager getSubscriptionGroupManager() {
         return subscriptionGroupManager;
@@ -320,5 +324,37 @@ public class SnodeController {
     public void setRemotingServerInterceptorGroup(
         InterceptorGroup remotingServerInterceptorGroup) {
         this.remotingServerInterceptorGroup = remotingServerInterceptorGroup;
+    }
+
+    public ClientManager getProducerManagerImpl() {
+        return producerManagerImpl;
+    }
+
+    public void setProducerManagerImpl(ClientManager producerManagerImpl) {
+        this.producerManagerImpl = producerManagerImpl;
+    }
+
+    public ClientManager getConsumerManagerImpl() {
+        return consumerManagerImpl;
+    }
+
+    public void setConsumerManagerImpl(ClientManager consumerManagerImpl) {
+        this.consumerManagerImpl = consumerManagerImpl;
+    }
+
+    public SubscriptionManager getSubscriptionManager() {
+        return subscriptionManager;
+    }
+
+    public void setSubscriptionManager(SubscriptionManager subscriptionManager) {
+        this.subscriptionManager = subscriptionManager;
+    }
+
+    public ClientService getClientService() {
+        return clientService;
+    }
+
+    public void setClientService(ClientService clientService) {
+        this.clientService = clientService;
     }
 }

@@ -55,16 +55,17 @@ public abstract class AbstractFlowControlService implements Interceptor {
     @Override
     public void beforeRequest(RequestContext requestContext) {
         String resourceName = getResourceName(requestContext);
-        String flowControlType = getFlowControlType();
         int resourceCount = getResourceCount(requestContext);
-        String resourceKey = buildResourceName(flowControlType, resourceName);
-        log.info("resourceKey: {} resourceCount: {}", resourceKey, resourceCount);
-        resourceCount = resourceCount == 0 ? 1 : resourceCount;
-        boolean acquired = SphO.entry(resourceKey, resourceCount);
-        if (acquired) {
-            this.acquiredThreadLocal.set(true);
-        } else {
-            rejectRequest(requestContext);
+        if (resourceName != null && resourceCount > 0) {
+            String flowControlType = getFlowControlType();
+            String resourceKey = buildResourceKey(flowControlType, resourceName);
+            log.debug("resourceKey: {} resourceCount: {}", resourceKey, resourceCount);
+            boolean acquired = SphO.entry(resourceKey, resourceCount);
+            if (acquired) {
+                this.acquiredThreadLocal.set(true);
+            } else {
+                rejectRequest(requestContext);
+            }
         }
     }
 
@@ -103,7 +104,7 @@ public abstract class AbstractFlowControlService implements Interceptor {
         return null;
     }
 
-    private String buildResourceName(String flowControlType, String flowControlResourceName) {
+    private String buildResourceKey(String flowControlType, String flowControlResourceName) {
         StringBuffer sb = new StringBuffer(32);
         sb.append(flowControlType).append(flowControlNameSeparator).append(flowControlResourceName);
         return sb.toString();
@@ -121,7 +122,7 @@ public abstract class AbstractFlowControlService implements Interceptor {
                 List<FlowControlRule> list = entry.getValue();
                 for (FlowControlRule flowControlRule : list) {
                     FlowRule rule1 = new FlowRule();
-                    rule1.setResource(buildResourceName(flowControlType, flowControlRule.getFlowControlResourceName()));
+                    rule1.setResource(buildResourceKey(flowControlType, flowControlRule.getFlowControlResourceName()));
                     rule1.setCount(flowControlRule.getFlowControlResourceCount());
                     rule1.setGrade(flowControlRule.getFlowControlGrade());
                     rule1.setLimitApp("default");

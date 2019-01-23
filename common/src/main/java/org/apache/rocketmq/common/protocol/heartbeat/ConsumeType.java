@@ -24,7 +24,9 @@ public enum ConsumeType {
 
     CONSUME_ACTIVELY("PULL"),
 
-    CONSUME_PASSIVELY("PUSH");
+    CONSUME_PASSIVELY("PUSH"),
+
+    CONSUME_PUSH("REAL_PUSH");
 
     private String typeCN;
 

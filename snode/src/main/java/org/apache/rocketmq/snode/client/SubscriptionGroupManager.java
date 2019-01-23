@@ -33,7 +33,7 @@ public class SubscriptionGroupManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     private final ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
-        new ConcurrentHashMap<String, SubscriptionGroupConfig>(1024);
+        new ConcurrentHashMap<>(1024);
     private final DataVersion dataVersion = new DataVersion();
     private transient SnodeController snodeController;
 
@@ -104,7 +104,7 @@ public class SubscriptionGroupManager {
 
         this.dataVersion.nextVersion();
 
-        this.persistToEnode(config);
+        this.persistSubscription(config);
     }
 
     public void disableConsume(final String groupName) {
@@ -123,10 +123,10 @@ public class SubscriptionGroupManager {
                 subscriptionGroupConfig.setGroupName(group);
                 SubscriptionGroupConfig preConfig = this.subscriptionGroupTable.putIfAbsent(group, subscriptionGroupConfig);
                 if (null == preConfig) {
-                    log.info("auto create a subscription group, {}", subscriptionGroupConfig.toString());
+                    log.info("Auto create a subscription group, {}", subscriptionGroupConfig.toString());
                 }
                 this.dataVersion.nextVersion();
-                this.persistToEnode(subscriptionGroupConfig);
+                this.persistSubscription(subscriptionGroupConfig);
             }
         }
 
@@ -173,13 +173,13 @@ public class SubscriptionGroupManager {
         if (old != null) {
             log.info("delete subscription group OK, subscription group:{}", old);
             this.dataVersion.nextVersion();
-            this.persistToEnode(old);
+            this.persistSubscription(old);
         } else {
             log.warn("delete subscription group failed, subscription groupName: {} not exist", groupName);
         }
     }
 
-    void persistToEnode(SubscriptionGroupConfig config) {
+    void persistSubscription(SubscriptionGroupConfig config) {
         this.snodeController.getEnodeService().persistSubscriptionGroupConfig(config);
     }
 }

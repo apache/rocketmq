@@ -19,6 +19,7 @@ package org.apache.rocketmq.remoting.transport.rocketmq;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
@@ -54,6 +55,7 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.interceptor.InterceptorGroup;
 import org.apache.rocketmq.remoting.netty.FileRegionEncoder;
+import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.apache.rocketmq.remoting.netty.TlsHelper;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
@@ -258,7 +260,13 @@ public class NettyRemotingServer extends NettyRemotingServerAbstract implements 
     public void invokeOneway(RemotingChannel remotingChannel, RemotingCommand request,
         long timeoutMillis) throws InterruptedException,
         RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
-        this.invokeOnewayImpl(((NettyChannelImpl) remotingChannel).getChannel(), request, timeoutMillis);
+        Channel channel = null;
+        if (remotingChannel instanceof NettyChannelImpl) {
+            channel = ((NettyChannelImpl) remotingChannel).getChannel();
+        } else if (remotingChannel instanceof NettyChannelHandlerContextImpl) {
+            channel = ((NettyChannelHandlerContextImpl) remotingChannel).getChannelHandlerContext().channel();
+        }
+        this.invokeOnewayImpl(channel, request, timeoutMillis);
     }
 
     @Override

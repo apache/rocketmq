@@ -16,11 +16,9 @@
  */
 package org.apache.rocketmq.snode.offset;
 
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -46,31 +44,8 @@ public class ConsumerOffsetManager {
 
     private transient SnodeController snodeController;
 
-    public ConsumerOffsetManager() {
-    }
-
     public ConsumerOffsetManager(SnodeController brokerController) {
         this.snodeController = brokerController;
-    }
-
-    public void scanUnsubscribedTopic(String enodeName) throws InterruptedException, RemotingTimeoutException,
-        RemotingSendRequestException, RemotingConnectException, RemotingCommandException {
-        Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
-            String topicAtGroup = next.getKey();
-            String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
-            if (arrays.length == 2) {
-                String topic = arrays[0];
-                String group = arrays[1];
-
-                if (null == snodeController.getConsumerManager().findSubscriptionData(group, topic)
-                    && this.offsetBehindMuchThanData(enodeName, topic, next.getValue())) {
-                    it.remove();
-                    log.warn("Remove topic offset, {}", topicAtGroup);
-                }
-            }
-        }
     }
 
     private String buildKey(final String enodeName, final String topic, final String consumerGroup) {
@@ -113,40 +88,6 @@ public class ConsumerOffsetManager {
         return result;
     }
 
-    public Set<String> whichTopicByConsumer(final String group) {
-        Set<String> topics = new HashSet<String>();
-
-        Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
-            String topicAtGroup = next.getKey();
-            String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
-            if (arrays.length == 2) {
-                if (group.equals(arrays[1])) {
-                    topics.add(arrays[0]);
-                }
-            }
-        }
-
-        return topics;
-    }
-
-    public Set<String> whichGroupByTopic(final String topic) {
-        Set<String> groups = new HashSet<String>();
-        Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
-            String topicAtGroup = next.getKey();
-            String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
-            if (arrays.length == 2) {
-                if (topic.equals(arrays[0])) {
-                    groups.add(arrays[1]);
-                }
-            }
-        }
-
-        return groups;
-    }
 
     public void commitOffset(final String enodeName, final String clientHost, final String group, final String topic,
         final int queueId,

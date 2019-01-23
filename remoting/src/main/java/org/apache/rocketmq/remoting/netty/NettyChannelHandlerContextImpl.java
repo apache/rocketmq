@@ -59,7 +59,7 @@ public class NettyChannelHandlerContextImpl implements RemotingChannel {
         channelHandlerContext.close().addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
-                log.info("CloseChannel: close the connection to remote address[{}] result: {}", addrRemote,
+                log.info("CloseChannel NettyChannelHandlerContextImpl: close the connection to remote address[{}] result: {}", addrRemote,
                     future.isSuccess());
             }
         });

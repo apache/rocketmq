@@ -14,20 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client;
+package org.apache.rocketmq.snode.client.impl;
 
-public enum ConsumerGroupEvent {
+import org.apache.rocketmq.remoting.RemotingChannel;
 
-    /**
-     * Some consumers in the group are changed.
-     */
-    CHANGE,
-    /**
-     * The group of consumer is unregistered.
-     */
-    UNREGISTER,
-    /**
-     * The group of consumer is registered.
-     */
-    REGISTER
+public class ProducerManagerImpl extends ClientManagerImpl {
+
+    @Override
+    public void onClosed(String group, RemotingChannel remotingChannel) {
+
+    }
+
+    @Override
+    public void onUnregister(String group, RemotingChannel remotingChannel) {
+
+    }
+
+    @Override
+    public void onRegister(String group, RemotingChannel remotingChannel) {
+
+    }
+
 }

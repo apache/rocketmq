@@ -41,7 +41,10 @@ public class RequestSizeFlowControlServiceImpl extends AbstractFlowControlServic
      */
     @Override
     public int getResourceCount(RequestContext requestContext) {
-        return requestContext.getRequest().getBody().length / 1024;
+        if (requestContext.getRequest().getBody() != null) {
+            return requestContext.getRequest().getBody().length / 1024;
+        }
+        return 0;
     }
 
     @Override

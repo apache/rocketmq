@@ -59,7 +59,6 @@ public abstract class NettyRemotingServerAbstract extends NettyRemotingAbstract 
             final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
             log.info("NETTY SERVER PIPELINE: channelActive, the channel[{}]", remoteAddress);
             super.channelActive(ctx);
-
             if (getChannelEventListener() != null) {
                 putNettyEvent(new NettyEvent(NettyEventType.CONNECT, remoteAddress, ctx.channel()));
             }

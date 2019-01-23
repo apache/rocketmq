@@ -31,12 +31,12 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.snode.SnodeController;
-import org.apache.rocketmq.snode.client.ConsumerGroupInfo;
 import org.apache.rocketmq.remoting.interceptor.ExceptionContext;
 import org.apache.rocketmq.remoting.interceptor.RequestContext;
 import org.apache.rocketmq.remoting.interceptor.ResponseContext;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.snode.SnodeController;
+import org.apache.rocketmq.snode.client.impl.Subscription;
 
 public class PullMessageProcessor implements RequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
@@ -95,9 +95,8 @@ public class PullMessageProcessor implements RequestProcessor {
 
         SubscriptionData subscriptionData;
         if (!hasSubscriptionFlag) {
-            ConsumerGroupInfo consumerGroupInfo =
-                this.snodeController.getConsumerManager().getConsumerGroupInfo(requestHeader.getConsumerGroup());
-            if (null == consumerGroupInfo) {
+            Subscription subscription = this.snodeController.getSubscriptionManager().getSubscription(requestHeader.getConsumerGroup());
+            if (null == subscription) {
                 log.warn("The consumer's group info not exist, group: {}", requestHeader.getConsumerGroup());
                 response.setCode(ResponseCode.SUBSCRIPTION_NOT_EXIST);
                 response.setRemark("The consumer's group info not exist" + FAQUrl.suggestTodo(FAQUrl.SAME_GROUP_DIFFERENT_TOPIC));
@@ -105,13 +104,13 @@ public class PullMessageProcessor implements RequestProcessor {
             }
 
             if (!subscriptionGroupConfig.isConsumeBroadcastEnable()
-                && consumerGroupInfo.getMessageModel() == MessageModel.BROADCASTING) {
+                && subscription.getMessageModel() == MessageModel.BROADCASTING) {
                 response.setCode(ResponseCode.NO_PERMISSION);
                 response.setRemark("The consumer group[" + requestHeader.getConsumerGroup() + "] can not consume by broadcast way");
                 return response;
             }
 
-            subscriptionData = consumerGroupInfo.findSubscriptionData(requestHeader.getTopic());
+            subscriptionData = subscription.getSubscriptionData(requestHeader.getTopic());
             if (null == subscriptionData) {
                 log.warn("The consumer's subscription not exist, group: {}, topic:{}", requestHeader.getConsumerGroup(), requestHeader.getTopic());
                 response.setCode(ResponseCode.SUBSCRIPTION_NOT_EXIST);

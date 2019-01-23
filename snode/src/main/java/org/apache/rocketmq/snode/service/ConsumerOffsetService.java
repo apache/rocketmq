@@ -14,9 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client;
+package org.apache.rocketmq.snode.service;
+public class ConsumerOffsetService {
 
-public interface ConsumerIdsChangeListener {
-
-    void handle(ConsumerGroupEvent event, String group, Object... args);
 }

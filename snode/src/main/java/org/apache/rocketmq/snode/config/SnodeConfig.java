@@ -67,6 +67,8 @@ public class SnodeConfig {
 
     private int snodePushMessageThreadPoolQueueCapacity = 10000;
 
+    private int slowConsumerThreshold = 1024;
+
     private final String sendMessageInterceptorPath = "META-INF/service/org.apache.rocketmq.snode.interceptor.SendMessageInterceptor";
 
     private final String consumeMessageInterceptorPath = "META-INF/service/org.apache.rocketmq.snode.interceptor.ConsumeMessageInterceptor";

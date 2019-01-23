@@ -19,9 +19,6 @@ package org.apache.rocketmq.snode.service;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface PushService {
-    boolean registerPushSession(String consumerGroup);
-
-    void unregisterPushSession(String consumerGroup);
 
     void pushMessage(final String topic, final Integer queueId, final byte[] message,
         final RemotingCommand response);

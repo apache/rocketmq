@@ -16,52 +16,65 @@
  */
 package org.apache.rocketmq.snode.client;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.common.ThreadFactoryImpl;
+import io.netty.channel.Channel;
+import io.netty.util.Attribute;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-/**
- * TODO Refactor housekeeping service
- */
+import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
+import org.apache.rocketmq.snode.client.impl.ClientRole;
+import org.apache.rocketmq.snode.constant.SnodeConstant;
+
 public class ClientHousekeepingService implements ChannelEventListener {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-    private final ProducerManager producerManager;
-    private final ConsumerManager consumerManager;
+    private final ClientManager producerManager;
+    private final ClientManager consumerManager;
 
-    private ScheduledExecutorService scheduledExecutorService = Executors
-        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ClientHousekeepingScheduledThread"));
-
-    public ClientHousekeepingService(final ProducerManager producerManager, final ConsumerManager consumerManager) {
+    public ClientHousekeepingService(final ClientManager producerManager,
+        final ClientManager consumerManager) {
         this.producerManager = producerManager;
         this.consumerManager = consumerManager;
     }
 
     public void start(long interval) {
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    ClientHousekeepingService.this.scanExceptionChannel();
-                } catch (Throwable e) {
-                    log.error("Error occurred when scan not active client channels.", e);
-                }
-            }
-        }, 1000 * 10, interval, TimeUnit.MILLISECONDS);
-    }
-
-    private void scanExceptionChannel() {
-        this.producerManager.scanNotActiveChannel();
-        this.consumerManager.scanNotActiveChannel();
+        this.producerManager.startScan(interval);
+        this.consumerManager.startScan(interval);
     }
 
     public void shutdown() {
-        this.scheduledExecutorService.shutdown();
+        this.producerManager.shutdown();
+        this.consumerManager.shutdown();
+    }
+
+    private ClientRole clientRole(RemotingChannel remotingChannel) {
+        if (remotingChannel instanceof NettyChannelImpl) {
+            Channel channel = ((NettyChannelImpl) remotingChannel).getChannel();
+            Attribute<ClientRole> clientRoleAttribute = channel.attr(SnodeConstant.NETTY_CLIENT_ROLE_ATTRIBUTE_KEY);
+            if (clientRoleAttribute != null) {
+                return clientRoleAttribute.get();
+            }
+        }
+        log.warn("RemotingChannel type error: {}", remotingChannel.getClass());
+        return null;
+    }
+
+    private void closeChannel(String remoteAddress, RemotingChannel remotingChannel) {
+        ClientRole clientRole = clientRole(remotingChannel);
+        if (clientRole != null) {
+            switch (clientRole) {
+                case Consumer:
+                    this.consumerManager.onClose(remoteAddress, remotingChannel);
+                    return;
+                case Producer:
+                    this.producerManager.onClose(remoteAddress, remotingChannel);
+                    return;
+                default:
+            }
+        }
+        log.warn("Close channel without any role");
     }
 
     @Override
@@ -73,21 +86,19 @@ public class ClientHousekeepingService implements ChannelEventListener {
     @Override
     public void onChannelClose(String remoteAddr, RemotingChannel remotingChannel) {
         log.info("Remoting channel closed: {}", RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()));
-        this.producerManager.doChannelCloseEvent(remoteAddr, remotingChannel);
-        this.consumerManager.doChannelCloseEvent(remoteAddr, remotingChannel);
+        closeChannel(remoteAddr, remotingChannel);
     }
 
     @Override
     public void onChannelException(String remoteAddr, RemotingChannel remotingChannel) {
         log.info("Remoting channel exception: {}", RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()));
-        this.producerManager.doChannelCloseEvent(remoteAddr, remotingChannel);
-        this.consumerManager.doChannelCloseEvent(remoteAddr, remotingChannel);
+        closeChannel(remoteAddr, remotingChannel);
+
     }
 
     @Override
     public void onChannelIdle(String remoteAddr, RemotingChannel remotingChannel) {
         log.info("Remoting channel idle: {}", RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()));
-        this.producerManager.doChannelCloseEvent(remoteAddr, remotingChannel);
-        this.consumerManager.doChannelCloseEvent(remoteAddr, remotingChannel);
+        closeChannel(remoteAddr, remotingChannel);
     }
 }

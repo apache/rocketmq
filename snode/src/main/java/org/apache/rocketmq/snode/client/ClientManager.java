@@ -14,26 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.constant;
+package org.apache.rocketmq.snode.client;
 
-import io.netty.util.AttributeKey;
-import org.apache.rocketmq.snode.client.impl.ClientRole;
+import java.util.List;
+import org.apache.rocketmq.remoting.RemotingChannel;
 
-public class SnodeConstant {
-    public static final long HEARTBEAT_TIME_OUT = 3000;
+public interface ClientManager {
+    boolean register(Client client);
 
-    public static final long ONE_WAY_TIMEOUT = 10;
+    void unRegister(String groupId, RemotingChannel remotingChannel);
 
-    public static final long DEFAULT_TIMEOUT_MILLS = 3000L;
+    void onClose(String groupId, RemotingChannel remotingChannel);
 
-    public static final long CONSUMER_TIMEOUT_MILLIS_WHEN_SUSPEND = 1000 * 30;
+    List<RemotingChannel> getChannels(String groupId);
 
-    public static final AttributeKey<ClientRole> NETTY_CLIENT_ROLE_ATTRIBUTE_KEY = AttributeKey.valueOf("netty.client.role");
+    List<String> getAllClientId(String groupId);
 
-    public static final String NETTY_PRODUCER_ROLE_ATTRIBUTE_VALUE = "Producer";
+    void startScan(long interval);
 
-    public static final String NETTY_CONSUMER_ROLE_ATTRIBUTE_VALUE = "Consumer";
-
-    public static final String NETTY_IOT_ROLE_ATTRIBUTE_VALUE = "IOTGroup";
-
+    void shutdown();
 }

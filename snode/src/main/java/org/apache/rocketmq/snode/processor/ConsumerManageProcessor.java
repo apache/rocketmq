@@ -41,7 +41,6 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
-import org.apache.rocketmq.snode.client.ConsumerGroupInfo;
 
 public class ConsumerManageProcessor implements RequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -127,24 +126,16 @@ public class ConsumerManageProcessor implements RequestProcessor {
             (GetConsumerListByGroupRequestHeader) request
                 .decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
 
-        ConsumerGroupInfo consumerGroupInfo =
-            this.snodeController.getConsumerManager().getConsumerGroupInfo(
-                requestHeader.getConsumerGroup());
-        if (consumerGroupInfo != null) {
-            List<String> clientIds = consumerGroupInfo.getAllClientId();
-            if (!clientIds.isEmpty()) {
-                GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
-                body.setConsumerIdList(clientIds);
-                response.setBody(body.encode());
-                response.setCode(ResponseCode.SUCCESS);
-                response.setRemark(null);
-                return response;
-            } else {
-                log.warn("GetAllClientId failed, {} {}", requestHeader.getConsumerGroup(),
-                    RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()));
-            }
+        List<String> clientIds = this.snodeController.getConsumerManagerImpl().getAllClientId(requestHeader.getConsumerGroup());
+        if (!clientIds.isEmpty()) {
+            GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
+            body.setConsumerIdList(clientIds);
+            response.setBody(body.encode());
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+            return response;
         } else {
-            log.warn("GetConsumerGroupInfo failed, {} {}", requestHeader.getConsumerGroup(),
+            log.warn("GetAllClientId failed, {} {}", requestHeader.getConsumerGroup(),
                 RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()));
         }
 

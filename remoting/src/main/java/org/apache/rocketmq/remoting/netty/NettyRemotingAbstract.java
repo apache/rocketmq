@@ -164,19 +164,18 @@ public abstract class NettyRemotingAbstract {
      * </p>
      *
      * @param ctx Channel handler context.
-     * @param msg incoming remoting command.
+     * @param command incoming remoting command.
      * @throws Exception if there were any error while processing the incoming command.
      */
-    public void processMessageReceived(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
-        final RemotingCommand cmd = msg;
+    public void processMessageReceived(ChannelHandlerContext ctx, RemotingCommand command) throws Exception {
         final RemotingChannel remotingChannel = new NettyChannelHandlerContextImpl(ctx);
-        if (cmd != null) {
-            switch (cmd.getType()) {
+        if (command != null) {
+            switch (command.getType()) {
                 case REQUEST_COMMAND:
-                    processRequestCommand(remotingChannel, cmd);
+                    processRequestCommand(remotingChannel, command);
                     break;
                 case RESPONSE_COMMAND:
-                    processResponseCommand(ctx, cmd);
+                    processResponseCommand(ctx, command);
                     break;
                 default:
                     break;
@@ -191,8 +190,8 @@ public abstract class NettyRemotingAbstract {
      * @param cmd request command.
      */
     public void processRequestCommand(final RemotingChannel remotingChannel, final RemotingCommand cmd) {
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = (NettyChannelHandlerContextImpl) remotingChannel;
-        final ChannelHandlerContext ctx = nettyChannelHandlerContext.getChannelHandlerContext();
+        NettyChannelHandlerContextImpl nettyChannel = (NettyChannelHandlerContextImpl) remotingChannel;
+        final ChannelHandlerContext ctx = nettyChannel.getChannelHandlerContext();
         final Pair<RequestProcessor, ExecutorService> matched = this.processorTable.get(cmd.getCode());
         final Pair<RequestProcessor, ExecutorService> pair = null == matched ? this.defaultRequestProcessor : matched;
         final int opaque = cmd.getOpaque();
@@ -423,7 +422,7 @@ public abstract class NettyRemotingAbstract {
             return response;
         } catch (InterruptedException | RemotingSendRequestException | RemotingTimeoutException ex) {
             InterceptorInvoker.invokeOnException(interceptorGroup, remotingChannel, request, ex, null);
-            log.error("Sync invoke error ", ex);
+            log.error("Sync invoke error", ex);
             throw ex;
         }
     }
@@ -497,13 +496,6 @@ public abstract class NettyRemotingAbstract {
         final InvokeCallback invokeCallback)
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         invokeAsyncImpl(null, channel, request, timeoutMillis, invokeCallback);
-    }
-
-    public void invokeAsyncImpl(final String addr, final RemotingCommand request,
-        final long timeoutMillis,
-        final InvokeCallback invokeCallback)
-        throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
-        invokeAsyncImpl(addr, null, request, timeoutMillis, invokeCallback);
     }
 
     public void invokeAsyncImpl(final String addr, final Channel currentChannel, final RemotingCommand request,

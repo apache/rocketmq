@@ -14,26 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.constant;
+package org.apache.rocketmq.snode.client.impl;
 
-import io.netty.util.AttributeKey;
-import org.apache.rocketmq.snode.client.impl.ClientRole;
+import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.snode.client.SlowConsumerService;
 
-public class SnodeConstant {
-    public static final long HEARTBEAT_TIME_OUT = 3000;
+public class SlowConsumerServiceImpl implements SlowConsumerService {
 
-    public static final long ONE_WAY_TIMEOUT = 10;
-
-    public static final long DEFAULT_TIMEOUT_MILLS = 3000L;
-
-    public static final long CONSUMER_TIMEOUT_MILLIS_WHEN_SUSPEND = 1000 * 30;
-
-    public static final AttributeKey<ClientRole> NETTY_CLIENT_ROLE_ATTRIBUTE_KEY = AttributeKey.valueOf("netty.client.role");
-
-    public static final String NETTY_PRODUCER_ROLE_ATTRIBUTE_VALUE = "Producer";
-
-    public static final String NETTY_CONSUMER_ROLE_ATTRIBUTE_VALUE = "Consumer";
-
-    public static final String NETTY_IOT_ROLE_ATTRIBUTE_VALUE = "IOTGroup";
-
+    @Override
+    public boolean isSlowConsumer(long latestLogicOffset, String topic, String queueId,
+        RemotingChannel remotingChannel) {
+        return false;
+    }
 }

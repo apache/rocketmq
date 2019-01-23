@@ -40,8 +40,6 @@ public class ConsumerGroupInfo {
     private final ConcurrentMap<RemotingChannel, ClientChannelInfo> channelInfoTable =
         new ConcurrentHashMap<>(16);
 
-    private final ConcurrentHashMap<RemotingChannel, Set<SubscriptionData>> channelSubscriptionTable = new ConcurrentHashMap<>(16);
-
     private volatile ConsumeType consumeType;
     private volatile MessageModel messageModel;
     private volatile ConsumeFromWhere consumeFromWhere;
