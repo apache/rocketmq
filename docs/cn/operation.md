@@ -9,7 +9,7 @@
 ##### 1）启动 NameServer
 
 ```bash
-### 首先启动Name Server，例如机器IP为：192.161.1:9876
+### 首先启动Name Server
 $ nohup sh mqnamesrv &
  
 ### 验证Name Server 是否启动成功
@@ -20,7 +20,7 @@ The Name Server boot success...
 ##### 2）启动 Broker
 
 ```bash
-### 启动Broker，例如机器IP为：192.161.1:9876
+### 启动Broker
 $ nohup sh bin/mqbroker -n localhost:9876 &
 ### 验证Name Server 是否启动成功
 $ tail -f ~/logs/rocketmqlogs/Broker.log 
@@ -31,16 +31,16 @@ The broker[%s, 172.30.30.233:10911] boot success...
 
 一个集群无Slave，全是Master，例如2个Master或者3个Master，这种模式的优缺点如下：
 
-- 优点：配置简单，单个Master宕机或重启维护对应用无影响，在磁盘配置为RAID10时，即使机器宕机不可恢复情况下，由于RAID10磁盘非常可靠，消息也不会丢（异步刷盘丢失少量消息，同步刷盘一条不丢）。性能最高；
+- 优点：配置简单，单个Master宕机或重启维护对应用无影响，在磁盘配置为RAID10时，即使机器宕机不可恢复情况下，由于RAID10磁盘非常可靠，消息也不会丢（异步刷盘丢失少量消息，同步刷盘一条不丢），性能最高；
 
-- 缺点：单台机器宕机期间，这台机器上未被消费的消息在机器恢复之前不可订阅，消息实时性会受到受到影响。
+- 缺点：单台机器宕机期间，这台机器上未被消费的消息在机器恢复之前不可订阅，消息实时性会受到影响。
 
 ##### 1）启动NameServer
 
-NameServer需要先于Broker启动，生产环境 需要启动多个保证高可用，一般规模的集群启动3个NameServer即可，各节点的启动命令相同，命令如下：
+NameServer需要先于Broker启动，且如果在生产环境使用，为了保证高可用，建议一般规模的集群启动3个NameServer，各节点的启动命令相同，如下：
 
 ```bash
-### 首先启动Name Server，例如机器IP为：192.161.1:9876
+### 首先启动Name Server
 $ nohup sh mqnamesrv &
  
 ### 验证Name Server 是否启动成功
@@ -51,29 +51,29 @@ The Name Server boot success...
 ##### 2）启动Broker集群
 
 ```bash
-### 在机器A，启动第一个Master
+### 在机器A，启动第一个Master，例如NameServer的IP为：192.161.1
 $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-a.properties &
  
-### 在机器B，启动第二个Master
+### 在机器B，启动第二个Master，例如NameServer的IP为：192.161.1
 $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-b.properties &
 
 ...
 ```
 
-如上启动命令是在单个NameServer情况下使用的。对于多个NameServer的集群，Broker启动命令中 -n后面的地址列表用分号隔开即可，例如 192.161.1:9876;192.161.2:9876。
+如上启动命令是在单个NameServer情况下使用的。对于多个NameServer的集群，Broker启动命令中`-n`后面的地址列表用分号隔开即可，例如 `192.161.1:9876;192.161.2:9876`。
 
 #### 1.3 多Master多Slave模式-异步复制
 
-每个Master配置一个Slave，有多对Master-Slave，HA采用异步复制方式，主备有短暂消息延迟，毫秒级，这种模式的优缺点如下：
+每个Master配置一个Slave，有多对Master-Slave，HA采用异步复制方式，主备有短暂消息延迟（毫秒级），这种模式的优缺点如下：
 
-- 优点：即使磁盘损坏，消息丢失的非常少，且消息实时性不会受影响，因为Master宕机后，消费者仍然可以从Slave消费，此过程对应用透明。不需要人工干预。性能同多Master模式几乎一样；
+- 优点：即使磁盘损坏，消息丢失的非常少，且消息实时性不会受影响，同时Master宕机后，消费者仍然可以从Slave消费，而且此过程对应用透明，不需要人工干预，性能同多Master模式几乎一样；
 
-- 缺点：Master宕机，磁盘损坏情况，会丢失少量消息。
+- 缺点：Master宕机，磁盘损坏情况下会丢失少量消息。
 
 ##### 1）启动NameServer
 
 ```bash
-### 首先启动Name Server，例如机器IP为：192.161.1:9876
+### 首先启动Name Server
 $ nohup sh mqnamesrv &
  
 ### 验证Name Server 是否启动成功
@@ -84,31 +84,31 @@ The Name Server boot success...
 ##### 2）启动Broker集群
 
 ```bash
-### 在机器A，启动第一个Master
+### 在机器A，启动第一个Master，例如NameServer的IP为：192.161.1
 $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-a.properties &
  
-### 在机器B，启动第二个Master
+### 在机器B，启动第二个Master，例如NameServer的IP为：192.161.1
 $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-b.properties &
  
-### 在机器C，启动第一个Slave
+### 在机器C，启动第一个Slave，例如NameServer的IP为：192.161.1
 $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-a-s.properties &
  
-### 在机器D，启动第二个Slave
+### 在机器D，启动第二个Slave，例如NameServer的IP为：192.161.1
 $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-b-s.properties &
 ```
 
 #### 1.4 多Master多Slave模式-同步双写
 
-每个Master配置一个Slave，有多对Master-Slave，HA采用同步双写方式，主备都写成功，向应用返回成功，这种模式的优缺点如下：
+每个Master配置一个Slave，有多对Master-Slave，HA采用同步双写方式，即只有主备都写成功，才向应用返回成功，这种模式的优缺点如下：
 
-- 优点：数据与服务都无单点，Master宕机情况下，消息无延迟，服务可用性与数据可用性都非常高；
+- 优点：数据与服务都无单点故障，Master宕机情况下，消息无延迟，服务可用性与数据可用性都非常高；
 
-- 缺点：性能比异步复制模式略低，大约低10%左右，发送单个消息的RT会略高。目前主宕机后，备机不能自动切换为主机，后续会支持自动切换功能。
+- 缺点：性能比异步复制模式略低（大约低10%左右），发送单个消息的RT会略高，且目前版本在主节点宕机后，备机不能自动切换为主机。
 
 ##### 1）启动NameServer
 
 ```bash
-### 首先启动Name Server，例如机器IP为：192.161.1:9876
+### 首先启动Name Server
 $ nohup sh mqnamesrv &
  
 ### 验证Name Server 是否启动成功
@@ -119,16 +119,16 @@ The Name Server boot success...
 ##### 2）启动Broker集群
 
 ```bash
-### 在机器A，启动第一个Master
+### 在机器A，启动第一个Master，例如NameServer的IP为：192.161.1
 $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-a.properties &
  
-### 在机器B，启动第二个Master
+### 在机器B，启动第二个Master，例如NameServer的IP为：192.161.1
 $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b.properties &
  
-### 在机器C，启动第一个Slave
+### 在机器C，启动第一个Slave，例如NameServer的IP为：192.161.1
 $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-a-s.properties &
  
-### 在机器D，启动第二个Slave
+### 在机器D，启动第二个Slave，例如NameServer的IP为：192.161.1
 $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b-s.properties &
 ```
 
@@ -162,7 +162,7 @@ $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b
   <td rowspan=8 height=593 class=xl68 width=163 style='border-bottom:1.0pt;
   height:444.0pt;border-top:none;width:122pt'>updateTopic</td>
   <td rowspan=8 class=xl70 width=135 style='border-bottom:1.0pt;
-  border-top:none;width:101pt'>创建Topic或更新Topic配置</td>
+  border-top:none;width:101pt'>创建更新Topic配置</td>
   <td class=xl65 width=149 style='width:112pt'>-b</td>
   <td class=xl66 width=159 style='width:119pt'>Broker 地址，表示 topic 所在
   Broker，只支持单台Broker，地址为ip:port</td>
@@ -178,11 +178,11 @@ $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>nameserve服务地址，格式 ip:port</td>
  </tr>
  <tr height=76 style='height:57.0pt'>
   <td height=76 class=xl65 width=149 style='height:57.0pt;width:112pt'>-p</td>
-  <td class=xl66 width=159 style='width:119pt'>指定新 topic 的权限限制( W=2|R=4|WR=6 )</td>
+  <td class=xl66 width=159 style='width:119pt'>指定新topic的读写权限( W=2|R=4|WR=6 )</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl65 width=149 style='height:29.0pt;width:112pt'>-r</td>
@@ -307,7 +307,7 @@ $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b
  </tr>
  <tr height=76 style='height:57.0pt'>
   <td height=76 class=xl65 width=149 style='height:57.0pt;width:112pt'>-p</td>
-  <td class=xl66 width=159 style='width:119pt'>指定新 topic 的权限限制( W=2|R=4|WR=6 )</td>
+  <td class=xl66 width=159 style='width:119pt'>指定新 topic 的读写权限( W=2|R=4|WR=6 )</td>
  </tr>
  <tr height=207 style='height:155.0pt'>
   <td height=207 class=xl65 width=149 style='height:155.0pt;width:112pt'>-c</td>
@@ -381,6 +381,7 @@ $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b
 </table>
 
 
+
 #### 2.2 集群相关
 
 <table border=0 cellpadding=0 cellspacing=0 width=714>
@@ -422,7 +423,7 @@ $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b
   <td rowspan=8 class=xl70 width=175 style='border-bottom:1.0pt;
   border-top:none;width:131pt'>发送消息检测集群各Broker RT。消息发往${BrokerName} Topic。</td>
   <td class=xl65 width=177 style='width:133pt'>-a</td>
-  <td class=xl66 width=185 style='width:139pt'>amount，每次探测的探测总数，RT = 总时间 /
+  <td class=xl66 width=185 style='width:139pt'>amount，每次探测的总数，RT = 总时间 /
   amount</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
@@ -499,7 +500,7 @@ $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td rowspan=3 height=137 class=xl69 width=191 style='border-bottom:1.0pt;
-  height:103.0pt;border-top:none;width:143pt'>BrokerStatus</td>
+  height:103.0pt;border-top:none;width:143pt'>brokerStatus</td>
   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt;
   border-top:none;width:65pt'>查看 Broker 统计信息、运行状态（你想要的信息几乎都在里面）</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
@@ -515,7 +516,7 @@ $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td rowspan=6 height=256 class=xl69 width=191 style='border-bottom:1.0pt;
-  height:192.0pt;border-top:none;width:143pt'>BrokerConsumeStats</td>
+  height:192.0pt;border-top:none;width:143pt'>brokerConsumeStats</td>
   <td rowspan=6 class=xl72 width=87 style='border-bottom:1.0pt;
   border-top:none;width:65pt'>Broker中各个消费者的消费情况，按Message Queue维度返回Consume
   Offset，Broker Offset，Diff，TImestamp等信息</td>
@@ -693,7 +694,7 @@ $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b
   <td rowspan=6 class=xl72 width=87 style='border-bottom:1.0pt;
   border-top:none;width:65pt'>根据 Offset 查询消息</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>Broker 名称，表示订阅组建在该 Broker（这里需要注意
+  <td class=xl68 width=87 style='width:65pt'>Broker 名称，（这里需要注意
   填写的是 Broker 的名称，不是 Broker 的地址，Broker 名称可以在 clusterList 查到）</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
@@ -1352,7 +1353,7 @@ $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b
 > org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to <null> failed
 > ```
 
-解决方法：可以在部署RocketMQ集群的虚拟机上执行`export NAMESRV_ADDR=ip:9876`（ip指的是集群中部署NameServer组件的机器ip地址）命令之后再使用“mqadmin”的相关命令进行查询，即可得到结果。
+解决方法：可以在部署RocketMQ集群的虚拟机上执行`export NAMESRV_ADDR=ip:9876`（ip指的是集群中部署nameserverr组件的机器ip地址）命令之后再使用“mqadmin”的相关命令进行查询，即可得到结果。
 
 #### 3.2 RocketMQ生产端和消费端版本不一致导致不能正常消费的问题
 
@@ -1398,11 +1399,11 @@ consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
 
 #### 3.6 在RocketMQ中msgId和offsetMsgId的含义与区别
 
-我们使用RocketMQ完成生产者客户端消息发送后，通常会看到如下日志打印信息：
+使用RocketMQ完成生产者客户端消息发送后，通常会看到如下日志打印信息：
 
 ```java
 SendResult [sendStatus=SEND_OK, msgId=0A42333A0DC818B4AAC246C290FD0000, offsetMsgId=0A42333A00002A9F000000000134F1F5, messageQueue=MessageQueue [topic=topicTest1, BrokerName=mac.local, queueId=3], queueOffset=4]
 ```
 
 - msgId，对于客户端来说msgId是由客户端producer实例端生成的，具体来说，调用方法`MessageClientIDSetter.createUniqIDBuffer()`生成唯一的Id；
-- offsetMsgId，offsetMsgId是由Broker服务端在写入消息时生成的（采用”IP地址+Port端口”与“CommitLog的物理偏移量地址”做了一个字符串拼接），其中offsetMsgId就是我们在rocketMQ控制台直接输入查询的那个messageId。
+- offsetMsgId，offsetMsgId是由Broker服务端在写入消息时生成的（采用”IP地址+Port端口”与“CommitLog的物理偏移量地址”做了一个字符串拼接），其中offsetMsgId就是在RocketMQ控制台直接输入查询的那个messageId。
