@@ -216,6 +216,7 @@ public class DefaultMessageStoreTest {
             SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(offset);
             assertThat(indexBuffer.getByteBuffer().getLong()).isEqualTo(appendMessageResult.getWroteOffset());
             assertThat(indexBuffer.getByteBuffer().getInt()).isEqualTo(appendMessageResult.getWroteBytes());
+            indexBuffer.release();
         }
     }
 
@@ -238,6 +239,8 @@ public class DefaultMessageStoreTest {
             assertThat(indexBuffer.getByteBuffer().getInt()).isEqualTo(appendMessageResult.getWroteBytes());
             assertThat(indexBuffer2.getByteBuffer().getLong()).isEqualTo(appendMessageResult.getWroteOffset());
             assertThat(indexBuffer2.getByteBuffer().getInt()).isEqualTo(appendMessageResult.getWroteBytes());
+            indexBuffer.release();
+            indexBuffer2.release();
         }
     }
 
@@ -362,6 +365,7 @@ public class DefaultMessageStoreTest {
             SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(i);
             long storeTime = getDefaultMessageStore().getStoreTime(indexBuffer);
             assertThat(storeTime).isEqualTo(appendMessageResults[i].getStoreTimestamp());
+            indexBuffer.release();
         }
     }
 
@@ -377,6 +381,7 @@ public class DefaultMessageStoreTest {
         SelectMappedBufferResult result = new SelectMappedBufferResult(0, byteBuffer, size, mappedFile);
 
         long storeTime = getDefaultMessageStore().getStoreTime(result);
+        result.release();
 
         assertThat(storeTime).isEqualTo(-1);
     }
