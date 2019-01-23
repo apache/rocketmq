@@ -8,13 +8,10 @@
 
 RocketMQ可以令客户端找到Name Server, 然后通过Name Server再找到Broker，分别如下，如下所示有多种配置方式，优先级由高到低，高优先级会覆盖低优先级。
 
-1. 代码中指定Name Server地址
-   // 多个namesrv地址之间用分号分割   
-
+1. 代码中指定Name Server地址，多个namesrv地址之间用分号分割   
 ```java
 producer.setNamesrvAddr("192.168.0.1:9876;192.168.0.2:9876");  
 ```
-或 
 ```java
 consumer.setNamesrvAddr("192.168.0.1:9876;192.168.0.2:9876");
 ```
