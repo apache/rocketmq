@@ -1,31 +1,32 @@
 # 7 最佳实践(best practice)
 
-## 7.1 客户端
+## 1 客户端
 
 ​       相对于RocketMQ的Broker集群，生产者和消费者都是客户端。本小节主要描述生产者和消费者公共的行为配置。
 
-### 7.1.1 客户端寻址方式
+### 1.1 客户端寻址方式
 
 RocketMQ可以令客户端找到Name Server, 然后通过Name Server再找到Broker，分别如下，如下所示有多种配置方式，优先级由高到低，高优先级会覆盖低优先级。
 
-1. 代码中指定Name Server地址，多个namesrv地址之间用分号分割   
+●        代码中指定Name Server地址，多个namesrv地址之间用分号分割   
+
 ```java
 producer.setNamesrvAddr("192.168.0.1:9876;192.168.0.2:9876");  
 ```
 ```java
 consumer.setNamesrvAddr("192.168.0.1:9876;192.168.0.2:9876");
 ```
-2. Java启动参数中指定Name Server地址
+●        Java启动参数中指定Name Server地址
 
 ```text
 -Drocketmq.namesrv.addr=192.168.0.1:9876;192.168.0.2:9876  
 ```
-3. 环境变量指定Name Server地址
+●        环境变量指定Name Server地址
 
 ```text
 export   NAMESRV_ADDR=192.168.0.1:9876;192.168.0.2:9876   
 ```
-4. HTTP静态服务器寻址（默认）
+●        HTTP静态服务器寻址（默认）
 
 客户端启动后，会定时访问一个静态HTTP服务器，地址如下：<http://jmenv.tbsite.net:8080/rocketmq/nsaddr>，这个URL的返回内容如下：
 ```text
@@ -79,7 +80,7 @@ DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPul
 | 参数名                       | 默认值                        | 说明                                                         |
 | ---------------------------- | ----------------------------- | ------------------------------------------------------------ |
 | consumerGroup                | DEFAULT_CONSUMER              | Consumer组名，多个Consumer如果属于一个应用，订阅同样的消息，且消费逻辑一致，则应该将它们归为同一组 |
-| messageModel                 | CLUSTERING                    | 消息模型，支持以下两种   1、集群消费   2、广播消费           |
+| messageModel                 | CLUSTERING                    | 消费模型支持集群消费和广播消费两种                           |
 | consumeFromWhere             | CONSUME_FROM_LAST_OFFSET      | Consumer启动后，默认从上次消费的位置开始消费，这包含两种情况：一种是上次消费的位置未过期，则消费从上次中止的位置进行；一种是上次消费位置已经过期，则从当前队列第一条消息开始消费 |
 | consumeTimestamp             | 半个小时前                    | 只有当consumeFromWhere值为CONSUME_FROM_TIMESTAMP时才起作用。 |
 | allocateMessageQueueStrategy | AllocateMessageQueueAveragely | Rebalance算法实现策略                                        |
@@ -115,7 +116,7 @@ DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPul
 | -------------- | ------ | ------------------------------------------------------------ |
 | Topic          | null   | 必填，线下环境不需要申请，线上环境需要申请后才能使用         |
 | Body           | null   | 必填，字节类型，序列化由应用决定，Producer与Consumer要协商好序列化形式。 |
-| Tags           | null   | 选填，类似于Gmail为每封邮件设置的标签，方便服务器过滤使用。目前只支持每个消息设置一个tag，所以也可以类比为Notify的MessageType概念 |
+| Tags           | null   | 选填，类似于Gmail为每封邮件设置的标签，方便服务器过滤使用。目前只支持每个消息设置一个tag |
 | Keys           | null   | 选填，代表这条消息的业务关键词，服务器会根据keys创建哈希索引，设置后，可以在Console系统根据Topic、Keys来查询消息，由于是哈希索引，请尽可能保证key唯一，例如订单号，商品Id等。 |
 | Flag           | 0      | 选填，完全由应用来设置，RocketMQ不做干预                     |
 | DelayTimeLevel | 0      | 选填，消息延时级别，0表示不延时，大于0会延时特定的时间才会被消费 |
@@ -179,13 +180,13 @@ DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPul
 
 ### 7.2.4 其他
 
-1)      建议消息的大小最好不要超过512K。
+●        建议消息的大小最好不要超过512K。
 
 异步发送（AsyncSending） 默认方法send（msg）会在得到返回响应之前一直被阻塞。因此，如果用户重视性能，那么建议使用send（msg、callback），这样消息发送将以异步方式进行。 
 
-2)      生产者是线程安全的。
+●        生产者是线程安全的。
 
-3)      如果希望在一个JVM中有多个生产者来进行大数据处理，有以下建议：通过一些生产者（3~5个足以）使用异步发送；为每个生产者的设置实例名，即setInstanceName。
+●        如果希望在一个JVM中有多个生产者来进行大数据处理，有以下建议：通过一些生产者（3~5个足以）使用异步发送；为每个生产者的设置实例名，即setInstanceName。
 
 ## 7.3   消费者
 
