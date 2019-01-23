@@ -173,66 +173,6 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void should_return_empty_map_when_consume_queue_can_not_found() {
-        final int totalCount = 10;
-        int queueId = new Random().nextInt(10);
-        String topic = "FooBar";
-        AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, topic, queueId);
-        long minOffset = appendMessageResultArray[0].getLogicsOffset();
-        int targetQueueId = 1;
-
-        Map<String, Long> messageIds = getDefaultMessageStore().getMessageIds(topic, targetQueueId, minOffset, 0, StoreHost);
-
-        assertThat(messageIds).isEmpty();
-    }
-
-    @Test
-    public void should_return_empty_map_when_max_offset_is_zero() {
-        final int totalCount = 10;
-        int queueId = new Random().nextInt(10);
-        String topic = "FooBar";
-        AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, topic, queueId);
-        long minOffset = appendMessageResultArray[0].getLogicsOffset();
-
-        Map<String, Long> messageIds = getDefaultMessageStore().getMessageIds(topic, queueId, minOffset, 0, StoreHost);
-
-        assertThat(messageIds).isEmpty();
-    }
-
-    @Test
-    public void should_return_empty_map_when_min_offset_is_large_than_max_offset() {
-        final int totalCount = 10;
-        int queueId = new Random().nextInt(10);
-        String topic = "FooBar";
-        AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, topic, queueId);
-        long maxOffset = appendMessageResultArray[totalCount - 1].getLogicsOffset() + 1;
-
-        Map<String, Long> messageIds = getDefaultMessageStore().getMessageIds(topic, queueId, maxOffset, 1, StoreHost);
-
-        assertThat(messageIds).isEmpty();
-    }
-
-
-    @Test
-    public void should_return_consume_queue_index_map_by_msgId_successfully_when_getMessageIds_by_topic_and_queue_id() throws InterruptedException {
-        final int totalCount = 10;
-        int queueId = new Random().nextInt(10);
-        String topic = "FooBar";
-        AppendMessageResult[] appendMessageResultArray = putMessages(totalCount, "FooBar", queueId);
-        long minOffset = appendMessageResultArray[0].getLogicsOffset();
-        long maxOffset = getMaxLogicsOffset(appendMessageResultArray);
-
-        Thread.sleep(10); // wait async reput service run finish.
-        Map<String, Long> messageIds = getDefaultMessageStore().getMessageIds(topic, queueId, minOffset, maxOffset, StoreHost);
-
-        assertThat(messageIds).isNotEmpty();
-        assertThat(messageIds.size()).isEqualTo(10);
-        for (int i = 0; i < totalCount; i++) {
-            assertThat(messageIds.get(appendMessageResultArray[i].getMsgId())).isEqualTo(i);
-        }
-    }
-
-    @Test
     public void should_get_total_message_count_successfully_when_incomming_by_topic_and_queueId() throws InterruptedException {
         final int totalCount = 10;
         int queueId = new Random().nextInt(10);
