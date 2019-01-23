@@ -70,7 +70,7 @@ public class ScheduledServiceImpl implements ScheduledService {
                     log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", e);
                 }
             }
-        }, 1000 * 10, this.snodeConfig.getSnodeHeartBeatInterval(), TimeUnit.MILLISECONDS);
+        }, 0, this.snodeConfig.getSnodeHeartBeatInterval(), TimeUnit.MILLISECONDS);
 
         if (snodeConfig.isFetchNamesrvAddrByAddressServer()) {
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -90,7 +90,7 @@ public class ScheduledServiceImpl implements ScheduledService {
             public void run() {
                 snodeController.getNnodeService().registerSnode(snodeConfig);
             }
-        }, 1000 * 10, Math.max(10000, Math.min(snodeConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
+        }, 0, Math.max(10000, Math.min(snodeConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -101,7 +101,7 @@ public class ScheduledServiceImpl implements ScheduledService {
                     log.warn("Update broker addr error:{}", ex);
                 }
             }
-        }, 1000 * 10, Math.max(10000, Math.min(snodeConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
+        }, 0, Math.max(10000, Math.min(snodeConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -123,7 +123,7 @@ public class ScheduledServiceImpl implements ScheduledService {
                     log.warn("Update broker addr error:{}", ex);
                 }
             }
-        }, 1000 * 10, Math.max(10000, Math.min(snodeConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
+        }, 0, Math.max(10000, Math.min(snodeConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override

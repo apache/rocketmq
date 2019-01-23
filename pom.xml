@@ -127,6 +127,7 @@
         <module>openmessaging</module>
         <module>logging</module>
         <module>snode</module>
+        <module>acl</module>
     </modules>
 
     <build>
@@ -259,6 +260,7 @@
                         <exclude>src/test/resources/certs/*</exclude>
                         <exclude>src/test/**/*.log</exclude>
                         <exclude>src/test/resources/META-INF/service/*</exclude>
+                        <exclude>src/main/resources/META-INF/service/*</exclude>
                         <exclude>*/target/**</exclude>
                         <exclude>*/*.iml</exclude>
                     </excludes>
@@ -607,6 +609,11 @@
                 <groupId>org.yaml</groupId>
                 <artifactId>snakeyaml</artifactId>
                 <version>1.19</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>1.9</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

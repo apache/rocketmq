@@ -1,0 +1,9 @@
+accounts:
+- accessKey: rokcetmq
+  secretKey: aliyun11
+  whiteRemoteAddress: 127.0.0.1
+  admin: true
+- accessKey: rokcet1
+  secretKey: aliyun1
+  whiteRemoteAddress: 127.0.0.1
+  admin: true

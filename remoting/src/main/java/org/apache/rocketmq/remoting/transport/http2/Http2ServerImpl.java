@@ -43,7 +43,6 @@ import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
@@ -68,7 +67,7 @@ import org.apache.rocketmq.remoting.util.JvmUtils;
 import org.apache.rocketmq.remoting.util.ThreadUtils;
 
 public class Http2ServerImpl extends NettyRemotingServerAbstract implements RemotingServer {
-    private static final InternalLogger LOG = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
     private ServerBootstrap serverBootstrap;
     private EventLoopGroup bossGroup;
@@ -131,7 +130,7 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
                 .sslProvider(provider)
                 .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE).build();
         } catch (Exception e) {
-            LOG.error("Can not build SSL context !", e);
+            log.error("Can not build SSL context !", e);
         }
     }
 
@@ -228,8 +227,28 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
 
     @Override
     public void shutdown() {
-        super.shutdown();
-        ThreadUtils.shutdownGracefully(publicExecutor, 2000, TimeUnit.MILLISECONDS);
+        try {
+            super.shutdown();
+            if (this.bossGroup != null) {
+                this.bossGroup.shutdownGracefully();
+            }
+            if (this.ioGroup != null) {
+                this.ioGroup.shutdownGracefully();
+            }
+            if (this.workerGroup != null) {
+                this.workerGroup.shutdownGracefully();
+            }
+        } catch (Exception e) {
+            log.error("Http2RemotingServer shutdown exception, ", e);
+        }
+
+        if (this.publicExecutor != null) {
+            try {
+                this.publicExecutor.shutdown();
+            } catch (Exception e) {
+                log.error("Http2RemotingServer shutdown exception, ", e);
+            }
+        }
     }
 
     @Override
