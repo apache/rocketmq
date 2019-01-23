@@ -56,6 +56,7 @@ import org.apache.rocketmq.snode.client.impl.SubscriptionManagerImpl;
 import org.apache.rocketmq.snode.config.SnodeConfig;
 import org.apache.rocketmq.snode.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.snode.processor.ConsumerManageProcessor;
+import org.apache.rocketmq.snode.processor.DefaultMqttMessageProcessor;
 import org.apache.rocketmq.snode.processor.HeartbeatProcessor;
 import org.apache.rocketmq.snode.processor.PullMessageProcessor;
 import org.apache.rocketmq.snode.processor.SendMessageProcessor;
@@ -78,7 +79,10 @@ public class SnodeController {
     private final ClientConfig nettyClientConfig;
     private RemotingClient remotingClient;
     private RemotingServer snodeServer;
+    private RemotingClient mqttRemotingClient;
+    private RemotingServer mqttRemotingServer;
     private ExecutorService sendMessageExecutor;
+    private ExecutorService handleMqttMessageExecutor;
     private ExecutorService heartbeatExecutor;
     private ExecutorService pullMessageExecutor;
     private ExecutorService consumerManageExecutor;
@@ -96,6 +100,7 @@ public class SnodeController {
     private SendMessageProcessor sendMessageProcessor;
     private PullMessageProcessor pullMessageProcessor;
     private HeartbeatProcessor heartbeatProcessor;
+    private DefaultMqttMessageProcessor defaultMqttMessageProcessor;
     private InterceptorGroup remotingServerInterceptorGroup;
     private InterceptorGroup consumeMessageInterceptorGroup;
     private InterceptorGroup sendMessageInterceptorGroup;
@@ -162,6 +167,15 @@ public class SnodeController {
             "ConsumerManagerThread",
             false);
 
+        this.handleMqttMessageExecutor = ThreadUtils.newThreadPoolExecutor(
+                snodeConfig.getSnodeHandleMqttMessageMinPoolSize(),
+                snodeConfig.getSnodeHandleMqttMessageMaxPoolSize(),
+                3000,
+                TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(snodeConfig.getSnodeHandleMqttThreadPoolQueueCapacity()),
+                "SnodeHandleMqttMessageThread",
+                false);
+
         if (this.snodeConfig.getNamesrvAddr() != null) {
             this.nnodeService.updateNnodeAddressList(this.snodeConfig.getNamesrvAddr());
             log.info("Set user specified name server address: {}", this.snodeConfig.getNamesrvAddr());
@@ -173,6 +187,7 @@ public class SnodeController {
         this.sendMessageProcessor = new SendMessageProcessor(this);
         this.heartbeatProcessor = new HeartbeatProcessor(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
+        this.defaultMqttMessageProcessor = new DefaultMqttMessageProcessor();
         this.pushService = new PushServiceImpl(this);
         this.clientService = new ClientServiceImpl(this);
         this.subscriptionManager = new SubscriptionManagerImpl();
@@ -201,11 +216,14 @@ public class SnodeController {
 
     public boolean initialize() {
         this.snodeServer = RemotingServerFactory.getInstance().createRemotingServer().init(this.nettyServerConfig, this.clientHousekeepingService);
+        this.mqttRemotingServer = RemotingServerFactory.getInstance().createRemotingServer(
+                RemotingUtil.MQTT_PROTOCOL).init(this.nettyServerConfig, this.clientHousekeepingService);
         this.registerProcessor();
         initSnodeInterceptorGroup();
         initRemotingServerInterceptorGroup();
         initAclInterceptorGroup();
         this.snodeServer.registerInterceptorGroup(this.remotingServerInterceptorGroup);
+        this.mqttRemotingServer.registerInterceptorGroup(this.remotingServerInterceptorGroup);
         return true;
     }
 
@@ -279,12 +297,16 @@ public class SnodeController {
         this.snodeServer.registerProcessor(RequestCode.GET_MIN_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
         this.snodeServer.registerProcessor(RequestCode.GET_MAX_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
         this.snodeServer.registerProcessor(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, consumerManageProcessor, this.consumerManageExecutor);
+        this.mqttRemotingServer.registerProcessor(RequestCode.MQTT_MESSAGE,
+                defaultMqttMessageProcessor, handleMqttMessageExecutor);
     }
 
     public void start() {
         initialize();
         this.snodeServer.start();
+        this.mqttRemotingServer.start();
         this.remotingClient.start();
+        this.mqttRemotingClient.start();
         this.scheduledService.startScheduleTask();
         this.clientHousekeepingService.start(this.snodeConfig.getHouseKeepingInterval());
     }
@@ -292,10 +314,13 @@ public class SnodeController {
     public void shutdown() {
         this.sendMessageExecutor.shutdown();
         this.pullMessageExecutor.shutdown();
+        this.handleMqttMessageExecutor.shutdown();
         this.heartbeatExecutor.shutdown();
         this.consumerManagerExecutor.shutdown();
         this.scheduledExecutorService.shutdown();
         this.remotingClient.shutdown();
+        this.mqttRemotingClient.shutdown();
+        this.mqttRemotingServer.shutdown();
         this.scheduledService.shutdown();
         this.clientHousekeepingService.shutdown();
         this.pushService.shutdown();
@@ -347,6 +372,22 @@ public class SnodeController {
 
     public void setRemotingClient(RemotingClient remotingClient) {
         this.remotingClient = remotingClient;
+    }
+
+    public RemotingClient getMqttRemotingClient() {
+        return mqttRemotingClient;
+    }
+
+    public void setMqttRemotingClient(RemotingClient mqttRemotingClient) {
+        this.mqttRemotingClient = mqttRemotingClient;
+    }
+
+    public RemotingServer getMqttRemotingServer() {
+        return mqttRemotingServer;
+    }
+
+    public void setMqttRemotingServer(RemotingServer mqttRemotingServer) {
+        this.mqttRemotingServer = mqttRemotingServer;
     }
 
     public void setEnodeService(EnodeService enodeService) {

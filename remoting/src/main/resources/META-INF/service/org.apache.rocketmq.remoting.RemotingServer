@@ -1,2 +1,3 @@
 rocketmq=org.apache.rocketmq.remoting.transport.rocketmq.NettyRemotingServer
 http2=org.apache.rocketmq.remoting.transport.http2.Http2ServerImpl
+mqtt=org.apache.rocketmq.remoting.transport.mqtt.MqttServerImpl
