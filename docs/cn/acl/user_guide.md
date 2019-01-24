@@ -8,7 +8,9 @@ ACL客户端可以参考：**org.apache.rocketmq.example.simple**包下面的**A
 
 ## 2. 权限控制的定义与属性值
 ### 2.1权限定义
-对RocketMQ的Topic资源访问权限控制定义主要如下表所示，分为以下四种：
+对RocketMQ的Topic资源访问权限控制定义主要如下表所示，分为以下四种
+
+
 | 权限 | 含义 |
 | --- | --- |
 | DENY | 拒绝 |
