@@ -63,47 +63,41 @@ public class HeartbeatProcessor implements RequestProcessor {
 
     private RemotingCommand register(RemotingChannel remotingChannel, RemotingCommand request) {
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
-        Channel channel;
-        ClientRole role = null;
-        Attribute<ClientRole> clientRoleAttribute = null;
+        Channel channel = null;
+        Attribute<Client> clientAttribute = null;
         if (remotingChannel instanceof NettyChannelHandlerContextImpl) {
             channel = ((NettyChannelHandlerContextImpl) remotingChannel).getChannelHandlerContext().channel();
-            clientRoleAttribute = channel.attr(SnodeConstant.NETTY_CLIENT_ROLE_ATTRIBUTE_KEY);
+            clientAttribute = channel.attr(SnodeConstant.NETTY_CLIENT_ATTRIBUTE_KEY);
         }
         Client client = new Client();
         client.setClientId(heartbeatData.getClientID());
         client.setRemotingChannel(remotingChannel);
 
         for (ProducerData producerData : heartbeatData.getProducerDataSet()) {
-            role = ClientRole.Producer;
             client.setGroupId(producerData.getGroupName());
-            client.setClientRole(role);
-            this.snodeController.getProducerManagerImpl().register(client);
+            client.setClientRole(ClientRole.Producer);
+            this.snodeController.getProducerManager().register(client);
         }
 
         for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
             client.setGroupId(data.getGroupName());
-            role = ClientRole.Consumer;
-            client.setClientRole(role);
-            boolean channelChanged = this.snodeController.getConsumerManagerImpl().register(client);
+            client.setClientRole(ClientRole.Consumer);
+            boolean channelChanged = this.snodeController.getConsumerManager().register(client);
             boolean subscriptionChanged = this.snodeController.getSubscriptionManager().subscribe(data.getGroupName(),
                 data.getSubscriptionDataSet(),
                 data.getConsumeType(),
                 data.getMessageModel(),
                 data.getConsumeFromWhere());
             if (data.getConsumeType() == ConsumeType.CONSUME_PUSH) {
-                NettyChannelImpl nettyChannel = new NettyChannelImpl(((NettyChannelHandlerContextImpl)remotingChannel).getChannelHandlerContext().channel());
-                this.snodeController.getSubscriptionManager().registerPush(data.getSubscriptionDataSet(), nettyChannel, data.getGroupName());
+                NettyChannelImpl nettyChannel = new NettyChannelImpl(channel);
+                this.snodeController.getSubscriptionManager().registerPushSession(data.getSubscriptionDataSet(), nettyChannel, data.getGroupName());
             }
             if (subscriptionChanged || channelChanged) {
                 this.snodeController.getClientService().notifyConsumer(data.getGroupName());
             }
         }
-        if (role != null) {
-            log.debug("Set channel attribute value: {}", role);
-            clientRoleAttribute.setIfAbsent(role);
-        }
 
+        clientAttribute.setIfAbsent(client);
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
@@ -118,13 +112,13 @@ public class HeartbeatProcessor implements RequestProcessor {
 
         final String producerGroup = requestHeader.getProducerGroup();
         if (producerGroup != null) {
-            this.snodeController.getProducerManagerImpl().unRegister(producerGroup, remotingChannel);
+            this.snodeController.getProducerManager().unRegister(producerGroup, remotingChannel);
         }
 
         final String consumerGroup = requestHeader.getConsumerGroup();
         if (consumerGroup != null) {
-            this.snodeController.getConsumerManagerImpl().unRegister(consumerGroup, remotingChannel);
-            this.snodeController.getSubscriptionManager().removePush(remotingChannel);
+            this.snodeController.getConsumerManager().unRegister(consumerGroup, remotingChannel);
+            this.snodeController.getSubscriptionManager().removePushSession(remotingChannel);
             this.snodeController.getClientService().notifyConsumer(consumerGroup);
         }
 

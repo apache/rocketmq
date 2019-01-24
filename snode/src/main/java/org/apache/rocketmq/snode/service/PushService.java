@@ -20,10 +20,8 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface PushService {
 
-    void pushMessage(final String topic, final Integer queueId, final byte[] message,
+    void pushMessage(final String enodeName, final String topic, final Integer queueId, final byte[] message,
         final RemotingCommand response);
-
-    void start();
 
     void shutdown();
 }

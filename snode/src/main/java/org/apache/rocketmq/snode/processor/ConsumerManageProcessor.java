@@ -126,7 +126,7 @@ public class ConsumerManageProcessor implements RequestProcessor {
             (GetConsumerListByGroupRequestHeader) request
                 .decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
 
-        List<String> clientIds = this.snodeController.getConsumerManagerImpl().getAllClientId(requestHeader.getConsumerGroup());
+        List<String> clientIds = this.snodeController.getConsumerManager().getAllClientId(requestHeader.getConsumerGroup());
         if (!clientIds.isEmpty()) {
             GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
             body.setConsumerIdList(clientIds);

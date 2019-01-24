@@ -53,9 +53,7 @@ public class Client {
         if (o == null || getClass() != o.getClass())
             return false;
         Client client = (Client) o;
-        return heartbeatInterval == client.heartbeatInterval &&
-            lastUpdateTimestamp == client.lastUpdateTimestamp &&
-            version == client.version &&
+        return version == client.version &&
             clientRole == client.clientRole &&
             Objects.equals(groupId, client.groupId) &&
             Objects.equals(clientId, client.clientId) &&
@@ -65,7 +63,7 @@ public class Client {
 
     @Override
     public int hashCode() {
-        return Objects.hash(clientRole, groupId, clientId, remotingChannel, heartbeatInterval, lastUpdateTimestamp, version, language);
+        return Objects.hash(clientRole, groupId, clientId, remotingChannel, version, language);
     }
 
     public String getGroupId() {
@@ -123,4 +121,19 @@ public class Client {
     public void setLanguage(LanguageCode language) {
         this.language = language;
     }
+
+    @Override public String toString() {
+        return "Client{" +
+            "clientRole=" + clientRole +
+            ", groupId='" + groupId + '\'' +
+            ", clientId='" + clientId + '\'' +
+            ", remotingChannel=" + remotingChannel +
+            ", heartbeatInterval=" + heartbeatInterval +
+            ", lastUpdateTimestamp=" + lastUpdateTimestamp +
+            ", version=" + version +
+            ", language=" + language +
+            '}';
+    }
 }
+
+

@@ -122,6 +122,7 @@ public abstract class ClientManagerImpl implements ClientManager {
             }
             oldClient.setLastUpdateTimestamp(System.currentTimeMillis());
         }
+        log.debug("Register client role: {}, group: {}, last: {}", client.getClientRole(), client.getGroupId(), client.getLastUpdateTimestamp());
         onRegister(client.getGroupId(), client.getRemotingChannel());
         return updated;
     }

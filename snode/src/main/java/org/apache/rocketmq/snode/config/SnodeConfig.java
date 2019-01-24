@@ -284,4 +284,11 @@ public class SnodeConfig {
         return remotingServerInterceptorPath;
     }
 
+    public int getSlowConsumerThreshold() {
+        return slowConsumerThreshold;
+    }
+
+    public void setSlowConsumerThreshold(int slowConsumerThreshold) {
+        this.slowConsumerThreshold = slowConsumerThreshold;
+    }
 }

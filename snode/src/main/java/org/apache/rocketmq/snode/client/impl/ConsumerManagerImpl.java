@@ -39,12 +39,12 @@ public class ConsumerManagerImpl extends ClientManagerImpl {
     @Override
     public void onClosed(String groupId, RemotingChannel remotingChannel) {
         this.snodeController.getClientService().notifyConsumer(groupId);
-        this.snodeController.getSubscriptionManager().removePush(remotingChannel);
+        this.snodeController.getSubscriptionManager().removePushSession(remotingChannel);
     }
 
     @Override
     public void onUnregister(String groupId, RemotingChannel remotingChannel) {
         this.snodeController.getClientService().notifyConsumer(groupId);
-        this.snodeController.getSubscriptionManager().removePush(remotingChannel);
+        this.snodeController.getSubscriptionManager().removePushSession(remotingChannel);
     }
 }

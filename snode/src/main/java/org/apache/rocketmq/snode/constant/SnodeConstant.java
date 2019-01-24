@@ -17,6 +17,7 @@
 package org.apache.rocketmq.snode.constant;
 
 import io.netty.util.AttributeKey;
+import org.apache.rocketmq.snode.client.Client;
 import org.apache.rocketmq.snode.client.impl.ClientRole;
 
 public class SnodeConstant {
@@ -30,10 +31,5 @@ public class SnodeConstant {
 
     public static final AttributeKey<ClientRole> NETTY_CLIENT_ROLE_ATTRIBUTE_KEY = AttributeKey.valueOf("netty.client.role");
 
-    public static final String NETTY_PRODUCER_ROLE_ATTRIBUTE_VALUE = "Producer";
-
-    public static final String NETTY_CONSUMER_ROLE_ATTRIBUTE_VALUE = "Consumer";
-
-    public static final String NETTY_IOT_ROLE_ATTRIBUTE_VALUE = "IOTGroup";
-
+    public static final AttributeKey<Client> NETTY_CLIENT_ATTRIBUTE_KEY = AttributeKey.valueOf("netty.client");
 }

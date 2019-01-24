@@ -20,5 +20,6 @@ import org.apache.rocketmq.remoting.RemotingChannel;
 
 public interface SlowConsumerService {
 
-    boolean isSlowConsumer(long latestLogicOffset, String topic, String queueId, RemotingChannel remotingChannel);
+    boolean isSlowConsumer(long latestLogicOffset, String topic, int queueId, RemotingChannel remotingChannel,
+        String enodeName);
 }

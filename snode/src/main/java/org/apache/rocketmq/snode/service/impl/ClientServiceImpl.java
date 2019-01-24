@@ -42,7 +42,7 @@ public class ClientServiceImpl implements ClientService {
             SubscriptionGroupConfig subscriptionGroupConfig = snodeController.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
             boolean notifyConsumer = subscriptionGroupConfig.isNotifyConsumerIdsChangedEnable();
             if (notifyConsumer) {
-                List<RemotingChannel> remotingChannels = snodeController.getConsumerManagerImpl().getChannels(group);
+                List<RemotingChannel> remotingChannels = snodeController.getConsumerManager().getChannels(group);
                 if (remotingChannels != null && snodeController.getSubscriptionGroupManager().getSubscriptionGroupTable().get(group).isNotifyConsumerIdsChangedEnable()) {
                     for (RemotingChannel remotingChannel : remotingChannels) {
                         NotifyConsumerIdsChangedRequestHeader requestHeader = new NotifyConsumerIdsChangedRequestHeader();

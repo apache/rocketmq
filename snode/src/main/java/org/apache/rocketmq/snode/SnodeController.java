@@ -39,10 +39,12 @@ import org.apache.rocketmq.remoting.interceptor.InterceptorFactory;
 import org.apache.rocketmq.remoting.interceptor.InterceptorGroup;
 import org.apache.rocketmq.snode.client.ClientHousekeepingService;
 import org.apache.rocketmq.snode.client.ClientManager;
+import org.apache.rocketmq.snode.client.SlowConsumerService;
 import org.apache.rocketmq.snode.client.SubscriptionGroupManager;
 import org.apache.rocketmq.snode.client.SubscriptionManager;
 import org.apache.rocketmq.snode.client.impl.ConsumerManagerImpl;
 import org.apache.rocketmq.snode.client.impl.ProducerManagerImpl;
+import org.apache.rocketmq.snode.client.impl.SlowConsumerServiceImpl;
 import org.apache.rocketmq.snode.client.impl.SubscriptionManagerImpl;
 import org.apache.rocketmq.snode.config.SnodeConfig;
 import org.apache.rocketmq.snode.offset.ConsumerOffsetManager;
@@ -77,10 +79,8 @@ public class SnodeController {
     private NnodeService nnodeService;
     private ExecutorService consumerManagerExecutor;
     private ScheduledService scheduledService;
-//    private ProducerManager producerManager;
-//    private ConsumerManager consumerManager;
-    private ClientManager producerManagerImpl;
-    private ClientManager consumerManagerImpl;
+    private ClientManager producerManager;
+    private ClientManager consumerManager;
     private SubscriptionManager subscriptionManager;
     private ClientHousekeepingService clientHousekeepingService;
     private SubscriptionGroupManager subscriptionGroupManager;
@@ -94,6 +94,7 @@ public class SnodeController {
     private InterceptorGroup sendMessageInterceptorGroup;
     private PushService pushService;
     private ClientService clientService;
+    private SlowConsumerService slowConsumerService;
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "SnodeControllerScheduledThread"));
@@ -172,9 +173,10 @@ public class SnodeController {
         this.pushService = new PushServiceImpl(this);
         this.clientService = new ClientServiceImpl(this);
         this.subscriptionManager = new SubscriptionManagerImpl();
-        this.producerManagerImpl = new ProducerManagerImpl();
-        this.consumerManagerImpl = new ConsumerManagerImpl(this);
-        this.clientHousekeepingService = new ClientHousekeepingService(this.producerManagerImpl, this.consumerManagerImpl);
+        this.producerManager = new ProducerManagerImpl();
+        this.consumerManager = new ConsumerManagerImpl(this);
+        this.clientHousekeepingService = new ClientHousekeepingService(this.producerManager, this.consumerManager);
+        this.slowConsumerService = new SlowConsumerServiceImpl(this);
     }
 
     public SnodeConfig getSnodeConfig() {
@@ -257,17 +259,9 @@ public class SnodeController {
         this.pushService.shutdown();
     }
 
-//    public ProducerManager getProducerManager() {
-//        return producerManager;
-//    }
-
     public RemotingServer getSnodeServer() {
         return snodeServer;
     }
-
-//    public ConsumerManager getConsumerManager() {
-//        return consumerManager;
-//    }
 
     public SubscriptionGroupManager getSubscriptionGroupManager() {
         return subscriptionGroupManager;
@@ -326,20 +320,20 @@ public class SnodeController {
         this.remotingServerInterceptorGroup = remotingServerInterceptorGroup;
     }
 
-    public ClientManager getProducerManagerImpl() {
-        return producerManagerImpl;
+    public ClientManager getProducerManager() {
+        return producerManager;
     }
 
-    public void setProducerManagerImpl(ClientManager producerManagerImpl) {
-        this.producerManagerImpl = producerManagerImpl;
+    public void setProducerManager(ClientManager producerManager) {
+        this.producerManager = producerManager;
     }
 
-    public ClientManager getConsumerManagerImpl() {
-        return consumerManagerImpl;
+    public ClientManager getConsumerManager() {
+        return consumerManager;
     }
 
-    public void setConsumerManagerImpl(ClientManager consumerManagerImpl) {
-        this.consumerManagerImpl = consumerManagerImpl;
+    public void setConsumerManager(ClientManager consumerManager) {
+        this.consumerManager = consumerManager;
     }
 
     public SubscriptionManager getSubscriptionManager() {
@@ -356,5 +350,13 @@ public class SnodeController {
 
     public void setClientService(ClientService clientService) {
         this.clientService = clientService;
+    }
+
+    public SlowConsumerService getSlowConsumerService() {
+        return slowConsumerService;
+    }
+
+    public void setSlowConsumerService(SlowConsumerService slowConsumerService) {
+        this.slowConsumerService = slowConsumerService;
     }
 }

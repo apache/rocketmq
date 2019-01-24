@@ -58,13 +58,15 @@ public class PushServiceImpl implements PushService {
         private final Integer queueId;
         private final String topic;
         private final RemotingCommand response;
+        private final String enodeName;
 
         public PushTask(final String topic, final Integer queueId, final byte[] message,
-            final RemotingCommand response) {
+            final RemotingCommand response, final String enodeName) {
             this.message = message;
             this.queueId = queueId;
             this.topic = topic;
             this.response = response;
+            this.enodeName = enodeName;
         }
 
         @Override
@@ -79,11 +81,16 @@ public class PushServiceImpl implements PushService {
                     RemotingCommand pushMessage = RemotingCommand.createRequestCommand(RequestCode.SNODE_PUSH_MESSAGE, pushMessageHeader);
                     pushMessage.setBody(message);
                     Set<RemotingChannel> consumerTable = snodeController.getSubscriptionManager().getPushableChannel(topic, queueId);
-                    log.info("Push message to consumerTable: {}", consumerTable);
                     if (consumerTable != null) {
                         for (RemotingChannel remotingChannel : consumerTable) {
                             if (remotingChannel.isWritable()) {
-                                log.info("Push message to remotingChannel: {}", remotingChannel.remoteAddress());
+                                boolean slowConsumer = snodeController.getSlowConsumerService().isSlowConsumer(sendMessageResponseHeader.getQueueOffset(), topic, queueId, remotingChannel, enodeName);
+                                if (slowConsumer) {
+                                    log.warn("[SlowConsumer]: {} closed as slow consumer", remotingChannel);//TODO metrics
+                                    remotingChannel.close();
+                                    continue;
+                                }
+                                log.debug("Push message to remotingChannel: {}", remotingChannel.remoteAddress());
                                 snodeController.getSnodeServer().push(remotingChannel, pushMessage, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
                             } else {
                                 log.warn("Remoting channel is not writable: {}", remotingChannel.remoteAddress());
@@ -107,19 +114,15 @@ public class PushServiceImpl implements PushService {
     }
 
     @Override
-    public void pushMessage(final String topic, final Integer queueId, final byte[] message,
+    public void pushMessage(final String enodeName, final String topic, final Integer queueId, final byte[] message,
         final RemotingCommand response) {
         Set<RemotingChannel> pushableChannels = this.snodeController.getSubscriptionManager().getPushableChannel(topic, queueId);
         if (pushableChannels != null) {
-            PushTask pushTask = new PushTask(topic, queueId, message, response);
+            PushTask pushTask = new PushTask(topic, queueId, message, response, enodeName);
             pushMessageExecutorService.submit(pushTask);
         } else {
             log.info("Topic: {} QueueId: {} no need to push", topic, queueId);
         }
-    }
-
-    @Override
-    public void start() {
     }
 
     @Override

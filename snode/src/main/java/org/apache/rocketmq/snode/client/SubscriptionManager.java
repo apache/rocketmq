@@ -35,9 +35,9 @@ public interface SubscriptionManager {
 
     Subscription getSubscription(String groupId);
 
-    void registerPush(Set<SubscriptionData> subscriptionDataSet, RemotingChannel remotingChannel, String groupId);
+    void registerPushSession(Set<SubscriptionData> subscriptionDataSet, RemotingChannel remotingChannel, String groupId);
 
-    void removePush(RemotingChannel remotingChannel);
+    void removePushSession(RemotingChannel remotingChannel);
 
     Set<RemotingChannel> getPushableChannel(String topic, Integer queueId);
 }

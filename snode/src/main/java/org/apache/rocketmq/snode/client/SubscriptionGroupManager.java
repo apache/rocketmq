@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.snode.client;
 
-import java.util.Iterator;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.DataVersion;
@@ -26,20 +24,15 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.serialize.RemotingSerializable;
 import org.apache.rocketmq.snode.SnodeController;
 
 public class SubscriptionGroupManager {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
 
-    private final ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
-        new ConcurrentHashMap<>(1024);
+    private final ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable = new ConcurrentHashMap<>(1024);
     private final DataVersion dataVersion = new DataVersion();
-    private transient SnodeController snodeController;
 
-    public SubscriptionGroupManager() {
-        this.init();
-    }
+    private transient SnodeController snodeController;
 
     public SubscriptionGroupManager(SnodeController snodeController) {
         this.snodeController = snodeController;
@@ -47,51 +40,6 @@ public class SubscriptionGroupManager {
     }
 
     private void init() {
-        {
-            SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
-            subscriptionGroupConfig.setGroupName(MixAll.TOOLS_CONSUMER_GROUP);
-            this.subscriptionGroupTable.put(MixAll.TOOLS_CONSUMER_GROUP, subscriptionGroupConfig);
-        }
-
-        {
-            SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
-            subscriptionGroupConfig.setGroupName(MixAll.FILTERSRV_CONSUMER_GROUP);
-            this.subscriptionGroupTable.put(MixAll.FILTERSRV_CONSUMER_GROUP, subscriptionGroupConfig);
-        }
-
-        {
-            SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
-            subscriptionGroupConfig.setGroupName(MixAll.SELF_TEST_CONSUMER_GROUP);
-            this.subscriptionGroupTable.put(MixAll.SELF_TEST_CONSUMER_GROUP, subscriptionGroupConfig);
-        }
-
-        {
-            SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
-            subscriptionGroupConfig.setGroupName(MixAll.ONS_HTTP_PROXY_GROUP);
-            subscriptionGroupConfig.setConsumeBroadcastEnable(true);
-            this.subscriptionGroupTable.put(MixAll.ONS_HTTP_PROXY_GROUP, subscriptionGroupConfig);
-        }
-
-        {
-            SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
-            subscriptionGroupConfig.setGroupName(MixAll.CID_ONSAPI_PULL_GROUP);
-            subscriptionGroupConfig.setConsumeBroadcastEnable(true);
-            this.subscriptionGroupTable.put(MixAll.CID_ONSAPI_PULL_GROUP, subscriptionGroupConfig);
-        }
-
-        {
-            SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
-            subscriptionGroupConfig.setGroupName(MixAll.CID_ONSAPI_PERMISSION_GROUP);
-            subscriptionGroupConfig.setConsumeBroadcastEnable(true);
-            this.subscriptionGroupTable.put(MixAll.CID_ONSAPI_PERMISSION_GROUP, subscriptionGroupConfig);
-        }
-
-        {
-            SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
-            subscriptionGroupConfig.setGroupName(MixAll.CID_ONSAPI_OWNER_GROUP);
-            subscriptionGroupConfig.setConsumeBroadcastEnable(true);
-            this.subscriptionGroupTable.put(MixAll.CID_ONSAPI_OWNER_GROUP, subscriptionGroupConfig);
-        }
     }
 
     public void updateSubscriptionGroupConfig(final SubscriptionGroupConfig config) {
@@ -133,32 +81,7 @@ public class SubscriptionGroupManager {
         return subscriptionGroupConfig;
     }
 
-    public String encode() {
-        return this.encode(false);
-    }
 
-    public void decode(String jsonString) {
-        if (jsonString != null) {
-            SubscriptionGroupManager obj = RemotingSerializable.fromJson(jsonString, SubscriptionGroupManager.class);
-            if (obj != null) {
-                this.subscriptionGroupTable.putAll(obj.subscriptionGroupTable);
-                this.dataVersion.assignNewOne(obj.dataVersion);
-                this.printLoadDataWhenFirstBoot(obj);
-            }
-        }
-    }
-
-    public String encode(final boolean prettyFormat) {
-        return RemotingSerializable.toJson(this, prettyFormat);
-    }
-
-    private void printLoadDataWhenFirstBoot(final SubscriptionGroupManager sgm) {
-        Iterator<Entry<String, SubscriptionGroupConfig>> it = sgm.getSubscriptionGroupTable().entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, SubscriptionGroupConfig> next = it.next();
-            log.info("load exist subscription group, {}", next.getValue().toString());
-        }
-    }
 
     public ConcurrentMap<String, SubscriptionGroupConfig> getSubscriptionGroupTable() {
         return subscriptionGroupTable;

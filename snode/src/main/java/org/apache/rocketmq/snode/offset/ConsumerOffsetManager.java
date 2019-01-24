@@ -39,7 +39,7 @@ public class ConsumerOffsetManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
     private static final String TOPIC_GROUP_SEPARATOR = "@";
 
-    private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
+    private ConcurrentMap<String/* Enode@Topic@Group */, ConcurrentMap<Integer, Long>> offsetTable =
         new ConcurrentHashMap<>(512);
 
     private transient SnodeController snodeController;
@@ -88,11 +88,10 @@ public class ConsumerOffsetManager {
         return result;
     }
 
-
     public void commitOffset(final String enodeName, final String clientHost, final String group, final String topic,
         final int queueId,
         final long offset) {
-        // topic@group
+        // Topic@group
         String key = buildKey(enodeName, topic, group);
         this.commitOffset(clientHost, key, queueId, offset);
     }
@@ -101,12 +100,13 @@ public class ConsumerOffsetManager {
         ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
         if (null == map) {
             map = new ConcurrentHashMap<>(32);
+            ConcurrentMap<Integer, Long> prev = this.offsetTable.putIfAbsent(key, map);
+            map = prev != null ? prev : map;
             map.put(queueId, offset);
-            this.offsetTable.put(key, map);
         } else {
             Long storeOffset = map.put(queueId, offset);
             if (storeOffset != null && offset < storeOffset) {
-                log.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
+                log.warn("[NOTIFYME]update consumer offset less than store. clientHost: {}, key: {}, queueId: {}, requestOffset: {}, storeOffset: {}", clientHost, key, queueId, offset, storeOffset);
             }
         }
     }
@@ -123,18 +123,6 @@ public class ConsumerOffsetManager {
         return -1;
     }
 
-    public String encode() {
-        return this.encode(false);
-    }
-
-    public void decode(String jsonString) {
-        if (jsonString != null) {
-            ConsumerOffsetManager obj = RemotingSerializable.fromJson(jsonString, ConsumerOffsetManager.class);
-            if (obj != null) {
-                this.offsetTable = obj.offsetTable;
-            }
-        }
-    }
 
     public String encode(final boolean prettyFormat) {
         return RemotingSerializable.toJson(this, prettyFormat);

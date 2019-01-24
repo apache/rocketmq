@@ -52,7 +52,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
     }
 
     @Override
-    public void registerPush(Set<SubscriptionData> subscriptionDataSet, RemotingChannel remotingChannel,
+    public void registerPushSession(Set<SubscriptionData> subscriptionDataSet, RemotingChannel remotingChannel,
         String groupId) {
         Set<String> prevSubSet = this.clientSubscriptionTable.get(remotingChannel);
         Set<String> keySet = new HashSet<>();
@@ -89,7 +89,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
     }
 
     @Override
-    public void removePush(RemotingChannel remotingChannel) {
+    public void removePushSession(RemotingChannel remotingChannel) {
         Set<String> subSet = this.clientSubscriptionTable.get(remotingChannel);
         if (subSet != null) {
             for (String key : subSet) {

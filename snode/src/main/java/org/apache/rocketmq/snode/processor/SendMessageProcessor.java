@@ -75,7 +75,7 @@ public class SendMessageProcessor implements RequestProcessor {
                 }
                 remotingChannel.reply(data);
                 if (data.getCode() == ResponseCode.SUCCESS && isNeedPush) {
-                    this.snodeController.getPushService().pushMessage(topic, queueId, message, data);
+                    this.snodeController.getPushService().pushMessage(enodeName, topic, queueId, message, data);
                 }
             } else {
                 if (this.snodeController.getSendMessageInterceptorGroup() != null) {
