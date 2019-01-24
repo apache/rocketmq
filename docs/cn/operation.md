@@ -22,9 +22,10 @@ The Name Server boot success...
 ```bash
 ### 启动Broker
 $ nohup sh bin/mqbroker -n localhost:9876 &
-### 验证Name Server 是否启动成功
+
+### 验证Name Server 是否启动成功，例如Broker的IP为：192.168.1.2，且名称为broker-a
 $ tail -f ~/logs/rocketmqlogs/Broker.log 
-The broker[%s, 172.30.30.233:10911] boot success...
+The broker[broker-a, 192.169.1.2:10911] boot success...
 ```
 
 #### 1.2 多Master模式
@@ -51,16 +52,16 @@ The Name Server boot success...
 ##### 2）启动Broker集群
 
 ```bash
-### 在机器A，启动第一个Master，例如NameServer的IP为：192.161.1
-$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-a.properties &
+### 在机器A，启动第一个Master，例如NameServer的IP为：192.168.1.1
+$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-a.properties &
  
-### 在机器B，启动第二个Master，例如NameServer的IP为：192.161.1
-$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-b.properties &
+### 在机器B，启动第二个Master，例如NameServer的IP为：192.168.1.1
+$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-b.properties &
 
 ...
 ```
 
-如上启动命令是在单个NameServer情况下使用的。对于多个NameServer的集群，Broker启动命令中`-n`后面的地址列表用分号隔开即可，例如 `192.161.1:9876;192.161.2:9876`。
+如上启动命令是在单个NameServer情况下使用的。对于多个NameServer的集群，Broker启动命令中`-n`后面的地址列表用分号隔开即可，例如 `192.168.1.1:9876;192.161.2:9876`。
 
 #### 1.3 多Master多Slave模式-异步复制
 
@@ -84,17 +85,17 @@ The Name Server boot success...
 ##### 2）启动Broker集群
 
 ```bash
-### 在机器A，启动第一个Master，例如NameServer的IP为：192.161.1
-$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-a.properties &
+### 在机器A，启动第一个Master，例如NameServer的IP为：192.168.1.1
+$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-a.properties &
  
-### 在机器B，启动第二个Master，例如NameServer的IP为：192.161.1
-$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-b.properties &
+### 在机器B，启动第二个Master，例如NameServer的IP为：192.168.1.1
+$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-b.properties &
  
-### 在机器C，启动第一个Slave，例如NameServer的IP为：192.161.1
-$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-a-s.properties &
+### 在机器C，启动第一个Slave，例如NameServer的IP为：192.168.1.1
+$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-a-s.properties &
  
-### 在机器D，启动第二个Slave，例如NameServer的IP为：192.161.1
-$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-b-s.properties &
+### 在机器D，启动第二个Slave，例如NameServer的IP为：192.168.1.1
+$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-b-s.properties &
 ```
 
 #### 1.4 多Master多Slave模式-同步双写
@@ -119,17 +120,17 @@ The Name Server boot success...
 ##### 2）启动Broker集群
 
 ```bash
-### 在机器A，启动第一个Master，例如NameServer的IP为：192.161.1
-$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-a.properties &
+### 在机器A，启动第一个Master，例如NameServer的IP为：192.168.1.1
+$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-a.properties &
  
-### 在机器B，启动第二个Master，例如NameServer的IP为：192.161.1
-$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b.properties &
+### 在机器B，启动第二个Master，例如NameServer的IP为：192.168.1.1
+$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b.properties &
  
-### 在机器C，启动第一个Slave，例如NameServer的IP为：192.161.1
-$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-a-s.properties &
+### 在机器C，启动第一个Slave，例如NameServer的IP为：192.168.1.1
+$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-a-s.properties &
  
-### 在机器D，启动第二个Slave，例如NameServer的IP为：192.161.1
-$ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b-s.properties &
+### 在机器D，启动第二个Slave，例如NameServer的IP为：192.168.1.1
+$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b-s.properties &
 ```
 
 以上Broker与Slave配对是通过指定相同的BrokerName参数来配对，Master的BrokerId必须是0，Slave的BrokerId必须是大于0的数。另外一个Master下面可以挂载多个Slave，同一Master下的多个Slave通过指定不同的BrokerId来区分。$ROCKETMQ_HOME指的RocketMQ安装目录，需要用户自己设置此环境变量。
@@ -1353,7 +1354,7 @@ $ nohup sh mqbroker -n 192.161.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b
 > org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to <null> failed
 > ```
 
-解决方法：可以在部署RocketMQ集群的虚拟机上执行`export NAMESRV_ADDR=ip:9876`（ip指的是集群中部署nameserverr组件的机器ip地址）命令之后再使用“mqadmin”的相关命令进行查询，即可得到结果。
+解决方法：可以在部署RocketMQ集群的虚拟机上执行`export NAMESRV_ADDR=ip:9876`（ip指的是集群中部署NameServer组件的机器ip地址）命令之后再使用“mqadmin”的相关命令进行查询，即可得到结果。
 
 #### 3.2 RocketMQ生产端和消费端版本不一致导致不能正常消费的问题
 
