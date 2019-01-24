@@ -25,6 +25,10 @@ import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
+import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
+import org.apache.rocketmq.client.trace.TraceDispatcher;
+import org.apache.rocketmq.client.trace.hook.SendMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
@@ -33,6 +37,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageId;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
@@ -55,6 +60,8 @@ import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
  * </p>
  */
 public class DefaultMQProducer extends ClientConfig implements MQProducer {
+
+    private final InternalLogger log = ClientLogger.getLog();
 
     /**
      * Wrapping internal implementations for virtually all methods presented in this class.
@@ -120,6 +127,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private int maxMessageSize = 1024 * 1024 * 4; // 4M
 
     /**
+     * Interface of asynchronous transfer data
+     */
+    private TraceDispatcher traceDispatcher = null;
+
+    /**
      * Default constructor.
      */
     public DefaultMQProducer() {
@@ -138,6 +150,31 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
+     * Constructor specifying producer group, RPC hook, enabled msgTrace flag and customized trace topic name.
+     *
+     * @param producerGroup Producer group, see the name-sake field.
+     * @param rpcHook RPC hook to execute per each remoting command execution.
+     * @param enableMsgTrace Switch flag instance for message trace.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
+     */
+    public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,final String customizedTraceTopic) {
+        this.producerGroup = producerGroup;
+        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
+        //if client open the message trace feature
+        if (enableMsgTrace) {
+            try {
+                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(customizedTraceTopic, rpcHook);
+                dispatcher.setHostProducer(this.getDefaultMQProducerImpl());
+                traceDispatcher = dispatcher;
+                this.getDefaultMQProducerImpl().registerSendMessageHook(
+                    new SendMessageTraceHookImpl(traceDispatcher));
+            } catch (Throwable e) {
+                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+            }
+        }
+    }
+
+    /**
      * Constructor specifying producer group.
      *
      * @param producerGroup Producer group, see the name-sake field.
@@ -147,8 +184,30 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Constructor specifying the RPC hook.
+     * Constructor specifying producer group and enabled msg trace flag.
      *
+     * @param producerGroup Producer group, see the name-sake field.
+     * @param enableMsgTrace Switch flag instance for message trace.
+     */
+    public DefaultMQProducer(final String producerGroup, boolean enableMsgTrace) {
+        this(producerGroup, null, enableMsgTrace, null);
+    }
+
+
+    /**
+     * Constructor specifying producer group, enabled msgTrace flag and customized trace topic name.
+     *
+     * @param producerGroup Producer group, see the name-sake field.
+     * @param enableMsgTrace Switch flag instance for message trace.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
+     */
+    public DefaultMQProducer(final String producerGroup, boolean enableMsgTrace, final String customizedTraceTopic) {
+        this(producerGroup, null, enableMsgTrace, customizedTraceTopic);
+    }
+
+    /**
+     * Constructor specifying the RPC hook.
+     * 
      * @param rpcHook RPC hook to execute per each remoting command execution.
      */
     public DefaultMQProducer(RPCHook rpcHook) {
@@ -170,6 +229,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void start() throws MQClientException {
         this.defaultMQProducerImpl.start();
+        if (null != traceDispatcher) {
+            try {
+                traceDispatcher.start(this.getNamesrvAddr());
+            } catch (MQClientException e) {
+                log.warn("trace dispatcher start failed ", e);
+            }
+        }
     }
 
     /**
@@ -178,6 +244,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void shutdown() {
         this.defaultMQProducerImpl.shutdown();
+        if (null != traceDispatcher) {
+            traceDispatcher.shutdown();
+        }
     }
 
     /**
@@ -655,6 +724,16 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.defaultMQProducerImpl.setCallbackExecutor(callbackExecutor);
     }
 
+    /**
+     * Sets an Executor to be used for executing asynchronous send. If the Executor is not set, {@link
+     * DefaultMQProducerImpl#defaultAsyncSenderExecutor} will be used.
+     *
+     * @param asyncSenderExecutor the instance of Executor
+     */
+    public void setAsyncSenderExecutor(final ExecutorService asyncSenderExecutor) {
+        this.defaultMQProducerImpl.setAsyncSenderExecutor(asyncSenderExecutor);
+    }
+
     private MessageBatch batch(Collection<Message> msgs) throws MQClientException {
         MessageBatch msgBatch;
         try {
@@ -777,4 +856,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public void setRetryTimesWhenSendAsyncFailed(final int retryTimesWhenSendAsyncFailed) {
         this.retryTimesWhenSendAsyncFailed = retryTimesWhenSendAsyncFailed;
     }
+
+    public TraceDispatcher getTraceDispatcher() {
+        return traceDispatcher;
+    }
+
 }

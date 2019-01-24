@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
+import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -46,6 +47,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -158,17 +160,58 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     public PullResult pull(MessageQueue mq, String subExpression, long offset, int maxNums, long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        return this.pullSyncImpl(mq, subExpression, offset, maxNums, false, timeout);
+        SubscriptionData subscriptionData = getSubscriptionData(mq, subExpression);
+        return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, false, timeout);
     }
 
-    private PullResult pullSyncImpl(MessageQueue mq, String subExpression, long offset, int maxNums, boolean block,
+    public PullResult pull(MessageQueue mq, MessageSelector messageSelector, long offset, int maxNums)
+        throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        return pull(mq, messageSelector, offset, maxNums, this.defaultMQPullConsumer.getConsumerPullTimeoutMillis());
+    }
+
+    public PullResult pull(MessageQueue mq, MessageSelector messageSelector, long offset, int maxNums, long timeout)
+        throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        SubscriptionData subscriptionData = getSubscriptionData(mq, messageSelector);
+        return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, false, timeout);
+    }
+
+    private SubscriptionData getSubscriptionData(MessageQueue mq, String subExpression)
+        throws MQClientException {
+
+        if (null == mq) {
+            throw new MQClientException("mq is null", null);
+        }
+
+        try {
+            return FilterAPI.buildSubscriptionData(this.defaultMQPullConsumer.getConsumerGroup(),
+                mq.getTopic(), subExpression);
+        } catch (Exception e) {
+            throw new MQClientException("parse subscription error", e);
+        }
+    }
+
+    private SubscriptionData getSubscriptionData(MessageQueue mq, MessageSelector messageSelector)
+        throws MQClientException {
+
+        if (null == mq) {
+            throw new MQClientException("mq is null", null);
+        }
+
+        try {
+            return FilterAPI.build(mq.getTopic(),
+                messageSelector.getExpression(), messageSelector.getExpressionType());
+        } catch (Exception e) {
+            throw new MQClientException("parse subscription error", e);
+        }
+    }
+
+    private PullResult pullSyncImpl(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums, boolean block,
         long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         this.makeSureStateOK();
 
         if (null == mq) {
             throw new MQClientException("mq is null", null);
-
         }
 
         if (offset < 0) {
@@ -183,20 +226,14 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
         int sysFlag = PullSysFlag.buildSysFlag(false, block, true, false);
 
-        SubscriptionData subscriptionData;
-        try {
-            subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPullConsumer.getConsumerGroup(),
-                mq.getTopic(), subExpression);
-        } catch (Exception e) {
-            throw new MQClientException("parse subscription error", e);
-        }
-
         long timeoutMillis = block ? this.defaultMQPullConsumer.getConsumerTimeoutMillisWhenSuspend() : timeout;
 
+        boolean isTagType = ExpressionType.isTagType(subscriptionData.getExpressionType());
         PullResult pullResult = this.pullAPIWrapper.pullKernelImpl(
             mq,
             subscriptionData.getSubString(),
-            0L,
+            subscriptionData.getExpressionType(),
+            isTagType ? 0L : subscriptionData.getSubVersion(),
             offset,
             maxNums,
             sysFlag,
@@ -369,12 +406,27 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, PullCallback pullCallback,
         long timeout)
         throws MQClientException, RemotingException, InterruptedException {
-        this.pullAsyncImpl(mq, subExpression, offset, maxNums, pullCallback, false, timeout);
+        SubscriptionData subscriptionData = getSubscriptionData(mq, subExpression);
+        this.pullAsyncImpl(mq, subscriptionData, offset, maxNums, pullCallback, false, timeout);
+    }
+
+    public void pull(MessageQueue mq, MessageSelector messageSelector, long offset, int maxNums,
+        PullCallback pullCallback)
+        throws MQClientException, RemotingException, InterruptedException {
+        pull(mq, messageSelector, offset, maxNums, pullCallback, this.defaultMQPullConsumer.getConsumerPullTimeoutMillis());
+    }
+
+    public void pull(MessageQueue mq, MessageSelector messageSelector, long offset, int maxNums,
+        PullCallback pullCallback,
+        long timeout)
+        throws MQClientException, RemotingException, InterruptedException {
+        SubscriptionData subscriptionData = getSubscriptionData(mq, messageSelector);
+        this.pullAsyncImpl(mq, subscriptionData, offset, maxNums, pullCallback, false, timeout);
     }
 
     private void pullAsyncImpl(
         final MessageQueue mq,
-        final String subExpression,
+        final SubscriptionData subscriptionData,
         final long offset,
         final int maxNums,
         final PullCallback pullCallback,
@@ -403,20 +455,14 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         try {
             int sysFlag = PullSysFlag.buildSysFlag(false, block, true, false);
 
-            final SubscriptionData subscriptionData;
-            try {
-                subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPullConsumer.getConsumerGroup(),
-                    mq.getTopic(), subExpression);
-            } catch (Exception e) {
-                throw new MQClientException("parse subscription error", e);
-            }
-
             long timeoutMillis = block ? this.defaultMQPullConsumer.getConsumerTimeoutMillisWhenSuspend() : timeout;
 
+            boolean isTagType = ExpressionType.isTagType(subscriptionData.getExpressionType());
             this.pullAPIWrapper.pullKernelImpl(
                 mq,
                 subscriptionData.getSubString(),
-                0L,
+                subscriptionData.getExpressionType(),
+                isTagType ? 0L : subscriptionData.getSubVersion(),
                 offset,
                 maxNums,
                 sysFlag,
@@ -444,7 +490,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     public PullResult pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        return this.pullSyncImpl(mq, subExpression, offset, maxNums, true, this.getDefaultMQPullConsumer().getConsumerPullTimeoutMillis());
+        SubscriptionData subscriptionData = getSubscriptionData(mq, subExpression);
+        return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, true, this.getDefaultMQPullConsumer().getConsumerPullTimeoutMillis());
     }
 
     public DefaultMQPullConsumer getDefaultMQPullConsumer() {
@@ -454,7 +501,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     public void pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums,
         PullCallback pullCallback)
         throws MQClientException, RemotingException, InterruptedException {
-        this.pullAsyncImpl(mq, subExpression, offset, maxNums, pullCallback, true,
+        SubscriptionData subscriptionData = getSubscriptionData(mq, subExpression);
+        this.pullAsyncImpl(mq, subscriptionData, offset, maxNums, pullCallback, true,
             this.getDefaultMQPullConsumer().getConsumerPullTimeoutMillis());
     }
 
