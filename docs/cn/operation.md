@@ -140,7 +140,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 > 注意：
 >
 > 1. 执行命令方法：`./mqadmin {command} {args}`
-> 2. 几乎所有命令都需要配置-n表示namesrv地址，格式为ip:port
+> 2. 几乎所有命令都需要配置-n表示NameServer地址，格式为ip:port
 > 3. 几乎所有命令都可以通过-h获取帮助
 > 4. 如果既有Broker地址（-b）配置项又有clusterName（-c）配置项，则优先以Broker地址执行命令，如果不配置Broker地址，则对集群中所有主机执行命令，只支持一个Broker地址。-b格式为ip:port，port默认是10911
 > 5. 在tools下可以看到很多命令，但并不是所有命令都能使用，只有在MQAdminStartup中初始化的命令才能使用，你也可以修改这个类，增加或自定义命令
@@ -179,7 +179,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>nameserve服务地址，格式 ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>NameServer服务地址，格式 ip:port</td>
  </tr>
  <tr height=76 style='height:57.0pt'>
   <td height=76 class=xl65 width=149 style='height:57.0pt;width:112pt'>-p</td>
@@ -213,7 +213,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=95 style='height:71.0pt'>
   <td height=95 class=xl65 width=149 style='height:71.0pt;width:112pt'>-t</td>
@@ -235,7 +235,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td rowspan=3 height=103 class=xl68 width=163 style='border-bottom:1.0pt;
@@ -251,7 +251,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td rowspan=3 height=103 class=xl68 width=163 style='border-bottom:1.0pt;
@@ -267,7 +267,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td rowspan=3 height=103 class=xl68 width=163 style='border-bottom:1.0pt;
@@ -283,7 +283,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td rowspan=6 height=518 class=xl68 width=163 style='border-bottom:1.0pt;
@@ -299,7 +299,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=132 style='height:99.0pt'>
   <td height=132 class=xl65 width=149 style='height:99.0pt;width:112pt'>-b</td>
@@ -319,13 +319,13 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=5 height=199 class=xl68 width=163 style='border-bottom:1.0pt;
   height:149.0pt;border-top:none;width:122pt'>updateOrderConf</td>
   <td rowspan=5 class=xl70 width=135 style='border-bottom:1.0pt;
-  border-top:none;width:101pt'>从namesrv上创建、删除、获取特定命名空间的kv配置，目前还未启用</td>
+  border-top:none;width:101pt'>从NameServer上创建、删除、获取特定命名空间的kv配置，目前还未启用</td>
   <td class=xl65 width=149 style='width:112pt'>-h</td>
   <td class=xl66 width=159 style='width:119pt'>打印帮助</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-t</td>
@@ -353,7 +353,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=95 style='height:71.0pt'>
   <td height=95 class=xl65 width=149 style='height:71.0pt;width:112pt'>-i</td>
@@ -369,7 +369,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl65 width=149 style='height:29.0pt;width:112pt'>-a</td>
@@ -412,7 +412,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=177 style='height:43.0pt;width:133pt'>-n</td>
-  <td class=xl66 width=185 style='width:139pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl66 width=185 style='width:139pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl65 width=177 style='height:29.0pt;width:133pt'>-i</td>
@@ -453,7 +453,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=177 style='height:43.0pt;width:133pt'>-n</td>
-  <td class=xl66 width=185 style='width:139pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl66 width=185 style='width:139pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
 </table>
 
@@ -497,7 +497,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td rowspan=3 height=137 class=xl69 width=191 style='border-bottom:1.0pt;
@@ -513,7 +513,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td rowspan=6 height=256 class=xl69 width=191 style='border-bottom:1.0pt;
@@ -542,7 +542,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td rowspan=2 height=114 class=xl69 width=191 style='border-bottom:1.0pt;
@@ -554,19 +554,19 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td rowspan=3 height=137 class=xl69 width=191 style='border-bottom:1.0pt;
   height:103.0pt;border-top:none;width:143pt'>wipeWritePerm</td>
   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
-  border-top:none;width:65pt'>从namesrv上清除 Broker写权限</td>
+  border-top:none;width:65pt'>从NameServer上清除 Broker写权限</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
   <td class=xl68 width=87 style='width:65pt'>Broker 地址，地址为ip:port</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -578,7 +578,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>清理Broker上过期的Consume Queue，如果手动减少对列数可能产生过期队列</td>
   <td class=xl67 width=87 style='width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -599,7 +599,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   border-top:none;width:65pt'>清理Broker上不使用的Topic，从内存中释放Topic的Consume
   Queue，如果手动删除Topic会产生不使用的Topic</td>
   <td class=xl67 width=87 style='width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -619,7 +619,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=5 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>向Broker发消息，返回发送状态和RT</td>
   <td class=xl67 width=87 style='width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -667,7 +667,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td rowspan=4 height=126 class=xl69 width=87 style='border-bottom:1.0pt;
@@ -687,7 +687,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=225 style='height:169.0pt'>
   <td rowspan=6 height=390 class=xl69 width=87 style='border-bottom:1.0pt;
@@ -716,7 +716,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=47>
   <td rowspan=6 height=209 class=xl69 width=87 style='border-bottom:1.0pt;
@@ -728,7 +728,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-i</td>
@@ -756,7 +756,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-t</td>
@@ -780,7 +780,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-t</td>
@@ -816,7 +816,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-t</td>
@@ -860,7 +860,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-t</td>
@@ -896,7 +896,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-t</td>
@@ -948,7 +948,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-g</td>
@@ -1004,7 +1004,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=105 style='mso-height-source:userset;height:79.0pt'>
   <td rowspan=5 height=260 class=xl69 width=87 style='border-bottom:1.0pt;
@@ -1017,7 +1017,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=36 style='height:27.0pt'>
   <td height=36 class=xl67 width=87 style='height:27.0pt;width:65pt'>-g</td>
@@ -1049,7 +1049,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -1061,7 +1061,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=13 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>更新或创建订阅关系</td>
   <td class=xl67 width=87 style='width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -1117,7 +1117,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=5 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>从Broker删除订阅关系</td>
   <td class=xl67 width=87 style='width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -1141,7 +1141,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=6 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>在目标群组中使用源群组的offset</td>
   <td class=xl67 width=87 style='width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -1191,7 +1191,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -1211,7 +1211,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -1222,7 +1222,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 
 
 
-#### 2.7 Namesrv相关
+#### 2.7 NameServer相关
 
 <table border=0 cellpadding=0 cellspacing=0 width=714>
  <col width=177>
@@ -1239,7 +1239,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=5 height=143 class=xl69 width=87 style='border-bottom:1.0pt
   height:100pt;border-top:none;width:65pt'>updateKvConfig</td>
   <td rowspan=5 class=xl72 width=87 style='border-bottom:1.0pt
-  border-top:none;width:65pt'>更新namesrv的kv配置，目前还未使用</td>
+  border-top:none;width:65pt'>更新NameServer的kv配置，目前还未使用</td>
   <td class=xl75 width=87 style='width:65pt'>-s</td>
   <td class=xl76 width=87 style='width:65pt'>命名空间</td>
  </tr>
@@ -1253,7 +1253,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -1263,7 +1263,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=4 height=126 class=xl69 width=87 style='border-bottom:1.0pt
   height:94.0pt;border-top:none;width:65pt'>deleteKvConfig</td>
   <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt
-  border-top:none;width:65pt'>删除namesrv的kv配置</td>
+  border-top:none;width:65pt'>删除NameServer的kv配置</td>
   <td class=xl67 width=87 style='width:65pt'>-s</td>
   <td class=xl68 width=87 style='width:65pt'>命名空间</td>
  </tr>
@@ -1273,7 +1273,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -1283,9 +1283,9 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=2 height=80 class=xl69 width=87 style='border-bottom:1.0pt
   height:60.0pt;border-top:none;width:65pt'>getNamesrvConfig</td>
   <td rowspan=2 class=xl72 width=87 style='border-bottom:1.0pt
-  border-top:none;width:65pt'>获取namesrv配置</td>
+  border-top:none;width:65pt'>获取NameServer配置</td>
   <td class=xl67 width=87 style='width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -1295,9 +1295,9 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=4 height=126 class=xl69 width=87 style='border-bottom:1.0pt
   height:94.0pt;border-top:none;width:65pt'>updateNamesrvConfig</td>
   <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt
-  border-top:none;width:65pt'>修改namesrv配置</td>
+  border-top:none;width:65pt'>修改NameServer配置</td>
   <td class=xl67 width=87 style='width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -1335,7 +1335,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=2 class=xl71 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>开启监控进程，监控消息误删、重试队列消息数等</td>
   <td class=xl67 width=87 style='width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>nameserve 服务地址，格式 ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
