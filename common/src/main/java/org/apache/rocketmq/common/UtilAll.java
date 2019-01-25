@@ -60,6 +60,18 @@ public class UtilAll {
         }
     }
 
+    public static void sleep(long sleepMs) {
+        if (sleepMs < 0) {
+            return;
+        }
+        try {
+            Thread.sleep(sleepMs);
+        } catch (Throwable ignored) {
+
+        }
+
+    }
+
     public static String currentStackTrace() {
         StringBuilder sb = new StringBuilder();
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
