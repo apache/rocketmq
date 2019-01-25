@@ -220,7 +220,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Whether update subscription relationship when every pull
      */
-    private boolean postSubscriptionWhenPull = false;
+    private boolean postSubscriptionWhenPull = true;
 
     /**
      * Whether the unit of subscription group

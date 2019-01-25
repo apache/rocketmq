@@ -21,14 +21,18 @@ import io.netty.util.Attribute;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.CheckClientRequestBody;
 import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UnregisterClientResponseHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.ProducerData;
+import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.filter.FilterFactory;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
@@ -57,6 +61,8 @@ public class HeartbeatProcessor implements RequestProcessor {
                 return register(remotingChannel, request);
             case RequestCode.UNREGISTER_CLIENT:
                 return unregister(remotingChannel, request);
+            case RequestCode.CHECK_CLIENT_CONFIG:
+                return this.checkClientConfig(remotingChannel, request);
             default:
                 break;
         }
@@ -124,6 +130,43 @@ public class HeartbeatProcessor implements RequestProcessor {
             this.snodeController.getConsumerManager().unRegister(consumerGroup, remotingChannel);
             this.snodeController.getSubscriptionManager().removePushSession(remotingChannel);
             this.snodeController.getClientService().notifyConsumer(consumerGroup);
+        }
+
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+    public RemotingCommand checkClientConfig(RemotingChannel ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        CheckClientRequestBody requestBody = CheckClientRequestBody.decode(request.getBody(),
+            CheckClientRequestBody.class);
+
+        if (requestBody != null && requestBody.getSubscriptionData() != null) {
+            SubscriptionData subscriptionData = requestBody.getSubscriptionData();
+
+            if (ExpressionType.isTagType(subscriptionData.getExpressionType())) {
+                response.setCode(ResponseCode.SUCCESS);
+                response.setRemark(null);
+                return response;
+            }
+
+            if (!this.snodeController.getSnodeConfig().isEnablePropertyFilter()) {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("The snode does not support consumer to filter message by " + subscriptionData.getExpressionType());
+                return response;
+            }
+
+            try {
+                FilterFactory.INSTANCE.get(subscriptionData.getExpressionType()).compile(subscriptionData.getSubString());
+            } catch (Exception e) {
+                log.warn("Client {}@{} filter message, but failed to compile expression! sub={}, error={}",
+                    requestBody.getClientId(), requestBody.getGroup(), requestBody.getSubscriptionData(), e.getMessage());
+                response.setCode(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
+                response.setRemark(e.getMessage());
+                return response;
+            }
         }
 
         response.setCode(ResponseCode.SUCCESS);

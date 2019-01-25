@@ -49,10 +49,10 @@ import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -113,7 +113,7 @@ public class SnodePullMessageProcessor implements RequestProcessor {
             }
         } catch (Exception e) {
             log.warn("Parse the consumer's subscription[{}] failed, group: {}", requestHeader.getSubscription(),
-                requestHeader.getConsumerGroup());
+                requestHeader.getConsumerGroup(), e);
             response.setCode(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
             response.setRemark(e.getMessage());
             return response;
