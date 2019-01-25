@@ -18,6 +18,7 @@ package org.apache.rocketmq.snode.client;
 
 import java.util.Set;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
@@ -35,9 +36,10 @@ public interface SubscriptionManager {
 
     Subscription getSubscription(String groupId);
 
-    void registerPushSession(Set<SubscriptionData> subscriptionDataSet, RemotingChannel remotingChannel, String groupId);
+    void registerPushSession(Set<SubscriptionData> subscriptionDataSet, RemotingChannel remotingChannel,
+        String groupId);
 
     void removePushSession(RemotingChannel remotingChannel);
 
-    Set<RemotingChannel> getPushableChannel(String topic, Integer queueId);
+    Set<RemotingChannel> getPushableChannel(MessageQueue messageQueue);
 }

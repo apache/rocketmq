@@ -31,7 +31,6 @@ public class ConsumerData {
     private ConsumeFromWhere consumeFromWhere;
     private Set<SubscriptionData> subscriptionDataSet = new HashSet<SubscriptionData>();
     private boolean unitMode;
-    private boolean realPushEnable = true;
 
     public String getGroupName() {
         return groupName;
@@ -80,15 +79,6 @@ public class ConsumerData {
     public void setUnitMode(boolean isUnitMode) {
         this.unitMode = isUnitMode;
     }
-
-    public boolean isRealPushEnable() {
-        return realPushEnable;
-    }
-
-    public void setRealPushEnable(boolean realPushEnable) {
-        this.realPushEnable = realPushEnable;
-    }
-
     @Override
     public String toString() {
         return "ConsumerData{" +
@@ -98,7 +88,6 @@ public class ConsumerData {
             ", consumeFromWhere=" + consumeFromWhere +
             ", subscriptionDataSet=" + subscriptionDataSet +
             ", unitMode=" + unitMode +
-            ", realPushEnable=" + realPushEnable +
             '}';
     }
 }

@@ -131,7 +131,7 @@ public abstract class AbstractFlowControlService implements Interceptor {
             }
         }
         FlowRuleManager.loadRules(sentinelRules);
-        log.warn("Load Rules: {}" + FlowRuleManager.getRules());
+        log.warn("Load Rules: {}", FlowRuleManager.getRules());
     }
 }
 

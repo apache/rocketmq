@@ -33,6 +33,9 @@ public class PushMessageHeader implements CommandCustomHeader {
     @CFNotNull
     private String topic;
 
+    @CFNotNull
+    private String consumerGroup;
+
     @Override
     public void checkFields() throws RemotingCommandException {
 
@@ -68,5 +71,13 @@ public class PushMessageHeader implements CommandCustomHeader {
 
     public void setMessageId(String messageId) {
         this.messageId = messageId;
+    }
+
+    public String getConsumerGroup() {
+        return consumerGroup;
+    }
+
+    public void setConsumerGroup(String consumerGroup) {
+        this.consumerGroup = consumerGroup;
     }
 }

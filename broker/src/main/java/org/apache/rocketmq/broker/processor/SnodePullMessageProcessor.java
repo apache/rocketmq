@@ -115,7 +115,7 @@ public class SnodePullMessageProcessor implements RequestProcessor {
             log.warn("Parse the consumer's subscription[{}] failed, group: {}", requestHeader.getSubscription(),
                 requestHeader.getConsumerGroup());
             response.setCode(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
-            response.setRemark("parse the consumer's subscription failed");
+            response.setRemark(e.getMessage());
             return response;
         }
 

@@ -16,4 +16,5 @@ package org.apache.rocketmq.snode.service;/*
  */
 
 public interface AdminService {
+
 }

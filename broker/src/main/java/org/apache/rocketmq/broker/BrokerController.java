@@ -513,8 +513,8 @@ public class BrokerController {
          */
         this.remotingServer.registerProcessor(RequestCode.PULL_MESSAGE, this.pullMessageProcessor, this.pullMessageExecutor);
         this.pullMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
-        this.remotingServer.registerProcessor(RequestCode.SNODE_PULL_MESSAGE, this.snodePullMessageProcessor, pullMessageExecutor);
-        this.snodePullMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
+//        this.remotingServer.registerProcessor(RequestCode.SNODE_PULL_MESSAGE, this.snodePullMessageProcessor, pullMessageExecutor);
+//        this.snodePullMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
         /**
          * QueryMessageProcessor
          */

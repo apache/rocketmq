@@ -82,7 +82,7 @@ public abstract class ClientManagerImpl implements ClientManager {
                     iter.remove();
                     client.getRemotingChannel().close();
                     log.warn("SCAN: Remove expired channel from {}ClientTable. channel={}, group={}", client.getClientRole(),
-                        RemotingHelper.parseChannelRemoteAddr(client.getRemotingChannel().remoteAddress()), client.getGroupId());
+                        RemotingHelper.parseChannelRemoteAddr(client.getRemotingChannel().remoteAddress()), group);
                     if (channelTable.isEmpty()) {
                         iterator.remove();
                         log.warn("SCAN: Remove group={} channel from {}ClientTable.", group, client.getClientRole());
@@ -93,13 +93,13 @@ public abstract class ClientManagerImpl implements ClientManager {
     }
 
     @Override
-    public boolean register(Client client) {
+    public boolean register(String groupId, Client client) {
         boolean updated = false;
         if (client != null) {
-            ConcurrentHashMap<RemotingChannel, Client> channelTable = groupClientTable.get(client.getGroupId());
+            ConcurrentHashMap<RemotingChannel, Client> channelTable = groupClientTable.get(groupId);
             if (channelTable == null) {
                 channelTable = new ConcurrentHashMap();
-                ConcurrentHashMap prev = groupClientTable.putIfAbsent(client.getGroupId(), channelTable);
+                ConcurrentHashMap prev = groupClientTable.putIfAbsent(groupId, channelTable);
                 channelTable = prev != null ? prev : channelTable;
             }
 
@@ -107,14 +107,14 @@ public abstract class ClientManagerImpl implements ClientManager {
             if (oldClient == null) {
                 Client prev = channelTable.put(client.getRemotingChannel(), client);
                 if (prev != null) {
-                    log.info("New client connected, group: {} {} {} channel: {}", client.getGroupId(), client.toString());
+                    log.info("New client connected, group: {} {} {} channel: {}", groupId, client.toString());
                     updated = true;
                 }
                 oldClient = client;
             } else {
                 if (!oldClient.getClientId().equals(client.getClientId())) {
                     log.error("[BUG] client channel exist in snode, but clientId not equal. GROUP: {} OLD: {} NEW: {} ",
-                        client.getGroupId(),
+                        groupId,
                         oldClient.toString(),
                         channelTable.toString());
                     channelTable.put(client.getRemotingChannel(), client);
@@ -122,8 +122,8 @@ public abstract class ClientManagerImpl implements ClientManager {
             }
             oldClient.setLastUpdateTimestamp(System.currentTimeMillis());
         }
-        log.debug("Register client role: {}, group: {}, last: {}", client.getClientRole(), client.getGroupId(), client.getLastUpdateTimestamp());
-        onRegister(client.getGroupId(), client.getRemotingChannel());
+        log.debug("Register client role: {}, group: {}, last: {}", client.getClientRole(), groupId, client.getLastUpdateTimestamp());
+        onRegister(groupId, client.getRemotingChannel());
         return updated;
     }
 

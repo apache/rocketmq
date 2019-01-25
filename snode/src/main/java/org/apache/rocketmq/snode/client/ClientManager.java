@@ -20,7 +20,7 @@ import java.util.List;
 import org.apache.rocketmq.remoting.RemotingChannel;
 
 public interface ClientManager {
-    boolean register(Client client);
+    boolean register(String groupId, Client client);
 
     void unRegister(String groupId, RemotingChannel remotingChannel);
 

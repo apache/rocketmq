@@ -17,6 +17,7 @@
 package org.apache.rocketmq.snode.client;
 
 import java.util.Objects;
+import java.util.Set;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.serialize.LanguageCode;
 import org.apache.rocketmq.snode.client.impl.ClientRole;
@@ -24,9 +25,9 @@ import org.apache.rocketmq.snode.client.impl.ClientRole;
 public class Client {
     private ClientRole clientRole;
 
-    private String groupId;
-
     private String clientId;
+
+    private Set<String> groups;
 
     private RemotingChannel remotingChannel;
 
@@ -46,32 +47,23 @@ public class Client {
         this.clientRole = clientRole;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
         if (this == o)
             return true;
-        if (o == null || getClass() != o.getClass())
+        if (!(o instanceof Client))
             return false;
         Client client = (Client) o;
-        return version == client.version &&
-            clientRole == client.clientRole &&
-            Objects.equals(groupId, client.groupId) &&
-            Objects.equals(clientId, client.clientId) &&
-            Objects.equals(remotingChannel, client.remotingChannel) &&
-            language == client.language;
+        return
+            version == client.version &&
+                clientRole == client.clientRole &&
+                Objects.equals(clientId, client.clientId) &&
+                Objects.equals(groups, client.groups) &&
+                Objects.equals(remotingChannel, client.remotingChannel) &&
+                language == client.language;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(clientRole, groupId, clientId, remotingChannel, version, language);
-    }
-
-    public String getGroupId() {
-        return groupId;
-    }
-
-    public void setGroupId(String groupId) {
-        this.groupId = groupId;
+    @Override public int hashCode() {
+        return Objects.hash(clientRole, clientId, groups, remotingChannel, heartbeatInterval, lastUpdateTimestamp, version, language);
     }
 
     public RemotingChannel getRemotingChannel() {
@@ -122,11 +114,19 @@ public class Client {
         this.language = language;
     }
 
+    public Set<String> getGroups() {
+        return groups;
+    }
+
+    public void setGroups(Set<String> groups) {
+        this.groups = groups;
+    }
+
     @Override public String toString() {
         return "Client{" +
             "clientRole=" + clientRole +
-            ", groupId='" + groupId + '\'' +
             ", clientId='" + clientId + '\'' +
+            ", groups=" + groups +
             ", remotingChannel=" + remotingChannel +
             ", heartbeatInterval=" + heartbeatInterval +
             ", lastUpdateTimestamp=" + lastUpdateTimestamp +

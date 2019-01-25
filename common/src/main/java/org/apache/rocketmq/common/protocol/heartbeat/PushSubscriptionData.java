@@ -14,9 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client;
+package org.apache.rocketmq.common.protocol.heartbeat;
 
-public interface SlowConsumerService {
+import java.util.HashSet;
+import java.util.Set;
+import org.apache.rocketmq.common.message.MessageQueue;
 
-    boolean isSlowConsumer(long latestLogicOffset, String topic, int queueId, String consumerGroup, String enodeName);
+public class PushSubscriptionData extends SubscriptionData {
+    private Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+    
+    public Set<MessageQueue> getMessageQueueSet() {
+        return messageQueueSet;
+    }
+
+    public void setMessageQueueSet(Set<MessageQueue> messageQueueSet) {
+        this.messageQueueSet = messageQueueSet;
+    }
 }

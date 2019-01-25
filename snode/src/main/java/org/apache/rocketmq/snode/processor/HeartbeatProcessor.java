@@ -18,6 +18,8 @@ package org.apache.rocketmq.snode.processor;
 
 import io.netty.channel.Channel;
 import io.netty.util.Attribute;
+import java.util.HashSet;
+import java.util.Set;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -72,29 +74,33 @@ public class HeartbeatProcessor implements RequestProcessor {
         Client client = new Client();
         client.setClientId(heartbeatData.getClientID());
         client.setRemotingChannel(remotingChannel);
-
+        Set<String> groupSet = new HashSet<>();
         for (ProducerData producerData : heartbeatData.getProducerDataSet()) {
-            client.setGroupId(producerData.getGroupName());
             client.setClientRole(ClientRole.Producer);
-            this.snodeController.getProducerManager().register(client);
+            groupSet.add(producerData.getGroupName());
+            this.snodeController.getProducerManager().register(producerData.getGroupName(), client);
         }
 
-        for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
-            client.setGroupId(data.getGroupName());
+        log.info("Heartbeat consumerData: {}", heartbeatData.getConsumerDataSet());
+        for (ConsumerData consumerData : heartbeatData.getConsumerDataSet()) {
             client.setClientRole(ClientRole.Consumer);
-            boolean channelChanged = this.snodeController.getConsumerManager().register(client);
-            boolean subscriptionChanged = this.snodeController.getSubscriptionManager().subscribe(data.getGroupName(),
-                data.getSubscriptionDataSet(),
-                data.getConsumeType(),
-                data.getMessageModel(),
-                data.getConsumeFromWhere());
-            if (data.getConsumeType() == ConsumeType.CONSUME_PUSH) {
+            groupSet.add(consumerData.getGroupName());
+            boolean channelChanged = this.snodeController.getConsumerManager().register(consumerData.getGroupName(), client);
+            boolean subscriptionChanged = this.snodeController.getSubscriptionManager().subscribe(consumerData.getGroupName(),
+                consumerData.getSubscriptionDataSet(),
+                consumerData.getConsumeType(),
+                consumerData.getMessageModel(),
+                consumerData.getConsumeFromWhere());
+            if (consumerData.getConsumeType() == ConsumeType.CONSUME_PUSH) {
                 NettyChannelImpl nettyChannel = new NettyChannelImpl(channel);
-                this.snodeController.getSubscriptionManager().registerPushSession(data.getSubscriptionDataSet(), nettyChannel, data.getGroupName());
+                this.snodeController.getSubscriptionManager().registerPushSession(consumerData.getSubscriptionDataSet(), nettyChannel, consumerData.getGroupName());
             }
             if (subscriptionChanged || channelChanged) {
-                this.snodeController.getClientService().notifyConsumer(data.getGroupName());
+                this.snodeController.getClientService().notifyConsumer(consumerData.getGroupName());
             }
+        }
+        if (groupSet.size() > 0) {
+            client.setGroups(groupSet);
         }
 
         clientAttribute.setIfAbsent(client);

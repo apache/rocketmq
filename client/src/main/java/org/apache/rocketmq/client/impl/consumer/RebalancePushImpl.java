@@ -31,6 +31,7 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.common.protocol.heartbeat.PushSubscriptionData;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 public class RebalancePushImpl extends RebalanceImpl {
@@ -54,16 +55,17 @@ public class RebalancePushImpl extends RebalanceImpl {
          * When rebalance result changed, should update subscription's version to notify broker.
          * Fix: inconsistency subscription may lead to consumer miss messages.
          */
-        SubscriptionData subscriptionData = this.subscriptionInner.get(topic);
+        SubscriptionData sub = this.subscriptionInner.get(topic);
+        PushSubscriptionData subscriptionData = (PushSubscriptionData) sub;
         long newVersion = System.currentTimeMillis();
         log.info("{} Rebalance changed, also update version: {}, {}", topic, subscriptionData.getSubVersion(), newVersion);
         subscriptionData.setSubVersion(newVersion);
 
-        Set<Integer> queueIdSet = new HashSet<Integer>();
+        Set<MessageQueue> queueIdSet = new HashSet<MessageQueue>();
         for (MessageQueue messageQueue : mqAll) {
-            queueIdSet.add(messageQueue.getQueueId());
+            queueIdSet.add(messageQueue);
         }
-        subscriptionData.setQueueIdSet(queueIdSet);
+        subscriptionData.setMessageQueueSet(queueIdSet);
         int currentQueueCount = this.processQueueTable.size();
         if (currentQueueCount != 0) {
             int pullThresholdForTopic = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getPullThresholdForTopic();

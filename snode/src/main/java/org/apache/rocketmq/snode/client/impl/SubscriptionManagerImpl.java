@@ -23,8 +23,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.common.protocol.heartbeat.PushSubscriptionData;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -36,38 +38,27 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 
     private ConcurrentHashMap<String/*Consumer group*/, Subscription> groupSubscriptionTable = new ConcurrentHashMap<>(1024);
 
-    private ConcurrentHashMap<String/*Topic#QueueId*/, Set<RemotingChannel>> pushTable = new ConcurrentHashMap();
+    private ConcurrentHashMap<MessageQueue, Set<RemotingChannel>> pushTable = new ConcurrentHashMap();
 
-    private ConcurrentHashMap<RemotingChannel, Set<String>/*Topic#QueueId*/> clientSubscriptionTable = new ConcurrentHashMap<>(2048);
-
-    private final String pushKeySeparator = "#";
-
-    private String buildPushKey(String topic, Integer queueId) {
-        if (topic != null && queueId != null) {
-            StringBuffer stringBuffer = new StringBuffer(32);
-            stringBuffer.append(topic).append(pushKeySeparator).append(queueId);
-            return stringBuffer.toString();
-        }
-        return null;
-    }
+    private ConcurrentHashMap<RemotingChannel, Set<MessageQueue>> clientSubscriptionTable = new ConcurrentHashMap<>(2048);
 
     @Override
     public void registerPushSession(Set<SubscriptionData> subscriptionDataSet, RemotingChannel remotingChannel,
         String groupId) {
-        Set<String> prevSubSet = this.clientSubscriptionTable.get(remotingChannel);
-        Set<String> keySet = new HashSet<>();
-        for (SubscriptionData subscriptionData : subscriptionDataSet) {
-            if (subscriptionData.getTopic() != null && subscriptionData.getQueueIdSet() != null && remotingChannel != null) {
-                for (Integer queueId : subscriptionData.getQueueIdSet()) {
-                    String key = buildPushKey(subscriptionData.getTopic(), queueId);
-                    keySet.add(key);
-                    Set<RemotingChannel> clientSet = pushTable.get(key);
+        Set<MessageQueue> prevSubSet = this.clientSubscriptionTable.get(remotingChannel);
+        Set<MessageQueue> keySet = new HashSet<>();
+        for (SubscriptionData tmp : subscriptionDataSet) {
+            PushSubscriptionData subscriptionData = (PushSubscriptionData) tmp;
+            if (subscriptionData.getTopic() != null && subscriptionData.getMessageQueueSet() != null && remotingChannel != null) {
+                for (MessageQueue messageQueue : subscriptionData.getMessageQueueSet()) {
+                    keySet.add(messageQueue);
+                    Set<RemotingChannel> clientSet = pushTable.get(messageQueue);
                     if (clientSet == null) {
                         clientSet = new HashSet<>();
-                        Set<RemotingChannel> prev = pushTable.putIfAbsent(key, clientSet);
+                        Set<RemotingChannel> prev = pushTable.putIfAbsent(messageQueue, clientSet);
                         clientSet = prev != null ? prev : clientSet;
                     }
-                    log.info("Register push session key: {}, group: {} remoting: {}", key, groupId, remotingChannel.remoteAddress());
+                    log.info("Register push session message queue: {}, group: {} remoting: {}", messageQueue, groupId, remotingChannel.remoteAddress());
                     clientSet.add(remotingChannel);
                 }
             }
@@ -76,12 +67,12 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
             this.clientSubscriptionTable.putIfAbsent(remotingChannel, keySet);
         }
         if (prevSubSet != null) {
-            for (String key : prevSubSet) {
-                if (!keySet.contains(key)) {
-                    Set clientSet = pushTable.get(key);
+            for (MessageQueue messageQueue : prevSubSet) {
+                if (!keySet.contains(messageQueue)) {
+                    Set clientSet = pushTable.get(messageQueue);
                     if (clientSet != null) {
                         clientSet.remove(remotingChannel);
-                        log.info("Remove key:{}", key);
+                        log.info("Remove subscription message queue:{}", messageQueue);
                     }
                 }
             }
@@ -90,9 +81,9 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 
     @Override
     public void removePushSession(RemotingChannel remotingChannel) {
-        Set<String> subSet = this.clientSubscriptionTable.get(remotingChannel);
+        Set<MessageQueue> subSet = this.clientSubscriptionTable.get(remotingChannel);
         if (subSet != null) {
-            for (String key : subSet) {
+            for (MessageQueue key : subSet) {
                 Set clientSet = pushTable.get(key);
                 if (clientSet != null) {
                     log.info("Remove push key:{} remoting:{}", key, remotingChannel.remoteAddress());
@@ -107,10 +98,8 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
     }
 
     @Override
-    public Set<RemotingChannel> getPushableChannel(String topic, Integer queueId) {
-        String key = buildPushKey(topic, queueId);
-        log.info("Get pushableChannel by key: {}", key);
-        return pushTable.get(key);
+    public Set<RemotingChannel> getPushableChannel(MessageQueue messageQueue) {
+        return pushTable.get(messageQueue);
     }
 
     private Subscription getSubscription(String groupId, ConsumeType consumeType,

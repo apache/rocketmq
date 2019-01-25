@@ -16,12 +16,15 @@
  */
 package org.apache.rocketmq.snode.service.impl;
 
+import io.netty.channel.Channel;
+import io.netty.util.Attribute;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.PushMessageHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
@@ -29,8 +32,11 @@ import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
+import org.apache.rocketmq.snode.client.Client;
+import org.apache.rocketmq.snode.client.impl.Subscription;
 import org.apache.rocketmq.snode.constant.SnodeConstant;
 import org.apache.rocketmq.snode.service.PushService;
 
@@ -80,24 +86,37 @@ public class PushServiceImpl implements PushService {
                     pushMessageHeader.setQueueId(queueId);
                     RemotingCommand pushMessage = RemotingCommand.createRequestCommand(RequestCode.SNODE_PUSH_MESSAGE, pushMessageHeader);
                     pushMessage.setBody(message);
-                    Set<RemotingChannel> consumerTable = snodeController.getSubscriptionManager().getPushableChannel(topic, queueId);
+                    MessageQueue messageQueue = new MessageQueue(topic, enodeName, queueId);
+                    Set<RemotingChannel> consumerTable = snodeController.getSubscriptionManager().getPushableChannel(messageQueue);
                     if (consumerTable != null) {
                         for (RemotingChannel remotingChannel : consumerTable) {
-                            if (remotingChannel.isWritable()) {
-                                boolean slowConsumer = snodeController.getSlowConsumerService().isSlowConsumer(sendMessageResponseHeader.getQueueOffset(), topic, queueId, remotingChannel, enodeName);
-                                if (slowConsumer) {
-                                    log.warn("[SlowConsumer]: {} closed as slow consumer", remotingChannel);//TODO metrics
-                                    remotingChannel.close();
-                                    continue;
+                            Client client = null;
+                            if (remotingChannel instanceof NettyChannelImpl) {
+                                Channel channel = ((NettyChannelImpl) remotingChannel).getChannel();
+                                Attribute<Client> clientAttribute = channel.attr(SnodeConstant.NETTY_CLIENT_ATTRIBUTE_KEY);
+                                if (clientAttribute != null) {
+                                    client = clientAttribute.get();
                                 }
-                                log.debug("Push message to remotingChannel: {}", remotingChannel.remoteAddress());
-                                snodeController.getSnodeServer().push(remotingChannel, pushMessage, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
+                            }
+                            if (client != null) {
+                                for (String consumerGroup : client.getGroups()) {
+                                    Subscription subscription = snodeController.getSubscriptionManager().getSubscription(consumerGroup);
+                                    if (subscription.getSubscriptionData(topic) != null) {
+                                        boolean slowConsumer = snodeController.getSlowConsumerService().isSlowConsumer(sendMessageResponseHeader.getQueueOffset(), topic, queueId, consumerGroup, enodeName);
+                                        if (slowConsumer) {
+                                            log.warn("[SlowConsumer]: {} closed as slow consumer", remotingChannel);//TODO metrics
+                                            remotingChannel.close();//FIXME this action should be discussed
+                                            continue;
+                                        }
+                                        snodeController.getSnodeServer().push(remotingChannel, pushMessage, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
+                                    }
+                                }
                             } else {
-                                log.warn("Remoting channel is not writable: {}", remotingChannel.remoteAddress());
+                                log.error("[NOTIFYME] Remoting channel: {} related client is null", remotingChannel.remoteAddress());
                             }
                         }
                     } else {
-                        log.warn("Get client info to topic: {} queueId: {} is null", topic, queueId);
+                        log.info("No online registered as push consumer and online for messageQueue: {} ", messageQueue);
                     }
                 } catch (Exception ex) {
                     log.warn("Push message to topic: {} queueId: {}", topic, queueId, ex);
@@ -116,13 +135,8 @@ public class PushServiceImpl implements PushService {
     @Override
     public void pushMessage(final String enodeName, final String topic, final Integer queueId, final byte[] message,
         final RemotingCommand response) {
-        Set<RemotingChannel> pushableChannels = this.snodeController.getSubscriptionManager().getPushableChannel(topic, queueId);
-        if (pushableChannels != null) {
-            PushTask pushTask = new PushTask(topic, queueId, message, response, enodeName);
-            pushMessageExecutorService.submit(pushTask);
-        } else {
-            log.info("Topic: {} QueueId: {} no need to push", topic, queueId);
-        }
+        PushTask pushTask = new PushTask(topic, queueId, message, response, enodeName);
+        pushMessageExecutorService.submit(pushTask);
     }
 
     @Override

@@ -31,7 +31,6 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
     private boolean classFilterMode = false;
     private String topic;
     private String subString;
-    private Set<Integer> queueIdSet = new HashSet<Integer>();
     private Set<String> tagsSet = new HashSet<String>();
     private Set<Integer> codeSet = new HashSet<Integer>();
     private long subVersion = System.currentTimeMillis();
@@ -114,14 +113,6 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
         this.expressionType = expressionType;
     }
 
-    public Set<Integer> getQueueIdSet() {
-        return queueIdSet;
-    }
-
-    public void setQueueIdSet(Set<Integer> queueIdSet) {
-        this.queueIdSet = queueIdSet;
-    }
-
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -129,7 +120,6 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
         result = prime * result + (classFilterMode ? 1231 : 1237);
         result = prime * result + ((codeSet == null) ? 0 : codeSet.hashCode());
         result = prime * result + ((subString == null) ? 0 : subString.hashCode());
-        result = prime * result + ((queueIdSet == null) ? 0 : queueIdSet.hashCode());
         result = prime * result + ((tagsSet == null) ? 0 : tagsSet.hashCode());
         result = prime * result + ((topic == null) ? 0 : topic.hashCode());
         result = prime * result + ((expressionType == null) ? 0 : expressionType.hashCode());
@@ -164,11 +154,6 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
                 return false;
         } else if (!tagsSet.equals(other.tagsSet))
             return false;
-        if (queueIdSet == null) {
-            if (other.queueIdSet != null)
-                return false;
-        } else if (!queueIdSet.equals(other.queueIdSet))
-            return false;
         if (topic == null) {
             if (other.topic != null)
                 return false;
@@ -187,7 +172,6 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
             "classFilterMode=" + classFilterMode +
             ", topic='" + topic + '\'' +
             ", subString='" + subString + '\'' +
-            ", queueIdSet=" + queueIdSet +
             ", tagsSet=" + tagsSet +
             ", codeSet=" + codeSet +
             ", subVersion=" + subVersion +
