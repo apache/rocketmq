@@ -54,7 +54,10 @@ public class ClientHousekeepingService implements ChannelEventListener {
             Channel channel = ((NettyChannelImpl) remotingChannel).getChannel();
             Attribute<Client> clientAttribute = channel.attr(SnodeConstant.NETTY_CLIENT_ATTRIBUTE_KEY);
             if (clientAttribute != null) {
-                return clientAttribute.get().getClientRole();
+                Client client = clientAttribute.get();
+                if (client != null) {
+                    return client.getClientRole();
+                }
             }
         }
         log.warn("RemotingChannel type error: {}", remotingChannel.getClass());
