@@ -14,33 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.example.filter;
 
-import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
-public class Producer {
-    public static void main(String[] args) throws MQClientException, InterruptedException {
-        DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName");
+public class SqlFilterProducer {
+
+    public static void main(String[] args) throws Exception {
+
+        DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
+
         producer.start();
 
-        try {
-            for (int i = 0; i < 6000000; i++) {
-                Message msg = new Message("TopicFilter7",
-                    "TagA",
-                    "OrderID001",
-                    "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
+        String[] tags = new String[] {"TagA", "TagB", "TagC"};
 
-                msg.putUserProperty("SequenceId", String.valueOf(i));
-                SendResult sendResult = producer.send(msg);
-                System.out.printf("%s%n", sendResult);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        for (int i = 0; i < 10; i++) {
+            Message msg = new Message("SqlFilterTest",
+                tags[i % tags.length],
+                ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET)
+            );
+            msg.putUserProperty("a", String.valueOf(i));
+
+            SendResult sendResult = producer.send(msg);
+            System.out.printf("%s%n", sendResult);
         }
+
         producer.shutdown();
     }
 }
