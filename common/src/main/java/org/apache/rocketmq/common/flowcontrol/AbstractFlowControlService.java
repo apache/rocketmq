@@ -74,6 +74,7 @@ public abstract class AbstractFlowControlService implements Interceptor {
         Boolean acquired = this.acquiredThreadLocal.get();
         if (acquired != null && acquired) {
             SphO.exit();
+            this.acquiredThreadLocal.remove();
         }
     }
 
@@ -82,6 +83,7 @@ public abstract class AbstractFlowControlService implements Interceptor {
         Boolean acquired = this.acquiredThreadLocal.get();
         if (acquired != null && acquired) {
             SphO.exit();
+            this.acquiredThreadLocal.remove();
         }
     }
 

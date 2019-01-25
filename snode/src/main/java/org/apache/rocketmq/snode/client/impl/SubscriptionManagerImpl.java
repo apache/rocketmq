@@ -26,7 +26,6 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.common.protocol.heartbeat.PushSubscriptionData;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -47,8 +46,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
         String groupId) {
         Set<MessageQueue> prevSubSet = this.clientSubscriptionTable.get(remotingChannel);
         Set<MessageQueue> keySet = new HashSet<>();
-        for (SubscriptionData tmp : subscriptionDataSet) {
-            PushSubscriptionData subscriptionData = (PushSubscriptionData) tmp;
+        for (SubscriptionData subscriptionData : subscriptionDataSet) {
             if (subscriptionData.getTopic() != null && subscriptionData.getMessageQueueSet() != null && remotingChannel != null) {
                 for (MessageQueue messageQueue : subscriptionData.getMessageQueueSet()) {
                     keySet.add(messageQueue);
@@ -58,7 +56,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
                         Set<RemotingChannel> prev = pushTable.putIfAbsent(messageQueue, clientSet);
                         clientSet = prev != null ? prev : clientSet;
                     }
-                    log.info("Register push session message queue: {}, group: {} remoting: {}", messageQueue, groupId, remotingChannel.remoteAddress());
+                    log.debug("Register push session message queue: {}, group: {} remoting: {}", messageQueue, groupId, remotingChannel.remoteAddress());
                     clientSet.add(remotingChannel);
                 }
             }

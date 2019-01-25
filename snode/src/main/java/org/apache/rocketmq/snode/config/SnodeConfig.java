@@ -78,6 +78,7 @@ public class SnodeConfig {
     private int listenPort = 11911;
 
     private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "true"));
+    private boolean enablePropertyFilter = true;
 
     /**
      * Acl feature switch
@@ -296,6 +297,14 @@ public class SnodeConfig {
 
     public void setSlowConsumerThreshold(int slowConsumerThreshold) {
         this.slowConsumerThreshold = slowConsumerThreshold;
+    }
+
+    public boolean isEnablePropertyFilter() {
+        return enablePropertyFilter;
+    }
+
+    public void setEnablePropertyFilter(boolean enablePropertyFilter) {
+        this.enablePropertyFilter = enablePropertyFilter;
     }
 
     public boolean isAclEnable() {
