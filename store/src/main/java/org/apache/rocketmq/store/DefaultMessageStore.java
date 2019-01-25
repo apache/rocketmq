@@ -397,7 +397,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     /**
-     * 非事务消息存储
+     * 单个消息存储
      * @param msg Message instance to store
      * @return
      */

@@ -24,10 +24,21 @@ public class MessageSysFlag {
     public final static int TRANSACTION_COMMIT_TYPE = 0x2 << 2;//1000
     public final static int TRANSACTION_ROLLBACK_TYPE = 0x3 << 2;//1100
 
+    /**
+     * 是否为TRANSACTION_ROLLBACK_TYPE
+     * @param flag
+     * @return
+     */
     public static int getTransactionValue(final int flag) {
         return flag & TRANSACTION_ROLLBACK_TYPE;
     }
 
+    /**
+     * flag去除TRANSACTION_ROLLBACK_TYPE  增加type
+     * @param flag
+     * @param type
+     * @return
+     */
     public static int resetTransactionValue(final int flag, final int type) {
         return (flag & (~TRANSACTION_ROLLBACK_TYPE)) | type;
     }

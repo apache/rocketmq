@@ -116,6 +116,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             checkForbiddenHookList.size());
     }
 
+    /**
+     * 初始化事务变量
+     */
     public void initTransactionEnv() {
         TransactionMQProducer producer = (TransactionMQProducer) this.defaultMQProducer;
         if (producer.getExecutorService() != null) {
@@ -1264,6 +1267,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         try {
             /**
              * 发送消息   和普通消息一样的方法
+             * 发送消息   和普通消息一样的方法
+             * 发送消息   和普通消息一样的方法
              */
             sendResult = this.send(msg);
         } catch (Exception e) {
@@ -1273,6 +1278,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
         Throwable localException = null;
         switch (sendResult.getSendStatus()) {
+            /**
+             * 消息发送成功
+             */
             case SEND_OK: {
                 try {
                     if (sendResult.getTransactionId() != null) {

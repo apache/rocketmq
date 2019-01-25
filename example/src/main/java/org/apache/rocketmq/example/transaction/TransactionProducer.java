@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 public class TransactionProducer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
         TransactionListener transactionListener = new TransactionListenerImpl();
-        TransactionMQProducer producer = new TransactionMQProducer("TransactionMQProducer");
+        TransactionMQProducer producer = new TransactionMQProducer("TransactionMQProducerGroup");
         ExecutorService executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2000), new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -46,6 +46,7 @@ public class TransactionProducer {
         producer.setExecutorService(executorService);
         producer.setTransactionListener(transactionListener);
         producer.setNamesrvAddr("localhost:9876");
+        producer.setInstanceName("group1");
 
         /**
          * 生产者启动
