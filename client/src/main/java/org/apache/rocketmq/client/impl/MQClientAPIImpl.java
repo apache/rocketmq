@@ -533,6 +533,15 @@ public class MQClientAPIImpl {
         }
     }
 
+    /**
+     * 组装返回对象
+     * @param brokerName
+     * @param msg
+     * @param response
+     * @return
+     * @throws MQBrokerException
+     * @throws RemotingCommandException
+     */
     private SendResult processSendResponse(
         final String brokerName,
         final Message msg,
@@ -563,12 +572,22 @@ public class MQClientAPIImpl {
                         break;
                 }
 
+                /**
+                 * response反序列化为SendMessageResponseHeader
+                 */
                 SendMessageResponseHeader responseHeader =
                     (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
 
                 MessageQueue messageQueue = new MessageQueue(msg.getTopic(), brokerName, responseHeader.getQueueId());
 
+                /**
+                 * 获取UNIQ_KEY属性
+                 */
                 String uniqMsgId = MessageClientIDSetter.getUniqID(msg);
+
+                /**
+                 * 批量提交
+                 */
                 if (msg instanceof MessageBatch) {
                     StringBuilder sb = new StringBuilder();
                     for (Message message : (MessageBatch) msg) {
@@ -576,9 +595,15 @@ public class MQClientAPIImpl {
                     }
                     uniqMsgId = sb.toString();
                 }
+
+                /**
+                 * 组装SendResult
+                 */
                 SendResult sendResult = new SendResult(sendStatus,
                     uniqMsgId,
                     responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
+
+
                 sendResult.setTransactionId(responseHeader.getTransactionId());
                 String regionId = response.getExtFields().get(MessageConst.PROPERTY_MSG_REGION);
                 String traceOn = response.getExtFields().get(MessageConst.PROPERTY_TRACE_SWITCH);
@@ -1062,6 +1087,16 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * Oneway发送
+     * @param addr
+     * @param requestHeader
+     * @param remark
+     * @param timeoutMillis
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     public void endTransactionOneway(
         final String addr,
         final EndTransactionRequestHeader requestHeader,
