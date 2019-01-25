@@ -28,7 +28,7 @@ public class MessageStoreConfig {
     //The directory in which the commitlog is kept
     @ImportantField
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
-        + File.separator + "commitlog";
+            + File.separator + "commitlog";
 
     // CommitLog file size,default is 1G
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
@@ -139,14 +139,8 @@ public class MessageStoreConfig {
     private int defaultQueryMaxNum = 32;
 
     @ImportantField
-    /**
-     * 开启堆外内存
-     */
     private boolean transientStorePoolEnable = false;
     private int transientStorePoolSize = 5;
-    /**
-     * 从 transientStorepool中获取 ByteBuffer是否支持快速失败
-     */
     private boolean fastFailIfNoBufferInStorePool = false;
 
     public boolean isDebugLockEnable() {
@@ -610,15 +604,14 @@ public class MessageStoreConfig {
     }
 
     /**
-     * transientStorePoolEnable  &&  异步刷盘  && 不为slave
-     *
-     * Enable transient commitLog store poll only if transientStorePoolEnable is true and the FlushDiskType is
+     * Enable transient commitLog store pool only if transientStorePoolEnable is true and the FlushDiskType is
      * ASYNC_FLUSH
+     *
      * @return <tt>true</tt> or <tt>false</tt>
      */
     public boolean isTransientStorePoolEnable() {
         return transientStorePoolEnable && FlushDiskType.ASYNC_FLUSH == getFlushDiskType()
-            && BrokerRole.SLAVE != getBrokerRole();
+                && BrokerRole.SLAVE != getBrokerRole();
     }
 
     public void setTransientStorePoolEnable(final boolean transientStorePoolEnable) {
