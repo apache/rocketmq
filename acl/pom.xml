@@ -69,10 +69,6 @@
             <artifactId>logback-core</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>rocketmq-remoting</artifactId>
-        </dependency>
 
     </dependencies>
 </project>

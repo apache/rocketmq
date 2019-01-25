@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
@@ -34,9 +35,15 @@ import org.apache.rocketmq.remoting.RemotingClientFactory;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.RemotingServerFactory;
 import org.apache.rocketmq.remoting.ServerConfig;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.interceptor.ExceptionContext;
 import org.apache.rocketmq.remoting.interceptor.Interceptor;
 import org.apache.rocketmq.remoting.interceptor.InterceptorFactory;
 import org.apache.rocketmq.remoting.interceptor.InterceptorGroup;
+import org.apache.rocketmq.remoting.interceptor.RequestContext;
+import org.apache.rocketmq.remoting.interceptor.ResponseContext;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.util.ServiceProvider;
 import org.apache.rocketmq.snode.client.ClientHousekeepingService;
 import org.apache.rocketmq.snode.client.ClientManager;
 import org.apache.rocketmq.snode.client.SlowConsumerService;
@@ -201,8 +208,46 @@ public class SnodeController {
         this.registerProcessor();
         initSnodeInterceptorGroup();
         initRemotingServerInterceptorGroup();
+        initAclInterceptorGroup();
         this.snodeServer.registerInterceptorGroup(this.remotingServerInterceptorGroup);
         return true;
+    }
+
+    private void initAclInterceptorGroup() {
+
+        if (!this.snodeConfig.isAclEnable()) {
+            log.info("The snode dose not enable acl");
+            return;
+        }
+
+        List<AccessValidator> accessValidators = ServiceProvider.loadServiceList(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
+        if (accessValidators == null || accessValidators.isEmpty()) {
+            log.info("The snode dose not load the AccessValidator");
+            return;
+        }
+
+        for (AccessValidator accessValidator: accessValidators) {
+            final AccessValidator validator = accessValidator;
+            this.remotingServerInterceptorGroup.registerInterceptor(new Interceptor() {
+
+                @Override
+                public String interceptorName() {
+                    return "snodeRequestAclControlInterceptor";
+                }
+
+                @Override public void beforeRequest(RequestContext requestContext) {
+                    //Do not catch the exception
+                    RemotingCommand request = requestContext.getRequest();
+                    String remoteAddr = RemotingUtil.socketAddress2IpString(requestContext.getRemotingChannel().remoteAddress());
+                    validator.validate(validator.parse(request, remoteAddr));
+
+                }
+
+                @Override public void afterRequest(ResponseContext responseContext) { }
+
+                @Override public void onException(ExceptionContext exceptionContext) { }
+            });
+        }
     }
 
     private void initSnodeInterceptorGroup() {

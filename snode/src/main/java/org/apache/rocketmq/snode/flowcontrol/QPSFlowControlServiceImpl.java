@@ -17,17 +17,17 @@
 package org.apache.rocketmq.snode.flowcontrol;
 
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.flowcontrol.AbstractFlowControlService;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingRuntimeException;
 import org.apache.rocketmq.remoting.interceptor.RequestContext;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 
 public class QPSFlowControlServiceImpl extends AbstractFlowControlService {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
 
     private final AtomicLong logCount = new AtomicLong(0);
 

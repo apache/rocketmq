@@ -27,7 +27,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 
 public class SqlConsumer {
 
-    public static void main(String[] args) throws Exception{
+    public static void main(String[] args) throws Exception {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name");
 
         // Don't forget to set enablePropertyFilter=true in broker

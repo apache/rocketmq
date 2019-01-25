@@ -79,6 +79,12 @@ public class SnodeConfig {
 
     private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "true"));
 
+    /**
+     * Acl feature switch
+     */
+    @ImportantField
+    private boolean aclEnable = false;
+
     public void setSnodeHeartBeatInterval(long snodeHeartBeatInterval) {
         this.snodeHeartBeatInterval = snodeHeartBeatInterval;
     }
@@ -290,5 +296,13 @@ public class SnodeConfig {
 
     public void setSlowConsumerThreshold(int slowConsumerThreshold) {
         this.slowConsumerThreshold = slowConsumerThreshold;
+    }
+
+    public boolean isAclEnable() {
+        return aclEnable;
+    }
+
+    public void setAclEnable(boolean aclEnable) {
+        this.aclEnable = aclEnable;
     }
 }

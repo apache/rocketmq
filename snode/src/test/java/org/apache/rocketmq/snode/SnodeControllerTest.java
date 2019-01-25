@@ -36,4 +36,18 @@ public class SnodeControllerTest {
         snodeController.shutdown();
     }
 
+    @Test
+    public void testSnodeRestartWithAclEnable() {
+
+        SnodeConfig snodeConfig = new SnodeConfig();
+        snodeConfig.setAclEnable(true);
+        SnodeController snodeController = new SnodeController(
+            new ServerConfig(),
+            new ClientConfig(),
+            snodeConfig);
+        assertThat(snodeController.initialize());
+        snodeController.start();
+        snodeController.shutdown();
+    }
+
 }

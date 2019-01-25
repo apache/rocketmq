@@ -162,6 +162,13 @@ public class RemotingUtil {
         return sb.toString();
     }
 
+    public static String socketAddress2IpString(final SocketAddress addr) {
+        StringBuilder sb = new StringBuilder();
+        InetSocketAddress inetSocketAddress = (InetSocketAddress) addr;
+        sb.append(inetSocketAddress.getAddress().getHostAddress());
+        return sb.toString();
+    }
+
     public static SocketChannel connect(SocketAddress remote) {
         return connect(remote, 1000 * 5);
     }
