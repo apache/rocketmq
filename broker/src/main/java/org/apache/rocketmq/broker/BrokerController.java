@@ -245,10 +245,14 @@ public class BrokerController {
          * 读取store/config下的配置文件   并缓存
          * 具体文件名称   参照BrokerPathConfigHelper
          */
-        boolean result = this.topicConfigManager.load();//topics.json
-        result = result && this.consumerOffsetManager.load();//consumerOffset.json
-        result = result && this.subscriptionGroupManager.load();//subscriptionGroup.json
-        result = result && this.consumerFilterManager.load();//consumerFilter.json
+        //topics.json
+        boolean result = this.topicConfigManager.load();
+        //consumerOffset.json
+        result = result && this.consumerOffsetManager.load();
+        //subscriptionGroup.json
+        result = result && this.subscriptionGroupManager.load();
+        //consumerFilter.json
+        result = result && this.consumerFilterManager.load();
 
         if (result) {
             try {

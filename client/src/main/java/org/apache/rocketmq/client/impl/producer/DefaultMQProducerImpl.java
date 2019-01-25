@@ -1322,7 +1322,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         /**
                          * 执行监听方法
                          */
-                        transactionListener.executeLocalTransaction(msg, arg);
+                        localTransactionState = transactionListener.executeLocalTransaction(msg, arg);
                     }
                     if (null == localTransactionState) {
                         localTransactionState = LocalTransactionState.UNKNOW;
