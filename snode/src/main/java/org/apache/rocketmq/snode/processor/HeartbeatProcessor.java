@@ -20,6 +20,7 @@ import io.netty.channel.Channel;
 import io.netty.util.Attribute;
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -77,11 +78,12 @@ public class HeartbeatProcessor implements RequestProcessor {
         Set<String> groupSet = new HashSet<>();
         for (ProducerData producerData : heartbeatData.getProducerDataSet()) {
             client.setClientRole(ClientRole.Producer);
-            groupSet.add(producerData.getGroupName());
+            if (!MixAll.CLIENT_INNER_PRODUCER_GROUP.equals(producerData.getGroupName())) {
+                groupSet.add(producerData.getGroupName());
+            }
             this.snodeController.getProducerManager().register(producerData.getGroupName(), client);
         }
 
-        log.info("Heartbeat consumerData: {}", heartbeatData.getConsumerDataSet());
         for (ConsumerData consumerData : heartbeatData.getConsumerDataSet()) {
             client.setClientRole(ClientRole.Consumer);
             groupSet.add(consumerData.getGroupName());

@@ -25,12 +25,14 @@ import org.apache.rocketmq.common.filter.ExpressionType;
 
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.rocketmq.common.message.MessageQueue;
 
 public class SubscriptionData implements Comparable<SubscriptionData> {
     public final static String SUB_ALL = "*";
     private boolean classFilterMode = false;
     private String topic;
     private String subString;
+    private Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
     private Set<String> tagsSet = new HashSet<String>();
     private Set<Integer> codeSet = new HashSet<Integer>();
     private long subVersion = System.currentTimeMillis();
@@ -111,6 +113,14 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
 
     public void setExpressionType(String expressionType) {
         this.expressionType = expressionType;
+    }
+
+    public Set<MessageQueue> getMessageQueueSet() {
+        return messageQueueSet;
+    }
+
+    public void setMessageQueueSet(Set<MessageQueue> messageQueueSet) {
+        this.messageQueueSet = messageQueueSet;
     }
 
     @Override

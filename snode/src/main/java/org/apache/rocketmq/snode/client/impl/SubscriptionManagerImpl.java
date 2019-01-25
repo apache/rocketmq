@@ -26,7 +26,6 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.common.protocol.heartbeat.PushSubscriptionData;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -47,8 +46,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
         String groupId) {
         Set<MessageQueue> prevSubSet = this.clientSubscriptionTable.get(remotingChannel);
         Set<MessageQueue> keySet = new HashSet<>();
-        for (SubscriptionData tmp : subscriptionDataSet) {
-            PushSubscriptionData subscriptionData = (PushSubscriptionData) tmp;
+        for (SubscriptionData subscriptionData : subscriptionDataSet) {
             if (subscriptionData.getTopic() != null && subscriptionData.getMessageQueueSet() != null && remotingChannel != null) {
                 for (MessageQueue messageQueue : subscriptionData.getMessageQueueSet()) {
                     keySet.add(messageQueue);

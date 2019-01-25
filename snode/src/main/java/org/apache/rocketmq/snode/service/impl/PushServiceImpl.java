@@ -105,7 +105,7 @@ public class PushServiceImpl implements PushService {
                                         boolean slowConsumer = snodeController.getSlowConsumerService().isSlowConsumer(sendMessageResponseHeader.getQueueOffset(), topic, queueId, consumerGroup, enodeName);
                                         if (slowConsumer) {
                                             log.warn("[SlowConsumer]: {} closed as slow consumer", remotingChannel);//TODO metrics
-                                            remotingChannel.close();//FIXME this action should be discussed
+                                            remotingChannel.close();    //FIXME this action should be discussed
                                             continue;
                                         }
                                         snodeController.getSnodeServer().push(remotingChannel, pushMessage, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
