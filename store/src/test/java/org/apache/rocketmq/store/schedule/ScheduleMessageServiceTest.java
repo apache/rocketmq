@@ -103,6 +103,7 @@ public class ScheduleMessageServiceTest {
 
         long time2 = scheduleMessageService.computeDeliverTimestamp(2, storeTime);
         assertThat(time2).isEqualTo(storeTime + 10 * 1000);
+
     }
 
 
@@ -116,6 +117,8 @@ public class ScheduleMessageServiceTest {
     @After
     public void shutdown() throws InterruptedException {
         TimeUnit.SECONDS.sleep(shutdownTime);
+        messageStore.shutdown();
+        messageStore.destroy();
         File file = new File(messageStoreConfig.getStorePathRootDir());
         UtilAll.deleteFile(file);
     }
