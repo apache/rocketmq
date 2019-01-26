@@ -12,10 +12,12 @@ import org.junit.Test;
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -33,7 +35,7 @@ public class ScheduleMessageServiceTest {
      */
     String testMessageDelayLevel = "5s 10s";
     int delayLevel = 1;
-    int shutdownTime = 2;
+    int shutdownTime = 1;
 
     private static final String storePath = "." + File.separator + "schedule_test";
     private static final int commitLogFileSize = 1024;
@@ -82,17 +84,31 @@ public class ScheduleMessageServiceTest {
 
         messageStore.start();
         scheduleMessageService = messageStore.getScheduleMessageService();
+
+    }
+
+    @Test
+    public void buildRunningStatsTest() throws InterruptedException {
+        MessageExtBrokerInner msg = buildMessage();
+        msg.setDelayTimeLevel(delayLevel);
+        messageStore.putMessage(msg);
+        TimeUnit.SECONDS.sleep(1);
+        HashMap<String, String> stats = messageStore.getStoreStatsService().getRuntimeInfo();
+        scheduleMessageService.buildRunningStats(stats);
     }
 
 
     @Test
-    public void deliverDelayedMessageTimerTaskTest() {
+    public void deliverDelayedMessageTimerTaskTest() throws InterruptedException {
         MessageExtBrokerInner msg = buildMessage();
         // set delayLevel
         msg.setDelayTimeLevel(delayLevel);
         PutMessageResult result = messageStore.putMessage(msg);
         assertThat(result.isOk()).isTrue();
     }
+
+
+
 
     @Test
     public void computeDeliverTimestampTest() {
@@ -111,12 +127,14 @@ public class ScheduleMessageServiceTest {
     public void delayLevel2QueueIdTest(){
          int queueId = ScheduleMessageService.delayLevel2QueueId(delayLevel);
          assertThat(queueId).isEqualTo(delayLevel-1);
+         queueId = ScheduleMessageService.queueId2DelayLevel(delayLevel);
+         assertThat(queueId).isEqualTo(delayLevel+1);
     }
 
 
     @After
     public void shutdown() throws InterruptedException {
-        TimeUnit.SECONDS.sleep(shutdownTime);
+        TimeUnit.SECONDS.sleep(1);
         messageStore.shutdown();
         messageStore.destroy();
         File file = new File(messageStoreConfig.getStorePathRootDir());
@@ -151,6 +169,10 @@ public class ScheduleMessageServiceTest {
     }
 
 
+
+    private void x() throws NoSuchMethodException {
+//        Method method = scheduleMessageService.getClass().getMethod("updateOffset",);
+    }
 
 
 }
