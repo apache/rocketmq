@@ -82,7 +82,7 @@ public class UpdateTopicPermSubCommand implements SubCommand {
         int newPerm = Integer.parseInt(commandLine.getOptionValue('p').trim());
 
         if (newPerm != 2 && newPerm != 4 && newPerm != 6) {
-            System.out.println("perm only support 2(W), 4(R) or 6(RW)");
+            System.out.printf("perm only support 2(W), 4(R) or 6(RW)");
             return;
         }
 
