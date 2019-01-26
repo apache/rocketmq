@@ -432,7 +432,7 @@ public class RouteInfoManager {
                         this.lock.writeLock().unlock();
                     }
                 } catch (Exception e) {
-                    log.error("deleteTopic Exception", e);
+                    log.error("Delete Not Active Broker Exception", e);
                 }
             }
         }
