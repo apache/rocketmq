@@ -2,7 +2,6 @@ package org.apache.rocketmq.store.schedule;
 
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.store.*;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -11,16 +10,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Timer;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,13 +28,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ScheduleMessageServiceTest {
 
 
-
-    /** defaultMessageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h" */
+    /**
+     * defaultMessageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h"
+     */
     String testMessageDelayLevel = "5s 10s";
+    int delayLevel = 1;
+    int shutdownTime = 2;
 
     private static final String storePath = "." + File.separator + "schedule_test";
     private static final int commitLogFileSize = 1024;
-    private static final int cqFileSize = 10 * 20;
+    private static final int cqFileSize = 10;
     private static final int cqExtFileSize = 10 * (ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE + 64);
 
     private static SocketAddress BornHost;
@@ -47,7 +46,6 @@ public class ScheduleMessageServiceTest {
     MessageStoreConfig messageStoreConfig;
     BrokerConfig brokerConfig;
     ScheduleMessageService scheduleMessageService;
-
 
 
     static {
@@ -82,69 +80,57 @@ public class ScheduleMessageServiceTest {
 
         assertThat(messageStore.load()).isTrue();
 
-
         messageStore.start();
-        scheduleMessageService =  messageStore.getScheduleMessageService();
+        scheduleMessageService = messageStore.getScheduleMessageService();
     }
 
 
-
     @Test
-    public void computeDeliverTimestampTest(){
-         // testMessageDelayLevel  just "5s 10s"
-        long storeTime = System.currentTimeMillis();
-        long time1 = scheduleMessageService.computeDeliverTimestamp(1,storeTime);
-        assertThat(time1).isEqualTo(storeTime+5*1000);
-
-        long time2 = scheduleMessageService.computeDeliverTimestamp(2,storeTime);
-        assertThat(time2).isEqualTo(storeTime+10*1000);
-    }
-
-
-
-    @Test
-    public void putDelayMessage() {
+    public void deliverDelayedMessageTimerTaskTest() {
         MessageExtBrokerInner msg = buildMessage();
-        // set delayTime
-        msg.setDelayTimeLevel(1);
+        // set delayLevel
+        msg.setDelayTimeLevel(delayLevel);
         PutMessageResult result = messageStore.putMessage(msg);
-        assertThat(result.getPutMessageStatus()).isEqualTo(PutMessageStatus.PUT_OK);
+        assertThat(result.isOk()).isTrue();
+    }
+
+    @Test
+    public void computeDeliverTimestampTest() {
+        // testMessageDelayLevel  just "5s 10s"
+        long storeTime = System.currentTimeMillis();
+        long time1 = scheduleMessageService.computeDeliverTimestamp(1, storeTime);
+        assertThat(time1).isEqualTo(storeTime + 5 * 1000);
+
+        long time2 = scheduleMessageService.computeDeliverTimestamp(2, storeTime);
+        assertThat(time2).isEqualTo(storeTime + 10 * 1000);
     }
 
 
     @Test
-    public void timerTaskTest(){
-        Timer timer = new Timer("ScheduleMessageTimerThreadTest", true);
-
+    public void delayLevel2QueueIdTest(){
+         int queueId = ScheduleMessageService.delayLevel2QueueId(delayLevel);
+         assertThat(queueId).isEqualTo(delayLevel-1);
     }
-
-    @Test
-    public void presit(){
-        scheduleMessageService.persist();
-
-    }
-
 
 
     @After
-    public void shutdown(){
-        messageStore.shutdown();
-        messageStore.destroy();
+    public void shutdown() throws InterruptedException {
+        TimeUnit.SECONDS.sleep(shutdownTime);
         File file = new File(messageStoreConfig.getStorePathRootDir());
         UtilAll.deleteFile(file);
     }
 
 
 
+
     public MessageExtBrokerInner buildMessage() {
-        String message = "schedule message test";
+        String message = " ------- schedule message -------";
         byte[] msgBody = message.getBytes();
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
         msg.setTopic("schedule_topic_test");
-        msg.setTags("TAG1");
-        msg.setKeys("Hello");
+        msg.setTags("schedule_tag");
+        msg.setKeys("schedule_key");
         msg.setBody(msgBody);
-        msg.setKeys(String.valueOf(System.currentTimeMillis()));
         msg.setQueueId(0);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
@@ -162,10 +148,6 @@ public class ScheduleMessageServiceTest {
     }
 
 
-    public void getDeliverDelayedMessageTimerTask(int delayLevel,long offset) throws IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
-        Constructor c = ScheduleMessageService.DeliverDelayedMessageTimerTask.class.getDeclaredConstructor(ScheduleMessageService.class,int.class,long.class);
-        c.setAccessible(true);
-        ScheduleMessageService.DeliverDelayedMessageTimerTask task = (ScheduleMessageService.DeliverDelayedMessageTimerTask) c.newInstance(scheduleMessageService,1,2);
-    }
+
 
 }
