@@ -176,9 +176,6 @@ public class ScheduleMessageServiceTest {
     }
 
 
-    private void x() throws NoSuchMethodException {
-//        Method method = scheduleMessageService.getClass().getMethod("updateOffset",);
-    }
 
 
 }
