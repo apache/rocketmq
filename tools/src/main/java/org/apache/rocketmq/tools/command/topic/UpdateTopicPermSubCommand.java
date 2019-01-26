@@ -16,20 +16,29 @@
  */
 package org.apache.rocketmq.tools.command.topic;
 
-import java.util.List;
-import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class UpdateTopicPermSubCommand implements SubCommand {
 
@@ -64,57 +73,104 @@ public class UpdateTopicPermSubCommand implements SubCommand {
         return options;
     }
 
-    @Override
-    public void execute(final CommandLine commandLine, final Options options,
-        RPCHook rpcHook) throws SubCommandException {
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
-        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
-        try {
-            defaultMQAdminExt.start();
-            TopicConfig topicConfig = new TopicConfig();
 
+    private DefaultMQAdminExt defaultMQAdminExt;
+
+    @Override
+    public void execute(final CommandLine commandLine, final Options options, RPCHook rpcHook) throws SubCommandException {
+
+        int newPerm = Integer.parseInt(commandLine.getOptionValue('p').trim());
+
+        if (newPerm != 2 && newPerm != 4 && newPerm != 6) {
+            System.out.println("perm only support 2(W), 4(R) or 6(RW)");
+            return;
+        }
+
+
+        try {
+            if (defaultMQAdminExt == null) {
+                defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+                defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+                defaultMQAdminExt.start();
+            }
             String topic = commandLine.getOptionValue('t').trim();
             TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
             assert topicRouteData != null;
             List<QueueData> queueDatas = topicRouteData.getQueueDatas();
             assert queueDatas != null && queueDatas.size() > 0;
 
-            QueueData queueData = queueDatas.get(0);
-            topicConfig.setTopicName(topic);
-            topicConfig.setWriteQueueNums(queueData.getWriteQueueNums());
-            topicConfig.setReadQueueNums(queueData.getReadQueueNums());
-            topicConfig.setPerm(queueData.getPerm());
-            topicConfig.setTopicSysFlag(queueData.getTopicSynFlag());
 
-            //new perm
-            int perm = Integer.parseInt(commandLine.getOptionValue('p').trim());
-            int oldPerm = topicConfig.getPerm();
-            if (perm == oldPerm) {
-                System.out.printf("new perm equals to the old one!%n");
-                return;
-            }
-            topicConfig.setPerm(perm);
+            ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
+
+            HashMap<String, BrokerData> brokerAddrTable = clusterInfo.getBrokerAddrTable();
+
+
             if (commandLine.hasOption('b')) {
+
                 String addr = commandLine.getOptionValue('b').trim();
-                defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
-                System.out.printf("update topic perm from %s to %s in %s success.%n", oldPerm, perm, addr);
-                System.out.printf("%s%n", topicConfig);
-                return;
+                updatePerm(queueDatas, brokerAddrTable, addr, newPerm, topic);
             } else if (commandLine.hasOption('c')) {
                 String clusterName = commandLine.getOptionValue('c').trim();
                 Set<String> masterSet =
-                    CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
+                        CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
                 for (String addr : masterSet) {
-                    defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
-                    System.out.printf("update topic perm from %s to %s in %s success.%n", oldPerm, perm, addr);
+                    updatePerm(queueDatas, brokerAddrTable, addr, newPerm, topic);
+
                 }
-                return;
+
+            } else {
+                ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
             }
-            ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
             defaultMQAdminExt.shutdown();
         }
     }
+
+
+    private QueueData getQueueData(List<QueueData> queueDatas, HashMap<String, BrokerData> brokerAddrTable, String addr) {
+        for (Map.Entry<String, BrokerData> entry : brokerAddrTable.entrySet()) {
+            String name = entry.getValue().getBrokerName();
+            String master = entry.getValue().getBrokerAddrs().get(MixAll.MASTER_ID);
+            if (!addr.equalsIgnoreCase(master)) {
+                continue;
+            } else {
+                for (QueueData data : queueDatas) {
+                    if (data.getBrokerName().equalsIgnoreCase(name)) {
+                        return data;
+                    }
+                }
+
+            }
+        }
+        return null;
+    }
+
+
+    private void updatePerm(List<QueueData> queueDatas, HashMap<String, BrokerData> brokerAddrTable, String addr, int newPerm, String topic) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
+        QueueData data = getQueueData(queueDatas, brokerAddrTable, addr);
+        if (data == null) {
+            System.out.printf("no master broker can be found to update", addr);
+            return;
+        }
+        if (data.getPerm() == newPerm) {
+            System.out.printf("new perm equals to the old one on %s !%n", addr);
+            return;
+        }
+
+
+        TopicConfig topicConfig = new TopicConfig();
+        topicConfig.setTopicName(topic);
+        topicConfig.setPerm(newPerm);
+        topicConfig.setTopicSysFlag(data.getTopicSynFlag());
+        topicConfig.setWriteQueueNums(data.getWriteQueueNums());
+        topicConfig.setReadQueueNums(data.getReadQueueNums());
+
+        defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
+        System.out.printf("update topic perm to %s in %s success.%n", newPerm, addr);
+        System.out.printf("%s%n", topicConfig);
+        return;
+    }
+
 }
