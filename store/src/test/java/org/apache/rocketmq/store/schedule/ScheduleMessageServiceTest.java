@@ -10,9 +10,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -35,7 +32,6 @@ public class ScheduleMessageServiceTest {
      */
     String testMessageDelayLevel = "5s 10s";
     int delayLevel = 1;
-    int shutdownTime = 1;
 
     private static final String storePath = "." + File.separator + "schedule_test";
     private static final int commitLogFileSize = 1024;
@@ -108,8 +104,6 @@ public class ScheduleMessageServiceTest {
     }
 
 
-
-
     @Test
     public void computeDeliverTimestampTest() {
         // testMessageDelayLevel  just "5s 10s"
@@ -124,11 +118,11 @@ public class ScheduleMessageServiceTest {
 
 
     @Test
-    public void delayLevel2QueueIdTest(){
-         int queueId = ScheduleMessageService.delayLevel2QueueId(delayLevel);
-         assertThat(queueId).isEqualTo(delayLevel-1);
-         queueId = ScheduleMessageService.queueId2DelayLevel(delayLevel);
-         assertThat(queueId).isEqualTo(delayLevel+1);
+    public void delayLevel2QueueIdTest() {
+        int queueId = ScheduleMessageService.delayLevel2QueueId(delayLevel);
+        assertThat(queueId).isEqualTo(delayLevel - 1);
+        queueId = ScheduleMessageService.queueId2DelayLevel(delayLevel);
+        assertThat(queueId).isEqualTo(delayLevel + 1);
     }
 
 
@@ -140,8 +134,6 @@ public class ScheduleMessageServiceTest {
         File file = new File(messageStoreConfig.getStorePathRootDir());
         UtilAll.deleteFile(file);
     }
-
-
 
 
     public MessageExtBrokerInner buildMessage() {
@@ -167,7 +159,6 @@ public class ScheduleMessageServiceTest {
                              byte[] filterBitMap, Map<String, String> properties) {
         }
     }
-
 
 
     private void x() throws NoSuchMethodException {
