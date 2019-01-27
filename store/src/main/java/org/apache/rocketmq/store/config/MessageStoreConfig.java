@@ -17,6 +17,10 @@
 package org.apache.rocketmq.store.config;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 
@@ -29,6 +33,10 @@ public class MessageStoreConfig {
     @ImportantField
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
         + File.separator + "commitlog";
+
+    private boolean multiCommitLogPathEnable = false;
+
+    private List<String> storePathCommitLogList = null;
 
     // CommitLog file size,default is 1G
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
@@ -666,4 +674,25 @@ public class MessageStoreConfig {
         this.commitCommitLogThoroughInterval = commitCommitLogThoroughInterval;
     }
 
+    public boolean isMultiCommitLogPathEnable() {
+        return multiCommitLogPathEnable;
+    }
+
+    public void setMultiCommitLogPathEnable(boolean multiCommitLogPathEnable) {
+        this.multiCommitLogPathEnable = multiCommitLogPathEnable;
+    }
+
+    public List<String> getStorePathCommitLogList() {
+        return storePathCommitLogList;
+    }
+
+    public void setStorePathCommitLogList(String storePathCommitLogListStr) {
+        String[] tokens = storePathCommitLogListStr.trim().split(":");
+        this.storePathCommitLogList = Arrays.asList(tokens);
+        Collections.sort(storePathCommitLogList);
+    }
+
+    public void setStorePathCommitLogList(List<String> storePathCommitLogList) {
+        this.storePathCommitLogList = storePathCommitLogList;
+    }
 }
