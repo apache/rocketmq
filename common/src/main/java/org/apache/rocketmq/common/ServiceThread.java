@@ -107,6 +107,8 @@ public abstract class ServiceThread implements Runnable {
         if (hasNotified.compareAndSet(true, false)) {
             /**
              * 同步刷盘时会调用swapRequests
+             *
+             * 事务检查时会check
              */
             this.onWaitEnd();
             return;

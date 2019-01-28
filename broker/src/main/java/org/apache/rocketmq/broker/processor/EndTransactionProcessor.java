@@ -178,9 +178,6 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
              */
             result = this.brokerController.getTransactionalMessageService().rollbackMessage(requestHeader);
 
-            /**
-             * 回滚成功
-             */
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
                 /**
                  * 校验待回滚消息

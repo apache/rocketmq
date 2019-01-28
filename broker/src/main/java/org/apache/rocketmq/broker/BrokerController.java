@@ -1009,7 +1009,7 @@ public class BrokerController {
         }
 
         /**
-         * master时   ？？？？？？？？？
+         * master时   检查事务消息
          */
         if (BrokerRole.SLAVE != messageStoreConfig.getBrokerRole()) {
             if (this.transactionalMessageCheckService != null) {

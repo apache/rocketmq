@@ -367,6 +367,9 @@ public class TransactionalMessageBridge {
         if (opQueueMap.containsKey(mq)) {
             opQueue = opQueueMap.get(mq);
         } else {
+            /**
+             * 封装RMQ_SYS_TRANS_OP_HALF_TOPIC的消息
+             */
             opQueue = getOpQueueByHalf(mq);
             MessageQueue oldQueue = opQueueMap.putIfAbsent(mq, opQueue);
             if (oldQueue != null) {
@@ -383,6 +386,11 @@ public class TransactionalMessageBridge {
         putMessage(makeOpMessageInner(message, opQueue));
     }
 
+    /**
+     * 封装RMQ_SYS_TRANS_OP_HALF_TOPIC的消息
+     * @param halfMQ
+     * @return
+     */
     private MessageQueue getOpQueueByHalf(MessageQueue halfMQ) {
         MessageQueue opQueue = new MessageQueue();
         opQueue.setTopic(TransactionalMessageUtil.buildOpTopic());
