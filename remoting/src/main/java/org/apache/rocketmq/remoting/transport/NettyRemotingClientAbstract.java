@@ -41,6 +41,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.apache.rocketmq.remoting.netty.NettyEvent;
 import org.apache.rocketmq.remoting.netty.NettyEventType;
@@ -79,9 +80,9 @@ public abstract class NettyRemotingClientAbstract extends NettyRemotingAbstract 
         if (remotingChannel instanceof NettyChannelImpl) {
             channel = ((NettyChannelImpl) remotingChannel).getChannel();
         }
-//        if (remotingChannel instanceof NettyChannelHandlerContextImpl) {
-//            channel = ((NettyChannelHandlerContextImpl) remotingChannel).getChannelHandlerContext().channel();
-//        }
+        if (remotingChannel instanceof NettyChannelHandlerContextImpl) {
+            channel = ((NettyChannelHandlerContextImpl) remotingChannel).getChannelHandlerContext().channel();
+        }
         closeChannel(addr, channel);
     }
 

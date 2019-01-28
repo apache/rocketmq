@@ -167,10 +167,6 @@ public class SnodeController {
             log.info("Set user specified name server address: {}", this.snodeConfig.getNamesrvAddr());
         }
 
-//        this.producerManager = new ProducerManager();
-
-//        ConsumerIdsChangeListener consumerIdsChangeListener = new DefaultConsumerIdsChangeListener(this);
-//        this.consumerManager = new ConsumerManager(consumerIdsChangeListener);
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
         this.consumerOffsetManager = new ConsumerOffsetManager(this);
         this.consumerManageProcessor = new ConsumerManageProcessor(this);
