@@ -40,7 +40,8 @@ public class SnodeControllerTest {
 
     @Test
     public void testSnodeRestartWithAclEnable() {
-
+        System.setProperty("rocketmq.home.dir", "src/test/resources");
+        System.setProperty("rocketmq.flow.control.file", "/conf/flowControl.yml");
         SnodeConfig snodeConfig = new SnodeConfig();
         snodeConfig.setAclEnable(true);
         SnodeController snodeController = new SnodeController(
