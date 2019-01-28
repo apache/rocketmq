@@ -60,7 +60,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     private ConcurrentHashMap<MessageQueue, MessageQueue> opQueueMap = new ConcurrentHashMap<>();
 
     /**
-     *
+     * 存储预提交消息   重置发送得topic和queueid
      * @param messageInner Prepare(Half) message.
      * @return
      */
@@ -449,8 +449,16 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         return getResult;
     }
 
+    /**
+     * 获取预提交得消息
+     * @param commitLogOffset
+     * @return
+     */
     private OperationResult getHalfMessageByOffset(long commitLogOffset) {
         OperationResult response = new OperationResult();
+        /**
+         * 获取commitLogOffset处得消息
+         */
         MessageExt messageExt = this.transactionalMessageBridge.lookMessageByOffset(commitLogOffset);
         if (messageExt != null) {
             response.setPrepareMessage(messageExt);
@@ -462,6 +470,11 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         return response;
     }
 
+    /**
+     * 向RMQ_SYS_TRANS_OP_HALF_TOPIC存入消息
+     * @param msgExt  消息体
+     * @return
+     */
     @Override
     public boolean deletePrepareMessage(MessageExt msgExt) {
         if (this.transactionalMessageBridge.putOpMessage(msgExt, TransactionalMessageUtil.REMOVETAG)) {
@@ -473,11 +486,21 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         }
     }
 
+    /**
+     * 获取预提交消息
+     * @param requestHeader Commit message request header.
+     * @return
+     */
     @Override
     public OperationResult commitMessage(EndTransactionRequestHeader requestHeader) {
         return getHalfMessageByOffset(requestHeader.getCommitLogOffset());
     }
 
+    /**
+     * 获取待回滚的消息
+     * @param requestHeader Commit message request header.
+     * @return
+     */
     @Override
     public OperationResult rollbackMessage(EndTransactionRequestHeader requestHeader) {
         return getHalfMessageByOffset(requestHeader.getCommitLogOffset());

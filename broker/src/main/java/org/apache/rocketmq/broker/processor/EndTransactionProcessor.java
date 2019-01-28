@@ -125,19 +125,45 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     return null;
             }
         }
+
         OperationResult result = new OperationResult();
+        /**
+         * 确认提交
+         */
         if (MessageSysFlag.TRANSACTION_COMMIT_TYPE == requestHeader.getCommitOrRollback()) {
+            /**
+             * 获取预提交得消息
+             */
             result = this.brokerController.getTransactionalMessageService().commitMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
+                /**
+                 * 校验预提交消息
+                 */
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
+                    /**
+                     * 重新封装消息   获得消息初始得topic和queueid
+                     */
                     MessageExtBrokerInner msgInner = endMessageTransaction(result.getPrepareMessage());
                     msgInner.setSysFlag(MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(), requestHeader.getCommitOrRollback()));
                     msgInner.setQueueOffset(requestHeader.getTranStateTableOffset());
                     msgInner.setPreparedTransactionOffset(requestHeader.getCommitLogOffset());
                     msgInner.setStoreTimestamp(result.getPrepareMessage().getStoreTimestamp());
+
+                    /**
+                     * 存储消息 按照消息初始得topic和queueid
+                     * 存储消息 按照消息初始得topic和queueid
+                     * 存储消息 按照消息初始得topic和queueid
+                     */
                     RemotingCommand sendResult = sendFinalMessage(msgInner);
+
+                    /**
+                     * 存储成功
+                     */
                     if (sendResult.getCode() == ResponseCode.SUCCESS) {
+                        /**
+                         * 向RMQ_SYS_TRANS_OP_HALF_TOPIC存入消息
+                         */
                         this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
                     }
                     return sendResult;
@@ -145,10 +171,25 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 return res;
             }
         } else if (MessageSysFlag.TRANSACTION_ROLLBACK_TYPE == requestHeader.getCommitOrRollback()) {
+            /**
+             * 消息回滚
+             *
+             * 获得待回滚的消息
+             */
             result = this.brokerController.getTransactionalMessageService().rollbackMessage(requestHeader);
+
+            /**
+             * 回滚成功
+             */
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
+                /**
+                 * 校验待回滚消息
+                 */
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
+                    /**
+                     * 向RMQ_SYS_TRANS_OP_HALF_TOPIC存入消息
+                     */
                     this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
                 }
                 return res;
@@ -164,22 +205,37 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         return false;
     }
 
+    /**
+     * 校验消息
+     * @param msgExt
+     * @param requestHeader
+     * @return
+     */
     private RemotingCommand checkPrepareMessage(MessageExt msgExt, EndTransactionRequestHeader requestHeader) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         if (msgExt != null) {
             final String pgroupRead = msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
+            /**
+             * 比对ProducerGroup
+             */
             if (!pgroupRead.equals(requestHeader.getProducerGroup())) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("The producer group wrong");
                 return response;
             }
 
+            /**
+             * 比对QueueOffset
+             */
             if (msgExt.getQueueOffset() != requestHeader.getTranStateTableOffset()) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("The transaction state table offset wrong");
                 return response;
             }
 
+            /**
+             * 比对CommitLogOffset
+             */
             if (msgExt.getCommitLogOffset() != requestHeader.getCommitLogOffset()) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("The commit log offset wrong");
@@ -194,16 +250,31 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * 重新封装endMessageTransaction
+     * @param msgExt
+     * @return
+     */
     private MessageExtBrokerInner endMessageTransaction(MessageExt msgExt) {
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
+        /**
+         * 真正得topic
+         */
         msgInner.setTopic(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC));
+        /**
+         * 真正得queueid
+         */
         msgInner.setQueueId(Integer.parseInt(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_QUEUE_ID)));
+
         msgInner.setBody(msgExt.getBody());
         msgInner.setFlag(msgExt.getFlag());
         msgInner.setBornTimestamp(msgExt.getBornTimestamp());
         msgInner.setBornHost(msgExt.getBornHost());
         msgInner.setStoreHost(msgExt.getStoreHost());
         msgInner.setReconsumeTimes(msgExt.getReconsumeTimes());
+        /**
+         * 不等待
+         */
         msgInner.setWaitStoreMsgOK(false);
         msgInner.setTransactionId(msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
         msgInner.setSysFlag(msgExt.getSysFlag());
@@ -214,14 +285,32 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         msgInner.setTagsCode(tagsCodeValue);
         MessageAccessor.setProperties(msgInner, msgExt.getProperties());
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
+
+        /**
+         * 清除属性
+         */
         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC);
         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID);
         return msgInner;
     }
 
+    /**
+     * 提交事务消息  TRANSACTION_COMMIT_TYPE
+     * @param msgInner
+     * @return
+     */
     private RemotingCommand sendFinalMessage(MessageExtBrokerInner msgInner) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        /**
+         * 存储消息  按照消息初始得topic和queueid
+         * 存储消息  按照消息初始得topic和queueid
+         * 存储消息  按照消息初始得topic和queueid
+         */
         final PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
+
+        /**
+         * 处理返回结果
+         */
         if (putMessageResult != null) {
             switch (putMessageResult.getPutMessageStatus()) {
                 // Success

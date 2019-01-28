@@ -187,7 +187,7 @@ public class TransactionalMessageBridge {
     }
 
     /**
-     *
+     * 保存预提交消息   重置发送得topic和queueid
      * @param messageInner
      * @return
      */
@@ -196,7 +196,7 @@ public class TransactionalMessageBridge {
     }
 
     /**
-     * 预提交
+     * 预提交消息处理  重置发送得topic和queueid
      * @param msgInner
      * @return
      */
@@ -221,9 +221,20 @@ public class TransactionalMessageBridge {
         return msgInner;
     }
 
+    /**
+     * 向RMQ_SYS_TRANS_OP_HALF_TOPIC存入消息
+     * @param messageExt
+     * @param opType
+     * @return
+     */
     public boolean putOpMessage(MessageExt messageExt, String opType) {
+
         MessageQueue messageQueue = new MessageQueue(messageExt.getTopic(),
             this.brokerController.getBrokerConfig().getBrokerName(), messageExt.getQueueId());
+
+        /**
+         * 删除
+         */
         if (TransactionalMessageUtil.REMOVETAG.equals(opType)) {
             return addRemoveTagInTransactionOp(messageExt, messageQueue);
         }
@@ -235,6 +246,11 @@ public class TransactionalMessageBridge {
         return store.putMessage(messageInner);
     }
 
+    /**
+     * 存储消息
+     * @param messageInner
+     * @return
+     */
     public boolean putMessage(MessageExtBrokerInner messageInner) {
         PutMessageResult putMessageResult = store.putMessage(messageInner);
         if (putMessageResult != null
@@ -281,6 +297,12 @@ public class TransactionalMessageBridge {
         return msgInner;
     }
 
+    /**
+     * RMQ_SYS_TRANS_OP_HALF_TOPIC
+     * @param message
+     * @param messageQueue
+     * @return
+     */
     private MessageExtBrokerInner makeOpMessageInner(Message message, MessageQueue messageQueue) {
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(message.getTopic());
@@ -317,13 +339,30 @@ public class TransactionalMessageBridge {
      * @return This method will always return true.
      */
     private boolean addRemoveTagInTransactionOp(MessageExt messageExt, MessageQueue messageQueue) {
+        /**
+         * RMQ_SYS_TRANS_OP_HALF_TOPIC
+         *
+         * 消息得body部分  存储得是messageExt得QueueOffset
+         */
         Message message = new Message(TransactionalMessageUtil.buildOpTopic(), TransactionalMessageUtil.REMOVETAG,
             String.valueOf(messageExt.getQueueOffset()).getBytes(TransactionalMessageUtil.charset));
+
+        /**
+         * 向RMQ_SYS_TRANS_OP_HALF_TOPIC存入消息
+         */
         writeOp(message, messageQueue);
         return true;
     }
 
+    /**
+     * 写入RMQ_SYS_TRANS_OP_HALF_TOPIC主题下消息
+     * @param message  Message{topic='RMQ_SYS_TRANS_OP_HALF_TOPIC', flag=0, properties={WAIT=true, TAGS=d}, body=[54, 52, 55], transactionId='null'}
+     * @param mq       MessageQueue [topic=RMQ_SYS_TRANS_HALF_TOPIC, brokerName=PV-X00204111, queueId=0]
+     */
     private void writeOp(Message message, MessageQueue mq) {
+        /**
+         * MessageQueue和mq得差别在于topic不同   RMQ_SYS_TRANS_OP_HALF_TOPIC和RMQ_SYS_TRANS_HALF_TOPIC
+         */
         MessageQueue opQueue;
         if (opQueueMap.containsKey(mq)) {
             opQueue = opQueueMap.get(mq);
@@ -337,6 +376,10 @@ public class TransactionalMessageBridge {
         if (opQueue == null) {
             opQueue = new MessageQueue(TransactionalMessageUtil.buildOpTopic(), mq.getBrokerName(), mq.getQueueId());
         }
+
+        /**
+         * 封装新消息  RMQ_SYS_TRANS_OP_HALF_TOPIC
+         */
         putMessage(makeOpMessageInner(message, opQueue));
     }
 
@@ -348,6 +391,11 @@ public class TransactionalMessageBridge {
         return opQueue;
     }
 
+    /**
+     * 获取commitLogOffset处得消息
+     * @param commitLogOffset
+     * @return
+     */
     public MessageExt lookMessageByOffset(final long commitLogOffset) {
         return this.store.lookMessageByOffset(commitLogOffset);
     }

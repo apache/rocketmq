@@ -54,7 +54,7 @@ public class TransactionProducer {
         producer.start();
 
         String[] tags = new String[] {"TagA", "TagB", "TagC", "TagD", "TagE"};
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 1; i++) {
             try {
                 Message msg =
                     new Message("TopicTest1234", tags[i % tags.length], "KEY" + i,

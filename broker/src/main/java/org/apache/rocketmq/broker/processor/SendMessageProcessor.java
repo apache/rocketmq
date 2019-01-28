@@ -500,7 +500,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 return response;
             }
             /**
-             * 预提交
+             * 存储预提交消息  重置发送得topic和queueid
              */
             putMessageResult = this.brokerController.getTransactionalMessageService().prepareMessage(msgInner);
         } else {

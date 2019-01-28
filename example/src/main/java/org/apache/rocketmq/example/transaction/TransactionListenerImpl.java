@@ -37,10 +37,10 @@ public class TransactionListenerImpl implements TransactionListener {
      */
     @Override
     public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {
-        int value = transactionIndex.getAndIncrement();
-        int status = value % 3;
-        localTrans.put(msg.getTransactionId(), status);
-        return LocalTransactionState.UNKNOW;
+//        int value = transactionIndex.getAndIncrement();
+//        int status = value % 3;
+//        localTrans.put(msg.getTransactionId(), status);
+        return LocalTransactionState.COMMIT_MESSAGE;
     }
 
     @Override
