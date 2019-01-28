@@ -27,8 +27,10 @@ public class SnodeControllerTest {
 
     @Test
     public void testSnodeRestart() {
+        ServerConfig serverConfig = new ServerConfig();
+        serverConfig.setListenPort(10912);
         SnodeController snodeController = new SnodeController(
-            new ServerConfig(),
+            serverConfig,
             new ClientConfig(),
             new SnodeConfig());
         assertThat(snodeController.initialize());

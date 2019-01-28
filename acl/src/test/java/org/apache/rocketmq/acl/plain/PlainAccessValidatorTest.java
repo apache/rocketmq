@@ -44,6 +44,7 @@ public class PlainAccessValidatorTest {
     @Before
     public void init() {
         System.setProperty("rocketmq.home.dir", "src/test/resources");
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml");
         plainAccessValidator = new PlainAccessValidator();
         sessionCredentials = new SessionCredentials();
         sessionCredentials.setAccessKey("RocketMQ");

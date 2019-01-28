@@ -19,7 +19,15 @@ package org.apache.rocketmq.snode.service;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface PushService {
-
+    /**
+     * TODO how to resolve the slow consumer: close or ignore?
+     *
+     * @param enodeName
+     * @param topic
+     * @param queueId
+     * @param message
+     * @param response
+     */
     void pushMessage(final String enodeName, final String topic, final Integer queueId, final byte[] message,
         final RemotingCommand response);
 

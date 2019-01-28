@@ -1,5 +1,5 @@
 snode:
-  countLimit:  # flow control type, only requestCount & requestSize support
+  countLimit:  # Flow control type, only requestCount & requestSize support
     - flowControlResourceName: 310
       flowControlGrade: 1
       flowControlBehavior: 1

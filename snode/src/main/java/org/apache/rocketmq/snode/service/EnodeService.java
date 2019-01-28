@@ -20,7 +20,6 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
-import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -34,12 +33,10 @@ public interface EnodeService {
 
     CompletableFuture<RemotingCommand> pullMessage(final String enodeName, final RemotingCommand request);
 
-    void notifyConsumerIdsChanged(final RemotingChannel channel, final String consumerGroup);
-
     RemotingCommand creatTopic(String enodeName,
         TopicConfig topicConfig) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
 
-    void updateEnodeAddr(String clusterName) throws InterruptedException, RemotingTimeoutException,
+    void updateEnodeAddress(String clusterName) throws InterruptedException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException, MQBrokerException;
 
     boolean persistSubscriptionGroupConfig(SubscriptionGroupConfig subscriptionGroupConfig);

@@ -31,14 +31,12 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.NotifyConsumerIdsChangedRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.InvokeCallback;
-import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -121,27 +119,6 @@ public class EnodeServiceImpl implements EnodeService {
         return future;
     }
 
-    @Override
-    public void notifyConsumerIdsChanged(
-        final RemotingChannel channel,
-        final String consumerGroup) {
-        if (null == consumerGroup) {
-            log.error("NotifyConsumerIdsChanged consumerGroup is null");
-            return;
-        }
-
-        NotifyConsumerIdsChangedRequestHeader requestHeader = new NotifyConsumerIdsChangedRequestHeader();
-        requestHeader.setConsumerGroup(consumerGroup);
-        RemotingCommand request =
-            RemotingCommand.createRequestCommand(RequestCode.NOTIFY_CONSUMER_IDS_CHANGED, requestHeader);
-
-        try {
-            this.snodeController.getSnodeServer().invokeOneway(channel, request, SnodeConstant.ONE_WAY_TIMEOUT);
-        } catch (Exception e) {
-            log.error("NotifyConsumerIdsChanged consumer group: {} exception ", consumerGroup, e);
-        }
-    }
-
     private ClusterInfo getBrokerClusterInfo(
         final long timeoutMillis) throws InterruptedException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException, MQBrokerException {
@@ -158,7 +135,7 @@ public class EnodeServiceImpl implements EnodeService {
     }
 
     @Override
-    public void updateEnodeAddr(String clusterName) throws InterruptedException, RemotingTimeoutException,
+    public void updateEnodeAddress(String clusterName) throws InterruptedException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         synchronized (this) {
             ClusterInfo clusterInfo = getBrokerClusterInfo(SnodeConstant.DEFAULT_TIMEOUT_MILLS);

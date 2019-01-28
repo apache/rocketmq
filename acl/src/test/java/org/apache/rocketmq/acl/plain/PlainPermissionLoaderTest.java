@@ -28,7 +28,6 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.acl.plain.PlainPermissionLoader.PlainAccessConfig;
-import org.apache.rocketmq.common.UtilAll;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -269,7 +268,6 @@ public class PlainPermissionLoaderTest {
     public void initializeTest() {
         System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_null.yml");
         new PlainPermissionLoader();
-
     }
 
 }
