@@ -21,7 +21,6 @@ import com.alibaba.fastjson.JSON;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.mqtt.MqttConnectMessage;
-import io.netty.handler.codec.mqtt.MqttConnectPayload;
 import io.netty.handler.codec.mqtt.MqttConnectVariableHeader;
 import io.netty.handler.codec.mqtt.MqttFixedHeader;
 import io.netty.handler.codec.mqtt.MqttMessage;
@@ -54,11 +53,12 @@ public class Mqtt2RemotingCommandHandler extends MessageToMessageDecoder<MqttMes
 
         switch (msg.fixedHeader().messageType()) {
             case CONNECT:
-                MqttConnectPayload payload = ((MqttConnectMessage) msg).payload();
+                RocketMQMqttConnectPayload payload = RocketMQMqttConnectPayload
+                        .fromMqttConnectPayload(((MqttConnectMessage) msg).payload());
                 MqttHeader mqttHeader = new MqttHeader();
-                mqttHeader.setMessageType(mqttFixedHeader.messageType());
+                mqttHeader.setMessageType(mqttFixedHeader.messageType().value());
                 mqttHeader.setDup(mqttFixedHeader.isDup());
-                mqttHeader.setQosLevel(mqttFixedHeader.qosLevel());
+                mqttHeader.setQosLevel(mqttFixedHeader.qosLevel().value());
                 mqttHeader.setRetain(mqttFixedHeader.isRetain());
                 mqttHeader.setRemainingLength(mqttFixedHeader.remainingLength());
 
@@ -78,7 +78,7 @@ public class Mqtt2RemotingCommandHandler extends MessageToMessageDecoder<MqttMes
                         .createRequestCommand(1000, mqttHeader);
                 requestCommand.makeCustomHeaderToNet();
 
-                requestCommand.setBody(encode(payload));
+                requestCommand.setBody(payload.encode());
                 out.add(requestCommand);
             case CONNACK:
             case DISCONNECT:

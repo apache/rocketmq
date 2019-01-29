@@ -21,8 +21,6 @@
 package org.apache.rocketmq.remoting.transport.mqtt;
 
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
-import io.netty.handler.codec.mqtt.MqttMessageType;
-import io.netty.handler.codec.mqtt.MqttQoS;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -31,11 +29,11 @@ public class MqttHeader implements CommandCustomHeader {
 
     //fix header members
     @CFNotNull
-    private MqttMessageType messageType;
+    private Integer messageType;
     @CFNotNull
     private boolean isDup;
     @CFNotNull
-    private MqttQoS qosLevel;
+    private Integer qosLevel;
     @CFNotNull
     private boolean isRetain;
     @CFNotNull
@@ -57,11 +55,11 @@ public class MqttHeader implements CommandCustomHeader {
     private String topicName;
     private Integer packetId;
 
-    public MqttMessageType getMessageType() {
+    public Integer getMessageType() {
         return messageType;
     }
 
-    public void setMessageType(MqttMessageType messageType) {
+    public void setMessageType(Integer messageType) {
         this.messageType = messageType;
     }
 
@@ -73,11 +71,11 @@ public class MqttHeader implements CommandCustomHeader {
         isDup = dup;
     }
 
-    public MqttQoS getQosLevel() {
+    public Integer getQosLevel() {
         return qosLevel;
     }
 
-    public void setQosLevel(MqttQoS qosLevel) {
+    public void setQosLevel(Integer qosLevel) {
         this.qosLevel = qosLevel;
     }
 

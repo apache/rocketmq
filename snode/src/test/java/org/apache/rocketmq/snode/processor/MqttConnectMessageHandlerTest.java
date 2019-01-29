@@ -14,25 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.snode.processor;
 
-package org.apache.rocketmq.snode.processor.mqtthandler;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
-import io.netty.handler.codec.mqtt.MqttMessage;
-import org.apache.rocketmq.remoting.RemotingChannel;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.snode.SnodeController;
-
-public class MqttPublishMessageHandler implements MessageHandler {
-
-    private final SnodeController snodeController;
-
-    public MqttPublishMessageHandler(SnodeController snodeController) {
-        this.snodeController = snodeController;
-    }
-
-    @Override
-    public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
-        return null;
-    }
+@RunWith(MockitoJUnitRunner.class)
+public class MqttConnectMessageHandlerTest {
 
 }

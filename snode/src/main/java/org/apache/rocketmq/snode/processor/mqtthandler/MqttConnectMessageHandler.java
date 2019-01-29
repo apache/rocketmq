@@ -35,18 +35,12 @@ public class MqttConnectMessageHandler implements MessageHandler {
     private static final int MIN_AVAILABLE_VERSION = 3;
     private static final int MAX_AVAILABLE_VERSION = 4;
 
-/*    private ClientManager clientManager;
-
-    public MqttConnectMessageHandler(ClientManager clientManager) {
-        this.clientManager = clientManager;
-    }*/
-
     public MqttConnectMessageHandler(SnodeController snodeController) {
         this.snodeController = snodeController;
     }
 
-    @Override public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
-//        MqttClient client = (MqttClient) message.getClient();
+    @Override
+    public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
         if (!(message instanceof MqttConnectMessage)) {
             return null;
         }

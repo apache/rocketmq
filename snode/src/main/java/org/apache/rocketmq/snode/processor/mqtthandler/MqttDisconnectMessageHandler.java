@@ -26,26 +26,18 @@ public class MqttDisconnectMessageHandler implements MessageHandler {
 
     private final SnodeController snodeController;
 
-    /*  private ClientManager clientManager;
-    
-        public MqttDisconnectMessageHandler(ClientManager clientManager) {
-            this.clientManager = clientManager;
-        }*/
-  public MqttDisconnectMessageHandler(SnodeController snodeController) {
-      this.snodeController = snodeController;
-  }
+
+    public MqttDisconnectMessageHandler(SnodeController snodeController) {
+        this.snodeController = snodeController;
+    }
 
     /**
-     * handle the DISCONNECT message from the client
-     * <ol>
-     *     <li>discard the Will Message and Will Topic</li>
-     *     <li>remove the client from the ClientManager</li>
-     *     <li>disconnect the connection</li>
-     * </ol>
-     * @param message
-     * @return
+     * handle the DISCONNECT message from the client <ol> <li>discard the Will Message and Will
+     * Topic</li> <li>remove the client from the ClientManager</li> <li>disconnect the
+     * connection</li> </ol>
      */
-    @Override public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
+    @Override
+    public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
         // TODO discard the Will Message and Will Topic
         return null;
     }
