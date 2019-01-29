@@ -22,9 +22,16 @@ import io.netty.handler.codec.mqtt.MqttConnectMessage;
 import io.netty.handler.codec.mqtt.MqttConnectPayload;
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import io.netty.handler.codec.mqtt.MqttMessage;
+import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.snode.SnodeController;
+import org.apache.rocketmq.snode.client.Client;
+import org.apache.rocketmq.snode.client.ClientManager;
+import org.apache.rocketmq.snode.client.impl.IOTClientManagerImpl;
 
 public class MqttConnectMessageHandler implements MessageHandler {
 
+    private final SnodeController snodeController;
     private static final int MIN_AVAILABLE_VERSION = 3;
     private static final int MAX_AVAILABLE_VERSION = 4;
 
@@ -34,10 +41,14 @@ public class MqttConnectMessageHandler implements MessageHandler {
         this.clientManager = clientManager;
     }*/
 
-    @Override public void handleMessage(MqttMessage message) {
+    public MqttConnectMessageHandler(SnodeController snodeController) {
+        this.snodeController = snodeController;
+    }
+
+    @Override public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
 //        MqttClient client = (MqttClient) message.getClient();
         if (!(message instanceof MqttConnectMessage)) {
-            return;
+            return null;
         }
         MqttConnectMessage mqttConnectMessage = (MqttConnectMessage) message;
         MqttConnectPayload payload = mqttConnectMessage.payload();
@@ -45,8 +56,20 @@ public class MqttConnectMessageHandler implements MessageHandler {
         MqttConnectReturnCode returnCode;
         MqttConnAckMessage ackMessage;
 
-//        ChannelHandlerContext ctx = client.getCtx();
+        if (isConnected(remotingChannel, mqttConnectMessage.payload().clientIdentifier())) {
 
+        }
+//        ChannelHandlerContext ctx = client.getCtx();
+        return null;
+    }
+
+    private boolean isConnected(RemotingChannel remotingChannel, String clientId) {
+        ClientManager iotClientManager = snodeController.getIotClientManager();
+        Client client = iotClientManager.getClient(IOTClientManagerImpl.IOTGROUP, remotingChannel);
+        if (client != null && client.getClientId().equals(clientId) && client.isConnected()) {
+            return true;
+        }
+        return false;
     }
 
     private boolean isServiceAviable(MqttConnectMessage connectMessage) {

@@ -30,6 +30,8 @@ public interface ClientManager {
 
     List<String> getAllClientId(String groupId);
 
+    Client getClient(String groupId, RemotingChannel remotingChannel);
+
     void startScan(long interval);
 
     void shutdown();

@@ -17,32 +17,66 @@
 
 package org.apache.rocketmq.snode.processor;
 
+import com.alibaba.fastjson.JSON;
+import io.netty.handler.codec.mqtt.MqttConnectMessage;
+import io.netty.handler.codec.mqtt.MqttConnectPayload;
+import io.netty.handler.codec.mqtt.MqttConnectVariableHeader;
+import io.netty.handler.codec.mqtt.MqttFixedHeader;
+import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.handler.codec.mqtt.MqttMessageType;
+import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RequestProcessor;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
+import org.apache.rocketmq.snode.processor.mqtthandler.MessageHandler;
 
 public class DefaultMqttMessageProcessor implements RequestProcessor {
 
+    private Map<MqttMessageType, MessageHandler> type2handler = new HashMap<>();
     private static final int MIN_AVAILABLE_VERSION = 3;
     private static final int MAX_AVAILABLE_VERSION = 4;
 
 
-    @Override public RemotingCommand processRequest(RemotingChannel remotingChannel, RemotingCommand message)
+    @Override
+    public RemotingCommand processRequest(RemotingChannel remotingChannel, RemotingCommand message)
             throws RemotingCommandException {
-        //解析RemotingCommand，根据MqttMessageType做不同逻辑处理
         //TODO
-        MqttHeader mqttHeader = (MqttHeader)message.decodeCommandCustomHeader(MqttHeader.class);
+        MqttHeader mqttHeader = (MqttHeader) message.decodeCommandCustomHeader(MqttHeader.class);
+        MqttFixedHeader fixedHeader = new MqttFixedHeader(mqttHeader.getMessageType(),
+                mqttHeader.isDup(), mqttHeader.getQosLevel(), mqttHeader.isRetain(),
+                mqttHeader.getRemainingLength());
+        MqttMessage mqttMessage = null;
         switch (mqttHeader.getMessageType()) {
             case CONNECT:
+                MqttConnectVariableHeader variableHeader = new MqttConnectVariableHeader(
+                        mqttHeader.getName(), mqttHeader.getVersion(), mqttHeader.isHasUserName(),
+                        mqttHeader.isHasPassword(), mqttHeader.isWillRetain(),
+                        mqttHeader.getWillQos(), mqttHeader.isWillFlag(),
+                        mqttHeader.isCleanSession(), mqttHeader.getKeepAliveTimeSeconds());
+                MqttConnectPayload payload = decode(message.getBody(), MqttConnectPayload.class);
+                mqttMessage = new MqttConnectMessage(fixedHeader, variableHeader, payload);
+
             case DISCONNECT:
         }
-        return null;
+        return type2handler.get(mqttHeader.getMessageType()).handleMessage(mqttMessage, remotingChannel);
     }
 
     @Override
     public boolean rejectRequest() {
         return false;
+    }
+
+    private <T> T decode(final byte[] data, Class<T> classOfT) {
+        final String json = new String(data, Charset.forName(RemotingUtil.REMOTING_CHARSET));
+        return JSON.parseObject(json, classOfT);
+    }
+
+    public void registerMessageHanlder(MqttMessageType type, MessageHandler handler) {
+        type2handler.put(type, handler);
     }
 }

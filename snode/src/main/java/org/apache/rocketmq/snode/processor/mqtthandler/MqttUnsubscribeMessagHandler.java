@@ -18,6 +18,9 @@
 package org.apache.rocketmq.snode.processor.mqtthandler;
 
 import io.netty.handler.codec.mqtt.MqttMessage;
+import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.snode.SnodeController;
 
 /**
  * handle the UNSUBSCRIBE message from the client
@@ -35,9 +38,13 @@ public class MqttUnsubscribeMessagHandler implements MessageHandler {
     public MqttUnsubscribeMessagHandler(SubscriptionStore subscriptionStore) {
         this.subscriptionStore = subscriptionStore;
     }*/
+    private final SnodeController snodeController;
 
+    public MqttUnsubscribeMessagHandler(SnodeController snodeController) {
+        this.snodeController = snodeController;
+    }
     @Override
-    public void handleMessage(MqttMessage message) {
-
+    public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
+        return null;
     }
 }

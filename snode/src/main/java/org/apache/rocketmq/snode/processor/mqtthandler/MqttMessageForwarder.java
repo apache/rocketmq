@@ -18,14 +18,22 @@
 package org.apache.rocketmq.snode.processor.mqtthandler;
 
 import io.netty.handler.codec.mqtt.MqttMessage;
+import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.snode.SnodeController;
 
 public class MqttMessageForwarder implements MessageHandler {
 
+    private final SnodeController snodeController;
 /*    private SubscriptionStore subscriptionStore;
 
     public MqttMessageForwarder(SubscriptionStore subscriptionStore) {
         this.subscriptionStore = subscriptionStore;
     }*/
+
+    public MqttMessageForwarder(SnodeController snodeController) {
+        this.snodeController = snodeController;
+    }
 
     /**
      * handle PUBLISH message from client
@@ -33,7 +41,7 @@ public class MqttMessageForwarder implements MessageHandler {
      * @param message
      * @return whether the message is handled successfully
      */
-    @Override public void handleMessage(MqttMessage message) {
-
+    @Override public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
+        return null;
     }
 }

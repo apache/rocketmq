@@ -18,14 +18,22 @@
 package org.apache.rocketmq.snode.processor.mqtthandler;
 
 import io.netty.handler.codec.mqtt.MqttMessage;
+import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.snode.SnodeController;
 
 public class MqttDisconnectMessageHandler implements MessageHandler {
 
-  /*  private ClientManager clientManager;
+    private final SnodeController snodeController;
 
-    public MqttDisconnectMessageHandler(ClientManager clientManager) {
-        this.clientManager = clientManager;
-    }*/
+    /*  private ClientManager clientManager;
+    
+        public MqttDisconnectMessageHandler(ClientManager clientManager) {
+            this.clientManager = clientManager;
+        }*/
+  public MqttDisconnectMessageHandler(SnodeController snodeController) {
+      this.snodeController = snodeController;
+  }
 
     /**
      * handle the DISCONNECT message from the client
@@ -37,8 +45,8 @@ public class MqttDisconnectMessageHandler implements MessageHandler {
      * @param message
      * @return
      */
-    @Override public void handleMessage(MqttMessage message) {
+    @Override public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
         // TODO discard the Will Message and Will Topic
-
+        return null;
     }
 }

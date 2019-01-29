@@ -18,6 +18,8 @@
 package org.apache.rocketmq.snode.processor.mqtthandler;
 
 import io.netty.handler.codec.mqtt.MqttMessage;
+import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface MessageHandler {
 
@@ -26,5 +28,5 @@ public interface MessageHandler {
      *
      * @param message
      */
-    void handleMessage(MqttMessage message);
+    RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel);
 }

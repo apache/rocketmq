@@ -32,21 +32,25 @@ public class ClientHousekeepingService implements ChannelEventListener {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final ClientManager producerManager;
     private final ClientManager consumerManager;
+    private final ClientManager iotClientManager;
 
     public ClientHousekeepingService(final ClientManager producerManager,
-        final ClientManager consumerManager) {
+        final ClientManager consumerManager, final ClientManager iotClientManager) {
         this.producerManager = producerManager;
         this.consumerManager = consumerManager;
+        this.iotClientManager = iotClientManager;
     }
 
     public void start(long interval) {
         this.producerManager.startScan(interval);
         this.consumerManager.startScan(interval);
+        this.iotClientManager.startScan(interval);
     }
 
     public void shutdown() {
         this.producerManager.shutdown();
         this.consumerManager.shutdown();
+        this.iotClientManager.shutdown();
     }
 
     private ClientRole clientRole(RemotingChannel remotingChannel) {
@@ -73,6 +77,9 @@ public class ClientHousekeepingService implements ChannelEventListener {
                     return;
                 case Producer:
                     this.producerManager.onClose(remoteAddress, remotingChannel);
+                    return;
+                case IOTCLIENT:
+                    this.iotClientManager.onClose(remoteAddress, remotingChannel);
                     return;
                 default:
             }

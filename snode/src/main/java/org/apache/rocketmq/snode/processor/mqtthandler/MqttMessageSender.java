@@ -18,16 +18,24 @@
 package org.apache.rocketmq.snode.processor.mqtthandler;
 
 import io.netty.handler.codec.mqtt.MqttMessage;
+import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.snode.SnodeController;
 
 public class MqttMessageSender implements MessageHandler {
 
+    private final SnodeController snodeController;
+
+    public MqttMessageSender(SnodeController snodeController) {
+        this.snodeController = snodeController;
+    }
     /**
      * send the PUBLISH message to client
      *
      * @param message
      * @return whether the message is handled successfully
      */
-    @Override public void handleMessage(MqttMessage message) {
-
+    @Override public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
+        return null;
     }
 }

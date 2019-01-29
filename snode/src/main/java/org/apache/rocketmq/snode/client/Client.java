@@ -39,6 +39,8 @@ public class Client {
 
     private LanguageCode language;
 
+    private boolean isConnected;
+
     public ClientRole getClientRole() {
         return clientRole;
     }
@@ -59,11 +61,12 @@ public class Client {
                 Objects.equals(clientId, client.clientId) &&
                 Objects.equals(groups, client.groups) &&
                 Objects.equals(remotingChannel, client.remotingChannel) &&
-                language == client.language;
+                language == client.language &&
+                isConnected == client.isConnected();
     }
 
     @Override public int hashCode() {
-        return Objects.hash(clientRole, clientId, groups, remotingChannel, heartbeatInterval, lastUpdateTimestamp, version, language);
+        return Objects.hash(clientRole, clientId, groups, remotingChannel, heartbeatInterval, lastUpdateTimestamp, version, language, isConnected);
     }
 
     public RemotingChannel getRemotingChannel() {
@@ -114,6 +117,14 @@ public class Client {
         this.language = language;
     }
 
+    public boolean isConnected() {
+        return isConnected;
+    }
+
+    public void setConnected(boolean connected) {
+        isConnected = connected;
+    }
+
     public Set<String> getGroups() {
         return groups;
     }
@@ -132,6 +143,7 @@ public class Client {
             ", lastUpdateTimestamp=" + lastUpdateTimestamp +
             ", version=" + version +
             ", language=" + language +
+            ", isConnected=" + isConnected +
             '}';
     }
 }

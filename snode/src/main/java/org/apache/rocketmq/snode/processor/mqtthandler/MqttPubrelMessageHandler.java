@@ -18,14 +18,24 @@
 package org.apache.rocketmq.snode.processor.mqtthandler;
 
 import io.netty.handler.codec.mqtt.MqttMessage;
+import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.snode.SnodeController;
 
 public class MqttPubrelMessageHandler implements MessageHandler {
+
+    private final SnodeController snodeController;
+
+    public MqttPubrelMessageHandler(SnodeController snodeController) {
+        this.snodeController = snodeController;
+    }
 
     /**
      * handle the PUBREL message from the client
      * @param message
      * @return
      */
-    @Override public void handleMessage(MqttMessage message) {
+    @Override public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
+        return null;
     }
 }

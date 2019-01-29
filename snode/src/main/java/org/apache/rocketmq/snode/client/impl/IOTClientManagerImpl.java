@@ -17,8 +17,16 @@
 package org.apache.rocketmq.snode.client.impl;
 
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.snode.SnodeController;
 
 public class IOTClientManagerImpl extends ClientManagerImpl {
+
+    public static final String IOTGROUP = "IOTGROUP";
+    private final SnodeController snodeController;
+
+    public IOTClientManagerImpl(SnodeController snodeController) {
+        this.snodeController = snodeController;
+    }
 
     @Override
     public void onClosed(String group, RemotingChannel remotingChannel) {
@@ -32,5 +40,9 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
 
     @Override public void onRegister(String group, RemotingChannel remotingChannel) {
 
+    }
+
+    public SnodeController getSnodeController() {
+        return snodeController;
     }
 }

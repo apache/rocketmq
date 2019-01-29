@@ -210,8 +210,12 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
                     e1);
         }
         startUpHouseKeepingService();
+        registerMessageHandler();
     }
 
+    private void registerMessageHandler() {
+
+    }
     @Override
     public void shutdown() {
         try {

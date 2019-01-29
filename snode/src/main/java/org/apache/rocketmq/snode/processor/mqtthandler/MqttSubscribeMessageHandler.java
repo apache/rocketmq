@@ -18,6 +18,9 @@
 package org.apache.rocketmq.snode.processor.mqtthandler;
 
 import io.netty.handler.codec.mqtt.MqttMessage;
+import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.snode.SnodeController;
 
 public class MqttSubscribeMessageHandler implements MessageHandler {
 
@@ -26,7 +29,11 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
     public MqttSubscribeMessageHandler(SubscriptionStore subscriptionStore) {
         this.subscriptionStore = subscriptionStore;
     }*/
+    private final SnodeController snodeController;
 
+    public MqttSubscribeMessageHandler(SnodeController snodeController) {
+        this.snodeController = snodeController;
+    }
     /**
      * handle the SUBSCRIBE message from the client
      * <ol>
@@ -41,7 +48,7 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
      * @param message the message wrapping MqttSubscriptionMessage
      * @return
      */
-    @Override public void handleMessage(MqttMessage message) {
-
+    @Override public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
+        return null;
     }
 }
