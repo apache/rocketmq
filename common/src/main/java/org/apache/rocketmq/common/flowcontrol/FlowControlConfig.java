@@ -38,7 +38,7 @@ public class FlowControlConfig {
 
     private String flowControlFileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
-    private static final String DEFAULT_FLOW_CONTROL_FILE = "conf/flowControl.yml";
+    private static final String DEFAULT_FLOW_CONTROL_FILE = "conf/flow_control.yml";
 
     private String flowControlFileName = System.getProperty("rocketmq.flow.control.file", DEFAULT_FLOW_CONTROL_FILE);
 
