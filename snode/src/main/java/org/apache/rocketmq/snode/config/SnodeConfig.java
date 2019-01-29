@@ -16,11 +16,14 @@
  */
 package org.apache.rocketmq.snode.config;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 import static org.apache.rocketmq.client.ClientConfig.SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY;
 
@@ -33,9 +36,16 @@ public class SnodeConfig {
     @ImportantField
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
 
-    private String snodeName = "defaultNode";
+    @ImportantField
+    private String snodeIP1 = RemotingUtil.getLocalAddress();
 
-    private String snodeAddr = "127.0.0.1:11911";
+    private String snodeIP2 = RemotingUtil.getLocalAddress();
+
+    @ImportantField
+    private String snodeName = localHostName();
+
+    @ImportantField
+    private long snodeId = MixAll.MASTER_ID;
 
     private String clusterName = "defaultCluster";
 
@@ -135,6 +145,16 @@ public class SnodeConfig {
     @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;
 
+    public static String localHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            log.error("Failed to obtain the host name", e);
+        }
+
+        return "DEFAULT_SNODE";
+    }
+
     public boolean isFetchNamesrvAddrByAddressServer() {
         return fetchNamesrvAddrByAddressServer;
     }
@@ -207,12 +227,28 @@ public class SnodeConfig {
         this.snodeSendMessageMaxPoolSize = snodeSendMessageMaxPoolSize;
     }
 
-    public String getSnodeAddr() {
-        return snodeAddr;
+    public String getSnodeIP1() {
+        return snodeIP1;
     }
 
-    public void setSnodeAddr(String snodeAddr) {
-        this.snodeAddr = snodeAddr;
+    public void setSnodeIP1(String snodeIP1) {
+        this.snodeIP1 = snodeIP1;
+    }
+
+    public String getSnodeIP2() {
+        return snodeIP2;
+    }
+
+    public void setSnodeIP2(String snodeIP2) {
+        this.snodeIP2 = snodeIP2;
+    }
+
+    public long getSnodeId() {
+        return snodeId;
+    }
+
+    public void setSnodeId(long snodeId) {
+        this.snodeId = snodeId;
     }
 
     public String getSnodeName() {

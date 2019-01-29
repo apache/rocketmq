@@ -33,17 +33,18 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
-import org.apache.rocketmq.common.protocol.route.SnodeData;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.common.protocol.body.SnodeClusterInfo;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
+import org.apache.rocketmq.common.protocol.route.SnodeData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class RouteInfoManager {
@@ -72,7 +73,28 @@ public class RouteInfoManager {
         ClusterInfo clusterInfoSerializeWrapper = new ClusterInfo();
         clusterInfoSerializeWrapper.setBrokerAddrTable(this.brokerAddrTable);
         clusterInfoSerializeWrapper.setClusterAddrTable(this.clusterAddrTable);
+        clusterInfoSerializeWrapper.setSnodeCluster(this.snodeCluster);
+        clusterInfoSerializeWrapper.setSnodeTable(this.snodeTable);
         return clusterInfoSerializeWrapper.encode();
+    }
+
+    public byte[] getSnodeDatabyClusterName(String clusterName) {
+        SnodeClusterInfo snodeClusterInfo = new SnodeClusterInfo();
+        Set<String> snodeNameSet = this.snodeCluster.get(clusterName);
+        HashMap<String, SnodeData> snodeDatas = new HashMap<>();
+        for (String snodeName : snodeNameSet) {
+            SnodeData snodeData = this.snodeTable.get(snodeName);
+            snodeDatas.putIfAbsent(clusterName, snodeData);
+        }
+        snodeClusterInfo.setSnodeTable(snodeDatas);
+        return snodeClusterInfo.encode();
+    }
+
+    public byte[] getAllSnodeData() {
+        SnodeClusterInfo snodeClusterInfo = new SnodeClusterInfo();
+        snodeClusterInfo.setSnodeCluster(this.snodeCluster);
+        snodeClusterInfo.setSnodeTable(snodeTable);
+        return snodeClusterInfo.encode();
     }
 
     public void deleteTopic(final String topic) {

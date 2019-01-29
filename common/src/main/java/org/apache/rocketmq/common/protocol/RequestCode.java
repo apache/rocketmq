@@ -174,4 +174,10 @@ public class RequestCode {
 
     public static final int SNODE_PUSH_MESSAGE = 352;
 
+    public static final int GET_SNODE_CLUSTER_INFO = 353;
+
+    public static final int GET_SNODE_INFO = 354;
+
+
+
 }

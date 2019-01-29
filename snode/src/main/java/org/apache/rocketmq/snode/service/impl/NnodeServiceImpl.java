@@ -53,12 +53,16 @@ public class NnodeServiceImpl implements NnodeService {
         this.snodeController = snodeController;
     }
 
+    public String getSnodeAddress() {
+        return this.snodeController.getSnodeConfig().getSnodeIP1() + ":" + this.snodeController.getSnodeConfig().getListenPort();
+    }
+
     @Override
     public void registerSnode(SnodeConfig snodeConfig) {
         List<String> nnodeAddressList = this.snodeController.getRemotingClient().getNameServerAddressList();
         RemotingCommand remotingCommand = new RemotingCommand();
         RegisterSnodeRequestHeader requestHeader = new RegisterSnodeRequestHeader();
-        requestHeader.setSnodeAddr(snodeConfig.getSnodeAddr());
+        requestHeader.setSnodeAddr(getSnodeAddress());
         requestHeader.setSnodeName(snodeConfig.getSnodeName());
         requestHeader.setClusterName(snodeConfig.getClusterName());
         remotingCommand.setCustomHeader(requestHeader);

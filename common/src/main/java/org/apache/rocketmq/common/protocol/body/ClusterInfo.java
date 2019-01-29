@@ -24,11 +24,14 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.SnodeData;
 import org.apache.rocketmq.remoting.serialize.RemotingSerializable;
 
 public class ClusterInfo extends RemotingSerializable {
     private HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
     private HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
+    private HashMap<String/* snodeName*/, SnodeData> snodeTable;
+    private HashMap<String/* clusterName*/, Set<String/*snodeName*/>> snodeCluster;
 
     public HashMap<String, BrokerData> getBrokerAddrTable() {
         return brokerAddrTable;
@@ -59,6 +62,23 @@ public class ClusterInfo extends RemotingSerializable {
         }
 
         return addrs.toArray(new String[] {});
+    }
+
+    public HashMap<String, SnodeData> getSnodeTable() {
+        return snodeTable;
+    }
+
+    public void setSnodeTable(
+        HashMap<String, SnodeData> snodeTable) {
+        this.snodeTable = snodeTable;
+    }
+
+    public HashMap<String, Set<String>> getSnodeCluster() {
+        return snodeCluster;
+    }
+
+    public void setSnodeCluster(HashMap<String, Set<String>> snodeCluster) {
+        this.snodeCluster = snodeCluster;
     }
 
     public String[] retrieveAllMasterAddrByCluster(String cluster) {
