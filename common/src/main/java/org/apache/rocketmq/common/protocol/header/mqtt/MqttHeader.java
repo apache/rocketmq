@@ -13,11 +13,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+ *//*
 
+
+*/
 /**
  * $Id: EndTransactionResponseHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
- */
+ *//*
+
 package org.apache.rocketmq.common.protocol.header.mqtt;
 
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
@@ -215,3 +218,4 @@ public class MqttHeader implements CommandCustomHeader {
     }
 
 }
+*/

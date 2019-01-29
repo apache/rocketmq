@@ -121,6 +121,7 @@ public class SnodeController {
         this.nnodeService = new NnodeServiceImpl(this);
         this.scheduledService = new ScheduledServiceImpl(this);
         this.remotingClient = RemotingClientFactory.getInstance().createRemotingClient().init(this.getNettyClientConfig(), null);
+        this.mqttRemotingClient = RemotingClientFactory.getInstance().createRemotingClient(RemotingUtil.MQTT_PROTOCOL).init(this.getNettyClientConfig(), null);
 
         this.sendMessageExecutor = ThreadUtils.newThreadPoolExecutor(
             snodeConfig.getSnodeSendMessageMinPoolSize(),
@@ -312,18 +313,42 @@ public class SnodeController {
     }
 
     public void shutdown() {
-        this.sendMessageExecutor.shutdown();
-        this.pullMessageExecutor.shutdown();
-        this.handleMqttMessageExecutor.shutdown();
-        this.heartbeatExecutor.shutdown();
-        this.consumerManagerExecutor.shutdown();
-        this.scheduledExecutorService.shutdown();
-        this.remotingClient.shutdown();
-        this.mqttRemotingClient.shutdown();
-        this.mqttRemotingServer.shutdown();
-        this.scheduledService.shutdown();
-        this.clientHousekeepingService.shutdown();
-        this.pushService.shutdown();
+        if (this.sendMessageExecutor != null) {
+            this.sendMessageExecutor.shutdown();
+        }
+        if (this.pullMessageExecutor != null) {
+            this.pullMessageExecutor.shutdown();
+        }
+        if (this.handleMqttMessageExecutor != null) {
+            this.handleMqttMessageExecutor.shutdown();
+        }
+        if (this.heartbeatExecutor != null) {
+            this.heartbeatExecutor.shutdown();
+        }
+        if (this.consumerManagerExecutor != null) {
+            this.consumerManagerExecutor.shutdown();
+        }
+        if (this.scheduledExecutorService != null) {
+            this.scheduledExecutorService.shutdown();
+        }
+        if (this.remotingClient != null) {
+            this.remotingClient.shutdown();
+        }
+        if (this.mqttRemotingClient != null) {
+            this.mqttRemotingClient.shutdown();
+        }
+        if(this.mqttRemotingServer != null) {
+            this.mqttRemotingServer.shutdown();
+        }
+        if(this.scheduledService != null){
+            this.scheduledService.shutdown();
+        }
+        if(this.clientHousekeepingService != null) {
+            this.clientHousekeepingService.shutdown();
+        }
+        if(this.pushService != null) {
+            this.pushService.shutdown();
+        }
     }
 
     public RemotingServer getSnodeServer() {

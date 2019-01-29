@@ -134,7 +134,7 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
                             serverConfig.getServerSelectorThreads()));
             this.socketChannelClass = NioServerSocketChannel.class;
         }
-        this.port = nettyServerConfig.getListenPort();
+        this.port = nettyServerConfig.getMqttListenPort();
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(
                 serverConfig.getServerWorkerThreads(),
                 ThreadUtils.newGenericThreadFactory("NettyWorkerThreads",

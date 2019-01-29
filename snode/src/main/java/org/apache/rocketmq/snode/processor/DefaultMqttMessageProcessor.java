@@ -19,7 +19,9 @@ package org.apache.rocketmq.snode.processor;
 
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RequestProcessor;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
 
 public class DefaultMqttMessageProcessor implements RequestProcessor {
 
@@ -27,9 +29,15 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
     private static final int MAX_AVAILABLE_VERSION = 4;
 
 
-    @Override public RemotingCommand processRequest(RemotingChannel remotingChannel, RemotingCommand message) {
+    @Override public RemotingCommand processRequest(RemotingChannel remotingChannel, RemotingCommand message)
+            throws RemotingCommandException {
         //解析RemotingCommand，根据MqttMessageType做不同逻辑处理
         //TODO
+        MqttHeader mqttHeader = (MqttHeader)message.decodeCommandCustomHeader(MqttHeader.class);
+        switch (mqttHeader.getMessageType()) {
+            case CONNECT:
+            case DISCONNECT:
+        }
         return null;
     }
 

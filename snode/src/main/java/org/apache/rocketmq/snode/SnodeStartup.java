@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.snode;
 
+import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_ENABLE;
+
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
@@ -40,8 +42,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.config.SnodeConfig;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_ENABLE;
 
 public class SnodeStartup {
     private static InternalLogger log;
@@ -86,7 +86,7 @@ public class SnodeStartup {
         final ClientConfig nettyClientConfig = new ClientConfig();
 
         nettyServerConfig.setListenPort(snodeConfig.getListenPort());
-
+        nettyServerConfig.setListenPort(11911);
         nettyClientConfig.setUseTLS(Boolean.parseBoolean(System.getProperty(TLS_ENABLE,
             String.valueOf(TlsSystemConfig.tlsMode == TlsMode.ENFORCING))));
 
