@@ -71,18 +71,41 @@ public class TransactionalMessageBridge {
 
     }
 
+    /**
+     * 获取MessageQueue对应的offset
+     * @param mq
+     * @return
+     */
     public long fetchConsumeOffset(MessageQueue mq) {
+        /**
+         * 获取CID_RMQ_SYS_TRANS对应的topic和queueid的消费进度
+         */
         long offset = brokerController.getConsumerOffsetManager().queryOffset(TransactionalMessageUtil.buildConsumerGroup(),
             mq.getTopic(), mq.getQueueId());
         if (offset == -1) {
+            /**
+             * 获取最小消费进度
+             */
             offset = store.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId());
         }
         return offset;
     }
 
+    /**
+     * 获取topic对应的MessageQueue
+     * @param topic
+     * @return
+     */
     public Set<MessageQueue> fetchMessageQueues(String topic) {
         Set<MessageQueue> mqSet = new HashSet<>();
+        /**
+         * 获取topic对应的配置
+         */
         TopicConfig topicConfig = selectTopicConfig(topic);
+
+        /**
+         * readQueueNum
+         */
         if (topicConfig != null && topicConfig.getReadQueueNums() > 0) {
             for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
                 MessageQueue mq = new MessageQueue();
@@ -95,7 +118,15 @@ public class TransactionalMessageBridge {
         return mqSet;
     }
 
+    /**
+     * 更新mq对应的offset
+     * @param mq
+     * @param offset
+     */
     public void updateConsumeOffset(MessageQueue mq, long offset) {
+        /**
+         * 指定消费组为CID_RMQ_SYS_TRANS
+         */
         this.brokerController.getConsumerOffsetManager().commitOffset(
             RemotingHelper.parseSocketAddressAddr(this.storeHost), TransactionalMessageUtil.buildConsumerGroup(), mq.getTopic(),
             mq.getQueueId(), offset);
@@ -108,24 +139,64 @@ public class TransactionalMessageBridge {
         return getMessage(group, topic, queueId, offset, nums, sub);
     }
 
+    /**
+     * 在QueueId下  起始位置为offset  拉取nums条消息
+     * @param queueId
+     * @param offset
+     * @param nums
+     * @return
+     */
     public PullResult getOpMessage(int queueId, long offset, int nums) {
+        /**
+         * CID_SYS_RMQ_TRANS
+         */
         String group = TransactionalMessageUtil.buildConsumerGroup();
+        /**
+         * RMQ_SYS_TRANS_OP_HALF_TOPIC
+         */
         String topic = TransactionalMessageUtil.buildOpTopic();
         SubscriptionData sub = new SubscriptionData(topic, "*");
+
+        /**
+         * 拉取消息
+         */
         return getMessage(group, topic, queueId, offset, nums, sub);
     }
 
+    /**
+     * 拉取消息
+     * @param group
+     * @param topic
+     * @param queueId
+     * @param offset
+     * @param nums
+     * @param sub
+     * @return
+     */
     private PullResult getMessage(String group, String topic, int queueId, long offset, int nums,
         SubscriptionData sub) {
+        /**
+         * 拉取消息
+         */
         GetMessageResult getMessageResult = store.getMessage(group, topic, queueId, offset, nums, null);
 
         if (getMessageResult != null) {
             PullStatus pullStatus = PullStatus.NO_NEW_MSG;
             List<MessageExt> foundList = null;
             switch (getMessageResult.getStatus()) {
+                /**
+                 * 有消息
+                 */
                 case FOUND:
                     pullStatus = PullStatus.FOUND;
+                    /**
+                     * 将getMessageResult中的数据解码为消息
+                     */
                     foundList = decodeMsgList(getMessageResult);
+
+                    /**
+                     * 统计
+                     */
                     this.brokerController.getBrokerStatsManager().incGroupGetNums(group, topic,
                         getMessageResult.getMessageCount());
                     this.brokerController.getBrokerStatsManager().incGroupGetSize(group, topic,
@@ -170,11 +241,19 @@ public class TransactionalMessageBridge {
         }
     }
 
+    /**
+     * 将getMessageResult中的ByteBuffer  解码为消息
+     * @param getMessageResult
+     * @return
+     */
     private List<MessageExt> decodeMsgList(GetMessageResult getMessageResult) {
         List<MessageExt> foundList = new ArrayList<>();
         try {
             List<ByteBuffer> messageBufferList = getMessageResult.getMessageBufferList();
             for (ByteBuffer bb : messageBufferList) {
+                /**
+                 * 解码
+                 */
                 MessageExt msgExt = MessageDecoder.decode(bb);
                 foundList.add(msgExt);
             }
@@ -321,6 +400,11 @@ public class TransactionalMessageBridge {
         return msgInner;
     }
 
+    /**
+     * 获取topic对应的配置  不存在则创建
+     * @param topic
+     * @return
+     */
     private TopicConfig selectTopicConfig(String topic) {
         TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(topic);
         if (topicConfig == null) {

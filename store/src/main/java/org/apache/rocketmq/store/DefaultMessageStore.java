@@ -667,6 +667,9 @@ public class DefaultMessageStore implements MessageStore {
 
                             maxPhyOffsetPulling = offsetPy;
 
+                            /**
+                             * 说明上一个消息已经发生MESSAGE_WAS_REMOVING的错误
+                             */
                             if (nextPhyFileStartOffset != Long.MIN_VALUE) {
                                 if (offsetPy < nextPhyFileStartOffset)
                                     continue;
