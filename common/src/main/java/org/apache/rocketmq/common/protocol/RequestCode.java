@@ -180,4 +180,6 @@ public class RequestCode {
 
 
 
+
+    public static final int MQTT_MESSAGE = 1000;
 }

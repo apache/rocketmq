@@ -14,35 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client.impl;
 
+package org.apache.rocketmq.snode.processor.mqtthandler;
+
+import io.netty.handler.codec.mqtt.MqttMessage;
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
 
-public class IOTClientManagerImpl extends ClientManagerImpl {
+public class MqttPubackMessageHandler implements MessageHandler {
 
-    public static final String IOTGROUP = "IOTGROUP";
     private final SnodeController snodeController;
 
-    public IOTClientManagerImpl(SnodeController snodeController) {
+    public MqttPubackMessageHandler(SnodeController snodeController) {
         this.snodeController = snodeController;
     }
-
-    @Override
-    public void onClosed(String group, RemotingChannel remotingChannel) {
-
-    }
-
-    @Override
-    public void onUnregister(String group, RemotingChannel remotingChannel) {
-
-    }
-
-    @Override public void onRegister(String group, RemotingChannel remotingChannel) {
-
-    }
-
-    public SnodeController getSnodeController() {
-        return snodeController;
+    /**
+     * handle the PUBACK message from the client
+     * <ol>
+     *     <li>remove the message from the published in-flight messages</li>
+     *     <li>ack the message in the MessageStore</li>
+     * </ol>
+     * @param
+     * @return
+     */
+    @Override public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
+        return null;
     }
 }

@@ -14,25 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client;
 
-import java.util.List;
-import org.apache.rocketmq.remoting.RemotingChannel;
+package org.apache.rocketmq.remoting.transport.mqtt.dispatcher;
 
-public interface ClientManager {
-    boolean register(String groupId, Client client);
+import io.netty.handler.codec.mqtt.MqttMessage;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-    void unRegister(String groupId, RemotingChannel remotingChannel);
+public class MqttConnectackEncodeDecode implements Message2MessageEncodeDecode {
 
-    void onClose(String groupId, RemotingChannel remotingChannel);
+    @Override
+    public RemotingCommand decode(MqttMessage mqttMessage) {
+        return null;
+    }
 
-    List<RemotingChannel> getChannels(String groupId);
-
-    List<String> getAllClientId(String groupId);
-
-    Client getClient(String groupId, RemotingChannel remotingChannel);
-
-    void startScan(long interval);
-
-    void shutdown();
+    @Override
+    public MqttMessage encode(RemotingCommand remotingCommand) {
+        return null;
+    }
 }

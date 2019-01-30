@@ -20,6 +20,7 @@ import org.apache.rocketmq.remoting.netty.NettySystemConfig;
 
 public class ServerConfig implements Cloneable {
     private int listenPort = 8888;
+    private int mqttListenPort = 1883;
     private int serverWorkerThreads = 8;
     private int serverCallbackExecutorThreads = 8;
     private int serverSelectorThreads = 3;
@@ -73,6 +74,14 @@ public class ServerConfig implements Cloneable {
 
     public void setListenPort(int listenPort) {
         this.listenPort = listenPort;
+    }
+
+    public int getMqttListenPort() {
+        return mqttListenPort;
+    }
+
+    public void setMqttListenPort(int mqttListenPort) {
+        this.mqttListenPort = mqttListenPort;
     }
 
     public int getServerWorkerThreads() {

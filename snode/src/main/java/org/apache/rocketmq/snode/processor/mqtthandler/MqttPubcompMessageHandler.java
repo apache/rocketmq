@@ -14,25 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client;
 
-import java.util.List;
+package org.apache.rocketmq.snode.processor.mqtthandler;
+
+import io.netty.handler.codec.mqtt.MqttMessage;
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.snode.SnodeController;
 
-public interface ClientManager {
-    boolean register(String groupId, Client client);
+public class MqttPubcompMessageHandler implements MessageHandler {
 
-    void unRegister(String groupId, RemotingChannel remotingChannel);
+    private final SnodeController snodeController;
 
-    void onClose(String groupId, RemotingChannel remotingChannel);
-
-    List<RemotingChannel> getChannels(String groupId);
-
-    List<String> getAllClientId(String groupId);
-
-    Client getClient(String groupId, RemotingChannel remotingChannel);
-
-    void startScan(long interval);
-
-    void shutdown();
+    public MqttPubcompMessageHandler(SnodeController snodeController) {
+        this.snodeController = snodeController;
+    }
+    /**
+     * handle the PUBCOMP message from the client
+     * @param message
+     * @return
+     */
+    @Override public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
+        return null;
+    }
 }

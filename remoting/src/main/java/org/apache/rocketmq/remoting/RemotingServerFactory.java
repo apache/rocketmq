@@ -39,7 +39,7 @@ public class RemotingServerFactory {
     }
 
     public RemotingServer createRemotingServer(String protocol) {
-        return ServiceProvider.createInstance(protocolPathMap.get(protocol), RemotingClient.class);
+        return ServiceProvider.createInstance(protocolPathMap.get(protocol), RemotingServer.class);
     }
 
     public RemotingServer createRemotingServer() {

@@ -14,35 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client.impl;
 
+package org.apache.rocketmq.snode.processor.mqtthandler;
+
+import io.netty.handler.codec.mqtt.MqttMessage;
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
 
-public class IOTClientManagerImpl extends ClientManagerImpl {
+public class MqttPingreqMessageHandler implements MessageHandler {
 
-    public static final String IOTGROUP = "IOTGROUP";
     private final SnodeController snodeController;
 
-    public IOTClientManagerImpl(SnodeController snodeController) {
+    public MqttPingreqMessageHandler(SnodeController snodeController) {
         this.snodeController = snodeController;
     }
-
-    @Override
-    public void onClosed(String group, RemotingChannel remotingChannel) {
-
-    }
-
-    @Override
-    public void onUnregister(String group, RemotingChannel remotingChannel) {
-
-    }
-
-    @Override public void onRegister(String group, RemotingChannel remotingChannel) {
-
-    }
-
-    public SnodeController getSnodeController() {
-        return snodeController;
+    /**
+     * handle the PINGREQ message from client
+     * <ol>
+     * <li>check client exists</li>
+     * <li>check client is connected</li>
+     * <li>generate the PINGRESP message</li>
+     * <li>send the PINGRESP message to the client</li>
+     * </ol>
+     *
+     * @param message
+     * @return
+     */
+    @Override public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
+        return null;
     }
 }

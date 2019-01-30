@@ -14,35 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client.impl;
 
+package org.apache.rocketmq.snode.processor.mqtthandler;
+
+import io.netty.handler.codec.mqtt.MqttMessage;
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
 
-public class IOTClientManagerImpl extends ClientManagerImpl {
+public class MqttMessageForwarder implements MessageHandler {
 
-    public static final String IOTGROUP = "IOTGROUP";
     private final SnodeController snodeController;
+/*    private SubscriptionStore subscriptionStore;
 
-    public IOTClientManagerImpl(SnodeController snodeController) {
+    public MqttMessageForwarder(SubscriptionStore subscriptionStore) {
+        this.subscriptionStore = subscriptionStore;
+    }*/
+
+    public MqttMessageForwarder(SnodeController snodeController) {
         this.snodeController = snodeController;
     }
 
-    @Override
-    public void onClosed(String group, RemotingChannel remotingChannel) {
-
-    }
-
-    @Override
-    public void onUnregister(String group, RemotingChannel remotingChannel) {
-
-    }
-
-    @Override public void onRegister(String group, RemotingChannel remotingChannel) {
-
-    }
-
-    public SnodeController getSnodeController() {
-        return snodeController;
+    /**
+     * handle PUBLISH message from client
+     *
+     * @param message
+     * @return whether the message is handled successfully
+     */
+    @Override public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
+        return null;
     }
 }

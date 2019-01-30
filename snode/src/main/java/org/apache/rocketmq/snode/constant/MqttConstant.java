@@ -14,25 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client;
 
-import java.util.List;
-import org.apache.rocketmq.remoting.RemotingChannel;
+package org.apache.rocketmq.snode.constant;
 
-public interface ClientManager {
-    boolean register(String groupId, Client client);
-
-    void unRegister(String groupId, RemotingChannel remotingChannel);
-
-    void onClose(String groupId, RemotingChannel remotingChannel);
-
-    List<RemotingChannel> getChannels(String groupId);
-
-    List<String> getAllClientId(String groupId);
-
-    Client getClient(String groupId, RemotingChannel remotingChannel);
-
-    void startScan(long interval);
-
-    void shutdown();
+public class MqttConstant {
+    public static final int MAX_SUPPORTED_QOS = 0;
+    public static final String SUBSCRIPTION_FLAG_PLUS = "+";
+    public static final String SUBSCRIPTION_FLAG_SHARP = "#";
+    public static final String SUBSCRIPTION_SEPARATOR = "/";
 }

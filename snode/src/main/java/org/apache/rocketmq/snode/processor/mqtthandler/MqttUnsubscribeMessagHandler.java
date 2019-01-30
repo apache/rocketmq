@@ -14,35 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client.impl;
 
+package org.apache.rocketmq.snode.processor.mqtthandler;
+
+import io.netty.handler.codec.mqtt.MqttMessage;
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
 
-public class IOTClientManagerImpl extends ClientManagerImpl {
+/**
+ * handle the UNSUBSCRIBE message from the client
+ * <ol>
+ *     <li>extract topic filters to be un-subscribed</li>
+ *     <li>get the topics matching with the topic filters</li>
+ *     <li>verify the authorization of the client to the </li>
+ *     <li>remove subscription from the SubscriptionStore</li>
+ * </ol>
+ */
+public class MqttUnsubscribeMessagHandler implements MessageHandler {
 
-    public static final String IOTGROUP = "IOTGROUP";
+/*    private SubscriptionStore subscriptionStore;
+
+    public MqttUnsubscribeMessagHandler(SubscriptionStore subscriptionStore) {
+        this.subscriptionStore = subscriptionStore;
+    }*/
     private final SnodeController snodeController;
 
-    public IOTClientManagerImpl(SnodeController snodeController) {
+    public MqttUnsubscribeMessagHandler(SnodeController snodeController) {
         this.snodeController = snodeController;
     }
-
     @Override
-    public void onClosed(String group, RemotingChannel remotingChannel) {
-
-    }
-
-    @Override
-    public void onUnregister(String group, RemotingChannel remotingChannel) {
-
-    }
-
-    @Override public void onRegister(String group, RemotingChannel remotingChannel) {
-
-    }
-
-    public SnodeController getSnodeController() {
-        return snodeController;
+    public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
+        return null;
     }
 }

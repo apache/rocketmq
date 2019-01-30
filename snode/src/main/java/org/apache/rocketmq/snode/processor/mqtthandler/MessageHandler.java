@@ -14,25 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client;
 
-import java.util.List;
+package org.apache.rocketmq.snode.processor.mqtthandler;
+
+import io.netty.handler.codec.mqtt.MqttMessage;
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public interface ClientManager {
-    boolean register(String groupId, Client client);
+public interface MessageHandler {
 
-    void unRegister(String groupId, RemotingChannel remotingChannel);
-
-    void onClose(String groupId, RemotingChannel remotingChannel);
-
-    List<RemotingChannel> getChannels(String groupId);
-
-    List<String> getAllClientId(String groupId);
-
-    Client getClient(String groupId, RemotingChannel remotingChannel);
-
-    void startScan(long interval);
-
-    void shutdown();
+    /**
+     * Handle message from client
+     *
+     * @param message
+     */
+    RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel);
 }
