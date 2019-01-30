@@ -19,6 +19,8 @@ package org.apache.rocketmq.snode.client.impl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.client.SlowConsumerService;
 
@@ -32,14 +34,19 @@ public class SlowConsumerServiceImpl implements SlowConsumerService {
     }
 
     @Override
-    public boolean isSlowConsumer(long latestLogicOffset, String topic, int queueId,
+    public boolean isSlowConsumer(long currentOffset, String topic, int queueId,
         String consumerGroup, String enodeName) {
         long ackedOffset = this.snodeController.getConsumerOffsetManager().queryOffset(enodeName, consumerGroup, topic, queueId);
-        if (latestLogicOffset - ackedOffset > snodeController.getSnodeConfig().getSlowConsumerThreshold()) {
-            log.warn("[SlowConsumer] group: {}, lastAckedOffset:{} nowOffset:{} ", consumerGroup, ackedOffset, latestLogicOffset);
+        if (currentOffset - ackedOffset > snodeController.getSnodeConfig().getSlowConsumerThreshold()) {
+            log.warn("[SlowConsumer] group: {}, lastAckedOffset:{} nowOffset:{} ", consumerGroup, ackedOffset, currentOffset);
             return true;
         }
 
         return false;
+    }
+
+    @Override
+    public void slowConsumerResolve(RemotingCommand pushMessage, RemotingChannel remotingChannel) {
+        log.warn("[SlowConsumer] RemotingChannel address: {}", remotingChannel.remoteAddress());
     }
 }

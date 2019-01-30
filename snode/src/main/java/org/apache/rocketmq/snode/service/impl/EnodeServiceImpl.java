@@ -61,14 +61,14 @@ public class EnodeServiceImpl implements EnodeService {
     }
 
     @Override
-    public void sendHearbeat(RemotingCommand remotingCommand) {
+    public void sendHeartbeat(RemotingCommand remotingCommand) {
         for (Map.Entry<String, HashMap<Long, String>> entry : enodeTable.entrySet()) {
             String enodeAddr = entry.getValue().get(MixAll.MASTER_ID);
             if (enodeAddr != null) {
                 try {
                     this.snodeController.getRemotingClient().invokeSync(enodeAddr, remotingCommand, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
                 } catch (Exception ex) {
-                    log.warn("Send heart beat faild:{} ,ex:{}", enodeAddr, ex);
+                    log.warn("Send heart beat failed:{}, ex:{}", enodeAddr, ex);
                 }
             }
         }

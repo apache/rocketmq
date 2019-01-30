@@ -65,7 +65,7 @@ public class ScheduledServiceImpl implements ScheduledService {
             @Override
             public void run() {
                 try {
-                    snodeController.getEnodeService().sendHearbeat(enodeHeartbeat);
+                    snodeController.getEnodeService().sendHeartbeat(enodeHeartbeat);
                 } catch (Exception e) {
                     log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", e);
                 }

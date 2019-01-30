@@ -16,7 +16,29 @@
  */
 package org.apache.rocketmq.snode.client;
 
+import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+
 public interface SlowConsumerService {
 
-    boolean isSlowConsumer(long latestLogicOffset, String topic, int queueId, String consumerGroup, String enodeName);
+    /**
+     * Check whether this consumer is slow consumer, slow consumer means this consumer's acked offset is far behind
+     * current offset.
+     *
+     * @param currentOffset Current offset in consumer queue.
+     * @param topic
+     * @param queueId
+     * @param consumerGroup
+     * @param enodeName
+     * @return If this consumer is slow consumer, return true, otherwise false.
+     */
+    boolean isSlowConsumer(long currentOffset, String topic, int queueId, String consumerGroup, String enodeName);
+
+    /**
+     * When a consumer is checked as slow consumer, this method will be invoked to do next action.
+     *
+     * @param pushMessage The message will be pushed to consumer.
+     * @param remotingChannel Consumer channel.
+     */
+    void slowConsumerResolve(RemotingCommand pushMessage, RemotingChannel remotingChannel);
 }

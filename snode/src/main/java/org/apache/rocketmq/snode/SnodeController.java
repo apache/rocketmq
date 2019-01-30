@@ -401,4 +401,8 @@ public class SnodeController {
     public void setSlowConsumerService(SlowConsumerService slowConsumerService) {
         this.slowConsumerService = slowConsumerService;
     }
+
+    public void setConsumerOffsetManager(ConsumerOffsetManager consumerOffsetManager) {
+        this.consumerOffsetManager = consumerOffsetManager;
+    }
 }

@@ -29,6 +29,6 @@ snode:
     - flowControlResourceName: 310
       flowControlGrade: 1
       flowControlBehavior: 1
-      flowControlResourceCount: 5.00 #KB/S
+      flowControlResourceCount: 5000.00 #KB/S
 
   topicLimit:
