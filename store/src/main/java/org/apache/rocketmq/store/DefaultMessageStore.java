@@ -696,7 +696,7 @@ public class DefaultMessageStore implements MessageStore {
 
         if (DefaultMessageStore.this.getMessageStoreConfig().isMultiCommitLogPathEnable()) {
             double maxValue = Double.MIN_VALUE;
-            for (String clPath : DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLogList()) {
+            for (String clPath : DefaultMessageStore.this.getMessageStoreConfig().getCommitLogStorePaths()) {
                 double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(clPath);
                 result.put(RunningStats.commitLogDiskRatio.name() + "_" + clPath, String.valueOf(physicRatio));
                 maxValue = Math.max(maxValue, physicRatio);
@@ -1547,7 +1547,7 @@ public class DefaultMessageStore implements MessageStore {
             {
                 List<String> storePaths;
                 if (DefaultMessageStore.this.getMessageStoreConfig().isMultiCommitLogPathEnable()) {
-                    storePaths = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLogList();
+                    storePaths = DefaultMessageStore.this.getMessageStoreConfig().getCommitLogStorePaths();
                 } else {
                     storePaths = Collections.singletonList(DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog());
                 }

@@ -19,6 +19,7 @@ package org.apache.rocketmq.store;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -50,24 +51,12 @@ public class MappedFileQueue {
 
     private volatile long storeTimestamp = 0;
 
-    private final MessageStoreConfig config;
-
     public MappedFileQueue(final String storePath, int mappedFileSize,
-        AllocateMappedFileService allocateMappedFileService) {
+                           AllocateMappedFileService allocateMappedFileService) {
         this.storePath = storePath;
         this.mappedFileSize = mappedFileSize;
         this.allocateMappedFileService = allocateMappedFileService;
-        config = null;
     }
-
-    public MappedFileQueue(MessageStoreConfig messageStoreConfig, int mappedFileSize,
-        AllocateMappedFileService allocateMappedFileService) {
-        this.config = messageStoreConfig;
-        this.mappedFileSize = mappedFileSize;
-        this.storePath = config.getStorePathCommitLog();
-        this.allocateMappedFileService = allocateMappedFileService;
-    }
-
 
     public void checkSelf() {
 
@@ -158,49 +147,39 @@ public class MappedFileQueue {
         }
     }
 
+
     public boolean load() {
-        List<File> files = new ArrayList<>();
-        if (config != null && config.isMultiCommitLogPathEnable()) {
-            for (String path : config.getStorePathCommitLogList()) {
-                File dir = new File(path);
-                File[] ls = dir.listFiles();
-                if (ls != null) {
-                    Collections.addAll(files, ls);
-                }
+        File dir = new File(this.storePath);
+        File[] ls = dir.listFiles();
+        if (ls != null) {
+            return doLoad(Arrays.asList(ls));
+        }
+        return false;
+    }
+
+    public boolean doLoad(List<File> files) {
+        // ascending order
+        Collections.sort(files);
+        for (File file : files) {
+            if (file.length() != this.mappedFileSize) {
+                log.warn(file + "\t" + file.length()
+                        + " length not matched message store config value, ignore it");
+                return true;
             }
-        } else {
-            File dir = new File(this.storePath);
-            File[] ls = dir.listFiles();
-            if (ls != null) {
-                Collections.addAll(files, ls);
+
+            try {
+                MappedFile mappedFile = new MappedFile(file.getPath(), mappedFileSize);
+
+                mappedFile.setWrotePosition(this.mappedFileSize);
+                mappedFile.setFlushedPosition(this.mappedFileSize);
+                mappedFile.setCommittedPosition(this.mappedFileSize);
+                this.mappedFiles.add(mappedFile);
+                log.info("load " + file.getPath() + " OK");
+            } catch (IOException e) {
+                log.error("load file " + file + " error", e);
+                return false;
             }
         }
-        if (!files.isEmpty()) {
-            // ascending order
-            Collections.sort(files);
-            for (File file : files) {
-
-                if (file.length() != this.mappedFileSize) {
-                    log.warn(file + "\t" + file.length()
-                            + " length not matched message store config value, ignore it");
-                    return true;
-                }
-
-                try {
-                    MappedFile mappedFile = new MappedFile(file.getPath(), mappedFileSize);
-
-                    mappedFile.setWrotePosition(this.mappedFileSize);
-                    mappedFile.setFlushedPosition(this.mappedFileSize);
-                    mappedFile.setCommittedPosition(this.mappedFileSize);
-                    this.mappedFiles.add(mappedFile);
-                    log.info("load " + file.getPath() + " OK");
-                } catch (IOException e) {
-                    log.error("load file " + file + " error", e);
-                    return false;
-                }
-            }
-        }
-
         return true;
     }
 
@@ -232,42 +211,37 @@ public class MappedFileQueue {
         }
 
         if (createOffset != -1 && needCreate) {
-            String nextFilePath;
-            String nextNextFilePath;
-            if (config != null && config.isMultiCommitLogPathEnable()) {
-                long fileIdx = createOffset / this.mappedFileSize;
-                List<String> pathList = config.getStorePathCommitLogList();
-                nextFilePath = pathList.get((int) (fileIdx % pathList.size())) + File.separator + UtilAll.offset2FileName(createOffset);
-                nextNextFilePath = pathList.get((int) ((fileIdx + 1) % pathList.size())) + File.separator + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
-            } else {
-                nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
-                nextNextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
-            }
-
-            MappedFile mappedFile = null;
-
-            if (this.allocateMappedFileService != null) {
-                mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(nextFilePath,
-                        nextNextFilePath, this.mappedFileSize);
-            } else {
-                try {
-                    mappedFile = new MappedFile(nextFilePath, this.mappedFileSize);
-                } catch (IOException e) {
-                    log.error("create mappedFile exception", e);
-                }
-            }
-
-            if (mappedFile != null) {
-                if (this.mappedFiles.isEmpty()) {
-                    mappedFile.setFirstCreateInQueue(true);
-                }
-                this.mappedFiles.add(mappedFile);
-            }
-
-            return mappedFile;
+            String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
+            String nextNextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset
+                    + this.mappedFileSize);
+            return doCreateMappedFile(nextFilePath, nextNextFilePath);
         }
 
         return mappedFileLast;
+    }
+
+    private MappedFile doCreateMappedFile(String nextFilePath, String nextNextFilePath) {
+        MappedFile mappedFile = null;
+
+        if (this.allocateMappedFileService != null) {
+            mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(nextFilePath,
+                    nextNextFilePath, this.mappedFileSize);
+        } else {
+            try {
+                mappedFile = new MappedFile(nextFilePath, this.mappedFileSize);
+            } catch (IOException e) {
+                log.error("create mappedFile exception", e);
+            }
+        }
+
+        if (mappedFile != null) {
+            if (this.mappedFiles.isEmpty()) {
+                mappedFile.setFirstCreateInQueue(true);
+            }
+            this.mappedFiles.add(mappedFile);
+        }
+
+        return mappedFile;
     }
 
     public MappedFile getLastMappedFile(final long startOffset) {
@@ -612,7 +586,7 @@ public class MappedFileQueue {
 
         // delete parent directory
         if (config != null && config.isMultiCommitLogPathEnable()) {
-            for (String path : config.getStorePathCommitLogList()) {
+            for (String path : config.getCommitLogStorePaths()) {
                 File file = new File(path);
                 if (file.isDirectory()) {
                     file.delete();

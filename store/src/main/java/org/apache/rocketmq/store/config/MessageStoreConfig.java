@@ -36,7 +36,9 @@ public class MessageStoreConfig {
 
     private boolean multiCommitLogPathEnable = false;
 
-    private List<String> storePathCommitLogList = null;
+    private List<String> commitLogStorePaths = null;
+
+    private List<String> readOnlyCommitLogStorePaths = null;
 
     // CommitLog file size,default is 1G
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
@@ -682,17 +684,26 @@ public class MessageStoreConfig {
         this.multiCommitLogPathEnable = multiCommitLogPathEnable;
     }
 
-    public List<String> getStorePathCommitLogList() {
-        return storePathCommitLogList;
+    public List<String> getCommitLogStorePaths() {
+        return commitLogStorePaths;
     }
 
-    public void setStorePathCommitLogList(String storePathCommitLogListStr) {
-        String[] tokens = storePathCommitLogListStr.trim().split(":");
-        this.storePathCommitLogList = Arrays.asList(tokens);
-        Collections.sort(storePathCommitLogList);
+    public void commitLogStorePaths(String commitLogStorePaths) {
+        String[] tokens = commitLogStorePaths.trim().split(":");
+        List<String> pathList = Arrays.asList(tokens);
+        Collections.sort(pathList);
+        this.commitLogStorePaths = pathList;
     }
 
-    public void setStorePathCommitLogList(List<String> storePathCommitLogList) {
-        this.storePathCommitLogList = storePathCommitLogList;
+    public void setCommitLogStorePaths(List<String> commitLogStorePaths) {
+        this.commitLogStorePaths = commitLogStorePaths;
+    }
+
+    public List<String> getReadOnlyCommitLogStorePaths() {
+        return readOnlyCommitLogStorePaths;
+    }
+
+    public void setReadOnlyCommitLogStorePaths(List<String> readOnlyCommitLogStorePaths) {
+        this.readOnlyCommitLogStorePaths = readOnlyCommitLogStorePaths;
     }
 }
