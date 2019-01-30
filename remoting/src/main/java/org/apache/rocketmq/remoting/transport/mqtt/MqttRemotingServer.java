@@ -182,8 +182,8 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
                                         .addLast(defaultEventExecutorGroup,
                                                 new MqttDecoder(),
                                                 MqttEncoder.INSTANCE,
-                                                new Mqtt2RemotingCommandHandler(),
-                                                new RemotingCommand2MqttHandler(),
+                                                new MqttMessage2RemotingCommandHandler(),
+                                                new RemotingCommand2MqttMessageHandler(),
                                                 new IdleStateHandler(nettyServerConfig
                                                         .getConnectionChannelReaderIdleSeconds(),
                                                         nettyServerConfig

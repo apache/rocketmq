@@ -22,7 +22,7 @@ import io.netty.handler.codec.MessageToMessageEncoder;
 import java.util.List;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class RemotingCommand2MqttHandler extends MessageToMessageEncoder<RemotingCommand> {
+public class RemotingCommand2MqttMessageHandler extends MessageToMessageEncoder<RemotingCommand> {
 
     /**
      * Encode from one message to an other. This method will be called for each written message that

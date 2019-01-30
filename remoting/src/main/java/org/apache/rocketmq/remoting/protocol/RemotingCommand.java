@@ -17,8 +17,6 @@
 package org.apache.rocketmq.remoting.protocol;
 
 import com.alibaba.fastjson.annotation.JSONField;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -174,34 +172,6 @@ public class RemotingCommand {
     public CommandCustomHeader decodeCommandCustomHeader(
         Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
         return CodecHelper.decodeCommandCustomHeader(this, classHeader);
-    }
-
-    public void makeCustomHeaderToNet() {
-        if (this.customHeader != null) {
-            Field[] fields = customHeader.getClass().getDeclaredFields();
-            if (null == this.extFields) {
-                this.extFields = new HashMap<String, String>();
-            }
-
-            for (Field field : fields) {
-                if (!Modifier.isStatic(field.getModifiers())) {
-                    String name = field.getName();
-                    if (!name.startsWith("this")) {
-                        Object value = null;
-                        try {
-                            field.setAccessible(true);
-                            value = field.get(this.customHeader);
-                        } catch (Exception e) {
-                            log.error("Failed to access field [{}]", name, e);
-                        }
-
-                        if (value != null) {
-                            this.extFields.put(name, value.toString());
-                        }
-                    }
-                }
-            }
-        }
     }
 
     public ByteBuffer encodeHeader(final int bodyLength) {

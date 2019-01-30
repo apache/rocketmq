@@ -188,22 +188,22 @@ public class MqttRemotingClient extends NettyRemotingClientAbstract implements R
             try {
                 long costTime = System.currentTimeMillis() - beginStartTime;
                 if (timeoutMillis < costTime) {
-                    throw new RemotingTimeoutException("invokeSync call timeout");
+                    throw new RemotingTimeoutException("InvokeSync call timeout");
                 }
                 RemotingCommand response = this.invokeSyncWithInterceptor(remotingChannel, request, timeoutMillis - costTime);
                 return response;
             } catch (RemotingException remotingException) {
                 if (remotingException instanceof RemotingSendRequestException) {
-                    log.warn("invokeSync: send request exception, so close the channel[{}]", addr);
+                    log.warn("InvokeSync: send request exception, so close the channel[{}]", addr);
                     this.closeRemotingChannel(addr, remotingChannel);
                     throw (RemotingSendRequestException) remotingException;
                 }
                 if (remotingException instanceof RemotingTimeoutException) {
                     if (nettyClientConfig.isClientCloseSocketIfTimeout()) {
                         this.closeRemotingChannel(addr, remotingChannel);
-                        log.warn("invokeSync: close socket because of timeout, {}ms, {}", timeoutMillis, addr);
+                        log.warn("InvokeSync: close socket because of timeout, {}ms, {}", timeoutMillis, addr);
                     }
-                    log.warn("invokeSync: wait response timeout exception, the channel[{}]", addr);
+                    log.warn("InvokeSync: wait response timeout exception, the channel[{}]", addr);
                     throw (RemotingTimeoutException) remotingException;
                 }
             }
@@ -229,11 +229,11 @@ public class MqttRemotingClient extends NettyRemotingClientAbstract implements R
             try {
                 long costTime = System.currentTimeMillis() - beginStartTime;
                 if (timeoutMillis < costTime) {
-                    throw new RemotingTooMuchRequestException("invokeAsync call timeout");
+                    throw new RemotingTooMuchRequestException("InvokeAsync call timeout");
                 }
                 this.invokeAsyncImpl(channel, request, timeoutMillis - costTime, invokeCallback);
             } catch (RemotingSendRequestException e) {
-                log.warn("invokeAsync: send request exception, so close the channel[{}]", addr);
+                log.warn("InvokeAsync: send request exception, so close the channel[{}]", addr);
                 this.closeChannel(addr, channel);
                 throw e;
             }

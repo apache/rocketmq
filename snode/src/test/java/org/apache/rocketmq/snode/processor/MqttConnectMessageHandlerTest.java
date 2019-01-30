@@ -16,10 +16,39 @@
  */
 package org.apache.rocketmq.snode.processor;
 
+import io.netty.handler.codec.mqtt.MqttConnectMessage;
+import io.netty.handler.codec.mqtt.MqttConnectPayload;
+import io.netty.handler.codec.mqtt.MqttConnectVariableHeader;
+import io.netty.handler.codec.mqtt.MqttFixedHeader;
+import io.netty.handler.codec.mqtt.MqttMessageType;
+import io.netty.handler.codec.mqtt.MqttQoS;
+import org.apache.rocketmq.remoting.ClientConfig;
+import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.ServerConfig;
+import org.apache.rocketmq.snode.SnodeController;
+import org.apache.rocketmq.snode.config.SnodeConfig;
+import org.apache.rocketmq.snode.processor.mqtthandler.MqttConnectMessageHandler;
+import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MqttConnectMessageHandlerTest {
 
+    @Mock
+    private RemotingChannel remotingChannel;
+
+    @Test
+    public void testHandlerMessage() throws Exception {
+
+        MqttConnectMessageHandler mqttConnectMessageHandler = new MqttConnectMessageHandler(
+                new SnodeController(new ServerConfig(), new ClientConfig(), new SnodeConfig()));
+
+        MqttConnectPayload payload = new MqttConnectPayload("1234567", "testTopic", "willMessage".getBytes(), null, "1234567".getBytes());
+        MqttConnectMessage mqttConnectMessage = new MqttConnectMessage(new MqttFixedHeader(
+                MqttMessageType.CONNECT, false, MqttQoS.AT_MOST_ONCE, false, 200),new MqttConnectVariableHeader(null,4,false,false,false,0,false,false,50),new MqttConnectPayload("abcd", "ttest", "message".getBytes(),"user","password".getBytes()));
+
+        mqttConnectMessageHandler.handleMessage(mqttConnectMessage, remotingChannel);
+    }
 }
