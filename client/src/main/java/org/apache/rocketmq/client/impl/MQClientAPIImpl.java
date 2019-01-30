@@ -32,6 +32,7 @@ import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.exception.MQSnodeException;
 import org.apache.rocketmq.client.hook.SendMessageContext;
 import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
@@ -75,6 +76,7 @@ import org.apache.rocketmq.common.protocol.body.QueryConsumeTimeSpanBody;
 import org.apache.rocketmq.common.protocol.body.QueryCorrectionOffsetBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.common.protocol.body.ResetOffsetBody;
+import org.apache.rocketmq.common.protocol.body.SnodeClusterInfo;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
@@ -561,7 +563,7 @@ public class MQClientAPIImpl {
         final long timeoutMillis,
         final CommunicationMode communicationMode,
         final PullCallback pullCallback
-    ) throws RemotingException, MQBrokerException, InterruptedException {
+    ) throws RemotingException, MQSnodeException, InterruptedException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SNODE_PULL_MESSAGE, requestHeader);
         switch (communicationMode) {
             case ONEWAY:
@@ -616,14 +618,14 @@ public class MQClientAPIImpl {
         final String addr,
         final RemotingCommand request,
         final long timeoutMillis
-    ) throws RemotingException, InterruptedException, MQBrokerException {
+    ) throws RemotingException, InterruptedException, MQSnodeException {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         return this.processPullResponse(response);
     }
 
     private PullResult processPullResponse(
-        final RemotingCommand response) throws MQBrokerException, RemotingCommandException {
+        final RemotingCommand response) throws MQSnodeException, RemotingCommandException {
         PullStatus pullStatus = PullStatus.NO_NEW_MSG;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS:
@@ -640,7 +642,7 @@ public class MQClientAPIImpl {
                 break;
 
             default:
-                throw new MQBrokerException(response.getCode(), response.getRemark());
+                throw new MQSnodeException(response.getCode(), response.getRemark());
         }
 
         PullMessageResponseHeader responseHeader =
@@ -1187,6 +1189,25 @@ public class MQClientAPIImpl {
         }
 
         throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public SnodeClusterInfo getSnodeClusterInfo(
+        //Todo Redifine snode exception
+        final long timeoutMillis) throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException , MQBrokerException{
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_SNODE_CLUSTER_INFO, null);
+
+        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return SnodeClusterInfo.decode(response.getBody(), SnodeClusterInfo.class);
+            }
+            default:
+                break;
+        }
+
+        throw new MQSnodeException(response.getCode(), response.getRemark());
     }
 
     public TopicRouteData getDefaultTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis)

@@ -36,6 +36,7 @@ public class Consumer {
          * Instantiate with specified consumer group name.
          */
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("RocketMQ5");
+        consumer.setNamesrvAddr("139.196.101.149:9876");
 
         /*
          * Specify name server addresses.

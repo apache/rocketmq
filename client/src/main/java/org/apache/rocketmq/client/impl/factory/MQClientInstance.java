@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
+import org.apache.rocketmq.client.common.ThreadLocalIndex;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
@@ -66,6 +67,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.common.protocol.body.SnodeClusterInfo;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
@@ -73,6 +75,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.ProducerData;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
+import org.apache.rocketmq.common.protocol.route.SnodeData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.ClientConfig;
@@ -99,7 +102,11 @@ public class MQClientInstance {
     private final Lock lockHeartbeat = new ReentrantLock();
     private final ConcurrentMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable =
         new ConcurrentHashMap<String, HashMap<Long, String>>();
+    private final ConcurrentMap<String/* Snode Name */, String/* address */> snodeAddrTable =
+        new ConcurrentHashMap<String, String>();
     private final ConcurrentMap<String/* Broker Name */, HashMap<String/* address */, Integer>> brokerVersionTable =
+        new ConcurrentHashMap<String, HashMap<String, Integer>>();
+    private final ConcurrentMap<String/* Snode Name */, HashMap<String/* address */, Integer>> snodeVersionTable =
         new ConcurrentHashMap<String, HashMap<String, Integer>>();
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
         @Override
@@ -116,6 +123,7 @@ public class MQClientInstance {
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private DatagramSocket datagramSocket;
     private Random random = new Random();
+    private volatile ThreadLocalIndex whitchSnodeIndex = new ThreadLocalIndex();
 
     public MQClientInstance(org.apache.rocketmq.client.ClientConfig clientConfig, int instanceIndex, String clientId) {
         this(clientConfig, instanceIndex, clientId, null);
@@ -255,6 +263,10 @@ public class MQClientInstance {
         }
     }
 
+    private void doFetchNameServerAddr() {
+
+    }
+
     private void startScheduledTask() {
         if (null == this.clientConfig.getNamesrvAddr()) {
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -279,6 +291,11 @@ public class MQClientInstance {
                 } catch (Exception e) {
                     log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", e);
                 }
+                try {
+                    MQClientInstance.this.updateSnodeInfoFromNameServer();
+                } catch (Exception e) {
+                    log.error("ScheduledTask updateSnodeInfoFromNameServer exception", e);
+                }
             }
         }, 10, this.clientConfig.getPollNameServerInterval(), TimeUnit.MILLISECONDS);
 
@@ -287,13 +304,26 @@ public class MQClientInstance {
             @Override
             public void run() {
                 try {
-                    MQClientInstance.this.cleanOfflineBroker();
-                    MQClientInstance.this.sendHeartbeatToAllBrokerWithLock();
+                    //MQClientInstance.this.cleanOfflineSnode();
+                    MQClientInstance.this.sendHeartbeatToAllSnodeWithLock();
                 } catch (Exception e) {
-                    log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
+                    log.error("ScheduledTask updateSnodeInfoFromNameServer exception", e);
                 }
             }
         }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
+
+//        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+//
+//            @Override
+//            public void run() {
+//                try {
+//               MQClientInstance.this.cleanOfflineBroker();
+//                    MQClientInstance.this.sendHeartbeatToAllBrokerWithLock();
+//                } catch (Exception e) {
+//                    log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
+//                }
+//            }
+//        }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -322,6 +352,52 @@ public class MQClientInstance {
 
     public String getClientId() {
         return clientId;
+    }
+
+    public boolean updateSnodeInfoFromNameServer() {
+        try {
+            if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+                try {
+                    SnodeClusterInfo snodeClusterInfo;
+                    snodeClusterInfo = this.mQClientAPIImpl.getSnodeClusterInfo(1000 * 3);
+                    if (snodeClusterInfo != null) {
+                        HashMap<String, SnodeData> snodeTable = snodeClusterInfo.getSnodeTable();
+                        Iterator<Entry<String, String>> snodeIter = this.snodeAddrTable.entrySet().iterator();
+                        while (snodeIter.hasNext()) {
+                            Entry<String, String> entry = snodeIter.next();
+                            String snodeName = entry.getKey();
+                            if (!snodeTable.containsKey(snodeName)) {
+                                snodeIter.remove();
+                                log.info("snodeAddrTable.remove. Snode Name = {}, Snode Addr:[{}]", entry.getKey(), entry.getKey());
+                            }
+                        }
+                        for (Map.Entry<String, SnodeData> entry : snodeTable.entrySet()) {
+                            SnodeData snodeData = entry.getValue();
+                            if (snodeData != null) {
+                                this.snodeAddrTable.put(entry.getKey(), snodeData.getAddress());
+                                log.debug("snodeAddrTable.put. Snode Name = {}, Snode Addr:[{}]", entry.getKey(), snodeData.getAddress());
+                            }
+                        }
+                        return true;
+                    } else {
+                        //this.snodeAddrTable.clear();
+                        log.warn("updateSnodeInfoFromNameServer, getSnodeInfoFromNameServer return null.");
+                        //return true;
+                    }
+                } catch (Exception e) {
+                    log.warn("updateSnodeInfoFromNameServer Exception", e);
+                } finally {
+                    this.lockNamesrv.unlock();
+                }
+            } else {
+                log.warn("updateSnodeInfoFromNameServer tryLock timeout {}ms", LOCK_TIMEOUT_MILLIS);
+            }
+        } catch (InterruptedException e) {
+            log.warn("updateSnodeInfoFromNameServer Exception", e);
+        }
+
+        return false;
+
     }
 
     public void updateTopicRouteInfoFromNameServer() {
@@ -462,6 +538,20 @@ public class MQClientInstance {
         }
     }
 
+    public void sendHeartbeatToAllSnodeWithLock() {
+        if (this.lockHeartbeat.tryLock()) {
+            try {
+                this.sendHeartbeatToAllSnode();
+            } catch (final Exception e) {
+                log.error("sendHeartbeatToAllSnodeWithLock exception", e);
+            } finally {
+                this.lockHeartbeat.unlock();
+            }
+        } else {
+            log.warn("lock heartBeat, but failed.");
+        }
+    }
+
     private void persistAllConsumerOffset() {
         Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
         while (it.hasNext()) {
@@ -508,6 +598,46 @@ public class MQClientInstance {
         }
 
         return false;
+    }
+
+    private void sendHeartbeatToAllSnode() {
+        final HeartbeatData heartbeatData = this.prepareHeartbeatData();
+        final boolean producerEmpty = heartbeatData.getProducerDataSet().isEmpty();
+        final boolean consumerEmpty = heartbeatData.getConsumerDataSet().isEmpty();
+        if (producerEmpty && consumerEmpty) {
+            log.warn("sending heartbeat, but no consumer and no producer");
+            return;
+        }
+
+        if (!this.snodeAddrTable.isEmpty()) {
+            long times = this.sendHeartbeatTimesTotal.getAndIncrement();
+            Iterator<Entry<String, String>> it = this.snodeAddrTable.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<String, String> entry = it.next();
+                String snodeName = entry.getKey();
+                String snodeAddr = entry.getValue();
+                if (snodeAddr != null) {
+                    if (consumerEmpty) {
+                        continue;
+                    }
+
+                    try {
+                        int version = this.mQClientAPIImpl.sendHearbeat(snodeAddr, heartbeatData, 3000);
+                        if (!this.snodeVersionTable.containsKey(snodeName)) {
+                            this.snodeVersionTable.put(snodeName, new HashMap<String, Integer>(4));
+                        }
+                        this.snodeVersionTable.get(snodeName).put(snodeAddr, version);
+                        if (times % 20 == 0) {
+                            log.info("send heart beat to Snode[{} {}] success", snodeName, snodeAddr);
+                            log.info(heartbeatData.toString());
+                        }
+                    } catch (Exception e) {
+                        log.info("send heart beat to Snode[{} {}] failed", snodeName, snodeAddr);
+                    }
+
+                }
+            }
+        }
     }
 
     private void sendHeartbeatToAllBroker() {
@@ -886,29 +1016,20 @@ public class MQClientInstance {
     }
 
     private void unregisterClient(final String producerGroup, final String consumerGroup) {
-        Iterator<Entry<String, HashMap<Long, String>>> it = this.brokerAddrTable.entrySet().iterator();
+        Iterator<Entry<String, String>> it = this.snodeAddrTable.entrySet().iterator();
         while (it.hasNext()) {
-            Entry<String, HashMap<Long, String>> entry = it.next();
-            String brokerName = entry.getKey();
-            HashMap<Long, String> oneTable = entry.getValue();
-
-            if (oneTable != null) {
-                for (Map.Entry<Long, String> entry1 : oneTable.entrySet()) {
-                    String addr = entry1.getValue();
-                    if (addr != null) {
-                        try {
-                            this.mQClientAPIImpl.unregisterClient(addr, this.clientId, producerGroup, consumerGroup, 3000);
-                            log.info("unregister client[Producer: {} Consumer: {}] from broker[{} {} {}] success", producerGroup, consumerGroup, brokerName, entry1.getKey(), addr);
-                        } catch (RemotingException e) {
-                            log.error("unregister client exception from broker: " + addr, e);
-                        } catch (InterruptedException e) {
-                            log.error("unregister client exception from broker: " + addr, e);
-                        } catch (MQBrokerException e) {
-                            log.error("unregister client exception from broker: " + addr, e);
-                        }
-                    }
+            Entry<String, String> entry = it.next();
+            String snodeName = entry.getKey();
+            String snodeAddr = entry.getValue();
+            if (!entry.getValue().isEmpty()) {
+                try {
+                    this.mQClientAPIImpl.unregisterClient(snodeAddr, this.clientId, producerGroup, consumerGroup, 3000);
+                    log.info("unregister client[Producer: {} Consumer: {}] from snode[{} {}] success", producerGroup, consumerGroup, snodeName, snodeAddr);
+                } catch (Exception e) {
+                    log.error("unregister client exception from snode: " + snodeAddr, e);
                 }
             }
+
         }
     }
 
@@ -1010,6 +1131,23 @@ public class MQClientInstance {
             return map.get(MixAll.MASTER_ID);
         }
 
+        return null;
+    }
+
+    public String findSnodeAddressInPublish() {
+        if (this.snodeAddrTable.size() == 0) {
+            return null;
+        }
+        int index = this.whitchSnodeIndex.getAndIncrement();
+        int pos = Math.abs(index) % this.snodeAddrTable.size();
+        if (pos < 0) {
+            pos = 0;
+        }
+        for (String snode : this.snodeAddrTable.keySet()) {
+            if (pos == 0)
+                return this.snodeAddrTable.get(snode);
+            pos--;
+        }
         return null;
     }
 

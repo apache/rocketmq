@@ -177,7 +177,14 @@ public class PullAPIWrapper {
             if (findBrokerResult.isSlave()) {
                 sysFlagInner = PullSysFlag.clearCommitOffsetFlag(sysFlagInner);
             }
-
+            String snodeAddr = this.mQClientFactory.findSnodeAddressInPublish();
+            if (snodeAddr == null) {
+                this.mQClientFactory.updateSnodeInfoFromNameServer();
+                snodeAddr = this.mQClientFactory.findSnodeAddressInPublish();
+            }
+            if (snodeAddr == null) {
+                throw new MQClientException("The snode addr is null.",null);
+            }
             PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
             requestHeader.setConsumerGroup(this.consumerGroup);
             requestHeader.setTopic(mq.getTopic());
@@ -190,14 +197,10 @@ public class PullAPIWrapper {
             requestHeader.setSubscription(subExpression);
             requestHeader.setSubVersion(subVersion);
             requestHeader.setExpressionType(expressionType);
-
-            String brokerAddr = findBrokerResult.getBrokerAddr();
-            if (PullSysFlag.hasClassFilterFlag(sysFlagInner)) {
-                brokerAddr = computPullFromWhichFilterServer(mq.getTopic(), brokerAddr);
-            }
+            requestHeader.setEnodeName(mq.getBrokerName());
 
             PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(
-                brokerAddr,
+                snodeAddr,
                 requestHeader,
                 timeoutMillis,
                 communicationMode,

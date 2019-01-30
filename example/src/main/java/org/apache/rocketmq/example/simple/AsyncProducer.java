@@ -31,6 +31,7 @@ public class AsyncProducer {
         String[] args) throws MQClientException, InterruptedException, UnsupportedEncodingException {
 
         DefaultMQProducer producer = new DefaultMQProducer("Jodie_Daily_test");
+        producer.setNamesrvAddr("139.196.101.149:9876");
         producer.start();
         producer.setRetryTimesWhenSendAsyncFailed(0);
 

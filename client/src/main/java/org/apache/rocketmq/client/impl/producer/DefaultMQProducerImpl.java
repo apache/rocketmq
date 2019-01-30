@@ -171,6 +171,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                 if (startFactory) {
                     mQClientFactory.start();
+                    log.info("Update Snode Info for the first time.");
+                    mQClientFactory.updateSnodeInfoFromNameServer();
+                    log.info("Send heartbeat to Snode Info for the first time.");
+                    mQClientFactory.sendHeartbeatToAllSnodeWithLock();
                 }
 
                 log.info("the producer [{}] start OK. sendMessageWithVIPChannel={}", this.defaultMQProducer.getProducerGroup(),
@@ -188,7 +192,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 break;
         }
 
-        this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+//        this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
     }
 
     private void checkConfig() throws MQClientException {
@@ -652,6 +656,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             return topicPublishInfo;
         }
     }
+    private void tryToFindSnodePublishInfo() {
+        this.mQClientFactory.updateSnodeInfoFromNameServer();
+    }
 
     private SendResult sendKernelImpl(final Message msg,
         final MessageQueue mq,
@@ -660,14 +667,15 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         final TopicPublishInfo topicPublishInfo,
         final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         long beginStartTime = System.currentTimeMillis();
-        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
-        if (null == brokerAddr) {
-            tryToFindTopicPublishInfo(mq.getTopic());
-            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
+
+        String snodeAddr = this.mQClientFactory.findSnodeAddressInPublish();
+        if (null == snodeAddr) {
+            tryToFindSnodePublishInfo();
+            snodeAddr = this.mQClientFactory.findSnodeAddressInPublish();
         }
         SendMessageContext context = null;
-        if (brokerAddr != null) {
-            brokerAddr = MixAll.brokerVIPChannel(this.defaultMQProducer.isSendMessageWithVIPChannel(), brokerAddr);
+        if (snodeAddr != null) {
+            //brokerAddr = MixAll.brokerVIPChannel(this.defaultMQProducer.isSendMessageWithVIPChannel(), brokerAddr);
 
             byte[] prevBody = msg.getBody();
             try {
@@ -693,7 +701,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     checkForbiddenContext.setNameSrvAddr(this.defaultMQProducer.getNamesrvAddr());
                     checkForbiddenContext.setGroup(this.defaultMQProducer.getProducerGroup());
                     checkForbiddenContext.setCommunicationMode(communicationMode);
-                    checkForbiddenContext.setBrokerAddr(brokerAddr);
+                    checkForbiddenContext.setBrokerAddr(snodeAddr);
                     checkForbiddenContext.setMessage(msg);
                     checkForbiddenContext.setMq(mq);
                     checkForbiddenContext.setUnitMode(this.isUnitMode());
@@ -706,7 +714,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     context.setProducerGroup(this.defaultMQProducer.getProducerGroup());
                     context.setCommunicationMode(communicationMode);
                     context.setBornHost(this.defaultMQProducer.getClientIP());
-                    context.setBrokerAddr(brokerAddr);
+                    context.setBrokerAddr(snodeAddr);
                     context.setMessage(msg);
                     context.setMq(mq);
                     String isTrans = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
@@ -764,7 +772,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             throw new RemotingTooMuchRequestException("sendKernelImpl call timeout");
                         }
                         sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(
-                            brokerAddr,
+                            snodeAddr,
                             mq.getBrokerName(),
                             tmpMessage,
                             requestHeader,
@@ -784,7 +792,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             throw new RemotingTooMuchRequestException("sendKernelImpl call timeout");
                         }
                         sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(
-                            brokerAddr,
+                            snodeAddr,
                             mq.getBrokerName(),
                             msg,
                             requestHeader,
