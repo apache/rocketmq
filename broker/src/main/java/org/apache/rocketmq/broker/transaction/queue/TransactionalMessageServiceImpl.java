@@ -69,14 +69,26 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         return transactionalMessageBridge.putHalfMessage(messageInner);
     }
 
+    /**
+     * 是否丢弃
+     * @param msgExt
+     * @param transactionCheckMax  最大检查次数
+     * @return
+     */
     private boolean needDiscard(MessageExt msgExt, int transactionCheckMax) {
         String checkTimes = msgExt.getProperty(MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES);
         int checkTime = 1;
         if (null != checkTimes) {
             checkTime = getInt(checkTimes);
+            /**
+             * 超过最大检查次数
+             */
             if (checkTime >= transactionCheckMax) {
                 return true;
             } else {
+                /**
+                 * 次数+1
+                 */
                 checkTime++;
             }
         }
@@ -84,6 +96,13 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         return false;
     }
 
+    /**
+     * 是否存在了超过72小时
+     *
+     * The number of hours to keep a log file before deleting it (in hours)
+     * @param msgExt
+     * @return
+     */
     private boolean needSkip(MessageExt msgExt) {
         long valueOfCurrentMinusBorn = System.currentTimeMillis() - msgExt.getBornTimestamp();
         if (valueOfCurrentMinusBorn
@@ -150,14 +169,16 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                  * 创建OpQueue
                  */
                 MessageQueue opQueue = getOpQueue(messageQueue);
+
                 /**
-                 * 获取messageQueue对应的queueoffset  RMQ_SYS_TRANS_HALF_TOPIC
+                 * 获取messageQueue对应的queueoffset  RMQ_SYS_TRANS_HALF_TOPIC 都是以CID_RMQ_SYS_TRANS为消费组
                  */
                 long halfOffset = transactionalMessageBridge.fetchConsumeOffset(messageQueue);
                 /**
-                 * 获取opQueue对应的queueoffset  RMQ_SYS_TRANS_OP_HALF_TOPIC
+                 * 获取opQueue对应的queueoffset  RMQ_SYS_TRANS_OP_HALF_TOPIC 都是以CID_RMQ_SYS_TRANS为消费组
                  */
                 long opOffset = transactionalMessageBridge.fetchConsumeOffset(opQueue);
+
                 log.info("Before check, the queue={} msgOffset={} opOffset={}", messageQueue, halfOffset, opOffset);
                 if (halfOffset < 0 || opOffset < 0) {
                     log.error("MessageQueue: {} illegal offset read: {}, op offset: {},skip this queue", messageQueue,
@@ -169,7 +190,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 HashMap<Long, Long> removeMap = new HashMap<>();
 
                 /**
-                 * 获取消息
+                 * 获取Op消息
                  */
                 PullResult pullResult = fillOpRemoveMap(removeMap, opQueue, opOffset, halfOffset, doneOpOffset);
                 if (null == pullResult) {
@@ -193,9 +214,19 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         log.info("Half offset {} has been committed/rolled back", i);
                         removeMap.remove(i);
                     } else {
+                        /**
+                         * 获取half消息
+                         */
                         GetResult getResult = getHalfMsg(messageQueue, i);
                         MessageExt msgExt = getResult.getMsg();
+
+                        /**
+                         * 没有拉取到消息
+                         */
                         if (msgExt == null) {
+                            /**
+                             * 超过最大重试次数
+                             */
                             if (getMessageNullCount++ > MAX_RETRY_COUNT_WHEN_HALF_NULL) {
                                 break;
                             }
@@ -212,6 +243,9 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             }
                         }
 
+                        /**
+                         * 是否丢弃（15次）或者忽略（72小时）   则执行下一个
+                         */
                         if (needDiscard(msgExt, transactionCheckMax) || needSkip(msgExt)) {
                             listener.resolveDiscardMsg(msgExt);
                             newOffset = i + 1;
@@ -303,7 +337,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     private PullResult fillOpRemoveMap(HashMap<Long, Long> removeMap,
         MessageQueue opQueue, long pullOffsetOfOp, long miniOffset, List<Long> doneOpOffset) {
         /**
-         * 从对应的opQueue  pullOffsetOfOp处开始  拉取32条消息
+         * 从对应的opQueue  pullOffsetOfOp处开始  拉取32条消息  RMQ_SYS_TRANS_OP_HALF_TOPIC
          */
         PullResult pullResult = pullOpMsg(opQueue, pullOffsetOfOp, 32);
         if (null == pullResult) {
@@ -315,7 +349,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             log.warn("The miss op offset={} in queue={} is illegal, pullResult={}", pullOffsetOfOp, opQueue,
                 pullResult);
             /**
-             * 更新opQueue对应的消费进度
+             * 更新opQueue对应的消费进度  指定消费组为CID_RMQ_SYS_TRANS
              */
             transactionalMessageBridge.updateConsumeOffset(opQueue, pullResult.getNextBeginOffset());
             return pullResult;
@@ -412,6 +446,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     /**
      * Read half message from Half Topic
+     * 获取RMQ_SYS_TRANS_HALF_TOPIC的消息
      *
      * @param mq Target message queue, in this method, it means the half message queue.
      * @param offset Offset in the message queue.
@@ -424,6 +459,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     /**
      * Read op message from Op Topic
+     * 获取RMQ_SYS_TRANS_OP_HALF_TOPIC的消息
      *
      * @param mq Target Message Queue
      * @param offset Offset in the message queue
@@ -492,9 +528,18 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     }
 
+    /**
+     * 获取RMQ_SYS_TRANS_HALF_TOPIC的消息
+     * @param messageQueue
+     * @param offset
+     * @return
+     */
     private GetResult getHalfMsg(MessageQueue messageQueue, long offset) {
         GetResult getResult = new GetResult();
 
+        /**
+         * 获取消息   只拉取一条
+         */
         PullResult result = pullHalfMsg(messageQueue, offset, PULL_MSG_RETRY_NUMBER);
         getResult.setPullResult(result);
         List<MessageExt> messageExts = result.getMsgFoundList();

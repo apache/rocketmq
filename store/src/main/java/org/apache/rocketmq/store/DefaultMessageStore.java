@@ -719,6 +719,8 @@ public class DefaultMessageStore implements MessageStore {
 
                             /**
                              * commitLog 获取消息  从offsetPy开始且长度为sizePy
+                             * commitLog 获取消息  从offsetPy开始且长度为sizePy
+                             * commitLog 获取消息  从offsetPy开始且长度为sizePy
                              */
                             SelectMappedBufferResult selectResult = this.commitLog.getMessage(offsetPy, sizePy);
                             if (null == selectResult) {

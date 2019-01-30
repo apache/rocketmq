@@ -79,6 +79,8 @@ public class TransactionalMessageBridge {
     public long fetchConsumeOffset(MessageQueue mq) {
         /**
          * 获取CID_RMQ_SYS_TRANS对应的topic和queueid的消费进度
+         *
+         * 事务消息   都是以CID_RMQ_SYS_TRANS为消费组来消费
          */
         long offset = brokerController.getConsumerOffsetManager().queryOffset(TransactionalMessageUtil.buildConsumerGroup(),
             mq.getTopic(), mq.getQueueId());
@@ -132,15 +134,32 @@ public class TransactionalMessageBridge {
             mq.getQueueId(), offset);
     }
 
+    /**
+     * 在QueueId下  起始位置为offset  拉取nums条消息   RMQ_SYS_TRANS_HALF_TOPIC
+     * @param queueId
+     * @param offset
+     * @param nums
+     * @return
+     */
     public PullResult getHalfMessage(int queueId, long offset, int nums) {
+        /**
+         * CID_SYS_RMQ_TRANS
+         */
         String group = TransactionalMessageUtil.buildConsumerGroup();
+        /**
+         * RMQ_SYS_TRANS_HALF_TOPIC
+         */
         String topic = TransactionalMessageUtil.buildHalfTopic();
         SubscriptionData sub = new SubscriptionData(topic, "*");
+
+        /**
+         * 拉取消息
+         */
         return getMessage(group, topic, queueId, offset, nums, sub);
     }
 
     /**
-     * 在QueueId下  起始位置为offset  拉取nums条消息
+     * 在QueueId下  起始位置为offset  拉取nums条消息   RMQ_SYS_TRANS_OP_HALF_TOPIC
      * @param queueId
      * @param offset
      * @param nums
@@ -176,6 +195,8 @@ public class TransactionalMessageBridge {
     private PullResult getMessage(String group, String topic, int queueId, long offset, int nums,
         SubscriptionData sub) {
         /**
+         * 拉取消息
+         * 拉取消息
          * 拉取消息
          */
         GetMessageResult getMessageResult = store.getMessage(group, topic, queueId, offset, nums, null);
