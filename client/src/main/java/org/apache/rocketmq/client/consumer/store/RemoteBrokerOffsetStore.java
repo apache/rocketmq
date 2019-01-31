@@ -124,14 +124,14 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                 if (offset != null) {
                     if (mqs.contains(mq)) {
                         try {
-                            this.updateConsumeOffsetToBroker(mq, offset.get());
-                            log.info("[persistAll] Group: {} ClientId: {} updateConsumeOffsetToBroker {} {}",
+                            this.updateConsumeOffsetToSnode(mq, offset.get());
+                            log.info("[persistAll] Group: {} ClientId: {} updateConsumeOffsetToSnode {} {}",
                                 this.groupName,
                                 this.mQClientFactory.getClientId(),
                                 mq,
                                 offset.get());
                         } catch (Exception e) {
-                            log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
+                            log.error("updateConsumeOffsetToSnode exception, " + mq.toString(), e);
                         }
                     } else {
                         unusedMQ.add(mq);
@@ -153,14 +153,14 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         AtomicLong offset = this.offsetTable.get(mq);
         if (offset != null) {
             try {
-                this.updateConsumeOffsetToBroker(mq, offset.get());
-                log.info("[persist] Group: {} ClientId: {} updateConsumeOffsetToBroker {} {}",
+                this.updateConsumeOffsetToSnode(mq, offset.get());
+                log.info("[persist] Group: {} ClientId: {} updateConsumeOffsetToSnode {} {}",
                     this.groupName,
                     this.mQClientFactory.getClientId(),
                     mq,
                     offset.get());
             } catch (Exception e) {
-                log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
+                log.error("updateConsumeOffsetToSnode exception, " + mq.toString(), e);
             }
         }
     }
@@ -193,6 +193,10 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         MQBrokerException, InterruptedException, MQClientException {
         updateConsumeOffsetToBroker(mq, offset, true);
     }
+    private void updateConsumeOffsetToSnode(MessageQueue mq, long offset) throws RemotingException,
+        MQBrokerException, InterruptedException, MQClientException {
+        updateConsumeOffsetToBroker(mq, offset, true);
+    }
 
     /**
      * Update the Consumer Offset synchronously, once the Master is off, updated to Slave, here need to be optimized.
@@ -200,14 +204,14 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     @Override
     public void updateConsumeOffsetToBroker(MessageQueue mq, long offset, boolean isOneway) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException {
-        FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
-        if (null == findBrokerResult) {
 
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-            findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
+        String snodeAddr = this.mQClientFactory.findSnodeAddressInPublish();
+        if (null == snodeAddr){
+            this.mQClientFactory.updateSnodeInfoFromNameServer();
+            snodeAddr= this.mQClientFactory.findSnodeAddressInPublish();
         }
 
-        if (findBrokerResult != null) {
+        if (snodeAddr != null) {
             UpdateConsumerOffsetRequestHeader requestHeader = new UpdateConsumerOffsetRequestHeader();
             requestHeader.setTopic(mq.getTopic());
             requestHeader.setConsumerGroup(this.groupName);
@@ -216,35 +220,34 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             requestHeader.setEnodeName(mq.getBrokerName());
             if (isOneway) {
                 this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffsetOneway(
-                    findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+                    snodeAddr, requestHeader, 1000 * 5);
             } else {
                 this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffset(
-                    findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+                    snodeAddr, requestHeader, 1000 * 5);
             }
         } else {
-            throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
+            throw new MQClientException("Update offset to Broker[" + mq.getBrokerName() + "] failed, Snode is null.", null);
         }
     }
 
     private long fetchConsumeOffsetFromBroker(MessageQueue mq) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException {
-        FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
-        if (null == findBrokerResult) {
-
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-            findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
+        String snodeAddr = this.mQClientFactory.findSnodeAddressInPublish();
+        if (null == snodeAddr){
+            this.mQClientFactory.updateSnodeInfoFromNameServer();
+            snodeAddr= this.mQClientFactory.findSnodeAddressInPublish();
         }
 
-        if (findBrokerResult != null) {
+        if (snodeAddr != null) {
             QueryConsumerOffsetRequestHeader requestHeader = new QueryConsumerOffsetRequestHeader();
             requestHeader.setTopic(mq.getTopic());
             requestHeader.setConsumerGroup(this.groupName);
             requestHeader.setQueueId(mq.getQueueId());
             requestHeader.setEnodeName(mq.getBrokerName());
             return this.mQClientFactory.getMQClientAPIImpl().queryConsumerOffset(
-                findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+                snodeAddr, requestHeader, 1000 * 5);
         } else {
-            throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
+            throw new MQClientException("Get Offset from broker[" + mq.getBrokerName() + "] failed, Snode is not exist", null);
         }
     }
 }
