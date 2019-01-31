@@ -26,10 +26,25 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.snode.config.SnodeConfig;
 
 public interface NnodeService {
-    void registerSnode(SnodeConfig snodeConfig);
+    /**
+     * Register Snode to Nnode(Name server) includes information: snodeAddress, snodeName, snodeClusterName.
+     *
+     * @param snodeConfig {@link SnodeConfig}
+     */
+    void registerSnode(SnodeConfig snodeConfig) throws Exception;
 
-    void updateNnodeAddressList(final String addrs);
+    /**
+     * Update Nnode server address list.
+     *
+     * @param addresses Node name service list
+     */
+    void updateNnodeAddressList(final String addresses);
 
+    /**
+     * Fetch Node server address
+     *
+     * @return Node address
+     */
     String fetchNnodeAdress();
 
     void updateTopicRouteDataByTopic();

@@ -44,6 +44,7 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SendMessageProcessorTest {
+
     private SendMessageProcessor sendMessageProcessor;
 
     @Spy
@@ -52,12 +53,10 @@ public class SendMessageProcessorTest {
     @Mock
     private RemotingChannel remotingChannel;
 
-    private String topic = "SnodeTopic";
+    private String topic = "snodeTopic";
 
-    private String group = "SnodeGroup";
-
-    private String enodeName = "enodeName";
-
+    private String group = "snodeGroup";
+    
     @Mock
     private EnodeService enodeService;
 

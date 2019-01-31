@@ -41,7 +41,6 @@ public class SlowConsumerServiceImpl implements SlowConsumerService {
             log.warn("[SlowConsumer] group: {}, lastAckedOffset:{} nowOffset:{} ", consumerGroup, ackedOffset, currentOffset);
             return true;
         }
-
         return false;
     }
 

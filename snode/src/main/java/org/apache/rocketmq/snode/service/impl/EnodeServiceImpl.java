@@ -244,12 +244,12 @@ public class EnodeServiceImpl implements EnodeService {
         TopicConfig topicConfig) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         CreateTopicRequestHeader requestHeader = new CreateTopicRequestHeader();
         requestHeader.setTopic(topicConfig.getTopicName());
+        requestHeader.setPerm(topicConfig.getPerm());
         requestHeader.setReadQueueNums(topicConfig.getReadQueueNums());
         requestHeader.setWriteQueueNums(topicConfig.getWriteQueueNums());
-        requestHeader.setPerm(topicConfig.getPerm());
+        requestHeader.setOrder(topicConfig.isOrder());
         requestHeader.setTopicFilterType(topicConfig.getTopicFilterType().name());
         requestHeader.setTopicSysFlag(topicConfig.getTopicSysFlag());
-        requestHeader.setOrder(topicConfig.isOrder());
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC, requestHeader);
         String address = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
         return this.snodeController.getRemotingClient().invokeSync(address,

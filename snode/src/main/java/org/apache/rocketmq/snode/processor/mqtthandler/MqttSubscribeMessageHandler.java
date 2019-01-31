@@ -24,16 +24,17 @@ import org.apache.rocketmq.snode.SnodeController;
 
 public class MqttSubscribeMessageHandler implements MessageHandler {
 
-/*    private SubscriptionStore subscriptionStore;
+    /*    private SubscriptionStore subscriptionStore;
 
-    public MqttSubscribeMessageHandler(SubscriptionStore subscriptionStore) {
-        this.subscriptionStore = subscriptionStore;
-    }*/
+        public MqttSubscribeMessageHandler(SubscriptionStore subscriptionStore) {
+            this.subscriptionStore = subscriptionStore;
+        }*/
     private final SnodeController snodeController;
 
     public MqttSubscribeMessageHandler(SnodeController snodeController) {
         this.snodeController = snodeController;
     }
+
     /**
      * handle the SUBSCRIBE message from the client
      * <ol>

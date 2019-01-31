@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.snode.service.impl;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -88,7 +89,11 @@ public class ScheduledServiceImpl implements ScheduledService {
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                snodeController.getNnodeService().registerSnode(snodeConfig);
+                try {
+                    snodeController.getNnodeService().registerSnode(snodeConfig);
+                } catch (Exception ex) {
+                    log.warn("Register snode error", ex);
+                }
             }
         }, 0, Math.max(10000, Math.min(snodeConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
 
