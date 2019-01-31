@@ -36,7 +36,6 @@ public class Producer {
         /*
          * Specify name server addresses.
          * <p/>
-         *
          * Alternatively, you may specify name server addresses via exporting environmental variable: NAMESRV_ADDR
          * <pre>
          * {@code
@@ -76,7 +75,7 @@ public class Producer {
         /*
          * Shut down once the producer instance is not longer in use.
          */
-        Thread.sleep(100000000000L);
+        Thread.sleep(3000L);
         producer.shutdown();
     }
 }
