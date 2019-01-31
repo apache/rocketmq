@@ -21,6 +21,8 @@ It offers a variety of features:
 * Various message filter mechanics such as SQL and Tag
 * Docker images for isolated testing and cloud isolated clusters
 * Feature-rich administrative dashboard for configuration, metrics and monitoring
+* Access control list
+* Message trace
 
 
 ----------
@@ -37,8 +39,7 @@ It offers a variety of features:
 ----------
 
 ## Apache RocketMQ Community
-* [RocketMQ Community Incubator Projects](https://github.com/apache/rocketmq-externals)
-
+* [RocketMQ Community Projects](https://github.com/apache/rocketmq-externals)
 ----------
 
 ## Contributing
