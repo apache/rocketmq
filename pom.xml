@@ -29,7 +29,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>4.4.0-SNAPSHOT</version>
+    <version>4.4.0</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.apache.org/</url>
@@ -42,7 +42,7 @@
         <url>git@github.com:apache/rocketmq.git</url>
         <connection>scm:git:git@github.com:apache/rocketmq.git</connection>
         <developerConnection>scm:git:git@github.com:apache/rocketmq.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>rocketmq-all-4.4.0</tag>
     </scm>
 
     <mailingLists>
@@ -125,6 +125,7 @@
         <module>distribution</module>
         <module>openmessaging</module>
         <module>logging</module>
+        <module>acl</module>
     </modules>
 
     <build>
@@ -214,9 +215,6 @@
                     <execution>
                         <id>generate-effective-dependencies-pom</id>
                         <phase>generate-resources</phase>
-                        <goals>
-                            <goal>effective-pom</goal>
-                        </goals>
                         <configuration>
                             <output>${project.build.directory}/effective-pom/effective-dependencies.xml</output>
                         </configuration>
@@ -257,8 +255,10 @@
                         <exclude>src/test/resources/certs/*</exclude>
                         <exclude>src/test/**/*.log</exclude>
                         <exclude>src/test/resources/META-INF/service/*</exclude>
+                        <exclude>src/main/resources/META-INF/service/*</exclude>
                         <exclude>*/target/**</exclude>
                         <exclude>*/*.iml</exclude>
+                        <exclude>docs/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -321,6 +321,9 @@
                     <skipAfterFailureCount>1</skipAfterFailureCount>
                     <forkCount>1</forkCount>
                     <reuseForks>true</reuseForks>
+                    <excludes>
+                        <exclude>**/IT*.java</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
             <plugin>
@@ -332,23 +335,6 @@
                 <groupId>org.sonarsource.scanner.maven</groupId>
                 <artifactId>sonar-maven-plugin</artifactId>
                 <version>3.0.2</version>
-            </plugin>
-            <plugin>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.19.1</version>
-                <configuration>
-                    <skipAfterFailureCount>1</skipAfterFailureCount>
-                    <excludes>
-                        <exclude>**/NormalMsgDelayIT.java</exclude>
-                    </excludes>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>integration-test</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
 
@@ -536,6 +522,11 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-acl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>1.7.7</version>
@@ -563,7 +554,7 @@
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
-                <version>1.2.29</version>
+                <version>1.2.51</version>
             </dependency>
             <dependency>
                 <groupId>org.javassist</groupId>
@@ -594,6 +585,16 @@
                 <groupId>log4j</groupId>
                 <artifactId>log4j</artifactId>
                 <version>1.2.17</version>
+            </dependency>
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>1.19</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>1.9</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
