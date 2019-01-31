@@ -501,7 +501,8 @@ public class MQClientInstance {
                 }
                 // may need to check one broker every cluster...
                 // assume that the configs of every broker in cluster are the the same.
-                String addr = findBrokerAddrByTopic(subscriptionData.getTopic());
+                //String addr = findBrokerAddrByTopic(subscriptionData.getTopic());
+                String addr = findSnodeAddressInPublish();
 
                 if (addr != null) {
                     try {
@@ -1191,17 +1192,17 @@ public class MQClientInstance {
     }
 
     public List<String> findConsumerIdList(final String topic, final String group) {
-        String brokerAddr = this.findBrokerAddrByTopic(topic);
-        if (null == brokerAddr) {
-            this.updateTopicRouteInfoFromNameServer(topic);
-            brokerAddr = this.findBrokerAddrByTopic(topic);
+        String snodeAddr = this.findSnodeAddressInPublish();
+        if (null == snodeAddr) {
+            this.updateSnodeInfoFromNameServer();
+            snodeAddr = this.findSnodeAddressInPublish();
         }
 
-        if (null != brokerAddr) {
+        if (null != snodeAddr) {
             try {
-                return this.mQClientAPIImpl.getConsumerIdListByGroup(brokerAddr, group, 3000);
+                return this.mQClientAPIImpl.getConsumerIdListByGroup(snodeAddr, group, 3000);
             } catch (Exception e) {
-                log.warn("getConsumerIdListByGroup exception, " + brokerAddr + " " + group, e);
+                log.warn("getConsumerIdListByGroup exception, " + snodeAddr + " " + group, e);
             }
         }
 

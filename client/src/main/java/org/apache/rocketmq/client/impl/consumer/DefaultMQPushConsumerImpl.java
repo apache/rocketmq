@@ -627,10 +627,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             default:
                 break;
         }
-
+        this.tryToFindSnodePublishInfo();
         this.updateTopicSubscribeInfoWhenSubscriptionChanged();
         this.mQClientFactory.checkClientInBroker();
-        this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+        this.mQClientFactory.sendHeartbeatToAllSnodeWithLock();
         this.mQClientFactory.rebalanceImmediately();
     }
 
@@ -1137,5 +1137,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     public void setConsumeMessageService(ConsumeMessageService consumeMessageService) {
         this.consumeMessageService = consumeMessageService;
 
+    }
+    private void tryToFindSnodePublishInfo() {
+        this.mQClientFactory.updateSnodeInfoFromNameServer();
     }
 }
