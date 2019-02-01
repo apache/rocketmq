@@ -115,11 +115,11 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
         this.workerGroup = new DefaultEventExecutorGroup(serverConfig.getServerWorkerThreads(),
             ThreadUtils.newGenericThreadFactory("NettyWorkerThreads", serverConfig.getServerWorkerThreads()));
         this.port = nettyServerConfig.getListenPort();
-        buildHttp2SslContext();
+        buildHttp2SslServerContext();
         return this;
     }
 
-    private void buildHttp2SslContext() {
+    private void buildHttp2SslServerContext() {
         try {
             SslProvider provider = OpenSsl.isAvailable() ? SslProvider.OPENSSL : SslProvider.JDK;
             SelfSignedCertificate ssc;

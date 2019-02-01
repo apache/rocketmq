@@ -17,13 +17,17 @@
 
 package org.apache.rocketmq.remoting;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
+import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.serialize.LanguageCode;
 import org.junit.After;
@@ -88,6 +92,34 @@ public class RemotingHttp2InvokingTest {
         assertThat(response.getLanguage()).isEqualTo(LanguageCode.JAVA);
         assertThat(response.getExtFields()).hasSize(2);
 
+    }
+
+    @Test
+    public void testInvokeOneway() throws InterruptedException, RemotingConnectException,
+        RemotingTimeoutException, RemotingTooMuchRequestException, RemotingSendRequestException {
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
+        request.setRemark("messi");
+        remotingHttp2Client.invokeOneway("localhost:8888", request, 1000 * 3);
+    }
+
+    @Test
+    public void testInvokeAsync() throws InterruptedException, RemotingConnectException,
+        RemotingTimeoutException, RemotingTooMuchRequestException, RemotingSendRequestException {
+
+        final CountDownLatch latch = new CountDownLatch(1);
+        RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
+        request.setRemark("messi");
+        remotingHttp2Client.invokeAsync("localhost:8888", request, 1000 * 3, new InvokeCallback() {
+            @Override
+            public void operationComplete(ResponseFuture responseFuture) {
+                latch.countDown();
+                assertTrue(responseFuture != null);
+                assertThat(responseFuture.getResponseCommand().getLanguage()).isEqualTo(LanguageCode.JAVA);
+                assertThat(responseFuture.getResponseCommand().getExtFields()).hasSize(2);
+            }
+        });
+        latch.await(3000, TimeUnit.SECONDS);
     }
 
     class Http2RequestHeader implements CommandCustomHeader {

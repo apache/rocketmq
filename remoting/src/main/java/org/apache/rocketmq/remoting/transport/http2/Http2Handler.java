@@ -78,12 +78,11 @@ public class Http2Handler extends Http2ConnectionHandler {
             frameReader);
 
         Http2Settings settings = new Http2Settings();
-
         if (!isServer) {
             settings.pushEnabled(true);
         }
-
-        settings.initialWindowSize(1048576 * 10); //10MiB
+        //10MiB
+        settings.initialWindowSize(10485760);
         settings.maxConcurrentStreams(Integer.MAX_VALUE);
 
         return newHandler(decoder, encoder, settings, isServer);
@@ -98,8 +97,10 @@ public class Http2Handler extends Http2ConnectionHandler {
     public void write(final ChannelHandlerContext ctx, final Object msg,
         final ChannelPromise promise) throws Exception {
         if (isServer) {
-            assert msg instanceof ByteBuf;
-            sendAPushPromise(ctx, lastStreamId, lastStreamId + 1, (ByteBuf) msg);
+            if (!(msg instanceof ByteBuf)) {
+                return;
+            }
+            sendAndPushPromise(ctx, lastStreamId, lastStreamId + 1, (ByteBuf) msg);
         } else {
 
             final Http2Headers headers = new DefaultHttp2Headers();
@@ -111,13 +112,13 @@ public class Http2Handler extends Http2ConnectionHandler {
                 encoder().writeData(ctx, (int) streamId, (ByteBuf) msg, 0, false, ctx.newPromise());
                 ctx.flush();
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("Http2Handler write data exception,", e);
             }
 
         }
     }
 
-    private void sendAPushPromise(ChannelHandlerContext ctx, int streamId, int pushPromiseStreamId,
+    private void sendAndPushPromise(ChannelHandlerContext ctx, int streamId, int pushPromiseStreamId,
         ByteBuf payload) throws Http2Exception {
 
         encoder().writePushPromise(ctx, streamId, pushPromiseStreamId,
