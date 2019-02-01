@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.client.exception;
 
-import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.help.FAQUrl;
-
 public class MQSnodeException extends MQBrokerException {
 
     public MQSnodeException(int responseCode, String errorMessage) {

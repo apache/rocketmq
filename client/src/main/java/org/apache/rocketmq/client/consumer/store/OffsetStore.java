@@ -71,4 +71,12 @@ public interface OffsetStore {
      */
     void updateConsumeOffsetToBroker(MessageQueue mq, long offset, boolean isOneway) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException;
+
+    /**
+     * @param mq
+     * @param offset
+     * @param isOneway
+     */
+    void updateConsumeOffsetToSnode(MessageQueue mq, long offset, boolean isOneway) throws RemotingException,
+        MQBrokerException, InterruptedException, MQClientException;
 }
