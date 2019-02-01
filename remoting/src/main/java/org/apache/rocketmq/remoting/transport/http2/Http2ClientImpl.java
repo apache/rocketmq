@@ -89,11 +89,11 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
             10000, "Remoting-PublicExecutor", true);
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(clientConfig.getClientWorkerThreads(),
             ThreadUtils.newGenericThreadFactory("NettyClientWorkerThreads", clientConfig.getClientWorkerThreads()));
-        buildSslContext();
+        buildHttp2SslClientContext();
         return this;
     }
 
-    private void buildSslContext() {
+    private void buildHttp2SslClientContext() {
         SslProvider provider = OpenSsl.isAvailable() ? SslProvider.OPENSSL : SslProvider.JDK;
         try {
             sslContext = SslContextBuilder.forClient()
@@ -104,7 +104,7 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
                 .trustManager(InsecureTrustManagerFactory.INSTANCE)
                 .build();
         } catch (SSLException e) {
-            e.printStackTrace();
+            log.error("Can not build Http2 SSL Client context !", e);
         }
     }
 
@@ -147,16 +147,12 @@ public class Http2ClientImpl extends NettyRemotingClientAbstract implements Remo
             if (this.defaultEventExecutorGroup != null) {
                 this.defaultEventExecutorGroup.shutdownGracefully();
             }
+
+            if (this.publicExecutor != null) {
+                this.publicExecutor.shutdown();
+            }
         } catch (Exception e) {
             log.error("Http2ClientImpl shutdown exception, ", e);
-        }
-
-        if (this.publicExecutor != null) {
-            try {
-                this.publicExecutor.shutdown();
-            } catch (Exception e) {
-                log.error("NettyRemotingServer shutdown exception, ", e);
-            }
         }
     }
 
