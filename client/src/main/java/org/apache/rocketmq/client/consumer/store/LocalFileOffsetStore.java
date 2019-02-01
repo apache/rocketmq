@@ -161,6 +161,12 @@ public class LocalFileOffsetStore implements OffsetStore {
     }
 
     @Override
+    public void updateConsumeOffsetToSnode(final MessageQueue mq, final long offset, final boolean isOneway)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+
+    }
+
+    @Override
     public void updateConsumeOffsetToBroker(final MessageQueue mq, final long offset, final boolean isOneway)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
 

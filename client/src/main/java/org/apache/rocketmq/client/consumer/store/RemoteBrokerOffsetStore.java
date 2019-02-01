@@ -88,7 +88,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                 }
                 case READ_FROM_STORE: {
                     try {
-                        long brokerOffset = this.fetchConsumeOffsetFromBroker(mq);
+                        long brokerOffset = this.fetchConsumeOffsetFromSnode(mq);
                         AtomicLong offset = new AtomicLong(brokerOffset);
                         this.updateOffset(mq, offset.get(), false);
                         return brokerOffset;
@@ -195,20 +195,20 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     }
     private void updateConsumeOffsetToSnode(MessageQueue mq, long offset) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException {
-        updateConsumeOffsetToBroker(mq, offset, true);
+        updateConsumeOffsetToSnode(mq, offset, true);
     }
 
     /**
      * Update the Consumer Offset synchronously, once the Master is off, updated to Slave, here need to be optimized.
      */
     @Override
-    public void updateConsumeOffsetToBroker(MessageQueue mq, long offset, boolean isOneway) throws RemotingException,
+    public void updateConsumeOffsetToSnode(MessageQueue mq, long offset, boolean isOneway) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException {
 
         String snodeAddr = this.mQClientFactory.findSnodeAddressInPublish();
-        if (null == snodeAddr){
+        if (null == snodeAddr) {
             this.mQClientFactory.updateSnodeInfoFromNameServer();
-            snodeAddr= this.mQClientFactory.findSnodeAddressInPublish();
+            snodeAddr = this.mQClientFactory.findSnodeAddressInPublish();
         }
 
         if (snodeAddr != null) {
@@ -226,16 +226,71 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                     snodeAddr, requestHeader, 1000 * 5);
             }
         } else {
-            throw new MQClientException("Update offset to Broker[" + mq.getBrokerName() + "] failed, Snode is null.", null);
+            throw new MQClientException("Update offset to Snode[" + mq.getBrokerName() + "] failed, Snode is null.", null);
         }
     }
 
+    /**
+     * Preserved firstly,Compatible with RocketMQ 4.X Version
+     */
+    @Override
+    public void updateConsumeOffsetToBroker(MessageQueue mq, long offset,
+        boolean isOneway) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
+        if (null == findBrokerResult) {
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
+            findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
+        }
+
+        if (findBrokerResult != null) {
+            UpdateConsumerOffsetRequestHeader requestHeader = new UpdateConsumerOffsetRequestHeader();
+            requestHeader.setTopic(mq.getTopic());
+            requestHeader.setConsumerGroup(this.groupName);
+            requestHeader.setQueueId(mq.getQueueId());
+            requestHeader.setCommitOffset(offset);
+            requestHeader.setEnodeName(mq.getBrokerName());
+            if (isOneway) {
+                this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffsetOneway(
+                    findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+            } else {
+                this.mQClientFactory.getMQClientAPIImpl().updateConsumerOffset(
+                    findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
+            }
+        } else {
+            throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
+        }
+    }
+
+    private long fetchConsumeOffsetFromSnode(MessageQueue mq) throws RemotingException, MQBrokerException,
+        InterruptedException, MQClientException {
+        String snodeAddr = this.mQClientFactory.findSnodeAddressInPublish();
+        if (null == snodeAddr) {
+            this.mQClientFactory.updateSnodeInfoFromNameServer();
+            snodeAddr = this.mQClientFactory.findSnodeAddressInPublish();
+        }
+
+        if (snodeAddr != null) {
+            QueryConsumerOffsetRequestHeader requestHeader = new QueryConsumerOffsetRequestHeader();
+            requestHeader.setTopic(mq.getTopic());
+            requestHeader.setConsumerGroup(this.groupName);
+            requestHeader.setQueueId(mq.getQueueId());
+            requestHeader.setEnodeName(mq.getBrokerName());
+            return this.mQClientFactory.getMQClientAPIImpl().queryConsumerOffset(
+                snodeAddr, requestHeader, 1000 * 5);
+        } else {
+            throw new MQClientException("Get Offset from Snode[" + mq.getBrokerName() + "] failed, Snode is not exist", null);
+        }
+    }
+
+    /**
+     * Preserved firstly,Compatible with RocketMQ 4.X Version
+     */
     private long fetchConsumeOffsetFromBroker(MessageQueue mq) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException {
         String snodeAddr = this.mQClientFactory.findSnodeAddressInPublish();
-        if (null == snodeAddr){
+        if (null == snodeAddr) {
             this.mQClientFactory.updateSnodeInfoFromNameServer();
-            snodeAddr= this.mQClientFactory.findSnodeAddressInPublish();
+            snodeAddr = this.mQClientFactory.findSnodeAddressInPublish();
         }
 
         if (snodeAddr != null) {
