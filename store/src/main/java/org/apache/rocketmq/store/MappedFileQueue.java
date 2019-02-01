@@ -30,7 +30,6 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 public class MappedFileQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -40,13 +39,13 @@ public class MappedFileQueue {
 
     private final String storePath;
 
-    private final int mappedFileSize;
+    final int mappedFileSize;
 
-    private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
+    final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
 
     private final AllocateMappedFileService allocateMappedFileService;
 
-    private long flushedWhere = 0;
+    long flushedWhere = 0;
     private long committedWhere = 0;
 
     private volatile long storeTimestamp = 0;
@@ -211,16 +210,20 @@ public class MappedFileQueue {
         }
 
         if (createOffset != -1 && needCreate) {
-            String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
-            String nextNextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset
-                    + this.mappedFileSize);
-            return doCreateMappedFile(nextFilePath, nextNextFilePath);
+            return tryCreateMappedFile(createOffset);
         }
 
         return mappedFileLast;
     }
 
-    private MappedFile doCreateMappedFile(String nextFilePath, String nextNextFilePath) {
+    protected MappedFile tryCreateMappedFile(long createOffset) {
+        String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
+        String nextNextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset
+                + this.mappedFileSize);
+        return doCreateMappedFile(nextFilePath, nextNextFilePath);
+    }
+
+    protected MappedFile doCreateMappedFile(String nextFilePath, String nextNextFilePath) {
         MappedFile mappedFile = null;
 
         if (this.allocateMappedFileService != null) {
@@ -585,18 +588,9 @@ public class MappedFileQueue {
         this.flushedWhere = 0;
 
         // delete parent directory
-        if (config != null && config.isMultiCommitLogPathEnable()) {
-            for (String path : config.getCommitLogStorePaths()) {
-                File file = new File(path);
-                if (file.isDirectory()) {
-                    file.delete();
-                }
-            }
-        } else {
-            File file = new File(storePath);
-            if (file.isDirectory()) {
-                file.delete();
-            }
+        File file = new File(storePath);
+        if (file.isDirectory()) {
+            file.delete();
         }
 
     }

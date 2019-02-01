@@ -50,28 +50,28 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
     }
 
     @Override
-    public MappedFile getLastMappedFile(long startOffset, boolean needCreate) {
-        long createOffset = -1;
-        MappedFile mappedFileLast = getLastMappedFile();
+    protected MappedFile tryCreateMappedFile(long createOffset) {
+        long fileIdx = createOffset / this.mappedFileSize;
+        List<String> pathList = config.getCommitLogStorePaths();
+        String nextFilePath = pathList.get((int) (fileIdx % pathList.size())) + File.separator
+                + UtilAll.offset2FileName(createOffset);
+        String nextNextFilePath = pathList.get((int) ((fileIdx + 1) % pathList.size())) + File.separator
+                + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
+        return doCreateMappedFile(nextFilePath, nextNextFilePath);
+    }
 
-        if (mappedFileLast == null) {
-            createOffset = startOffset - (startOffset % this.mappedFileSize);
+    @Override
+    public void destroy() {
+        for (MappedFile mf : this.mappedFiles) {
+            mf.destroy(1000 * 3);
         }
-
-        if (mappedFileLast != null && mappedFileLast.isFull()) {
-            createOffset = mappedFileLast.getFileFromOffset() + this.mappedFileSize;
+        this.mappedFiles.clear();
+        this.flushedWhere = 0;
+        for (String path : config.getCommitLogStorePaths()) {
+            File file = new File(path);
+            if (file.isDirectory()) {
+                file.delete();
+            }
         }
-
-        if (createOffset != -1 && needCreate) {
-
-            String nextFilePath;
-            String nextNextFilePath;
-
-            long fileIdx = createOffset / this.mappedFileSize;
-            List<String> pathList = config.getCommitLogStorePaths();
-            nextFilePath = pathList.get((int) (fileIdx % pathList.size())) + File.separator + UtilAll.offset2FileName(createOffset);
-            nextNextFilePath = pathList.get((int) ((fileIdx + 1) % pathList.size())) + File.separator + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
-        }
-
     }
 }
