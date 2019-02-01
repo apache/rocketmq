@@ -77,6 +77,8 @@ public class DefaultMQPullConsumerTest {
         field.set(mQClientFactory, mQClientAPIImpl);
 
         when(mQClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
+        when(mQClientFactory.findSnodeAddressInPublish()).thenReturn("127.0.0.1:10911");
+
     }
 
     @After
