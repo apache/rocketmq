@@ -29,7 +29,7 @@ import org.apache.rocketmq.snode.client.impl.ClientRole;
 import org.apache.rocketmq.snode.constant.SnodeConstant;
 
 public class ClientHousekeepingService implements ChannelEventListener {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
     private final ClientManager producerManager;
     private final ClientManager consumerManager;
     private final ClientManager iotClientManager;

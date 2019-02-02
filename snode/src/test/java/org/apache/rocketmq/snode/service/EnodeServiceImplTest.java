@@ -18,6 +18,7 @@ package org.apache.rocketmq.snode.service;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -30,7 +31,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.rocketmq.NettyRemotingClient;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.SnodeTestBase;
-import org.apache.rocketmq.snode.config.SnodeConfig;
 import org.apache.rocketmq.snode.service.impl.EnodeServiceImpl;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;

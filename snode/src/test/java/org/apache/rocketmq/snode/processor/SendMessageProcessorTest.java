@@ -18,6 +18,7 @@ package org.apache.rocketmq.snode.processor;
 
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
@@ -28,7 +29,6 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.CodecHelper;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
-import org.apache.rocketmq.snode.config.SnodeConfig;
 import org.apache.rocketmq.snode.service.EnodeService;
 import org.apache.rocketmq.snode.service.NnodeService;
 import org.junit.Before;

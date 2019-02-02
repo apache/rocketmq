@@ -26,11 +26,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -39,7 +41,6 @@ import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.snode.config.SnodeConfig;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.slf4j.LoggerFactory;
 
@@ -123,19 +124,31 @@ public class SnodeStartup {
             nettyClientConfig,
             snodeConfig);
 
+        boolean initResult = snodeController.initialize();
+        if (!initResult) {
+            snodeController.shutdown();
+            System.exit(-3);
+        }
+
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             private volatile boolean hasShutdown = false;
+            private AtomicInteger shutdownTimes = new AtomicInteger(0);
 
             @Override
             public void run() {
                 synchronized (this) {
+                    log.info("Shutdown hook was invoked, {}", this.shutdownTimes.incrementAndGet());
+
                     if (!this.hasShutdown) {
                         this.hasShutdown = true;
+                        long beginTime = System.currentTimeMillis();
                         snodeController.shutdown();
+                        long consumingTimeTotal = System.currentTimeMillis() - beginTime;
+                        log.info("Shutdown hook over, consuming total time(ms): {}", consumingTimeTotal);
                     }
                 }
             }
-        }));
+        },"ShutdownHook"));
         return snodeController;
     }
 
@@ -143,6 +156,15 @@ public class SnodeStartup {
         Option opt = new Option("c", "configFile", true, "SNode config properties file");
         opt.setRequired(false);
         options.addOption(opt);
+
+        opt = new Option("p", "printConfigItem", false, "Print all config item");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("m", "printImportantConfig", false, "Print important config item");
+        opt.setRequired(false);
+        options.addOption(opt);
+        
         return options;
     }
 }
