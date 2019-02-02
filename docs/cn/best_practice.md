@@ -176,11 +176,24 @@ msgId一定是全局唯一标识符，但是实际使用中，可能会存在相
 ### 3.2 FlushDiskType
 ​ SYNC_FLUSH（同步刷新）相比于ASYNC_FLUSH（异步处理）会损失很多性能，但是也更可靠，所以需要根据实际的业务场景做好权衡。
 ​ 
-​ 
-​ 
-​ 
-​ 
-​ 
+​### 3.3 Broker配置
+
+| 参数名                           | 默认值                        | 说明                                                         |
+| -------------------------------- | ----------------------------- | ------------------------------------------------------------ |
+| listenPort                    | 10911              | 接受客户端连接的监听端口 |
+| namesrvAddr       | null                         | nameServer 地址     |
+| brokerIP1 | 网卡的InetAddress                         | 当前broker监听的IP  |
+| brokerIP2 | 跟brokerIP1一样                         | 存在broker主从时，在broker主节点上配置了brokerIP2的话，broker从节点会连接主节点配置的brokerIP2来同步  |
+| brokerName        | null                         | broker 名                           |
+| brokerClusterName                     | DefaultCluster                  | 本 broker 所属的 Cluser 名字           |
+| brokerId             | 0                              | broker id, 0 表示 master, 其他的正整数表示 slave                                                 |
+| storePathCommitLog                      | $HOME/store/commitlog/                              | 存储 commit log 的路径                                                |
+| storePathConsumerQueue                   | $HOME/store/consumequeue/                              | 存储 consume queue 的路径                                              |
+| mapedFileSizeCommitLog     | 1024 * 1024 * 1024(1G) | commit log 的映射文件大小                                       |​ 
+| deleteWhen     | 04 | 在每天的什么时间删除已经超过文件保留时间的 commit log                                        |​ 
+| fileReserverdTime     | 72 | 以小时计算的文件保留时间                                        |​ 
+| brokerRole     | ASYNC_MASTER | SYNC_MASTER/ASYNC_MASTER/SLAVE                                        |​ 
+| flushDiskType     | ASYNC_FLUSH | {SYNC_FLUSH/ASYNC_FLUSH}. Broker of SYNC_FLUSH 模式下的 broker 保证在收到确认生产者之前将消息刷盘。ASYNC_FLUSH 模式下的 broker 则利用刷盘一组消息的模式，取得更好的性能。                                       |​
 
 ## 4  NameServer
 
@@ -190,9 +203,6 @@ msgId一定是全局唯一标识符，但是实际使用中，可能会存在相
 - 名称服务器为客户端，包括生产者，消费者和命令行客户端提供最新的路由信息。
 ​     
 ​
-
-
-
 
 ## 5 客户端配置
 
@@ -312,10 +322,6 @@ DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPul
 | Flag           | 0      | 选填，完全由应用来设置，RocketMQ不做干预                     |
 | DelayTimeLevel | 0      | 选填，消息延时级别，0表示不延时，大于0会延时特定的时间才会被消费 |
 | WaitStoreMsgOK | TRUE   | 选填，表示消息是否在服务器落盘后才返回应答。                 |
-
-
-​
-​
 
 ## 6  系统配置
 
