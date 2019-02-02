@@ -28,6 +28,9 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
@@ -38,6 +41,7 @@ import org.apache.rocketmq.remoting.transport.mqtt.RocketMQMqttConnectPayload;
 import org.apache.rocketmq.snode.processor.mqtthandler.MessageHandler;
 
 public class DefaultMqttMessageProcessor implements RequestProcessor {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
 
     private Map<MqttMessageType, MessageHandler> type2handler = new HashMap<>();
     private static final int MIN_AVAILABLE_VERSION = 3;

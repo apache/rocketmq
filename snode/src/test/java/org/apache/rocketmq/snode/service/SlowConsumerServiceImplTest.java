@@ -16,12 +16,12 @@
  */
 package org.apache.rocketmq.snode.service;
 
+import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.client.SlowConsumerService;
 import org.apache.rocketmq.snode.client.impl.SlowConsumerServiceImpl;
-import org.apache.rocketmq.snode.config.SnodeConfig;
 import org.apache.rocketmq.snode.offset.ConsumerOffsetManager;
 import org.junit.Before;
 import org.junit.Test;
