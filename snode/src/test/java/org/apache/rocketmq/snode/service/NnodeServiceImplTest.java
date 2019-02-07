@@ -60,7 +60,7 @@ public class NnodeServiceImplTest extends SnodeTestBase {
     }
 
     @Test
-    public void registerSnodeSuccessTest() throws InterruptedException, RemotingConnectException,
+    public void registerSnodeTest() throws InterruptedException, RemotingConnectException,
         RemotingSendRequestException, RemotingTimeoutException {
         when(snodeController.getRemotingClient().getNameServerAddressList()).thenReturn(createNnodeList());
         when(snodeController.getRemotingClient().invokeSync(anyString(), any(RemotingCommand.class), anyLong())).thenReturn(createSuccessResponse());

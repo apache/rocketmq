@@ -25,7 +25,6 @@ import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
-import org.apache.rocketmq.snode.client.impl.ClientRole;
 import org.apache.rocketmq.snode.constant.SnodeConstant;
 
 public class ClientHousekeepingService implements ChannelEventListener {
@@ -53,15 +52,13 @@ public class ClientHousekeepingService implements ChannelEventListener {
         this.iotClientManager.shutdown();
     }
 
-    private ClientRole clientRole(RemotingChannel remotingChannel) {
+    private Client getClient(RemotingChannel remotingChannel) {
         if (remotingChannel instanceof NettyChannelImpl) {
             Channel channel = ((NettyChannelImpl) remotingChannel).getChannel();
             Attribute<Client> clientAttribute = channel.attr(SnodeConstant.NETTY_CLIENT_ATTRIBUTE_KEY);
             if (clientAttribute != null) {
                 Client client = clientAttribute.get();
-                if (client != null) {
-                    return client.getClientRole();
-                }
+                return client;
             }
         }
         log.warn("RemotingChannel type error: {}", remotingChannel.getClass());
@@ -69,17 +66,17 @@ public class ClientHousekeepingService implements ChannelEventListener {
     }
 
     private void closeChannel(String remoteAddress, RemotingChannel remotingChannel) {
-        ClientRole clientRole = clientRole(remotingChannel);
-        if (clientRole != null) {
-            switch (clientRole) {
+        Client client = getClient(remotingChannel);
+        if (client != null) {
+            switch (client.getClientRole()) {
                 case Consumer:
-                    this.consumerManager.onClose(remoteAddress, remotingChannel);
+                    this.consumerManager.onClose(client.getGroups(), remotingChannel);
                     return;
                 case Producer:
-                    this.producerManager.onClose(remoteAddress, remotingChannel);
+                    this.producerManager.onClose(client.getGroups(), remotingChannel);
                     return;
                 case IOTCLIENT:
-                    this.iotClientManager.onClose(remoteAddress, remotingChannel);
+                    this.iotClientManager.onClose(client.getGroups(), remotingChannel);
                     return;
                 default:
             }

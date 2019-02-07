@@ -17,6 +17,7 @@
 package org.apache.rocketmq.snode.client;
 
 import java.util.List;
+import java.util.Set;
 import org.apache.rocketmq.remoting.RemotingChannel;
 
 public interface ClientManager {
@@ -24,7 +25,7 @@ public interface ClientManager {
 
     void unRegister(String groupId, RemotingChannel remotingChannel);
 
-    void onClose(String groupId, RemotingChannel remotingChannel);
+    void onClose(Set<String> groupId, RemotingChannel remotingChannel);
 
     List<RemotingChannel> getChannels(String groupId);
 

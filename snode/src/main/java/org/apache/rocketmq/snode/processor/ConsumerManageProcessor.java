@@ -130,9 +130,9 @@ public class ConsumerManageProcessor implements RequestProcessor {
         if (!clientIds.isEmpty()) {
             GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
             body.setConsumerIdList(clientIds);
-            response.setBody(body.encode());
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
+            response.setBody(body.encode());
             return response;
         } else {
             log.warn("GetAllClientId failed, {} {}", requestHeader.getConsumerGroup(),
@@ -163,11 +163,11 @@ public class ConsumerManageProcessor implements RequestProcessor {
         RemotingSendRequestException, RemotingConnectException, RemotingCommandException {
         final RemotingCommand response =
             RemotingCommand.createResponseCommand(QueryConsumerOffsetResponseHeader.class);
-        final QueryConsumerOffsetResponseHeader responseHeader =
-            (QueryConsumerOffsetResponseHeader) response.readCustomHeader();
         final QueryConsumerOffsetRequestHeader requestHeader =
             (QueryConsumerOffsetRequestHeader) request
                 .decodeCommandCustomHeader(QueryConsumerOffsetRequestHeader.class);
+        final QueryConsumerOffsetResponseHeader responseHeader =
+            (QueryConsumerOffsetResponseHeader) response.readCustomHeader();
 
         long offset =
             this.snodeController.getConsumerOffsetManager().queryOffset(requestHeader.getEnodeName(),

@@ -58,7 +58,7 @@ public class NnodeServiceImpl implements NnodeService {
     }
 
     @Override
-    public void registerSnode(SnodeConfig snodeConfig) throws Exception{
+    public void registerSnode(SnodeConfig snodeConfig) throws Exception {
         List<String> nnodeAddressList = this.snodeController.getRemotingClient().getNameServerAddressList();
         RemotingCommand remotingCommand = new RemotingCommand();
         RegisterSnodeRequestHeader requestHeader = new RegisterSnodeRequestHeader();

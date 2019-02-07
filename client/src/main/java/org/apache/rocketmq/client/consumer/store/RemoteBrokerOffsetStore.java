@@ -25,7 +25,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MixAll;
@@ -193,6 +192,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         MQBrokerException, InterruptedException, MQClientException {
         updateConsumeOffsetToBroker(mq, offset, true);
     }
+
     private void updateConsumeOffsetToSnode(MessageQueue mq, long offset) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException {
         updateConsumeOffsetToBroker(mq, offset, true);
@@ -206,9 +206,9 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         MQBrokerException, InterruptedException, MQClientException {
 
         String snodeAddr = this.mQClientFactory.findSnodeAddressInPublish();
-        if (null == snodeAddr){
+        if (null == snodeAddr) {
             this.mQClientFactory.updateSnodeInfoFromNameServer();
-            snodeAddr= this.mQClientFactory.findSnodeAddressInPublish();
+            snodeAddr = this.mQClientFactory.findSnodeAddressInPublish();
         }
 
         if (snodeAddr != null) {
@@ -233,9 +233,9 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     private long fetchConsumeOffsetFromBroker(MessageQueue mq) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException {
         String snodeAddr = this.mQClientFactory.findSnodeAddressInPublish();
-        if (null == snodeAddr){
+        if (null == snodeAddr) {
             this.mQClientFactory.updateSnodeInfoFromNameServer();
-            snodeAddr= this.mQClientFactory.findSnodeAddressInPublish();
+            snodeAddr = this.mQClientFactory.findSnodeAddressInPublish();
         }
 
         if (snodeAddr != null) {
