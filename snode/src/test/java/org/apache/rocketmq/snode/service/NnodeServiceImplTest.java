@@ -18,6 +18,7 @@ package org.apache.rocketmq.snode.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
@@ -27,7 +28,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.rocketmq.NettyRemotingClient;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.SnodeTestBase;
-import org.apache.rocketmq.snode.config.SnodeConfig;
 import org.apache.rocketmq.snode.service.impl.NnodeServiceImpl;
 import org.junit.Before;
 import org.junit.Test;

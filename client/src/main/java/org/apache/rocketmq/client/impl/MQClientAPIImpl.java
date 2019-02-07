@@ -1194,7 +1194,7 @@ public class MQClientAPIImpl {
     public SnodeClusterInfo getSnodeClusterInfo(
         //Todo Redifine snode exception
         final long timeoutMillis) throws InterruptedException, RemotingTimeoutException,
-        RemotingSendRequestException, RemotingConnectException , MQBrokerException{
+        RemotingSendRequestException, RemotingConnectException , MQBrokerException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_SNODE_CLUSTER_INFO, null);
 
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);

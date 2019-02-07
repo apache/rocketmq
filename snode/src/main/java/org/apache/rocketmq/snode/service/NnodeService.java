@@ -18,12 +18,12 @@ package org.apache.rocketmq.snode.service;
 
 import java.util.Set;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
-import org.apache.rocketmq.snode.config.SnodeConfig;
 
 public interface NnodeService {
     /**

@@ -16,9 +16,9 @@
  */
 package org.apache.rocketmq.snode;
 
+import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.ServerConfig;
-import org.apache.rocketmq.snode.config.SnodeConfig;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
