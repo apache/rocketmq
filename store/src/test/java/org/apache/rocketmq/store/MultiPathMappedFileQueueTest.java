@@ -76,4 +76,28 @@ public class MultiPathMappedFileQueueTest {
         mappedFileQueue.destroy();
 
     }
+
+    @Test
+    public void testUpdatePathsOnline() {
+        final byte[] fixedMsg = new byte[1024];
+
+        MessageStoreConfig config = new MessageStoreConfig();
+        config.setMultiCommitLogPathEnable(true);
+        config.setCommitLogStorePaths("target/unit_test_store/a/:target/unit_test_store/b/:target/unit_test_store/c/");
+        MappedFileQueue mappedFileQueue = new MultiPathMappedFileQueue(config, 1024, null);
+        for (int i = 0; i < 1024; i++) {
+            MappedFile mappedFile = mappedFileQueue.getLastMappedFile(fixedMsg.length * i);
+            assertThat(mappedFile).isNotNull();
+            assertThat(mappedFile.appendMessage(fixedMsg)).isTrue();
+            int idx = i % config.getCommitLogStorePaths().size();
+            assertThat(mappedFile.getFileName().startsWith(config.getCommitLogStorePaths().get(idx))).isTrue();
+
+            if (i == 500) {
+                config.setCommitLogStorePaths("target/unit_test_store/a/:target/unit_test_store/b/");
+                assertThat(config.getCommitLogStorePaths().size()).isEqualTo(2);
+            }
+        }
+        mappedFileQueue.shutdown(1000);
+        mappedFileQueue.destroy();
+    }
 }
