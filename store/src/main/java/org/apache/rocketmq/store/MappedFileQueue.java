@@ -152,7 +152,7 @@ public class MappedFileQueue {
         if (ls != null) {
             return doLoad(Arrays.asList(ls));
         }
-        return false;
+        return true;
     }
 
     public boolean doLoad(List<File> files) {
