@@ -25,7 +25,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.CopyOnWriteArrayList;
-
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -39,13 +38,13 @@ public class MappedFileQueue {
 
     private final String storePath;
 
-    final int mappedFileSize;
+    protected final int mappedFileSize;
 
-    final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
+    protected final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
 
     private final AllocateMappedFileService allocateMappedFileService;
 
-    long flushedWhere = 0;
+    protected long flushedWhere = 0;
     private long committedWhere = 0;
 
     private volatile long storeTimestamp = 0;
@@ -592,7 +591,6 @@ public class MappedFileQueue {
         if (file.isDirectory()) {
             file.delete();
         }
-
     }
 
     public long getFlushedWhere() {

@@ -46,6 +46,16 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
                 Collections.addAll(files, ls);
             }
         }
+        if (config.getReadOnlyCommitLogStorePaths() != null) {
+            for (String path : config.getReadOnlyCommitLogStorePaths()) {
+                File dir = new File(path);
+                File[] ls = dir.listFiles();
+                if (ls != null) {
+                    Collections.addAll(files, ls);
+                }
+            }
+        }
+
         return doLoad(files);
     }
 
@@ -67,10 +77,21 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
         }
         this.mappedFiles.clear();
         this.flushedWhere = 0;
-        for (String path : config.getCommitLogStorePaths()) {
-            File file = new File(path);
-            if (file.isDirectory()) {
-                file.delete();
+
+        if (config.getCommitLogStorePaths() != null) {
+            for (String path : config.getCommitLogStorePaths()) {
+                File file = new File(path);
+                if (file.isDirectory()) {
+                    file.delete();
+                }
+            }
+        }
+        if (config.getReadOnlyCommitLogStorePaths() != null) {
+            for (String path : config.getReadOnlyCommitLogStorePaths()) {
+                File file = new File(path);
+                if (file.isDirectory()) {
+                    file.delete();
+                }
             }
         }
     }

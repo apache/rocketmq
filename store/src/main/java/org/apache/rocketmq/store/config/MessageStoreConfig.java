@@ -688,7 +688,7 @@ public class MessageStoreConfig {
         return commitLogStorePaths;
     }
 
-    public void commitLogStorePaths(String commitLogStorePaths) {
+    public void setCommitLogStorePaths(String commitLogStorePaths) {
         String[] tokens = commitLogStorePaths.trim().split(":");
         List<String> pathList = Arrays.asList(tokens);
         Collections.sort(pathList);
@@ -705,5 +705,12 @@ public class MessageStoreConfig {
 
     public void setReadOnlyCommitLogStorePaths(List<String> readOnlyCommitLogStorePaths) {
         this.readOnlyCommitLogStorePaths = readOnlyCommitLogStorePaths;
+    }
+
+    public void setReadOnlyCommitLogStorePaths(String readOnlyCommitLogStorePaths) {
+        String[] tokens = readOnlyCommitLogStorePaths.trim().split(":");
+        List<String> pathList = Arrays.asList(tokens);
+        Collections.sort(pathList);
+        this.readOnlyCommitLogStorePaths = pathList;
     }
 }
