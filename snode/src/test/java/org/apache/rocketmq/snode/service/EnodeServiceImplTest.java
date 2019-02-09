@@ -19,7 +19,6 @@ package org.apache.rocketmq.snode.service;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.SnodeConfig;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
@@ -121,15 +120,6 @@ public class EnodeServiceImplTest extends SnodeTestBase {
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
         RemotingCommand response = enodeService.pullMessage(enodeName, createPullMessage()).get(3000L, TimeUnit.MILLISECONDS);
         assertThat(response).isNotNull();
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
-    }
-
-    @Test
-    public void creatTopicTest() throws Exception {
-        when(snodeController.getNnodeService().getAddressByEnodeName(anyString(), anyBoolean())).thenReturn("127.0.0.1:10911");
-        when(snodeController.getRemotingClient().invokeSync(anyString(), any(RemotingCommand.class), anyLong())).thenReturn(createSuccessResponse());
-        TopicConfig topicConfig = new TopicConfig(topic, 1, 1, 2);
-        RemotingCommand response = enodeService.creatTopic(enodeName, topicConfig);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
 

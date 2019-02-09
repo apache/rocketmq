@@ -84,6 +84,7 @@ import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.common.protocol.header.CloneGroupOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
+import org.apache.rocketmq.common.protocol.header.CreateRetryTopicRequestHeader;
 import org.apache.rocketmq.common.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.common.protocol.header.DeleteSubscriptionGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.header.DeleteTopicRequestHeader;
@@ -1194,7 +1195,7 @@ public class MQClientAPIImpl {
     public SnodeClusterInfo getSnodeClusterInfo(
         //Todo Redifine snode exception
         final long timeoutMillis) throws InterruptedException, RemotingTimeoutException,
-        RemotingSendRequestException, RemotingConnectException , MQBrokerException {
+        RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_SNODE_CLUSTER_INFO, null);
 
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
@@ -1230,14 +1231,12 @@ public class MQClientAPIImpl {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINTO_BY_TOPIC, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
-        log.info("getTopicRouteInfoFromNameServer response: " + response);
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.TOPIC_NOT_EXIST: {
                 if (allowTopicNotExist && !topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
                     log.warn("get Topic [{}] RouteInfoFromNameServer is not exist value", topic);
                 }
-
                 break;
             }
             case ResponseCode.SUCCESS: {
@@ -2106,6 +2105,23 @@ public class MQClientAPIImpl {
 
         assert response != null;
 
+        if (ResponseCode.SUCCESS != response.getCode()) {
+            throw new MQClientException(response.getCode(), response.getRemark());
+        }
+    }
+
+    public void createRetryTopic(final String address, final String enodeName,
+        final String consumerGroup,
+        final long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+        RemotingConnectException, MQClientException {
+        CreateRetryTopicRequestHeader requestHeader = new CreateRetryTopicRequestHeader();
+        requestHeader.setEnodeName(enodeName);
+        requestHeader.setGroupName(consumerGroup);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CREATE_RETRY_TOPIC, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(address, request, timeoutMillis);
+        assert response != null;
+        System.out.println("create retry topic for consumerGrouop: " + consumerGroup);
         if (ResponseCode.SUCCESS != response.getCode()) {
             throw new MQClientException(response.getCode(), response.getRemark());
         }

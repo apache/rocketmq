@@ -102,7 +102,6 @@ public class SnodeController {
     private ExecutorService consumerManageExecutor;
     private EnodeService enodeService;
     private NnodeService nnodeService;
-    private ExecutorService consumerManagerExecutor;
     private ScheduledService scheduledService;
     private ClientManager producerManager;
     private ClientManager consumerManager;
@@ -169,14 +168,14 @@ public class SnodeController {
             "SnodeHeartbeatThread",
             true);
 
-        this.consumerManagerExecutor = ThreadUtils.newThreadPoolExecutor(
-            snodeConfig.getSnodeSendMessageMinPoolSize(),
-            snodeConfig.getSnodeSendMessageMaxPoolSize(),
-            3000,
-            TimeUnit.MILLISECONDS,
-            new ArrayBlockingQueue<>(snodeConfig.getSnodeSendThreadPoolQueueCapacity()),
-            "SnodePullMessageThread",
-            false);
+//        this.consumerManagerExecutor = ThreadUtils.newThreadPoolExecutor(
+//            snodeConfig.getSnodeSendMessageMinPoolSize(),
+//            snodeConfig.getSnodeSendMessageMaxPoolSize(),
+//            3000,
+//            TimeUnit.MILLISECONDS,
+//            new ArrayBlockingQueue<>(snodeConfig.getSnodeSendThreadPoolQueueCapacity()),
+//            "SnodePullMessageThread",
+//            false);
 
         this.consumerManageExecutor = ThreadUtils.newThreadPoolExecutor(
             snodeConfig.getSnodeSendMessageMinPoolSize(),
@@ -350,9 +349,9 @@ public class SnodeController {
         this.snodeServer
             .registerProcessor(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, consumerManageProcessor,
                 this.consumerManageExecutor);
+        this.snodeServer.registerProcessor(RequestCode.CREATE_RETRY_TOPIC, consumerManageProcessor, this.consumerManageExecutor);
         this.mqttRemotingServer.registerProcessor(RequestCode.MQTT_MESSAGE,
             defaultMqttMessageProcessor, handleMqttMessageExecutor);
-
 
         defaultMqttMessageProcessor.registerMessageHanlder(MqttMessageType.CONNECT,
             new MqttConnectMessageHandler(this));
@@ -374,8 +373,6 @@ public class SnodeController {
             new MqttSubscribeMessageHandler(this));
         defaultMqttMessageProcessor.registerMessageHanlder(MqttMessageType.UNSUBSCRIBE,
             new MqttUnsubscribeMessagHandler(this));
-
-
 
     }
 
@@ -402,9 +399,9 @@ public class SnodeController {
         if (this.heartbeatExecutor != null) {
             this.heartbeatExecutor.shutdown();
         }
-        if (this.consumerManagerExecutor != null) {
-            this.consumerManagerExecutor.shutdown();
-        }
+//        if (this.consumerManagerExecutor != null) {
+//            this.consumerManagerExecutor.shutdown();
+//        }
         if (this.scheduledExecutorService != null) {
             this.scheduledExecutorService.shutdown();
         }

@@ -31,7 +31,7 @@ public class Producer {
         /*
          * Instantiate with a producer group name.
          */
-        DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
+        DefaultMQProducer producer = new DefaultMQProducer("nihao");
 
         /*
          * Specify name server addresses.
@@ -75,7 +75,7 @@ public class Producer {
         /*
          * Shut down once the producer instance is not longer in use.
          */
-        Thread.sleep(3000L);
+        Thread.sleep(30000L);
         producer.shutdown();
     }
 }

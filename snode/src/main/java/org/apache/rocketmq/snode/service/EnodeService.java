@@ -18,7 +18,6 @@ package org.apache.rocketmq.snode.service;
 
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
@@ -55,18 +54,18 @@ public interface EnodeService {
     CompletableFuture<RemotingCommand> pullMessage(final String enodeName, final RemotingCommand request);
 
     /**
-     * Create topic to enode server.
+     * Create retry topic in enode server.
      *
      * @param enodeName Enode server name
-     * @param topicConfig {@link TopicConfig} Topic config information
+     * @param request {@link RemotingCommand }  with @see Cra Create
      * @return
      * @throws InterruptedException
      * @throws RemotingTimeoutException
      * @throws RemotingSendRequestException
      * @throws RemotingConnectException
      */
-    RemotingCommand creatTopic(String enodeName,
-        TopicConfig topicConfig) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
+    RemotingCommand creatRetryTopic(String enodeName,
+        RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
 
     /**
      * Update Enode address from name server

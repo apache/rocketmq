@@ -36,7 +36,7 @@ public class SlowConsumerServiceImpl implements SlowConsumerService {
     @Override
     public boolean isSlowConsumer(long currentOffset, String topic, int queueId,
         String consumerGroup, String enodeName) {
-        long ackedOffset = this.snodeController.getConsumerOffsetManager().queryOffset(enodeName, consumerGroup, topic, queueId);
+        long ackedOffset = this.snodeController.getConsumerOffsetManager().queryCacheOffset(enodeName, consumerGroup, topic, queueId);
         if (currentOffset - ackedOffset > snodeController.getSnodeConfig().getSlowConsumerThreshold()) {
             log.warn("[SlowConsumer] group: {}, lastAckedOffset:{} nowOffset:{} ", consumerGroup, ackedOffset, currentOffset);
             return true;

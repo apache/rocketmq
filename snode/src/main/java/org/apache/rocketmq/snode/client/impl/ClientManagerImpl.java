@@ -113,7 +113,6 @@ public abstract class ClientManagerImpl implements ClientManager {
                 ConcurrentHashMap prev = groupClientTable.putIfAbsent(groupId, channelTable);
                 channelTable = prev != null ? prev : channelTable;
             }
-            log.info("*********");
             RemotingChannel remotingChannel = client.getRemotingChannel();
             if (remotingChannel instanceof NettyChannelHandlerContextImpl) {
                 remotingChannel = new NettyChannelImpl(((NettyChannelHandlerContextImpl) remotingChannel).getChannelHandlerContext().channel());
@@ -140,7 +139,7 @@ public abstract class ClientManagerImpl implements ClientManager {
             oldClient.setLastUpdateTimestamp(System.currentTimeMillis());
             onRegister(groupId, remotingChannel);
         }
-        log.info("Register client role: {}, group: {}, last: {}", client.getClientRole(), groupId,
+        log.debug("Register client role: {}, group: {}, last: {}", client.getClientRole(), groupId,
             client.getLastUpdateTimestamp());
         return updated;
     }

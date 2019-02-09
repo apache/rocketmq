@@ -1282,6 +1282,24 @@ public class MQClientInstance {
         }
     }
 
+    public void createRetryTopic(String topic,
+        String consumerGroup) {
+        System.out.println("****create retry topic for consumerGrouop: " + consumerGroup);
+        TopicRouteData topicRouteData = this.topicRouteTable.get(topic);
+        if (topicRouteData != null) {
+            if (topicRouteData.getBrokerDatas() != null) {
+                for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
+                    try {
+                        String address = findSnodeAddressInPublish();
+                        this.mQClientAPIImpl.createRetryTopic(address, brokerData.getBrokerName(), consumerGroup, 1000 * 3);
+                    } catch (Exception ex) {
+                        log.warn("CreateRetryTopic error", ex);
+                    }
+                }
+            }
+        }
+    }
+
     public TopicRouteData getAnExistTopicRouteData(final String topic) {
         return this.topicRouteTable.get(topic);
     }

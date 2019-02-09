@@ -23,10 +23,10 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.CheckClientRequestBody;
+import org.apache.rocketmq.common.protocol.header.CreateRetryTopicRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UnregisterClientResponseHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumerData;
@@ -36,13 +36,14 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.filter.FilterFactory;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
-import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ClientManageProcessor implements RequestProcessor {
@@ -55,8 +56,8 @@ public class ClientManageProcessor implements RequestProcessor {
 
     @Override
     public RemotingCommand processRequest(RemotingChannel remotingChannel,
-        RemotingCommand request) throws RemotingCommandException  {
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = (NettyChannelHandlerContextImpl)remotingChannel;
+        RemotingCommand request) throws RemotingCommandException {
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = (NettyChannelHandlerContextImpl) remotingChannel;
         ChannelHandlerContext ctx = nettyChannelHandlerContext.getChannelHandlerContext();
 
         switch (request.getCode()) {
@@ -66,6 +67,8 @@ public class ClientManageProcessor implements RequestProcessor {
                 return this.unregisterClient(ctx, request);
             case RequestCode.CHECK_CLIENT_CONFIG:
                 return this.checkClientConfig(ctx, request);
+            case RequestCode.CREATE_RETRY_TOPIC:
+                return createRetryTopic(ctx, request);
             default:
                 break;
         }
@@ -80,7 +83,6 @@ public class ClientManageProcessor implements RequestProcessor {
     public RemotingCommand heartBeat(ChannelHandlerContext ctx, RemotingCommand request) {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
-        log.info("heart beat request:{}", heartbeatData);
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
             new NettyChannelImpl(ctx.channel()),
             heartbeatData.getClientID(),
@@ -95,15 +97,7 @@ public class ClientManageProcessor implements RequestProcessor {
             boolean isNotifyConsumerIdsChangedEnable = true;
             if (null != subscriptionGroupConfig) {
                 isNotifyConsumerIdsChangedEnable = subscriptionGroupConfig.isNotifyConsumerIdsChangedEnable();
-                int topicSysFlag = 0;
-                if (data.isUnitMode()) {
-                    topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
-                }
-                String newTopic = MixAll.getRetryTopic(data.getGroupName());
-                this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
-                    newTopic,
-                    subscriptionGroupConfig.getRetryQueueNums(),
-                    PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
+                createRetryTopic(data.isUnitMode(), data.getGroupName(), subscriptionGroupConfig.getRetryQueueNums());
             }
 
             boolean changed = this.brokerController.getConsumerManager().registerConsumer(
@@ -208,5 +202,34 @@ public class ClientManageProcessor implements RequestProcessor {
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
+    }
+
+    private RemotingCommand createRetryTopic(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final CreateRetryTopicRequestHeader requestHeader =
+            (CreateRetryTopicRequestHeader) request
+                .decodeCommandCustomHeader(CreateRetryTopicRequestHeader.class);
+        if (requestHeader.getGroupName() != null) {
+            SubscriptionGroupConfig subscriptionGroupConfig =
+                this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(requestHeader.getGroupName());
+            if (subscriptionGroupConfig != null) {
+                createRetryTopic(false, requestHeader.getGroupName(), subscriptionGroupConfig.getRetryQueueNums());
+            }
+        }
+
+        return response;
+    }
+
+    private void createRetryTopic(boolean unitMode, String groupName, int retryQueueNumbers) {
+        int topicSysFlag = 0;
+        if (unitMode) {
+            topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
+        }
+        String newTopic = MixAll.getRetryTopic(groupName);
+        this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
+            newTopic,
+            retryQueueNumbers,
+            PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
     }
 }

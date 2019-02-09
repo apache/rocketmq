@@ -178,8 +178,7 @@ public class RequestCode {
 
     public static final int GET_SNODE_INFO = 354;
 
-
-
+    public static final int CREATE_RETRY_TOPIC = 355;
 
     public static final int MQTT_MESSAGE = 1000;
 }

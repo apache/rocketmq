@@ -24,12 +24,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
@@ -226,31 +224,22 @@ public class EnodeServiceImpl implements EnodeService {
     @Override
     public RemotingCommand getMaxOffsetInQueue(String enodeName,
         RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, RemotingCommandException {
-        String addr = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
-        return this.snodeController.getRemotingClient().invokeSync(MixAll.brokerVIPChannel(snodeController.getSnodeConfig().isVipChannelEnabled(), addr),
+        String address = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
+        return this.snodeController.getRemotingClient().invokeSync(address,
             request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
     }
 
     @Override
     public RemotingCommand getOffsetByTimestamp(String enodeName,
         RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        String addr = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
-        return this.snodeController.getRemotingClient().invokeSync(MixAll.brokerVIPChannel(snodeController.getSnodeConfig().isVipChannelEnabled(), addr),
+        String address = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
+        return this.snodeController.getRemotingClient().invokeSync(address,
             request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
     }
 
     @Override
-    public RemotingCommand creatTopic(String enodeName,
-        TopicConfig topicConfig) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        CreateTopicRequestHeader requestHeader = new CreateTopicRequestHeader();
-        requestHeader.setTopic(topicConfig.getTopicName());
-        requestHeader.setPerm(topicConfig.getPerm());
-        requestHeader.setReadQueueNums(topicConfig.getReadQueueNums());
-        requestHeader.setWriteQueueNums(topicConfig.getWriteQueueNums());
-        requestHeader.setOrder(topicConfig.isOrder());
-        requestHeader.setTopicFilterType(topicConfig.getTopicFilterType().name());
-        requestHeader.setTopicSysFlag(topicConfig.getTopicSysFlag());
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC, requestHeader);
+    public RemotingCommand creatRetryTopic(String enodeName,
+        RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         String address = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
         return this.snodeController.getRemotingClient().invokeSync(address,
             request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);

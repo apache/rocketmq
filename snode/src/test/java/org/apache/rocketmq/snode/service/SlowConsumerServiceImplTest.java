@@ -61,7 +61,7 @@ public class SlowConsumerServiceImplTest {
     @Test
     public void isSlowConsumerTest() {
         snodeController.setConsumerOffsetManager(consumerOffsetManager);
-        when(snodeController.getConsumerOffsetManager().queryOffset(anyString(), anyString(), anyString(), anyInt())).thenReturn(1024L);
+        when(snodeController.getConsumerOffsetManager().queryCacheOffset(anyString(), anyString(), anyString(), anyInt())).thenReturn(1024L);
         this.snodeController.getSnodeConfig().setSlowConsumerThreshold(100);
         boolean slowConsumer = slowConsumerService.isSlowConsumer(2000, topic, queue, group, enodeName);
         assertThat(slowConsumer).isTrue();
@@ -70,7 +70,7 @@ public class SlowConsumerServiceImplTest {
     @Test
     public void isSlowConsumerTestFalse() {
         snodeController.setConsumerOffsetManager(consumerOffsetManager);
-        when(snodeController.getConsumerOffsetManager().queryOffset(anyString(), anyString(), anyString(), anyInt())).thenReturn(1024L);
+        when(snodeController.getConsumerOffsetManager().queryCacheOffset(anyString(), anyString(), anyString(), anyInt())).thenReturn(1024L);
         this.snodeController.getSnodeConfig().setSlowConsumerThreshold(100);
         boolean slowConsumer = slowConsumerService.isSlowConsumer(1025, topic, queue, group, enodeName);
         assertThat(slowConsumer).isFalse();

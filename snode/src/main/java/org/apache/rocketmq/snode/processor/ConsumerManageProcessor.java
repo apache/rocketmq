@@ -20,13 +20,13 @@ import java.util.List;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.header.CreateRetryTopicRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseHeader;
 import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
@@ -68,6 +68,8 @@ public class ConsumerManageProcessor implements RequestProcessor {
                 return getMaxOffset(remotingChannel, request);
             case RequestCode.GET_MIN_OFFSET:
                 return getMinOffset(remotingChannel, request);
+            case RequestCode.CREATE_RETRY_TOPIC:
+                return createRetryTopic(remotingChannel, request);
             default:
                 break;
         }
@@ -161,32 +163,25 @@ public class ConsumerManageProcessor implements RequestProcessor {
     private RemotingCommand queryConsumerOffset(RemotingChannel remotingChannel, RemotingCommand request)
         throws InterruptedException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException, RemotingCommandException {
-        final RemotingCommand response =
-            RemotingCommand.createResponseCommand(QueryConsumerOffsetResponseHeader.class);
         final QueryConsumerOffsetRequestHeader requestHeader =
             (QueryConsumerOffsetRequestHeader) request
                 .decodeCommandCustomHeader(QueryConsumerOffsetRequestHeader.class);
-        final QueryConsumerOffsetResponseHeader responseHeader =
-            (QueryConsumerOffsetResponseHeader) response.readCustomHeader();
+        log.info("Load offset from enode server, enodeName: {}, consumer group: {}, topic: {}, queueId: {}",
+            requestHeader.getEnodeName(),
+            requestHeader.getConsumerGroup(),
+            requestHeader.getTopic(),
+            requestHeader.getQueueId());
+        return this.snodeController.getConsumerOffsetManager().queryOffset(requestHeader.getEnodeName(), requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+            requestHeader.getQueueId());
 
-        long offset =
-            this.snodeController.getConsumerOffsetManager().queryOffset(requestHeader.getEnodeName(),
-                requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
+    }
 
-        if (offset < 0) {
-            log.info("Load offset from enode server, enodeName: {}, consumer group: {}, topic: {}, queueId: {}",
-                requestHeader.getEnodeName(),
-                requestHeader.getConsumerGroup(),
-                requestHeader.getTopic(),
-                requestHeader.getQueueId());
-            return this.snodeController.getEnodeService().loadOffset(requestHeader.getEnodeName(), requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                requestHeader.getQueueId());
-        } else {
-            responseHeader.setOffset(offset);
-            response.setCode(ResponseCode.SUCCESS);
-            response.setRemark(null);
-            return response;
-        }
+    public RemotingCommand createRetryTopic(RemotingChannel remotingChannel,
+        RemotingCommand request) throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException, RemotingCommandException {
+        final CreateRetryTopicRequestHeader requestHeader = (CreateRetryTopicRequestHeader) request.decodeCommandCustomHeader(CreateRetryTopicRequestHeader.class);
+        requestHeader.getEnodeName();
+        return this.snodeController.getEnodeService().creatRetryTopic(requestHeader.getEnodeName(), request);
     }
 }
 

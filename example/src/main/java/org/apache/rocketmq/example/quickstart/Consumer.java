@@ -35,7 +35,7 @@ public class Consumer {
         /*
          * Instantiate with specified consumer group name.
          */
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("RocketMQ5");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("hello");
 
         /*
          * Specify name server addresses.

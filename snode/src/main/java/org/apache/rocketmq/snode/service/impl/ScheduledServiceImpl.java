@@ -130,16 +130,6 @@ public class ScheduledServiceImpl implements ScheduledService {
             }
         }, 0, Math.max(10000, Math.min(snodeConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    snodeController.getConsumerOffsetManager().persist();
-                } catch (Throwable e) {
-                    log.error("ScheduledTask fetchNameServerAddr exception", e);
-                }
-            }
-        }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
     }
 
     @Override

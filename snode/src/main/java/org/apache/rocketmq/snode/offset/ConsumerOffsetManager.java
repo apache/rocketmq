@@ -17,7 +17,6 @@
 package org.apache.rocketmq.snode.offset;
 
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -31,7 +30,6 @@ import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.remoting.serialize.RemotingSerializable;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.exception.SnodeException;
 
@@ -88,7 +86,7 @@ public class ConsumerOffsetManager {
         return result;
     }
 
-    public void commitOffset(final String enodeName, final String clientHost, final String group, final String topic,
+    public void cacheOffset(final String enodeName, final String clientHost, final String group, final String topic,
         final int queueId,
         final long offset) {
         // Topic@group
@@ -111,7 +109,7 @@ public class ConsumerOffsetManager {
         }
     }
 
-    public long queryOffset(final String enodeName, final String group, final String topic, final int queueId) {
+    public long queryCacheOffset(final String enodeName, final String group, final String topic, final int queueId) {
         String key = buildKey(enodeName, topic, group);
         ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
         if (null != map) {
@@ -123,49 +121,35 @@ public class ConsumerOffsetManager {
         return -1;
     }
 
-
-    public String encode(final boolean prettyFormat) {
-        return RemotingSerializable.toJson(this, prettyFormat);
-    }
+//    public String encode(final boolean prettyFormat) {
+//        return RemotingSerializable.toJson(this, prettyFormat);
+//    }
 
     public ConcurrentMap<String, ConcurrentMap<Integer, Long>> getOffsetTable() {
         return offsetTable;
     }
 
-    public void setOffsetTable(ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> offsetTable) {
-        this.offsetTable = offsetTable;
+//    public void setOffsetTable(ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> offsetTable) {
+//        this.offsetTable = offsetTable;
+//    }
+
+//    public Map<Integer, Long> queryOffset(final String enodeName, final String group, final String topic) {
+//        // topic@group
+//        String key = buildKey(enodeName, topic, group);
+//        return this.offsetTable.get(key);
+//    }
+
+    public void commitOffset(final String enodeName, final String clientHost, final String group, final String topic,
+        final int queueId,
+        final long offset) {
+        cacheOffset(enodeName, clientHost, group, topic, queueId, offset);
+        this.snodeController.getEnodeService().persistOffset(enodeName, group, topic, queueId, offset);
     }
 
-    public Map<Integer, Long> queryOffset(final String enodeName, final String group, final String topic) {
-        // topic@group
-        String key = buildKey(enodeName, topic, group);
-        return this.offsetTable.get(key);
+    public RemotingCommand queryOffset(final String enodeName, final String group, final String topic,
+        final int queueId) throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException {
+        return this.snodeController.getEnodeService().loadOffset(enodeName, group, topic, queueId);
     }
 
-    public void cloneOffset(final String srcGroup, final String destGroup, final String topic) {
-        ConcurrentMap<Integer, Long> offsets = this.offsetTable.get(topic + TOPIC_GROUP_SEPARATOR + srcGroup);
-        if (offsets != null) {
-            this.offsetTable.put(topic + TOPIC_GROUP_SEPARATOR + destGroup, new ConcurrentHashMap<Integer, Long>(offsets));
-        }
-    }
-
-    public void persist() {
-        for (Entry<String, ConcurrentMap<Integer, Long>> offSetEntry : this.offsetTable.entrySet()) {
-            ConcurrentHashMap<Integer, Long> map = (ConcurrentHashMap<Integer, Long>) offSetEntry.getValue();
-            String key = offSetEntry.getKey();
-            String[] keys = key.split(TOPIC_GROUP_SEPARATOR);
-            if (keys.length == 3) {
-                String enodeName = keys[0];
-                String topic = keys[1];
-                String consumerGroup = keys[2];
-                for (Entry<Integer, Long> queueEntry : map.entrySet()) {
-                    Integer queueId = queueEntry.getKey();
-                    Long offset = queueEntry.getValue();
-                    this.snodeController.getEnodeService().persistOffset(enodeName, consumerGroup, topic, queueId, offset);
-                }
-            } else {
-                log.error("Persist offset split keys error:{}", key);
-            }
-        }
-    }
 }

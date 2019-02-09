@@ -847,6 +847,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
                 final String topic = entry.getKey();
                 this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
+                this.mQClientFactory.createRetryTopic(topic, this.defaultMQPushConsumer.getConsumerGroup());
+
             }
         }
     }
