@@ -50,7 +50,7 @@ public class MappedFileQueue {
     private volatile long storeTimestamp = 0;
 
     public MappedFileQueue(final String storePath, int mappedFileSize,
-                           AllocateMappedFileService allocateMappedFileService) {
+        AllocateMappedFileService allocateMappedFileService) {
         this.storePath = storePath;
         this.mappedFileSize = mappedFileSize;
         this.allocateMappedFileService = allocateMappedFileService;
@@ -67,7 +67,7 @@ public class MappedFileQueue {
                 if (pre != null) {
                     if (cur.getFileFromOffset() - pre.getFileFromOffset() != this.mappedFileSize) {
                         LOG_ERROR.error("[BUG]The mappedFile queue's data is damaged, the adjacent mappedFile's offset don't match. pre file {}, cur file {}",
-                                pre.getFileName(), cur.getFileName());
+                            pre.getFileName(), cur.getFileName());
                     }
                 }
                 pre = cur;
@@ -273,7 +273,7 @@ public class MappedFileQueue {
 
         if (mappedFileLast != null) {
             long lastOffset = mappedFileLast.getFileFromOffset() +
-                    mappedFileLast.getWrotePosition();
+                mappedFileLast.getWrotePosition();
             long diff = lastOffset - offset;
 
             final int maxDiff = this.mappedFileSize * 2;
@@ -347,9 +347,9 @@ public class MappedFileQueue {
     }
 
     public int deleteExpiredFileByTime(final long expiredTime,
-                                       final int deleteFilesInterval,
-                                       final long intervalForcibly,
-                                       final boolean cleanImmediately) {
+        final int deleteFilesInterval,
+        final long intervalForcibly,
+        final boolean cleanImmediately) {
         Object[] mfs = this.copyMappedFiles(0);
 
         if (null == mfs)
@@ -468,7 +468,7 @@ public class MappedFileQueue {
     /**
      * Finds a mapped file by offset.
      *
-     * @param offset                Offset.
+     * @param offset Offset.
      * @param returnFirstOnNotFound If the mapped file is not found, then return the first one.
      * @return Mapped file or null (when not found and returnFirstOnNotFound is <code>false</code>).
      */
@@ -480,10 +480,10 @@ public class MappedFileQueue {
                 if (offset < firstMappedFile.getFileFromOffset() || offset >= lastMappedFile.getFileFromOffset() + this.mappedFileSize) {
                     LOG_ERROR.warn("Offset not matched. Request offset: {}, firstOffset: {}, lastOffset: {}, mappedFileSize: {}, mappedFiles count: {}",
                             offset,
-                            firstMappedFile.getFileFromOffset(),
-                            lastMappedFile.getFileFromOffset() + this.mappedFileSize,
-                            this.mappedFileSize,
-                            this.mappedFiles.size());
+                        firstMappedFile.getFileFromOffset(),
+                        lastMappedFile.getFileFromOffset() + this.mappedFileSize,
+                        this.mappedFileSize,
+                        this.mappedFiles.size());
                 } else {
                     int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
                     MappedFile targetFile = null;
@@ -499,7 +499,7 @@ public class MappedFileQueue {
 
                     for (MappedFile tmpMappedFile : this.mappedFiles) {
                         if (offset >= tmpMappedFile.getFileFromOffset()
-                                && offset < tmpMappedFile.getFileFromOffset() + this.mappedFileSize) {
+                            && offset < tmpMappedFile.getFileFromOffset() + this.mappedFileSize) {
                             return tmpMappedFile;
                         }
                     }
