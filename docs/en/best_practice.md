@@ -10,7 +10,7 @@
 
 ### 3.2 FlushDiskType
 
-​### 3.3 Broker Configuration
+### 3.3 Broker Configuration
 | Parameter name                           | Default                        | Description                                                         |
 | -------------------------------- | ----------------------------- | ------------------------------------------------------------ |
 | listenPort                    | 10911              | listen port for client |
