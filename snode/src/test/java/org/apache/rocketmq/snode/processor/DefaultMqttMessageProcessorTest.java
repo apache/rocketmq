@@ -34,7 +34,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
 import org.apache.rocketmq.remoting.transport.mqtt.RocketMQMqttConnectPayload;
 import org.apache.rocketmq.snode.SnodeController;
-import org.apache.rocketmq.snode.processor.mqtthandler.MqttConnectMessageHandler;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -60,13 +59,12 @@ public class DefaultMqttMessageProcessorTest {
 
     @Before
     public void init() {
-        defaultMqttMessageProcessor = new DefaultMqttMessageProcessor();
+        defaultMqttMessageProcessor = new DefaultMqttMessageProcessor(snodeController);
     }
 
     @Test
     public void testProcessRequest() throws RemotingCommandException, UnsupportedEncodingException {
         RemotingCommand request = createMqttConnectMesssageCommand();
-        defaultMqttMessageProcessor.registerMessageHanlder(MqttMessageType.CONNECT, new MqttConnectMessageHandler(snodeController));
         defaultMqttMessageProcessor.processRequest(remotingChannel, request);
     }
 

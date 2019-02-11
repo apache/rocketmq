@@ -15,15 +15,33 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.transport.mqtt.dispatcher;
+package org.apache.rocketmq.common.message.mqtt;
 
-import io.netty.handler.codec.mqtt.MqttMessage;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import io.netty.handler.codec.mqtt.MqttQoS;
 
-public interface Message2MessageEncodeDecode {
+public class RetainMessage {
 
-    RemotingCommand decode(MqttMessage mqttMessage);
+    private byte[] byteBuf;
 
-    MqttMessage encode(RemotingCommand remotingCommand) throws RemotingCommandException;
+    private MqttQoS qoS;
+
+    public byte[] getByteBuf() {
+        return byteBuf;
+    }
+
+    public void setByteBuf(byte[] byteBuf) {
+        this.byteBuf = byteBuf;
+    }
+
+    public MqttQoS getQoS() {
+        return qoS;
+    }
+
+    public void setQoS(MqttQoS qoS) {
+        this.qoS = qoS;
+    }
+
+    public String getString() {
+        return new String(byteBuf);
+    }
 }

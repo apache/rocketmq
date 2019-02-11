@@ -113,31 +113,31 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
         }
         this.publicExecutor = ThreadUtils.newFixedThreadPool(
                 publicThreadNums,
-                10000, "Remoting-PublicExecutor", true);
+                10000, "MqttRemoting-PublicExecutor", true);
         if (JvmUtils.isUseEpoll() && this.nettyServerConfig.isUseEpollNativeSelector()) {
             this.eventLoopGroupSelector = new EpollEventLoopGroup(
                     serverConfig.getServerSelectorThreads(),
-                    ThreadUtils.newGenericThreadFactory("NettyEpollIoThreads",
+                    ThreadUtils.newGenericThreadFactory("MqttNettyEpollIoThreads",
                             serverConfig.getServerSelectorThreads()));
             this.eventLoopGroupBoss = new EpollEventLoopGroup(
                     serverConfig.getServerAcceptorThreads(),
-                    ThreadUtils.newGenericThreadFactory("NettyBossThreads",
+                    ThreadUtils.newGenericThreadFactory("MqttNettyBossThreads",
                             serverConfig.getServerAcceptorThreads()));
             this.socketChannelClass = EpollServerSocketChannel.class;
         } else {
             this.eventLoopGroupBoss = new NioEventLoopGroup(serverConfig.getServerAcceptorThreads(),
-                    ThreadUtils.newGenericThreadFactory("NettyBossThreads",
+                    ThreadUtils.newGenericThreadFactory("MqttNettyBossThreads",
                             serverConfig.getServerAcceptorThreads()));
             this.eventLoopGroupSelector = new NioEventLoopGroup(
                     serverConfig.getServerSelectorThreads(),
-                    ThreadUtils.newGenericThreadFactory("NettyNioIoThreads",
+                    ThreadUtils.newGenericThreadFactory("MqttNettyNioIoThreads",
                             serverConfig.getServerSelectorThreads()));
             this.socketChannelClass = NioServerSocketChannel.class;
         }
         this.port = nettyServerConfig.getMqttListenPort();
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(
                 serverConfig.getServerWorkerThreads(),
-                ThreadUtils.newGenericThreadFactory("NettyWorkerThreads",
+                ThreadUtils.newGenericThreadFactory("MqttNettyWorkerThreads",
                         serverConfig.getServerWorkerThreads()));
         loadSslContext();
         return this;

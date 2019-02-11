@@ -19,8 +19,12 @@ package org.apache.rocketmq.remoting.transport.mqtt;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageEncoder;
+import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.handler.codec.mqtt.MqttMessageType;
 import java.util.List;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.transport.mqtt.dispatcher.EncodeDecodeDispatcher;
+import org.apache.rocketmq.remoting.transport.mqtt.dispatcher.Message2MessageEncodeDecode;
 
 public class RemotingCommand2MqttMessageHandler extends MessageToMessageEncoder<RemotingCommand> {
 
@@ -38,6 +42,17 @@ public class RemotingCommand2MqttMessageHandler extends MessageToMessageEncoder<
     @Override
     protected void encode(ChannelHandlerContext ctx, RemotingCommand msg, List<Object> out)
             throws Exception {
-
+        if (!(msg instanceof RemotingCommand)) {
+            return;
+        }
+        MqttMessage mqttMessage = null;
+        MqttHeader mqttHeader = (MqttHeader) msg.decodeCommandCustomHeader(MqttHeader.class);
+        Message2MessageEncodeDecode message2MessageEncodeDecode = EncodeDecodeDispatcher
+                .getEncodeDecodeDispatcher().get(
+                        MqttMessageType.valueOf(mqttHeader.getMessageType()));
+        if (message2MessageEncodeDecode != null) {
+            mqttMessage = message2MessageEncodeDecode.encode(msg);
+        }
+        out.add(mqttMessage);
     }
 }

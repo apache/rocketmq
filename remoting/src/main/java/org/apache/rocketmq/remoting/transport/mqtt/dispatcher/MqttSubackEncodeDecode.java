@@ -17,18 +17,18 @@
 
 package org.apache.rocketmq.remoting.transport.mqtt.dispatcher;
 
-import io.netty.handler.codec.mqtt.MqttConnAckMessage;
-import io.netty.handler.codec.mqtt.MqttConnAckVariableHeader;
-import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import io.netty.handler.codec.mqtt.MqttFixedHeader;
 import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.handler.codec.mqtt.MqttMessageIdVariableHeader;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.codec.mqtt.MqttQoS;
+import io.netty.handler.codec.mqtt.MqttSubAckMessage;
+import io.netty.handler.codec.mqtt.MqttSubAckPayload;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
 
-public class MqttConnectackEncodeDecode implements Message2MessageEncodeDecode {
+public class MqttSubackEncodeDecode implements Message2MessageEncodeDecode {
 
     @Override
     public RemotingCommand decode(MqttMessage mqttMessage) {
@@ -40,11 +40,10 @@ public class MqttConnectackEncodeDecode implements Message2MessageEncodeDecode {
         MqttHeader mqttHeader = (MqttHeader) remotingCommand
                 .decodeCommandCustomHeader(MqttHeader.class);
 
-        return new MqttConnAckMessage(
-                new MqttFixedHeader(MqttMessageType.CONNACK, mqttHeader.isDup(),
+        return new MqttSubAckMessage(
+                new MqttFixedHeader(MqttMessageType.SUBACK, mqttHeader.isDup(),
                         MqttQoS.valueOf(mqttHeader.getQosLevel()), mqttHeader.isRetain(),
-                        mqttHeader.getRemainingLength()), new MqttConnAckVariableHeader(
-                MqttConnectReturnCode.valueOf(mqttHeader.getConnectReturnCode()),
-                mqttHeader.isSessionPresent()));
+                        mqttHeader.getRemainingLength()),
+                MqttMessageIdVariableHeader.from(mqttHeader.getMessageId()),new MqttSubAckPayload());
     }
 }

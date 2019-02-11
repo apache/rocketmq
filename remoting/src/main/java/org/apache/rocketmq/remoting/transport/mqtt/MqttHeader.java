@@ -20,7 +20,6 @@
  */
 package org.apache.rocketmq.remoting.transport.mqtt;
 
-import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -40,7 +39,7 @@ public class MqttHeader implements CommandCustomHeader {
     private int remainingLength;
 
     //variable header members
-    private MqttConnectReturnCode connectReturnCode;
+    private String connectReturnCode;
     private boolean sessionPresent;
     private String name;
     private Integer version;
@@ -95,11 +94,11 @@ public class MqttHeader implements CommandCustomHeader {
         this.remainingLength = remainingLength;
     }
 
-    public MqttConnectReturnCode getConnectReturnCode() {
+    public String getConnectReturnCode() {
         return connectReturnCode;
     }
 
-    public void setConnectReturnCode(MqttConnectReturnCode connectReturnCode) {
+    public void setConnectReturnCode(String connectReturnCode) {
         this.connectReturnCode = connectReturnCode;
     }
 

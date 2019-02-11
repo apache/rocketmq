@@ -15,15 +15,50 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.transport.mqtt.dispatcher;
+package org.apache.rocketmq.common.message.mqtt;
 
-import io.netty.handler.codec.mqtt.MqttMessage;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+public class WillMessage {
 
-public interface Message2MessageEncodeDecode {
+    private String willTopic;
 
-    RemotingCommand decode(MqttMessage mqttMessage);
+    private byte[] body;
 
-    MqttMessage encode(RemotingCommand remotingCommand) throws RemotingCommandException;
+    private  boolean isRetain;
+
+    private int qos;
+
+    public String getWillTopic() {
+        return willTopic;
+    }
+
+    public void setWillTopic(String willTopic) {
+        this.willTopic = willTopic;
+    }
+
+    public byte[] getBody() {
+        return body;
+    }
+
+    public void setBody(byte[] body) {
+        this.body = body;
+    }
+
+    public boolean isRetain() {
+        return isRetain;
+    }
+
+    public void setRetain(boolean retain) {
+        isRetain = retain;
+    }
+
+    public int getQos() {
+        return qos;
+    }
+
+    public void setQos(int qos) {
+        this.qos = qos;
+    }
+    public String getString() {
+        return new String(body);
+    }
 }

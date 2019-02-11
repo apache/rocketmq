@@ -21,8 +21,10 @@ import java.util.Set;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.serialize.LanguageCode;
 import org.apache.rocketmq.snode.client.impl.ClientRole;
+import org.apache.rocketmq.snode.session.Session;
 
 public class Client {
+
     private ClientRole clientRole;
 
     private String clientId;
@@ -41,6 +43,8 @@ public class Client {
 
     private boolean isConnected;
 
+    private Session session;
+
     public ClientRole getClientRole() {
         return clientRole;
     }
@@ -49,14 +53,16 @@ public class Client {
         this.clientRole = clientRole;
     }
 
-    @Override public boolean equals(Object o) {
-        if (this == o)
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
             return true;
-        if (!(o instanceof Client))
+        }
+        if (!(o instanceof Client)) {
             return false;
+        }
         Client client = (Client) o;
-        return
-            version == client.version &&
+        return version == client.version &&
                 clientRole == client.clientRole &&
                 Objects.equals(clientId, client.clientId) &&
                 Objects.equals(groups, client.groups) &&
@@ -65,8 +71,10 @@ public class Client {
                 isConnected == client.isConnected();
     }
 
-    @Override public int hashCode() {
-        return Objects.hash(clientRole, clientId, groups, remotingChannel, heartbeatInterval, lastUpdateTimestamp, version, language, isConnected);
+    @Override
+    public int hashCode() {
+        return Objects.hash(clientRole, clientId, groups, remotingChannel, heartbeatInterval,
+                lastUpdateTimestamp, version, language, isConnected);
     }
 
     public RemotingChannel getRemotingChannel() {
@@ -125,6 +133,14 @@ public class Client {
         isConnected = connected;
     }
 
+    public Session getSession() {
+        return session;
+    }
+
+    public void setSession(Session session) {
+        session = session;
+    }
+
     public Set<String> getGroups() {
         return groups;
     }
@@ -133,18 +149,20 @@ public class Client {
         this.groups = groups;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "Client{" +
-            "clientRole=" + clientRole +
-            ", clientId='" + clientId + '\'' +
-            ", groups=" + groups +
-            ", remotingChannel=" + remotingChannel +
-            ", heartbeatInterval=" + heartbeatInterval +
-            ", lastUpdateTimestamp=" + lastUpdateTimestamp +
-            ", version=" + version +
-            ", language=" + language +
-            ", isConnected=" + isConnected +
-            '}';
+                "clientRole=" + clientRole +
+                ", clientId='" + clientId + '\'' +
+                ", groups=" + groups +
+                ", remotingChannel=" + remotingChannel +
+                ", heartbeatInterval=" + heartbeatInterval +
+                ", lastUpdateTimestamp=" + lastUpdateTimestamp +
+                ", version=" + version +
+                ", language=" + language +
+                ", isConnected=" + isConnected +
+                ", session=" + session +
+                '}';
     }
 }
 

@@ -38,15 +38,47 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
 import org.apache.rocketmq.remoting.transport.mqtt.RocketMQMqttConnectPayload;
+import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.processor.mqtthandler.MessageHandler;
+import org.apache.rocketmq.snode.processor.mqtthandler.MqttConnectMessageHandler;
+import org.apache.rocketmq.snode.processor.mqtthandler.MqttDisconnectMessageHandler;
+import org.apache.rocketmq.snode.processor.mqtthandler.MqttPingreqMessageHandler;
+import org.apache.rocketmq.snode.processor.mqtthandler.MqttPubackMessageHandler;
+import org.apache.rocketmq.snode.processor.mqtthandler.MqttPubcompMessageHandler;
+import org.apache.rocketmq.snode.processor.mqtthandler.MqttPublishMessageHandler;
+import org.apache.rocketmq.snode.processor.mqtthandler.MqttPubrecMessageHandler;
+import org.apache.rocketmq.snode.processor.mqtthandler.MqttPubrelMessageHandler;
+import org.apache.rocketmq.snode.processor.mqtthandler.MqttSubscribeMessageHandler;
+import org.apache.rocketmq.snode.processor.mqtthandler.MqttUnsubscribeMessagHandler;
 
 public class DefaultMqttMessageProcessor implements RequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
 
     private Map<MqttMessageType, MessageHandler> type2handler = new HashMap<>();
+    private final SnodeController snodeController;
     private static final int MIN_AVAILABLE_VERSION = 3;
     private static final int MAX_AVAILABLE_VERSION = 4;
 
+    public DefaultMqttMessageProcessor(SnodeController snodeController) {
+        this.snodeController = snodeController;
+        registerMessageHandler(MqttMessageType.CONNECT,
+                new MqttConnectMessageHandler(this.snodeController));
+        registerMessageHandler(MqttMessageType.DISCONNECT,
+                new MqttDisconnectMessageHandler(this.snodeController));
+        registerMessageHandler(MqttMessageType.PINGREQ,
+                new MqttPingreqMessageHandler(this.snodeController));
+        registerMessageHandler(MqttMessageType.PUBLISH,
+                new MqttPublishMessageHandler(this.snodeController));
+        registerMessageHandler(MqttMessageType.PUBACK, new MqttPubackMessageHandler(this.snodeController));
+        registerMessageHandler(MqttMessageType.PUBCOMP,
+                new MqttPubcompMessageHandler(this.snodeController));
+        registerMessageHandler(MqttMessageType.PUBREC, new MqttPubrecMessageHandler(this.snodeController));
+        registerMessageHandler(MqttMessageType.PUBREL, new MqttPubrelMessageHandler(this.snodeController));
+        registerMessageHandler(MqttMessageType.SUBSCRIBE,
+                new MqttSubscribeMessageHandler(this.snodeController));
+        registerMessageHandler(MqttMessageType.UNSUBSCRIBE,
+                new MqttUnsubscribeMessagHandler(this.snodeController));
+    }
 
     @Override
     public RemotingCommand processRequest(RemotingChannel remotingChannel, RemotingCommand message)
@@ -80,7 +112,7 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
         return JSON.parseObject(json, classOfT);
     }
 
-    public void registerMessageHanlder(MqttMessageType type, MessageHandler handler) {
+    private void registerMessageHandler(MqttMessageType type, MessageHandler handler) {
         type2handler.put(type, handler);
     }
 }
