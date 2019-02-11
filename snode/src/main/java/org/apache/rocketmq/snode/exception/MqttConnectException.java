@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.snode.exception;
 
-public class MqttConnectException extends RuntimeException{
+public class MqttConnectException extends RuntimeException {
 
     public MqttConnectException(String message) {
         super(message);

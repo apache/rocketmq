@@ -151,7 +151,6 @@ public class MqttConnectMessageHandler implements MessageHandler {
     }
 
     private boolean authorized(String username, String password) {
-        //TODO
         return true;
     }
 
