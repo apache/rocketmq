@@ -175,17 +175,16 @@ msgId一定是全局唯一标识符，但是实际使用中，可能会存在相
 ​  Broker 角色分为 ASYNC_MASTER（异步主机）、SYNC_MASTER（同步主机）以及SLAVE（从机）。如果对消息的可靠性要求比较严格，可以采用 SYNC_MASTER加SLAVE的部署方式。如果对消息可靠性要求不高，可以采用ASYNC_MASTER加SLAVE的部署方式。如果只是测试方便，则可以选择仅ASYNC_MASTER或仅SYNC_MASTER的部署方式。
 ### 3.2 FlushDiskType
 ​ SYNC_FLUSH（同步刷新）相比于ASYNC_FLUSH（异步处理）会损失很多性能，但是也更可靠，所以需要根据实际的业务场景做好权衡。
-​ 
-​### 3.3 Broker配置
+### 3.3 Broker配置
 
 | 参数名                           | 默认值                        | 说明                                                         |
 | -------------------------------- | ----------------------------- | ------------------------------------------------------------ |
 | listenPort                    | 10911              | 接受客户端连接的监听端口 |
 | namesrvAddr       | null                         | nameServer 地址     |
-| brokerIP1 | 网卡的InetAddress                         | 当前broker监听的IP  |
-| brokerIP2 | 跟brokerIP1一样                         | 存在broker主从时，在broker主节点上配置了brokerIP2的话，broker从节点会连接主节点配置的brokerIP2来同步  |
-| brokerName        | null                         | broker 名                           |
-| brokerClusterName                     | DefaultCluster                  | 本 broker 所属的 Cluser 名字           |
+| brokerIP1 | 网卡的 InetAddress                         | 当前 broker 监听的 IP  |
+| brokerIP2 | 跟 brokerIP1 一样                         | 存在主从 broker 时，如果在 broker 主节点上配置了 brokerIP2 属性，broker 从节点会连接主节点配置的 brokerIP2 进行同步  |
+| brokerName        | null                         | broker 的名称                           |
+| brokerClusterName                     | DefaultCluster                  | 本 broker 所属的 Cluser 名称           |
 | brokerId             | 0                              | broker id, 0 表示 master, 其他的正整数表示 slave                                                 |
 | storePathCommitLog                      | $HOME/store/commitlog/                              | 存储 commit log 的路径                                                |
 | storePathConsumerQueue                   | $HOME/store/consumequeue/                              | 存储 consume queue 的路径                                              |
@@ -193,7 +192,7 @@ msgId一定是全局唯一标识符，但是实际使用中，可能会存在相
 | deleteWhen     | 04 | 在每天的什么时间删除已经超过文件保留时间的 commit log                                        |​ 
 | fileReserverdTime     | 72 | 以小时计算的文件保留时间                                        |​ 
 | brokerRole     | ASYNC_MASTER | SYNC_MASTER/ASYNC_MASTER/SLAVE                                        |​ 
-| flushDiskType     | ASYNC_FLUSH | {SYNC_FLUSH/ASYNC_FLUSH}. Broker of SYNC_FLUSH 模式下的 broker 保证在收到确认生产者之前将消息刷盘。ASYNC_FLUSH 模式下的 broker 则利用刷盘一组消息的模式，取得更好的性能。                                       |​
+| flushDiskType     | ASYNC_FLUSH | SYNC_FLUSH/ASYNC_FLUSH SYNC_FLUSH 模式下的 broker 保证在收到确认生产者之前将消息刷盘。ASYNC_FLUSH 模式下的 broker 则利用刷盘一组消息的模式，可以取得更好的性能。                                       |​
 
 ## 4  NameServer
 
