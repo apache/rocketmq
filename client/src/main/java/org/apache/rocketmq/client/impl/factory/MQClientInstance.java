@@ -1284,7 +1284,6 @@ public class MQClientInstance {
 
     public void createRetryTopic(String topic,
         String consumerGroup) {
-        System.out.println("****create retry topic for consumerGrouop: " + consumerGroup);
         TopicRouteData topicRouteData = this.topicRouteTable.get(topic);
         if (topicRouteData != null) {
             if (topicRouteData.getBrokerDatas() != null) {

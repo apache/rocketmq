@@ -2121,7 +2121,6 @@ public class MQClientAPIImpl {
 
         RemotingCommand response = this.remotingClient.invokeSync(address, request, timeoutMillis);
         assert response != null;
-        System.out.println("create retry topic for consumerGrouop: " + consumerGroup);
         if (ResponseCode.SUCCESS != response.getCode()) {
             throw new MQClientException(response.getCode(), response.getRemark());
         }
