@@ -53,8 +53,8 @@ public class ScheduleMessageServiceTest {
     private static final int cqFileSize = 10;
     private static final int cqExtFileSize = 10 * (ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE + 64);
 
-    private static SocketAddress BornHost;
-    private static SocketAddress StoreHost;
+    private static SocketAddress bornHost;
+    private static SocketAddress storeHost;
     DefaultMessageStore messageStore;
     MessageStoreConfig messageStoreConfig;
     BrokerConfig brokerConfig;
@@ -63,12 +63,12 @@ public class ScheduleMessageServiceTest {
 
     static {
         try {
-            StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
+            bornHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
         try {
-            BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
+            storeHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
@@ -162,8 +162,8 @@ public class ScheduleMessageServiceTest {
         msg.setQueueId(0);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
-        msg.setStoreHost(StoreHost);
-        msg.setBornHost(BornHost);
+        msg.setStoreHost(storeHost);
+        msg.setBornHost(bornHost);
         return msg;
     }
 
