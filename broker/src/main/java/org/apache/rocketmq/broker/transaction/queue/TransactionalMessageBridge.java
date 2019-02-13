@@ -447,7 +447,7 @@ public class TransactionalMessageBridge {
         /**
          * RMQ_SYS_TRANS_OP_HALF_TOPIC
          *
-         * 消息得body部分  存储得是messageExt得QueueOffset
+         * 消息的body部分  存储得是messageExt的QueueOffset   messageExt对应的topic是RMQ_SYS_TRANS_HALF_TOPIC
          */
         Message message = new Message(TransactionalMessageUtil.buildOpTopic(), TransactionalMessageUtil.REMOVETAG,
             String.valueOf(messageExt.getQueueOffset()).getBytes(TransactionalMessageUtil.charset));
@@ -466,7 +466,7 @@ public class TransactionalMessageBridge {
      */
     private void writeOp(Message message, MessageQueue mq) {
         /**
-         * MessageQueue和mq得差别在于topic不同   RMQ_SYS_TRANS_OP_HALF_TOPIC和RMQ_SYS_TRANS_HALF_TOPIC
+         * opQueue和mq得差别在于topic不同   RMQ_SYS_TRANS_OP_HALF_TOPIC和RMQ_SYS_TRANS_HALF_TOPIC
          */
         MessageQueue opQueue;
         if (opQueueMap.containsKey(mq)) {
