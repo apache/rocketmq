@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.broker.util;
 
+import java.util.List;
+import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.remoting.util.ServiceProvider;
@@ -38,5 +40,11 @@ public class ServiceProviderTest {
         AbstractTransactionalMessageCheckListener listener = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_LISTENER_ID,
             AbstractTransactionalMessageCheckListener.class);
         assertThat(listener).isNotNull();
+    }
+    
+    @Test
+    public void loadAccessValidatorTest() {
+    	 List<AccessValidator> accessValidators = ServiceProvider.loadServiceList(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
+    	 assertThat(accessValidators).isNotNull();
     }
 }

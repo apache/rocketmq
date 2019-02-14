@@ -40,7 +40,7 @@
 
         <fileSet>
             <includes>
-                <include>bin/*</include>
+                <include>bin/**</include>
             </includes>
             <fileMode>0755</fileMode>
         </fileSet>

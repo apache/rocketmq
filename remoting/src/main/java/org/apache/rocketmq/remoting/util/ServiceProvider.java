@@ -40,7 +40,11 @@ public class ServiceProvider {
 
     public static final String TRANSACTION_LISTENER_ID = "META-INF/service/org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener";
 
+    public static final String RPC_HOOK_ID = "META-INF/service/org.apache.rocketmq.remoting.RPCHook";
+
+
     public static final String ACL_VALIDATOR_ID = "META-INF/service/org.apache.rocketmq.acl.AccessValidator";
+
 
     static {
         thisClassLoader = getClassLoader(ServiceProvider.class);

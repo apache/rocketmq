@@ -39,6 +39,9 @@ import java.net.InetSocketAddress;
 import java.security.cert.CertificateException;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
@@ -75,7 +78,6 @@ public class NettyRemotingServer extends NettyRemotingServerAbstract implements 
     private ChannelEventListener channelEventListener;
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
     private Class<? extends ServerSocketChannel> socketChannelClass;
-
     private int port = 0;
     private InterceptorGroup interceptorGroup;
 
@@ -108,20 +110,57 @@ public class NettyRemotingServer extends NettyRemotingServerAbstract implements 
         if (publicThreadNums <= 0) {
             publicThreadNums = 4;
         }
-        this.publicExecutor = ThreadUtils.newFixedThreadPool(
-            publicThreadNums,
-            10000, "Remoting-PublicExecutor", true);
+
+        this.publicExecutor = Executors.newFixedThreadPool(publicThreadNums, new ThreadFactory() {
+            private AtomicInteger threadIndex = new AtomicInteger(0);
+
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "NettyServerPublicExecutor_" + this.threadIndex.incrementAndGet());
+            }
+        });
+
         if (JvmUtils.isUseEpoll() && this.nettyServerConfig.isUseEpollNativeSelector()) {
-            this.eventLoopGroupSelector = new EpollEventLoopGroup(serverConfig.getServerSelectorThreads(), ThreadUtils.newGenericThreadFactory("NettyEpollIoThreads",
-                serverConfig.getServerSelectorThreads()));
-            this.eventLoopGroupBoss = new EpollEventLoopGroup(serverConfig.getServerAcceptorThreads(), ThreadUtils.newGenericThreadFactory("NettyBossThreads",
-                serverConfig.getServerAcceptorThreads()));
+            this.eventLoopGroupBoss = new EpollEventLoopGroup(1, new ThreadFactory() {
+                private AtomicInteger threadIndex = new AtomicInteger(0);
+
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, String.format("NettyEPOLLBoss_%d", this.threadIndex.incrementAndGet()));
+                }
+            });
+
+            this.eventLoopGroupSelector = new EpollEventLoopGroup(nettyServerConfig.getServerSelectorThreads(), new ThreadFactory() {
+                private AtomicInteger threadIndex = new AtomicInteger(0);
+                private int threadTotal = nettyServerConfig.getServerSelectorThreads();
+
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, String.format("NettyServerEPOLLSelector_%d_%d", threadTotal, this.threadIndex.incrementAndGet()));
+                }
+            });
             this.socketChannelClass = EpollServerSocketChannel.class;
+
         } else {
-            this.eventLoopGroupBoss = new NioEventLoopGroup(serverConfig.getServerAcceptorThreads(), ThreadUtils.newGenericThreadFactory("NettyBossThreads",
-                serverConfig.getServerAcceptorThreads()));
-            this.eventLoopGroupSelector = new NioEventLoopGroup(serverConfig.getServerSelectorThreads(), ThreadUtils.newGenericThreadFactory("NettyNioIoThreads",
-                serverConfig.getServerSelectorThreads()));
+            this.eventLoopGroupBoss = new NioEventLoopGroup(1, new ThreadFactory() {
+                private AtomicInteger threadIndex = new AtomicInteger(0);
+
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, String.format("NettyNIOBoss_%d", this.threadIndex.incrementAndGet()));
+                }
+            });
+
+            this.eventLoopGroupSelector = new NioEventLoopGroup(nettyServerConfig.getServerSelectorThreads(), new ThreadFactory() {
+                private AtomicInteger threadIndex = new AtomicInteger(0);
+                private int threadTotal = nettyServerConfig.getServerSelectorThreads();
+
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, String.format("NettyServerNIOSelector_%d_%d", threadTotal, this.threadIndex.incrementAndGet()));
+                }
+            });
+
             this.socketChannelClass = NioServerSocketChannel.class;
         }
         this.port = nettyServerConfig.getListenPort();

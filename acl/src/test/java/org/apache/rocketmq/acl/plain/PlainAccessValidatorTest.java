@@ -59,7 +59,6 @@ public class PlainAccessValidatorTest {
         messageRequestHeader.setTopic("topicA");
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, messageRequestHeader);
         aclClient.doBeforeRequest("", remotingCommand);
-
         ByteBuffer buf = CodecHelper.encode(remotingCommand);
         buf.getInt();
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
@@ -77,7 +76,6 @@ public class PlainAccessValidatorTest {
         messageRequestHeader.setTopic("topicB");
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, messageRequestHeader);
         aclClient.doBeforeRequest("", remotingCommand);
-
         ByteBuffer buf = CodecHelper.encode(remotingCommand);
         buf.getInt();
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
@@ -93,7 +91,6 @@ public class PlainAccessValidatorTest {
         messageRequestHeader.setTopic("topicB");
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, messageRequestHeader);
         aclClient.doBeforeRequest("", remotingCommand);
-
         ByteBuffer buf = CodecHelper.encodeHeader(remotingCommand);
         buf.getInt();
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
@@ -108,7 +105,6 @@ public class PlainAccessValidatorTest {
         messageRequestHeader.setTopic("topicC");
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(messageRequestHeader));
         aclClient.doBeforeRequest("", remotingCommand);
-
         ByteBuffer buf = CodecHelper.encodeHeader(remotingCommand);
         buf.getInt();
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
@@ -201,6 +197,7 @@ public class PlainAccessValidatorTest {
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
         buf.position(0);
         PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(CodecHelper.decode(buf), "192.168.0.1:9876");
+
         plainAccessValidator.validate(accessResource);
     }
 
@@ -242,7 +239,6 @@ public class PlainAccessValidatorTest {
         messageRequestHeader.setTopic("topicB");
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, messageRequestHeader);
         aclClientRPCHook.doBeforeRequest("", remotingCommand);
-
         ByteBuffer buf = CodecHelper.encodeHeader(remotingCommand);
         buf.getInt();
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
@@ -261,7 +257,6 @@ public class PlainAccessValidatorTest {
         messageRequestHeader.setTopic("topicB");
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, messageRequestHeader);
         aclClientRPCHook.doBeforeRequest("", remotingCommand);
-
         ByteBuffer buf = CodecHelper.encodeHeader(remotingCommand);
         buf.getInt();
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
