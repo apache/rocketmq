@@ -1,29 +1,14 @@
-# 事务消息样例
+# Transaction message example 
+## 1 Transaction message status 
+There are three states for transactional message:  
+1. TransactionStatus.CommitTransaction: commit transaction，it means that allow consumers to consume this message.  
+2. TransactionStatus.RollbackTransaction: rollback transaction，it means that the message will be deleted and not allowed to consume.  
+3. TransactionStatus.Unknown: intermediate state，it means that MQ is needed to check back to determine the status.
 
-## 1、什么是事务消息
-事务消息可以被认为是在分布式系统中两个阶段提交的消息实现能保持最终一致性。  
-事务消息确保可以原子性地执行本地事务和消息发送。  
+## 2 Send transactional message example
 
-## 2、事务消息使用上的限制
-1. 事务消息不支持延时消息和批量消息。
-2. 为了避免单个消息被检查太多次而导致半队列消息累积，我们默认将单个消息的检查次数限制为 15 次，但是用户可以通过 Broker 配置文件的 transactionCheckMax参数来修改此限制。如果已经检查某条消息超过 N 次的话（ N = transactionCheckMax ） 则 Broker 将丢弃此消息，并在默认情况下同时打印错误日志。用户可以通过重写 AbstractTransactionCheckListener 类来修改这个行为。
-3. 事务消息将在 Broker 配置文件中的参数 transactionMsgTimeout 这样的特定时间长度之后被检查。当发送事务消息时，用户还可以通过设置用户属性 CHECK_IMMUNITY_TIME_IN_SECONDS 来改变这个限制，该参数优先于 transactionMsgTimeout 参数。
-4. 事务性消息可能不止一次被检查或消费。
-5. 提交给用户的目标主题消息可能会失败，目前这依日志的记录而定。它的高可用性通过 RocketMQ 本身的高可用性机制来保证，如果希望确保事务消息不丢失、并且事务完整性得到保证，建议使用同步的双重写入机制。
-6. 事务消息的生产者 ID 不能与其他类型消息的生产者 ID 共享。与其他类型的消息不同，事务消息允许反向查询、MQ服务器能通过它们的生产者 ID 查询到消费者。
-
-## 3、应用
-
-### 3.1、事务消息状态  
-事务消息共有三种状态，提交状态、回滚状态、中间状态：  
-1. TransactionStatus.CommitTransaction: 提交事务，它允许消费者消费此消息。
-2. TransactionStatus.RollbackTransaction: 回滚事务，它代表该消息将被删除，不允许被消费。
-3. TransactionStatus.Unknown: 中间状态，它代表需要检查消息队列来确定状态。
-
-### 3.2、发送事务消息样例
-
-#### 3.2.1、创建事务性生产者
-使用 TransactionMQProducer类创建生产者，并指定唯一的 ProducerGroup，就可以设置自定义线程池来处理这些检查请求。执行本地事务后、需要根据执行结果对消息队列进行回复。回传的事务状态在请参考前一节。
+### 2.1 Create the transactional producer 
+Use ```TransactionMQProducer```class to create producer client, and specify a unique ```ProducerGroup```, and you can set up a custom thread pool to process check requests. After executing the local transaction, you need to reply to MQ according to the execution result，and the reply status is described in the above section.  
 ```java
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
@@ -48,7 +33,7 @@ public class TransactionProducer {
        producer.start();
        String[] tags = new String[] {"TagA", "TagB", "TagC", "TagD", "TagE"};
        for (int i = 0; i < 10; i++) {
-           try {
+           try {````````
                Message msg =
                    new Message("TopicTest1234", tags[i % tags.length], "KEY" + i,
                        ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
@@ -67,8 +52,10 @@ public class TransactionProducer {
 }
 ```
 
-#### 3.2.2、实现事务的监听接口
-当发送半消息成功时，我们使用 executeLocalTransaction 方法来执行本地事务。它返回前一节中提到的三个事务状态之一。checkLocalTranscation 方法用于检查本地事务状态，并回应消息队列的检查请求。它也是返回前一节中提到的三个事务状态之一。
+### 2.2 Implement the TransactionListener interface
+The ```executeLocalTransaction``` method is used to execute local transaction when send half message succeed. It returns one of three transaction status mentioned in the previous section.
+
+The ```checkLocalTransaction``` method is used to check the local transaction status and respond to MQ check requests. It also returns one of three transaction status mentioned in the previous section. 
 ```java
 public class TransactionListenerImpl implements TransactionListener {
   private AtomicInteger transactionIndex = new AtomicInteger(0);
@@ -97,3 +84,12 @@ public class TransactionListenerImpl implements TransactionListener {
   }
 }
 ```
+
+## 3 Usage Constraint  
+1. Messages of the transactional have no schedule and batch support.
+2. In order to avoid a single message being checked too many times and lead to half queue message accumulation， we limited the number of checks for a single message to 15 times by default, but users can change this limit by change the ```transactionCheckMax``` parameter in the configuration of the broker， if one message has been checked over ```transactionCheckMax``` times， broker will discard this message and print an error log at the same time by default. Users can change this behavior by override the ```AbstractTransactionCheckListener``` class.
+3. A transactional message will be checked after a certain period of time that determined by parameter ```transactionTimeout``` in the configuration of the broker. And users also can change this limit by set user property “CHECK_IMMUNITY_TIME_IN_SECONDS” when sending transactional message, this parameter takes precedence over the “transactionMsgTimeout” parameter. 
+4. A transactional message maybe checked or consumed more than once. 
+5. Committed message reput to the user’s target topic may fail. Currently, it depends on the log record. High availability is ensured by the high availability mechanism of RocketMQ itself. If you want to ensure that the transactional message isn’t lost and the transaction integrity is guaranteed, it is recommended to use synchronous double write. mechanism. 
+6. Producer IDs of transactional messages cannot be shared with producer IDs of other types of messages. Unlike other types of message, transactional messages allow backward queries. MQ Server query clients by their Producer IDs.
+
