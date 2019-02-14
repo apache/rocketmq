@@ -2,9 +2,7 @@
 ## 1 设计(design)
 ### 1.1 消息存储
 
-![](image/image001.png)
-
-图1 RocketMQ消息存储架构图
+![](image/rocketmq_design_1.png)
 
 &#160; &#160; &#160; &#160;消息存储是RocketMQ中最为复杂和最为重要的一部分，本节将分别从RocketMQ的消息存储整体架构、PageCache与Mmap内存映射以及RocketMQ中两种不同的刷盘方式三方面来分别展开叙述。<br>
 
@@ -20,9 +18,7 @@
 &#160; &#160; &#160; &#160;另外，RocketMQ主要通过MappedByteBuffer对文件进行读写操作。其中，利用了NIO中的FileChannel模型将磁盘上的物理文件直接映射到用户态的内存地址中（这种Mmap的方式减少了传统IO将磁盘文件数据在操作系统内核地址空间的缓冲区和用户应用程序地址空间的缓冲区之间来回进行拷贝的性能开销），将对文件的操作转化为直接对内存地址进行操作，从而极大地提高了文件的读写效率（正因为需要使用内存映射机制，故RocketMQ的文件存储都使用定长结构来存储，方便一次将整个文件映射至内存）。
 #### 1.1.3 消息刷盘
 
-![](image/image002.png)
-
-图2 RocketMQ同步/异步两种刷盘方式
+![](image/rocketmq_design_2.png)
 
 &#160; &#160; &#160; &#160;(1) 同步刷盘：如上图所示，只有在消息真正持久化至磁盘后RocketMQ的Broker端才会真正返回给Producer端一个成功的ACK响应。同步刷盘对MQ消息可靠性来说是一种不错的保障，但是性能上会有较大影响，一般适用于金融业务应用该模式较多。<br>
 &#160; &#160; &#160; &#160;(2) 异步刷盘：能够充分利用OS的PageCache的优势，只要消息写入PageCache即可将成功的ACK返回给Producer端。消息刷盘采用后台异步线程提交的方式进行，降低了读写延迟，提高了MQ的性能和吞吐量。
@@ -37,13 +33,10 @@
 &#160; &#160; &#160; &#160;rocketmq-remoting 模块是 RocketMQ消息队列中负责网络通信的模块，它几乎被其他所有需要网络通信的模块（诸如rocketmq-client、rocketmq-broker、rocketmq-namesrv）所依赖和引用。为了实现客户端与服务器之间高效的数据请求与接收，RocketMQ消息队列自定义了通信协议并在Netty的基础之上扩展了通信模块。
 #### 1.2.1 Remoting通信类结构
 
-![](image/image003.png)
-
-图3 RocketMQ通信类结构图
+![](image/rocketmq_design_3.png)
 
 ### 1.2.2 协议设计与编解码
 &#160; &#160; &#160; &#160;在Client和Server之间完成一次消息发送时，需要对发送的消息进行一个协议约定，因此就有必要自定义RocketMQ的消息协议。同时，为了高效地在网络中传输消息和对收到的消息读取，就需要对消息进行编解码。在RocketMQ中，RemotingCommand这个类在消息传输过程中对所有数据内容的封装，不但包含了所有的数据结构，还包含了编码解码操作。
-<center>表1 RemotingCommand类的部分成员变量</center>
 
 Header字段 | 类型 | Request说明 | Response说明
 --- | --- | --- | --- |
@@ -55,9 +48,7 @@ flag | int | 区分是普通RPC还是onewayRPC得标志 | 区分是普通RPC还�
 remark | String | 传输自定义文本信息 | 传输自定义文本信息
 extFields | HashMap<String, String> | 请求自定义扩展信息 | 响应自定义扩展信息
 
-![](image/image004.png)
-
-图4 RocketMQ通信类结构图
+![](image/rocketmq_design_4.png)
 
 可见传输内容主要可以分为以下4部分：<br>
 (1) 消息长度：总长度，四个字节存储，占用一个int类型；<br>
@@ -69,16 +60,12 @@ extFields | HashMap<String, String> | 请求自定义扩展信息 | 响应自定
 &#160; &#160; &#160; &#160;在RocketMQ消息队列中支持通信的方式主要有同步(sync)、异步(async)、单向(oneway)
 三种。其中“单向”通信模式相对简单，一般用在发送心跳包场景下，无需关注其Response。这里，主要介绍RocketMQ的异步通信流程。
 
-![](image/image005.png)
-
-图5 RocketMQ异步通信的整体流程图
+![](image/rocketmq_design_5.png)
 
 #### 1.2.4 Reactor多线程设计
 &#160; &#160; &#160; &#160;RocketMQ的RPC通信采用Netty组件作为底层通信库，同样也遵循了Reactor多线程模型，同时又在这之上做了一些扩展和优化。
 
-![](image/image006.png)
-
-图6 RocketMQ的1+N+M1+M2的Reactor多线程通信模型
+![](image/rocketmq_design_6.png)
 
 &#160; &#160; &#160; &#160;上面的框图中可以大致了解RocketMQ中NettyRemotingServer的Reactor 多线程模型。一个 Reactor 主线程（eventLoopGroupBoss，即为上面的1）负责监听 TCP网络连接请求，建立好连接，创建SocketChannel，并注册到selector上。RocketMQ的源码中会自动根据OS的类型选择NIO和Epoll，也可以通过参数配置）,然后监听真正的网络数据。拿到网络数据后，再丢给Worker线程池（eventLoopGroupSelector，即为上面的“N”，源码中默认设置为3），在真正执行业务逻辑之前需要进行SSL验证、编解码、空闲检查、网络连接管理，这些工作交给defaultEventExecutorGroup（即为上面的“M1”，源码中默认设置为8）去做。而处理业务操作放在业务线程池中执行，根据 RomotingCommand 的业务请求码code去processorTable这个本地缓存变量中找到对应的 processor，然后封装成task任务后，提交给对应的业务processor处理线程池来执行（sendMessageExecutor，以发送消息为例，即为上面的 “M2”）。从入口到业务逻辑的几个步骤中线程池一直再增加，这跟每一步逻辑复杂性相关，越复杂，需要的并发通道越宽。
 
@@ -92,9 +79,7 @@ M2 | RemotingExecutorThread_%d | 业务processor处理线程池
 ### 1.3 消息过滤
 &#160; &#160; &#160; &#160;RocketMQ分布式消息队列的消息过滤方式有别于其它MQ中间件，是在Consumer端订阅消息时再做消息过滤的。RocketMQ这么做是还是在于其Producer端写入消息和Consomer端订阅消息采用分离存储的机制来实现的，Consumer端订阅消息是需要通过ConsumeQueue这个消息消费的逻辑队列拿到一个索引，然后再从CommitLog里面读取真正的消息实体内容，所以说到底也是还绕不开其存储结构。其ConsumeQueue的存储结构如下，可以看到其中有8个字节存储的Message Tag的哈希值，基于Tag的消息过滤正式基于这个字段值的。
 
-![](image/image007.jpg)
-
-图7 ConsumeQueue的结构
+![](image/rocketmq_design_7.png)
 
 主要支持如下2种的过滤方式，<br>
 &#160; &#160; &#160; &#160;(1) Tag过滤方式：Consumer端在订阅消息时除了指定Topic还可以指定TAG，如果一个消息有多个TAG，可以用||分隔。其中，Consumer端会将这个订阅请求构建成一个 SubscriptionData，发送一个Pull消息的请求给Broker端。Broker端从RocketMQ的文件存储层—Store读取数据之前，会用这些数据先构建一个MessageFilter，然后传给Store。Store从 ConsumeQueue读取到一条记录后，会用它记录的消息tag hash值去做过滤，由于在服务端只是根据hashcode进行判断，无法精确对tag原始字符串进行过滤，故在消息消费端拉取到消息后，还需要对消息的原始tag字符串进行比对，如果不同，则丢弃该消息，不进行消息消费。<br>
@@ -114,19 +99,15 @@ Producer端在发送消息的时候，会先根据Topic找到指定的TopicPubli
 &#160; &#160; &#160; &#160;(2) 根据topic和consumerGroup为参数调用mQClientFactory.findConsumerIdList()方法向Broker端发送获取该消费组下消费者Id列表的RPC通信请求（Broker端基于前面Consumer端上报的心跳包数据而构建的consumerTable做出响应返回，业务请求码：GET_CONSUMER_LIST_BY_GROUP）；<br>
 &#160; &#160; &#160; &#160;(3) 先对Topic下的消息消费队列、消费者Id排序，然后用消息队列分配策略算法（默认为：消息队列的平均分配算法），计算出待拉取的消息队列。这里的平均分配算法，类似于分页的算法，将所有MessageQueue排好序类似于记录，将所有消费端Consumer排好序类似页数，并求出每一页需要包含的平均size和每个页面记录的范围range，最后遍历整个range而计算出当前Consumer端应该分配到的记录（这里即为：MessageQueue）。
 
-![](image/image008.png)
-
-图8 Consumer端负载均衡策略的分配
+![](image/rocketmq_design_8.png)
 
 &#160; &#160; &#160; &#160;(4) 然后，调用updateProcessQueueTableInRebalance()方法，具体的做法是，先将分配到的消息队列集合（mqSet）与processQueueTable做一个过滤比对。
 
-![](image/image009.png)
+![](image/rocketmq_design_9.png)
 
-图9 RebalancePushImpl负载均衡(分发pullRequest到pullRequestQueue)
+&#160; &#160; &#160; &#160;（1）上图中processQueueTable标注的红色部分，表示与分配到的消息队列集合mqSet互不包含。将这些队列设置Dropped属性为true，然后查看这些队列是否可以移除出processQueueTable缓存变量，这里具体执行removeUnnecessaryMessageQueue()方法，即每隔1s 查看是否可以获取当前消费处理队列的锁，拿到的话返回true。如果等待1s后，仍然拿不到当前消费处理队列的锁则返回false。如果返回true，则从processQueueTable缓存变量中移除对应的Entry；
 
-&#160; &#160; &#160; &#160;（1）图9中processQueueTable标注的红色部分，表示与分配到的消息队列集合mqSet互不包含。将这些队列设置Dropped属性为true，然后查看这些队列是否可以移除出processQueueTable缓存变量，这里具体执行removeUnnecessaryMessageQueue()方法，即每隔1s 查看是否可以获取当前消费处理队列的锁，拿到的话返回true。如果等待1s后，仍然拿不到当前消费处理队列的锁则返回false。如果返回true，则从processQueueTable缓存变量中移除对应的Entry；
-
-&#160; &#160; &#160; &#160;（2）图9中processQueueTable的绿色部分，表示与分配到的消息队列集合mqSet的交集。判断该ProcessQueue是否已经过期了，在Pull模式的不用管，如果是Push模式的，设置Dropped属性为true，并且调用removeUnnecessaryMessageQueue()方法，像上面一样尝试移除Entry；
+&#160; &#160; &#160; &#160;（2）上图中processQueueTable的绿色部分，表示与分配到的消息队列集合mqSet的交集。判断该ProcessQueue是否已经过期了，在Pull模式的不用管，如果是Push模式的，设置Dropped属性为true，并且调用removeUnnecessaryMessageQueue()方法，像上面一样尝试移除Entry；
 
 &#160; &#160; &#160; &#160;最后，为过滤后的消息队列集合（mqSet）中的每个MessageQueue创建一个ProcessQueue对象并存入RebalanceImpl的processQueueTable队列中（其中调用RebalanceImpl实例的computePullFromWhere(MessageQueue mq)方法获取该MessageQueue对象的下一个进度消费值offset，随后填充至接下来要创建的pullRequest对象属性中），并创建拉取请求对象—pullRequest添加到拉取列表—pullRequestList中，最后执行dispatchPullRequest()方法，将Pull消息的请求对象PullRequest依次放入PullMessageService服务线程的阻塞队列pullRequestQueue中，待该服务线程取出后向Broker端发起Pull消息的请求。其中，可以重点对比下，RebalancePushImpl和RebalancePullImpl两个实现类的dispatchPullRequest()方法不同，RebalancePullImpl类里面的该方法为空，这样子也就回答了上一篇中最后的那道思考题了。
 
@@ -135,12 +116,10 @@ Producer端在发送消息的时候，会先根据Topic找到指定的TopicPubli
 ### 1.5 事务消息
 &#160; &#160; &#160; &#160;Apache RocketMQ在4.3.0版中已经支持分布式事务消息，这里RocketMQ采用了2PC的思想来实现了提交事务消息，同时增加一个补偿逻辑来处理二阶段超时或者失败的消息，如下图所示。
 
-![](image/image010.png)
-
-图10 消息事务控制流程
+![](image/rocketmq_design_10.png)
 
 ####  1.5.1 RocketMQ事务消息流程概要
-图10说明了事务消息的大致方案，其中分为两个流程：正常事务消息的发送及提交、事务消息的补偿流程。
+上图说明了事务消息的大致方案，其中分为两个流程：正常事务消息的发送及提交、事务消息的补偿流程。
 
 1.事务消息发送及提交：<br>
 &#160; &#160; &#160; &#160;(1) 发送消息（half消息）。<br>
@@ -158,9 +137,7 @@ Producer端在发送消息的时候，会先根据Topic找到指定的TopicPubli
 &#160; &#160; &#160; &#160;在RocketMQ事务消息的主要流程中，一阶段的消息如何对用户不可见。其中，事务消息相对普通消息最大的特点就是一阶段发送的消息对用户是不可见的。那么，如何做到写入消息但是对用户不可见呢？RocketMQ事务消息的做法是：如果消息是half消息，将备份原消息的主题与消息消费队列，然后改变主题为RMQ_SYS_TRANS_HALF_TOPIC。由于消费组未订阅该主题，故消费端无法消费half类型的消息，然后RocketMQ会开启一个定时任务，从Topic为RMQ_SYS_TRANS_HALF_TOPIC中拉取消息进行消费，根据生产者组获取一个服务提供者发送回查事务状态请求，根据事务状态来决定是提交或回滚消息。<br>
 &#160; &#160; &#160; &#160;在RocketMQ中，消息在服务端的存储结构如下，每条消息都会有对应的索引信息，Consumer通过ConsumeQueue这个二级索引来读取消息实体内容，其流程如下：
 
-![](image/image011.png)
-
-图11 消息存储流转
+![](image/rocketmq_design_11.png)
 
 &#160; &#160; &#160; &#160;RocketMQ的具体实现策略是：写入的如果事务消息，对消息的Topic和Queue等属性进行替换，同时将原来的Topic和Queue信息存储到消息的属性中，正因为消息主题被替换，故消息并不会转发到该原主题的消息消费队列，消费者无法感知消息的存在，不会消息。其实改变消息主题是RocketMQ的常用“套路”，回想一下定时任务的实现机制。
 
@@ -170,9 +147,7 @@ Producer端在发送消息的时候，会先根据Topic找到指定的TopicPubli
 3.Op消息的存储和对应关系<br>
 &#160; &#160; &#160; &#160;RocketMQ将Op消息写入到全局一个特定的Topic中通过源码中的方法—TransactionalMessageUtil.buildOpTopic()；这个Topic是一个内部的Topic（像Half消息的Topic一样），不会被用户消费。Op消息的内容为对应的Half消息的存储的Offset，这样通过Op消息能索引到Half消息进行后续的回查操作。
 
-![](image/image012.png)
-
-图12 事务消息的映射结构
+![](image/rocketmq_design_12.png)
 
 4.Half消息的索引构建<br>
 &#160; &#160; &#160; &#160;在执行二阶段Commit操作时，需要构建出Half消息的索引。一阶段的Half消息由于是写到一个特殊的Topic，所以二阶段构建索引时需要读取出Half消息，并将Topic和Queue替换成真正的目标的Topic和Queue，之后通过一次普通消息的写入操作来生成一条对用户可见的消息。所以RocketMQ事务消息二阶段其实是利用了一阶段存储的消息的内容，在二阶段时恢复出一条完整的普通消息，然后走一遍消息写入流程。
@@ -188,9 +163,7 @@ Producer端在发送消息的时候，会先根据Topic找到指定的TopicPubli
 #### 1.6.2  按照Message Key查询消息
 &#160; &#160; &#160; &#160;“按照Message Key查询消息”，主要是基于RocketMQ的IndexFile索引文件来实现的。RocketMQ的索引文件逻辑结构，类似JDK中HashMap的实现。索引文件的具体结构如下：
 
-![](image/image013.jpg)
-
-图13 RocketMQ的IndexFile索引文件结构
+![](image/rocketmq_design_13.png)
 
 &#160; &#160; &#160; &#160;IndexFile索引文件为用户提供通过“按照Message Key查询消息”的消息索引查询服务，IndexFile文件的存储位置是：$HOME\store\index\${fileName}，文件名fileName是以创建时的时间戳命名的，文件大小是固定的，等于40+500W*4+2000W*20= 420000040个字节大小。如果消息的properties中设置了UNIQ_KEY这个属性，就用 topic + “#” + UNIQ_KEY的value作为 key 来做写入操作。如果消息设置了KEYS属性（多个KEY以空格分隔），也会用 topic + “#” + KEY 来做索引。
 
