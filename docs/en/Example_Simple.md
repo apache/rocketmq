@@ -5,7 +5,7 @@ Two functions below are provided in the basic sample:
 * The RocketMQ can be utilized to consume messages.
 ### 1.1 Add Dependency
 maven:
-```
+``` java
 <dependency>
   <groupId>org.apache.rocketmq</groupId>
   <artifactId>rocketmq-client</artifactId>
@@ -13,11 +13,13 @@ maven:
 </dependency>
 ```
 gradle: 
-`compile 'org.apache.rocketmq:rocketmq-client:4.3.0'`
-###1.2 Send Messages
+``` java 
+compile 'org.apache.rocketmq:rocketmq-client:4.3.0'
+```
+### 1.2 Send Messages
 ##### 1.2.1 Use Producer to Send Synchronous Messages
 Reliable synchronous transmission is used in extensive scenes, such as important notification messages, SMS notification.
-```
+``` java
 public class SyncProducer {
   public static void main(String[] args) throws Exception {
     // Instantiate with a producer group name
@@ -44,7 +46,7 @@ public class SyncProducer {
 ```
 ##### 1.2.2 Send Asynchronous Messages
 Asynchronous transmission is generally used in response time sensitive business scenarios. It means that it is unable for the sender to wait the response of the Broker too long.
-```
+``` java
 public class AsyncProducer {
   public static void main(String[] args) throws Exception {
     // Instantiate with a producer group name
@@ -82,7 +84,7 @@ public class AsyncProducer {
 ```
 ##### 1.2.3 Send Messages in One-way Mode
 One-way transmission is used for cases requiring moderate reliability, such as log collection.
-```
+``` java
 public class OnewayProducer {
   public static void main(String[] args) throws Exception{
     // Instantiate with a producer group name
@@ -106,7 +108,7 @@ public class OnewayProducer {
 }
 ```
 ### 1.3 Consume Messages
-```
+``` java
 public class Consumer {
   public static void main(String[] args) throws InterruptedException, MQClientException {
     // Instantiate with specified consumer group name
