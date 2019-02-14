@@ -678,10 +678,10 @@ public class MQClientInstance {
                             } catch (Exception e) {
                                 log.error("send heart beat error:{}", e);
                                 if (this.isBrokerInNameServer(addr)) {
-                                    log.info("send heart beat to broker[{} {} {}] failed", brokerName, id, addr);
+                                    log.info("send heart beat to broker[{} {} {}] failed", brokerName, id, addr, e);
                                 } else {
                                     log.info("send heart beat to broker[{} {} {}] exception, because the broker not up, forget it", brokerName,
-                                        id, addr);
+                                        id, addr, e);
                                 }
                             }
                         }
@@ -1186,6 +1186,7 @@ public class MQClientInstance {
                 return this.brokerVersionTable.get(brokerName).get(brokerAddr);
             }
         }
+        //To do need to fresh the version
         return 0;
     }
 

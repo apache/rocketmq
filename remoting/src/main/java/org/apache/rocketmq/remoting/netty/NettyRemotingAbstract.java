@@ -57,6 +57,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.apache.rocketmq.remoting.util.ThreadUtils;
 
+
 public abstract class NettyRemotingAbstract {
 
     /**
@@ -107,6 +108,8 @@ public abstract class NettyRemotingAbstract {
      * SSL context via which to create {@link SslHandler}.
      */
     protected volatile SslContext sslContext;
+
+
 
     static {
         NettyLogger.initNettyLogger();
@@ -182,6 +185,7 @@ public abstract class NettyRemotingAbstract {
             }
         }
     }
+
 
     /**
      * Process incoming request command issued by remote peer.
@@ -341,10 +345,12 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+
+
     /**
      * Custom interceptor hook.
      *
-     * @return RPC hook if specified; null otherwise.
+     * @return Interceptor hooks if specified; null otherwise.
      */
     public abstract InterceptorGroup getInterceptorGroup();
 

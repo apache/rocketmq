@@ -25,6 +25,8 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 
+import static org.apache.rocketmq.common.SnodeConfig.localHostName;
+
 public class BrokerConfig {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
@@ -51,7 +53,10 @@ public class BrokerConfig {
     @ImportantField
     private boolean autoCreateSubscriptionGroup = true;
     private String messageStorePlugIn = "";
-
+    @ImportantField
+    private String msgTraceTopicName = MixAll.RMQ_SYS_TRACE_TOPIC;
+    @ImportantField
+    private boolean traceTopicEnable = false;
     /**
      * thread numbers for send message thread pool, since spin lock will be used by default since 4.0.x, the default
      * value is 1.
@@ -171,7 +176,6 @@ public class BrokerConfig {
     @ImportantField
     private long transactionCheckInterval = 60 * 1000;
 
-
     @ImportantField
     private boolean transactionEnable = true;
 
@@ -181,6 +185,21 @@ public class BrokerConfig {
 
     public void setTransactionEnable(boolean transactionEnable) {
         this.transactionEnable = transactionEnable;
+    }
+    /**
+     * Acl feature switch
+     */
+    @ImportantField
+    private boolean aclEnable = false;
+
+    public static String localHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            log.error("Failed to obtain the host name", e);
+        }
+
+        return "DEFAULT_BROKER";
     }
 
     public boolean isTraceOn() {
@@ -245,16 +264,6 @@ public class BrokerConfig {
 
     public void setSlaveReadEnable(final boolean slaveReadEnable) {
         this.slaveReadEnable = slaveReadEnable;
-    }
-
-    public static String localHostName() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            log.error("Failed to obtain the host name", e);
-        }
-
-        return "DEFAULT_BROKER";
     }
 
     public int getRegisterBrokerTimeoutMills() {
@@ -743,5 +752,29 @@ public class BrokerConfig {
 
     public void setWaitTimeMillsInTransactionQueue(long waitTimeMillsInTransactionQueue) {
         this.waitTimeMillsInTransactionQueue = waitTimeMillsInTransactionQueue;
+    }
+
+    public String getMsgTraceTopicName() {
+        return msgTraceTopicName;
+    }
+
+    public void setMsgTraceTopicName(String msgTraceTopicName) {
+        this.msgTraceTopicName = msgTraceTopicName;
+    }
+    
+    public boolean isTraceTopicEnable() {
+        return traceTopicEnable;
+    }
+
+    public void setTraceTopicEnable(boolean traceTopicEnable) {
+        this.traceTopicEnable = traceTopicEnable;
+    }
+
+    public boolean isAclEnable() {
+        return aclEnable;
+    }
+
+    public void setAclEnable(boolean aclEnable) {
+        this.aclEnable = aclEnable;
     }
 }

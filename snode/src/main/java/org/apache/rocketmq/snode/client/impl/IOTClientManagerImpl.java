@@ -21,7 +21,7 @@ import org.apache.rocketmq.snode.SnodeController;
 
 public class IOTClientManagerImpl extends ClientManagerImpl {
 
-    public static final String IOTGROUP = "IOTGROUP";
+    public static final String IOT_GROUP = "IOT_GROUP";
     private final SnodeController snodeController;
 
     public IOTClientManagerImpl(SnodeController snodeController) {
