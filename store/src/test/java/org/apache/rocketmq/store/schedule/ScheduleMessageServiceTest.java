@@ -20,6 +20,10 @@ package org.apache.rocketmq.store.schedule;
 
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.*;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -32,7 +36,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -46,6 +52,10 @@ public class ScheduleMessageServiceTest {
      * defaultMessageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h"
      */
     String testMessageDelayLevel = "5s 10s";
+    /**
+     * choose delay level
+     * 1 = 5s
+     */
     int delayLevel = 1;
 
     private static final String storePath = "." + File.separator + "schedule_test";
@@ -59,6 +69,8 @@ public class ScheduleMessageServiceTest {
     MessageStoreConfig messageStoreConfig;
     BrokerConfig brokerConfig;
     ScheduleMessageService scheduleMessageService;
+
+    static String sendMessage =   " ------- schedule message test -------";
 
 
     static {
@@ -95,27 +107,18 @@ public class ScheduleMessageServiceTest {
 
         messageStore.start();
         scheduleMessageService = messageStore.getScheduleMessageService();
-
     }
+
+
 
     @Test
     public void buildRunningStatsTest() throws InterruptedException {
         MessageExtBrokerInner msg = buildMessage();
         msg.setDelayTimeLevel(delayLevel);
         messageStore.putMessage(msg);
+        // wait offsetTable
         TimeUnit.SECONDS.sleep(1);
-        HashMap<String, String> stats = messageStore.getStoreStatsService().getRuntimeInfo();
-        scheduleMessageService.buildRunningStats(stats);
-    }
-
-
-    @Test
-    public void deliverDelayedMessageTimerTaskTest() throws InterruptedException {
-        MessageExtBrokerInner msg = buildMessage();
-        // set delayLevel
-        msg.setDelayTimeLevel(delayLevel);
-        PutMessageResult result = messageStore.putMessage(msg);
-        assertThat(result.isOk()).isTrue();
+        scheduleMessageService.buildRunningStats(new HashMap<String, String>() );
     }
 
 
@@ -140,6 +143,46 @@ public class ScheduleMessageServiceTest {
         assertThat(queueId).isEqualTo(delayLevel + 1);
     }
 
+    @Test
+    public void deliverDelayedMessageTimerTaskTest() throws InterruptedException {
+        MessageExtBrokerInner msg = buildMessage();
+        // set delayLevel,and send delay message
+        msg.setDelayTimeLevel(delayLevel);
+        PutMessageResult result = messageStore.putMessage(msg);
+        assertThat(result.isOk()).isTrue();
+
+        // consumer message
+        Long offset = result.getAppendMessageResult().getLogicsOffset();
+        String messageGroup = "delayGroupTest";
+        GetMessageResult messageResult = messageStore.getMessage(messageGroup,msg.getTopic(),
+                msg.getQueueId(),offset,1,null);
+
+        // now, no message in queue,must wait > 5 seconds
+        assertThat(messageResult.getStatus()).isEqualTo(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
+
+
+        TimeUnit.SECONDS.sleep(6);
+        messageResult = messageStore.getMessage(messageGroup,msg.getTopic(),
+                msg.getQueueId(),offset,1,null);
+        // now,found the message
+        assertThat(messageResult.getStatus()).isEqualTo(GetMessageStatus.FOUND);
+
+
+        // get the message body
+        ByteBuffer byteBuffer = ByteBuffer.allocate(messageResult.getBufferTotalSize());
+        List<ByteBuffer>  byteBufferList = messageResult.getMessageBufferList();
+        for (ByteBuffer bb : byteBufferList) {
+            byteBuffer.put(bb);
+        }
+
+        // warp and decode the message
+        byteBuffer = ByteBuffer.wrap(byteBuffer.array());
+        List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
+        String retryMsg = new String(msgList.get(0).getBody());
+        assertThat(sendMessage).isEqualTo(retryMsg);
+
+    }
+
 
     @After
     public void shutdown() throws InterruptedException {
@@ -152,8 +195,8 @@ public class ScheduleMessageServiceTest {
 
 
     public MessageExtBrokerInner buildMessage() {
-        String message = " ------- schedule message -------";
-        byte[] msgBody = message.getBytes();
+
+        byte[] msgBody = sendMessage.getBytes();
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
         msg.setTopic("schedule_topic_test");
         msg.setTags("schedule_tag");
