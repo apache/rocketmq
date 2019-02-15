@@ -49,10 +49,15 @@ public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    //topic消息队列路由信息，消息发送时根据路由表进行负载均衡
     private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
+    //Broker基础信息，包含brokerName、所属集群名称、主备Broker地址
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+    //集群clusterName空间下包含的Broker
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
+    //Broker状态信息，key是broker的IP地址，NameServer每次收到心跳包时会替换该信息
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+    //Broker上的FilterServer列表，用于类模式消息过滤
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public RouteInfoManager() {
@@ -99,6 +104,18 @@ public class RouteInfoManager {
         return topicList.encode();
     }
 
+    /**
+     * 路由注册broker
+     * @param clusterName
+     * @param brokerAddr
+     * @param brokerName
+     * @param brokerId
+     * @param haServerAddr
+     * @param topicConfigWrapper
+     * @param filterServerList
+     * @param channel
+     * @return
+     */
     public RegisterBrokerResult registerBroker(
         final String clusterName,
         final String brokerAddr,
@@ -113,6 +130,7 @@ public class RouteInfoManager {
             try {
                 this.lock.writeLock().lockInterruptibly();
 
+                //判断Broker所属集群是否存在，如果不存在，则创建，然后将broker名称加入集群集合中
                 Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
                 if (null == brokerNames) {
                     brokerNames = new HashSet<String>();
@@ -122,6 +140,7 @@ public class RouteInfoManager {
 
                 boolean registerFirst = false;
 
+                //尝试获取BrokerData，如果不存在，则创建并存入brokerAddrTable，如果存在，则替换原先的
                 BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                 if (null == brokerData) {
                     registerFirst = true;
@@ -131,6 +150,8 @@ public class RouteInfoManager {
                 String oldAddr = brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
                 registerFirst = registerFirst || (null == oldAddr);
 
+                //如果broker是master，并且Broker Topic配置信息发生变化或者初次注册，则需要创建或更新
+                // topic路由元数据，填充topicQueueTable，其实就是为默认主题自动注册路由信息
                 if (null != topicConfigWrapper
                     && MixAll.MASTER_ID == brokerId) {
                     if (this.isBrokerTopicConfigChanged(brokerAddr, topicConfigWrapper.getDataVersion())
@@ -742,6 +763,7 @@ public class RouteInfoManager {
 }
 
 class BrokerLiveInfo {
+    //存储上次收到心跳包的时间戳
     private long lastUpdateTimestamp;
     private DataVersion dataVersion;
     private Channel channel;

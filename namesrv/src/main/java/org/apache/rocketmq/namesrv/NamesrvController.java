@@ -38,21 +38,30 @@ import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.srvutil.FileWatchService;
 
-
+/**
+ * 协调各个模块功能
+ */
 public class NamesrvController {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
+    //namesrv配置
     private final NamesrvConfig namesrvConfig;
 
+    //netty配置
     private final NettyServerConfig nettyServerConfig;
 
+    //定时任务
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "NSScheduledThread"));
+    //k-v配置管理器
     private final KVConfigManager kvConfigManager;
+    //路由信息管理器
     private final RouteInfoManager routeInfoManager;
 
+    //远程通信服务
     private RemotingServer remotingServer;
 
+    //Broker连接事件处理服务
     private BrokerHousekeepingService brokerHousekeepingService;
 
     private ExecutorService remotingExecutor;
@@ -73,17 +82,30 @@ public class NamesrvController {
         this.configuration.setStorePathFromConfig(this.namesrvConfig, "configStorePath");
     }
 
+    /**
+     * 初始化
+     * @return
+     */
     public boolean initialize() {
 
+        // 加载k-v配置
         this.kvConfigManager.load();
 
+        // 创建NettyServer网络处理对象
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
+        // 初始化线程池（根据getServerWorkerThreads值，启动相应数量线程）
         this.remotingExecutor =
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
+        // 此注册函数主要作用就是，定义RequestCode，用来作为netty的通信协议字段
+        // 即：如果broker通过netty发送通信请求，其中请求信息中带有code == RequestCode.REGISTER_BROKER，
+        // 那么在namesrv的netty端接收到该通信连接时候，
+        // 则对应调用namesrv的DefaultRequestProcessor类下面的registerBroker方法，从而完成broker向namesrv注册
+        // 具体请参考com.alibaba.rocketmq.namesrv.processor.DefaultRequestProcessor类
         this.registerProcessor();
 
+        //定时线程池，用来扫描移除失效的Broker
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -92,6 +114,7 @@ public class NamesrvController {
             }
         }, 5, 10, TimeUnit.SECONDS);
 
+        //定时线程池，打印KV配置
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override

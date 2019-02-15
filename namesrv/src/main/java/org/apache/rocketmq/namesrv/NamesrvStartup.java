@@ -41,6 +41,9 @@ import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.srvutil.ShutdownHookThread;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 模块启动入口
+ */
 public class NamesrvStartup {
 
     private static InternalLogger log;
@@ -55,6 +58,7 @@ public class NamesrvStartup {
 
         try {
             NamesrvController controller = createNamesrvController(args);
+            //主要是启动了一个netty服务用来监听
             start(controller);
             String tip = "The Name Server boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
             log.info(tip);
@@ -72,6 +76,7 @@ public class NamesrvStartup {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
         //PackageConflictDetect.detectFastjson();
 
+        //用来解析命令行中的参数args，保留在commandLIne中，new Option("h","help",false,"print help");
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
         if (null == commandLine) {
@@ -79,9 +84,15 @@ public class NamesrvStartup {
             return null;
         }
 
+        // namesrv配置文件存放在该类
         final NamesrvConfig namesrvConfig = new NamesrvConfig();
+        // netty的配置信息存放在该类
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(9876);
+
+        // 如果在启动namesrv的时候，使用了命令-c 指定了配置文件，
+        // 那么会将配置文件变量与namesrvConfig/nettyServerConfig中的变量进行设定。
+        // 具体拿Method中以set开头，setXXX方法中的XXX进行对应，配置文件到对象的生成。
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
@@ -98,6 +109,7 @@ public class NamesrvStartup {
             }
         }
 
+        //-p 打印配置信息，如果命令带有-p参数,则打印出NamesrvConfig、NettyServerConfig的属性
         if (commandLine.hasOption('p')) {
             InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_CONSOLE_NAME);
             MixAll.printObjectProperties(console, namesrvConfig);
@@ -107,6 +119,7 @@ public class NamesrvStartup {
 
         MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), namesrvConfig);
 
+        // 判断ROCKETMQ_HOME不能为空
         if (null == namesrvConfig.getRocketmqHome()) {
             System.out.printf("Please set the %s variable in your environment to match the location of the RocketMQ installation%n", MixAll.ROCKETMQ_HOME_ENV);
             System.exit(-2);
@@ -131,18 +144,28 @@ public class NamesrvStartup {
         return controller;
     }
 
+    /**
+     * 初始化Controller
+     * @param controller
+     * @return
+     * @throws Exception
+     */
     public static NamesrvController start(final NamesrvController controller) throws Exception {
 
         if (null == controller) {
             throw new IllegalArgumentException("NamesrvController is null");
         }
 
+        // 实例化一个NettyRemotingServer
         boolean initResult = controller.initialize();
         if (!initResult) {
             controller.shutdown();
             System.exit(-3);
         }
 
+        //注册JVM钩子函数ShutdownHook，并启动服务器，以便监听Broker、消息生产者的网络请求
+        //当程序退出时会调用controller.shutdown来做退出前的清理工作
+        //如果代码中使用了线程池，一种优雅的停机方式就是注册一个JVM钩子函数，在JVM进程关闭之前，先将线程池关闭，及时释放资源
         Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, new Callable<Void>() {
             @Override
             public Void call() throws Exception {
@@ -151,6 +174,7 @@ public class NamesrvStartup {
             }
         }));
 
+        //将实例化的NettyRemotingServer启动，进行监听
         controller.start();
 
         return controller;

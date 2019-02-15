@@ -811,6 +811,7 @@ public class BrokerController {
 
         this.registerBrokerAll(true, false, true);
 
+        //Broker启动时向集群中所有的NameServer发送心跳语句
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
