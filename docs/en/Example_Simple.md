@@ -1,9 +1,9 @@
-# 1. Basic Sample 
+# Basic Sample 
 ------
 Two functions below are provided in the basic sample:
 * The RocketMQ can be utilized to send messages in three ways: reliable synchronous, reliable asynchronous, and one-way transmission.  The first two message types are reliable because there is a response whether they were sent successfully.
 * The RocketMQ can be utilized to consume messages.
-### 1.1 Add Dependency
+### 1 Add Dependency
 maven:
 ``` java
 <dependency>
@@ -16,8 +16,8 @@ gradle:
 ``` java 
 compile 'org.apache.rocketmq:rocketmq-client:4.3.0'
 ```
-### 1.2 Send Messages
-##### 1.2.1 Use Producer to Send Synchronous Messages
+### 2 Send Messages
+##### 2.1 Use Producer to Send Synchronous Messages
 Reliable synchronous transmission is used in extensive scenes, such as important notification messages, SMS notification.
 ``` java
 public class SyncProducer {
@@ -44,7 +44,7 @@ public class SyncProducer {
   }
 }
 ```
-##### 1.2.2 Send Asynchronous Messages
+##### 2.2 Send Asynchronous Messages
 Asynchronous transmission is generally used in response time sensitive business scenarios. It means that it is unable for the sender to wait the response of the Broker too long.
 ``` java
 public class AsyncProducer {
@@ -82,7 +82,7 @@ public class AsyncProducer {
   }
 }
 ```
-##### 1.2.3 Send Messages in One-way Mode
+##### 2.3 Send Messages in One-way Mode
 One-way transmission is used for cases requiring moderate reliability, such as log collection.
 ``` java
 public class OnewayProducer {
@@ -107,7 +107,7 @@ public class OnewayProducer {
   }
 }
 ```
-### 1.3 Consume Messages
+### 3 Consume Messages
 ``` java
 public class Consumer {
   public static void main(String[] args) throws InterruptedException, MQClientException {
