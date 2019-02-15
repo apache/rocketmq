@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.common.constant;
 
+/**
+ * 状态位检测
+ */
 public class PermName {
     public static final int PERM_PRIORITY = 0x1 << 3;
     public static final int PERM_READ = 0x1 << 2;
@@ -39,15 +42,35 @@ public class PermName {
         return sb.toString();
     }
 
+    /**
+     * 判断倒数第三位是不是1
+     * @param perm
+     * @return
+     */
     public static boolean isReadable(final int perm) {
         return (perm & PERM_READ) == PERM_READ;
     }
 
+    /**
+     * 判断倒数第二位是不是1
+     * @param perm
+     * @return
+     */
     public static boolean isWriteable(final int perm) {
         return (perm & PERM_WRITE) == PERM_WRITE;
     }
 
+    /**
+     * 判断倒数第一位是不是1
+     * @param perm
+     * @return
+     */
     public static boolean isInherited(final int perm) {
         return (perm & PERM_INHERIT) == PERM_INHERIT;
     }
+
+//    public static void main(String[] args){
+//        String value = perm2String(10);
+//        System.out.println(value);
+//    }
 }
