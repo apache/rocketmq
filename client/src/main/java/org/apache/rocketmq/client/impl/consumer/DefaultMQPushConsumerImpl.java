@@ -92,7 +92,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private static final long CONSUMER_TIMEOUT_MILLIS_WHEN_SUSPEND = 1000 * 30;
     private final InternalLogger log = ClientLogger.getLog();
     private final DefaultMQPushConsumer defaultMQPushConsumer;
-    private final RebalanceImpl rebalanceImpl = new RebalancePushImpl(this);
+    //private final RebalanceImpl rebalanceImpl = new RebalancePushImpl(this);
+    private final RebalanceImpl rebalanceImpl;
     private final ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
     private final long consumerStartTimestamp = System.currentTimeMillis();
     private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
@@ -107,10 +108,22 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private ConsumeMessageService consumeMessageService;
     private long queueFlowControlTimes = 0;
     private long queueMaxSpanFlowControlTimes = 0;
+    private boolean realPushModel = true;
 
     public DefaultMQPushConsumerImpl(DefaultMQPushConsumer defaultMQPushConsumer, RPCHook rpcHook) {
+        this(defaultMQPushConsumer, rpcHook, true);
+    }
+
+    public DefaultMQPushConsumerImpl(DefaultMQPushConsumer defaultMQPushConsumer, RPCHook rpcHook,
+        boolean realPushModel) {
         this.defaultMQPushConsumer = defaultMQPushConsumer;
         this.rpcHook = rpcHook;
+        this.realPushModel = realPushModel;
+        if (realPushModel) {
+            rebalanceImpl = new RebalanceRealPushImpl(this);
+        } else {
+            rebalanceImpl = new RebalancePushImpl(this);
+        }
     }
 
     public void registerFilterMessageHook(final FilterMessageHook hook) {
@@ -971,7 +984,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     @Override
     public ConsumeType consumeType() {
-        return ConsumeType.CONSUME_PASSIVELY;
+        if (realPushModel) {
+            return ConsumeType.CONSUME_PUSH;
+        } else {
+            return ConsumeType.CONSUME_PASSIVELY;
+        }
     }
 
     @Override
