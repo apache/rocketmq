@@ -19,6 +19,8 @@ package org.apache.rocketmq.store;
 
 import java.io.File;
 import java.io.RandomAccessFile;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -347,7 +349,7 @@ public class DefaultMessageStoreTest {
 
     @Test
     public void should_return_negative_one_when_invoke_getStoreTime_if_incomming_param_is_null() {
-        long storeTime = getDefaultMessageStore().getStoreTime(null);
+        long storeTime = getStoreTime(null);
 
         assertThat(storeTime).isEqualTo(-1);
     }
@@ -363,7 +365,7 @@ public class DefaultMessageStoreTest {
 
         for (int i = 0; i < totalCount; i++) {
             SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(i);
-            long storeTime = getDefaultMessageStore().getStoreTime(indexBuffer);
+            long storeTime = getStoreTime(indexBuffer);
             assertThat(storeTime).isEqualTo(appendMessageResults[i].getStoreTimestamp());
             indexBuffer.release();
         }
@@ -380,7 +382,7 @@ public class DefaultMessageStoreTest {
         MappedFile mappedFile = mock(MappedFile.class);
         SelectMappedBufferResult result = new SelectMappedBufferResult(0, byteBuffer, size, mappedFile);
 
-        long storeTime = getDefaultMessageStore().getStoreTime(result);
+        long storeTime = getStoreTime(result);
         result.release();
 
         assertThat(storeTime).isEqualTo(-1);
@@ -414,17 +416,6 @@ public class DefaultMessageStoreTest {
         return appendMessageResultArray;
     }
 
-    private long getMaxLogicsOffset(AppendMessageResult[] array) {
-        long maxOffset = 0;
-        for (AppendMessageResult appendMessageResult : array) {
-            long offset = appendMessageResult.getLogicsOffset();
-            if (offset > maxOffset) {
-                maxOffset = offset;
-            }
-        }
-        return maxOffset;
-    }
-
     private long getMaxOffset(AppendMessageResult[] appendMessageResultArray) {
         if (appendMessageResultArray == null) {
             return 0;
@@ -435,6 +426,16 @@ public class DefaultMessageStoreTest {
 
     private String buildMessageBodyByOffset(String message, long i) {
         return String.format("%s offset %d", message, i);
+    }
+
+    private long getStoreTime(SelectMappedBufferResult result) {
+        try {
+            Method getStoreTime = getDefaultMessageStore().getClass().getDeclaredMethod("getStoreTime", SelectMappedBufferResult.class);
+            getStoreTime.setAccessible(true);
+            return (long)getStoreTime.invoke(getDefaultMessageStore(), result);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private MessageExtBrokerInner buildMessage(byte[] messageBody, String topic) {
