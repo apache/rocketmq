@@ -742,7 +742,7 @@ public class DefaultMessageStore implements MessageStore {
         return -1;
     }
 
-    protected long getStoreTime(SelectMappedBufferResult result) {
+    private long getStoreTime(SelectMappedBufferResult result) {
         if (result != null) {
             try {
                 final long phyOffset = result.getByteBuffer().getLong();
