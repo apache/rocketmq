@@ -513,7 +513,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             int timesTotal = communicationMode == CommunicationMode.SYNC ? 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed() : 1;
             int times = 0;
             String[] brokersSent = new String[timesTotal];
-            int timeoutEveryTime = (int) (timeout / timesTotal) + 1;
+            int timeoutEveryTime = (int) Math.ceil(timeout / timesTotal);
             for (; times < timesTotal; times++) {
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
                 MessageQueue mqSelected = this.selectOneMessageQueue(topicPublishInfo, lastBrokerName);
@@ -553,14 +553,18 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
                         log.warn(msg.toString());
                         exception = e;
-                        continue;
+                        if (communicationMode == CommunicationMode.SYNC) {
+                            continue;
+                        }
                     } catch (MQClientException e) {
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true);
                         log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
                         log.warn(msg.toString());
                         exception = e;
-                        continue;
+                        if (communicationMode == CommunicationMode.SYNC) {
+                            continue;
+                        }
                     } catch (MQBrokerException e) {
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true);
@@ -574,7 +578,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             case ResponseCode.NO_PERMISSION:
                             case ResponseCode.NO_BUYER_ID:
                             case ResponseCode.NOT_IN_CURRENT_UNIT:
-                                continue;
+                                if (communicationMode == CommunicationMode.SYNC) {
+                                    continue;
+                                }
                             default:
                                 if (sendResult != null) {
                                     return sendResult;
@@ -1247,11 +1253,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public void setCallbackExecutor(final ExecutorService callbackExecutor) {
         this.mQClientFactory.getMQClientAPIImpl().getRemotingClient().setCallbackExecutor(callbackExecutor);
-    }
-
-    public ExecutorService getCallbackExecutor() {
-        return this.mQClientFactory.getMQClientAPIImpl().getRemotingClient().getCallbackExecutor();
-
     }
 
     public SendResult send(Message msg,
