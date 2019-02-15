@@ -23,12 +23,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
- * CommitLogTest
+ * HATest
  *
  * @author yanglibo@qccr.com
- * @version CommitLogTest.java 2019年01月14日 17:34:31
+ * @version HATest.java 2019年01月14日 17:34:31
  */
-public class CommitLogTest {
+public class HATest {
     private final String StoreMessage = "Once, there was a chance for me!";
     private int QUEUE_TOTAL = 100;
     private AtomicInteger QueueId = new AtomicInteger(0);
@@ -41,17 +41,20 @@ public class CommitLogTest {
     private MessageStoreConfig masterMessageStoreConfig;
     private MessageStoreConfig slaveStoreConfig;
     private BrokerStatsManager brokerStatsManager = new BrokerStatsManager("simpleTest");
+    private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
     @Before
     public void init() throws Exception {
         StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
         masterMessageStoreConfig = new MessageStoreConfig();
         masterMessageStoreConfig.setBrokerRole(BrokerRole.SYNC_MASTER);
+        masterMessageStoreConfig.setStorePathRootDir(storePathRootDir+File.separator+"master");
+        masterMessageStoreConfig.setStorePathCommitLog(storePathRootDir+File.separator+"master"+ File.separator+"commitlog");
         buildMessageStoreConfig(masterMessageStoreConfig);
         slaveStoreConfig = new MessageStoreConfig();
         slaveStoreConfig.setBrokerRole(BrokerRole.SLAVE);
-        slaveStoreConfig.setStorePathRootDir(slaveStoreConfig.getStorePathRootDir()+File.separator+"slave");
-        slaveStoreConfig.setStorePathCommitLog(slaveStoreConfig.getStorePathCommitLog()+File.separator+"slave");
+        slaveStoreConfig.setStorePathRootDir(storePathRootDir+File.separator+"slave");
+        slaveStoreConfig.setStorePathCommitLog(storePathRootDir+File.separator+"slave"+ File.separator+"commitlog");
         slaveStoreConfig.setHaListenPort(10943);
         buildMessageStoreConfig(slaveStoreConfig);
         messageStore = buildMessageStore(masterMessageStoreConfig,0L);
@@ -84,11 +87,12 @@ public class CommitLogTest {
 
     @After
     public void destroy() throws Exception{
-        slaveMessageStore.shutdown();
-        slaveMessageStore.destroy();
         Thread.sleep(10000L);
         messageStore.shutdown();
         messageStore.destroy();
+        Thread.sleep(10000L);
+        slaveMessageStore.shutdown();
+        slaveMessageStore.destroy();
         File file = new File(masterMessageStoreConfig.getStorePathRootDir());
         UtilAll.deleteFile(file);
         file = new File(slaveStoreConfig.getStorePathRootDir());
