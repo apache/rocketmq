@@ -183,10 +183,17 @@ public class ScheduleMessageServiceTest {
 
     }
 
+    @Test
+    public void persist(){
+        // because of the method will wait 10s
+        scheduleMessageService.persist();
+    }
+
 
     @After
     public void shutdown() throws InterruptedException {
         TimeUnit.SECONDS.sleep(1);
+        scheduleMessageService.shutdown();
         messageStore.shutdown();
         messageStore.destroy();
         File file = new File(messageStoreConfig.getStorePathRootDir());
