@@ -116,7 +116,8 @@ public class BatchPutMessageTest {
             MessageExt messageExt = messageStore.lookMessageByOffset(msgLengthArr[(int) i]);
             assertThat(messageExt).isNotNull();
             GetMessageResult result = messageStore.getMessage("batch_write_group", topic, queue, i, 1024 * 1024, null);
-            assertTrue(result.getStatus().equals(GetMessageStatus.FOUND));
+            assertThat(result).isNotNull();
+            assertThat(result.getStatus()).isEqualTo(GetMessageStatus.FOUND);
             result.release();
         }
 
