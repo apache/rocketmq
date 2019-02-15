@@ -63,7 +63,7 @@ public class MqttDisconnectMessageHandler implements MessageHandler {
 
         //discard will message associated with the current connection(client)
         Client client = snodeController.getIotClientManager()
-                .getClient(IOTClientManagerImpl.IOTGROUP, remotingChannel);
+                .getClient(IOTClientManagerImpl.IOT_GROUP, remotingChannel);
         if (client != null) {
             snodeController.getWillMessageService().deleteWillMessage(client.getClientId());
         }

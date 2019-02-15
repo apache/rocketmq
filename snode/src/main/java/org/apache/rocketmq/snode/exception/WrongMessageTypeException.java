@@ -15,22 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.snode.util;
+package org.apache.rocketmq.snode.exception;
 
-import java.util.UUID;
-import org.apache.rocketmq.snode.constant.MqttConstant;
+public class WrongMessageTypeException extends RuntimeException {
 
-public class MqttUtil {
-
-    public static String generateClientId() {
-        return UUID.randomUUID().toString();
-    }
-
-    public static String getRootTopic(String topic) {
-        return topic.split(MqttConstant.SUBSCRIPTION_SEPARATOR)[0];
-    }
-
-    public static int actualQos(int qos) {
-        return Math.min(MqttConstant.MAX_SUPPORTED_QOS, qos);
+    public WrongMessageTypeException(String message) {
+        super(message);
     }
 }

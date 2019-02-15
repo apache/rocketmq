@@ -21,7 +21,6 @@ import java.util.Set;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.serialize.LanguageCode;
 import org.apache.rocketmq.snode.client.impl.ClientRole;
-import org.apache.rocketmq.snode.session.Session;
 
 public class Client {
 
@@ -43,7 +42,9 @@ public class Client {
 
     private boolean isConnected;
 
-    private Session session;
+    private boolean cleanSession;
+
+    private String snodeAddress;
 
     public ClientRole getClientRole() {
         return clientRole;
@@ -63,18 +64,20 @@ public class Client {
         }
         Client client = (Client) o;
         return version == client.version &&
-                clientRole == client.clientRole &&
-                Objects.equals(clientId, client.clientId) &&
-                Objects.equals(groups, client.groups) &&
-                Objects.equals(remotingChannel, client.remotingChannel) &&
-                language == client.language &&
-                isConnected == client.isConnected();
+            clientRole == client.clientRole &&
+            Objects.equals(clientId, client.clientId) &&
+            Objects.equals(groups, client.groups) &&
+            Objects.equals(remotingChannel, client.remotingChannel) &&
+            language == client.language &&
+            isConnected == client.isConnected &&
+            cleanSession == client.cleanSession &&
+            snodeAddress == client.snodeAddress;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(clientRole, clientId, groups, remotingChannel, heartbeatInterval,
-                lastUpdateTimestamp, version, language, isConnected);
+            lastUpdateTimestamp, version, language, isConnected, cleanSession, snodeAddress);
     }
 
     public RemotingChannel getRemotingChannel() {
@@ -133,12 +136,20 @@ public class Client {
         isConnected = connected;
     }
 
-    public Session getSession() {
-        return session;
+    public boolean isCleanSession() {
+        return cleanSession;
     }
 
-    public void setSession(Session session) {
-        session = session;
+    public void setCleanSession(boolean cleanSession) {
+        this.cleanSession = cleanSession;
+    }
+
+    public String getSnodeAddress() {
+        return snodeAddress;
+    }
+
+    public void setSnodeAddress(String snodeAddress) {
+        this.snodeAddress = snodeAddress;
     }
 
     public Set<String> getGroups() {
@@ -152,17 +163,18 @@ public class Client {
     @Override
     public String toString() {
         return "Client{" +
-                "clientRole=" + clientRole +
-                ", clientId='" + clientId + '\'' +
-                ", groups=" + groups +
-                ", remotingChannel=" + remotingChannel +
-                ", heartbeatInterval=" + heartbeatInterval +
-                ", lastUpdateTimestamp=" + lastUpdateTimestamp +
-                ", version=" + version +
-                ", language=" + language +
-                ", isConnected=" + isConnected +
-                ", session=" + session +
-                '}';
+            "clientRole=" + clientRole +
+            ", clientId='" + clientId + '\'' +
+            ", groups=" + groups +
+            ", remotingChannel=" + remotingChannel +
+            ", heartbeatInterval=" + heartbeatInterval +
+            ", lastUpdateTimestamp=" + lastUpdateTimestamp +
+            ", version=" + version +
+            ", language=" + language +
+            ", isConnected=" + isConnected +
+            ", cleanSession=" + cleanSession +
+            ", snodeAddress=" + snodeAddress +
+            '}';
     }
 }
 

@@ -50,7 +50,7 @@ public class MqttDisconnectMessageHandlerTest {
         Client client = new Client();
         client.setRemotingChannel(remotingChannel);
         client.setClientId("123456");
-        snodeController.getIotClientManager().register(IOTClientManagerImpl.IOTGROUP, client);
+        snodeController.getIotClientManager().register(IOTClientManagerImpl.IOT_GROUP, client);
         snodeController.getWillMessageService().saveWillMessage("123456", new WillMessage());
         MqttMessage mqttDisconnectMessage = new MqttMessage(new MqttFixedHeader(
                 MqttMessageType.DISCONNECT, false, MqttQoS.AT_MOST_ONCE, false, 200));

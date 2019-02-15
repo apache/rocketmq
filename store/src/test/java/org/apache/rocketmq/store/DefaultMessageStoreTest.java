@@ -36,6 +36,7 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.junit.After;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -61,6 +62,7 @@ public class DefaultMessageStoreTest {
         messageStore.start();
     }
 
+    @Ignore
     @Test(expected = OverlappingFileLockException.class)
     public void test_repate_restart() throws Exception {
         QUEUE_TOTAL = 1;

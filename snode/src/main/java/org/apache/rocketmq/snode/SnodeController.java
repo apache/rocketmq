@@ -75,7 +75,6 @@ import org.apache.rocketmq.snode.service.impl.NnodeServiceImpl;
 import org.apache.rocketmq.snode.service.impl.PushServiceImpl;
 import org.apache.rocketmq.snode.service.impl.ScheduledServiceImpl;
 import org.apache.rocketmq.snode.service.impl.WillMessageServiceImpl;
-import org.apache.rocketmq.snode.session.SessionManagerImpl;
 
 public class SnodeController {
 
@@ -100,7 +99,6 @@ public class SnodeController {
     private ClientManager producerManager;
     private ClientManager consumerManager;
     private ClientManager iotClientManager;
-    private SessionManagerImpl sessionManager;
     private SubscriptionManager subscriptionManager;
     private ClientHousekeepingService clientHousekeepingService;
     private SubscriptionGroupManager subscriptionGroupManager;
@@ -211,7 +209,6 @@ public class SnodeController {
         this.producerManager = new ProducerManagerImpl();
         this.consumerManager = new ConsumerManagerImpl(this);
         this.iotClientManager = new IOTClientManagerImpl(this);
-        this.sessionManager = new SessionManagerImpl(this);
         this.clientHousekeepingService = new ClientHousekeepingService(this.producerManager,
                 this.consumerManager, this.iotClientManager);
         this.slowConsumerService = new SlowConsumerServiceImpl(this);
@@ -505,14 +502,6 @@ public class SnodeController {
 
     public void setIotClientManager(ClientManager iotClientManager) {
         this.iotClientManager = iotClientManager;
-    }
-
-    public SessionManagerImpl getSessionManager() {
-        return sessionManager;
-    }
-
-    public void setSessionManager(SessionManagerImpl sessionManager) {
-        this.sessionManager = sessionManager;
     }
 
     public SubscriptionManager getSubscriptionManager() {

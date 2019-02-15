@@ -29,30 +29,30 @@ import org.apache.rocketmq.remoting.transport.mqtt.dispatcher.Message2MessageEnc
 public class RemotingCommand2MqttMessageHandler extends MessageToMessageEncoder<RemotingCommand> {
 
     /**
-     * Encode from one message to an other. This method will be called for each written message that
-     * can be handled by this encoder.
+     * Encode from one message to an other. This method will be called for each written message that can be handled by
+     * this encoder.
      *
-     * @param ctx the {@link ChannelHandlerContext} which this {@link MessageToMessageEncoder}
-     * belongs to
+     * @param ctx the {@link ChannelHandlerContext} which this {@link MessageToMessageEncoder} belongs to
      * @param msg the message to encode to an other one
-     * @param out the {@link List} into which the encoded msg should be added needs to do some kind
-     * of aggregation
+     * @param out the {@link List} into which the encoded msg should be added needs to do some kind of aggregation
      * @throws Exception is thrown if an error occurs
      */
     @Override
     protected void encode(ChannelHandlerContext ctx, RemotingCommand msg, List<Object> out)
-            throws Exception {
+        throws Exception {
         if (!(msg instanceof RemotingCommand)) {
             return;
         }
         MqttMessage mqttMessage = null;
         MqttHeader mqttHeader = (MqttHeader) msg.decodeCommandCustomHeader(MqttHeader.class);
         Message2MessageEncodeDecode message2MessageEncodeDecode = EncodeDecodeDispatcher
-                .getEncodeDecodeDispatcher().get(
-                        MqttMessageType.valueOf(mqttHeader.getMessageType()));
-        if (message2MessageEncodeDecode != null) {
-            mqttMessage = message2MessageEncodeDecode.encode(msg);
+            .getEncodeDecodeDispatcher().get(
+                MqttMessageType.valueOf(mqttHeader.getMessageType()));
+        if (message2MessageEncodeDecode == null) {
+            throw new IllegalArgumentException(
+                "Unknown message type: " + mqttHeader.getMessageType());
         }
+        mqttMessage = message2MessageEncodeDecode.encode(msg);
         out.add(mqttMessage);
     }
 }

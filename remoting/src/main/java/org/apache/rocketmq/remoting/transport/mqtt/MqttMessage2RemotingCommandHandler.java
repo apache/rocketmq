@@ -28,27 +28,28 @@ import org.apache.rocketmq.remoting.transport.mqtt.dispatcher.Message2MessageEnc
 public class MqttMessage2RemotingCommandHandler extends MessageToMessageDecoder<MqttMessage> {
 
     /**
-     * Decode from one message to an other. This method will be called for each written message that
-     * can be handled by this encoder.
+     * Decode from one message to an other. This method will be called for each written message that can be handled by
+     * this encoder.
      *
-     * @param ctx the {@link ChannelHandlerContext} which this {@link MessageToMessageDecoder}
-     * belongs to
+     * @param ctx the {@link ChannelHandlerContext} which this {@link MessageToMessageDecoder} belongs to
      * @param msg the message to decode to an other one
      * @param out the {@link List} to which decoded messages should be added
      * @throws Exception is thrown if an error occurs
      */
     @Override
     protected void decode(ChannelHandlerContext ctx, MqttMessage msg, List<Object> out)
-            throws Exception {
+        throws Exception {
         if (!(msg instanceof MqttMessage)) {
             return;
         }
         RemotingCommand requestCommand = null;
         Message2MessageEncodeDecode message2MessageEncodeDecode = EncodeDecodeDispatcher
-                .getEncodeDecodeDispatcher().get(msg.fixedHeader().messageType());
-        if (message2MessageEncodeDecode != null) {
-            requestCommand = message2MessageEncodeDecode.decode(msg);
+            .getEncodeDecodeDispatcher().get(msg.fixedHeader().messageType());
+        if (message2MessageEncodeDecode == null) {
+            throw new IllegalArgumentException(
+                "Unknown message type: " + msg.fixedHeader().messageType());
         }
+        requestCommand = message2MessageEncodeDecode.decode(msg);
         out.add(requestCommand);
     }
 }

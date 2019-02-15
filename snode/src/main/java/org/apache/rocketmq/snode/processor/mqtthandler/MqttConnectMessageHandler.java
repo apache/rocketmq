@@ -37,9 +37,9 @@ import org.apache.rocketmq.snode.client.Client;
 import org.apache.rocketmq.snode.client.ClientManager;
 import org.apache.rocketmq.snode.client.impl.ClientRole;
 import org.apache.rocketmq.snode.client.impl.IOTClientManagerImpl;
+import org.apache.rocketmq.snode.client.impl.Subscription;
 import org.apache.rocketmq.snode.exception.MqttConnectException;
-import org.apache.rocketmq.snode.session.Session;
-import org.apache.rocketmq.snode.session.SessionManagerImpl;
+import org.apache.rocketmq.snode.exception.WrongMessageTypeException;
 
 public class MqttConnectMessageHandler implements MessageHandler {
 
@@ -55,7 +55,8 @@ public class MqttConnectMessageHandler implements MessageHandler {
     @Override
     public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
         if (!(message instanceof MqttConnectMessage)) {
-            return null;
+            log.error("Wrong message type! Expected type: CONNECT but {} was received.", message.fixedHeader().messageType());
+            throw new WrongMessageTypeException("Wrong message type exception.");
         }
         MqttConnectMessage mqttConnectMessage = (MqttConnectMessage) message;
         MqttConnectPayload payload = mqttConnectMessage.payload();
@@ -70,9 +71,9 @@ public class MqttConnectMessageHandler implements MessageHandler {
         /* TODO when clientId.length=0 and cleanSession=0, the server should assign a unique clientId to the client.*/
         //validate clientId
         if (StringUtils.isBlank(payload.clientIdentifier()) && !mqttConnectMessage.variableHeader()
-                .isCleanSession()) {
+            .isCleanSession()) {
             mqttHeader.setConnectReturnCode(
-                    MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED.name());
+                MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED.name());
             mqttHeader.setSessionPresent(false);
             command.setCode(ResponseCode.SYSTEM_ERROR);
             command.setRemark("CONNECTION_REFUSED_IDENTIFIER_REJECTED");
@@ -80,33 +81,40 @@ public class MqttConnectMessageHandler implements MessageHandler {
         }
         //authentication
         if (mqttConnectMessage.variableHeader().hasPassword() && mqttConnectMessage.variableHeader()
-                .hasUserName()
-                && !authorized(payload.userName(), payload.password())) {
+            .hasUserName()
+            && !authorized(payload.userName(), payload.password())) {
             mqttHeader.setConnectReturnCode(
-                    MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD.name());
+                MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD.name());
             mqttHeader.setSessionPresent(false);
             command.setCode(ResponseCode.SYSTEM_ERROR);
             command.setRemark("CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD");
             return command;
         }
-        //process a second CONNECT packet as a protocol violation and disconnect
+        //treat a second CONNECT packet as a protocol violation and disconnect
         if (isConnected(remotingChannel, payload.clientIdentifier())) {
             remotingChannel.close();
             return null;
         }
+        IOTClientManagerImpl iotClientManager = (IOTClientManagerImpl) snodeController.getIotClientManager();
         //set Session Present according to whether the server has already stored Session State for the clientId
         if (mqttConnectMessage.variableHeader().isCleanSession()) {
             mqttHeader.setSessionPresent(false);
+            //do the logic of clean Session State
+            iotClientManager.cleanSessionState(payload.clientIdentifier());
+            Subscription subscription = new Subscription();
+            subscription.setCleanSession(true);
+            iotClientManager.initSubscription(payload.clientIdentifier(), subscription);
         } else {
-
             if (alreadyStoredSession(payload.clientIdentifier())) {
                 mqttHeader.setSessionPresent(true);
             } else {
                 mqttHeader.setSessionPresent(false);
+                Subscription subscription = new Subscription();
+                subscription.setCleanSession(false);
+                iotClientManager.initSubscription(payload.clientIdentifier(), subscription);
             }
         }
-        ClientManager iotClientManager = snodeController.getIotClientManager();
-        SessionManagerImpl sessionManager = snodeController.getSessionManager();
+
         Client client = new Client();
         client.setClientId(payload.clientIdentifier());
         client.setClientRole(ClientRole.IOTCLIENT);
@@ -114,12 +122,7 @@ public class MqttConnectMessageHandler implements MessageHandler {
         client.setRemotingChannel(remotingChannel);
         client.setLastUpdateTimestamp(System.currentTimeMillis());
         //register remotingChannel<--->client
-        iotClientManager.register(IOTClientManagerImpl.IOTGROUP, client);
-
-        Session session = new Session();
-        session.setClientId(client.getClientId());
-        //register client<--->session
-        sessionManager.register(client.getClientId(), session);
+        iotClientManager.register(IOTClientManagerImpl.IOT_GROUP, client);
 
         //save will message if have
         if (mqttConnectMessage.variableHeader().isWillFlag()) {
@@ -142,12 +145,15 @@ public class MqttConnectMessageHandler implements MessageHandler {
     }
 
     private boolean alreadyStoredSession(String clientId) {
-        SessionManagerImpl sessionManager = snodeController.getSessionManager();
-        Session session = sessionManager.getSession(clientId);
-        if (session != null && session.getClientId().equals(clientId)) {
-            return true;
+        IOTClientManagerImpl iotClientManager = (IOTClientManagerImpl) snodeController.getIotClientManager();
+        Subscription subscription = iotClientManager.getSubscriptionByClientId(clientId);
+        if (subscription == null) {
+            return false;
         }
-        return false;
+        if (subscription.isCleanSession()) {
+            return false;
+        }
+        return true;
     }
 
     private boolean authorized(String username, String password) {
