@@ -32,7 +32,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -469,8 +468,6 @@ public class BrokerController {
                 }
             }
             initialTransaction();
-            initialAcl();
-//            initialRpcHooks();
         }
         return result;
     }
@@ -489,57 +486,6 @@ public class BrokerController {
         this.transactionalMessageCheckListener.setBrokerController(this);
         this.transactionalMessageCheckService = new TransactionalMessageCheckService(this);
     }
-
-    private void initialAcl() {
-        if (!this.brokerConfig.isAclEnable()) {
-            log.info("The broker dose not enable acl");
-            return;
-        }
-
-        List<AccessValidator> accessValidators = ServiceProvider.loadServiceList(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
-        if (accessValidators == null || accessValidators.isEmpty()) {
-            log.info("The broker dose not load the AccessValidator");
-            return;
-        }
-
-//        for (AccessValidator accessValidator : accessValidators) {
-//            final AccessValidator validator = accessValidator;
-//            this.registerServerRPCHook(new Interceptor() {
-//
-//                @Override public String interceptorName() {
-//                    return "aclInterceptor";
-//                }
-//
-//                @Override public void beforeRequest(RequestContext requestContext) {
-//
-//                    validator.validate(validator.parse(requestContext.getRequest(), requestContext.getRemotingChannel().remoteAddress().toString()));
-//
-//                }
-//
-//                @Override public void afterRequest(ResponseContext responseContext) {
-//
-//                }
-//
-//                @Override public void onException(ExceptionContext exceptionContext) {
-//
-//                }
-//
-//            });
-//        }
-    }
-
-    private void initialRpcHooks() {
-
-        List<RPCHook> rpcHooks = ServiceProvider.loadServiceList(ServiceProvider.RPC_HOOK_ID, RPCHook.class);
-        if (rpcHooks == null || rpcHooks.isEmpty()) {
-            return;
-        }
-        for (RPCHook rpcHook : rpcHooks) {
-            this.remotingServer.registerServerRPCHook(rpcHook);
-        }
-    }
-
-//    registerInterceoptorGroup()
 
     public void registerProcessor() {
         /**

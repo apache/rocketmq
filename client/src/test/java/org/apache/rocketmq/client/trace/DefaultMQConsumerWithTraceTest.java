@@ -65,6 +65,7 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
@@ -185,6 +186,8 @@ public class DefaultMQConsumerWithTraceTest {
             });
 
         doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
+        doReturn("127.0.0.1:10911").when(mQClientFactory).findSnodeAddressInPublish();
+
         Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
         messageQueueSet.add(createPullRequest().getMessageQueue());
         pushConsumer.getDefaultMQPushConsumerImpl().updateTopicSubscribeInfo(topic, messageQueueSet);
@@ -195,7 +198,7 @@ public class DefaultMQConsumerWithTraceTest {
         pushConsumer.shutdown();
     }
 
-//    @Test
+    @Test
     public void testPullMessage_WithTrace_Success() throws InterruptedException, RemotingException, MQBrokerException, MQClientException {
         traceProducer.getDefaultMQProducerImpl().getmQClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
 
