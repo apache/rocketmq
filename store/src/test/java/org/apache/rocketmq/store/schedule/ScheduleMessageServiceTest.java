@@ -58,7 +58,7 @@ public class ScheduleMessageServiceTest {
      */
     int delayLevel = 1;
 
-    private static final String storePath = "." + File.separator + "schedule_test";
+    private static final String storePath = System.getProperty("user.home")  + File.separator + "schedule_test";
     private static final int commitLogFileSize = 1024;
     private static final int cqFileSize = 10;
     private static final int cqExtFileSize = 10 * (ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE + 64);
@@ -180,6 +180,9 @@ public class ScheduleMessageServiceTest {
         List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
         String retryMsg = new String(msgList.get(0).getBody());
         assertThat(sendMessage).isEqualTo(retryMsg);
+
+        // add mapFile release
+        messageResult.release();
 
     }
 
