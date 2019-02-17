@@ -175,36 +175,6 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void should_get_total_message_count_successfully_when_incomming_by_topic_and_queueId() throws InterruptedException {
-        final int totalCount = 10;
-        int queueId = new Random().nextInt(10);
-        String topic = "FooBar";
-        String anotherTopic = "anotherTopic";
-        putMessages(totalCount, topic, queueId);
-        putMessages(1, anotherTopic, queueId);
-
-        Thread.sleep(10); // wait async reput service run finish.
-        long totalInQueue = getDefaultMessageStore().getMessageTotalInQueue(topic, queueId);
-
-        assertThat(totalInQueue).isEqualTo(totalCount);
-    }
-
-    @Test
-    public void should_return_zero_when_message_not_found_by_topic_and_queueId() throws InterruptedException {
-        final int totalCount = 10;
-        int queueId = 0;
-        int anotherQueueId = 1;
-        String topic = "FooBar";
-        String anotherTopic = "anotherTopic";
-        putMessages(totalCount, topic, queueId);
-        putMessages(1, anotherTopic, anotherQueueId);
-
-        Thread.sleep(10); // wait async reput service run finish.
-        assertThat(getDefaultMessageStore().getMessageTotalInQueue(topic, anotherQueueId)).isEqualTo(0);
-        assertThat(getDefaultMessageStore().getMessageTotalInQueue(anotherTopic, queueId)).isEqualTo(0);
-    }
-
-    @Test
     public void should_get_consume_queue_offset_successfully_when_incomming_by_timestamp() throws InterruptedException {
         final int totalCount = 10;
         int queueId = 0;
@@ -325,26 +295,6 @@ public class DefaultMessageStoreTest {
             long messageStoreTimeStamp = messageStore.getMessageStoreTimeStamp(topic, queueId, i);
             assertThat(messageStoreTimeStamp).isEqualTo(appendMessageResults[i].getStoreTimestamp());
         }
-    }
-
-    @Test
-    public void should_return_negative_one_when_invoke_getEarliestMessageTime_if_message_not_exist() {
-        long earliestMessageTime = messageStore.getEarliestMessageTime();
-
-        assertThat(earliestMessageTime).isEqualTo(-1);
-    }
-
-    @Test
-    public void should_return_the_first_message_store_timestamp_when_invoke_getEarliestMessageTime_if_everything_is_ok() throws InterruptedException {
-        final int totalCount = 10;
-        int queueId = 0;
-        String topic = "FooBar";
-        AppendMessageResult[] appendMessageResults = putMessages(totalCount, topic, queueId, false);
-        Thread.sleep(10);
-
-        long earliestMessageTime = messageStore.getEarliestMessageTime();
-
-        assertThat(earliestMessageTime).isEqualTo(appendMessageResults[0].getStoreTimestamp());
     }
 
     @Test
