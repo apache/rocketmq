@@ -82,7 +82,6 @@ import org.apache.rocketmq.common.protocol.body.QueryConsumeTimeSpanBody;
 import org.apache.rocketmq.common.protocol.body.QueryCorrectionOffsetBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.common.protocol.body.ResetOffsetBody;
-import org.apache.rocketmq.common.protocol.body.ResumeCheckHalfMessageResult;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
@@ -2210,28 +2209,23 @@ public class MQClientAPIImpl {
         }
     }
 
-    public ResumeCheckHalfMessageResult resumeCheckHalfMessage(final String addr, String msgId,
-            final long timeoutMillis) throws RemotingException, MQClientException, InterruptedException {
+    public boolean resumeCheckHalfMessage(final String addr, String msgId,
+        final long timeoutMillis) throws RemotingException, MQClientException, InterruptedException {
         ResumeCheckHalfMessageRequestHeader requestHeader = new ResumeCheckHalfMessageRequestHeader();
         requestHeader.setMsgId(msgId);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.RESUME_CHECK_HALF_MESSAGE, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
-                request, timeoutMillis);
+            request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
-                byte[] body = response.getBody();
-                if (body != null) {
-                    ResumeCheckHalfMessageResult info = ResumeCheckHalfMessageResult.decode(body, ResumeCheckHalfMessageResult.class);
-                    return info;
-                }
+                return true;
             }
             default:
-                break;
+                log.error("Failed to resume half message check logic. Remark={}", response.getRemark());
+                return false;
         }
-
-        throw new MQClientException(response.getCode(), response.getRemark());
     }
 }

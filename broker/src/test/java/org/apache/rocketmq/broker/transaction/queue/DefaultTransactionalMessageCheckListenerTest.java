@@ -45,9 +45,8 @@ public class DefaultTransactionalMessageCheckListenerTest {
 
     @Spy
     private BrokerController brokerController = new BrokerController(new BrokerConfig(),
-            new NettyServerConfig(),
-            new NettyClientConfig(), new MessageStoreConfig());
-
+        new NettyServerConfig(),
+        new NettyClientConfig(), new MessageStoreConfig());
 
     @Before
     public void init() throws Exception {
@@ -61,6 +60,7 @@ public class DefaultTransactionalMessageCheckListenerTest {
     public void destroy() {
 //        brokerController.shutdown();
     }
+
     @Test
     public void testResolveHalfMsg() {
         listener.resolveHalfMsg(createMessageExt());
@@ -81,10 +81,10 @@ public class DefaultTransactionalMessageCheckListenerTest {
         MessageExtBrokerInner inner = new MessageExtBrokerInner();
         MessageAccessor.putProperty(inner, MessageConst.PROPERTY_REAL_QUEUE_ID, "1");
         MessageAccessor
-                .putProperty(inner, MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, "1234255");
+            .putProperty(inner, MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, "1234255");
         MessageAccessor.putProperty(inner, MessageConst.PROPERTY_REAL_TOPIC, "realTopic");
         inner.setTransactionId(
-                inner.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
+            inner.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
         inner.setBody("check".getBytes());
         inner.setMsgId("12344567890");
         inner.setQueueId(0);
@@ -97,20 +97,15 @@ public class DefaultTransactionalMessageCheckListenerTest {
         messageExt.setTopic(MixAll.RMQ_SYS_TRANS_HALF_TOPIC);
         messageExt.setQueueId(0);
         messageExt.setBody("test resolve discard msg".getBytes());
-        messageExt.setStoreHost(new InetSocketAddress("127.0.0.1",10911));
-        messageExt.setBornHost(new InetSocketAddress("127.0.0.1",54270));
+        messageExt.setStoreHost(new InetSocketAddress("127.0.0.1", 10911));
+        messageExt.setBornHost(new InetSocketAddress("127.0.0.1", 54270));
         MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_REAL_TOPIC, "test_topic");
-        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_PRODUCER_GROUP,
-                "PID_TEST_DISCARD_MSG");
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_PRODUCER_GROUP, "PID_TEST_DISCARD_MSG");
         MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
-        MessageAccessor
-                .putProperty(messageExt, MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES, "15");
-        MessageAccessor
-                .putProperty(messageExt, MessageConst.PROPERTY_REAL_QUEUE_ID, "2");
-        MessageAccessor
-                .putProperty(messageExt, MessageConst.PROPERTY_TAGS, "test_discard_msg");
-        MessageAccessor
-                .putProperty(messageExt, MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, "AC14157E4F1C18B4AAC27EB1A0F30000");
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES, "15");
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_REAL_QUEUE_ID, "2");
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_TAGS, "test_discard_msg");
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, "AC14157E4F1C18B4AAC27EB1A0F30000");
         listener.resolveDiscardMsg(messageExt);
     }
 

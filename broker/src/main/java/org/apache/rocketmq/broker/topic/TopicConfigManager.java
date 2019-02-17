@@ -220,7 +220,7 @@ public class TopicConfigManager extends ConfigManager {
         }
 
         if (createNew) {
-            this.brokerController.registerBrokerAll(false, true,true);
+            this.brokerController.registerBrokerAll(false, true, true);
         }
 
         return topicConfig;
@@ -264,7 +264,7 @@ public class TopicConfigManager extends ConfigManager {
         }
 
         if (createNew) {
-            this.brokerController.registerBrokerAll(false, true,true);
+            this.brokerController.registerBrokerAll(false, true, true);
         }
 
         return topicConfig;
@@ -304,7 +304,7 @@ public class TopicConfigManager extends ConfigManager {
         }
 
         if (createNew) {
-            this.brokerController.registerBrokerAll(false, true,true);
+            this.brokerController.registerBrokerAll(false, true, true);
         }
 
         return topicConfig;
@@ -329,7 +329,7 @@ public class TopicConfigManager extends ConfigManager {
             this.dataVersion.nextVersion();
 
             this.persist();
-            this.brokerController.registerBrokerAll(false, true,true);
+            this.brokerController.registerBrokerAll(false, true, true);
         }
     }
 
@@ -349,7 +349,7 @@ public class TopicConfigManager extends ConfigManager {
             this.dataVersion.nextVersion();
 
             this.persist();
-            this.brokerController.registerBrokerAll(false, true,true);
+            this.brokerController.registerBrokerAll(false, true, true);
         }
     }
 
