@@ -1,7 +1,7 @@
-# 4 Batch Message Sample
+# Batch Message Sample
 ------
 Sending messages in batch improves performance of delivering small messages. Messages of the same batch should have: same topic, same waitStoreMsgOK and no schedule support. Besides, the total size of the messages in one batch should be no more than 1MiB.
-### 4.1 Send Batch Messages
+### 1 Send Batch Messages
 If you just send messages of no more than 4MiB at a time, it is easy to use batch:
 ```java
 String topic = "BatchTest";
@@ -16,7 +16,7 @@ try {
     //handle the error
 }
 ```
-### 4.2 Split into Lists
+### 2 Split into Lists
 The complexity only grow when you send large batch and you may not sure if it exceeds the size limit (4MiB). At this time, you’d better split the lists:
 ```java
 public class ListSplitter implements Iterator<List<Message>> {
