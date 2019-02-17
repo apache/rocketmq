@@ -59,7 +59,7 @@ public class MqttConnectMessageHandler implements MessageHandler {
 
     private boolean isConnected(RemotingChannel remotingChannel, String clientId) {
         ClientManager iotClientManager = snodeController.getIotClientManager();
-        Client client = iotClientManager.getClient(IOTClientManagerImpl.IOTGROUP, remotingChannel);
+        Client client = iotClientManager.getClient(IOTClientManagerImpl.IOT_GROUP, remotingChannel);
         if (client != null && client.getClientId().equals(clientId) && client.isConnected()) {
             return true;
         }

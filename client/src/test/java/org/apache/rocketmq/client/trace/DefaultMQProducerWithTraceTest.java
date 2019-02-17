@@ -116,6 +116,7 @@ public class DefaultMQProducerWithTraceTest {
         when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
                 nullable(SendCallback.class), nullable(TopicPublishInfo.class), nullable(MQClientInstance.class), anyInt(), nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class)))
                 .thenReturn(createSendResult(SendStatus.SEND_OK));
+        when(mQClientFactory.findSnodeAddressInPublish()).thenReturn("127.0.0.1:10911");
 
     }
 
