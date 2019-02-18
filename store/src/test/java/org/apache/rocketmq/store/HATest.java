@@ -86,7 +86,7 @@ public class HATest {
     }
 
     @Test
-    public void testHandleHA(){
+    public void testHandleHA() throws Exception{
         long totalMsgs = 10;
         QUEUE_TOTAL = 1;
         MessageBody = StoreMessage.getBytes();
@@ -94,6 +94,7 @@ public class HATest {
             messageStore.putMessage(buildMessage());
         }
 
+        Thread.sleep(1000L);//sleep 1000 ms
         for (long i = 0; i < totalMsgs; i++) {
             GetMessageResult result = slaveMessageStore.getMessage("GROUP_A", "FooBar", 0, i, 1024 * 1024, null);
             assertThat(result).isNotNull();
@@ -104,10 +105,8 @@ public class HATest {
 
     @After
     public void destroy() throws Exception{
-        Thread.sleep(10000L);
         messageStore.shutdown();
         messageStore.destroy();
-        Thread.sleep(10000L);
         slaveMessageStore.shutdown();
         slaveMessageStore.destroy();
         File file = new File(masterMessageStoreConfig.getStorePathRootDir());
