@@ -85,10 +85,8 @@ public class HATest {
         assertTrue(load);
         assertTrue(slaveLoad);
         messageStore.start();
-        Thread.sleep(10000L);//slave start after the master start
         slaveMessageStore.start();
-        Thread.sleep(5000L);//slave start after the master start
-        System.out.println(haService.getConnectionCount());
+        Thread.sleep(6000L);//because the haClient will wait 5s after the first connectMaster failed,sleep 6s
     }
 
     @Test
@@ -97,10 +95,7 @@ public class HATest {
         QUEUE_TOTAL = 1;
         MessageBody = StoreMessage.getBytes();
         for (long i = 0; i < totalMsgs; i++) {
-            MessageExtBrokerInner msg = buildMessage();
-            PutMessageResult putMessageResult = messageStore.putMessage(msg);
-            System.out.println(putMessageResult.getPutMessageStatus());
-            System.out.println(msg.isWaitStoreMsgOK());
+            messageStore.putMessage(buildMessage());
         }
 
         Thread.sleep(1000L);//sleep 1000 ms
@@ -147,7 +142,6 @@ public class HATest {
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
         msg.setTopic("FooBar");
         msg.setTags("TAG1");
-        msg.setKeys("myHello");
         msg.setBody(MessageBody);
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
         msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
