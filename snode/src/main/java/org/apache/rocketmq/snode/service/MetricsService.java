@@ -26,7 +26,7 @@ public interface MetricsService {
 
     void incRequestCount(int requestCode, boolean success);
 
-    void recordRequestSize(String topic, double latency);
+    void recordRequestSize(String topic, double size);
 
     Timer startTimer(int requestCode);
 

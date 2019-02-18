@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.snode.service.impl;
 
-import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Counter;
 import io.prometheus.client.Summary;
 import io.prometheus.client.exporter.HTTPServer;
@@ -47,28 +46,24 @@ public class MetricsServiceImpl implements MetricsService {
         }
     });
 
-    StatsItemSet statsItemSet = new StatsItemSet("SnodeStats", scheduledExecutorService, log);
+    private StatsItemSet statsItemSet = new StatsItemSet("SnodeStats", scheduledExecutorService, log);
 
-    private final Counter requestTotal = Counter.build().name("request_total").help("request total count").labelNames("requestCode").register();
+    private final static Counter requestTotal = Counter.build().name("request_total").help("request total count").labelNames("requestCode").register();
 
-    private final Counter requestFailedTotal = Counter.build().name("request_failed_total").help("request total count").labelNames("requestCode").register();
+    private final static Counter requestFailedTotal = Counter.build().name("request_failed_total").help("request total count").labelNames("requestCode").register();
 
-    private final Summary requestLatency = Summary.build()
+    private final static Summary requestLatency = Summary.build()
         .quantile(0.5, 0.05)
         .quantile(0.9, 0.01)
         .quantile(0.99, 0.001)
         .name("requests_latency_seconds").labelNames("requestCode").help("Request latency in seconds.").register();
 
-    private final Summary receivedBytes = Summary.build()
+    private final static Summary receivedBytes = Summary.build()
         .quantile(0.5, 0.05)
         .quantile(0.9, 0.01)
         .quantile(0.99, 0.001)
         .labelNames("topic")
         .name("sent_topic_size_bytes").help("Request size in bytes.").register();
-
-    public Double getLabelsValue(String labelValue) {
-        return CollectorRegistry.defaultRegistry.getSampleValue("request_total", new String[] {"requestCode"}, new String[] {labelValue});
-    }
 
     @Override
     synchronized public void incRequestCount(int requestCode, boolean success) {
@@ -135,4 +130,27 @@ public class MetricsServiceImpl implements MetricsService {
         }
     }
 
+    public StatsItemSet getStatsItemSet() {
+        return statsItemSet;
+    }
+
+    public void setStatsItemSet(StatsItemSet statsItemSet) {
+        this.statsItemSet = statsItemSet;
+    }
+
+    public Counter getRequestTotal() {
+        return requestTotal;
+    }
+
+    public Counter getRequestFailedTotal() {
+        return requestFailedTotal;
+    }
+
+    public Summary getRequestLatency() {
+        return requestLatency;
+    }
+
+    public Summary getReceivedBytes() {
+        return receivedBytes;
+    }
 }
