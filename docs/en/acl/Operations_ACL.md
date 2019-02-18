@@ -20,10 +20,10 @@ The definition of Topic resource access control for RocketMQ is mainly as shown 
 ### 2.2 Main properties
 | key | value | explanation |
 | --- | --- | --- |
-| globalWhiteRemoteAddresses | \*;192.168.\*.\*;192.168.0.1 |Global IP whitelist |
+| globalWhiteRemoteAddresses | string |Global IP whitelist,example:<br>\*; <br>192.168.\*.\*; <br>192.168.0.1 |
 | accessKey | string | Access Key |
 | secretKey | string | Secret Key |
-| whiteRemoteAddress | \*;192.168.\*.\*;192.168.0.1 | User IP whitelist |
+| whiteRemoteAddress | string | User IP whitelist,example:<br>\*; <br>192.168.\*.\*; <br>192.168.0.1 |
 | admin | true;false | Whether an administrator account |
 | defaultTopicPerm | DENY;PUB;SUB;PUB\|SUB | Default Topic permission |
 | defaultGroupPerm | DENY;PUB;SUB;PUB\|SUB | Default ConsumerGroup permission |
