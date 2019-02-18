@@ -94,6 +94,7 @@ public class HATest {
             messageStore.putMessage(buildMessage());
         }
 
+        assertTrue(slaveMessageStore.getMessageTotalInQueue("FooBar", 0) == 10);
         Thread.sleep(1000L);//sleep 1000 ms
         for (long i = 0; i < totalMsgs; i++) {
             GetMessageResult result = slaveMessageStore.getMessage("GROUP_A", "FooBar", 0, i, 1024 * 1024, null);
@@ -109,9 +110,7 @@ public class HATest {
         messageStore.destroy();
         slaveMessageStore.shutdown();
         slaveMessageStore.destroy();
-        File file = new File(masterMessageStoreConfig.getStorePathRootDir());
-        UtilAll.deleteFile(file);
-        file = new File(slaveStoreConfig.getStorePathRootDir());
+        File file = new File(storePathRootDir);
         UtilAll.deleteFile(file);
     }
 
