@@ -1,6 +1,6 @@
 # Batch Message Sample
 ------
-Sending messages in batch improves performance of delivering small messages. Messages of the same batch should have: same topic, same waitStoreMsgOK and no schedule support. You can send messages up to 4MiB at a time, but if you need to keep sending more messages, it is recommended that the total size of the messages in one batch should be no more than 1MiB.
+Sending messages in batch improves performance of delivering small messages. Messages of the same batch should have: same topic, same waitStoreMsgOK and no schedule support. You can send messages up to 4MiB at a time, but if you need to send a larger message, it is recommended to divide the larger messages into multiple small messages of no more than 1MiB.
 ### 1 Send Batch Messages
 If you just send messages of no more than 4MiB at a time, it is easy to use batch:
 ```java
