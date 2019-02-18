@@ -121,23 +121,10 @@ public class ConsumerOffsetManager {
         return -1;
     }
 
-//    public String encode(final boolean prettyFormat) {
-//        return RemotingSerializable.toJson(this, prettyFormat);
-//    }
-
     public ConcurrentMap<String, ConcurrentMap<Integer, Long>> getOffsetTable() {
         return offsetTable;
     }
 
-//    public void setOffsetTable(ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> offsetTable) {
-//        this.offsetTable = offsetTable;
-//    }
-
-//    public Map<Integer, Long> queryOffset(final String enodeName, final String group, final String topic) {
-//        // topic@group
-//        String key = buildKey(enodeName, topic, group);
-//        return this.offsetTable.get(key);
-//    }
 
     public void commitOffset(final String enodeName, final String clientHost, final String group, final String topic,
         final int queueId,

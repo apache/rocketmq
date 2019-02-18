@@ -41,6 +41,7 @@ import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.ProducerConnection;
 import org.apache.rocketmq.common.protocol.body.QueryConsumeQueueResponseBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
+import org.apache.rocketmq.common.protocol.body.SnodeClusterInfo;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
@@ -98,6 +99,9 @@ public interface MQAdminExt extends MQAdmin {
         InterruptedException, MQBrokerException;
 
     ClusterInfo examineBrokerClusterInfo() throws InterruptedException, MQBrokerException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException;
+
+    SnodeClusterInfo examineSnodeClusterInfo() throws InterruptedException, MQBrokerException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException;
 
     TopicRouteData examineTopicRouteInfo(

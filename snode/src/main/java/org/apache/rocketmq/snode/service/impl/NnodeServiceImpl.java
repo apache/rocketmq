@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.RegisterSnodeRequestHeader;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -207,7 +208,10 @@ public class NnodeServiceImpl implements NnodeService {
             clusterInfo = this.updateEnodeClusterInfo();
         }
         if (this.clusterInfo != null) {
-            return this.clusterInfo.getBrokerAddrTable().get(enodeName).getBrokerAddrs().get(MixAll.MASTER_ID);
+            BrokerData brokerData = this.clusterInfo.getBrokerAddrTable().get(enodeName);
+            if (brokerData != null) {
+                return brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
+            }
         }
         return null;
     }

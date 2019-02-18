@@ -47,6 +47,7 @@ import org.apache.rocketmq.common.admin.RollbackStats;
 import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.protocol.body.SnodeClusterInfo;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -273,6 +274,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public ClusterInfo examineBrokerClusterInfo() throws InterruptedException, MQBrokerException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException {
         return this.mqClientInstance.getMQClientAPIImpl().getBrokerClusterInfo(timeoutMillis);
+    }
+
+    @Override
+    public SnodeClusterInfo examineSnodeClusterInfo() throws InterruptedException, MQBrokerException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException {
+        return this.mqClientInstance.getMQClientAPIImpl().getSnodeClusterInfo(timeoutMillis);
     }
 
     @Override

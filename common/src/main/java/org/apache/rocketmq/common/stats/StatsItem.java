@@ -22,6 +22,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.utils.CallSnapshot;
 import org.apache.rocketmq.logging.InternalLogger;
 
 public class StatsItem {
@@ -227,28 +228,3 @@ public class StatsItem {
     }
 }
 
-class CallSnapshot {
-    private final long timestamp;
-    private final long times;
-
-    private final long value;
-
-    public CallSnapshot(long timestamp, long times, long value) {
-        super();
-        this.timestamp = timestamp;
-        this.times = times;
-        this.value = value;
-    }
-
-    public long getTimestamp() {
-        return timestamp;
-    }
-
-    public long getTimes() {
-        return times;
-    }
-
-    public long getValue() {
-        return value;
-    }
-}

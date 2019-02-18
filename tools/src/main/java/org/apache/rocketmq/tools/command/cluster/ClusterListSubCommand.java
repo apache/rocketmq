@@ -26,7 +26,9 @@ import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.KVTable;
+import org.apache.rocketmq.common.protocol.body.SnodeClusterInfo;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.SnodeData;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -96,20 +98,8 @@ public class ClusterListSubCommand implements SubCommand {
         }
     }
 
-    private void printClusterMoreStats(final DefaultMQAdminExt defaultMQAdminExt) throws RemotingConnectException,
-        RemotingTimeoutException, RemotingSendRequestException, InterruptedException, MQBrokerException {
-
-        ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
-
-        System.out.printf("%-16s  %-32s %14s %14s %14s %14s%n",
-            "#Cluster Name",
-            "#Broker Name",
-            "#InTotalYest",
-            "#OutTotalYest",
-            "#InTotalToday",
-            "#OutTotalToday"
-        );
-
+    private void printBrokerMoreStats(final DefaultMQAdminExt defaultMQAdminExt,
+        ClusterInfo clusterInfoSerializeWrapper) {
         Iterator<Map.Entry<String, Set<String>>> itCluster = clusterInfoSerializeWrapper.getClusterAddrTable().entrySet().iterator();
         while (itCluster.hasNext()) {
             Map.Entry<String, Set<String>> next = itCluster.next();
@@ -165,25 +155,58 @@ public class ClusterListSubCommand implements SubCommand {
         }
     }
 
-    private void printClusterBaseInfo(
-        final DefaultMQAdminExt defaultMQAdminExt) throws RemotingConnectException, RemotingTimeoutException,
-        RemotingSendRequestException, InterruptedException, MQBrokerException {
+    private void printSnodeMoreStats(final DefaultMQAdminExt defaultMQAdminExt, SnodeClusterInfo snodeClusterInfo) {
+        Iterator<Map.Entry<String, Set<String>>> itCluster = snodeClusterInfo.getSnodeCluster().entrySet().iterator();
+        while (itCluster.hasNext()) {
+            Map.Entry<String, Set<String>> next = itCluster.next();
+            String clusterName = next.getKey();
+            TreeSet<String> snodeNameSet = new TreeSet<>();
+            snodeNameSet.addAll(next.getValue());
+
+            for (String snodeeName : snodeNameSet) {
+                SnodeData snodeData = snodeClusterInfo.getSnodeTable().get(snodeeName);
+                if (snodeData != null) {
+
+                    String address = snodeData.getAddress();
+                    System.out.printf("%-16s  %-32s %14d %14d %14d %14d%n",
+                        clusterName,
+                        snodeeName,
+                        0,
+                        0,
+                        0,
+                        0
+                    );
+                }
+            }
+
+            if (itCluster.hasNext()) {
+                System.out.printf("");
+            }
+        }
+    }
+
+    private void printClusterMoreStats(final DefaultMQAdminExt defaultMQAdminExt) throws RemotingConnectException,
+        RemotingTimeoutException, RemotingSendRequestException, InterruptedException, MQBrokerException {
 
         ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
 
-        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s%n",
+        SnodeClusterInfo snodeClusterInfo = defaultMQAdminExt.examineSnodeClusterInfo();
+
+        System.out.printf("%-16s  %-32s %14s %14s %14s %14s%n",
             "#Cluster Name",
             "#Broker Name",
-            "#BID",
-            "#Addr",
-            "#Version",
-            "#InTPS(LOAD)",
-            "#OutTPS(LOAD)",
-            "#PCWait(ms)",
-            "#Hour",
-            "#SPACE"
+            "#InTotalYest",
+            "#OutTotalYest",
+            "#InTotalToday",
+            "#OutTotalToday"
         );
 
+        printBrokerMoreStats(defaultMQAdminExt, clusterInfoSerializeWrapper);
+        printSnodeMoreStats(defaultMQAdminExt, snodeClusterInfo);
+    }
+
+    private void printBrokerClusterBaseInfo(final DefaultMQAdminExt defaultMQAdminExt,
+        ClusterInfo clusterInfoSerializeWrapper) {
         Iterator<Map.Entry<String, Set<String>>> itCluster = clusterInfoSerializeWrapper.getClusterAddrTable().entrySet().iterator();
         while (itCluster.hasNext()) {
             Map.Entry<String, Set<String>> next = itCluster.next();
@@ -274,5 +297,61 @@ public class ClusterListSubCommand implements SubCommand {
                 System.out.printf("");
             }
         }
+    }
+
+    private void printSnodeClusterBaseInfo(final DefaultMQAdminExt defaultMQAdminExt,
+        SnodeClusterInfo snodeClusterInfo) {
+        Iterator<Map.Entry<String, Set<String>>> itCluster = snodeClusterInfo.getSnodeCluster().entrySet().iterator();
+        while (itCluster.hasNext()) {
+            Map.Entry<String, Set<String>> next = itCluster.next();
+            String clusterName = next.getKey();
+            TreeSet<String> snodeNameSet = new TreeSet<>();
+            snodeNameSet.addAll(next.getValue());
+
+            for (String snodeeName : snodeNameSet) {
+                SnodeData snodeData = snodeClusterInfo.getSnodeTable().get(snodeeName);
+                if (snodeData != null) {
+                    String address = snodeData.getAddress();
+                    System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s%n",
+                        clusterName,
+                        snodeeName,
+                        0,
+                        address,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                    );
+                }
+            }
+
+            if (itCluster.hasNext()) {
+                System.out.printf("");
+            }
+        }
+    }
+
+    private void printClusterBaseInfo(
+        final DefaultMQAdminExt defaultMQAdminExt) throws RemotingConnectException, RemotingTimeoutException,
+        RemotingSendRequestException, InterruptedException, MQBrokerException {
+
+        ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
+        SnodeClusterInfo snodeClusterInfo = defaultMQAdminExt.examineSnodeClusterInfo();
+
+        System.out.printf("%-16s  %-22s  %-4s  %-22s %-16s %19s %19s %10s %5s %6s%n",
+            "#Cluster Name",
+            "#Broker Name",
+            "#BID",
+            "#Addr",
+            "#Version",
+            "#InTPS(LOAD)",
+            "#OutTPS(LOAD)",
+            "#PCWait(ms)",
+            "#Hour",
+            "#SPACE"
+        );
+        printBrokerClusterBaseInfo(defaultMQAdminExt, clusterInfoSerializeWrapper);
+
     }
 }

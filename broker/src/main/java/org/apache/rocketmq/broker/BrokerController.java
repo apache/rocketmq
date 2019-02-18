@@ -528,16 +528,16 @@ public class BrokerController {
 //        }
     }
 
-    private void initialRpcHooks() {
-
-        List<RPCHook> rpcHooks = ServiceProvider.loadServiceList(ServiceProvider.RPC_HOOK_ID, RPCHook.class);
-        if (rpcHooks == null || rpcHooks.isEmpty()) {
-            return;
-        }
-        for (RPCHook rpcHook : rpcHooks) {
-            this.remotingServer.registerServerRPCHook(rpcHook);
-        }
-    }
+//    private void initialRpcHooks() {
+//
+//        List<RPCHook> rpcHooks = ServiceProvider.loadServiceList(ServiceProvider.RPC_HOOK_ID, RPCHook.class);
+//        if (rpcHooks == null || rpcHooks.isEmpty()) {
+//            return;
+//        }
+//        for (RPCHook rpcHook : rpcHooks) {
+//            this.remotingServer.registerServerRPCHook(rpcHook);
+//        }
+//    }
 
 //    registerInterceoptorGroup()
 

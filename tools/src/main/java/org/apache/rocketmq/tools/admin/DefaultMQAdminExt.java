@@ -43,6 +43,7 @@ import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.ProducerConnection;
 import org.apache.rocketmq.common.protocol.body.QueryConsumeQueueResponseBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
+import org.apache.rocketmq.common.protocol.body.SnodeClusterInfo;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
@@ -220,6 +221,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public ClusterInfo examineBrokerClusterInfo() throws InterruptedException, RemotingConnectException, RemotingTimeoutException,
         RemotingSendRequestException, MQBrokerException {
         return defaultMQAdminExtImpl.examineBrokerClusterInfo();
+    }
+
+    @Override
+    public SnodeClusterInfo examineSnodeClusterInfo() throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        return defaultMQAdminExtImpl.examineSnodeClusterInfo();
     }
 
     @Override

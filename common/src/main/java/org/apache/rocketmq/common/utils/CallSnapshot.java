@@ -14,25 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.service;
+package org.apache.rocketmq.common.utils;
+public class CallSnapshot {
+    private final long timestamp;
+    private final long times;
 
-public interface MetricsService {
+    private final long value;
 
-    interface Timer {
-        Timer startTimer(int requestCode);
-
-        void observeDuration();
+    public CallSnapshot(long timestamp, long times, long value) {
+        super();
+        this.timestamp = timestamp;
+        this.times = times;
+        this.value = value;
     }
 
-    void incRequestCount(int requestCode, boolean success);
+    public long getTimestamp() {
+        return timestamp;
+    }
 
-    void recordRequestSize(String topic, double latency);
+    public long getTimes() {
+        return times;
+    }
 
-    Timer startTimer(int requestCode);
-
-    void recordRequestLatency(Timer timer);
-
-    void start(int port);
-
-    void shutdown();
+    public long getValue() {
+        return value;
+    }
 }
+
