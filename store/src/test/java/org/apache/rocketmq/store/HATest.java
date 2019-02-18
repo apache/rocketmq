@@ -61,7 +61,6 @@ public class HATest {
     private MessageStoreConfig slaveStoreConfig;
     private BrokerStatsManager brokerStatsManager = new BrokerStatsManager("simpleTest");
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
-    private HAService haService;
     @Before
     public void init() throws Exception {
         StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
@@ -120,13 +119,9 @@ public class HATest {
     }
 
     private MessageStore buildMessageStore(MessageStoreConfig messageStoreConfig,long brokerId) throws Exception {
-
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setBrokerId(brokerId);
-        DefaultMessageStore defaultMessageStore =
-                new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig);
-        haService = defaultMessageStore.getHaService();
-        return defaultMessageStore;
+        return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig);
     }
 
     private void buildMessageStoreConfig(MessageStoreConfig messageStoreConfig){
