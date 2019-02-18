@@ -92,7 +92,10 @@ public class HATest {
         QUEUE_TOTAL = 1;
         MessageBody = StoreMessage.getBytes();
         for (long i = 0; i < totalMsgs; i++) {
-            messageStore.putMessage(buildMessage());
+            MessageExtBrokerInner msg = buildMessage();
+            PutMessageResult putMessageResult = messageStore.putMessage(msg);
+            System.out.println(putMessageResult.getPutMessageStatus());
+            System.out.println(msg.isWaitStoreMsgOK());
         }
 
         Thread.sleep(1000L);//sleep 1000 ms
@@ -107,6 +110,7 @@ public class HATest {
 
     @After
     public void destroy() throws Exception{
+        Thread.sleep(5000L);
         slaveMessageStore.shutdown();
         slaveMessageStore.destroy();
         messageStore.shutdown();
