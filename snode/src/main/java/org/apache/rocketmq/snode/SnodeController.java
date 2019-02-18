@@ -74,11 +74,13 @@ import org.apache.rocketmq.snode.processor.mqtthandler.MqttSubscribeMessageHandl
 import org.apache.rocketmq.snode.processor.mqtthandler.MqttUnsubscribeMessagHandler;
 import org.apache.rocketmq.snode.service.ClientService;
 import org.apache.rocketmq.snode.service.EnodeService;
+import org.apache.rocketmq.snode.service.MetricsService;
 import org.apache.rocketmq.snode.service.NnodeService;
 import org.apache.rocketmq.snode.service.PushService;
 import org.apache.rocketmq.snode.service.ScheduledService;
 import org.apache.rocketmq.snode.service.impl.ClientServiceImpl;
 import org.apache.rocketmq.snode.service.impl.EnodeServiceImpl;
+import org.apache.rocketmq.snode.service.impl.MetricsServiceImpl;
 import org.apache.rocketmq.snode.service.impl.NnodeServiceImpl;
 import org.apache.rocketmq.snode.service.impl.PushServiceImpl;
 import org.apache.rocketmq.snode.service.impl.ScheduledServiceImpl;
@@ -121,6 +123,7 @@ public class SnodeController {
     private PushService pushService;
     private ClientService clientService;
     private SlowConsumerService slowConsumerService;
+    private MetricsService metricsService;
 
     private final ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
@@ -217,6 +220,7 @@ public class SnodeController {
         this.clientHousekeepingService = new ClientHousekeepingService(this.producerManager,
             this.consumerManager, this.iotClientManager);
         this.slowConsumerService = new SlowConsumerServiceImpl(this);
+        this.metricsService = new MetricsServiceImpl();
     }
 
     public SnodeConfig getSnodeConfig() {
@@ -384,6 +388,7 @@ public class SnodeController {
         this.mqttRemotingClient.start();
         this.scheduledService.startScheduleTask();
         this.clientHousekeepingService.start(this.snodeConfig.getHouseKeepingInterval());
+        this.metricsService.start(this.snodeConfig.getMetricsExportPort());
     }
 
     public void shutdown() {
@@ -399,9 +404,6 @@ public class SnodeController {
         if (this.heartbeatExecutor != null) {
             this.heartbeatExecutor.shutdown();
         }
-//        if (this.consumerManagerExecutor != null) {
-//            this.consumerManagerExecutor.shutdown();
-//        }
         if (this.scheduledExecutorService != null) {
             this.scheduledExecutorService.shutdown();
         }
@@ -422,6 +424,9 @@ public class SnodeController {
         }
         if (this.pushService != null) {
             this.pushService.shutdown();
+        }
+        if (this.metricsService != null) {
+            this.metricsService.shutdown();
         }
     }
 
@@ -552,5 +557,13 @@ public class SnodeController {
 
     public void setConsumerOffsetManager(ConsumerOffsetManager consumerOffsetManager) {
         this.consumerOffsetManager = consumerOffsetManager;
+    }
+
+    public MetricsService getMetricsService() {
+        return metricsService;
+    }
+
+    public void setMetricsService(MetricsService metricsService) {
+        this.metricsService = metricsService;
     }
 }

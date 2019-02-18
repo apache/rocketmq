@@ -71,12 +71,18 @@ public class SendMessageProcessorTest {
     }
 
     @Test
-    public void testProcessRequest() throws RemotingCommandException {
+    public void testSendMessageV2ProcessRequest() throws RemotingCommandException {
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        RemotingCommand request = createSendMesssageV2Command();
+        when(this.snodeController.getEnodeService().sendMessage(anyString(), any(RemotingCommand.class))).thenReturn(future);
+        sendMessageProcessor.processRequest(remotingChannel, request);
+    }
+
+    @Test
+    public void testSendBatchMessageProcessRequest() throws RemotingCommandException {
         snodeController.setEnodeService(enodeService);
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
-        RemotingCommand request = createSendMesssageCommand();
-        SendMessageRequestHeaderV2 sendMessageRequestHeaderV2 = (SendMessageRequestHeaderV2) request.decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
-        System.out.println("sendMessageRequestHeaderV2: " + sendMessageRequestHeaderV2);
+        RemotingCommand request = createSendBatchMesssageCommand();
         when(this.snodeController.getEnodeService().sendMessage(anyString(), any(RemotingCommand.class))).thenReturn(future);
         sendMessageProcessor.processRequest(remotingChannel, request);
     }
@@ -95,10 +101,18 @@ public class SendMessageProcessorTest {
         return requestHeader;
     }
 
-    private RemotingCommand createSendMesssageCommand() {
+    private RemotingCommand createSendMesssageV2Command() {
         SendMessageRequestHeaderV2 sendMessageRequestHeaderV2 = createSendMsgRequestHeader();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, sendMessageRequestHeaderV2);
         request.setBody(new byte[] {'a'});
+        CodecHelper.makeCustomHeaderToNet(request);
+        return request;
+    }
+
+    private RemotingCommand createSendBatchMesssageCommand() {
+        SendMessageRequestHeaderV2 sendMessageRequestHeaderV2 = createSendMsgRequestHeader();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_BATCH_MESSAGE, sendMessageRequestHeaderV2);
+        request.setBody(new byte[] {'b'});
         CodecHelper.makeCustomHeaderToNet(request);
         return request;
     }

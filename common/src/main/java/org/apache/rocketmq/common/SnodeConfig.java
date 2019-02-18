@@ -92,6 +92,10 @@ public class SnodeConfig {
 
     private int listenPort = 11911;
 
+    private int metricsExportPort = 1234;
+
+    private boolean metricsEnable = true;
+
     private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "true"));
     private boolean enablePropertyFilter = true;
 
@@ -221,7 +225,7 @@ public class SnodeConfig {
     }
 
     public void setSnodeHandleMqttThreadPoolQueueCapacity(
-            int snodeHandleMqttThreadPoolQueueCapacity) {
+        int snodeHandleMqttThreadPoolQueueCapacity) {
         this.snodeHandleMqttThreadPoolQueueCapacity = snodeHandleMqttThreadPoolQueueCapacity;
     }
 
@@ -379,5 +383,21 @@ public class SnodeConfig {
 
     public void setAclEnable(boolean aclEnable) {
         this.aclEnable = aclEnable;
+    }
+
+    public int getMetricsExportPort() {
+        return metricsExportPort;
+    }
+
+    public void setMetricsExportPort(int metricsExportPort) {
+        this.metricsExportPort = metricsExportPort;
+    }
+
+    public boolean isMetricsEnable() {
+        return metricsEnable;
+    }
+
+    public void setMetricsEnable(boolean metricsEnable) {
+        this.metricsEnable = metricsEnable;
     }
 }

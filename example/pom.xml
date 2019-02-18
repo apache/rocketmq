@@ -58,5 +58,9 @@
             <artifactId>rocketmq-acl</artifactId>
             <version>4.4.1-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_hotspot</artifactId>
+        </dependency>
     </dependencies>
 </project>

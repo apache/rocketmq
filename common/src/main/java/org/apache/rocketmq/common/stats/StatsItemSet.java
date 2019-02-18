@@ -162,14 +162,11 @@ public class StatsItemSet {
         StatsItem statsItem = this.statsItemTable.get(statsKey);
         if (null == statsItem) {
             statsItem = new StatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);
-            StatsItem prev = this.statsItemTable.put(statsKey, statsItem);
-
-            if (null == prev) {
-
-                // statsItem.init();
+            StatsItem prev = this.statsItemTable.putIfAbsent(statsKey, statsItem);
+            if (null != prev) {
+                statsItem = prev;
             }
         }
-
         return statsItem;
     }
 

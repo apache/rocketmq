@@ -17,6 +17,7 @@
 package org.apache.rocketmq.snode.processor;
 
 import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -27,11 +28,12 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.remoting.interceptor.ExceptionContext;
 import org.apache.rocketmq.remoting.interceptor.RequestContext;
 import org.apache.rocketmq.remoting.interceptor.ResponseContext;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.snode.SnodeController;
+import org.apache.rocketmq.snode.service.MetricsService;
 
 public class SendMessageProcessor implements RequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
@@ -45,25 +47,41 @@ public class SendMessageProcessor implements RequestProcessor {
     @Override
     public RemotingCommand processRequest(RemotingChannel remotingChannel,
         RemotingCommand request) throws RemotingCommandException {
+        this.snodeController.getMetricsService().incRequestCount(request.getCode(), true);
+        try {
+            processSendMessageRequest(remotingChannel, request);
+        } catch (Exception ex) {
+            this.snodeController.getMetricsService().incRequestCount(request.getCode(), false);
+            throw ex;
+        }
+        return null;
+    }
+
+    private void processSendMessageRequest(RemotingChannel remotingChannel,
+        RemotingCommand request) throws RemotingCommandException {
+        MetricsService.Timer timer = this.snodeController.getMetricsService().startTimer(request.getCode());
         if (this.snodeController.getSendMessageInterceptorGroup() != null) {
             RequestContext requestContext = new RequestContext(request, remotingChannel);
             this.snodeController.getSendMessageInterceptorGroup().beforeRequest(requestContext);
         }
         String enodeName;
         SendMessageRequestHeaderV2 sendMessageRequestHeaderV2 = null;
+        final StringBuffer stringBuffer = new StringBuffer();
+        ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = null;
         boolean isSendBack = false;
-        if (request.getCode() == RequestCode.SEND_MESSAGE_V2) {
+        if (request.getCode() == RequestCode.SEND_MESSAGE_V2 ||
+            request.getCode() == RequestCode.SEND_BATCH_MESSAGE) {
             sendMessageRequestHeaderV2 = (SendMessageRequestHeaderV2) request.decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
             enodeName = sendMessageRequestHeaderV2.getN();
+            stringBuffer.append(sendMessageRequestHeaderV2.getB());
         } else {
             isSendBack = true;
-            ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = (ConsumerSendMsgBackRequestHeader) request.decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
+            consumerSendMsgBackRequestHeader = (ConsumerSendMsgBackRequestHeader) request.decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
             enodeName = consumerSendMsgBackRequestHeader.getEnodeName();
+            stringBuffer.append(MixAll.getRetryTopic(consumerSendMsgBackRequestHeader.getGroup()));
         }
 
         CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().sendMessage(enodeName, request);
-
-        final String topic = sendMessageRequestHeaderV2.getB();
         final Integer queueId = sendMessageRequestHeaderV2.getE();
         final byte[] message = request.getBody();
         final boolean isNeedPush = !isSendBack;
@@ -74,18 +92,20 @@ public class SendMessageProcessor implements RequestProcessor {
                     this.snodeController.getSendMessageInterceptorGroup().afterRequest(responseContext);
                 }
                 remotingChannel.reply(data);
+                this.snodeController.getMetricsService().recordRequestSize(stringBuffer.toString(), request.getBody().length);
                 if (data.getCode() == ResponseCode.SUCCESS && isNeedPush) {
-                    this.snodeController.getPushService().pushMessage(enodeName, topic, queueId, message, data);
+                    this.snodeController.getPushService().pushMessage(enodeName, stringBuffer.toString(), queueId, message, data);
                 }
             } else {
+                this.snodeController.getMetricsService().incRequestCount(request.getCode(), false);
                 if (this.snodeController.getSendMessageInterceptorGroup() != null) {
                     ExceptionContext exceptionContext = new ExceptionContext(request, remotingChannel, ex, null);
                     this.snodeController.getSendMessageInterceptorGroup().onException(exceptionContext);
                 }
                 log.error("Send Message error: {}", ex);
             }
+            timer.observeDuration();
         });
-        return null;
     }
 
     @Override

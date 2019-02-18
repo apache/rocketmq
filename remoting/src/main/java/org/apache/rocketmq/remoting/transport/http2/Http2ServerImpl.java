@@ -97,23 +97,23 @@ public class Http2ServerImpl extends NettyRemotingServerAbstract implements Remo
         this.channelEventListener = channelEventListener;
         this.publicExecutor = ThreadUtils.newFixedThreadPool(
             serverConfig.getServerCallbackExecutorThreads(),
-            10000, "Remoting-PublicExecutor", true);
+            10000, "Http2Remoting-PublicExecutor", true);
         if (JvmUtils.isLinux() && this.serverConfig.isUseEpollNativeSelector()) {
-            this.ioGroup = new EpollEventLoopGroup(serverConfig.getServerSelectorThreads(), ThreadUtils.newGenericThreadFactory("NettyEpollIoThreads",
+            this.ioGroup = new EpollEventLoopGroup(serverConfig.getServerSelectorThreads(), ThreadUtils.newGenericThreadFactory("Http2NettyEpollIoThreads",
                 serverConfig.getServerSelectorThreads()));
-            this.bossGroup = new EpollEventLoopGroup(serverConfig.getServerAcceptorThreads(), ThreadUtils.newGenericThreadFactory("NettyBossThreads",
+            this.bossGroup = new EpollEventLoopGroup(serverConfig.getServerAcceptorThreads(), ThreadUtils.newGenericThreadFactory("Http2NettyBossThreads",
                 serverConfig.getServerAcceptorThreads()));
             this.socketChannelClass = EpollServerSocketChannel.class;
         } else {
-            this.bossGroup = new NioEventLoopGroup(serverConfig.getServerAcceptorThreads(), ThreadUtils.newGenericThreadFactory("NettyBossThreads",
+            this.bossGroup = new NioEventLoopGroup(serverConfig.getServerAcceptorThreads(), ThreadUtils.newGenericThreadFactory("Http2NettyBossThreads",
                 serverConfig.getServerAcceptorThreads()));
-            this.ioGroup = new NioEventLoopGroup(serverConfig.getServerSelectorThreads(), ThreadUtils.newGenericThreadFactory("NettyNioIoThreads",
+            this.ioGroup = new NioEventLoopGroup(serverConfig.getServerSelectorThreads(), ThreadUtils.newGenericThreadFactory("Http2NettyNioIoThreads",
                 serverConfig.getServerSelectorThreads()));
             this.socketChannelClass = NioServerSocketChannel.class;
         }
 
         this.workerGroup = new DefaultEventExecutorGroup(serverConfig.getServerWorkerThreads(),
-            ThreadUtils.newGenericThreadFactory("NettyWorkerThreads", serverConfig.getServerWorkerThreads()));
+            ThreadUtils.newGenericThreadFactory("Http2NettyWorkerThreads", serverConfig.getServerWorkerThreads()));
         this.port = nettyServerConfig.getListenPort();
         buildHttp2SslServerContext();
         return this;
