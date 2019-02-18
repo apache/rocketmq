@@ -78,7 +78,7 @@ public class HATest {
         slaveMessageStore = buildMessageStore(slaveStoreConfig,1L);
         boolean load = messageStore.load();
         boolean slaveLoad = slaveMessageStore.load();
-        slaveMessageStore.updateHaMasterAddress("localhost:10912");
+        slaveMessageStore.updateHaMasterAddress("127.0.0.1:10912");
         assertTrue(load);
         assertTrue(slaveLoad);
         messageStore.start();
