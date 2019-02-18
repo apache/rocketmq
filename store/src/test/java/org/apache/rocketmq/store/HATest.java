@@ -22,6 +22,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
@@ -60,6 +61,7 @@ public class HATest {
     private MessageStoreConfig slaveStoreConfig;
     private BrokerStatsManager brokerStatsManager = new BrokerStatsManager("simpleTest");
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
+    private HAService haService;
     @Before
     public void init() throws Exception {
         StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
@@ -85,6 +87,8 @@ public class HATest {
         messageStore.start();
         Thread.sleep(10000L);//slave start after the master start
         slaveMessageStore.start();
+        Thread.sleep(5000L);//slave start after the master start
+        System.out.println(haService.getConnectionCount());
     }
 
     @Test
@@ -124,7 +128,10 @@ public class HATest {
 
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setBrokerId(brokerId);
-        return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig);
+        DefaultMessageStore defaultMessageStore =
+                new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig);
+        haService = defaultMessageStore.getHaService();
+        return defaultMessageStore;
     }
 
     private void buildMessageStoreConfig(MessageStoreConfig messageStoreConfig){
