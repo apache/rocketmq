@@ -101,7 +101,6 @@ public class HATest {
         for (long i = 0; i < totalMsgs; i++) {
             GetMessageResult result = slaveMessageStore.getMessage("GROUP_A", "FooBar", 0, i, 1024 * 1024, null);
             assertThat(result).isNotNull();
-            System.out.println(result.getStatus());
             assertTrue(GetMessageStatus.FOUND.equals(result.getStatus()));
             result.release();
         }
