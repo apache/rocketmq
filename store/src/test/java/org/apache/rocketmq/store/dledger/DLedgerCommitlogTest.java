@@ -16,12 +16,10 @@ import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
-    @Ignore
     @Test
     public void testTruncateCQ() throws Exception {
         String base =  createBaseDir();
@@ -77,7 +75,6 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
     }
 
 
-    @Ignore
     @Test
     public void testRecover() throws Exception {
         String base =  createBaseDir();
@@ -118,7 +115,6 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
     }
 
 
-    @Ignore
     @Test
     public void testPutAndGetMessage() throws Exception {
         String base =  createBaseDir();
@@ -159,7 +155,6 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         messageStore.shutdown();
     }
 
-    @Ignore
     @Test
     public void testCommittedPos() throws Exception {
         String peers = String.format("n0-localhost:%d;n1-localhost:%d", nextPort(), nextPort());

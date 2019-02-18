@@ -5,13 +5,11 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.StoreTestBase;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class MixCommitlogTest extends MessageStoreTestBase {
 
 
-    @Ignore
     @Test
     public void testFallBehindCQ() throws Exception {
         String base =  createBaseDir();
@@ -51,7 +49,6 @@ public class MixCommitlogTest extends MessageStoreTestBase {
     }
 
 
-    @Ignore
     @Test
     public void testPutAndGet() throws Exception {
         String base =  createBaseDir();
@@ -112,7 +109,6 @@ public class MixCommitlogTest extends MessageStoreTestBase {
             recoverDledgerStore.shutdown();
         }
     }
-    @Ignore
     @Test
     public void testDeleteExpiredFiles() throws Exception {
         String base =  createBaseDir();

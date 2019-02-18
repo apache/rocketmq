@@ -41,6 +41,7 @@ public class RocketMQMqttUnSubscribePayload extends RemotingSerializable {
     public void setTopics(List<String> topics) {
         this.topics = Collections.unmodifiableList(topics);
     }
+
     public static RocketMQMqttUnSubscribePayload fromMqttUnSubscribePayload(MqttUnsubscribePayload payload) {
         return new RocketMQMqttUnSubscribePayload(payload.topics());
     }
@@ -48,6 +49,7 @@ public class RocketMQMqttUnSubscribePayload extends RemotingSerializable {
     public MqttUnsubscribePayload toMqttUnsubscribePayload() throws UnsupportedEncodingException {
         return new MqttUnsubscribePayload(this.topics);
     }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder(StringUtil.simpleClassName(this)).append('[');
@@ -55,7 +57,7 @@ public class RocketMQMqttUnSubscribePayload extends RemotingSerializable {
             builder.append("topicName = ").append(topics.get(i)).append(", ");
         }
         builder.append("topicName = ").append(topics.get(topics.size() - 1))
-                .append(']');
+            .append(']');
         return builder.toString();
     }
 }

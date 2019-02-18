@@ -79,7 +79,7 @@ import org.apache.rocketmq.snode.service.impl.WillMessageServiceImpl;
 public class SnodeController {
 
     private static final InternalLogger log = InternalLoggerFactory
-            .getLogger(LoggerName.SNODE_LOGGER_NAME);
+        .getLogger(LoggerName.SNODE_LOGGER_NAME);
 
     private final SnodeConfig snodeConfig;
     private final ServerConfig nettyServerConfig;
@@ -118,12 +118,12 @@ public class SnodeController {
     private WillMessageService willMessageService;
 
     private final ScheduledExecutorService scheduledExecutorService = Executors
-            .newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-                    "SnodeControllerScheduledThread"));
+        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
+            "SnodeControllerScheduledThread"));
 
     public SnodeController(ServerConfig nettyServerConfig,
-            ClientConfig nettyClientConfig,
-            SnodeConfig snodeConfig) {
+        ClientConfig nettyClientConfig,
+        SnodeConfig snodeConfig) {
         this.nettyClientConfig = nettyClientConfig;
         this.nettyServerConfig = nettyServerConfig;
         this.snodeConfig = snodeConfig;
@@ -131,37 +131,37 @@ public class SnodeController {
         this.nnodeService = new NnodeServiceImpl(this);
         this.scheduledService = new ScheduledServiceImpl(this);
         this.remotingClient = RemotingClientFactory.getInstance().createRemotingClient()
-                .init(this.getNettyClientConfig(), null);
+            .init(this.getNettyClientConfig(), null);
         this.mqttRemotingClient = RemotingClientFactory.getInstance()
-                .createRemotingClient(RemotingUtil.MQTT_PROTOCOL)
-                .init(this.getNettyClientConfig(), null);
+            .createRemotingClient(RemotingUtil.MQTT_PROTOCOL)
+            .init(this.getNettyClientConfig(), null);
 
         this.sendMessageExecutor = ThreadUtils.newThreadPoolExecutor(
-                snodeConfig.getSnodeSendMessageMinPoolSize(),
-                snodeConfig.getSnodeSendMessageMaxPoolSize(),
-                3000,
-                TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(snodeConfig.getSnodeSendThreadPoolQueueCapacity()),
-                "SnodeSendMessageThread",
-                false);
+            snodeConfig.getSnodeSendMessageMinPoolSize(),
+            snodeConfig.getSnodeSendMessageMaxPoolSize(),
+            3000,
+            TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(snodeConfig.getSnodeSendThreadPoolQueueCapacity()),
+            "SnodeSendMessageThread",
+            false);
 
         this.pullMessageExecutor = ThreadUtils.newThreadPoolExecutor(
-                snodeConfig.getSnodeSendMessageMinPoolSize(),
-                snodeConfig.getSnodeSendMessageMaxPoolSize(),
-                3000,
-                TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(snodeConfig.getSnodeSendThreadPoolQueueCapacity()),
-                "SnodePullMessageThread",
-                false);
+            snodeConfig.getSnodeSendMessageMinPoolSize(),
+            snodeConfig.getSnodeSendMessageMaxPoolSize(),
+            3000,
+            TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(snodeConfig.getSnodeSendThreadPoolQueueCapacity()),
+            "SnodePullMessageThread",
+            false);
 
         this.heartbeatExecutor = ThreadUtils.newThreadPoolExecutor(
-                snodeConfig.getSnodeHeartBeatCorePoolSize(),
-                snodeConfig.getSnodeHeartBeatMaxPoolSize(),
-                1000 * 60,
-                TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(snodeConfig.getSnodeHeartBeatThreadPoolQueueCapacity()),
-                "SnodeHeartbeatThread",
-                true);
+            snodeConfig.getSnodeHeartBeatCorePoolSize(),
+            snodeConfig.getSnodeHeartBeatMaxPoolSize(),
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(snodeConfig.getSnodeHeartBeatThreadPoolQueueCapacity()),
+            "SnodeHeartbeatThread",
+            true);
 
 //        this.consumerManagerExecutor = ThreadUtils.newThreadPoolExecutor(
 //            snodeConfig.getSnodeSendMessageMinPoolSize(),
@@ -173,27 +173,27 @@ public class SnodeController {
 //            false);
 
         this.consumerManageExecutor = ThreadUtils.newThreadPoolExecutor(
-                snodeConfig.getSnodeSendMessageMinPoolSize(),
-                snodeConfig.getSnodeSendMessageMaxPoolSize(),
-                3000,
-                TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(snodeConfig.getSnodeSendThreadPoolQueueCapacity()),
-                "ConsumerManagerThread",
-                false);
+            snodeConfig.getSnodeSendMessageMinPoolSize(),
+            snodeConfig.getSnodeSendMessageMaxPoolSize(),
+            3000,
+            TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(snodeConfig.getSnodeSendThreadPoolQueueCapacity()),
+            "ConsumerManagerThread",
+            false);
 
         this.handleMqttMessageExecutor = ThreadUtils.newThreadPoolExecutor(
-                snodeConfig.getSnodeHandleMqttMessageMinPoolSize(),
-                snodeConfig.getSnodeHandleMqttMessageMaxPoolSize(),
-                3000,
-                TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(snodeConfig.getSnodeHandleMqttThreadPoolQueueCapacity()),
-                "SnodeHandleMqttMessageThread",
-                false);
+            snodeConfig.getSnodeHandleMqttMessageMinPoolSize(),
+            snodeConfig.getSnodeHandleMqttMessageMaxPoolSize(),
+            3000,
+            TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(snodeConfig.getSnodeHandleMqttThreadPoolQueueCapacity()),
+            "SnodeHandleMqttMessageThread",
+            false);
 
         if (this.snodeConfig.getNamesrvAddr() != null) {
             this.nnodeService.updateNnodeAddressList(this.snodeConfig.getNamesrvAddr());
             log.info("Set user specified name server address: {}",
-                    this.snodeConfig.getNamesrvAddr());
+                this.snodeConfig.getNamesrvAddr());
         }
 
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
@@ -210,7 +210,7 @@ public class SnodeController {
         this.consumerManager = new ConsumerManagerImpl(this);
         this.iotClientManager = new IOTClientManagerImpl(this);
         this.clientHousekeepingService = new ClientHousekeepingService(this.producerManager,
-                this.consumerManager, this.iotClientManager);
+            this.consumerManager, this.iotClientManager);
         this.slowConsumerService = new SlowConsumerServiceImpl(this);
         this.metricsService = new MetricsServiceImpl();
         this.willMessageService = new WillMessageServiceImpl(this);
@@ -222,7 +222,7 @@ public class SnodeController {
 
     private void initRemotingServerInterceptorGroup() {
         List<Interceptor> remotingServerInterceptors = InterceptorFactory.getInstance()
-                .loadInterceptors(this.snodeConfig.getRemotingServerInterceptorPath());
+            .loadInterceptors(this.snodeConfig.getRemotingServerInterceptorPath());
         if (remotingServerInterceptors != null && remotingServerInterceptors.size() > 0) {
             if (this.remotingServerInterceptorGroup == null) {
                 this.remotingServerInterceptorGroup = new InterceptorGroup();
@@ -230,17 +230,17 @@ public class SnodeController {
             for (Interceptor interceptor : remotingServerInterceptors) {
                 this.remotingServerInterceptorGroup.registerInterceptor(interceptor);
                 log.warn("Remoting server interceptor: {} registered!",
-                        interceptor.interceptorName());
+                    interceptor.interceptorName());
             }
         }
     }
 
     public boolean initialize() {
         this.snodeServer = RemotingServerFactory.getInstance().createRemotingServer()
-                .init(this.nettyServerConfig, this.clientHousekeepingService);
+            .init(this.nettyServerConfig, this.clientHousekeepingService);
         this.mqttRemotingServer = RemotingServerFactory.getInstance().createRemotingServer(
-                RemotingUtil.MQTT_PROTOCOL)
-                .init(this.nettyServerConfig, this.clientHousekeepingService);
+            RemotingUtil.MQTT_PROTOCOL)
+            .init(this.nettyServerConfig, this.clientHousekeepingService);
         this.registerProcessor();
         initSnodeInterceptorGroup();
         initRemotingServerInterceptorGroup();
@@ -258,7 +258,7 @@ public class SnodeController {
         }
 
         List<AccessValidator> accessValidators = ServiceProvider
-                .loadServiceList(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
+            .loadServiceList(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
         if (accessValidators == null || accessValidators.isEmpty()) {
             log.info("The snode dose not load the AccessValidator");
             return;
@@ -278,7 +278,7 @@ public class SnodeController {
                     //Do not catch the exception
                     RemotingCommand request = requestContext.getRequest();
                     String remoteAddr = RemotingUtil.socketAddress2IpString(
-                            requestContext.getRemotingChannel().remoteAddress());
+                        requestContext.getRemotingChannel().remoteAddress());
                     validator.validate(validator.parse(request, remoteAddr));
 
                 }
@@ -296,17 +296,17 @@ public class SnodeController {
 
     private void initSnodeInterceptorGroup() {
         List<Interceptor> consumeMessageInterceptors = InterceptorFactory.getInstance()
-                .loadInterceptors(this.snodeConfig.getConsumeMessageInterceptorPath());
+            .loadInterceptors(this.snodeConfig.getConsumeMessageInterceptorPath());
         if (consumeMessageInterceptors != null && consumeMessageInterceptors.size() > 0) {
             this.consumeMessageInterceptorGroup = new InterceptorGroup();
             for (Interceptor interceptor : consumeMessageInterceptors) {
                 this.consumeMessageInterceptorGroup.registerInterceptor(interceptor);
                 log.warn("Consume message interceptor: {} registered!",
-                        interceptor.interceptorName());
+                    interceptor.interceptorName());
             }
         }
         List<Interceptor> sendMessageInterceptors = InterceptorFactory.getInstance()
-                .loadInterceptors(this.snodeConfig.getSendMessageInterceptorPath());
+            .loadInterceptors(this.snodeConfig.getSendMessageInterceptorPath());
         if (sendMessageInterceptors != null && sendMessageInterceptors.size() > 0) {
             this.sendMessageInterceptorGroup = new InterceptorGroup();
             for (Interceptor interceptor : sendMessageInterceptors) {
@@ -319,37 +319,37 @@ public class SnodeController {
 
     public void registerProcessor() {
         this.snodeServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendMessageProcessor,
-                this.sendMessageExecutor);
+            this.sendMessageExecutor);
         this.snodeServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendMessageProcessor,
-                this.sendMessageExecutor);
+            this.sendMessageExecutor);
         this.snodeServer.registerProcessor(RequestCode.HEART_BEAT, heartbeatProcessor,
-                this.heartbeatExecutor);
+            this.heartbeatExecutor);
         this.snodeServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, heartbeatProcessor,
-                this.heartbeatExecutor);
+            this.heartbeatExecutor);
         this.snodeServer.registerProcessor(RequestCode.CHECK_CLIENT_CONFIG, heartbeatProcessor,
-                this.heartbeatExecutor);
+            this.heartbeatExecutor);
         this.snodeServer.registerProcessor(RequestCode.SNODE_PULL_MESSAGE, pullMessageProcessor,
-                this.pullMessageExecutor);
+            this.pullMessageExecutor);
         this.snodeServer
-                .registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, consumerManageProcessor,
-                        this.consumerManageExecutor);
+            .registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, consumerManageProcessor,
+                this.consumerManageExecutor);
         this.snodeServer
-                .registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, consumerManageProcessor,
-                        this.consumerManageExecutor);
+            .registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, consumerManageProcessor,
+                this.consumerManageExecutor);
         this.snodeServer
-                .registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, consumerManageProcessor,
-                        this.consumerManageExecutor);
+            .registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, consumerManageProcessor,
+                this.consumerManageExecutor);
         this.snodeServer.registerProcessor(RequestCode.GET_MIN_OFFSET, consumerManageProcessor,
-                this.consumerManageExecutor);
+            this.consumerManageExecutor);
         this.snodeServer.registerProcessor(RequestCode.GET_MAX_OFFSET, consumerManageProcessor,
-                this.consumerManageExecutor);
+            this.consumerManageExecutor);
         this.snodeServer
-                .registerProcessor(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, consumerManageProcessor,
-                        this.consumerManageExecutor);
-        this.snodeServer.registerProcessor(RequestCode.CREATE_RETRY_TOPIC, consumerManageProcessor,
+            .registerProcessor(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, consumerManageProcessor,
                 this.consumerManageExecutor);
+        this.snodeServer.registerProcessor(RequestCode.CREATE_RETRY_TOPIC, consumerManageProcessor,
+            this.consumerManageExecutor);
         this.mqttRemotingServer.registerProcessor(RequestCode.MQTT_MESSAGE,
-                defaultMqttMessageProcessor, handleMqttMessageExecutor);
+            defaultMqttMessageProcessor, handleMqttMessageExecutor);
 
     }
 
@@ -476,7 +476,7 @@ public class SnodeController {
     }
 
     public void setRemotingServerInterceptorGroup(
-            InterceptorGroup remotingServerInterceptorGroup) {
+        InterceptorGroup remotingServerInterceptorGroup) {
         this.remotingServerInterceptorGroup = remotingServerInterceptorGroup;
     }
 
@@ -545,7 +545,7 @@ public class SnodeController {
     }
 
     public void setWillMessageService(
-            WillMessageService willMessageService) {
+        WillMessageService willMessageService) {
         this.willMessageService = willMessageService;
     }
 }

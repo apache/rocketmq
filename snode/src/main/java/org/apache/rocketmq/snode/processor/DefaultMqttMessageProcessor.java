@@ -62,39 +62,39 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
     public DefaultMqttMessageProcessor(SnodeController snodeController) {
         this.snodeController = snodeController;
         registerMessageHandler(MqttMessageType.CONNECT,
-                new MqttConnectMessageHandler(this.snodeController));
+            new MqttConnectMessageHandler(this.snodeController));
         registerMessageHandler(MqttMessageType.DISCONNECT,
-                new MqttDisconnectMessageHandler(this.snodeController));
+            new MqttDisconnectMessageHandler(this.snodeController));
         registerMessageHandler(MqttMessageType.PINGREQ,
-                new MqttPingreqMessageHandler(this.snodeController));
+            new MqttPingreqMessageHandler(this.snodeController));
         registerMessageHandler(MqttMessageType.PUBLISH,
-                new MqttPublishMessageHandler(this.snodeController));
+            new MqttPublishMessageHandler(this.snodeController));
         registerMessageHandler(MqttMessageType.PUBACK, new MqttPubackMessageHandler(this.snodeController));
         registerMessageHandler(MqttMessageType.PUBCOMP,
-                new MqttPubcompMessageHandler(this.snodeController));
+            new MqttPubcompMessageHandler(this.snodeController));
         registerMessageHandler(MqttMessageType.PUBREC, new MqttPubrecMessageHandler(this.snodeController));
         registerMessageHandler(MqttMessageType.PUBREL, new MqttPubrelMessageHandler(this.snodeController));
         registerMessageHandler(MqttMessageType.SUBSCRIBE,
-                new MqttSubscribeMessageHandler(this.snodeController));
+            new MqttSubscribeMessageHandler(this.snodeController));
         registerMessageHandler(MqttMessageType.UNSUBSCRIBE,
-                new MqttUnsubscribeMessagHandler(this.snodeController));
+            new MqttUnsubscribeMessagHandler(this.snodeController));
     }
 
     @Override
     public RemotingCommand processRequest(RemotingChannel remotingChannel, RemotingCommand message)
-            throws RemotingCommandException, UnsupportedEncodingException {
+        throws RemotingCommandException, UnsupportedEncodingException {
         MqttHeader mqttHeader = (MqttHeader) message.decodeCommandCustomHeader(MqttHeader.class);
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.valueOf(mqttHeader.getMessageType()),
-                mqttHeader.isDup(), MqttQoS.valueOf(mqttHeader.getQosLevel()), mqttHeader.isRetain(),
-                mqttHeader.getRemainingLength());
+            mqttHeader.isDup(), MqttQoS.valueOf(mqttHeader.getQosLevel()), mqttHeader.isRetain(),
+            mqttHeader.getRemainingLength());
         MqttMessage mqttMessage = null;
         switch (fixedHeader.messageType()) {
             case CONNECT:
                 MqttConnectVariableHeader variableHeader = new MqttConnectVariableHeader(
-                        mqttHeader.getName(), mqttHeader.getVersion(), mqttHeader.isHasUserName(),
-                        mqttHeader.isHasPassword(), mqttHeader.isWillRetain(),
-                        mqttHeader.getWillQos(), mqttHeader.isWillFlag(),
-                        mqttHeader.isCleanSession(), mqttHeader.getKeepAliveTimeSeconds());
+                    mqttHeader.getName(), mqttHeader.getVersion(), mqttHeader.isHasUserName(),
+                    mqttHeader.isHasPassword(), mqttHeader.isWillRetain(),
+                    mqttHeader.getWillQos(), mqttHeader.isWillFlag(),
+                    mqttHeader.isCleanSession(), mqttHeader.getKeepAliveTimeSeconds());
                 RocketMQMqttConnectPayload payload = decode(message.getBody(), RocketMQMqttConnectPayload.class);
                 mqttMessage = new MqttConnectMessage(fixedHeader, variableHeader, payload.toMqttConnectPayload());
             case DISCONNECT:

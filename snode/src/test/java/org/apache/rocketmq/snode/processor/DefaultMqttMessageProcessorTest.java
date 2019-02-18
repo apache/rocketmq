@@ -97,6 +97,7 @@ public class DefaultMqttMessageProcessorTest {
         CodecHelper.makeCustomHeaderToNet(request);
         return request;
     }
+
     private byte[] encode(Object obj) {
         String json = JSON.toJSONString(obj, false);
         if (json != null) {

@@ -37,7 +37,7 @@ public class MqttPublishEncodeDecode implements Message2MessageEncodeDecode {
         RemotingCommand requestCommand = null;
         MqttFixedHeader mqttFixedHeader = mqttMessage.fixedHeader();
         MqttConnAckVariableHeader variableHeader = (MqttConnAckVariableHeader) mqttMessage
-                .variableHeader();
+            .variableHeader();
 
         MqttHeader mqttHeader = new MqttHeader();
         mqttHeader.setMessageType(mqttFixedHeader.messageType().value());
@@ -50,7 +50,7 @@ public class MqttPublishEncodeDecode implements Message2MessageEncodeDecode {
         mqttHeader.setSessionPresent(variableHeader.isSessionPresent());
 
         requestCommand = RemotingCommand
-                .createRequestCommand(1000, mqttHeader);
+            .createRequestCommand(1000, mqttHeader);
         CodecHelper.makeCustomHeaderToNet(requestCommand);
 
         requestCommand.setBody(payload);

@@ -38,12 +38,12 @@ public class MqttSubackEncodeDecode implements Message2MessageEncodeDecode {
     @Override
     public MqttMessage encode(RemotingCommand remotingCommand) throws RemotingCommandException {
         MqttHeader mqttHeader = (MqttHeader) remotingCommand
-                .decodeCommandCustomHeader(MqttHeader.class);
+            .decodeCommandCustomHeader(MqttHeader.class);
 
         return new MqttSubAckMessage(
-                new MqttFixedHeader(MqttMessageType.SUBACK, mqttHeader.isDup(),
-                        MqttQoS.valueOf(mqttHeader.getQosLevel()), mqttHeader.isRetain(),
-                        mqttHeader.getRemainingLength()),
-                MqttMessageIdVariableHeader.from(mqttHeader.getMessageId()),new MqttSubAckPayload());
+            new MqttFixedHeader(MqttMessageType.SUBACK, mqttHeader.isDup(),
+                MqttQoS.valueOf(mqttHeader.getQosLevel()), mqttHeader.isRetain(),
+                mqttHeader.getRemainingLength()),
+            MqttMessageIdVariableHeader.from(mqttHeader.getMessageId()), new MqttSubAckPayload());
     }
 }

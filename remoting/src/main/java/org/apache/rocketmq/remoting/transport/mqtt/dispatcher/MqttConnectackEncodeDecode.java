@@ -38,13 +38,13 @@ public class MqttConnectackEncodeDecode implements Message2MessageEncodeDecode {
     @Override
     public MqttMessage encode(RemotingCommand remotingCommand) throws RemotingCommandException {
         MqttHeader mqttHeader = (MqttHeader) remotingCommand
-                .decodeCommandCustomHeader(MqttHeader.class);
+            .decodeCommandCustomHeader(MqttHeader.class);
 
         return new MqttConnAckMessage(
-                new MqttFixedHeader(MqttMessageType.CONNACK, mqttHeader.isDup(),
-                        MqttQoS.valueOf(mqttHeader.getQosLevel()), mqttHeader.isRetain(),
-                        mqttHeader.getRemainingLength()), new MqttConnAckVariableHeader(
-                MqttConnectReturnCode.valueOf(mqttHeader.getConnectReturnCode()),
-                mqttHeader.isSessionPresent()));
+            new MqttFixedHeader(MqttMessageType.CONNACK, mqttHeader.isDup(),
+                MqttQoS.valueOf(mqttHeader.getQosLevel()), mqttHeader.isRetain(),
+                mqttHeader.getRemainingLength()), new MqttConnAckVariableHeader(
+            MqttConnectReturnCode.valueOf(mqttHeader.getConnectReturnCode()),
+            mqttHeader.isSessionPresent()));
     }
 }

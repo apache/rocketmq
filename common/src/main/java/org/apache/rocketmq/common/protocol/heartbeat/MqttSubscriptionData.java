@@ -29,7 +29,7 @@ public class MqttSubscriptionData extends SubscriptionData {
     }
 
     public MqttSubscriptionData(int qos, String clientId, String topicFilter) {
-        super(topicFilter,null);
+        super(topicFilter, null);
         this.qos = qos;
         this.clientId = clientId;
     }

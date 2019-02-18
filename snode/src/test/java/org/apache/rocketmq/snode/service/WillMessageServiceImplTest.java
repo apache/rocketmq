@@ -34,7 +34,7 @@ public class WillMessageServiceImplTest extends SnodeTestBase {
 
     @Spy
     private SnodeController snodeController = new SnodeController(new ServerConfig(),
-            new ClientConfig(), new SnodeConfig());
+        new ClientConfig(), new SnodeConfig());
 
     private WillMessageService willMessageService;
 

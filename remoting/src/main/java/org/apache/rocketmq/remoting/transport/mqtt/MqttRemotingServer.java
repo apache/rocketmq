@@ -67,7 +67,7 @@ import org.apache.rocketmq.remoting.util.ThreadUtils;
 public class MqttRemotingServer extends NettyRemotingServerAbstract implements RemotingServer {
 
     private static final InternalLogger log = InternalLoggerFactory
-            .getLogger(RemotingHelper.ROCKETMQ_REMOTING);
+        .getLogger(RemotingHelper.ROCKETMQ_REMOTING);
     private ServerBootstrap serverBootstrap;
     private EventLoopGroup eventLoopGroupSelector;
     private EventLoopGroup eventLoopGroupBoss;
@@ -94,16 +94,16 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
     }
 
     public MqttRemotingServer(final ServerConfig nettyServerConfig,
-            final ChannelEventListener channelEventListener) {
+        final ChannelEventListener channelEventListener) {
         init(nettyServerConfig, channelEventListener);
     }
 
     @Override
     public RemotingServer init(ServerConfig serverConfig,
-            ChannelEventListener channelEventListener) {
+        ChannelEventListener channelEventListener) {
         this.nettyServerConfig = serverConfig;
         super.init(nettyServerConfig.getServerOnewaySemaphoreValue(),
-                nettyServerConfig.getServerAsyncSemaphoreValue());
+            nettyServerConfig.getServerAsyncSemaphoreValue());
         this.serverBootstrap = new ServerBootstrap();
         this.channelEventListener = channelEventListener;
 
@@ -112,33 +112,33 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
             publicThreadNums = 4;
         }
         this.publicExecutor = ThreadUtils.newFixedThreadPool(
-                publicThreadNums,
-                10000, "MqttRemoting-PublicExecutor", true);
+            publicThreadNums,
+            10000, "MqttRemoting-PublicExecutor", true);
         if (JvmUtils.isUseEpoll() && this.nettyServerConfig.isUseEpollNativeSelector()) {
             this.eventLoopGroupSelector = new EpollEventLoopGroup(
-                    serverConfig.getServerSelectorThreads(),
-                    ThreadUtils.newGenericThreadFactory("MqttNettyEpollIoThreads",
-                            serverConfig.getServerSelectorThreads()));
+                serverConfig.getServerSelectorThreads(),
+                ThreadUtils.newGenericThreadFactory("MqttNettyEpollIoThreads",
+                    serverConfig.getServerSelectorThreads()));
             this.eventLoopGroupBoss = new EpollEventLoopGroup(
-                    serverConfig.getServerAcceptorThreads(),
-                    ThreadUtils.newGenericThreadFactory("MqttNettyBossThreads",
-                            serverConfig.getServerAcceptorThreads()));
+                serverConfig.getServerAcceptorThreads(),
+                ThreadUtils.newGenericThreadFactory("MqttNettyBossThreads",
+                    serverConfig.getServerAcceptorThreads()));
             this.socketChannelClass = EpollServerSocketChannel.class;
         } else {
             this.eventLoopGroupBoss = new NioEventLoopGroup(serverConfig.getServerAcceptorThreads(),
-                    ThreadUtils.newGenericThreadFactory("MqttNettyBossThreads",
-                            serverConfig.getServerAcceptorThreads()));
+                ThreadUtils.newGenericThreadFactory("MqttNettyBossThreads",
+                    serverConfig.getServerAcceptorThreads()));
             this.eventLoopGroupSelector = new NioEventLoopGroup(
-                    serverConfig.getServerSelectorThreads(),
-                    ThreadUtils.newGenericThreadFactory("MqttNettyNioIoThreads",
-                            serverConfig.getServerSelectorThreads()));
+                serverConfig.getServerSelectorThreads(),
+                ThreadUtils.newGenericThreadFactory("MqttNettyNioIoThreads",
+                    serverConfig.getServerSelectorThreads()));
             this.socketChannelClass = NioServerSocketChannel.class;
         }
         this.port = nettyServerConfig.getMqttListenPort();
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(
-                serverConfig.getServerWorkerThreads(),
-                ThreadUtils.newGenericThreadFactory("MqttNettyWorkerThreads",
-                        serverConfig.getServerWorkerThreads()));
+            serverConfig.getServerWorkerThreads(),
+            ThreadUtils.newGenericThreadFactory("MqttNettyWorkerThreads",
+                serverConfig.getServerWorkerThreads()));
         loadSslContext();
         return this;
     }
@@ -162,40 +162,40 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
     public void start() {
         super.start();
         ServerBootstrap childHandler =
-                this.serverBootstrap.group(this.eventLoopGroupBoss, this.eventLoopGroupSelector)
-                        .channel(socketChannelClass)
-                        .option(ChannelOption.SO_BACKLOG, 1024)
-                        .option(ChannelOption.SO_REUSEADDR, true)
-                        .option(ChannelOption.SO_KEEPALIVE, false)
-                        .childOption(ChannelOption.TCP_NODELAY, true)
-                        .childOption(ChannelOption.SO_SNDBUF,
-                                nettyServerConfig.getServerSocketSndBufSize())
-                        .childOption(ChannelOption.SO_RCVBUF,
-                                nettyServerConfig.getServerSocketRcvBufSize())
-                        .localAddress(new InetSocketAddress(this.port))
-                        .childHandler(new ChannelInitializer<SocketChannel>() {
-                            @Override
-                            public void initChannel(SocketChannel ch) throws Exception {
-                                ch.pipeline()
-                                        .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME,
-                                                new HandshakeHandler(TlsSystemConfig.tlsMode))
-                                        .addLast(defaultEventExecutorGroup,
-                                                new MqttDecoder(),
-                                                MqttEncoder.INSTANCE,
-                                                new MqttMessage2RemotingCommandHandler(),
-                                                new RemotingCommand2MqttMessageHandler(),
-                                                new IdleStateHandler(nettyServerConfig
-                                                        .getConnectionChannelReaderIdleSeconds(),
-                                                        nettyServerConfig
-                                                                .getConnectionChannelWriterIdleSeconds(),
-                                                        nettyServerConfig
-                                                                .getServerChannelMaxIdleTimeSeconds()),
-                                                new NettyConnectManageHandler(),
-                                                new NettyServerHandler()
+            this.serverBootstrap.group(this.eventLoopGroupBoss, this.eventLoopGroupSelector)
+                .channel(socketChannelClass)
+                .option(ChannelOption.SO_BACKLOG, 1024)
+                .option(ChannelOption.SO_REUSEADDR, true)
+                .option(ChannelOption.SO_KEEPALIVE, false)
+                .childOption(ChannelOption.TCP_NODELAY, true)
+                .childOption(ChannelOption.SO_SNDBUF,
+                    nettyServerConfig.getServerSocketSndBufSize())
+                .childOption(ChannelOption.SO_RCVBUF,
+                    nettyServerConfig.getServerSocketRcvBufSize())
+                .localAddress(new InetSocketAddress(this.port))
+                .childHandler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    public void initChannel(SocketChannel ch) throws Exception {
+                        ch.pipeline()
+                            .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME,
+                                new HandshakeHandler(TlsSystemConfig.tlsMode))
+                            .addLast(defaultEventExecutorGroup,
+                                new MqttDecoder(),
+                                MqttEncoder.INSTANCE,
+                                new MqttMessage2RemotingCommandHandler(),
+                                new RemotingCommand2MqttMessageHandler(),
+                                new IdleStateHandler(nettyServerConfig
+                                    .getConnectionChannelReaderIdleSeconds(),
+                                    nettyServerConfig
+                                        .getConnectionChannelWriterIdleSeconds(),
+                                    nettyServerConfig
+                                        .getServerChannelMaxIdleTimeSeconds()),
+                                new NettyConnectManageHandler(),
+                                new NettyServerHandler()
 
-                                        );
-                            }
-                        });
+                            );
+                    }
+                });
 
         if (nettyServerConfig.isServerPooledByteBufAllocatorEnable()) {
             childHandler.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
@@ -207,7 +207,7 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
             this.port = addr.getPort();
         } catch (InterruptedException e1) {
             throw new RuntimeException("this.serverBootstrap.bind().sync() InterruptedException",
-                    e1);
+                e1);
         }
         startUpHouseKeepingService();
         registerMessageHandler();
@@ -216,6 +216,7 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
     private void registerMessageHandler() {
 
     }
+
     @Override
     public void shutdown() {
         try {
@@ -269,28 +270,28 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
 
     @Override
     public RemotingCommand invokeSync(final RemotingChannel remotingChannel,
-            final RemotingCommand request,
-            final long timeoutMillis)
-            throws InterruptedException, RemotingSendRequestException, RemotingTimeoutException {
+        final RemotingCommand request,
+        final long timeoutMillis)
+        throws InterruptedException, RemotingSendRequestException, RemotingTimeoutException {
         return this.invokeSyncImpl(((NettyChannelImpl) remotingChannel).getChannel(), request,
-                timeoutMillis);
+            timeoutMillis);
     }
 
     @Override
     public void invokeAsync(RemotingChannel remotingChannel, RemotingCommand request,
-            long timeoutMillis,
-            InvokeCallback invokeCallback)
-            throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
+        long timeoutMillis,
+        InvokeCallback invokeCallback)
+        throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         this.invokeAsyncImpl(((NettyChannelImpl) remotingChannel).getChannel(), request,
-                timeoutMillis, invokeCallback);
+            timeoutMillis, invokeCallback);
     }
 
     @Override
     public void invokeOneway(RemotingChannel remotingChannel, RemotingCommand request,
-            long timeoutMillis) throws InterruptedException,
-            RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
+        long timeoutMillis) throws InterruptedException,
+        RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         this.invokeOnewayImpl(((NettyChannelImpl) remotingChannel).getChannel(), request,
-                timeoutMillis);
+            timeoutMillis);
     }
 
     @Override
@@ -305,7 +306,7 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
 
     @Override
     protected RemotingChannel getAndCreateChannel(String addr, long timeout)
-            throws InterruptedException {
+        throws InterruptedException {
         return null;
     }
 
@@ -338,23 +339,23 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
                     case DISABLED:
                         ctx.close();
                         log.warn(
-                                "Clients intend to establish a SSL connection while this server is running in SSL disabled mode");
+                            "Clients intend to establish a SSL connection while this server is running in SSL disabled mode");
                         break;
                     case PERMISSIVE:
                     case ENFORCING:
                         if (null != sslContext) {
                             ctx.pipeline()
-                                    .addAfter(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME,
-                                            TLS_HANDLER_NAME,
-                                            sslContext.newHandler(ctx.channel().alloc()))
-                                    .addAfter(defaultEventExecutorGroup, TLS_HANDLER_NAME,
-                                            FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
+                                .addAfter(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME,
+                                    TLS_HANDLER_NAME,
+                                    sslContext.newHandler(ctx.channel().alloc()))
+                                .addAfter(defaultEventExecutorGroup, TLS_HANDLER_NAME,
+                                    FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
                             log.info(
-                                    "Handlers prepended to channel pipeline to establish SSL connection");
+                                "Handlers prepended to channel pipeline to establish SSL connection");
                         } else {
                             ctx.close();
                             log.error(
-                                    "Trying to establish a SSL connection but sslContext is null");
+                                "Trying to establish a SSL connection but sslContext is null");
                         }
                         break;
 
@@ -365,7 +366,7 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
             } else if (tlsMode == TlsMode.ENFORCING) {
                 ctx.close();
                 log.warn(
-                        "Clients intend to establish an insecure connection while this server is running in SSL enforcing mode");
+                    "Clients intend to establish an insecure connection while this server is running in SSL enforcing mode");
             }
 
             // reset the reader index so that handshake negotiation may proceed as normal.
@@ -385,8 +386,8 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
 
     @Override
     public void push(RemotingChannel remotingChannel, RemotingCommand request,
-            long timeoutMillis) throws InterruptedException,
-            RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
+        long timeoutMillis) throws InterruptedException,
+        RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         this.invokeOneway(remotingChannel, request, timeoutMillis);
     }
 }

@@ -42,9 +42,10 @@ public final class RocketMQMqttSubscribePayload extends RemotingSerializable {
     }
 
     public void setTopicSubscriptions(
-            List<MqttTopicSubscription> topicSubscriptions) {
+        List<MqttTopicSubscription> topicSubscriptions) {
         this.topicSubscriptions = topicSubscriptions;
     }
+
     public static RocketMQMqttSubscribePayload fromMqttSubscribePayload(MqttSubscribePayload payload) {
         return new RocketMQMqttSubscribePayload(payload.topicSubscriptions());
     }
@@ -52,6 +53,7 @@ public final class RocketMQMqttSubscribePayload extends RemotingSerializable {
     public MqttSubscribePayload toMqttSubscribePayload() throws UnsupportedEncodingException {
         return new MqttSubscribePayload(this.topicSubscriptions);
     }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder(StringUtil.simpleClassName(this)).append('[');

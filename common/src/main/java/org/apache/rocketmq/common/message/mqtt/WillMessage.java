@@ -23,7 +23,7 @@ public class WillMessage {
 
     private byte[] body;
 
-    private  boolean isRetain;
+    private boolean isRetain;
 
     private int qos;
 
@@ -58,6 +58,7 @@ public class WillMessage {
     public void setQos(int qos) {
         this.qos = qos;
     }
+
     public String getString() {
         return new String(body);
     }

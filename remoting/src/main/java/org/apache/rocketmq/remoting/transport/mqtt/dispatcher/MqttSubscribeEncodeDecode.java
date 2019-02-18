@@ -31,12 +31,12 @@ public class MqttSubscribeEncodeDecode implements Message2MessageEncodeDecode {
     @Override
     public RemotingCommand decode(MqttMessage mqttMessage) {
         RocketMQMqttSubscribePayload payload = RocketMQMqttSubscribePayload
-                .fromMqttSubscribePayload(((MqttSubscribeMessage) mqttMessage).payload());
+            .fromMqttSubscribePayload(((MqttSubscribeMessage) mqttMessage).payload());
 
         RemotingCommand requestCommand = null;
         MqttFixedHeader mqttFixedHeader = mqttMessage.fixedHeader();
         MqttMessageIdVariableHeader variableHeader = (MqttMessageIdVariableHeader) mqttMessage
-                .variableHeader();
+            .variableHeader();
 
         MqttHeader mqttHeader = new MqttHeader();
         mqttHeader.setMessageType(mqttFixedHeader.messageType().value());
@@ -48,7 +48,7 @@ public class MqttSubscribeEncodeDecode implements Message2MessageEncodeDecode {
         mqttHeader.setMessageId(variableHeader.messageId());
 
         requestCommand = RemotingCommand
-                .createRequestCommand(1000, mqttHeader);
+            .createRequestCommand(1000, mqttHeader);
         CodecHelper.makeCustomHeaderToNet(requestCommand);
 
         requestCommand.setBody(payload.encode());

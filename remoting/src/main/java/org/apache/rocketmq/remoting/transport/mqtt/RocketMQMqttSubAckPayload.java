@@ -51,6 +51,7 @@ public final class RocketMQMqttSubAckPayload extends RemotingSerializable {
     public MqttSubAckPayload toMqttSubAckPayload() throws UnsupportedEncodingException {
         return new MqttSubAckPayload(this.grantedQoSLevels);
     }
+
     @Override
     public String toString() {
         return StringUtil.simpleClassName(this) + '[' + "grantedQoSLevels=" + this.grantedQoSLevels + ']';
