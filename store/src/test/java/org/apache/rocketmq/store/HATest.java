@@ -83,6 +83,7 @@ public class HATest {
         assertTrue(load);
         assertTrue(slaveLoad);
         messageStore.start();
+        Thread.sleep(10000L);//slave start after the master start
         slaveMessageStore.start();
     }
 
