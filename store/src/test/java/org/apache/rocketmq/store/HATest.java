@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -94,11 +95,11 @@ public class HATest {
             messageStore.putMessage(buildMessage());
         }
 
-        assertTrue(slaveMessageStore.getMessageTotalInQueue("FooBar", 0) == 10);
         Thread.sleep(1000L);//sleep 1000 ms
         for (long i = 0; i < totalMsgs; i++) {
             GetMessageResult result = slaveMessageStore.getMessage("GROUP_A", "FooBar", 0, i, 1024 * 1024, null);
             assertThat(result).isNotNull();
+            System.out.println(result.getStatus());
             assertTrue(GetMessageStatus.FOUND.equals(result.getStatus()));
             result.release();
         }
@@ -106,10 +107,10 @@ public class HATest {
 
     @After
     public void destroy() throws Exception{
-        messageStore.shutdown();
-        messageStore.destroy();
         slaveMessageStore.shutdown();
         slaveMessageStore.destroy();
+        messageStore.shutdown();
+        messageStore.destroy();
         File file = new File(storePathRootDir);
         UtilAll.deleteFile(file);
     }
