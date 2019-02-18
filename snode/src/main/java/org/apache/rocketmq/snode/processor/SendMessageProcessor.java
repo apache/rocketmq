@@ -67,14 +67,16 @@ public class SendMessageProcessor implements RequestProcessor {
         String enodeName;
         SendMessageRequestHeaderV2 sendMessageRequestHeaderV2 = null;
         final StringBuffer stringBuffer = new StringBuffer();
+        ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = null;
         boolean isSendBack = false;
-        if (request.getCode() == RequestCode.SEND_MESSAGE_V2) {
+        if (request.getCode() == RequestCode.SEND_MESSAGE_V2 ||
+            request.getCode() == RequestCode.SEND_BATCH_MESSAGE) {
             sendMessageRequestHeaderV2 = (SendMessageRequestHeaderV2) request.decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
             enodeName = sendMessageRequestHeaderV2.getN();
             stringBuffer.append(sendMessageRequestHeaderV2.getB());
         } else {
             isSendBack = true;
-            ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = (ConsumerSendMsgBackRequestHeader) request.decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
+            consumerSendMsgBackRequestHeader = (ConsumerSendMsgBackRequestHeader) request.decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
             enodeName = consumerSendMsgBackRequestHeader.getEnodeName();
             stringBuffer.append(MixAll.getRetryTopic(consumerSendMsgBackRequestHeader.getGroup()));
         }
