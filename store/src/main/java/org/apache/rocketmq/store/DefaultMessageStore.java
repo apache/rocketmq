@@ -760,7 +760,7 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public long getEarliestMessageTime() {
         final long minPhyOffset = this.getMinPhyOffset();
-        final int size = (int)Math.min(this.getCommitLog().getMaxOffset(), this.messageStoreConfig.getMaxMessageSize() * 2);
+        final int size = this.messageStoreConfig.getMaxMessageSize() * 2;
         return this.getCommitLog().pickupStoreTimestamp(minPhyOffset, size);
     }
 
