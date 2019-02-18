@@ -68,7 +68,7 @@ producer.shutdown();
 ```
 
 ## 4. Consumer example
-Use `MessageSelector.bySql` to select messages through SQL92 when consuming.
+Use `MessageSelector.bySql` to select messages through SQL when consuming.
 
 
 ```java
