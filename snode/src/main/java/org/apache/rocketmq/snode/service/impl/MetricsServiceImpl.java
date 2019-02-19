@@ -48,17 +48,17 @@ public class MetricsServiceImpl implements MetricsService {
 
     private StatsItemSet statsItemSet = new StatsItemSet("SnodeStats", scheduledExecutorService, log);
 
-    private final static Counter requestTotal = Counter.build().name("request_total").help("request total count").labelNames("requestCode").register();
+    private final static Counter REQUEST_TOTAL = Counter.build().name("request_total").help("request total count").labelNames("requestCode").register();
 
-    private final static Counter requestFailedTotal = Counter.build().name("request_failed_total").help("request total count").labelNames("requestCode").register();
+    private final static Counter REQUEST_FAILED_TOTAL = Counter.build().name("request_failed_total").help("request total count").labelNames("requestCode").register();
 
-    private final static Summary requestLatency = Summary.build()
+    private final static Summary REQUEST_LATENCY = Summary.build()
         .quantile(0.5, 0.05)
         .quantile(0.9, 0.01)
         .quantile(0.99, 0.001)
         .name("requests_latency_seconds").labelNames("requestCode").help("Request latency in seconds.").register();
 
-    private final static Summary receivedBytes = Summary.build()
+    private final static Summary RECEIVED_BYTES = Summary.build()
         .quantile(0.5, 0.05)
         .quantile(0.9, 0.01)
         .quantile(0.99, 0.001)
@@ -68,23 +68,23 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     synchronized public void incRequestCount(int requestCode, boolean success) {
         if (!success) {
-            this.requestFailedTotal.labels(requestCode + "").inc();
+            this.REQUEST_FAILED_TOTAL.labels(requestCode + "").inc();
             this.statsItemSet.addValue("TotalFailed@" + requestCode, 1, 1);
         } else {
-            this.requestTotal.labels(requestCode + "").inc();
+            this.REQUEST_TOTAL.labels(requestCode + "").inc();
             this.statsItemSet.addValue("Total@" + requestCode, 1, 1);
         }
     }
 
     @Override
     synchronized public void recordRequestSize(String topic, double size) {
-        this.receivedBytes.labels(topic).observe(size);
+        this.RECEIVED_BYTES.labels(topic).observe(size);
         this.statsItemSet.addValue("TotalSize@" + topic, new Double(size).intValue(), 1);
     }
 
     @Override
     public Timer startTimer(int requestCode) {
-        return new PrometheusTimer(this.requestLatency).startTimer(requestCode);
+        return new PrometheusTimer(this.REQUEST_LATENCY).startTimer(requestCode);
     }
 
     @Override
@@ -139,18 +139,18 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     public Counter getRequestTotal() {
-        return requestTotal;
+        return REQUEST_TOTAL;
     }
 
     public Counter getRequestFailedTotal() {
-        return requestFailedTotal;
+        return REQUEST_FAILED_TOTAL;
     }
 
     public Summary getRequestLatency() {
-        return requestLatency;
+        return REQUEST_LATENCY;
     }
 
     public Summary getReceivedBytes() {
-        return receivedBytes;
+        return RECEIVED_BYTES;
     }
 }
