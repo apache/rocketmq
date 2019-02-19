@@ -190,6 +190,8 @@ public class MQClientAPIImpl {
         this.remotingClient.registerProcessor(RequestCode.GET_CONSUMER_RUNNING_INFO, this.clientRemotingProcessor, null);
 
         this.remotingClient.registerProcessor(RequestCode.CONSUME_MESSAGE_DIRECTLY, this.clientRemotingProcessor, null);
+
+        this.remotingClient.registerProcessor(RequestCode.SNODE_PUSH_MESSAGE, this.clientRemotingProcessor, null);
     }
 
     public List<String> getNameServerAddressList() {

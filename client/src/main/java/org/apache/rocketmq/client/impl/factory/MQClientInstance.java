@@ -1376,4 +1376,18 @@ public class MQClientInstance {
     public ClientConfig getNettyClientConfig() {
         return nettyClientConfig;
     }
+    public boolean processSnodePushMessage(final MessageExt msg,
+        final String consumerGroup,
+        final String topic,
+        final int queueID,
+        final long offset) {
+        MQConsumerInner mqConsumerInner = this.consumerTable.get(consumerGroup);
+        if (null != mqConsumerInner) {
+            DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl) mqConsumerInner;
+            consumer.processPushMessage(msg,consumerGroup,topic,queueID,offset);
+            return true;
+        }
+
+        return false;
+    }
 }

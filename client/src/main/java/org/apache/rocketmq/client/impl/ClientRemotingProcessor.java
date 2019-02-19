@@ -24,6 +24,7 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.MQProducerInner;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.protocol.header.PushMessageHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -48,7 +49,6 @@ import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-
 public class ClientRemotingProcessor implements RequestProcessor {
     private final InternalLogger log = ClientLogger.getLog();
     private final MQClientInstance mqClientFactory;
@@ -60,7 +60,7 @@ public class ClientRemotingProcessor implements RequestProcessor {
     @Override
     public RemotingCommand processRequest(RemotingChannel remotingChannel,
         RemotingCommand request) throws RemotingCommandException {
-        NettyChannelHandlerContextImpl nettyChannelHandlerContext = (NettyChannelHandlerContextImpl)remotingChannel;
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = (NettyChannelHandlerContextImpl) remotingChannel;
         ChannelHandlerContext ctx = nettyChannelHandlerContext.getChannelHandlerContext();
         switch (request.getCode()) {
             case RequestCode.CHECK_TRANSACTION_STATE:
@@ -77,6 +77,8 @@ public class ClientRemotingProcessor implements RequestProcessor {
 
             case RequestCode.CONSUME_MESSAGE_DIRECTLY:
                 return this.consumeMessageDirectly(ctx, request);
+            case RequestCode.SNODE_PUSH_MESSAGE:
+                return this.processSnodePushMessage(ctx, request);
             default:
                 break;
         }
@@ -209,5 +211,22 @@ public class ClientRemotingProcessor implements RequestProcessor {
         }
 
         return response;
+    }
+
+    private RemotingCommand processSnodePushMessage(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final PushMessageHeader requestHeader =
+            (PushMessageHeader) request
+                .decodeCommandCustomHeader(PushMessageHeader.class);
+
+        final MessageExt msg = MessageDecoder.decode(ByteBuffer.wrap(request.getBody()));
+        boolean result =
+            this.mqClientFactory.processSnodePushMessage(msg,
+                requestHeader.getConsumerGroup(),
+                requestHeader.getTopic(),
+                requestHeader.getQueueId(),
+                requestHeader.getQueueOffset());
+
+        return null;
     }
 }

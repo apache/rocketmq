@@ -137,6 +137,7 @@ public class RebalancePushImpl extends RebalanceImpl {
     @Override
     public ConsumeType consumeType() {
         return ConsumeType.CONSUME_PASSIVELY;
+        //return ConsumeType.CONSUME_PUSH;
     }
 
     @Override
