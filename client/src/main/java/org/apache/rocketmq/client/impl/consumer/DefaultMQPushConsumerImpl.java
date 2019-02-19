@@ -114,6 +114,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private boolean realPushModel = true;
     private final ConcurrentHashMap<String, AtomicLong> localConsumerOffset = new ConcurrentHashMap<String, AtomicLong>();
     private final ConcurrentHashMap<String, AtomicBoolean> pullStopped = new ConcurrentHashMap<String, AtomicBoolean>();
+    private final ConcurrentHashMap<String, ProcessQueue> processQueues = new ConcurrentHashMap<String, ProcessQueue>();
 
     public DefaultMQPushConsumerImpl(DefaultMQPushConsumer defaultMQPushConsumer, RPCHook rpcHook) {
         this(defaultMQPushConsumer, rpcHook, true);
@@ -1224,6 +1225,17 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             //update local offset
             localOffset.set(offset);
             //submit to process queue
+            List<MessageExt> messageExtList = new ArrayList<MessageExt>();
+            messageExtList.add(msg);
+            ProcessQueue processQueue = processQueues.get(localOffsetKey);
+            if (processQueue == null){
+                processQueues.put(localOffsetKey,new ProcessQueue());
+                processQueue = processQueues.get(localOffsetKey);
+            }
+            processQueue.putMessage(messageExtList);
+            MessageQueue messageQueue = new MessageQueue(topic,"",queueID);
+            this.consumeMessageService.submitConsumeRequest(messageExtList,processQueue,messageQueue,true);
+            log.info(".......submitConsumeRequest:{},Offset:{}...",localOffsetKey,offset);
         }
         return true;
     }
