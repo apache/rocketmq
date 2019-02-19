@@ -95,7 +95,7 @@ public class PushServiceImpl implements PushService {
             messageExt.setFlag(sendMessageRequestHeader.getFlag());
             messageExt.setBody(message);
             messageExt.setBodyCRC(UtilAll.crc32(message));
-            log.info("MessageExt:{}", messageExt);
+            log.debug("MessageExt:{}", messageExt);
             return messageExt;
         }
 
@@ -103,9 +103,9 @@ public class PushServiceImpl implements PushService {
         public void run() {
             if (!canceled.get()) {
                 try {
-                    log.info("sendMessageResponse:{}", sendMessageResponse);
+                    log.debug("sendMessageResponse: {}", sendMessageResponse);
                     SendMessageResponseHeader sendMessageResponseHeader = (SendMessageResponseHeader) sendMessageResponse.decodeCommandCustomHeader(SendMessageResponseHeader.class);
-                    log.info("sendMessageResponseHeader:{}", sendMessageResponseHeader);
+                    log.debug("sendMessageResponseHeader: {}", sendMessageResponseHeader);
                     MessageQueue messageQueue = new MessageQueue(sendMessageRequestHeader.getTopic(), sendMessageRequestHeader.getEnodeName(), sendMessageRequestHeader.getQueueId());
                     Set<RemotingChannel> consumerTable = snodeController.getSubscriptionManager().getPushableChannel(messageQueue);
                     if (consumerTable != null) {
@@ -113,6 +113,7 @@ public class PushServiceImpl implements PushService {
                         pushMessageHeader.setQueueOffset(sendMessageResponseHeader.getQueueOffset());
                         pushMessageHeader.setTopic(sendMessageRequestHeader.getTopic());
                         pushMessageHeader.setQueueId(sendMessageResponseHeader.getQueueId());
+                        pushMessageHeader.setEnodeName(sendMessageRequestHeader.getEnodeName());
                         RemotingCommand pushMessage = RemotingCommand.createRequestCommand(RequestCode.SNODE_PUSH_MESSAGE, pushMessageHeader);
                         MessageExt messageExt = buildMessageExt(sendMessageResponseHeader, message, sendMessageRequestHeader);
                         pushMessage.setBody(MessageDecoder.encode(messageExt, false));

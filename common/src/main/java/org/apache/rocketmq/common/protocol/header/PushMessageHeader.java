@@ -36,6 +36,8 @@ public class PushMessageHeader implements CommandCustomHeader {
     @CFNotNull
     private String consumerGroup;
 
+    private String enodeName;
+
     @Override
     public void checkFields() throws RemotingCommandException {
 
@@ -79,5 +81,24 @@ public class PushMessageHeader implements CommandCustomHeader {
 
     public void setConsumerGroup(String consumerGroup) {
         this.consumerGroup = consumerGroup;
+    }
+
+    public String getEnodeName() {
+        return enodeName;
+    }
+
+    public void setEnodeName(String enodeName) {
+        this.enodeName = enodeName;
+    }
+
+    @Override public String toString() {
+        return "PushMessageHeader{" +
+            "queueOffset=" + queueOffset +
+            ", messageId='" + messageId + '\'' +
+            ", queueId=" + queueId +
+            ", topic='" + topic + '\'' +
+            ", consumerGroup='" + consumerGroup + '\'' +
+            ", enodeName='" + enodeName + '\'' +
+            '}';
     }
 }

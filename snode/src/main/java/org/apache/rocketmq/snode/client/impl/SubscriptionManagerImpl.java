@@ -44,7 +44,6 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
     @Override
     public void registerPushSession(Set<SubscriptionData> subscriptionDataSet, RemotingChannel remotingChannel,
         String groupId) {
-        log.info("Register push session subscriptionDataSet: {}", subscriptionDataSet);
         Set<MessageQueue> prevSubSet = this.clientSubscriptionTable.get(remotingChannel);
         Set<MessageQueue> keySet = new HashSet<>();
         for (SubscriptionData subscriptionData : subscriptionDataSet) {
@@ -57,15 +56,14 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
                         Set<RemotingChannel> prev = pushTable.putIfAbsent(messageQueue, clientSet);
                         clientSet = prev != null ? prev : clientSet;
                     }
-                    log.info("Register push session message queue: {}, group: {} remoting: {}", messageQueue, groupId, remotingChannel.remoteAddress());
+                    log.debug("Register push session message queue: {}, group: {} remoting: {}", messageQueue, groupId, remotingChannel.remoteAddress());
                     clientSet.add(remotingChannel);
                 }
             }
         }
         if (keySet.size() > 0) {
-            this.clientSubscriptionTable.putIfAbsent(remotingChannel, keySet);
+            this.clientSubscriptionTable.put(remotingChannel, keySet);
         }
-        log.info("Register push session clientSubscriptionTable: {}", clientSubscriptionTable);
         if (prevSubSet != null) {
             for (MessageQueue messageQueue : prevSubSet) {
                 if (!keySet.contains(messageQueue)) {
@@ -77,7 +75,6 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
                 }
             }
         }
-        log.info("Register push session clientSubscriptionTable: {}", clientSubscriptionTable);
     }
 
     @Override
