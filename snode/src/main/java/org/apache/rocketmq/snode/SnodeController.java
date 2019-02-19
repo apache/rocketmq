@@ -171,14 +171,6 @@ public class SnodeController {
             "SnodeHeartbeatThread",
             true);
 
-//        this.consumerManagerExecutor = ThreadUtils.newThreadPoolExecutor(
-//            snodeConfig.getSnodeSendMessageMinPoolSize(),
-//            snodeConfig.getSnodeSendMessageMaxPoolSize(),
-//            3000,
-//            TimeUnit.MILLISECONDS,
-//            new ArrayBlockingQueue<>(snodeConfig.getSnodeSendThreadPoolQueueCapacity()),
-//            "SnodePullMessageThread",
-//            false);
 
         this.consumerManageExecutor = ThreadUtils.newThreadPoolExecutor(
             snodeConfig.getSnodeSendMessageMinPoolSize(),

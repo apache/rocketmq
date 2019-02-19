@@ -16,19 +16,20 @@
  */
 package org.apache.rocketmq.snode.service;
 
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface PushService {
     /**
-     * TODO how to resolve the slow consumer: close or ignore?
+     * Push message to consumer which subscribed target {@link MessageQueue}
+     * <p>
      *
-     * @param enodeName
-     * @param topic
-     * @param queueId
-     * @param message
-     * @param response
+     * @param requestHeader Send message request header
+     * @param message Message body
+     * @param response Send message response
      */
-    void pushMessage(final String enodeName, final String topic, final Integer queueId, final byte[] message,
+    void pushMessage(final SendMessageRequestHeader requestHeader, final byte[] message,
         final RemotingCommand response);
 
     void shutdown();

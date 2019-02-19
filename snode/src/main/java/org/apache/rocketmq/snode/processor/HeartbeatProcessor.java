@@ -71,6 +71,7 @@ public class HeartbeatProcessor implements RequestProcessor {
 
     private RemotingCommand register(RemotingChannel remotingChannel, RemotingCommand request) {
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
+        log.info("heartbeatData: {}", heartbeatData);
         Channel channel = null;
         Attribute<Client> clientAttribute = null;
         if (remotingChannel instanceof NettyChannelHandlerContextImpl) {

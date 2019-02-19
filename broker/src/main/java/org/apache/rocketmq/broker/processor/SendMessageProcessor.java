@@ -17,6 +17,9 @@
 package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
+import java.net.SocketAddress;
+import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
@@ -42,18 +45,14 @@ import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.remoting.RemotingChannel;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.RequestProcessor;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
-
-import java.net.SocketAddress;
-import java.util.List;
-import java.util.Map;
 
 public class SendMessageProcessor extends AbstractSendMessageProcessor implements RequestProcessor {
 
@@ -443,7 +442,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             responseHeader.setMsgId(putMessageResult.getAppendMessageResult().getMsgId());
             responseHeader.setQueueId(queueIdInt);
             responseHeader.setQueueOffset(putMessageResult.getAppendMessageResult().getLogicsOffset());
-
+            responseHeader.setCommitLogOffset(putMessageResult.getAppendMessageResult().getWroteOffset());
+            responseHeader.setStoreTimestamp(putMessageResult.getAppendMessageResult().getStoreTimestamp());
+            responseHeader.setStoreSize(putMessageResult.getAppendMessageResult().getWroteBytes());
+            responseHeader.setStoreHost(ctx.channel().localAddress().toString());
             doResponse(ctx, request, response);
 
             if (hasSendMessageHook()) {

@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.protocol.header;
 
+import java.net.SocketAddress;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
@@ -56,6 +57,10 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
 
     private String n; //enode name
 
+    private SocketAddress o; //born host
+
+    private SocketAddress p; //snode host
+
     public static SendMessageRequestHeader createSendMessageRequestHeaderV1(final SendMessageRequestHeaderV2 v2) {
         SendMessageRequestHeader v1 = new SendMessageRequestHeader();
         v1.setProducerGroup(v2.a);
@@ -72,6 +77,8 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
         v1.setMaxReconsumeTimes(v2.l);
         v1.setBatch(v2.m);
         v1.setEnodeName(v2.n);
+        v1.setBornHost(v2.getO());
+        v1.setSnodeHost(v2.getP());
         return v1;
     }
 
@@ -91,6 +98,8 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
         v2.l = v1.getMaxReconsumeTimes();
         v2.m = v1.isBatch();
         v2.n = v1.getEnodeName();
+        v2.o = v1.getBornHost();
+        v2.p = v1.getSnodeHost();
         return v2;
     }
 
@@ -210,6 +219,22 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
         this.n = n;
     }
 
+    public SocketAddress getO() {
+        return o;
+    }
+
+    public void setO(SocketAddress o) {
+        this.o = o;
+    }
+
+    public SocketAddress getP() {
+        return p;
+    }
+
+    public void setP(SocketAddress p) {
+        this.p = p;
+    }
+
     @Override public String toString() {
         return "SendMessageRequestHeaderV2{" +
             "a='" + a + '\'' +
@@ -226,6 +251,8 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
             ", l=" + l +
             ", m=" + m +
             ", n='" + n + '\'' +
+            ", o=" + o +
+            ", p=" + p +
             '}';
     }
 }

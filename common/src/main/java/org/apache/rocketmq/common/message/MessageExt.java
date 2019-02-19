@@ -215,13 +215,21 @@ public class MessageExt extends Message {
         this.preparedTransactionOffset = preparedTransactionOffset;
     }
 
-    @Override
-    public String toString() {
-        return "MessageExt [queueId=" + queueId + ", storeSize=" + storeSize + ", queueOffset=" + queueOffset
-            + ", sysFlag=" + sysFlag + ", bornTimestamp=" + bornTimestamp + ", bornHost=" + bornHost
-            + ", storeTimestamp=" + storeTimestamp + ", storeHost=" + storeHost + ", msgId=" + msgId
-            + ", commitLogOffset=" + commitLogOffset + ", bodyCRC=" + bodyCRC + ", reconsumeTimes="
-            + reconsumeTimes + ", preparedTransactionOffset=" + preparedTransactionOffset
-            + ", toString()=" + super.toString() + "]";
+    @Override public String toString() {
+        return "MessageExt{" +
+            "queueId=" + queueId +
+            ", storeSize=" + storeSize +
+            ", queueOffset=" + queueOffset +
+            ", sysFlag=" + sysFlag +
+            ", bornTimestamp=" + bornTimestamp +
+            ", bornHost=" + bornHost +
+            ", storeTimestamp=" + storeTimestamp +
+            ", storeHost=" + storeHost +
+            ", msgId='" + msgId + '\'' +
+            ", commitLogOffset=" + commitLogOffset +
+            ", bodyCRC=" + bodyCRC +
+            ", reconsumeTimes=" + reconsumeTimes +
+            ", preparedTransactionOffset=" + preparedTransactionOffset +
+            '}';
     }
 }

@@ -181,7 +181,7 @@ public class Message implements Serializable {
         return properties;
     }
 
-    void setProperties(Map<String, String> properties) {
+    public void setProperties(Map<String, String> properties) {
         this.properties = properties;
     }
 

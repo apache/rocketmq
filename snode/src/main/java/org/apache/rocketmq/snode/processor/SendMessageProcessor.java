@@ -22,6 +22,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
+import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -73,6 +74,7 @@ public class SendMessageProcessor implements RequestProcessor {
             request.getCode() == RequestCode.SEND_BATCH_MESSAGE) {
             sendMessageRequestHeaderV2 = (SendMessageRequestHeaderV2) request.decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
             enodeName = sendMessageRequestHeaderV2.getN();
+            sendMessageRequestHeaderV2.setP(remotingChannel.localAddress());
             stringBuffer.append(sendMessageRequestHeaderV2.getB());
         } else {
             isSendBack = true;
@@ -82,9 +84,12 @@ public class SendMessageProcessor implements RequestProcessor {
         }
 
         CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().sendMessage(enodeName, request);
-        final Integer queueId = sendMessageRequestHeaderV2.getE();
+
+        sendMessageRequestHeaderV2.setO(remotingChannel.remoteAddress());
         final byte[] message = request.getBody();
         final boolean isNeedPush = !isSendBack;
+        final SendMessageRequestHeader sendMessageRequestHeader =
+            SendMessageRequestHeaderV2.createSendMessageRequestHeaderV1(sendMessageRequestHeaderV2);
         responseFuture.whenComplete((data, ex) -> {
             if (ex == null) {
                 if (this.snodeController.getSendMessageInterceptorGroup() != null) {
@@ -94,7 +99,8 @@ public class SendMessageProcessor implements RequestProcessor {
                 remotingChannel.reply(data);
                 this.snodeController.getMetricsService().recordRequestSize(stringBuffer.toString(), request.getBody().length);
                 if (data.getCode() == ResponseCode.SUCCESS && isNeedPush) {
-                    this.snodeController.getPushService().pushMessage(enodeName, stringBuffer.toString(), queueId, message, data);
+                    log.info("Send message response: {}", data);
+                    this.snodeController.getPushService().pushMessage(sendMessageRequestHeader, message, data);
                 }
             } else {
                 this.snodeController.getMetricsService().incRequestCount(request.getCode(), false);

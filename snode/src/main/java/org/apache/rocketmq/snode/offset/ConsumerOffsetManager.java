@@ -16,16 +16,13 @@
  */
 package org.apache.rocketmq.snode.offset;
 
-import java.util.Iterator;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
+import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -37,10 +34,10 @@ public class ConsumerOffsetManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
     private static final String TOPIC_GROUP_SEPARATOR = "@";
 
-    private ConcurrentMap<String/* Enode@Topic@Group */, ConcurrentMap<Integer, Long>> offsetTable =
+    private ConcurrentMap<String/* Enode@Topic@Group */, ConcurrentMap<Integer, CacheOffset>> offsetTable =
         new ConcurrentHashMap<>(512);
 
-    private transient SnodeController snodeController;
+    private SnodeController snodeController;
 
     public ConsumerOffsetManager(SnodeController brokerController) {
         this.snodeController = brokerController;
@@ -57,74 +54,63 @@ public class ConsumerOffsetManager {
         return sb.toString();
     }
 
-    private boolean offsetBehindMuchThanData(final String enodeName, final String topic,
-        ConcurrentMap<Integer, Long> table) throws InterruptedException, RemotingTimeoutException,
-        RemotingSendRequestException, RemotingConnectException, RemotingCommandException {
-        Iterator<Entry<Integer, Long>> it = table.entrySet().iterator();
-        boolean result = !table.isEmpty();
-
-        while (it.hasNext() && result) {
-            Entry<Integer, Long> next = it.next();
-            RemotingCommand remotingCommand = this.snodeController.getEnodeService().getMinOffsetInQueue(enodeName, topic, next.getKey());
-            long minOffsetInStore = 0;
-            if (remotingCommand != null) {
-                switch (remotingCommand.getCode()) {
-                    case ResponseCode.SUCCESS: {
-                        GetMinOffsetResponseHeader responseHeader =
-                            (GetMinOffsetResponseHeader) remotingCommand.decodeCommandCustomHeader(GetMinOffsetResponseHeader.class);
-                        minOffsetInStore = responseHeader.getOffset();
-                    }
-                    default:
-                        break;
-                }
-            } else {
-                throw new SnodeException(ResponseCode.QUERY_OFFSET_ERROR, "Query min offset error!");
-            }
-            long offsetInPersist = next.getValue();
-            result = offsetInPersist <= minOffsetInStore;
-        }
-        return result;
-    }
-
     public void cacheOffset(final String enodeName, final String clientHost, final String group, final String topic,
         final int queueId,
         final long offset) {
-        // Topic@group
+        // EnodeName@Topic@group
         String key = buildKey(enodeName, topic, group);
         this.commitOffset(clientHost, key, queueId, offset);
     }
 
     private void commitOffset(final String clientHost, final String key, final int queueId, final long offset) {
-        ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
+        ConcurrentMap<Integer, CacheOffset> map = this.offsetTable.get(key);
+        CacheOffset cacheOffset = new CacheOffset(key, offset, System.currentTimeMillis());
         if (null == map) {
             map = new ConcurrentHashMap<>(32);
-            ConcurrentMap<Integer, Long> prev = this.offsetTable.putIfAbsent(key, map);
+            ConcurrentMap<Integer, CacheOffset> prev = this.offsetTable.putIfAbsent(key, map);
             map = prev != null ? prev : map;
-            map.put(queueId, offset);
+            map.put(queueId, cacheOffset);
         } else {
-            Long storeOffset = map.put(queueId, offset);
-            if (storeOffset != null && offset < storeOffset) {
-                log.warn("[NOTIFYME]update consumer offset less than store. clientHost: {}, key: {}, queueId: {}, requestOffset: {}, storeOffset: {}", clientHost, key, queueId, offset, storeOffset);
+            CacheOffset storeOffset = map.put(queueId, cacheOffset);
+            if (storeOffset != null && offset < storeOffset.getOffset()) {
+                log.warn("[NOTIFYME]update consumer offset less than store. clientHost: {}, key: {}, queueId: {}, requestOffset: {}, storeOffset: {}",
+                    clientHost, key, queueId, offset, storeOffset);
             }
         }
     }
 
-    public long queryCacheOffset(final String enodeName, final String group, final String topic, final int queueId) {
-        String key = buildKey(enodeName, topic, group);
-        ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
-        if (null != map) {
-            Long offset = map.get(queueId);
-            if (offset != null)
-                return offset;
+    private long parserOffset(final String enodeName, final String group, final String topic, final int queueId) {
+        try {
+            RemotingCommand remotingCommand = queryOffset(enodeName, group, topic, queueId);
+            QueryConsumerOffsetResponseHeader responseHeader =
+                (QueryConsumerOffsetResponseHeader) remotingCommand.decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
+            return responseHeader.getOffset();
+        } catch (Exception ex) {
+            log.error("Load offset from broker error", ex);
         }
-
         return -1;
     }
 
-    public ConcurrentMap<String, ConcurrentMap<Integer, Long>> getOffsetTable() {
-        return offsetTable;
-    }
+    public long queryCacheOffset(final String enodeName, final String group, final String topic, final int queueId) {
+        String key = buildKey(enodeName, topic, group);
+        ConcurrentMap<Integer, CacheOffset> map = this.offsetTable.get(key);
+        if (map == null) {
+            map = new ConcurrentHashMap<>();
+            map = this.offsetTable.putIfAbsent(key, map);
+        }
+        CacheOffset cacheOffset = map.get(queueId);
+        if (cacheOffset != null) {
+            if (System.currentTimeMillis() - cacheOffset.getUpdateTimestamp() > snodeController.getSnodeConfig().getLoadOffsetInterval()) {
+                cacheOffset.setOffset(parserOffset(enodeName, group, topic, queueId));
+                cacheOffset.setUpdateTimestamp(System.currentTimeMillis());
+            }
+        } else {
+            cacheOffset = new CacheOffset(key, parserOffset(enodeName, group, topic, queueId), System.currentTimeMillis());
+            map.put(queueId, cacheOffset);
+        }
+        return cacheOffset.getOffset();
 
+    }
 
     public void commitOffset(final String enodeName, final String clientHost, final String group, final String topic,
         final int queueId,
@@ -139,4 +125,39 @@ public class ConsumerOffsetManager {
         return this.snodeController.getEnodeService().loadOffset(enodeName, group, topic, queueId);
     }
 
+    public class CacheOffset {
+        private String key;
+        private long offset;
+        private long updateTimestamp;
+
+        public CacheOffset(final String key, final long offset, final long updateTimestamp) {
+            this.key = key;
+            this.offset = offset;
+            this.updateTimestamp = updateTimestamp;
+        }
+
+        public String getKey() {
+            return key;
+        }
+
+        public void setKey(String key) {
+            this.key = key;
+        }
+
+        public long getOffset() {
+            return offset;
+        }
+
+        public void setOffset(long offset) {
+            this.offset = offset;
+        }
+
+        public long getUpdateTimestamp() {
+            return updateTimestamp;
+        }
+
+        public void setUpdateTimestamp(long updateTimestamp) {
+            this.updateTimestamp = updateTimestamp;
+        }
+    }
 }

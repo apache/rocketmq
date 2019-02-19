@@ -31,7 +31,16 @@ public class SendMessageResponseHeader implements CommandCustomHeader {
     private Integer queueId;
     @CFNotNull
     private Long queueOffset;
+
     private String transactionId;
+
+    private long storeTimestamp;
+
+    private String storeHost;
+
+    private long commitLogOffset;
+
+    private int storeSize;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -67,5 +76,50 @@ public class SendMessageResponseHeader implements CommandCustomHeader {
 
     public void setTransactionId(String transactionId) {
         this.transactionId = transactionId;
+    }
+
+    public long getStoreTimestamp() {
+        return storeTimestamp;
+    }
+
+    public void setStoreTimestamp(long storeTimestamp) {
+        this.storeTimestamp = storeTimestamp;
+    }
+
+    public long getCommitLogOffset() {
+        return commitLogOffset;
+    }
+
+    public void setCommitLogOffset(long commitLogOffset) {
+        this.commitLogOffset = commitLogOffset;
+    }
+
+    public int getStoreSize() {
+        return storeSize;
+    }
+
+    public void setStoreSize(int storeSize) {
+        this.storeSize = storeSize;
+    }
+
+    public String getStoreHost() {
+        return storeHost;
+    }
+
+    public void setStoreHost(String storeHost) {
+        this.storeHost = storeHost;
+    }
+
+    @Override public String toString() {
+        return "SendMessageResponseHeader{" +
+            "msgId='" + msgId + '\'' +
+            ", queueId=" + queueId +
+            ", queueOffset=" + queueOffset +
+            ", transactionId='" + transactionId + '\'' +
+            ", storeTimestamp=" + storeTimestamp +
+            ", storeHost=" + storeHost +
+            ", commitLogOffset=" + commitLogOffset +
+            ", storeSize=" + storeSize +
+            '}';
     }
 }

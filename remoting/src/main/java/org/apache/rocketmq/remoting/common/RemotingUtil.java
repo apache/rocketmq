@@ -31,7 +31,6 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.ArrayList;
 import java.util.Enumeration;
-
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
@@ -152,6 +151,19 @@ public class RemotingUtil {
         String[] s = addr.split(":");
         InetSocketAddress isa = new InetSocketAddress(s[0], Integer.parseInt(s[1]));
         return isa;
+    }
+
+    public static SocketAddress string2SocketAddressWithIp(final String address) {
+        String[] s = address.split(":");
+        try {
+            String ip = s[0].substring(1);
+            InetAddress inetAddress = InetAddress.getByName(ip);
+            InetSocketAddress isa = new InetSocketAddress(inetAddress, Integer.parseInt(s[1]));
+            return isa;
+        } catch (Exception e) {
+            log.error("Failed to obtain address", e);
+        }
+        return null;
     }
 
     public static String socketAddress2String(final SocketAddress addr) {

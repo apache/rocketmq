@@ -99,6 +99,7 @@ public class SnodeConfig {
     private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "true"));
     private boolean enablePropertyFilter = true;
 
+    private int loadOffsetInterval = 3000;
     /**
      * Acl feature switch
      */
@@ -400,4 +401,13 @@ public class SnodeConfig {
     public void setMetricsEnable(boolean metricsEnable) {
         this.metricsEnable = metricsEnable;
     }
+
+    public int getLoadOffsetInterval() {
+        return loadOffsetInterval;
+    }
+
+    public void setLoadOffsetInterval(int loadOffsetInterval) {
+        this.loadOffsetInterval = loadOffsetInterval;
+    }
+
 }

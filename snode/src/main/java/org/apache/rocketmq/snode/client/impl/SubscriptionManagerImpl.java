@@ -56,7 +56,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
                         Set<RemotingChannel> prev = pushTable.putIfAbsent(messageQueue, clientSet);
                         clientSet = prev != null ? prev : clientSet;
                     }
-                    log.debug("Register push session message queue: {}, group: {} remoting: {}", messageQueue, groupId, remotingChannel.remoteAddress());
+                    log.info("Register push session message queue: {}, group: {} remoting: {}", messageQueue, groupId, remotingChannel.remoteAddress());
                     clientSet.add(remotingChannel);
                 }
             }
