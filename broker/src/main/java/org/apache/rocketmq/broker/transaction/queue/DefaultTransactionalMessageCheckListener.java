@@ -29,6 +29,10 @@ public class DefaultTransactionalMessageCheckListener extends AbstractTransactio
         super();
     }
 
+    /**
+     * 日志输出  丢弃消息
+     * @param msgExt Message to be discarded.
+     */
     @Override
     public void resolveDiscardMsg(MessageExt msgExt) {
         log.error("MsgExt:{} has been checked too many times, so discard it", msgExt);
