@@ -39,7 +39,7 @@ RocketMQ only defines some basic grammars to support this feature. You could als
 Constant types are:
 
 - Numeric, like **123, 3.1415**;
-- Character, like **‘abc’, must be made with single quotes**;
+- Character, like **‘abc’**, must be made with single quotes;
 - **NULL**, special constant;
 - Boolean, **TRUE** or **FALSE**;
 
