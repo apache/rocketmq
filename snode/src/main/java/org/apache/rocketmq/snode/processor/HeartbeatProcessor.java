@@ -71,7 +71,7 @@ public class HeartbeatProcessor implements RequestProcessor {
 
     private RemotingCommand register(RemotingChannel remotingChannel, RemotingCommand request) {
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
-        log.info("heartbeatData: {}", heartbeatData);
+        log.debug("heartbeatData: {}", heartbeatData);
         Channel channel = null;
         Attribute<Client> clientAttribute = null;
         if (remotingChannel instanceof NettyChannelHandlerContextImpl) {
@@ -85,7 +85,6 @@ public class HeartbeatProcessor implements RequestProcessor {
             client.setClientRole(ClientRole.Producer);
             this.snodeController.getProducerManager().register(producerData.getGroupName(), client);
         }
-
         Set<String> groupSet = new HashSet<>();
         for (ConsumerData consumerData : heartbeatData.getConsumerDataSet()) {
             client.setClientRole(ClientRole.Consumer);

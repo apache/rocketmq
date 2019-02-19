@@ -99,7 +99,6 @@ public class SendMessageProcessor implements RequestProcessor {
                 remotingChannel.reply(data);
                 this.snodeController.getMetricsService().recordRequestSize(stringBuffer.toString(), request.getBody().length);
                 if (data.getCode() == ResponseCode.SUCCESS && isNeedPush) {
-                    log.info("Send message response: {}", data);
                     this.snodeController.getPushService().pushMessage(sendMessageRequestHeader, message, data);
                 }
             } else {
