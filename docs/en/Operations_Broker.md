@@ -1,13 +1,9 @@
 # 3 Broker
 
 ## 3.1 Broker Role
-   Broker roles are divided into ASYNC_MASTER, SYNC_MASTER, and SLAVE. 
-If the reliability requirements of the message are strict, you can use the SYNC_MASTER plus SLAVE deployment method. 
-If the reliability of the message is not high, you can use ASYNC_MASTER plus SLAVE deployment. 
-If it is only convenient to test, you can choose to deploy only ASYNC_MASTER or SYNC_MASTER only.
+Broker Role is ASYNC_MASTER, SYNC_MASTER or SLAVE. If you cannot tolerate message missing, we suggest you deploy SYNC_MASTER and attach a SLAVE to it. If you feel ok about missing, but you want the Broker to be always available, you may deploy ASYNC_MASTER with SLAVE. If you just want to make it easy, you may only need a ASYNC_MASTER without SLAVE.
 ## 3.2 FlushDiskType
-  SYNC_FLUSH loses a lot of performance compared to ASYNC_FLUSH,
-but it is also more reliable, so you need to make trade-offs based on actual business scenarios.
+ASYNC_FLUSH is recommended, for SYNC_FLUSH is expensive and will cause too much performance loss. If you want reliability, we recommend you use SYNC_MASTER with SLAVE.
 ## 3.3 Broker Configuration
 | Parameter name                           | Default                        | Description                                                         |
 | -------------------------------- | ----------------------------- | ------------------------------------------------------------ |
