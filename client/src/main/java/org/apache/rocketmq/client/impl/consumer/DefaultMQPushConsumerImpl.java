@@ -26,7 +26,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -109,6 +112,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private long queueFlowControlTimes = 0;
     private long queueMaxSpanFlowControlTimes = 0;
     private boolean realPushModel = true;
+    private final ConcurrentHashMap<String, AtomicLong> localConsumerOffset = new ConcurrentHashMap<String, AtomicLong>();
+    private final ConcurrentHashMap<String, AtomicBoolean> pullStopped = new ConcurrentHashMap<String, AtomicBoolean>();
 
     public DefaultMQPushConsumerImpl(DefaultMQPushConsumer defaultMQPushConsumer, RPCHook rpcHook) {
         this(defaultMQPushConsumer, rpcHook, true);
@@ -120,6 +125,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         this.rpcHook = rpcHook;
         this.realPushModel = realPushModel;
         if (realPushModel) {
+            log.info("Open Real Push Model for {}",defaultMQPushConsumer.getConsumerGroup());
             rebalanceImpl = new RebalanceRealPushImpl(this);
         } else {
             rebalanceImpl = new RebalancePushImpl(this);
@@ -300,6 +306,16 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             @Override
             public void onSuccess(PullResult pullResult) {
                 if (pullResult != null) {
+                    //Update local offset according remote offset
+                    String localOffsetKey = pullRequest.getConsumerGroup()
+                        + "@" + pullRequest.getMessageQueue().getTopic()
+                        + "@" + pullRequest.getMessageQueue().getQueueId();
+                    AtomicLong localOffset = localConsumerOffset.get(localOffsetKey);
+                    if (localOffset == null) {
+                        localConsumerOffset.put(localOffsetKey, new AtomicLong(-1));
+                    }
+                    localConsumerOffset.get(localOffsetKey).set(pullResult.getNextBeginOffset());
+
                     pullResult = DefaultMQPushConsumerImpl.this.pullAPIWrapper.processPullResult(pullRequest.getMessageQueue(), pullResult,
                         subscriptionData);
 
@@ -457,6 +473,14 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
     private void executePullRequestLater(final PullRequest pullRequest, final long timeDelay) {
+        String localOffsetKey = pullRequest.getConsumerGroup()
+            + "@" + pullRequest.getMessageQueue().getTopic()
+            + "@" + pullRequest.getMessageQueue().getQueueId();
+        if (pullStopped.get(localOffsetKey) != null && pullStopped.get(localOffsetKey).get()) {
+            //Stop pull request
+            log.info("Stop pull request, {}", localOffsetKey);
+            return;
+        }
         this.mQClientFactory.getPullMessageService().executePullRequestLater(pullRequest, timeDelay);
     }
 
@@ -473,6 +497,14 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
     public void executePullRequestImmediately(final PullRequest pullRequest) {
+        String localOffsetKey = pullRequest.getConsumerGroup()
+            + "@" + pullRequest.getMessageQueue().getTopic()
+            + "@" + pullRequest.getMessageQueue().getQueueId();
+        if (pullStopped.get(localOffsetKey) != null && pullStopped.get(localOffsetKey).get()) {
+            //Stop pull request
+            log.info("Stop pull request, {}", localOffsetKey);
+            return;
+        }
         this.mQClientFactory.getPullMessageService().executePullRequestImmediately(pullRequest);
     }
 
@@ -1159,5 +1191,40 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     private void tryToFindSnodePublishInfo() {
         this.mQClientFactory.updateSnodeInfoFromNameServer();
+    }
+
+    public boolean processPushMessage(final MessageExt msg,
+        final String consumerGroup,
+        final String topic,
+        final int queueID,
+        final long offset) {
+        String localOffsetKey = consumerGroup + "@" + topic + "@" + queueID;
+        AtomicLong localOffset = this.localConsumerOffset.get(localOffsetKey);
+        if (localOffset == null) {
+            log.info("Current Local offset have not set, initiallized to -1.");
+            this.localConsumerOffset.put(localOffsetKey, new AtomicLong(-1));
+            return false;
+        }
+        if (localOffset.get() < offset) {
+            //should start pull message process
+            log.debug("Current Local key:{} and  offset:{} and push offset:{}",localOffsetKey, localOffset.get(), offset);
+            return false;
+        } else {
+            //Stop pull request
+            AtomicBoolean pullStop = this.pullStopped.get(localOffsetKey);
+            if (pullStop == null) {
+                this.pullStopped.put(localOffsetKey, new AtomicBoolean(true));
+                log.info("Pull stop flag of {} is not set, initialize to TRUE",localOffsetKey);
+            }
+            pullStop = this.pullStopped.get(localOffsetKey);
+            if (!pullStop.get()) {
+                pullStop.set(true);
+                log.info("Pull stop of {} is set to TRUE, and then the pull request will stop...",localOffsetKey);
+            }
+            //update local offset
+            localOffset.set(offset);
+            //submit to process queue
+        }
+        return true;
     }
 }
