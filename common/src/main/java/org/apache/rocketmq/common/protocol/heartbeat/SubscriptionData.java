@@ -182,6 +182,7 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
             "classFilterMode=" + classFilterMode +
             ", topic='" + topic + '\'' +
             ", subString='" + subString + '\'' +
+            ", messageQueueSet=" + messageQueueSet +
             ", tagsSet=" + tagsSet +
             ", codeSet=" + codeSet +
             ", subVersion=" + subVersion +
