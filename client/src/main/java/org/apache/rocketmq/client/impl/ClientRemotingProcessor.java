@@ -218,12 +218,12 @@ public class ClientRemotingProcessor implements RequestProcessor {
         final PushMessageHeader requestHeader =
             (PushMessageHeader) request
                 .decodeCommandCustomHeader(PushMessageHeader.class);
-
         final MessageExt msg = MessageDecoder.decode(ByteBuffer.wrap(request.getBody()));
         boolean result =
             this.mqClientFactory.processSnodePushMessage(msg,
                 requestHeader.getConsumerGroup(),
                 requestHeader.getTopic(),
+                requestHeader.getEnodeName(),
                 requestHeader.getQueueId(),
                 requestHeader.getQueueOffset());
 

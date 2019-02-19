@@ -308,12 +308,13 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             public void onSuccess(PullResult pullResult) {
                 if (pullResult != null) {
                     //Update local offset according remote offset
-                    String localOffsetKey = pullRequest.getConsumerGroup()
-                        + "@" + pullRequest.getMessageQueue().getTopic()
-                        + "@" + pullRequest.getMessageQueue().getQueueId();
+                    String localOffsetKey = genLocalOffsetKey(pullRequest.getConsumerGroup(),
+                        pullRequest.getMessageQueue().getTopic(),
+                        pullRequest.getMessageQueue().getBrokerName(),
+                        pullRequest.getMessageQueue().getQueueId());
                     AtomicLong localOffset = localConsumerOffset.get(localOffsetKey);
                     if (localOffset == null) {
-                        localConsumerOffset.put(localOffsetKey, new AtomicLong(-1));
+                        localConsumerOffset.putIfAbsent(localOffsetKey, new AtomicLong(-1));
                     }
                     localConsumerOffset.get(localOffsetKey).set(pullResult.getNextBeginOffset());
 
@@ -474,9 +475,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
     private void executePullRequestLater(final PullRequest pullRequest, final long timeDelay) {
-        String localOffsetKey = pullRequest.getConsumerGroup()
-            + "@" + pullRequest.getMessageQueue().getTopic()
-            + "@" + pullRequest.getMessageQueue().getQueueId();
+        String localOffsetKey = genLocalOffsetKey(pullRequest.getConsumerGroup(),
+            pullRequest.getMessageQueue().getTopic(),
+            pullRequest.getMessageQueue().getBrokerName(),
+            pullRequest.getMessageQueue().getQueueId());
         if (pullStopped.get(localOffsetKey) != null && pullStopped.get(localOffsetKey).get()) {
             //Stop pull request
             log.info("Stop pull request, {}", localOffsetKey);
@@ -498,9 +500,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
     public void executePullRequestImmediately(final PullRequest pullRequest) {
-        String localOffsetKey = pullRequest.getConsumerGroup()
-            + "@" + pullRequest.getMessageQueue().getTopic()
-            + "@" + pullRequest.getMessageQueue().getQueueId();
+        String localOffsetKey = genLocalOffsetKey(pullRequest.getConsumerGroup(),
+            pullRequest.getMessageQueue().getTopic(),
+            pullRequest.getMessageQueue().getBrokerName(),
+            pullRequest.getMessageQueue().getQueueId());
         if (pullStopped.get(localOffsetKey) != null && pullStopped.get(localOffsetKey).get()) {
             //Stop pull request
             log.info("Stop pull request, {}", localOffsetKey);
@@ -1197,21 +1200,23 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     public boolean processPushMessage(final MessageExt msg,
         final String consumerGroup,
         final String topic,
+        final String brokerName,
         final int queueID,
         final long offset) {
-        String localOffsetKey = consumerGroup + "@" + topic + "@" + queueID;
+        String localOffsetKey = genLocalOffsetKey(consumerGroup, topic, brokerName, queueID);
         AtomicLong localOffset = this.localConsumerOffset.get(localOffsetKey);
         if (localOffset == null) {
             log.info("Current Local offset have not set, initiallized to -1.");
             this.localConsumerOffset.put(localOffsetKey, new AtomicLong(-1));
             return false;
         }
-        if (localOffset.get() < offset) {
+        if (localOffset.get() + 1 < offset) {
             //should start pull message process
             log.debug("Current Local key:{} and  offset:{} and push offset:{}", localOffsetKey, localOffset.get(), offset);
             return false;
         } else {
             //Stop pull request
+            log.debug("Process Push : Current Local key:{} and  offset:{} and push offset:{}", localOffsetKey, localOffset.get(), offset);
             AtomicBoolean pullStop = this.pullStopped.get(localOffsetKey);
             if (pullStop == null) {
                 this.pullStopped.put(localOffsetKey, new AtomicBoolean(true));
@@ -1233,10 +1238,13 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 processQueue = processQueues.get(localOffsetKey);
             }
             processQueue.putMessage(messageExtList);
-            MessageQueue messageQueue = new MessageQueue(topic, "", queueID);
+            MessageQueue messageQueue = new MessageQueue(topic, brokerName, queueID);
             this.consumeMessageService.submitConsumeRequest(messageExtList, processQueue, messageQueue, true);
-            log.info(".......submitConsumeRequest:{},Offset:{}...", localOffsetKey, offset);
         }
         return true;
+    }
+
+    private String genLocalOffsetKey(String consumerGroup, String topic, String brokerName, int queueID) {
+        return consumerGroup + "@" + topic + "@" + brokerName + "@" + queueID;
     }
 }
