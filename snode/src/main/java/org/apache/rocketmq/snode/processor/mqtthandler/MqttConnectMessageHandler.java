@@ -23,6 +23,7 @@ import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.codec.mqtt.MqttQoS;
+import java.util.HashSet;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.mqtt.WillMessage;
@@ -92,6 +93,7 @@ public class MqttConnectMessageHandler implements MessageHandler {
         }
         //treat a second CONNECT packet as a protocol violation and disconnect
         if (isConnected(remotingChannel, payload.clientIdentifier())) {
+            log.error("This client has been connected. The second CONNECT packet is treated as a protocol vialation and the connection will be closed.");
             remotingChannel.close();
             return null;
         }
@@ -118,6 +120,7 @@ public class MqttConnectMessageHandler implements MessageHandler {
         Client client = new Client();
         client.setClientId(payload.clientIdentifier());
         client.setClientRole(ClientRole.IOTCLIENT);
+        client.setGroups(new HashSet<String>(){{add("IOT_GROUP");}});
         client.setConnected(true);
         client.setRemotingChannel(remotingChannel);
         client.setLastUpdateTimestamp(System.currentTimeMillis());

@@ -29,15 +29,15 @@ public class EncodeDecodeDispatcher {
         encodeDecodeDispatcher.put(MqttMessageType.CONNECT, new MqttConnectEncodeDecode());
         encodeDecodeDispatcher.put(MqttMessageType.CONNACK, new MqttConnectackEncodeDecode());
         encodeDecodeDispatcher.put(MqttMessageType.DISCONNECT, null);
-        encodeDecodeDispatcher.put(MqttMessageType.PUBLISH, null);
-        encodeDecodeDispatcher.put(MqttMessageType.PUBACK, null);
+        encodeDecodeDispatcher.put(MqttMessageType.PUBLISH, new MqttPublishEncodeDecode());
+        encodeDecodeDispatcher.put(MqttMessageType.PUBACK, new MqttPubackEncodeDecode());
         encodeDecodeDispatcher.put(MqttMessageType.PUBREC, null);
         encodeDecodeDispatcher.put(MqttMessageType.PUBREL, null);
         encodeDecodeDispatcher.put(MqttMessageType.PUBCOMP, null);
-        encodeDecodeDispatcher.put(MqttMessageType.SUBSCRIBE, null);
-        encodeDecodeDispatcher.put(MqttMessageType.SUBACK, null);
-        encodeDecodeDispatcher.put(MqttMessageType.UNSUBSCRIBE, null);
-        encodeDecodeDispatcher.put(MqttMessageType.UNSUBACK, null);
+        encodeDecodeDispatcher.put(MqttMessageType.SUBSCRIBE, new MqttSubscribeEncodeDecode());
+        encodeDecodeDispatcher.put(MqttMessageType.SUBACK, new MqttSubackEncodeDecode());
+        encodeDecodeDispatcher.put(MqttMessageType.UNSUBSCRIBE, new MqttUnSubscribeEncodeDecode());
+        encodeDecodeDispatcher.put(MqttMessageType.UNSUBACK, new MqttUnSubackEncodeDecode());
         encodeDecodeDispatcher.put(MqttMessageType.PINGREQ, null);
         encodeDecodeDispatcher.put(MqttMessageType.PINGRESP, null);
     }

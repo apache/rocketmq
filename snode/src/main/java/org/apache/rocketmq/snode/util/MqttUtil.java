@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.snode.util;
 
+import io.netty.handler.codec.mqtt.MqttQoS;
 import java.util.UUID;
 import org.apache.rocketmq.snode.constant.MqttConstant;
 
@@ -32,5 +33,34 @@ public class MqttUtil {
 
     public static int actualQos(int qos) {
         return Math.min(MqttConstant.MAX_SUPPORTED_QOS, qos);
+    }
+
+    public static boolean isQosLegal(MqttQoS qos) {
+        if (!qos.equals(MqttQoS.AT_LEAST_ONCE) && !qos.equals(MqttQoS.AT_MOST_ONCE) && !qos.equals(MqttQoS.EXACTLY_ONCE)) {
+            return false;
+        }
+        return false;
+    }
+
+    public static boolean isMatch(String topicFiter, String topic) {
+        if (!topicFiter.contains(MqttConstant.SUBSCRIPTION_FLAG_PLUS) && !topicFiter.contains(MqttConstant.SUBSCRIPTION_FLAG_SHARP)) {
+            return topicFiter.equals(topic);
+        }
+        String[] filterTopics = topicFiter.split(MqttConstant.SUBSCRIPTION_SEPARATOR);
+        String[] actualTopics = topic.split(MqttConstant.SUBSCRIPTION_SEPARATOR);
+
+        int i = 0;
+        for (; i < filterTopics.length && i < actualTopics.length; i++) {
+            if (MqttConstant.SUBSCRIPTION_FLAG_PLUS.equals(filterTopics[i])) {
+                continue;
+            }
+            if (MqttConstant.SUBSCRIPTION_FLAG_SHARP.equals(filterTopics[i])) {
+                return true;
+            }
+            if (!filterTopics[i].equals(actualTopics[i])) {
+                return false;
+            }
+        }
+        return i == actualTopics.length;
     }
 }

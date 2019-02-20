@@ -38,6 +38,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.ServerConfig;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -117,6 +118,22 @@ public class SnodeStartup {
         if (null == snodeConfig.getRocketmqHome()) {
             System.out.printf("Please set the %s variable in your environment to match the location of the RocketMQ installation", MixAll.ROCKETMQ_HOME_ENV);
             System.exit(-2);
+        }
+
+        MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), snodeConfig);
+        String namesrvAddr = snodeConfig.getNamesrvAddr();
+        if (null != namesrvAddr) {
+            try {
+                String[] addrArray = namesrvAddr.split(";");
+                for (String addr : addrArray) {
+                    RemotingUtil.string2SocketAddress(addr);
+                }
+            } catch (Exception e) {
+                System.out.printf(
+                    "The Name Server Address[%s] illegal, please set it as follows, \"127.0.0.1:9876;192.168.0.1:9876\"%n",
+                    namesrvAddr);
+                System.exit(-3);
+            }
         }
 
         MixAll.printObjectProperties(log, snodeConfig);

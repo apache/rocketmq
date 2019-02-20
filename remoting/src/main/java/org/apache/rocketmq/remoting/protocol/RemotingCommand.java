@@ -80,6 +80,8 @@ public class RemotingCommand {
 
     private transient byte[] body;
 
+    private Object payload;
+
     public RemotingCommand() {
     }
 
@@ -257,6 +259,14 @@ public class RemotingCommand {
 
     public void setBody(byte[] body) {
         this.body = body;
+    }
+
+    public Object getPayload() {
+        return payload;
+    }
+
+    public void setPayload(Object payload) {
+        this.payload = payload;
     }
 
     public HashMap<String, String> getExtFields() {

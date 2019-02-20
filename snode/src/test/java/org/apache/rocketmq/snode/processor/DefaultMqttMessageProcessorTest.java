@@ -16,23 +16,18 @@
  */
 package org.apache.rocketmq.snode.processor;
 
-import com.alibaba.fastjson.JSON;
 import io.netty.handler.codec.mqtt.MqttConnectPayload;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
 import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.ServerConfig;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.netty.CodecHelper;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
-import org.apache.rocketmq.remoting.transport.mqtt.RocketMQMqttConnectPayload;
 import org.apache.rocketmq.snode.SnodeController;
 import org.junit.Before;
 import org.junit.Test;
@@ -93,16 +88,7 @@ public class DefaultMqttMessageProcessorTest {
         MqttHeader mqttHeader = createMqttConnectMesssageHeader();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.MQTT_MESSAGE, mqttHeader);
         MqttConnectPayload payload = new MqttConnectPayload("1234567", "testTopic", "willMessage".getBytes(), null, "1234567".getBytes());
-        request.setBody(RocketMQMqttConnectPayload.fromMqttConnectPayload(payload).encode());
-        CodecHelper.makeCustomHeaderToNet(request);
+        request.setPayload(payload);
         return request;
-    }
-
-    private byte[] encode(Object obj) {
-        String json = JSON.toJSONString(obj, false);
-        if (json != null) {
-            return json.getBytes(Charset.forName(RemotingUtil.REMOTING_CHARSET));
-        }
-        return null;
     }
 }

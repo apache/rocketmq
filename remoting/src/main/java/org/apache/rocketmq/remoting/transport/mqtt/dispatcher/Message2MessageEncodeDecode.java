@@ -18,6 +18,7 @@
 package org.apache.rocketmq.remoting.transport.mqtt.dispatcher;
 
 import io.netty.handler.codec.mqtt.MqttMessage;
+import java.io.UnsupportedEncodingException;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -25,5 +26,5 @@ public interface Message2MessageEncodeDecode {
 
     RemotingCommand decode(MqttMessage mqttMessage);
 
-    MqttMessage encode(RemotingCommand remotingCommand) throws RemotingCommandException;
+    MqttMessage encode(RemotingCommand remotingCommand) throws RemotingCommandException, UnsupportedEncodingException;
 }

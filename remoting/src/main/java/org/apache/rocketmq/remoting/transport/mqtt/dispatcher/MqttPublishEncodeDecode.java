@@ -18,11 +18,12 @@
 package org.apache.rocketmq.remoting.transport.mqtt.dispatcher;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.mqtt.MqttConnAckVariableHeader;
 import io.netty.handler.codec.mqtt.MqttFixedHeader;
 import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
-import org.apache.rocketmq.remoting.netty.CodecHelper;
+import io.netty.handler.codec.mqtt.MqttPublishVariableHeader;
+import io.netty.handler.codec.mqtt.MqttQoS;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
 
@@ -30,13 +31,9 @@ public class MqttPublishEncodeDecode implements Message2MessageEncodeDecode {
 
     @Override
     public RemotingCommand decode(MqttMessage mqttMessage) {
-        ByteBuf byteBuf = ((MqttPublishMessage) mqttMessage).payload();
-        byte[] payload = new byte[byteBuf.readableBytes()];
-        byteBuf.readBytes(payload);
-
-        RemotingCommand requestCommand = null;
+        RemotingCommand requestCommand;
         MqttFixedHeader mqttFixedHeader = mqttMessage.fixedHeader();
-        MqttConnAckVariableHeader variableHeader = (MqttConnAckVariableHeader) mqttMessage
+        MqttPublishVariableHeader variableHeader = (MqttPublishVariableHeader) mqttMessage
             .variableHeader();
 
         MqttHeader mqttHeader = new MqttHeader();
@@ -46,19 +43,23 @@ public class MqttPublishEncodeDecode implements Message2MessageEncodeDecode {
         mqttHeader.setRetain(mqttFixedHeader.isRetain());
         mqttHeader.setRemainingLength(mqttFixedHeader.remainingLength());
 
-        mqttHeader.setConnectReturnCode(variableHeader.connectReturnCode().name());
-        mqttHeader.setSessionPresent(variableHeader.isSessionPresent());
+        mqttHeader.setTopicName(variableHeader.topicName());
+        mqttHeader.setPacketId(variableHeader.packetId());
 
         requestCommand = RemotingCommand
             .createRequestCommand(1000, mqttHeader);
-        CodecHelper.makeCustomHeaderToNet(requestCommand);
-
-        requestCommand.setBody(payload);
+        //invoke copy to generate a new ByteBuf or increase refCnt by 1 by invoking retain() method, because release method is invoked in Message2MessageEncodeDecode.channelRead
+        requestCommand.setPayload(((MqttPublishMessage) mqttMessage).payload().copy());
         return requestCommand;
     }
 
     @Override
     public MqttMessage encode(RemotingCommand remotingCommand) {
-        return null;
+        MqttHeader mqttHeader = (MqttHeader) remotingCommand.readCustomHeader();
+        return new MqttPublishMessage(
+            new MqttFixedHeader(MqttMessageType.PUBLISH, mqttHeader.isDup(),
+                MqttQoS.valueOf(mqttHeader.getQosLevel()), mqttHeader.isRetain(),
+                mqttHeader.getRemainingLength()),
+            new MqttPublishVariableHeader(mqttHeader.getTopicName(), mqttHeader.getPacketId()), (ByteBuf) remotingCommand.getPayload());
     }
 }

@@ -144,7 +144,7 @@ public abstract class ClientManagerImpl implements ClientManager {
         return updated;
     }
 
-    private void removeClient(String groupId, RemotingChannel remotingChannel) {
+    protected void removeClient(String groupId, RemotingChannel remotingChannel) {
         ConcurrentHashMap<RemotingChannel, Client> channelTable = groupClientTable.get(groupId);
         if (channelTable != null) {
             Client prev = channelTable.remove(remotingChannel);
@@ -211,6 +211,9 @@ public abstract class ClientManagerImpl implements ClientManager {
         }
         ConcurrentHashMap<RemotingChannel, Client> channelClientMap = groupClientTable
             .get(groupId);
+        if (remotingChannel instanceof NettyChannelHandlerContextImpl) {
+            remotingChannel = new NettyChannelImpl(((NettyChannelHandlerContextImpl) remotingChannel).getChannelHandlerContext().channel());
+        }
         return channelClientMap.get(remotingChannel);
     }
 }

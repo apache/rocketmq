@@ -21,19 +21,14 @@ import io.netty.handler.codec.mqtt.MqttFixedHeader;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttMessageIdVariableHeader;
 import io.netty.handler.codec.mqtt.MqttUnsubscribeMessage;
-import org.apache.rocketmq.remoting.netty.CodecHelper;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
-import org.apache.rocketmq.remoting.transport.mqtt.RocketMQMqttUnSubscribePayload;
 
 public class MqttUnSubscribeEncodeDecode implements Message2MessageEncodeDecode {
 
     @Override
     public RemotingCommand decode(MqttMessage mqttMessage) {
-        RocketMQMqttUnSubscribePayload payload = RocketMQMqttUnSubscribePayload
-            .fromMqttUnSubscribePayload(((MqttUnsubscribeMessage) mqttMessage).payload());
-
-        RemotingCommand requestCommand = null;
+        RemotingCommand requestCommand;
         MqttFixedHeader mqttFixedHeader = mqttMessage.fixedHeader();
         MqttMessageIdVariableHeader variableHeader = (MqttMessageIdVariableHeader) mqttMessage
             .variableHeader();
@@ -44,14 +39,10 @@ public class MqttUnSubscribeEncodeDecode implements Message2MessageEncodeDecode 
         mqttHeader.setQosLevel(mqttFixedHeader.qosLevel().value());
         mqttHeader.setRetain(mqttFixedHeader.isRetain());
         mqttHeader.setRemainingLength(mqttFixedHeader.remainingLength());
-
         mqttHeader.setMessageId(variableHeader.messageId());
 
-        requestCommand = RemotingCommand
-            .createRequestCommand(1000, mqttHeader);
-        CodecHelper.makeCustomHeaderToNet(requestCommand);
-
-        requestCommand.setBody(payload.encode());
+        requestCommand = RemotingCommand.createRequestCommand(1000, mqttHeader);
+        requestCommand.setPayload(((MqttUnsubscribeMessage) mqttMessage).payload());
         return requestCommand;
     }
 

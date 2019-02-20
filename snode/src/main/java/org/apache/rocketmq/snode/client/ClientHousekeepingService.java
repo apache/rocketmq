@@ -43,7 +43,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
     public void start(long interval) {
         this.producerManager.startScan(interval);
         this.consumerManager.startScan(interval);
-        this.iotClientManager.startScan(interval);
+//        this.iotClientManager.startScan(interval);
     }
 
     public void shutdown() {

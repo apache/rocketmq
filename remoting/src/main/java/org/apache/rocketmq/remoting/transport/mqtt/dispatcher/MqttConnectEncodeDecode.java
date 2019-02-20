@@ -21,18 +21,14 @@ import io.netty.handler.codec.mqtt.MqttConnectMessage;
 import io.netty.handler.codec.mqtt.MqttConnectVariableHeader;
 import io.netty.handler.codec.mqtt.MqttFixedHeader;
 import io.netty.handler.codec.mqtt.MqttMessage;
-import org.apache.rocketmq.remoting.netty.CodecHelper;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
-import org.apache.rocketmq.remoting.transport.mqtt.RocketMQMqttConnectPayload;
 
 public class MqttConnectEncodeDecode implements Message2MessageEncodeDecode {
 
     @Override
     public RemotingCommand decode(MqttMessage mqttMessage) {
-        RocketMQMqttConnectPayload payload = RocketMQMqttConnectPayload
-                .fromMqttConnectPayload(((MqttConnectMessage) mqttMessage).payload());
-        RemotingCommand requestCommand = null;
+        RemotingCommand requestCommand;
         MqttFixedHeader mqttFixedHeader = mqttMessage.fixedHeader();
         MqttConnectVariableHeader variableHeader = (MqttConnectVariableHeader) mqttMessage
                 .variableHeader();
@@ -57,9 +53,7 @@ public class MqttConnectEncodeDecode implements Message2MessageEncodeDecode {
 
         requestCommand = RemotingCommand
                 .createRequestCommand(1000, mqttHeader);
-        CodecHelper.makeCustomHeaderToNet(requestCommand);
-
-        requestCommand.setBody(payload.encode());
+        requestCommand.setPayload(((MqttConnectMessage) mqttMessage).payload());
         return requestCommand;
     }
 

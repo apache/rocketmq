@@ -36,8 +36,7 @@ public class MqttPubackEncodeDecode implements Message2MessageEncodeDecode {
 
     @Override
     public MqttMessage encode(RemotingCommand remotingCommand) throws RemotingCommandException {
-        MqttHeader mqttHeader = (MqttHeader) remotingCommand
-            .decodeCommandCustomHeader(MqttHeader.class);
+        MqttHeader mqttHeader = (MqttHeader) remotingCommand.readCustomHeader();
 
         return new MqttPubAckMessage(
             new MqttFixedHeader(MqttMessageType.PUBACK, mqttHeader.isDup(),
