@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.snode;
 
-import io.netty.handler.codec.mqtt.MqttMessageType;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -62,28 +61,20 @@ import org.apache.rocketmq.snode.processor.DefaultMqttMessageProcessor;
 import org.apache.rocketmq.snode.processor.HeartbeatProcessor;
 import org.apache.rocketmq.snode.processor.PullMessageProcessor;
 import org.apache.rocketmq.snode.processor.SendMessageProcessor;
-import org.apache.rocketmq.snode.processor.mqtthandler.MqttConnectMessageHandler;
-import org.apache.rocketmq.snode.processor.mqtthandler.MqttDisconnectMessageHandler;
-import org.apache.rocketmq.snode.processor.mqtthandler.MqttPingreqMessageHandler;
-import org.apache.rocketmq.snode.processor.mqtthandler.MqttPubackMessageHandler;
-import org.apache.rocketmq.snode.processor.mqtthandler.MqttPubcompMessageHandler;
-import org.apache.rocketmq.snode.processor.mqtthandler.MqttPublishMessageHandler;
-import org.apache.rocketmq.snode.processor.mqtthandler.MqttPubrecMessageHandler;
-import org.apache.rocketmq.snode.processor.mqtthandler.MqttPubrelMessageHandler;
-import org.apache.rocketmq.snode.processor.mqtthandler.MqttSubscribeMessageHandler;
-import org.apache.rocketmq.snode.processor.mqtthandler.MqttUnsubscribeMessagHandler;
 import org.apache.rocketmq.snode.service.ClientService;
 import org.apache.rocketmq.snode.service.EnodeService;
 import org.apache.rocketmq.snode.service.MetricsService;
 import org.apache.rocketmq.snode.service.NnodeService;
 import org.apache.rocketmq.snode.service.PushService;
 import org.apache.rocketmq.snode.service.ScheduledService;
+import org.apache.rocketmq.snode.service.WillMessageService;
 import org.apache.rocketmq.snode.service.impl.ClientServiceImpl;
 import org.apache.rocketmq.snode.service.impl.EnodeServiceImpl;
 import org.apache.rocketmq.snode.service.impl.MetricsServiceImpl;
 import org.apache.rocketmq.snode.service.impl.NnodeServiceImpl;
 import org.apache.rocketmq.snode.service.impl.PushServiceImpl;
 import org.apache.rocketmq.snode.service.impl.ScheduledServiceImpl;
+import org.apache.rocketmq.snode.service.impl.WillMessageServiceImpl;
 
 public class SnodeController {
 
@@ -124,6 +115,7 @@ public class SnodeController {
     private ClientService clientService;
     private SlowConsumerService slowConsumerService;
     private MetricsService metricsService;
+    private WillMessageService willMessageService;
 
     private final ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
@@ -202,7 +194,7 @@ public class SnodeController {
         this.sendMessageProcessor = new SendMessageProcessor(this);
         this.heartbeatProcessor = new HeartbeatProcessor(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
-        this.defaultMqttMessageProcessor = new DefaultMqttMessageProcessor();
+        this.defaultMqttMessageProcessor = new DefaultMqttMessageProcessor(this);
         this.pushService = new PushServiceImpl(this);
         this.clientService = new ClientServiceImpl(this);
         this.subscriptionManager = new SubscriptionManagerImpl();
@@ -213,6 +205,7 @@ public class SnodeController {
             this.consumerManager, this.iotClientManager);
         this.slowConsumerService = new SlowConsumerServiceImpl(this);
         this.metricsService = new MetricsServiceImpl();
+        this.willMessageService = new WillMessageServiceImpl(this);
     }
 
     public SnodeConfig getSnodeConfig() {
@@ -345,30 +338,10 @@ public class SnodeController {
         this.snodeServer
             .registerProcessor(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, consumerManageProcessor,
                 this.consumerManageExecutor);
-        this.snodeServer.registerProcessor(RequestCode.CREATE_RETRY_TOPIC, consumerManageProcessor, this.consumerManageExecutor);
+        this.snodeServer.registerProcessor(RequestCode.CREATE_RETRY_TOPIC, consumerManageProcessor,
+            this.consumerManageExecutor);
         this.mqttRemotingServer.registerProcessor(RequestCode.MQTT_MESSAGE,
             defaultMqttMessageProcessor, handleMqttMessageExecutor);
-
-        defaultMqttMessageProcessor.registerMessageHanlder(MqttMessageType.CONNECT,
-            new MqttConnectMessageHandler(this));
-        defaultMqttMessageProcessor.registerMessageHanlder(MqttMessageType.DISCONNECT,
-            new MqttDisconnectMessageHandler(this));
-        defaultMqttMessageProcessor.registerMessageHanlder(MqttMessageType.PINGREQ,
-            new MqttPingreqMessageHandler(this));
-        defaultMqttMessageProcessor.registerMessageHanlder(MqttMessageType.PUBLISH,
-            new MqttPublishMessageHandler(this));
-        defaultMqttMessageProcessor
-            .registerMessageHanlder(MqttMessageType.PUBACK, new MqttPubackMessageHandler(this));
-        defaultMqttMessageProcessor.registerMessageHanlder(MqttMessageType.PUBCOMP,
-            new MqttPubcompMessageHandler(this));
-        defaultMqttMessageProcessor
-            .registerMessageHanlder(MqttMessageType.PUBREC, new MqttPubrecMessageHandler(this));
-        defaultMqttMessageProcessor
-            .registerMessageHanlder(MqttMessageType.PUBREL, new MqttPubrelMessageHandler(this));
-        defaultMqttMessageProcessor.registerMessageHanlder(MqttMessageType.SUBSCRIBE,
-            new MqttSubscribeMessageHandler(this));
-        defaultMqttMessageProcessor.registerMessageHanlder(MqttMessageType.UNSUBSCRIBE,
-            new MqttUnsubscribeMessagHandler(this));
 
     }
 
@@ -557,5 +530,14 @@ public class SnodeController {
 
     public void setMetricsService(MetricsService metricsService) {
         this.metricsService = metricsService;
+    }
+
+    public WillMessageService getWillMessageService() {
+        return willMessageService;
+    }
+
+    public void setWillMessageService(
+        WillMessageService willMessageService) {
+        this.willMessageService = willMessageService;
     }
 }

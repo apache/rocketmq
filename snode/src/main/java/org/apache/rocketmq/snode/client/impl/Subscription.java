@@ -26,6 +26,7 @@ public class Subscription {
     private volatile ConsumeType consumeType;
     private volatile MessageModel messageModel;
     private volatile ConsumeFromWhere consumeFromWhere;
+    private volatile boolean cleanSession;
     ConcurrentHashMap<String/*Topic*/, SubscriptionData> subscriptionTable = new ConcurrentHashMap<>();
     private volatile long lastUpdateTimestamp = System.currentTimeMillis();
 
@@ -55,6 +56,14 @@ public class Subscription {
 
     public void setConsumeFromWhere(ConsumeFromWhere consumeFromWhere) {
         this.consumeFromWhere = consumeFromWhere;
+    }
+
+    public boolean isCleanSession() {
+        return cleanSession;
+    }
+
+    public void setCleanSession(boolean cleanSession) {
+        this.cleanSession = cleanSession;
     }
 
     public ConcurrentHashMap<String, SubscriptionData> getSubscriptionTable() {

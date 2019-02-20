@@ -15,15 +15,22 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.transport.mqtt.dispatcher;
+package org.apache.rocketmq.snode.util;
 
-import io.netty.handler.codec.mqtt.MqttMessage;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import java.util.UUID;
+import org.apache.rocketmq.snode.constant.MqttConstant;
 
-public interface Message2MessageEncodeDecode {
+public class MqttUtil {
 
-    RemotingCommand decode(MqttMessage mqttMessage);
+    public static String generateClientId() {
+        return UUID.randomUUID().toString();
+    }
 
-    MqttMessage encode(RemotingCommand remotingCommand) throws RemotingCommandException;
+    public static String getRootTopic(String topic) {
+        return topic.split(MqttConstant.SUBSCRIPTION_SEPARATOR)[0];
+    }
+
+    public static int actualQos(int qos) {
+        return Math.min(MqttConstant.MAX_SUPPORTED_QOS, qos);
+    }
 }

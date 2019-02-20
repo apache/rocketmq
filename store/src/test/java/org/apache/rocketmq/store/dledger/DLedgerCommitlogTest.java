@@ -20,7 +20,6 @@ import org.junit.Test;
 
 public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
-
     @Test
     public void testTruncateCQ() throws Exception {
         String base =  createBaseDir();
@@ -76,7 +75,6 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
     }
 
 
-
     @Test
     public void testRecover() throws Exception {
         String base =  createBaseDir();
@@ -115,7 +113,6 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             messageStore.shutdown();
         }
     }
-
 
 
     @Test
@@ -157,7 +154,6 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         messageStore.destroy();
         messageStore.shutdown();
     }
-
 
     @Test
     public void testCommittedPos() throws Exception {

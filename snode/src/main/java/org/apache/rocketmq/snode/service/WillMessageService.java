@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.transport.mqtt.dispatcher;
+package org.apache.rocketmq.snode.service;
 
-import io.netty.handler.codec.mqtt.MqttMessage;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.common.message.mqtt.WillMessage;
 
-public interface Message2MessageEncodeDecode {
+public interface WillMessageService {
 
-    RemotingCommand decode(MqttMessage mqttMessage);
+    void saveWillMessage(String clientId, WillMessage willMessage);
 
-    MqttMessage encode(RemotingCommand remotingCommand) throws RemotingCommandException;
+    void sendWillMessage(String clientId);
+
+    void deleteWillMessage(String clientId);
 }

@@ -10,7 +10,6 @@ import org.junit.Test;
 public class MixCommitlogTest extends MessageStoreTestBase {
 
 
-
     @Test
     public void testFallBehindCQ() throws Exception {
         String base =  createBaseDir();
@@ -48,7 +47,6 @@ public class MixCommitlogTest extends MessageStoreTestBase {
             dledgerStore.shutdown();
         }
     }
-
 
 
     @Test
@@ -111,7 +109,6 @@ public class MixCommitlogTest extends MessageStoreTestBase {
             recoverDledgerStore.shutdown();
         }
     }
-
     @Test
     public void testDeleteExpiredFiles() throws Exception {
         String base =  createBaseDir();

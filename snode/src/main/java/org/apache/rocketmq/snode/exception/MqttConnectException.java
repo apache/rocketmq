@@ -15,15 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.transport.mqtt.dispatcher;
+package org.apache.rocketmq.snode.exception;
 
-import io.netty.handler.codec.mqtt.MqttMessage;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+public class MqttConnectException extends RuntimeException {
 
-public interface Message2MessageEncodeDecode {
-
-    RemotingCommand decode(MqttMessage mqttMessage);
-
-    MqttMessage encode(RemotingCommand remotingCommand) throws RemotingCommandException;
+    public MqttConnectException(String message) {
+        super(message);
+    }
 }
