@@ -27,23 +27,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class KVTableTest {
 
-    @Test
-    public void testKVTable(){
-        HashMap<String, String> table = new HashMap<String, String>();
-        table.put("key1", "value1");
-        table.put("key2", "value2");
-
-        KVTable kvTable = new KVTable();
-        Assert.assertTrue(kvTable.getTable().size() == 0);
-
-        HashMap<String, String> oriTable = kvTable.getTable();
-        kvTable.setTable(table);
-        Assert.assertFalse("not ori table ", kvTable.getTable().equals(oriTable));
-
-        Assert.assertTrue(kvTable.getTable().size() == 2);
-        Assert.assertTrue(kvTable.getTable().equals(table) );
-
-    }
+//    @Test
+//    public void testKVTable(){
+//        HashMap<String, String> table = new HashMap<String, String>();
+//        table.put("key1", "value1");
+//        table.put("key2", "value2");
+//
+//        KVTable kvTable = new KVTable();
+//        Assert.assertTrue(kvTable.getTable().size() == 0);
+//
+//        HashMap<String, String> oriTable = kvTable.getTable();
+//        kvTable.setTable(table);
+//        Assert.assertFalse("not ori table ", kvTable.getTable().equals(oriTable));
+//
+//        Assert.assertTrue(kvTable.getTable().size() == 2);
+//        Assert.assertTrue(kvTable.getTable().equals(table) );
+//
+//    }
 
     @Test
     public void testFromJson() throws Exception {
