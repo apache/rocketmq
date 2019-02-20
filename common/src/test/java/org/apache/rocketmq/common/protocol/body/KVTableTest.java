@@ -26,7 +26,7 @@ public class KVTableTest {
 
     @Test
     public void testKVTable(){
-        HashMap<String, String> table = new HashMap<>();
+        HashMap<String, String> table = new HashMap<String, String>();
         table.put("key1", "value1");
         table.put("key2", "value2");
 
