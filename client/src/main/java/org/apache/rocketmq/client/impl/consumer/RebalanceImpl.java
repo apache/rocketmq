@@ -359,6 +359,15 @@ public abstract class RebalanceImpl {
                                     consumerGroup, mq);
                             }
                             break;
+                        case CONSUME_PUSH:
+                            pq.setDropped(true);
+                            if (this.removeUnnecessaryMessageQueue(mq, pq)) {
+                                it.remove();
+                                changed = true;
+                                log.info("doRebalance, {}, remove unnecessary mq, {}, because pull is pause by Push model, so try to fixed it",
+                                    consumerGroup, mq);
+                            }
+                            break;
                         default:
                             break;
                     }
@@ -375,6 +384,7 @@ public abstract class RebalanceImpl {
                 }
 
                 this.removeDirtyOffset(mq);
+                this.removeLocalDirtyPushOffset(topic, mq);
                 ProcessQueue pq = new ProcessQueue();
                 long nextOffset = this.computePullFromWhere(mq);
                 if (nextOffset >= 0) {
@@ -410,6 +420,8 @@ public abstract class RebalanceImpl {
     public abstract ConsumeType consumeType();
 
     public abstract void removeDirtyOffset(final MessageQueue mq);
+
+    public abstract void removeLocalDirtyPushOffset(final String topic, final MessageQueue mq);
 
     public abstract long computePullFromWhere(final MessageQueue mq);
 
