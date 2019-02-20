@@ -141,6 +141,12 @@ public class RebalancePushImpl extends RebalanceImpl {
     }
 
     @Override
+    public void removeLocalDirtyPushOffset(final String topic, final MessageQueue mq) {
+        log.info("removeLocalDirtyPushOffset:consumergroup={},topic={},mq={}", consumerGroup, topic, mq);
+        this.defaultMQPushConsumerImpl.resumePullRequest(consumerGroup, topic, mq.getBrokerName(), mq.getQueueId());
+    }
+
+    @Override
     public long computePullFromWhere(MessageQueue mq) {
         long result = -1;
         final ConsumeFromWhere consumeFromWhere = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeFromWhere();

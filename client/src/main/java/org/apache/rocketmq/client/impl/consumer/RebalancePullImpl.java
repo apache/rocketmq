@@ -69,6 +69,10 @@ public class RebalancePullImpl extends RebalanceImpl {
     }
 
     @Override
+    public void removeLocalDirtyPushOffset(final String topic, final MessageQueue mq) {
+    }
+
+    @Override
     public long computePullFromWhere(MessageQueue mq) {
         return 0;
     }

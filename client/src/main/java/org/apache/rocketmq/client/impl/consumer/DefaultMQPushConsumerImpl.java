@@ -1212,11 +1212,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
         if (localOffset.get() + 1 < offset) {
             //should start pull message process
-            log.debug("Current Local key:{} and  offset:{} and push offset:{}", localOffsetKey, localOffset.get(), offset);
+            log.debug("#####Current Local key:{} and  offset:{} and push offset:{}", localOffsetKey, localOffset.get(), offset);
             return false;
         } else {
             //Stop pull request
-            log.debug("Process Push : Current Local key:{} and  offset:{} and push offset:{}", localOffsetKey, localOffset.get(), offset);
+            log.debug("#####Process Push : Current Local key:{} and  offset:{} and push offset:{}", localOffsetKey, localOffset.get(), offset);
             AtomicBoolean pullStop = this.pullStopped.get(localOffsetKey);
             if (pullStop == null) {
                 this.pullStopped.put(localOffsetKey, new AtomicBoolean(true));
@@ -1246,5 +1246,37 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     private String genLocalOffsetKey(String consumerGroup, String topic, String brokerName, int queueID) {
         return consumerGroup + "@" + topic + "@" + brokerName + "@" + queueID;
+    }
+
+    public boolean resumePullRequest(String consumerGroup, String topic, String brokerName, int queueID) {
+        String localOffsetKey = genLocalOffsetKey(consumerGroup, topic, brokerName, queueID);
+        ProcessQueue processQueue = processQueues.get(localOffsetKey);
+        if (processQueue != null) {
+            log.info("Clear local expire message for {} in processQueue.", localOffsetKey);
+            processQueue.cleanExpiredMsg(this.defaultMQPushConsumer);
+        }
+        AtomicBoolean pullStop = this.pullStopped.get(localOffsetKey);
+        if (pullStop != null) {
+            if (pullStop.get()) {
+                pullStop.set(false);
+                log.info("Resume Pull Request of {} is set to TRUE, and then the pull request will start by rebalance again...", localOffsetKey);
+            }
+        }
+        return true;
+    }
+
+    public boolean pausePullRequest(String consumerGroup, String topic, String brokerName, int queueID) {
+        String localOffsetKey = genLocalOffsetKey(consumerGroup, topic, brokerName, queueID);
+        AtomicBoolean pullStop = this.pullStopped.get(localOffsetKey);
+        if (pullStop == null) {
+            this.pullStopped.put(localOffsetKey, new AtomicBoolean(true));
+            log.info("Pull stop flag of {} is not set, initialize to TRUE", localOffsetKey);
+            return true;
+        }
+        if (!pullStop.get()) {
+            pullStop.set(true);
+            log.info("Pull stop of {} is set to TRUE, and then the pull request will stop...", localOffsetKey);
+        }
+        return true;
     }
 }
