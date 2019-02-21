@@ -838,6 +838,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     this.executeCheckForbiddenHook(checkForbiddenContext);
                 }
 
+                /**
+                 * 消息轨迹  消费发送前
+                 */
                 if (this.hasSendMessageHook()) {
                     context = new SendMessageContext();
                     context.setProducer(this);
@@ -847,14 +850,24 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     context.setBrokerAddr(brokerAddr);
                     context.setMessage(msg);
                     context.setMq(mq);
+                    /**
+                     * 是否事务消息
+                     */
                     String isTrans = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
                     if (isTrans != null && isTrans.equals("true")) {
                         context.setMsgType(MessageType.Trans_Msg_Half);
                     }
 
+                    /**
+                     * 是否延迟消息
+                     */
                     if (msg.getProperty("__STARTDELIVERTIME") != null || msg.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null) {
                         context.setMsgType(MessageType.Delay_Msg);
                     }
+
+                    /**
+                     * HookBefore
+                     */
                     this.executeSendMessageHookBefore(context);
                 }
 
@@ -919,6 +932,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         if (timeout < costTimeAsync) {
                             throw new RemotingTooMuchRequestException("sendKernelImpl call timeout");
                         }
+                        /**
+                         * 异步发送
+                         */
                         sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(
                             brokerAddr,
                             mq.getBrokerName(),
@@ -957,6 +973,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         break;
                 }
 
+                /**
+                 * 消息轨迹  消息发送后
+                 */
                 if (this.hasSendMessageHook()) {
                     context.setSendResult(sendResult);
                     this.executeSendMessageHookAfter(context);
@@ -1033,6 +1052,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return !this.sendMessageHookList.isEmpty();
     }
 
+    /**
+     * 消息发送前
+     * @param context
+     */
     public void executeSendMessageHookBefore(final SendMessageContext context) {
         if (!this.sendMessageHookList.isEmpty()) {
             for (SendMessageHook hook : this.sendMessageHookList) {
@@ -1045,6 +1068,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
     }
 
+    /**
+     * 消息发送后
+     * @param context
+     */
     public void executeSendMessageHookAfter(final SendMessageContext context) {
         if (!this.sendMessageHookList.isEmpty()) {
             for (SendMessageHook hook : this.sendMessageHookList) {
@@ -1181,6 +1208,20 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return this.sendSelectImpl(msg, selector, arg, CommunicationMode.SYNC, null, timeout);
     }
 
+    /**
+     * 异步发送
+     * @param msg
+     * @param selector
+     * @param arg
+     * @param communicationMode
+     * @param sendCallback
+     * @param timeout
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     private SendResult sendSelectImpl(
         Message msg,
         MessageQueueSelector selector,
@@ -1206,6 +1247,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 throw new RemotingTooMuchRequestException("sendSelectImpl call timeout");
             }
             if (mq != null) {
+                /**
+                 * 发送消息
+                 */
                 return this.sendKernelImpl(msg, mq, communicationMode, sendCallback, null, timeout - costTime);
             } else {
                 throw new MQClientException("select message queue return null.", null);
@@ -1248,6 +1292,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     if (timeout > costTime) {
                         try {
                             try {
+                                /**
+                                 * 异步发送
+                                 */
                                 sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, sendCallback,
                                     timeout - costTime);
                             } catch (MQBrokerException e) {

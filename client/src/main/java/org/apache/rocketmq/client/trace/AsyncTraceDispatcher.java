@@ -82,6 +82,9 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         this.discardCount = new AtomicLong(0L);
         this.traceContextQueue = new ArrayBlockingQueue<TraceContext>(1024);
         this.appenderQueue = new ArrayBlockingQueue<Runnable>(queueSize);
+        /**
+         * 发送tipic为RMQ_SYS_TRACE_TOPIC（默认）
+         */
         if (!UtilAll.isBlank(traceTopicName)) {
             this.traceTopicName = traceTopicName;
         } else {
@@ -94,6 +97,9 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 TimeUnit.MILLISECONDS, //
                 this.appenderQueue, //
                 new ThreadFactoryImpl("MQTraceSendThread_"));
+        /**
+         * 消息轨迹的生产者  默认组名为_INNER_TRACE_PRODUCER
+         */
         traceProducer = getAndCreateTraceProducer(rpcHook);
     }
 
@@ -131,16 +137,27 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             traceProducer.setInstanceName(TRACE_INSTANCE_NAME + "_" + nameSrvAddr);
             traceProducer.start();
         }
+        /**
+         * 工作线程实例化并启动   AsyncRunnable
+         */
         this.worker = new Thread(new AsyncRunnable(), "MQ-AsyncTraceDispatcher-Thread-" + dispatcherId);
         this.worker.setDaemon(true);
         this.worker.start();
         this.registerShutDownHook();
     }
 
+    /**
+     * 消息轨迹的生产者
+     * @param rpcHook
+     * @return
+     */
     private DefaultMQProducer getAndCreateTraceProducer(RPCHook rpcHook) {
         DefaultMQProducer traceProducerInstance = this.traceProducer;
         if (traceProducerInstance == null) {
             traceProducerInstance = new DefaultMQProducer(rpcHook);
+            /**
+             * _INNER_TRACE_PRODUCER
+             */
             traceProducerInstance.setProducerGroup(TraceConstants.GROUP_NAME);
             traceProducerInstance.setSendMsgTimeout(5000);
             traceProducerInstance.setVipChannelEnabled(false);
@@ -150,6 +167,11 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         return traceProducerInstance;
     }
 
+    /**
+     * 注入traceContextQueue
+     * @param ctx data infomation
+     * @return
+     */
     @Override
     public boolean append(final Object ctx) {
         boolean result = traceContextQueue.offer((TraceContext) ctx);
@@ -218,6 +240,10 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         public void run() {
             while (!stopped) {
                 List<TraceContext> contexts = new ArrayList<TraceContext>(batchSize);
+                /**
+                 * 每次批量执行100条数据（最大）
+                 * 将TraceContext从traceContextQueue中取出  并注入到contexts中
+                 */
                 for (int i = 0; i < batchSize; i++) {
                     TraceContext context = null;
                     try {
@@ -231,6 +257,10 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                         break;
                     }
                 }
+
+                /**
+                 * 消息轨迹数据发送
+                 */
                 if (contexts.size() > 0) {
                     AsyncAppenderRequest request = new AsyncAppenderRequest(contexts);
                     traceExecuter.submit(request);
@@ -253,11 +283,18 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             }
         }
 
+        /**
+         * 消息轨迹数据发送
+         */
         @Override
         public void run() {
             sendTraceData(contextList);
         }
 
+        /**
+         * 消息轨迹数据发送
+         * @param contextList
+         */
         public void sendTraceData(List<TraceContext> contextList) {
             Map<String, List<TraceTransferBean>> transBeanMap = new HashMap<String, List<TraceTransferBean>>();
             for (TraceContext context : contextList) {
@@ -277,6 +314,9 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 transBeanList.add(traceData);
             }
             for (Map.Entry<String, List<TraceTransferBean>> entry : transBeanMap.entrySet()) {
+                /**
+                 * 发送消息
+                 */
                 flushData(entry.getValue());
             }
         }
@@ -300,6 +340,9 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 count++;
                 // Ensure that the size of the package should not exceed the upper limit.
                 if (buffer.length() >= traceProducer.getMaxMessageSize()) {
+                    /**
+                     * 发送消息
+                     */
                     sendTraceDataByMQ(keySet, buffer.toString());
                     // Clear temporary buffer after finishing
                     buffer.delete(0, buffer.length());
@@ -308,6 +351,9 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 }
             }
             if (count > 0) {
+                /**
+                 * 发送消息
+                 */
                 sendTraceDataByMQ(keySet, buffer.toString());
             }
             transBeanList.clear();
@@ -339,8 +385,14 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 };
                 if (traceBrokerSet.isEmpty()) {
                     // No cross set
+                    /**
+                     * 发送
+                     */
                     traceProducer.send(message, callback, 5000);
                 } else {
+                    /**
+                     * 发送
+                     */
                     traceProducer.send(message, new MessageQueueSelector() {
                         @Override
                         public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {

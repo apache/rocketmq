@@ -39,18 +39,29 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
         return "SendMessageTraceHook";
     }
 
+    /**
+     * 消息发送前   消息轨迹记录
+     * @param context
+     */
     @Override
     public void sendMessageBefore(SendMessageContext context) {
         //if it is message trace data,then it doesn't recorded
         if (context == null || context.getMessage().getTopic().startsWith(((AsyncTraceDispatcher) localDispatcher).getTraceTopicName())) {
             return;
         }
+        /**
+         * TraceContext
+         */
         //build the context content of TuxeTraceContext
         TraceContext tuxeContext = new TraceContext();
         tuxeContext.setTraceBeans(new ArrayList<TraceBean>(1));
         context.setMqTraceContext(tuxeContext);
         tuxeContext.setTraceType(TraceType.Pub);
         tuxeContext.setGroupName(context.getProducerGroup());
+
+        /**
+         * TraceBean
+         */
         //build the data bean object of message trace
         TraceBean traceBean = new TraceBean();
         traceBean.setTopic(context.getMessage().getTopic());
@@ -59,6 +70,10 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
         traceBean.setStoreHost(context.getBrokerAddr());
         traceBean.setBodyLength(context.getMessage().getBody().length);
         traceBean.setMsgType(context.getMsgType());
+
+        /**
+         * 将TraceBean注入TraceContext
+         */
         tuxeContext.getTraceBeans().add(traceBean);
     }
 
@@ -79,7 +94,13 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
             return;
         }
 
+        /**
+         * 从context获取TraceContext
+         */
         TraceContext tuxeContext = (TraceContext) context.getMqTraceContext();
+        /**
+         * 从TraceContext获取traceBean
+         */
         TraceBean traceBean = tuxeContext.getTraceBeans().get(0);
         int costTime = (int) ((System.currentTimeMillis() - tuxeContext.getTimeStamp()) / tuxeContext.getTraceBeans().size());
         tuxeContext.setCostTime(costTime);
@@ -92,6 +113,10 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
         traceBean.setMsgId(context.getSendResult().getMsgId());
         traceBean.setOffsetMsgId(context.getSendResult().getOffsetMsgId());
         traceBean.setStoreTime(tuxeContext.getTimeStamp() + costTime / 2);
+
+        /**
+         * 将tuxeContext注入traceContextQueue
+         */
         localDispatcher.append(tuxeContext);
     }
 }

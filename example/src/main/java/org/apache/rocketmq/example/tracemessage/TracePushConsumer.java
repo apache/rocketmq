@@ -30,10 +30,11 @@ public class TracePushConsumer {
     public static void main(String[] args) throws InterruptedException, MQClientException {
         // Here,we use the default message track trace topic name
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1",true);
-        consumer.subscribe("TopicTest", "*");
+        consumer.subscribe("messageTrace", "*");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         // Wrong time format 2017_0422_221800
-        consumer.setConsumeTimestamp("20181109221800");
+//        consumer.setConsumeTimestamp("20181109221800");
+        consumer.setNamesrvAddr("localhost:9876");
         consumer.registerMessageListener(new MessageListenerConcurrently() {
 
             @Override
