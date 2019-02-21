@@ -1,5 +1,5 @@
 # Basic Concept                                
-##
+
 ## 1 Message Model
 
 The RocketMQ message model is mainly composed of Producer, Broker and Consumer.The Producer is responsible for producing messages, the Consumer is responsible for consuming messages, and the Broker is responsible for storing messages.     
