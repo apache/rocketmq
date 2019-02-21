@@ -34,6 +34,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -60,7 +61,9 @@ public class HATest {
     private MessageStoreConfig masterMessageStoreConfig;
     private MessageStoreConfig slaveStoreConfig;
     private BrokerStatsManager brokerStatsManager = new BrokerStatsManager("simpleTest");
-    private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
+    private String storePathRootParentDir = System.getProperty("user.home") + File.separator +
+            UUID.randomUUID().toString().replace("-", "");
+    private String storePathRootDir = storePathRootParentDir + File.separator + "store";
     @Before
     public void init() throws Exception {
         StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
@@ -113,7 +116,7 @@ public class HATest {
         slaveMessageStore.destroy();
         messageStore.shutdown();
         messageStore.destroy();
-        File file = new File(storePathRootDir);
+        File file = new File(storePathRootParentDir);
         UtilAll.deleteFile(file);
     }
 
