@@ -36,6 +36,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,7 +55,7 @@ public class ScheduleMessageServiceTest {
      */
     int delayLevel = 1;
 
-    private static final String storePath = System.getProperty("user.home")  + File.separator + "schedule_test";
+    private static final String storePath = System.getProperty("user.home")  + File.separator + "schedule_test"+ UUID.randomUUID();
     private static final int commitLogFileSize = 1024;
     private static final int cqFileSize = 10;
     private static final int cqExtFileSize = 10 * (ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE + 64);
