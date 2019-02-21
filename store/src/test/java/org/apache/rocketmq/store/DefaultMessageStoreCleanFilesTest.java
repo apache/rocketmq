@@ -33,6 +33,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Calendar;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.apache.rocketmq.common.message.MessageDecoder.CHARSET_UTF8;
 import static org.apache.rocketmq.store.ConsumeQueue.CQ_STORE_UNIT_SIZE;
@@ -335,7 +336,8 @@ public class DefaultMessageStoreCleanFilesTest {
         messageStoreConfig.setDeleteWhen(deleteWhen);
         messageStoreConfig.setDiskMaxUsedSpaceRatio(diskMaxUsedSpaceRatio);
 
-        String storePathRootDir = System.getProperty("user.home") + File.separator + "DefaultMessageStoreCleanFilesTest";
+        String storePathRootDir = System.getProperty("user.home") + File.separator
+                + "DefaultMessageStoreCleanFilesTest-" + UUID.randomUUID();
         String storePathCommitLog = storePathRootDir + File.separator + "commitlog";
         messageStoreConfig.setStorePathRootDir(storePathRootDir);
         messageStoreConfig.setStorePathCommitLog(storePathCommitLog);
