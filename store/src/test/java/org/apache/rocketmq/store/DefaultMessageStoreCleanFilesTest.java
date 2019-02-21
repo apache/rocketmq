@@ -315,6 +315,11 @@ public class DefaultMessageStoreCleanFilesTest {
         messageStoreConfig.setDeleteWhen(deleteWhen);
         messageStoreConfig.setDiskMaxUsedSpaceRatio(diskMaxUsedSpaceRatio);
 
+        String storePathRootDir = System.getProperty("user.home") + File.separator + "DefaultMessageStoreCleanFilesTest";
+        String storePathCommitLog = storePathRootDir + File.separator + "commitlog";
+        messageStoreConfig.setStorePathRootDir(storePathRootDir);
+        messageStoreConfig.setStorePathCommitLog(storePathCommitLog);
+
         DefaultMessageStore store = new DefaultMessageStore(messageStoreConfig,
                 new BrokerStatsManager("test"), new MyMessageArrivingListener(), new BrokerConfig());
 
@@ -335,7 +340,7 @@ public class DefaultMessageStoreCleanFilesTest {
         messageStore.shutdown();
         messageStore.destroy();
 
-        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
         File file = new File(messageStoreConfig.getStorePathRootDir());
         UtilAll.deleteFile(file);
     }
