@@ -11,7 +11,8 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**
- * CountDownLatch2 Unit Test @see {@link CountDownLatch2}
+ * CountDownLatch2 Unit Test
+ * @see CountDownLatch2
  *
  * @since 2019-02-21
  */
