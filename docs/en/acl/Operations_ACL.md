@@ -56,20 +56,20 @@ The main ACL process is divided into two parts, including privilege resolution a
 
 ### 4.1 Privilege resolution
 The Broker side parses the client's RequestCommand request and obtains the attribute field that needs to be authenticated.
-main attributes：
- (1) AccessKey:Similar to the user name, on behalf of the user entity, the permission data corresponds to it;
+main attributes:  
+ (1) AccessKey:Similar to the user name, on behalf of the user entity, the permission data corresponds to it;  
  (2) Signature:The client obtains the string according to the signature of the SecretKey, and the server uses the SecretKey to perform signature verification.
 
 ### 4.2 Privilege check
-The check logic of the right side of the broker is mainly divided into the following steps:
- (1) Check if the global IP whitelist is hit; if yes, the check passes; otherwise, go to step (2);
- (2) Check if the user IP whitelist is hit; if yes, the check passes; otherwise, go to step (3);
- (3) Check the signature, if the verification fails, throw an exception; if the verification passes, go to step (4);
- (4) Check the permissions required by the user request and the permissions owned by the user; if not, throw an exception;
+The check logic of the right side of the broker is mainly divided into the following steps:  
+ (1) Check if the global IP whitelist is hit; if yes, the check passes; otherwise, go to step (2);  
+ (2) Check if the user IP whitelist is hit; if yes, the check passes; otherwise, go to step (3);  
+ (3) Check the signature, if the verification fails, throw an exception; if the verification passes, go to step (4);  
+ (4) Check the permissions required by the user request and the permissions owned by the user; if not, throw an exception;  
 
 
-The verification of the required permissions of the user requires attention to the following points:
- (1) Special requests such as UPDATE_AND_CREATE_TOPIC can only be operated by the admin account;
+The verification of the required permissions of the user requires attention to the following points:  
+ (1) Special requests such as UPDATE_AND_CREATE_TOPIC can only be operated by the admin account;  
  (2) For a resource, if there is explicit configuration permission, the configured permission is used; if there is no explicit configuration permission, the default permission is adopted;
 
 ## 5. Hot loading modified Access control
