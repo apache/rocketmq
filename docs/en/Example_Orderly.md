@@ -1,8 +1,8 @@
 # 2 Example for ordered messages
 
-RocketMQ provides ordered messages using FIFO order.All related messages need to be sent into the same message queue in an orderly manner.
+RocketMQ provides ordered messages using FIFO order. All related messages need to be sent into the same message queue in an orderly manner.
 
-The following demonstrates ordered messages by ensuring order of create,pay,send and finish steps of sales order process.
+The following demonstrates ordered messages by ensuring order of create, pay, send and finish steps of sales order process.
 
 ## 2.1 produce ordered messages
 ```
