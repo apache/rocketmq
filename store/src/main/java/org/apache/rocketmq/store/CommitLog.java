@@ -64,8 +64,16 @@ public class CommitLog {
     private final PutMessageLock putMessageLock;
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
-        this.mappedFileQueue = new MappedFileQueue(defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog(),
-            defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog(), defaultMessageStore.getAllocateMappedFileService());
+        if (defaultMessageStore.getMessageStoreConfig().isMultiCommitLogPathEnable()) {
+            this.mappedFileQueue = new MultiPathMappedFileQueue(defaultMessageStore.getMessageStoreConfig(),
+                defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog(),
+                defaultMessageStore.getAllocateMappedFileService());
+        } else {
+            this.mappedFileQueue = new MappedFileQueue(defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog(),
+                    defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog(),
+                    defaultMessageStore.getAllocateMappedFileService());
+        }
+
         this.defaultMessageStore = defaultMessageStore;
 
         if (FlushDiskType.SYNC_FLUSH == defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {

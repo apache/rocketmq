@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -693,11 +694,18 @@ public class DefaultMessageStore implements MessageStore {
     public HashMap<String, String> getRuntimeInfo() {
         HashMap<String, String> result = this.storeStatsService.getRuntimeInfo();
 
-        {
+        if (DefaultMessageStore.this.getMessageStoreConfig().isMultiCommitLogPathEnable()) {
+            double maxValue = Double.MIN_VALUE;
+            for (String clPath : DefaultMessageStore.this.getMessageStoreConfig().getCommitLogStorePaths()) {
+                double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(clPath);
+                result.put(RunningStats.commitLogDiskRatio.name() + "_" + clPath, String.valueOf(physicRatio));
+                maxValue = Math.max(maxValue, physicRatio);
+            }
+            result.put(RunningStats.commitLogDiskRatio.name(), String.valueOf(maxValue));
+        } else {
             String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
             double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
             result.put(RunningStats.commitLogDiskRatio.name(), String.valueOf(physicRatio));
-
         }
 
         {
@@ -1537,27 +1545,35 @@ public class DefaultMessageStore implements MessageStore {
             cleanImmediately = false;
 
             {
-                String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
-                double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
-                if (physicRatio > diskSpaceWarningLevelRatio) {
-                    boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
-                    if (diskok) {
-                        DefaultMessageStore.log.error("physic disk maybe full soon " + physicRatio + ", so mark disk full");
-                    }
-
-                    cleanImmediately = true;
-                } else if (physicRatio > diskSpaceCleanForciblyRatio) {
-                    cleanImmediately = true;
+                List<String> storePaths;
+                if (DefaultMessageStore.this.getMessageStoreConfig().isMultiCommitLogPathEnable()) {
+                    storePaths = DefaultMessageStore.this.getMessageStoreConfig().getCommitLogStorePaths();
                 } else {
-                    boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskOK();
-                    if (!diskok) {
-                        DefaultMessageStore.log.info("physic disk space OK " + physicRatio + ", so mark disk ok");
-                    }
+                    storePaths = Collections.singletonList(DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog());
                 }
 
-                if (physicRatio < 0 || physicRatio > ratio) {
-                    DefaultMessageStore.log.info("physic disk maybe full soon, so reclaim space, " + physicRatio);
-                    return true;
+                for (String storePathPhysic : storePaths) {
+                    double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+                    if (physicRatio > diskSpaceWarningLevelRatio) {
+                        boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
+                        if (diskok) {
+                            DefaultMessageStore.log.error("physic disk maybe full soon " + physicRatio + ", so mark disk full, storePathPhysic=" + storePathPhysic);
+                        }
+
+                        cleanImmediately = true;
+                    } else if (physicRatio > diskSpaceCleanForciblyRatio) {
+                        cleanImmediately = true;
+                    } else {
+                        boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskOK();
+                        if (!diskok) {
+                            DefaultMessageStore.log.info("physic disk space OK " + physicRatio + ", so mark disk ok, storePathPhysic=" + storePathPhysic);
+                        }
+                    }
+
+                    if (physicRatio < 0 || physicRatio > ratio) {
+                        DefaultMessageStore.log.info("physic disk maybe full soon, so reclaim space, " + physicRatio + ", storePathPhysic=" + storePathPhysic);
+                        return true;
+                    }
                 }
             }
 
