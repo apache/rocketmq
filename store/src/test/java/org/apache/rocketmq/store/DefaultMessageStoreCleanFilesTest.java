@@ -68,7 +68,7 @@ public class DefaultMessageStoreCleanFilesTest {
     public void testDeleteExpiredFilesByTimeUp() throws Exception {
         String deleteWhen = Calendar.getInstance().get(Calendar.HOUR_OF_DAY) + "";
         // the max value of diskMaxUsedSpaceRatio
-        int diskMaxUsedSpaceRatio = 95;
+        int diskMaxUsedSpaceRatio = 99;
         // used to ensure that automatic file deletion is not triggered
         double diskSpaceCleanForciblyRatio = 0.999D;
         initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
@@ -107,7 +107,7 @@ public class DefaultMessageStoreCleanFilesTest {
     public void testDeleteExpiredFilesBySpaceFull() throws Exception {
         String deleteWhen = "04";
         // the min value of diskMaxUsedSpaceRatio. make sure disk space usage is greater than 10%
-        int diskMaxUsedSpaceRatio = 10;
+        int diskMaxUsedSpaceRatio = 1;
         // used to ensure that automatic file deletion is not triggered
         double diskSpaceCleanForciblyRatio = 0.999D;
         initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
@@ -146,7 +146,7 @@ public class DefaultMessageStoreCleanFilesTest {
     public void testDeleteFilesImmediatelyBySpaceFull() throws Exception {
         String deleteWhen = "04";
         // the min value of diskMaxUsedSpaceRatio. make sure disk space usage is greater than 10%
-        int diskMaxUsedSpaceRatio = 10;
+        int diskMaxUsedSpaceRatio = 1;
         // make sure to trigger the automatic file deletion feature
         double diskSpaceCleanForciblyRatio = 0.01D;
         initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
@@ -187,7 +187,7 @@ public class DefaultMessageStoreCleanFilesTest {
     public void testDeleteExpiredFilesManually() throws Exception {
         String deleteWhen = "04";
         // the max value of diskMaxUsedSpaceRatio
-        int diskMaxUsedSpaceRatio = 95;
+        int diskMaxUsedSpaceRatio = 99;
         // used to ensure that automatic file deletion is not triggered
         double diskSpaceCleanForciblyRatio = 0.999D;
         initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
@@ -319,7 +319,7 @@ public class DefaultMessageStoreCleanFilesTest {
     }
 
     private void initMessageStore(String deleteWhen, int diskMaxUsedSpaceRatio, double diskSpaceCleanForciblyRatio) throws Exception {
-        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfigForTest();
         messageStoreConfig.setMapedFileSizeCommitLog(mappedFileSize);
         messageStoreConfig.setMapedFileSizeConsumeQueue(mappedFileSize);
         messageStoreConfig.setMaxHashSlotNum(10000);
@@ -365,5 +365,20 @@ public class DefaultMessageStoreCleanFilesTest {
         MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
         File file = new File(messageStoreConfig.getStorePathRootDir());
         UtilAll.deleteFile(file);
+    }
+
+    private class MessageStoreConfigForTest extends MessageStoreConfig {
+        @Override
+        public int getDiskMaxUsedSpaceRatio() {
+            try {
+                Field diskMaxUsedSpaceRatioField = this.getClass().getSuperclass().getDeclaredField("diskMaxUsedSpaceRatio");
+                diskMaxUsedSpaceRatioField.setAccessible(true);
+                int ratio = (int) diskMaxUsedSpaceRatioField.get(this);
+                diskMaxUsedSpaceRatioField.setAccessible(false);
+                return ratio;
+            } catch (Exception ignored) {
+            }
+            return super.getDiskMaxUsedSpaceRatio();
+        }
     }
 }
