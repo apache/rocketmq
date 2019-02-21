@@ -39,8 +39,14 @@ import static org.apache.rocketmq.store.ConsumeQueue.CQ_STORE_UNIT_SIZE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * Test case for DefaultMessageStore.CleanCommitLogService and DefaultMessageStore.CleanConsumeQueueService
+ */
 public class DefaultMessageStoreCleanFilesTest {
     private DefaultMessageStore messageStore;
+    private DefaultMessageStore.CleanCommitLogService cleanCommitLogService;
+    private DefaultMessageStore.CleanConsumeQueueService cleanConsumeQueueService;
+
     private SocketAddress bornHost;
     private SocketAddress storeHost;
 
@@ -58,15 +64,14 @@ public class DefaultMessageStoreCleanFilesTest {
         bornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
     }
 
-    /**
-     * make sure disk space usage is less than 85%.
-     * if disk space usage is greater than 85%, by default, it will trigger the deletion at once.
-     */
     @Test
     public void testDeleteExpiredFilesByTimeUp() throws Exception {
         String deleteWhen = Calendar.getInstance().get(Calendar.HOUR_OF_DAY) + "";
-        int diskMaxUsedSpaceRatio = 95; // the max value of diskMaxUsedSpaceRatio
-        messageStore = initMessageStore(deleteWhen, diskMaxUsedSpaceRatio);
+        // the max value of diskMaxUsedSpaceRatio
+        int diskMaxUsedSpaceRatio = 95;
+        // used to ensure that automatic file deletion is not triggered
+        double diskSpaceCleanForciblyRatio = 0.999D;
+        initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
 
         // build and put 55 messages, exactly one message per CommitLog file.
         buildAndPutMessagesToMessageStore(msgCount);
@@ -86,8 +91,8 @@ public class DefaultMessageStoreCleanFilesTest {
 
         // magic code 10 reference to MappedFileQueue#DELETE_FILES_BATCH_MAX
         for (int a = 1, fileCount = expireFileCount; a <= (int) Math.ceil((double) expireFileCount / 10); a++, fileCount -= 10) {
-            getCleanCommitLogService().run();
-            getCleanConsumeQueueService().run();
+            cleanCommitLogService.run();
+            cleanConsumeQueueService.run();
 
             int expectDeletedCount = fileCount >= 10 ? a * 10 : ((a - 1) * 10 + fileCount);
             assertEquals(fileCountCommitLog - expectDeletedCount, commitLogQueue.getMappedFiles().size());
@@ -98,18 +103,14 @@ public class DefaultMessageStoreCleanFilesTest {
         }
     }
 
-    /**
-     * make sure disk space usage is greater than 10%, less than 85%.
-     * if disk space usage is greater than 85%, by default, it will trigger the deletion at once.
-     *
-     * @see DefaultMessageStoreCleanFilesTest#testDeleteFilesImmediatelyBySpaceFull()
-     */
     @Test
     public void testDeleteExpiredFilesBySpaceFull() throws Exception {
         String deleteWhen = "04";
         // the min value of diskMaxUsedSpaceRatio. make sure disk space usage is greater than 10%
         int diskMaxUsedSpaceRatio = 10;
-        messageStore = initMessageStore(deleteWhen, diskMaxUsedSpaceRatio);
+        // used to ensure that automatic file deletion is not triggered
+        double diskSpaceCleanForciblyRatio = 0.999D;
+        initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
 
         // build and put 55 messages, exactly one message per CommitLog file.
         buildAndPutMessagesToMessageStore(msgCount);
@@ -129,8 +130,8 @@ public class DefaultMessageStoreCleanFilesTest {
 
         // magic code 10 reference to MappedFileQueue#DELETE_FILES_BATCH_MAX
         for (int a = 1, fileCount = expireFileCount; a <= (int) Math.ceil((double) expireFileCount / 10); a++, fileCount -= 10) {
-            getCleanCommitLogService().run();
-            getCleanConsumeQueueService().run();
+            cleanCommitLogService.run();
+            cleanConsumeQueueService.run();
 
             int expectDeletedCount = fileCount >= 10 ? a * 10 : ((a - 1) * 10 + fileCount);
             assertEquals(fileCountCommitLog - expectDeletedCount, commitLogQueue.getMappedFiles().size());
@@ -141,21 +142,14 @@ public class DefaultMessageStoreCleanFilesTest {
         }
     }
 
-
-    /**
-     * run with the vm args:
-     * -Drocketmq.broker.diskSpaceWarningLevelRatio=0.1
-     * -Drocketmq.broker.diskSpaceCleanForciblyRatio=0.1
-     * <p>
-     * make sure disk space usage is greater than 10%
-     */
     @Test
     public void testDeleteFilesImmediatelyBySpaceFull() throws Exception {
         String deleteWhen = "04";
         // the min value of diskMaxUsedSpaceRatio. make sure disk space usage is greater than 10%
         int diskMaxUsedSpaceRatio = 10;
-
-        messageStore = initMessageStore(deleteWhen, diskMaxUsedSpaceRatio);
+        // make sure to trigger the automatic file deletion feature
+        double diskSpaceCleanForciblyRatio = 0.01D;
+        initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
 
         // build and put 55 messages, exactly one message per CommitLog file.
         buildAndPutMessagesToMessageStore(msgCount);
@@ -178,8 +172,8 @@ public class DefaultMessageStoreCleanFilesTest {
         for (int a = 1, fileCount = fileCountCommitLog;
              a <= (int) Math.ceil((double) fileCountCommitLog / 10) && fileCount >= 10;
              a++, fileCount -= 10) {
-            getCleanCommitLogService().run();
-            getCleanConsumeQueueService().run();
+            cleanCommitLogService.run();
+            cleanConsumeQueueService.run();
 
             assertEquals(fileCountCommitLog - 10 * a, commitLogQueue.getMappedFiles().size());
 
@@ -189,16 +183,15 @@ public class DefaultMessageStoreCleanFilesTest {
         }
     }
 
-    /**
-     * make sure disk space usage is less than 85%.
-     * if disk space usage is greater than 85%, by default, it will trigger the deletion at once.
-     */
     @Test
     public void testDeleteExpiredFilesManually() throws Exception {
         String deleteWhen = "04";
         // the max value of diskMaxUsedSpaceRatio
         int diskMaxUsedSpaceRatio = 95;
-        messageStore = initMessageStore(deleteWhen, diskMaxUsedSpaceRatio);
+        // used to ensure that automatic file deletion is not triggered
+        double diskSpaceCleanForciblyRatio = 0.999D;
+        initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
+
         messageStore.executeDeleteFilesManually();
 
         // build and put 55 messages, exactly one message per CommitLog file.
@@ -219,8 +212,8 @@ public class DefaultMessageStoreCleanFilesTest {
 
         // magic code 10 reference to MappedFileQueue#DELETE_FILES_BATCH_MAX
         for (int a = 1, fileCount = expireFileCount; a <= (int) Math.ceil((double) expireFileCount / 10); a++, fileCount -= 10) {
-            getCleanCommitLogService().run();
-            getCleanConsumeQueueService().run();
+            cleanCommitLogService.run();
+            cleanConsumeQueueService.run();
 
             int expectDeletedCount = fileCount >= 10 ? a * 10 : ((a - 1) * 10 + fileCount);
             assertEquals(fileCountCommitLog - expectDeletedCount, commitLogQueue.getMappedFiles().size());
@@ -231,13 +224,23 @@ public class DefaultMessageStoreCleanFilesTest {
         }
     }
 
-    private DefaultMessageStore.CleanCommitLogService getCleanCommitLogService()
+    private DefaultMessageStore.CleanCommitLogService getCleanCommitLogService(double diskSpaceCleanForciblyRatio)
             throws Exception {
         Field serviceField = messageStore.getClass().getDeclaredField("cleanCommitLogService");
         serviceField.setAccessible(true);
         DefaultMessageStore.CleanCommitLogService cleanCommitLogService =
                 (DefaultMessageStore.CleanCommitLogService) serviceField.get(messageStore);
         serviceField.setAccessible(false);
+
+        Field warningLevelRatioField = cleanCommitLogService.getClass().getDeclaredField("diskSpaceWarningLevelRatio");
+        warningLevelRatioField.setAccessible(true);
+        warningLevelRatioField.set(cleanCommitLogService, diskSpaceCleanForciblyRatio);
+        warningLevelRatioField.setAccessible(false);
+
+        Field cleanForciblyRatioField = cleanCommitLogService.getClass().getDeclaredField("diskSpaceCleanForciblyRatio");
+        cleanForciblyRatioField.setAccessible(true);
+        cleanForciblyRatioField.set(cleanCommitLogService, diskSpaceCleanForciblyRatio);
+        cleanForciblyRatioField.setAccessible(false);
         return cleanCommitLogService;
     }
 
@@ -315,7 +318,7 @@ public class DefaultMessageStoreCleanFilesTest {
         }
     }
 
-    private DefaultMessageStore initMessageStore(String deleteWhen, int diskMaxUsedSpaceRatio) throws Exception {
+    private void initMessageStore(String deleteWhen, int diskMaxUsedSpaceRatio, double diskSpaceCleanForciblyRatio) throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMapedFileSizeCommitLog(mappedFileSize);
         messageStoreConfig.setMapedFileSizeConsumeQueue(mappedFileSize);
@@ -337,12 +340,14 @@ public class DefaultMessageStoreCleanFilesTest {
         messageStoreConfig.setStorePathRootDir(storePathRootDir);
         messageStoreConfig.setStorePathCommitLog(storePathCommitLog);
 
-        DefaultMessageStore store = new DefaultMessageStore(messageStoreConfig,
+        messageStore = new DefaultMessageStore(messageStoreConfig,
                 new BrokerStatsManager("test"), new MyMessageArrivingListener(), new BrokerConfig());
 
-        assertTrue(store.load());
-        store.start();
-        return store;
+        cleanCommitLogService = getCleanCommitLogService(diskSpaceCleanForciblyRatio);
+        cleanConsumeQueueService = getCleanConsumeQueueService();
+
+        assertTrue(messageStore.load());
+        messageStore.start();
     }
 
     private class MyMessageArrivingListener implements MessageArrivingListener {
