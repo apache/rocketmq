@@ -78,7 +78,7 @@ public class BatchPutMessageTest {
     }
 
     @Test
-    public void testPutMessages() {
+    public void testPutMessages() throws Exception {
         List<Message> messages = new ArrayList<>();
         String topic = "batch-write-topic";
         int queue = 0;
@@ -111,6 +111,8 @@ public class BatchPutMessageTest {
 
         PutMessageResult putMessageResult = messageStore.putMessages(messageExtBatch);
         assertThat(putMessageResult.isOk()).isTrue();
+        
+        Thread.sleep(3 * 1000);
 
         for (long i = 0; i < 10; i++) {
             MessageExt messageExt = messageStore.lookMessageByOffset(msgLengthArr[(int) i]);
