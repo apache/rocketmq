@@ -20,7 +20,7 @@ Solution: Execute  `export NAMESRV_ADDR=ip:9876` (ip refers to the address of Na
 
 Solution: The jar package of RocketMQ, such as rocketmq-client, should be the same version on the consumer and producer.
 
-## 3. when adding a new topic consumer group, historical messages can‘t be consumed.
+## 3. When adding a new topic consumer group, historical messages can‘t be consumed.
 
 > Problem: When a new consumer group of the same topic is started, the consumed message is the current offset message, and the historical message is not obtained.
 
@@ -54,7 +54,7 @@ consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
 
 In some cases, the Consumer needs to reset the consume position to 1-2 days ago. At this time, on the Master Broker with limited memory, the CommitLog will carry a relatively heavy IO pressure, affecting the reading and writing of other messages on that Broker. You can enable `slaveReadEnable=true`. When Master Broker finds that the difference between the Consumer's consume position and the latest value of CommitLog exceeds the percentage of machine's memory (`accessMessageInMemoryMaxRatio=40%`), it will recommend Consumer  to read from Slave Broker and relieve Master Broker's IO.
 
-## 5. performance
+## 5. Performance
 
 Asynchronous flush disk is recommended to use spin lock.
 
