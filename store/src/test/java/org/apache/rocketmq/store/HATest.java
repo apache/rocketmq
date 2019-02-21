@@ -45,8 +45,6 @@ import static org.junit.Assert.assertTrue;
 /**
  * HATest
  *
- * @author yanglibo@qccr.com
- * @version HATest.java 2019年01月14日 17:34:31
  */
 public class HATest {
     private final String StoreMessage = "Once, there was a chance for me!";
