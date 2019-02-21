@@ -20,13 +20,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.exception.RemotingConnectException;
-import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
-import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.exception.SnodeException;
 
@@ -79,17 +75,18 @@ public class ConsumerOffsetManager {
         }
     }
 
-    private long parserOffset(final String enodeName, final String group, final String topic, final int queueId) {
-        try {
-            RemotingCommand remotingCommand = queryOffset(enodeName, group, topic, queueId);
-            QueryConsumerOffsetResponseHeader responseHeader =
-                (QueryConsumerOffsetResponseHeader) remotingCommand.decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
-            return responseHeader.getOffset();
-        } catch (Exception ex) {
-            log.error("Load offset from broker error", ex);
-        }
-        return -1;
-    }
+//    private long parserOffset(final RemotingChannel remotingChannel, final String enodeName, final String group,
+//        final String topic, final int queueId) {
+//        try {
+//            RemotingCommand remotingCommand = queryOffset(remotingChannel, enodeName, group, topic, queueId);
+//            QueryConsumerOffsetResponseHeader responseHeader =
+//                (QueryConsumerOffsetResponseHeader) remotingCommand.decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
+//            return responseHeader.getOffset();
+//        } catch (Exception ex) {
+//            log.error("Load offset from broker error", ex);
+//        }
+//        return -1;
+//    }
 
     public long queryCacheOffset(final String enodeName, final String group, final String topic, final int queueId) {
         String key = buildKey(enodeName, topic, group);
@@ -99,30 +96,33 @@ public class ConsumerOffsetManager {
             map = this.offsetTable.putIfAbsent(key, map);
         }
         CacheOffset cacheOffset = map.get(queueId);
-        if (cacheOffset != null) {
-            if (System.currentTimeMillis() - cacheOffset.getUpdateTimestamp() > snodeController.getSnodeConfig().getLoadOffsetInterval()) {
-                cacheOffset.setOffset(parserOffset(enodeName, group, topic, queueId));
-                cacheOffset.setUpdateTimestamp(System.currentTimeMillis());
+        try {
+            if (cacheOffset != null) {
+                if (!this.snodeController.getSnodeConfig().isEmbeddedModeEnable() && System.currentTimeMillis() - cacheOffset.getUpdateTimestamp() > snodeController.getSnodeConfig().getLoadOffsetInterval()) {
+                    long offset = this.snodeController.getEnodeService().queryOffset(enodeName, group, topic, queueId);
+                    cacheOffset.setOffset(offset);
+                    cacheOffset.setUpdateTimestamp(System.currentTimeMillis());
+                } else {
+                    long offset = this.snodeController.getEnodeService().queryOffset(enodeName, group, topic, queueId);
+                    cacheOffset.setOffset(offset);
+                }
+            } else {
+                long offset = this.snodeController.getEnodeService().queryOffset(enodeName, group, topic, queueId);
+                cacheOffset = new CacheOffset(key, offset, System.currentTimeMillis());
+                map.put(queueId, cacheOffset);
             }
-        } else {
-            cacheOffset = new CacheOffset(key, parserOffset(enodeName, group, topic, queueId), System.currentTimeMillis());
-            map.put(queueId, cacheOffset);
+        } catch (Exception ex) {
+            log.warn("Load offset error, enodeName: {}, group:{},topic:{} queueId:{}", enodeName, group, topic, queueId);
         }
         return cacheOffset.getOffset();
-
     }
 
-    public void commitOffset(final String enodeName, final String clientHost, final String group, final String topic,
+    public void commitOffset(final RemotingChannel remotingChannel, final String enodeName, final String clientHost,
+        final String group, final String topic,
         final int queueId,
         final long offset) {
         cacheOffset(enodeName, clientHost, group, topic, queueId, offset);
-        this.snodeController.getEnodeService().persistOffset(enodeName, group, topic, queueId, offset);
-    }
-
-    public RemotingCommand queryOffset(final String enodeName, final String group, final String topic,
-        final int queueId) throws InterruptedException, RemotingTimeoutException,
-        RemotingSendRequestException, RemotingConnectException {
-        return this.snodeController.getEnodeService().loadOffset(enodeName, group, topic, queueId);
+        this.snodeController.getEnodeService().persistOffset(remotingChannel, enodeName, group, topic, queueId, offset);
     }
 
     public class CacheOffset {

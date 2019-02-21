@@ -42,19 +42,6 @@ public class SubscriptionGroupManager {
     private void init() {
     }
 
-    public void updateSubscriptionGroupConfig(final SubscriptionGroupConfig config) {
-        SubscriptionGroupConfig old = this.subscriptionGroupTable.put(config.getGroupName(), config);
-        if (old != null) {
-            log.info("Update subscription group config, old: {} new: {}", old, config);
-        } else {
-            log.info("Create new subscription group, {}", config);
-        }
-
-        this.dataVersion.nextVersion();
-
-        this.persistSubscription(config);
-    }
-
     public void disableConsume(final String groupName) {
         SubscriptionGroupConfig old = this.subscriptionGroupTable.get(groupName);
         if (old != null) {
@@ -63,7 +50,8 @@ public class SubscriptionGroupManager {
         }
     }
 
-    public SubscriptionGroupConfig findSubscriptionGroupConfig(final String group) {
+    public SubscriptionGroupConfig findSubscriptionGroupConfig(
+        final String group) {
         SubscriptionGroupConfig subscriptionGroupConfig = this.subscriptionGroupTable.get(group);
         if (null == subscriptionGroupConfig) {
             if (snodeController.getSnodeConfig().isAutoCreateSubscriptionGroup() || MixAll.isSysConsumerGroup(group)) {
@@ -74,14 +62,12 @@ public class SubscriptionGroupManager {
                     log.info("Auto create a subscription group, {}", subscriptionGroupConfig.toString());
                 }
                 this.dataVersion.nextVersion();
-                this.persistSubscription(subscriptionGroupConfig);
+                this.snodeController.getEnodeService().persistSubscriptionGroupConfig(subscriptionGroupConfig);
             }
         }
 
         return subscriptionGroupConfig;
     }
-
-
 
     public ConcurrentMap<String, SubscriptionGroupConfig> getSubscriptionGroupTable() {
         return subscriptionGroupTable;
@@ -91,18 +77,4 @@ public class SubscriptionGroupManager {
         return dataVersion;
     }
 
-    public void deleteSubscriptionGroupConfig(final String groupName) {
-        SubscriptionGroupConfig old = this.subscriptionGroupTable.remove(groupName);
-        if (old != null) {
-            log.info("delete subscription group OK, subscription group:{}", old);
-            this.dataVersion.nextVersion();
-            this.persistSubscription(old);
-        } else {
-            log.warn("delete subscription group failed, subscription groupName: {} not exist", groupName);
-        }
-    }
-
-    void persistSubscription(SubscriptionGroupConfig config) {
-        this.snodeController.getEnodeService().persistSubscriptionGroupConfig(config);
-    }
 }

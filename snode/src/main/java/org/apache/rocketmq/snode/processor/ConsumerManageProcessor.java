@@ -25,9 +25,13 @@ import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestH
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseHeader;
 import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -87,7 +91,14 @@ public class ConsumerManageProcessor implements RequestProcessor {
             (SearchOffsetRequestHeader) request
                 .decodeCommandCustomHeader(SearchOffsetRequestHeader.class);
         try {
-            return this.snodeController.getEnodeService().getOffsetByTimestamp(requestHeader.getEnodeName(), request);
+            final RemotingCommand response = RemotingCommand.createResponseCommand(SearchOffsetResponseHeader.class);
+            final SearchOffsetResponseHeader responseHeader = (SearchOffsetResponseHeader) response.readCustomHeader();
+
+            long offset = this.snodeController.getEnodeService().getOffsetByTimestamp(requestHeader.getEnodeName(),
+                requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getTimestamp(), request);
+            responseHeader.setOffset(offset);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
         } catch (Exception ex) {
             log.error("Search offset by timestamp error:{}", ex);
         }
@@ -100,7 +111,14 @@ public class ConsumerManageProcessor implements RequestProcessor {
             (GetMinOffsetRequestHeader) request
                 .decodeCommandCustomHeader(GetMinOffsetRequestHeader.class);
         try {
-            return this.snodeController.getEnodeService().getMinOffsetInQueue(requestHeader.getEnodeName(), requestHeader.getTopic(), requestHeader.getQueueId());
+            final RemotingCommand response = RemotingCommand.createResponseCommand(GetMinOffsetResponseHeader.class);
+            final GetMinOffsetResponseHeader responseHeader = (GetMinOffsetResponseHeader) response.readCustomHeader();
+
+            long offset = this.snodeController.getEnodeService().getMinOffsetInQueue(requestHeader.getEnodeName(),
+                requestHeader.getTopic(), requestHeader.getQueueId(), request);
+            responseHeader.setOffset(offset);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
         } catch (Exception ex) {
             log.error("Get min offset error:{}", ex);
         }
@@ -113,9 +131,16 @@ public class ConsumerManageProcessor implements RequestProcessor {
             (GetMaxOffsetRequestHeader) request
                 .decodeCommandCustomHeader(GetMaxOffsetRequestHeader.class);
         try {
-            return this.snodeController.getEnodeService().getMaxOffsetInQueue(requestHeader.getEnodeName(), request);
+            long offset = this.snodeController.getEnodeService().getMaxOffsetInQueue(requestHeader.getEnodeName(),
+                requestHeader.getTopic(), requestHeader.getQueueId(), request);
+            final RemotingCommand response = RemotingCommand.createResponseCommand(GetMaxOffsetResponseHeader.class);
+            final GetMaxOffsetResponseHeader responseHeader = (GetMaxOffsetResponseHeader) response.readCustomHeader();
+            responseHeader.setOffset(offset);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+            return response;
         } catch (Exception ex) {
-            log.error("Get min offset error:{}", ex);
+            log.error("Get min offset error, remoting: {} error: {} ", remotingChannel.remoteAddress(), ex);
         }
         return null;
     }
@@ -153,7 +178,7 @@ public class ConsumerManageProcessor implements RequestProcessor {
         final UpdateConsumerOffsetRequestHeader requestHeader =
             (UpdateConsumerOffsetRequestHeader) request
                 .decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
-        this.snodeController.getConsumerOffsetManager().commitOffset(requestHeader.getEnodeName(), RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()), requestHeader.getConsumerGroup(),
+        this.snodeController.getConsumerOffsetManager().commitOffset(remotingChannel, requestHeader.getEnodeName(), RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()), requestHeader.getConsumerGroup(),
             requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
@@ -171,9 +196,15 @@ public class ConsumerManageProcessor implements RequestProcessor {
             requestHeader.getConsumerGroup(),
             requestHeader.getTopic(),
             requestHeader.getQueueId());
-        return this.snodeController.getConsumerOffsetManager().queryOffset(requestHeader.getEnodeName(), requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+        long offset = this.snodeController.getEnodeService().queryOffset(requestHeader.getEnodeName(), requestHeader.getConsumerGroup(), requestHeader.getTopic(),
             requestHeader.getQueueId());
 
+        final RemotingCommand response = RemotingCommand.createResponseCommand(QueryConsumerOffsetResponseHeader.class);
+        final QueryConsumerOffsetResponseHeader responseHeader = (QueryConsumerOffsetResponseHeader) response.readCustomHeader();
+        responseHeader.setOffset(offset);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
     }
 
     public RemotingCommand createRetryTopic(RemotingChannel remotingChannel,
@@ -181,7 +212,7 @@ public class ConsumerManageProcessor implements RequestProcessor {
         RemotingSendRequestException, RemotingConnectException, RemotingCommandException {
         final CreateRetryTopicRequestHeader requestHeader = (CreateRetryTopicRequestHeader) request.decodeCommandCustomHeader(CreateRetryTopicRequestHeader.class);
         requestHeader.getEnodeName();
-        return this.snodeController.getEnodeService().creatRetryTopic(requestHeader.getEnodeName(), request);
+        return this.snodeController.getEnodeService().creatRetryTopic(remotingChannel, requestHeader.getEnodeName(), request);
     }
 }
 

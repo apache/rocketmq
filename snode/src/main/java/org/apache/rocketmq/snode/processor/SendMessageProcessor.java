@@ -83,11 +83,11 @@ public class SendMessageProcessor implements RequestProcessor {
             stringBuffer.append(MixAll.getRetryTopic(consumerSendMsgBackRequestHeader.getGroup()));
         }
 
-        CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().sendMessage(enodeName, request);
+        CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().sendMessage(remotingChannel, enodeName, request);
 
         sendMessageRequestHeaderV2.setO(remotingChannel.remoteAddress());
         final byte[] message = request.getBody();
-        final boolean isNeedPush = !isSendBack;
+        final boolean needPush = !isSendBack;
         final SendMessageRequestHeader sendMessageRequestHeader =
             SendMessageRequestHeaderV2.createSendMessageRequestHeaderV1(sendMessageRequestHeaderV2);
         responseFuture.whenComplete((data, ex) -> {
@@ -98,7 +98,7 @@ public class SendMessageProcessor implements RequestProcessor {
                 }
                 remotingChannel.reply(data);
                 this.snodeController.getMetricsService().recordRequestSize(stringBuffer.toString(), request.getBody().length);
-                if (data.getCode() == ResponseCode.SUCCESS && isNeedPush) {
+                if (data.getCode() == ResponseCode.SUCCESS && needPush) {
                     this.snodeController.getPushService().pushMessage(sendMessageRequestHeader, message, data);
                 }
             } else {

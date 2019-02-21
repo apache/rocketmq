@@ -16,6 +16,7 @@
  */
 
 package org.apache.rocketmq.snode.service.impl;
+
 import java.util.List;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;

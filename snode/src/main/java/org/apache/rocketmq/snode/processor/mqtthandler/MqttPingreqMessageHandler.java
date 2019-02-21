@@ -29,6 +29,7 @@ public class MqttPingreqMessageHandler implements MessageHandler {
     public MqttPingreqMessageHandler(SnodeController snodeController) {
         this.snodeController = snodeController;
     }
+
     /**
      * handle the PINGREQ message from client
      * <ol>
@@ -41,7 +42,8 @@ public class MqttPingreqMessageHandler implements MessageHandler {
      * @param message
      * @return
      */
-    @Override public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
+    @Override
+    public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
         return null;
     }
 }

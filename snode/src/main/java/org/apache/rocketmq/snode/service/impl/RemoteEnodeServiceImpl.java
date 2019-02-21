@@ -28,13 +28,17 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
+import org.apache.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
+import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.InvokeCallback;
+import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -46,7 +50,7 @@ import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.constant.SnodeConstant;
 import org.apache.rocketmq.snode.service.EnodeService;
 
-public class EnodeServiceImpl implements EnodeService {
+public class RemoteEnodeServiceImpl implements EnodeService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
 
     private SnodeController snodeController;
@@ -54,7 +58,7 @@ public class EnodeServiceImpl implements EnodeService {
     private final ConcurrentMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> enodeTable =
         new ConcurrentHashMap<>();
 
-    public EnodeServiceImpl(SnodeController snodeController) {
+    public RemoteEnodeServiceImpl(SnodeController snodeController) {
         this.snodeController = snodeController;
     }
 
@@ -73,7 +77,8 @@ public class EnodeServiceImpl implements EnodeService {
     }
 
     @Override
-    public CompletableFuture<RemotingCommand> pullMessage(final String enodeName, final RemotingCommand request) {
+    public CompletableFuture<RemotingCommand> pullMessage(final RemotingChannel remotingChannel, final String enodeName,
+        final RemotingCommand request) {
 
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         try {
@@ -103,7 +108,8 @@ public class EnodeServiceImpl implements EnodeService {
     }
 
     @Override
-    public CompletableFuture<RemotingCommand> sendMessage(String enodeName, RemotingCommand request) {
+    public CompletableFuture<RemotingCommand> sendMessage(final RemotingChannel remotingChannel, String enodeName,
+        RemotingCommand request) {
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         try {
             String enodeAddress = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
@@ -152,7 +158,8 @@ public class EnodeServiceImpl implements EnodeService {
     }
 
     @Override
-    public boolean persistSubscriptionGroupConfig(SubscriptionGroupConfig subscriptionGroupConfig) {
+    public boolean persistSubscriptionGroupConfig(
+        SubscriptionGroupConfig subscriptionGroupConfig) {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP, null);
         boolean persist = false;
         for (Map.Entry<String, HashMap<Long, String>> entry : enodeTable.entrySet()) {
@@ -177,7 +184,8 @@ public class EnodeServiceImpl implements EnodeService {
     }
 
     @Override
-    public void persistOffset(String enodeName, String groupName, String topic, int queueId, long offset) {
+    public void persistOffset(final RemotingChannel remotingChannel, String enodeName, String groupName, String topic,
+        int queueId, long offset) {
         try {
             String address = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
             UpdateConsumerOffsetRequestHeader requestHeader = new UpdateConsumerOffsetRequestHeader();
@@ -194,22 +202,22 @@ public class EnodeServiceImpl implements EnodeService {
     }
 
     @Override
-    public RemotingCommand getMinOffsetInQueue(String enodeName, String topic,
-        int queueId) throws InterruptedException, RemotingTimeoutException,
-        RemotingSendRequestException, RemotingConnectException {
-        GetMinOffsetRequestHeader requestHeader = new GetMinOffsetRequestHeader();
-        requestHeader.setTopic(topic);
-        requestHeader.setQueueId(queueId);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MIN_OFFSET, requestHeader);
+    public long getMinOffsetInQueue(String enodeName, String topic,
+        int queueId, RemotingCommand request) throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException, RemotingCommandException {
         String addr = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
-        return this.snodeController.getRemotingClient().invokeSync(MixAll.brokerVIPChannel(snodeController.getSnodeConfig().isVipChannelEnabled(), addr),
+        RemotingCommand remotingCommand = this.snodeController.getRemotingClient().invokeSync(MixAll.brokerVIPChannel(snodeController.getSnodeConfig().isVipChannelEnabled(), addr),
             request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
+        GetMinOffsetResponseHeader responseHeader =
+            (GetMinOffsetResponseHeader) remotingCommand.decodeCommandCustomHeader(GetMinOffsetResponseHeader.class);
+        return responseHeader.getOffset();
+
     }
 
     @Override
-    public RemotingCommand loadOffset(String enodeName, String consumerGroup, String topic,
+    public long queryOffset(String enodeName, String consumerGroup, String topic,
         int queueId) throws InterruptedException, RemotingTimeoutException,
-        RemotingSendRequestException, RemotingConnectException {
+        RemotingSendRequestException, RemotingConnectException, RemotingCommandException {
         QueryConsumerOffsetRequestHeader requestHeader = new QueryConsumerOffsetRequestHeader();
         requestHeader.setTopic(topic);
         requestHeader.setConsumerGroup(consumerGroup);
@@ -217,28 +225,39 @@ public class EnodeServiceImpl implements EnodeService {
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_CONSUMER_OFFSET, requestHeader);
         String addr = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
-        return this.snodeController.getRemotingClient().invokeSync(MixAll.brokerVIPChannel(this.snodeController.getSnodeConfig().isVipChannelEnabled(), addr),
+        RemotingCommand remotingCommand = this.snodeController.getRemotingClient().invokeSync(MixAll.brokerVIPChannel(this.snodeController.getSnodeConfig().isVipChannelEnabled(), addr),
             request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
+        QueryConsumerOffsetResponseHeader responseHeader =
+            (QueryConsumerOffsetResponseHeader) remotingCommand.decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
+        return responseHeader.getOffset();
     }
 
     @Override
-    public RemotingCommand getMaxOffsetInQueue(String enodeName,
+    public long getMaxOffsetInQueue(String enodeName, String topic,
+        int queueId,
         RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, RemotingCommandException {
         String address = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
-        return this.snodeController.getRemotingClient().invokeSync(address,
+        RemotingCommand remotingCommand = this.snodeController.getRemotingClient().invokeSync(address,
             request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
+        GetMaxOffsetResponseHeader responseHeader =
+            (GetMaxOffsetResponseHeader) remotingCommand.decodeCommandCustomHeader(GetMaxOffsetResponseHeader.class);
+        return responseHeader.getOffset();
     }
 
     @Override
-    public RemotingCommand getOffsetByTimestamp(String enodeName,
-        RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+    public long getOffsetByTimestamp(String enodeName, String topic, int queueId,
+        long timestamp,
+        RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, RemotingCommandException {
         String address = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
-        return this.snodeController.getRemotingClient().invokeSync(address,
+        RemotingCommand remotingCommand = this.snodeController.getRemotingClient().invokeSync(address,
             request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
+        SearchOffsetResponseHeader responseHeader =
+            (SearchOffsetResponseHeader) remotingCommand.decodeCommandCustomHeader(SearchOffsetResponseHeader.class);
+        return responseHeader.getOffset();
     }
 
     @Override
-    public RemotingCommand creatRetryTopic(String enodeName,
+    public RemotingCommand creatRetryTopic(final RemotingChannel remotingChannel, String enodeName,
         RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         String address = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
         return this.snodeController.getRemotingClient().invokeSync(address,

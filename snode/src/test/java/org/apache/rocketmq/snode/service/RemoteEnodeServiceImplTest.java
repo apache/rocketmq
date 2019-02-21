@@ -30,7 +30,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.rocketmq.NettyRemotingClient;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.SnodeTestBase;
-import org.apache.rocketmq.snode.service.impl.EnodeServiceImpl;
+import org.apache.rocketmq.snode.service.impl.RemoteEnodeServiceImpl;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.junit.Before;
@@ -51,7 +51,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class EnodeServiceImplTest extends SnodeTestBase {
+public class RemoteEnodeServiceImplTest extends SnodeTestBase {
 
     private EnodeService enodeService;
 
@@ -74,7 +74,7 @@ public class EnodeServiceImplTest extends SnodeTestBase {
     public void init() {
         snodeController.setNnodeService(nnodeService);
         snodeController.setRemotingClient(remotingClient);
-        enodeService = new EnodeServiceImpl(snodeController);
+        enodeService = new RemoteEnodeServiceImpl(snodeController);
     }
 
     @Test
@@ -93,7 +93,7 @@ public class EnodeServiceImplTest extends SnodeTestBase {
                 return null;
             }
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
-        RemotingCommand response = enodeService.sendMessage(enodeName, createSendMesssageCommand(group, topic)).get(3000L, TimeUnit.MILLISECONDS);
+        RemotingCommand response = enodeService.sendMessage(null, enodeName, createSendMesssageCommand(group, topic)).get(3000L, TimeUnit.MILLISECONDS);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
 
@@ -118,7 +118,7 @@ public class EnodeServiceImplTest extends SnodeTestBase {
                 return null;
             }
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
-        RemotingCommand response = enodeService.pullMessage(enodeName, createPullMessage()).get(3000L, TimeUnit.MILLISECONDS);
+        RemotingCommand response = enodeService.pullMessage(null, enodeName, createPullMessage()).get(3000L, TimeUnit.MILLISECONDS);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }

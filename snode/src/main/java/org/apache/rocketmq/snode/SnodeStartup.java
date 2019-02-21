@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.snode;
 
-import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_ENABLE;
-
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
@@ -31,6 +29,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+import org.apache.rocketmq.broker.BrokerStartup;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -44,6 +43,8 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_ENABLE;
+
 public class SnodeStartup {
     private static InternalLogger log;
     public static Properties properties = null;
@@ -51,13 +52,17 @@ public class SnodeStartup {
     public static String configFile = null;
 
     public static void main(String[] args) throws IOException, JoranException {
-        startup(createSnodeController(args));
+        SnodeConfig snodeConfig = loadConfig(args);
+        if (snodeConfig.isEmbeddedModeEnable()) {
+            BrokerStartup.start(BrokerStartup.createBrokerController(args));
+        }
+        SnodeController snodeController = createSnodeController(snodeConfig);
+        startup(snodeController);
     }
 
     public static SnodeController startup(SnodeController controller) {
         try {
             controller.start();
-
             String tip = "The snode[" + controller.getSnodeConfig().getSnodeName() + ", "
                 + controller.getSnodeConfig().getSnodeIP1() + "] boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
 
@@ -74,7 +79,7 @@ public class SnodeStartup {
         return null;
     }
 
-    public static SnodeController createSnodeController(String[] args) throws IOException, JoranException {
+    public static SnodeConfig loadConfig(String[] args) throws IOException {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         commandLine = ServerUtil.parseCmdLine("snode", args, buildCommandlineOptions(options),
             new PosixParser());
@@ -82,12 +87,11 @@ public class SnodeStartup {
             System.exit(-1);
         }
 
-        final SnodeConfig snodeConfig = new SnodeConfig();
+        SnodeConfig snodeConfig = new SnodeConfig();
         final ServerConfig nettyServerConfig = new ServerConfig();
         final ClientConfig nettyClientConfig = new ClientConfig();
 
         nettyServerConfig.setListenPort(snodeConfig.getListenPort());
-        nettyServerConfig.setListenPort(11911);
         nettyClientConfig.setUseTLS(Boolean.parseBoolean(System.getProperty(TLS_ENABLE,
             String.valueOf(TlsSystemConfig.tlsMode == TlsMode.ENFORCING))));
 
@@ -101,27 +105,28 @@ public class SnodeStartup {
                 MixAll.properties2Object(properties, snodeConfig);
                 MixAll.properties2Object(properties, nettyServerConfig);
                 MixAll.properties2Object(properties, nettyClientConfig);
+
                 in.close();
             }
         }
+        snodeConfig.setNettyServerConfig(nettyServerConfig);
+        snodeConfig.setNettyClientConfig(nettyClientConfig);
         if (null == snodeConfig.getRocketmqHome()) {
             System.out.printf("Please set the %s variable in your environment to match the location of the RocketMQ installation", MixAll.ROCKETMQ_HOME_ENV);
             System.exit(-2);
         }
 
-        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-        JoranConfigurator configurator = new JoranConfigurator();
-        configurator.setContext(lc);
-        lc.reset();
-        configurator.doConfigure(snodeConfig.getRocketmqHome() + "/conf/logback_snode.xml");
-        log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
-
         MixAll.printObjectProperties(log, snodeConfig);
-        MixAll.printObjectProperties(log, nettyClientConfig);
-        MixAll.printObjectProperties(log, nettyServerConfig);
+        MixAll.printObjectProperties(log, snodeConfig.getNettyServerConfig());
+        MixAll.printObjectProperties(log, snodeConfig.getNettyClientConfig());
+        return snodeConfig;
+    }
+
+    public static SnodeController createSnodeController(SnodeConfig snodeConfig) throws JoranException {
+
         final SnodeController snodeController = new SnodeController(
-            nettyServerConfig,
-            nettyClientConfig,
+            snodeConfig.getNettyServerConfig(),
+            snodeConfig.getNettyClientConfig(),
             snodeConfig);
 
         boolean initResult = snodeController.initialize();
@@ -148,7 +153,14 @@ public class SnodeStartup {
                     }
                 }
             }
-        },"ShutdownHook"));
+        }, "ShutdownHook"));
+        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+        JoranConfigurator configurator = new JoranConfigurator();
+        configurator.setContext(lc);
+        lc.reset();
+        configurator.doConfigure(snodeConfig.getRocketmqHome() + "/conf/logback_snode.xml");
+        log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
+
         return snodeController;
     }
 
@@ -164,7 +176,7 @@ public class SnodeStartup {
         opt = new Option("m", "printImportantConfig", false, "Print important config item");
         opt.setRequired(false);
         options.addOption(opt);
-        
+
         return options;
     }
 }
