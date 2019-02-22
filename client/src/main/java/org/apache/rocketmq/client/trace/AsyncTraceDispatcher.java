@@ -19,6 +19,7 @@ package org.apache.rocketmq.client.trace;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
+import org.apache.rocketmq.client.impl.consumer.MQPushConsumerInner;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.log.ClientLogger;
@@ -67,7 +68,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private volatile Thread shutDownHook;
     private volatile boolean stopped = false;
     private DefaultMQProducerImpl hostProducer;
-    private DefaultMQPushConsumerImpl hostConsumer;
+    private MQPushConsumerInner hostConsumer;
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
     private String dispatcherId = UUID.randomUUID().toString();
     private String traceTopicName;
@@ -117,11 +118,11 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         this.hostProducer = hostProducer;
     }
 
-    public DefaultMQPushConsumerImpl getHostConsumer() {
+    public MQPushConsumerInner getHostConsumer() {
         return hostConsumer;
     }
 
-    public void setHostConsumer(DefaultMQPushConsumerImpl hostConsumer) {
+    public void setHostConsumer(MQPushConsumerInner hostConsumer) {
         this.hostConsumer = hostConsumer;
     }
 

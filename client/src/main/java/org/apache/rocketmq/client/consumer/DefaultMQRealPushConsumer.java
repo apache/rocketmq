@@ -29,6 +29,8 @@ import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
+import org.apache.rocketmq.client.impl.consumer.DefaultMQRealPushConsumerImpl;
+import org.apache.rocketmq.client.impl.consumer.MQPushConsumerInner;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
@@ -59,14 +61,14 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
  * <strong>Thread Safety:</strong> After initialization, the instance can be regarded as thread-safe.
  * </p>
  */
-public class DefaultMQPushConsumer extends ClientConfig implements MQRealPushConsumer {
+public class DefaultMQRealPushConsumer extends ClientConfig implements MQRealPushConsumer {
 
     private final InternalLogger log = ClientLogger.getLog();
 
     /**
      * Internal implementation. Most of the functions herein are delegated to it.
      */
-    protected final transient DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
+    protected final transient DefaultMQRealPushConsumerImpl defaultMQPushConsumerImpl;
 
     /**
      * Consumers of the same role is required to have exactly same subscriptions and consumerGroup to correctly achieve
@@ -223,7 +225,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQRealPushCon
     /**
      * Whether update subscription relationship when every pull
      */
-    private boolean postSubscriptionWhenPull = false;
+    private boolean postSubscriptionWhenPull = true;
 
     /**
      * Whether the unit of subscription group
@@ -257,7 +259,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQRealPushCon
     /**
      * Default constructor.
      */
-    public DefaultMQPushConsumer() {
+    public DefaultMQRealPushConsumer() {
         this(MixAll.DEFAULT_CONSUMER_GROUP, null, new AllocateMessageQueueAveragely());
     }
 
@@ -268,11 +270,29 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQRealPushCon
      * @param rpcHook RPC hook to execute before each remoting command.
      * @param allocateMessageQueueStrategy Message queue allocating algorithm.
      */
-    public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook,
+    public DefaultMQRealPushConsumer(final String consumerGroup, RPCHook rpcHook,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
         this.consumerGroup = consumerGroup;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
-        defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
+        defaultMQPushConsumerImpl = new DefaultMQRealPushConsumerImpl(this, rpcHook);
+    }
+
+    /**
+     * Constructor specifying consumer group, RPC hook and message queue allocating algorithm.
+     *
+     * @param consumerGroup Consume queue.
+     * @param rpcHook RPC hook to execute before each remoting command.
+     * @param allocateMessageQueueStrategy Message queue allocating algorithm.
+     */
+    public DefaultMQRealPushConsumer(final String consumerGroup, RPCHook rpcHook,
+        AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean realPushModel) {
+        this.consumerGroup = consumerGroup;
+        if (allocateMessageQueueStrategy == null) {
+            this.allocateMessageQueueStrategy = new AllocateMessageQueueAveragely();
+        } else {
+            this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
+        }
+        defaultMQPushConsumerImpl = new DefaultMQRealPushConsumerImpl(this, rpcHook, realPushModel);
     }
 
     /**
@@ -286,12 +306,12 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQRealPushCon
      * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
      * trace topic name.
      */
-    public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook,
+    public DefaultMQRealPushConsumer(final String consumerGroup, RPCHook rpcHook,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean enableMsgTrace,
         final String customizedTraceTopic) {
         this.consumerGroup = consumerGroup;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
-        defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
+        defaultMQPushConsumerImpl = new DefaultMQRealPushConsumerImpl(this, rpcHook);
         if (enableMsgTrace) {
             try {
                 AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(customizedTraceTopic, rpcHook);
@@ -310,7 +330,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQRealPushCon
      *
      * @param rpcHook RPC hook to execute before each remoting command.
      */
-    public DefaultMQPushConsumer(RPCHook rpcHook) {
+    public DefaultMQRealPushConsumer(RPCHook rpcHook) {
         this(MixAll.DEFAULT_CONSUMER_GROUP, rpcHook, new AllocateMessageQueueAveragely());
     }
 
@@ -320,7 +340,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQRealPushCon
      * @param consumerGroup Consumer group.
      * @param enableMsgTrace Switch flag instance for message trace.
      */
-    public DefaultMQPushConsumer(final String consumerGroup, boolean enableMsgTrace) {
+    public DefaultMQRealPushConsumer(final String consumerGroup, boolean enableMsgTrace) {
         this(consumerGroup, null, new AllocateMessageQueueAveragely(), enableMsgTrace, null);
     }
 
@@ -332,7 +352,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQRealPushCon
      * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
      * trace topic name.
      */
-    public DefaultMQPushConsumer(final String consumerGroup, boolean enableMsgTrace,
+    public DefaultMQRealPushConsumer(final String consumerGroup, boolean enableMsgTrace,
         final String customizedTraceTopic) {
         this(consumerGroup, null, new AllocateMessageQueueAveragely(), enableMsgTrace, customizedTraceTopic);
     }
@@ -342,7 +362,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQRealPushCon
      *
      * @param consumerGroup Consumer group.
      */
-    public DefaultMQPushConsumer(final String consumerGroup) {
+    public DefaultMQRealPushConsumer(final String consumerGroup) {
         this(consumerGroup, null, new AllocateMessageQueueAveragely());
     }
 
@@ -456,7 +476,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQRealPushCon
         this.consumeThreadMin = consumeThreadMin;
     }
 
-    public DefaultMQPushConsumerImpl getDefaultMQPushConsumerImpl() {
+    public MQPushConsumerInner getDefaultMQPushConsumerImpl() {
         return defaultMQPushConsumerImpl;
     }
 
@@ -657,9 +677,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQRealPushCon
      * Subscribe a topic by message selector.
      *
      * @param topic topic to consume.
-     * @param messageSelector {@link org.apache.rocketmq.client.consumer.MessageSelector}
-     * @see org.apache.rocketmq.client.consumer.MessageSelector#bySql
-     * @see org.apache.rocketmq.client.consumer.MessageSelector#byTag
+     * @param messageSelector {@link MessageSelector}
+     * @see MessageSelector#bySql
+     * @see MessageSelector#byTag
      */
     @Override
     public void subscribe(final String topic, final MessageSelector messageSelector) throws MQClientException {
