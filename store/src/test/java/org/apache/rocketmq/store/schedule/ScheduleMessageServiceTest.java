@@ -113,18 +113,6 @@ public class ScheduleMessageServiceTest {
     }
 
 
-
-    @Test
-    public void buildRunningStatsTest() throws InterruptedException {
-        MessageExtBrokerInner msg = buildMessage();
-        msg.setDelayTimeLevel(delayLevel);
-        messageStore.putMessage(msg);
-        // wait offsetTable
-        TimeUnit.SECONDS.sleep(1);
-        scheduleMessageService.buildRunningStats(new HashMap<String, String>() );
-    }
-
-
     @Test
     public void computeDeliverTimestampTest() {
         // testMessageDelayLevel  just "5s 10s"
@@ -153,6 +141,9 @@ public class ScheduleMessageServiceTest {
         msg.setDelayTimeLevel(delayLevel);
         PutMessageResult result = messageStore.putMessage(msg);
         assertThat(result.isOk()).isTrue();
+        // wait offsetTable
+        TimeUnit.SECONDS.sleep(1);
+        scheduleMessageService.buildRunningStats(new HashMap<String, String>() );
 
         // consumer message
         int queueId = ScheduleMessageService.delayLevel2QueueId(delayLevel);
@@ -181,6 +172,9 @@ public class ScheduleMessageServiceTest {
         List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
         String retryMsg = new String(msgList.get(0).getBody());
         assertThat(sendMessage).isEqualTo(retryMsg);
+
+
+
 
         // add mapFile release
         messageResult.release();
