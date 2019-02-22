@@ -88,6 +88,10 @@ public class ScheduleMessageServiceTest {
 
     @Before
     public void init() throws Exception {
+        // delete before
+        File file = new File(storePath);
+        UtilAll.deleteFile(file);
+
         messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMessageDelayLevel(testMessageDelayLevel);
         messageStoreConfig.setMapedFileSizeCommitLog(commitLogFileSize);
