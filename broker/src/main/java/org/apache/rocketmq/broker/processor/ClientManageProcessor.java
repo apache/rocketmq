@@ -207,9 +207,8 @@ public class ClientManageProcessor implements RequestProcessor {
     private RemotingCommand createRetryTopic(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        final CreateRetryTopicRequestHeader requestHeader =
-            (CreateRetryTopicRequestHeader) request
-                .decodeCommandCustomHeader(CreateRetryTopicRequestHeader.class);
+        final CreateRetryTopicRequestHeader requestHeader = (CreateRetryTopicRequestHeader) request
+            .decodeCommandCustomHeader(CreateRetryTopicRequestHeader.class);
         if (requestHeader.getGroupName() != null) {
             SubscriptionGroupConfig subscriptionGroupConfig =
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(requestHeader.getGroupName());
@@ -217,7 +216,8 @@ public class ClientManageProcessor implements RequestProcessor {
                 createRetryTopic(false, requestHeader.getGroupName(), subscriptionGroupConfig.getRetryQueueNums());
             }
         }
-
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
         return response;
     }
 

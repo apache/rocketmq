@@ -29,11 +29,6 @@ public interface SubscriptionManager {
     boolean subscribe(String groupId, Set<SubscriptionData> subscriptionDataSet, ConsumeType consumeType,
         MessageModel messageModel, ConsumeFromWhere consumeFromWhere);
 
-    void unSubscribe(String groupId, RemotingChannel remotingChannel,
-        Set<SubscriptionData> subscriptionDataSet);
-
-    void cleanSubscription(String groupId, String topic);
-
     Subscription getSubscription(String groupId);
 
     void registerPushSession(Set<SubscriptionData> subscriptionDataSet, RemotingChannel remotingChannel,

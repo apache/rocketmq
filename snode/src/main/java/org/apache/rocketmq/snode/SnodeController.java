@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.broker.BrokerStartup;
 import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -69,10 +70,11 @@ import org.apache.rocketmq.snode.service.PushService;
 import org.apache.rocketmq.snode.service.ScheduledService;
 import org.apache.rocketmq.snode.service.WillMessageService;
 import org.apache.rocketmq.snode.service.impl.ClientServiceImpl;
-import org.apache.rocketmq.snode.service.impl.EnodeServiceImpl;
+import org.apache.rocketmq.snode.service.impl.LocalEnodeServiceImpl;
 import org.apache.rocketmq.snode.service.impl.MetricsServiceImpl;
 import org.apache.rocketmq.snode.service.impl.NnodeServiceImpl;
 import org.apache.rocketmq.snode.service.impl.PushServiceImpl;
+import org.apache.rocketmq.snode.service.impl.RemoteEnodeServiceImpl;
 import org.apache.rocketmq.snode.service.impl.ScheduledServiceImpl;
 import org.apache.rocketmq.snode.service.impl.WillMessageServiceImpl;
 
@@ -127,7 +129,11 @@ public class SnodeController {
         this.nettyClientConfig = nettyClientConfig;
         this.nettyServerConfig = nettyServerConfig;
         this.snodeConfig = snodeConfig;
-        this.enodeService = new EnodeServiceImpl(this);
+        if (!this.snodeConfig.isEmbeddedModeEnable()) {
+            this.enodeService = new RemoteEnodeServiceImpl(this);
+        } else {
+            this.enodeService = new LocalEnodeServiceImpl(BrokerStartup.getBrokerController());
+        }
         this.nnodeService = new NnodeServiceImpl(this);
         this.scheduledService = new ScheduledServiceImpl(this);
         this.remotingClient = RemotingClientFactory.getInstance().createRemotingClient()
@@ -162,7 +168,6 @@ public class SnodeController {
             new ArrayBlockingQueue<>(snodeConfig.getSnodeHeartBeatThreadPoolQueueCapacity()),
             "SnodeHeartbeatThread",
             true);
-
 
         this.consumerManageExecutor = ThreadUtils.newThreadPoolExecutor(
             snodeConfig.getSnodeSendMessageMinPoolSize(),
@@ -228,10 +233,8 @@ public class SnodeController {
     }
 
     public boolean initialize() {
-        this.snodeServer = RemotingServerFactory.getInstance().createRemotingServer()
-            .init(this.nettyServerConfig, this.clientHousekeepingService);
-        this.mqttRemotingServer = RemotingServerFactory.getInstance().createRemotingServer(
-            RemotingUtil.MQTT_PROTOCOL)
+        this.snodeServer = RemotingServerFactory.getInstance().createRemotingServer().init(this.nettyServerConfig, this.clientHousekeepingService);
+        this.mqttRemotingServer = RemotingServerFactory.getInstance().createRemotingServer(RemotingUtil.MQTT_PROTOCOL)
             .init(this.nettyServerConfig, this.clientHousekeepingService);
         this.registerProcessor();
         initSnodeInterceptorGroup();

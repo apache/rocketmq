@@ -95,7 +95,7 @@ public class PushServiceImpl implements PushService {
             messageExt.setFlag(sendMessageRequestHeader.getFlag());
             messageExt.setBody(message);
             messageExt.setBodyCRC(UtilAll.crc32(message));
-            log.debug("MessageExt:{}", messageExt);
+            log.info("MessageExt:{}", messageExt);
             return messageExt;
         }
 
@@ -103,7 +103,6 @@ public class PushServiceImpl implements PushService {
         public void run() {
             if (!canceled.get()) {
                 try {
-                    log.debug("sendMessageResponse: {}", sendMessageResponse);
                     SendMessageResponseHeader sendMessageResponseHeader = (SendMessageResponseHeader) sendMessageResponse.decodeCommandCustomHeader(SendMessageResponseHeader.class);
                     log.debug("sendMessageResponseHeader: {}", sendMessageResponseHeader);
                     MessageQueue messageQueue = new MessageQueue(sendMessageRequestHeader.getTopic(), sendMessageRequestHeader.getEnodeName(), sendMessageRequestHeader.getQueueId());
@@ -118,6 +117,7 @@ public class PushServiceImpl implements PushService {
                         MessageExt messageExt = buildMessageExt(sendMessageResponseHeader, message, sendMessageRequestHeader);
                         pushMessage.setBody(MessageDecoder.encode(messageExt, false));
                         for (RemotingChannel remotingChannel : consumerTable) {
+                            log.info("Push message pushMessage:{} to remotingChannel: {}", pushMessage, remotingChannel);
                             Client client = null;
                             if (remotingChannel instanceof NettyChannelImpl) {
                                 Channel channel = ((NettyChannelImpl) remotingChannel).getChannel();

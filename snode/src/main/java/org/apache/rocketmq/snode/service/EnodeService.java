@@ -21,6 +21,7 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -42,7 +43,8 @@ public interface EnodeService {
      * @param request {@link SendMessageRequestHeaderV2} Send message request header
      * @return Send message response future
      */
-    CompletableFuture<RemotingCommand> sendMessage(final String enodeName, final RemotingCommand request);
+    CompletableFuture<RemotingCommand> sendMessage(final RemotingChannel remotingChannel, final String enodeName,
+        final RemotingCommand request);
 
     /**
      * Pull message from enode server.
@@ -51,7 +53,8 @@ public interface EnodeService {
      * @param request {@link PullMessageRequestHeader} Pull message request header
      * @return Pull message Response future
      */
-    CompletableFuture<RemotingCommand> pullMessage(final String enodeName, final RemotingCommand request);
+    CompletableFuture<RemotingCommand> pullMessage(final RemotingChannel remotingChannel, final String enodeName,
+        final RemotingCommand request);
 
     /**
      * Create retry topic in enode server.
@@ -64,7 +67,7 @@ public interface EnodeService {
      * @throws RemotingSendRequestException
      * @throws RemotingConnectException
      */
-    RemotingCommand creatRetryTopic(String enodeName,
+    RemotingCommand creatRetryTopic(final RemotingChannel remotingChannel, String enodeName,
         RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
 
     /**
@@ -98,20 +101,24 @@ public interface EnodeService {
      * @param queueId QueueId of related topic.
      * @param offset Current offset of target queue of subscribed topic.
      */
-    void persistOffset(String enodeName, String groupName, String topic, int queueId, long offset);
+    void persistOffset(final RemotingChannel remotingChannel, String enodeName, String groupName, String topic,
+        int queueId, long offset);
 
-    RemotingCommand loadOffset(String enodeName, String consumerGroup, String topic,
-        int queueId) throws InterruptedException, RemotingTimeoutException,
-        RemotingSendRequestException, RemotingConnectException;
-
-    RemotingCommand getMaxOffsetInQueue(String enodeName,
-        RemotingCommand request) throws InterruptedException, RemotingTimeoutException,
+    long queryOffset(String enodeName, String consumerGroup,
+        String topic, int queueId) throws InterruptedException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException, RemotingCommandException;
 
-    RemotingCommand getMinOffsetInQueue(String enodeName, String topic,
-        int queueId) throws InterruptedException, RemotingTimeoutException,
+    long getMaxOffsetInQueue(String enodeName, String topic,
+        int queueId, RemotingCommand request) throws InterruptedException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException, RemotingCommandException;
 
-    RemotingCommand getOffsetByTimestamp(String enodeName,
-        RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
+    long getMinOffsetInQueue(String enodeName, String topic,
+        int queueId, RemotingCommand request) throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException, RemotingCommandException;
+
+    long getOffsetByTimestamp(String enodeName,
+        String topic, int queueId,
+        long timestamp,
+        RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+        RemotingConnectException, RemotingCommandException;
 }

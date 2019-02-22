@@ -127,14 +127,16 @@ public class PullMessageProcessor implements RequestProcessor {
             }
         }
 
-        CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().pullMessage(requestHeader.getEnodeName(), request);
+        CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().pullMessage(remotingChannel, requestHeader.getEnodeName(), request);
         responseFuture.whenComplete((data, ex) -> {
             if (ex == null) {
                 if (this.snodeController.getConsumeMessageInterceptorGroup() != null) {
                     ResponseContext responseContext = new ResponseContext(request, remotingChannel, data);
                     this.snodeController.getSendMessageInterceptorGroup().afterRequest(responseContext);
                 }
-                remotingChannel.reply(data);
+                if (data != null) {
+                    remotingChannel.reply(data);
+                }
             } else {
                 if (this.snodeController.getConsumeMessageInterceptorGroup() != null) {
                     ExceptionContext exceptionContext = new ExceptionContext(request, remotingChannel, ex, null);

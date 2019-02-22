@@ -44,7 +44,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
     @Override
     public void registerPushSession(Set<SubscriptionData> subscriptionDataSet, RemotingChannel remotingChannel,
         String groupId) {
-        log.debug("Before ConsumerGroup: {} RemotingChannel: {} subscription: {}", groupId, remotingChannel.remoteAddress(), subscriptionDataSet);
+        log.info("Before ConsumerGroup: {} RemotingChannel: {} subscription: {}", groupId, remotingChannel.remoteAddress(), subscriptionDataSet);
         Set<MessageQueue> prevSubSet = this.clientSubscriptionTable.get(remotingChannel);
         Set<MessageQueue> keySet = new HashSet<>();
         for (SubscriptionData subscriptionData : subscriptionDataSet) {
@@ -77,7 +77,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
                 }
             }
         }
-        log.debug("After ConsumerGroup: {} RemotingChannel: {} subscription: {}", groupId, remotingChannel.remoteAddress(), this.clientSubscriptionTable.get(remotingChannel));
+        log.info("After ConsumerGroup: {} RemotingChannel: {} subscription: {}", groupId, remotingChannel.remoteAddress(), this.clientSubscriptionTable.get(remotingChannel));
     }
 
     @Override
@@ -189,17 +189,6 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 
         }
         return updated;
-    }
-
-    @Override
-    public void unSubscribe(String groupId, RemotingChannel remotingChannel,
-        Set<SubscriptionData> subscriptionDataSet) {
-
-    }
-
-    @Override
-    public void cleanSubscription(String groupId, String topic) {
-
     }
 
     @Override

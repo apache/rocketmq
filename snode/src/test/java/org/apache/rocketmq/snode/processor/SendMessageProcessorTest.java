@@ -74,7 +74,7 @@ public class SendMessageProcessorTest {
     public void testSendMessageV2ProcessRequest() throws RemotingCommandException {
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         RemotingCommand request = createSendMesssageV2Command();
-        when(this.snodeController.getEnodeService().sendMessage(anyString(), any(RemotingCommand.class))).thenReturn(future);
+        when(this.snodeController.getEnodeService().sendMessage(null, anyString(), any(RemotingCommand.class))).thenReturn(future);
         sendMessageProcessor.processRequest(remotingChannel, request);
     }
 
@@ -83,7 +83,7 @@ public class SendMessageProcessorTest {
         snodeController.setEnodeService(enodeService);
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         RemotingCommand request = createSendBatchMesssageCommand();
-        when(this.snodeController.getEnodeService().sendMessage(anyString(), any(RemotingCommand.class))).thenReturn(future);
+        when(this.snodeController.getEnodeService().sendMessage(null, anyString(), any(RemotingCommand.class))).thenReturn(future);
         sendMessageProcessor.processRequest(remotingChannel, request);
     }
 
