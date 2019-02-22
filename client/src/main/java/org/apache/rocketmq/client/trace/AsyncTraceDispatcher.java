@@ -310,6 +310,9 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                     transBeanList = new ArrayList<TraceTransferBean>();
                     transBeanMap.put(key, transBeanList);
                 }
+                /**
+                 * 实例化TraceTransferBean
+                 */
                 TraceTransferBean traceData = TraceDataEncoder.encoderFromContextBean(context);
                 transBeanList.add(traceData);
             }
@@ -339,21 +342,28 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 buffer.append(bean.getTransData());
                 count++;
                 // Ensure that the size of the package should not exceed the upper limit.
+                /**
+                 * 数据大于等于4M  则将现有数据全部发送  并清空缓存   继续下一个循环
+                 */
                 if (buffer.length() >= traceProducer.getMaxMessageSize()) {
                     /**
                      * 发送消息
                      */
                     sendTraceDataByMQ(keySet, buffer.toString());
                     // Clear temporary buffer after finishing
+                    /**
+                     * 清缓存
+                     */
                     buffer.delete(0, buffer.length());
                     keySet.clear();
                     count = 0;
                 }
             }
+
+            /**
+             * 有待发送数据  则发送
+             */
             if (count > 0) {
-                /**
-                 * 发送消息
-                 */
                 sendTraceDataByMQ(keySet, buffer.toString());
             }
             transBeanList.clear();
@@ -371,6 +381,10 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
 
             // Keyset of message trace includes msgId of or original message
             message.setKeys(keySet);
+            /**
+             * 组装后的消息为
+             * Message{topic='RMQ_SYS_TRACE_TOPIC', flag=0, properties={KEYS=1550819829391 1550819829181 1550819829390 C0A8326B1E0018B4AAC26F6D3A900004 C0A8326B1E0018B4AAC26F6D3A3D0000 C0A8326B1E0018B4AAC26F6D3A8E0002, WAIT=true}, body=[80, 117, 98, 1, 49, 53, 53, 48, 56, 49, 57, 56, 50, 57, 51, 49, 48, 1, 68, 101, 102, 97, 117, 108, 116, 82, 101, 103, 105, 111, 110, 1, 116, 114, 97, 99, 101, 77, 101, 115, 115, 97, 103, 101, 80, 114, 111, 100, 117, 99, 101, 114, 1, 109, 101, 115, 115, 97, 103, 101, 84, 114, 97, 99, 101, 1, 67, 48, 65, 56, 51, 50, 54, 66, 49, 69, 48, 48, 49, 56, 66, 52, 65, 65, 67, 50, 54, 70, 54, 68, 51, 65, 51, 68, 48, 48, 48, 48, 1, 84, 97, 103, 65, 1, 49, 53, 53, 48, 56, 49, 57, 56, 50, 57, 49, 56, 49, 1, 49, 57, 50, 46, 49, 54, 56, 46, 53, 48, 46, 49, 48, 55, 58, 49, 48, 57, 48, 57, 1, 49, 49, 1, 55, 57, 1, 48, 1, 67, 48, 65, 56, 51, 50, 54, 66, 48, 48, 48, 48, 50, 65, 57, 70, 48, 48, 48, 48, 48, 48, 48, 48, 48, 51, 49, 57, 48, 55, 53, 67, 1, 116, 114, 117, 101, 2, 80, 117, 98, 1, 49, 53, 53, 48, 56, 49, 57, 56, 50, 57, 51, 57, 48, 1, 68, 101, 102, 97, 117, 108, 116, 82, 101, 103, 105, 111, 110, 1, 116, 114, 97, 99, 101, 77, 101, 115, 115, 97, 103, 101, 80, 114, 111, 100, 117, 99, 101, 114, 1, 109, 101, 115, 115, 97, 103, 101, 84, 114, 97, 99, 101, 1, 67, 48, 65, 56, 51, 50, 54, 66, 49, 69, 48, 48, 49, 56, 66, 52, 65, 65, 67, 50, 54, 70, 54, 68, 51, 65, 56, 69, 48, 48, 48, 50, 1, 84, 97, 103, 65, 1, 49, 53, 53, 48, 56, 49, 57, 56, 50, 57, 51, 57, 48, 1, 49, 57, 50, 46, 49, 54, 56, 46, 53, 48, 46, 49, 48, 55, 58, 49, 48, 57, 48, 57, 1, 49, 49, 1, 49, 1, 48, 1, 67, 48, 65, 56, 51, 50, 54, 66, 48, 48, 48, 48, 50, 65, 57, 70, 48, 48, 48, 48, 48, 48, 48, 48, 48, 51, 49, 57, 48, 56, 49, 70, 1, 116, 114, 117, 101, 2, 80, 117, 98, 1, 49, 53, 53, 48, 56, 49, 57, 56, 50, 57, 51, 57, 50, 1, 68, 101, 102, 97, 117, 108, 116, 82, 101, 103, 105, 111, 110, 1, 116, 114, 97, 99, 101, 77, 101, 115, 115, 97, 103, 101, 80, 114, 111, 100, 117, 99, 101, 114, 1, 109, 101, 115, 115, 97, 103, 101, 84, 114, 97, 99, 101, 1, 67, 48, 65, 56, 51, 50, 54, 66, 49, 69, 48, 48, 49, 56, 66, 52, 65, 65, 67, 50, 54, 70, 54, 68, 51, 65, 57, 48, 48, 48, 48, 52, 1, 84, 97, 103, 65, 1, 49, 53, 53, 48, 56, 49, 57, 56, 50, 57, 51, 57, 49, 1, 49, 57, 50, 46, 49, 54, 56, 46, 53, 48, 46, 49, 48, 55, 58, 49, 48, 57, 48, 57, 1, 49, 49, 1, 50, 1, 48, 1, 67, 48, 65, 56, 51, 50, 54, 66, 48, 48, 48, 48, 50, 65, 57, 70, 48, 48, 48, 48, 48, 48, 48, 48, 48, 51, 49, 57, 48, 56, 69, 50, 1, 116, 114, 117, 101, 2], transactionId='null'}
+             */
             try {
                 Set<String> traceBrokerSet = tryGetMessageQueueBrokerSet(traceProducer.getDefaultMQProducerImpl(), topic);
                 SendCallback callback = new SendCallback() {
@@ -418,11 +432,23 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             }
         }
 
+        /**
+         * 获取topic对应的brokername
+         * @param producer
+         * @param topic
+         * @return
+         */
         private Set<String> tryGetMessageQueueBrokerSet(DefaultMQProducerImpl producer, String topic) {
             Set<String> brokerSet = new HashSet<String>();
+            /**
+             * 获取发布信息
+             */
             TopicPublishInfo topicPublishInfo = producer.getTopicPublishInfoTable().get(topic);
             if (null == topicPublishInfo || !topicPublishInfo.ok()) {
                 producer.getTopicPublishInfoTable().putIfAbsent(topic, new TopicPublishInfo());
+                /**
+                 * 访问NameServer  获取topic对应的发布信息
+                 */
                 producer.getmQClientFactory().updateTopicRouteInfoFromNameServer(topic);
                 topicPublishInfo = producer.getTopicPublishInfoTable().get(topic);
             }

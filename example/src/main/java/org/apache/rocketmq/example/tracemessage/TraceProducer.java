@@ -26,16 +26,16 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 public class TraceProducer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
 
-        DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName",true);
+        DefaultMQProducer producer = new DefaultMQProducer("traceMessageProducer",true);
         producer.setNamesrvAddr("localhost:9876");
         producer.start();
 
-        for (int i = 0; i < 128; i++)
+        for (int i = 0; i < 3; i++)
             try {
                 {
                     Message msg = new Message("messageTrace",
                         "TagA",
-                        "OrderID188",
+                        System.currentTimeMillis()+"",
                         "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
                     SendResult sendResult = producer.send(msg);
                     System.out.printf("%s%n", sendResult);
@@ -45,6 +45,6 @@ public class TraceProducer {
                 e.printStackTrace();
             }
 
-        producer.shutdown();
+//        producer.shutdown();
     }
 }

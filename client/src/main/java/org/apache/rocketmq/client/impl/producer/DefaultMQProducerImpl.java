@@ -531,6 +531,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     long costTime = System.currentTimeMillis() - beginStartTime;
                     if (timeout > costTime) {
                         try {
+                            /**
+                             * 发送消息
+                             */
                             sendDefaultImpl(msg, CommunicationMode.ASYNC, sendCallback, timeout - costTime);
                         } catch (Exception e) {
                             sendCallback.onException(e);
@@ -839,7 +842,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 }
 
                 /**
-                 * 消息轨迹  消费发送前
+                 * 消息轨迹  消息发送前
                  */
                 if (this.hasSendMessageHook()) {
                     context = new SendMessageContext();
@@ -850,6 +853,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     context.setBrokerAddr(brokerAddr);
                     context.setMessage(msg);
                     context.setMq(mq);
+
                     /**
                      * 是否事务消息
                      */
@@ -866,7 +870,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     }
 
                     /**
-                     * HookBefore
+                     * HookBefore   记录消息发送前的信息
                      */
                     this.executeSendMessageHookBefore(context);
                 }
@@ -1230,13 +1234,26 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         final SendCallback sendCallback, final long timeout
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         long beginStartTime = System.currentTimeMillis();
+        /**
+         * 检查当前producer状态
+         */
         this.makeSureStateOK();
+
+        /**
+         * 验证发送消息合法性   消息体不能为空   topic是否合法   且消息最大不应超过4m
+         */
         Validators.checkMessage(msg, this.defaultMQProducer);
 
+        /**
+         * 获取TopicPublishInfo
+         */
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
             MessageQueue mq = null;
             try {
+                /**
+                 * 选择哪个MessageQueue发送
+                 */
                 mq = selector.select(topicPublishInfo.getMessageQueueList(), msg, arg);
             } catch (Throwable e) {
                 throw new MQClientException("select message queue throwed exception.", e);

@@ -112,6 +112,10 @@ public class TraceDataEncoder {
         }
         //build message trace of the transfering entity content bean
         TraceTransferBean transferBean = new TraceTransferBean();
+
+        /**
+         * TransData字段
+         */
         StringBuilder sb = new StringBuilder(256);
         switch (ctx.getTraceType()) {
             case Pub: {
@@ -162,9 +166,14 @@ public class TraceDataEncoder {
         }
         transferBean.setTransData(sb.toString());
         for (TraceBean bean : ctx.getTraceBeans()) {
-
+            /**
+             * 存储消息的MsgId
+             */
             transferBean.getTransKey().add(bean.getMsgId());
             if (bean.getKeys() != null && bean.getKeys().length() > 0) {
+                /**
+                 * 存储消息的keys
+                 */
                 transferBean.getTransKey().add(bean.getKeys());
             }
         }
