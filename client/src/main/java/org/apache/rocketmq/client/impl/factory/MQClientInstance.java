@@ -1061,7 +1061,7 @@ public class MQClientInstance {
 
         if (this.versionUpdateTimeTable.containsKey(brokerName)) {
             Long lastUpdateTime = this.versionUpdateTimeTable.get(brokerName).get(brokerAddr);
-            if (null != lastUpdateTime && (System.currentTimeMillis() - lastUpdateTime > 60 * 1000)) {
+            if (null != lastUpdateTime && (System.currentTimeMillis() - lastUpdateTime > 2 * this.clientConfig.getHeartbeatBrokerInterval())) {
                 versionExpired = true;
             }
         }
