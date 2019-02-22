@@ -48,10 +48,9 @@ public class ScheduleMessageServiceTest {
     /**t
      * defaultMessageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h"
      */
-    String testMessageDelayLevel = "5s 10s";
+    String testMessageDelayLevel = "2s 10s";
     /**
      * choose delay level
-     * 1 = 5s
      */
     int delayLevel = 1;
 
@@ -113,26 +112,6 @@ public class ScheduleMessageServiceTest {
     }
 
 
-    @Test
-    public void computeDeliverTimestampTest() {
-        // testMessageDelayLevel  just "5s 10s"
-        long storeTime = System.currentTimeMillis();
-        long time1 = scheduleMessageService.computeDeliverTimestamp(1, storeTime);
-        assertThat(time1).isEqualTo(storeTime + 5 * 1000);
-
-        long time2 = scheduleMessageService.computeDeliverTimestamp(2, storeTime);
-        assertThat(time2).isEqualTo(storeTime + 10 * 1000);
-
-    }
-
-
-    @Test
-    public void delayLevel2QueueIdTest() {
-        int queueId = ScheduleMessageService.delayLevel2QueueId(delayLevel);
-        assertThat(queueId).isEqualTo(delayLevel - 1);
-        queueId = ScheduleMessageService.queueId2DelayLevel(delayLevel);
-        assertThat(queueId).isEqualTo(delayLevel + 1);
-    }
 
     @Test
     public void deliverDelayedMessageTimerTaskTest() throws InterruptedException {
@@ -149,12 +128,12 @@ public class ScheduleMessageServiceTest {
         int queueId = ScheduleMessageService.delayLevel2QueueId(delayLevel);
         Long offset = result.getAppendMessageResult().getLogicsOffset();
 
-        // now, no message in queue,must wait > 5 seconds
+        // now, no message in queue,must wait > 2 seconds
         GetMessageResult messageResult = getMessage(queueId,offset);
         assertThat(messageResult.getStatus()).isEqualTo(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
 
-        // timer run maybe delay, advice sleep > (5+1)
-        TimeUnit.SECONDS.sleep(7);
+        // timer run maybe delay, advice sleep > 2
+        TimeUnit.SECONDS.sleep(3);
         messageResult = getMessage(queueId,offset);
         // now,found the message
         assertThat(messageResult.getStatus()).isEqualTo(GetMessageStatus.FOUND);
