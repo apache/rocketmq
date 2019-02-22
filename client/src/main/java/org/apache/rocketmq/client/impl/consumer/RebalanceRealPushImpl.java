@@ -20,7 +20,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 
 public class RebalanceRealPushImpl extends RebalancePushImpl {
 
-    public RebalanceRealPushImpl(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl) {
+    public RebalanceRealPushImpl(MQPushConsumerInner defaultMQPushConsumerImpl) {
         super(defaultMQPushConsumerImpl);
     }
 
