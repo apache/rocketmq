@@ -99,7 +99,7 @@ In order to reduce as much as possible the transformation work of RocketMQ messa
 The initialization of `DefaultMQProducer` and `DefaultMQPushConsumer` instances can be changed to support the custom storage message trace Topic as follows when sending and subscriving messages above.
 
 ```
-        ##其中Topic_test11111需要用户自己预先创建，来保存消息轨迹；
+        ##Where Topic_test11111 needs to be pre-created by the user to save the message trace；
         DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName",true,"Topic_test11111");
         ......
 
