@@ -28,10 +28,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * @Author dingzhiyong
- * @Date 2019/2/22
- */
 public class QueryConsumeTimeSpanBodyTest {
 
     @Test
@@ -54,5 +50,4 @@ public class QueryConsumeTimeSpanBodyTest {
         assertThat(fromJson.getConsumeTimeSpanSet().get(0).getDelayTime()).isEqualTo(5000l);
         assertThat(fromJson.getConsumeTimeSpanSet().get(0).getMessageQueue()).isEqualTo(messageQueue);
     }
-
 }
