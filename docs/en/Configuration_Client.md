@@ -1,8 +1,8 @@
-## 5 Client Configuration
+## Client Configuration
 
   Relative to RocketMQ's Broker cluster, producers and consumers are client. In this section, it mainly describes the common behavior configuration of producers and consumers.
 ​ 
-### 5.1 Client Addressing mode
+### Client Addressing mode
 
 ```RocketMQ``` can let client find the ```Name Server```, and then find the ```Broker```by the ```Name Server```. Followings show a variety of configurations, and priority level from highly to lower, the highly priority configurations can override the lower priority configurations.
 
@@ -36,7 +36,7 @@ By default, the client accesses the HTTP server every 2 minutes, and update the 
 ```
 HTTP static server addressing is recommended, because it is simple client deployment, and the Name Server cluster can be upgraded hot.
 
-### 5.2 Client Configuration
+### Client Configuration
 
 ```DefaultMQProducer```、```TransactionMQProducer```、```DefaultMQPushConsumer```、```DefaultMQPullConsumer``` all extends the ```ClientConfig``` Class，```ClientConfig``` as the client common configuration class。Client configuration style like getXXX、setXXX, each of the parameters can config by spring and also config their in the code. Such as the ```namesrvAddr``` parameter: ```producer.setNamesrvAddr("192.168.0.1:9876")```, same with the other parameters.
 
