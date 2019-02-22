@@ -22,11 +22,12 @@ import io.netty.channel.Channel;
  * 通道事件监听
  */
 public interface ChannelEventListener {
+    //通道建立连接时
     void onChannelConnect(final String remoteAddr, final Channel channel);
-
+    //通道关闭时
     void onChannelClose(final String remoteAddr, final Channel channel);
-
+    //通道异常时
     void onChannelException(final String remoteAddr, final Channel channel);
-
+    //通道空闲时
     void onChannelIdle(final String remoteAddr, final Channel channel);
 }

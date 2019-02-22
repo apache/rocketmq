@@ -59,21 +59,25 @@ public abstract class NettyRemotingAbstract {
 
     /**
      * Semaphore to limit maximum number of on-going one-way requests, which protects system memory footprint.
+     * 信号量以限制正在进行的单向请求的最大数量，从而保护系统内存占用。
      */
     protected final Semaphore semaphoreOneway;
 
     /**
      * Semaphore to limit maximum number of on-going asynchronous requests, which protects system memory footprint.
+     * 信号量以限制正在进行的异步请求的最大数量，从而保护系统内存占用。
      */
     protected final Semaphore semaphoreAsync;
 
     /**
+     * 这个映射缓存所有正在进行的请求
      * This map caches all on-going requests.
      */
     protected final ConcurrentMap<Integer /* opaque */, ResponseFuture> responseTable =
         new ConcurrentHashMap<Integer, ResponseFuture>(256);
 
     /**
+     * 这个容器保存每个请求代码的所有处理器，也就是对于每个传入的请求，我们可以在这个映射中查找响应的处理器来处理请求。
      * This container holds all processors per request code, aka, for each incoming request, we may look up the
      * responding processor in this map to handle the request.
      */
@@ -86,6 +90,7 @@ public abstract class NettyRemotingAbstract {
     protected final NettyEventExecutor nettyEventExecutor = new NettyEventExecutor();
 
     /**
+     * 在每个请求代码中没有精确匹配时使用的默认请求处理器。
      * The default request processor to use in case there is no exact match in {@link #processorTable} per request code.
      */
     protected Pair<NettyRequestProcessor, ExecutorService> defaultRequestProcessor;
@@ -101,6 +106,7 @@ public abstract class NettyRemotingAbstract {
 
     /**
      * Constructor, specifying capacity of one-way and asynchronous semaphores.
+     * 构造函数，指定单向和异步信号量的容量。
      *
      * @param permitsOneway Number of permits for one-way requests.
      * @param permitsAsync Number of permits for asynchronous requests.
@@ -276,6 +282,7 @@ public abstract class NettyRemotingAbstract {
     }
 
     /**
+     * 在回调执行程序中执行回调。如果回调执行程序为空，则直接在当前线程中运行
      * Execute callback in callback executor. If callback executor is null, run directly in current thread
      */
     private void executeInvokeCallback(final ResponseFuture responseFuture) {
@@ -358,6 +365,16 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+    /**
+     * 同步调用
+     * @param channel 通道
+     * @param request  请求消息
+     * @param timeoutMillis 超时时间
+     * @return
+     * @throws InterruptedException
+     * @throws RemotingSendRequestException
+     * @throws RemotingTimeoutException
+     */
     public RemotingCommand invokeSyncImpl(final Channel channel, final RemotingCommand request,
         final long timeoutMillis)
         throws InterruptedException, RemotingSendRequestException, RemotingTimeoutException {
@@ -365,6 +382,7 @@ public abstract class NettyRemotingAbstract {
 
         try {
             final ResponseFuture responseFuture = new ResponseFuture(channel, opaque, timeoutMillis, null, null);
+            //将请求存入映射表
             this.responseTable.put(opaque, responseFuture);
             final SocketAddress addr = channel.remoteAddress();
             channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
@@ -377,6 +395,7 @@ public abstract class NettyRemotingAbstract {
                         responseFuture.setSendRequestOK(false);
                     }
 
+                    //处理完清理掉请求缓存
                     responseTable.remove(opaque);
                     responseFuture.setCause(f.cause());
                     responseFuture.putResponse(null);
@@ -400,11 +419,23 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+    /**
+     * 异步调用
+     * @param channel
+     * @param request
+     * @param timeoutMillis
+     * @param invokeCallback
+     * @throws InterruptedException
+     * @throws RemotingTooMuchRequestException
+     * @throws RemotingTimeoutException
+     * @throws RemotingSendRequestException
+     */
     public void invokeAsyncImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis,
         final InvokeCallback invokeCallback)
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         long beginStartTime = System.currentTimeMillis();
         final int opaque = request.getOpaque();
+        //尝试获取信号量，看并发请求有没有达到最大容量
         boolean acquired = this.semaphoreAsync.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);
         if (acquired) {
             final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreAsync);
@@ -480,6 +511,16 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+    /**
+     * 单向调用
+     * @param channel
+     * @param request
+     * @param timeoutMillis
+     * @throws InterruptedException
+     * @throws RemotingTooMuchRequestException
+     * @throws RemotingTimeoutException
+     * @throws RemotingSendRequestException
+     */
     public void invokeOnewayImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis)
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         request.markOnewayRPC();
