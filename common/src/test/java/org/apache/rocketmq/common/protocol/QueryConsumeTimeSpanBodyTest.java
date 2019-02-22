@@ -54,4 +54,5 @@ public class QueryConsumeTimeSpanBodyTest {
         assertThat(fromJson.getConsumeTimeSpanSet().get(0).getDelayTime()).isEqualTo(5000l);
         assertThat(fromJson.getConsumeTimeSpanSet().get(0).getMessageQueue()).isEqualTo(messageQueue);
     }
+
 }
