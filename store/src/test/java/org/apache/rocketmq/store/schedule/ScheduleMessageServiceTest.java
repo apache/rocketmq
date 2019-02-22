@@ -55,7 +55,7 @@ public class ScheduleMessageServiceTest {
      */
     int delayLevel = 1;
 
-    private static final String storePath = System.getProperty("user.home")  + File.separator + "schedule_test"+ UUID.randomUUID();
+    private static final String storePath = System.getProperty("user.home")  + File.separator + "schedule_test#"+ UUID.randomUUID();
     private static final int commitLogFileSize = 1024;
     private static final int cqFileSize = 10;
     private static final int cqExtFileSize = 10 * (ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE + 64);
@@ -68,6 +68,8 @@ public class ScheduleMessageServiceTest {
     ScheduleMessageService scheduleMessageService;
 
     static String sendMessage =   " ------- schedule message test -------";
+    static String topic = "schedule_topic_test";
+    static String messageGroup = "delayGroupTest";
 
 
     static {
@@ -86,6 +88,10 @@ public class ScheduleMessageServiceTest {
 
     @Before
     public void init() throws Exception {
+        // delete before
+        File file = new File(storePath);
+        UtilAll.deleteFile(file);
+
         messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMessageDelayLevel(testMessageDelayLevel);
         messageStoreConfig.setMapedFileSizeCommitLog(commitLogFileSize);
@@ -104,18 +110,6 @@ public class ScheduleMessageServiceTest {
 
         messageStore.start();
         scheduleMessageService = messageStore.getScheduleMessageService();
-    }
-
-
-
-    @Test
-    public void buildRunningStatsTest() throws InterruptedException {
-        MessageExtBrokerInner msg = buildMessage();
-        msg.setDelayTimeLevel(delayLevel);
-        messageStore.putMessage(msg);
-        // wait offsetTable
-        TimeUnit.SECONDS.sleep(1);
-        scheduleMessageService.buildRunningStats(new HashMap<String, String>() );
     }
 
 
@@ -147,20 +141,21 @@ public class ScheduleMessageServiceTest {
         msg.setDelayTimeLevel(delayLevel);
         PutMessageResult result = messageStore.putMessage(msg);
         assertThat(result.isOk()).isTrue();
+        // wait offsetTable
+        TimeUnit.SECONDS.sleep(1);
+        scheduleMessageService.buildRunningStats(new HashMap<String, String>() );
 
         // consumer message
+        int queueId = ScheduleMessageService.delayLevel2QueueId(delayLevel);
         Long offset = result.getAppendMessageResult().getLogicsOffset();
-        String messageGroup = "delayGroupTest";
-        GetMessageResult messageResult = messageStore.getMessage(messageGroup,msg.getTopic(),
-                msg.getQueueId(),offset,1,null);
 
         // now, no message in queue,must wait > 5 seconds
+        GetMessageResult messageResult = getMessage(queueId,offset);
         assertThat(messageResult.getStatus()).isEqualTo(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
 
-
-        TimeUnit.SECONDS.sleep(6);
-        messageResult = messageStore.getMessage(messageGroup,msg.getTopic(),
-                msg.getQueueId(),offset,1,null);
+        // timer run maybe delay, advice sleep > (5+1)
+        TimeUnit.SECONDS.sleep(7);
+        messageResult = getMessage(queueId,offset);
         // now,found the message
         assertThat(messageResult.getStatus()).isEqualTo(GetMessageStatus.FOUND);
 
@@ -178,8 +173,17 @@ public class ScheduleMessageServiceTest {
         String retryMsg = new String(msgList.get(0).getBody());
         assertThat(sendMessage).isEqualTo(retryMsg);
 
+
+
+
         // add mapFile release
         messageResult.release();
+
+    }
+
+    private GetMessageResult getMessage(int queueId,Long offset){
+        return messageStore.getMessage(messageGroup,topic,
+                queueId,offset,1,null);
 
     }
 
@@ -205,11 +209,10 @@ public class ScheduleMessageServiceTest {
 
         byte[] msgBody = sendMessage.getBytes();
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
-        msg.setTopic("schedule_topic_test");
+        msg.setTopic(topic);
         msg.setTags("schedule_tag");
         msg.setKeys("schedule_key");
         msg.setBody(msgBody);
-        msg.setQueueId(0);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
         msg.setStoreHost(storeHost);
@@ -224,7 +227,6 @@ public class ScheduleMessageServiceTest {
                              byte[] filterBitMap, Map<String, String> properties) {
         }
     }
-
 
 
 
