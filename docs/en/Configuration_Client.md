@@ -40,7 +40,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 
 ```DefaultMQProducer```、```TransactionMQProducer```、```DefaultMQPushConsumer```、```DefaultMQPullConsumer``` all extends the ```ClientConfig``` Class，```ClientConfig``` as the client common configuration class。Client configuration style like getXXX、setXXX, each of the parameters can config by spring and also config their in the code. Such as the ```namesrvAddr``` parameter: ```producer.setNamesrvAddr("192.168.0.1:9876")```, same with the other parameters.
 
-#### 1  Client Common Configuration
+#### Client Common Configuration
 
 | Pamater Name                        | Default Value  | Description                                                         |
 | ----------------------------- | ------- | ------------------------------------------------------------ |
@@ -52,7 +52,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 | heartbeatBrokerInterval       | 30000   | The heartbeat interval, in milliseconds, is sent to the Broker                         |
 | persistConsumerOffsetInterval | 5000    | The persistent Consumer consumes the progress interval in milliseconds         |
 
-#### 2  Producer Configuration
+#### Producer Configuration
 
 | Pamater Name                       | Default Value          | Description                                                        |
 | -------------------------------- | ---------------- | ------------------------------------------------------------ |
@@ -70,7 +70,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 | checkRequestHoldMax              | 2000             | Producer local buffer request queue size when Broker look back Producer transaction status                     |
 | RPCHook                          | null             | This parameter is passed in when the Producer is creating, including the pre-processing before the message sending and the processing after the message response. The user can do some security control or other operations in the first interface.|
 
-#### 3  PushConsumer Configuration
+#### PushConsumer Configuration
 
 | Pamater Name                         | Default Value                      | Description                                                         |
 | ---------------------------- | ----------------------------- | ------------------------------------------------------------ |
@@ -91,7 +91,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 | consumeMessageBatchMaxSize   | 1                             | Batch consume message                                 |
 | pullBatchSize                | 32                            | Batch pull message                                 |
 
-#### 4  PullConsumer Configuration
+#### PullConsumer Configuration
 
 | Pamater Name                     | Default Value                 | Description                                                         |
 | -------------------------------- | ----------------------------- | ------------------------------------------------------------ |
@@ -105,7 +105,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 | registerTopics                   |                               | Collection of registered topics                                              |
 | allocateMessageQueueStrategy     | AllocateMessageQueueAveragely | Implements strategy about Rebalance algorithm                                     |
 
-#### 5  Message Data Structure
+#### Message Data Structure
 
 | Field Name         | Default Value  | Description                                                         |
 | -------------- | ------ | ------------------------------------------------------------ |
