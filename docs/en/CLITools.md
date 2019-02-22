@@ -1,11 +1,11 @@
 # Instructions on the use of mqadmin Management tools
 
-Before introducing the mqadmin management tool, first declare the following points:
+Before introducing the mqadmin management tool, the following points need to be declared:
 
-1. The method for executing a command is:./mqadmin {command} {args}
-2. Almost all commands need to configure the -n parameter to represent the NameServer address, formatted as ip:port;
-3. Almost all commands can get help information with the -h parameter;
-4. If both the brokerAddress (-b) configuration item and the clusterName (-c) configuration item are present, the command is executed with the brokerAddress.If brokerAddresses are not configured, only one brokerAddress is supported for all hosts in the cluster.The format of the -b parameter is ip:port and the default value of port is 10911;
+1. The way of executing a command is:./mqadmin {command} {args}
+2. Almost all commands need to attach the -n option to represent the nameServer address, formatted as ip:port;
+3. Almost all commands can get help information with the -h option;
+4. If the broker address -b option and clusterName -c option are both configured with specific values, the command execution will select the broker address specified by -b option. The value of the -b option can only be configured with a single address. The format is ip:port. The default port value is 10911. If the value of the -b option is not configured, the command will be applied to all brokers in the entire cluster.
 5. You can see many commands under tools, but not all commands can be used, only the commands initialized in MQAdminStartup can be used, you can also modify this class, add or customize commands;
 6. Due to the issue of version update, a small number of commands may not be updated in time, please read the related command source code to eliminate and resolve the error.
 
@@ -28,11 +28,11 @@ Before introducing the mqadmin management tool, first declare the following poin
   <td rowspan=8 class=xl70 width=135 style='border-bottom:1.0pt;
   border-top:none;width:101pt'>Create or update the configuration of topic</td>
   <td class=xl65 width=149 style='width:112pt'>-b</td>
-  <td class=xl66 width=159 style='width:119pt'>The -b parameter declares the specific address of the broker, indicating that the broker, in which the topic is located supports only a single Broker and the address format is ip:port.</td>
+  <td class=xl66 width=159 style='width:119pt'>The -b option declares the specific address of the broker, indicating that the broker, in which the topic is located supports only a single broker and the address format is ip:port.</td>
  </tr>
  <tr height=132 style='height:99.0pt'>
   <td height=132 class=xl65 width=149 style='height:99.0pt;width:112pt'>-c</td>
-  <td class=xl66 width=159 style='width:119pt'>The -c parameter declares the name of the cluster, which represents the cluster in which the current topic is located. (clusters are available through ClusterList query)</td>
+  <td class=xl66 width=159 style='width:119pt'>The -c option declares the name of the cluster, which represents the cluster in which the current topic is located. (clusters are available through clusterList query)</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-h-</td>
@@ -40,23 +40,23 @@ Before introducing the mqadmin management tool, first declare the following poin
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the parameter format is ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the option format is ip:port</td>
  </tr>
  <tr height=76 style='height:57.0pt'>
   <td height=76 class=xl65 width=149 style='height:57.0pt;width:112pt'>-p</td>
-  <td class=xl66 width=159 style='width:119pt'>The -p parameter is used to specify the read and write permission for the new topic (W=2 | R=4 | WR=6)</td>
+  <td class=xl66 width=159 style='width:119pt'>The -p option is used to specify the read and write permission for the new topic (W=2 | R=4 | WR=6)</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl65 width=149 style='height:29.0pt;width:112pt'>-r</td>
-  <td class=xl66 width=159 style='width:119pt'>The -r parameter declares the number of readable queues (default 8)</td>
+  <td class=xl66 width=159 style='width:119pt'>The -r option declares the number of readable queues (default 8)</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl65 width=149 style='height:29.0pt;width:112pt'>-w</td>
-  <td class=xl66 width=159 style='width:119pt'>The -w parameter declares the number of writable queues (default 8)</td>
+  <td class=xl66 width=159 style='width:119pt'>The -w option declares the number of writable queues (default 8)</td>
  </tr>
  <tr height=95 style='height:71.0pt'>
   <td height=95 class=xl65 width=149 style='height:71.0pt;width:112pt'>-t</td>
-  <td class=xl66 width=159 style='width:119pt'>The -t argument declares the name of the topic (the name can only use characters^ [a-zA-Z0-9s -] + $)</td>
+  <td class=xl66 width=159 style='width:119pt'>The -t option declares the name of the topic (the name can only use characters^ [a-zA-Z0-9s -] + $)</td>
  </tr>
  <tr height=132 style='height:99.0pt'>
   <td rowspan=4 height=307 class=xl68 width=163 style='border-bottom:1.0pt;
@@ -64,7 +64,7 @@ Before introducing the mqadmin management tool, first declare the following poin
   <td rowspan=4 class=xl70 width=135 style='border-bottom:1.0pt;
   border-top:none;width:101pt'>Delete the topic command</td>
   <td class=xl65 width=149 style='width:112pt'>-c</td>
-  <td class=xl66 width=159 style='width:119pt'>The -c parameter specifies the name of the cluster, which means that one of the topic in the specified cluster is deleted (cluster names can be queried via clusterList)</td>
+  <td class=xl66 width=159 style='width:119pt'>The -c option specifies the name of the cluster, which means that one of the topic in the specified cluster is deleted (cluster names can be queried via clusterList)</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-h</td>
@@ -72,11 +72,11 @@ Before introducing the mqadmin management tool, first declare the following poin
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the parameter format is ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the option format is ip:port</td>
  </tr>
  <tr height=95 style='height:71.0pt'>
   <td height=95 class=xl65 width=149 style='height:71.0pt;width:112pt'>-t</td>
-  <td class=xl66 width=159 style='width:119pt'>The -t argument declares the name of the topic (the name can only use characters^ [a-zA-Z0-9s -] + $)</td>
+  <td class=xl66 width=159 style='width:119pt'>The -t option declares the name of the topic (the name can only use characters^ [a-zA-Z0-9s -] + $)</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td rowspan=3 height=287 class=xl68 width=163 style='border-bottom:1.0pt;
@@ -88,11 +88,11 @@ Before introducing the mqadmin management tool, first declare the following poin
  </tr>
  <tr height=207 style='height:155.0pt'>
   <td height=207 class=xl65 width=149 style='height:155.0pt;width:112pt'>-c</td>
-  <td class=xl66 width=159 style='width:119pt'>If the -c parameter is not configured, only the topic list is returned, and the addition of -c returns additional information about the clusterName, topic, consumerGroup, that is, the cluster and subscription to which the topic belongs, and no other parameters need to be configured.</td>
+  <td class=xl66 width=159 style='width:119pt'>If the -c option is not configured, only the topic list is returned, and the addition of -c option returns additional information about the clusterName, topic, consumerGroup, that is, the cluster and subscription to which the topic belongs, and no other option need to be configured.</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the parameter format is ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the option format is ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td rowspan=3 height=103 class=xl68 width=163 style='border-bottom:1.0pt;
@@ -108,7 +108,7 @@ Before introducing the mqadmin management tool, first declare the following poin
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the parameter format is ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the option format is ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td rowspan=3 height=103 class=xl68 width=163 style='border-bottom:1.0pt;
@@ -124,7 +124,7 @@ Before introducing the mqadmin management tool, first declare the following poin
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the parameter format is ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the option format is ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td rowspan=3 height=103 class=xl68 width=163 style='border-bottom:1.0pt;
@@ -140,7 +140,7 @@ Before introducing the mqadmin management tool, first declare the following poin
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the parameter format is ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the option format is ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td rowspan=6 height=518 class=xl68 width=163 style='border-bottom:1.0pt;
@@ -156,19 +156,19 @@ Before introducing the mqadmin management tool, first declare the following poin
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the parameter format is ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the option format is ip:port</td>
  </tr>
  <tr height=132 style='height:99.0pt'>
   <td height=132 class=xl65 width=149 style='height:99.0pt;width:112pt'>-b</td>
-  <td class=xl66 width=159 style='width:119pt'>The -b parameter declares the specific address of the broker, indicating that the broker, in which the topic is located supports only a single broker and the address format is ip:port.</td>
+  <td class=xl66 width=159 style='width:119pt'>The -b option declares the specific address of the broker, indicating that the broker, in which the topic is located supports only a single broker and the address format is ip:port.</td>
  </tr>
  <tr height=76 style='height:57.0pt'>
   <td height=76 class=xl65 width=149 style='height:57.0pt;width:112pt'>-p</td>
-  <td class=xl66 width=159 style='width:119pt'>The -p parameter is used to specify the read and write permission for the new topic (W=2 | R=4 | WR=6)</td>
+  <td class=xl66 width=159 style='width:119pt'>The -p option is used to specify the read and write permission for the new topic (W=2 | R=4 | WR=6)</td>
  </tr>
  <tr height=207 style='height:155.0pt'>
   <td height=207 class=xl65 width=149 style='height:155.0pt;width:112pt'>-c</td>
-  <td class=xl66 width=159 style='width:119pt'>Used to specify the name of the cluster that represents the cluster in which the topic is located, which can be accessed through the clusterList query, but the -b parameter has a higher priority, and if no -b related configuration is specified, the command is executed on all Broker in the cluster</td>
+  <td class=xl66 width=159 style='width:119pt'>Used to specify the name of the cluster that represents the cluster in which the topic is located, which can be accessed through the clusterList query, but the -b parameter has a higher priority, and if no -b option related configuration is specified, the command is executed on all broker in the cluster</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td rowspan=5 height=199 class=xl68 width=163 style='border-bottom:1.0pt;
@@ -180,7 +180,7 @@ Before introducing the mqadmin management tool, first declare the following poin
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the parameter format is ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the option format is ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-t</td>
@@ -208,7 +208,7 @@ Before introducing the mqadmin management tool, first declare the following poin
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the parameter format is ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the option format is ip:port</td>
  </tr>
  <tr height=95 style='height:71.0pt'>
   <td height=95 class=xl65 width=149 style='height:71.0pt;width:112pt'>-i</td>
@@ -224,7 +224,7 @@ Before introducing the mqadmin management tool, first declare the following poin
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
-  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the parameter format is ip:port</td>
+  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the option format is ip:port</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl65 width=149 style='height:29.0pt;width:112pt'>-a</td>
@@ -235,6 +235,7 @@ Before introducing the mqadmin management tool, first declare the following poin
   <td class=xl66 width=159 style='width:119pt'>Used to specify the name of the topic</td>
  </tr>
 </table>
+
 
 
 
@@ -284,8 +285,7 @@ Before introducing the mqadmin management tool, first declare the following poin
   <td rowspan=8 class=xl70 width=175 style='border-bottom:1.0pt;
   border-top:none;width:131pt'>Send message to detect each broker RT of the cluster.the message send to ${BrokerName} Topic。</td>
   <td class=xl65 width=177 style='width:133pt'>-a</td>
-  <td class=xl66 width=185 style='width:139pt'>amount，total number per probe，RT = Total time /
-  amount</td>
+  <td class=xl66 width=185 style='width:139pt'>amount，total number per probe，RT = Total time/amount</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl65 width=177 style='height:29.0pt;width:133pt'>-s</td>
@@ -316,6 +316,7 @@ Before introducing the mqadmin management tool, first declare the following poin
   <td class=xl66 width=185 style='width:139pt'>Service address used to specify nameServer and formatted as ip:port</td>
  </tr>
 </table>
+
 
 
 
@@ -365,9 +366,9 @@ Before introducing the mqadmin management tool, first declare the following poin
   <td rowspan=3 height=137 class=xl69 width=191 style='border-bottom:1.0pt;
   height:103.0pt;border-top:none;width:143pt'>brokerStatus</td>
   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt;
-  border-top:none;width:65pt'>For viewing Broker related statistics and running status (almost all the information you want is inside)</td>
+  border-top:none;width:65pt'>For viewing broker related statistics and running status (almost all the information you want is inside)</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>Declare the address of the Broker and format as ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>Declare the address of the broker and format as ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
@@ -500,6 +501,7 @@ Before introducing the mqadmin management tool, first declare the following poin
 </table>
 
 
+
 ## 4 Message related command instructions
 
 #### 
@@ -584,7 +586,7 @@ Before introducing the mqadmin management tool, first declare the following poin
   <td rowspan=6 height=209 class=xl69 width=87 style='border-bottom:1.0pt;
   height:156.0pt;border-top:none;width:65pt'>queryMsgByUniqueKey</td>
   <td rowspan=6 class=xl72 width=87 style='border-bottom:1.0pt;
-  border-top:none;width:65pt'>According to the msgId query, msgId is different from offsetMsgId. The specific differences can be found in common operational and maintenance problems. "-g" and "-d" are to be used together, and when you find the message, try to get a particular consumer to consume the message and return the result of the consumption.</td>
+  border-top:none;width:65pt'>According to the msgId query, msgId is different from offsetMsgId. The specific differences can be found in common operational and maintenance problems. "-g" option and "-d" option are to be used together, and when you find the message, try to get a particular consumer to consume the message and return the result of the consumption.</td>
   <td class=xl67 width=87 style='width:65pt'>-h</td>
   <td class=xl68 width=87 style='width:65pt'>Print help information</td>
  </tr>
@@ -834,6 +836,7 @@ Before introducing the mqadmin management tool, first declare the following poin
   <td class=xl68 width=87 style='width:65pt'>Whether to reset the C++ client offset</td>
  </tr>
 </table>
+
 
 
 ## 5 Consumer and Consumer Group related command instructions
