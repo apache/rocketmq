@@ -102,6 +102,8 @@ public class MQClientInstance {
         new ConcurrentHashMap<String, HashMap<Long, String>>();
     private final ConcurrentMap<String/* Broker Name */, HashMap<String/* address */, Integer>> brokerVersionTable =
         new ConcurrentHashMap<String, HashMap<String, Integer>>();
+    private final ConcurrentMap<String/* Broker Name */, HashMap<String/* address */, Long>> versionUpdateTimeTable =
+        new ConcurrentHashMap<String, HashMap<String, Long>>();
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
         @Override
         public Thread newThread(Runnable r) {
@@ -538,10 +540,7 @@ public class MQClientInstance {
 
                             try {
                                 int version = this.mQClientAPIImpl.sendHearbeat(addr, heartbeatData, 3000);
-                                if (!this.brokerVersionTable.containsKey(brokerName)) {
-                                    this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));
-                                }
-                                this.brokerVersionTable.get(brokerName).put(addr, version);
+                                putVersionInfo(brokerName, addr, version);
                                 if (times % 20 == 0) {
                                     log.info("send heart beat to broker[{} {} {}] success", brokerName, id, addr);
                                     log.info(heartbeatData.toString());
@@ -805,6 +804,18 @@ public class MQClientInstance {
         return result;
     }
 
+    private void putVersionInfo(String brokerName, String brokerAddr, int version){
+
+        if (!this.brokerVersionTable.containsKey(brokerName)) {
+            this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));
+        }
+        if (!this.versionUpdateTimeTable.containsKey(brokerName)){
+            this.versionUpdateTimeTable.put(brokerName, new HashMap<String, Long>(4));
+        }
+        this.brokerVersionTable.get(brokerName).put(brokerAddr, version);
+        this.versionUpdateTimeTable.get(brokerName).put(brokerAddr, System.currentTimeMillis());
+    }
+
     public void shutdown() {
         // Consumer
         if (!this.consumerTable.isEmpty())
@@ -1042,14 +1053,27 @@ public class MQClientInstance {
     }
 
     public int findBrokerVersion(String brokerName, String brokerAddr) {
-        if (this.brokerVersionTable.containsKey(brokerName)) {
-            if (this.brokerVersionTable.get(brokerName).containsKey(brokerAddr)) {
-                return this.brokerVersionTable.get(brokerName).get(brokerAddr);
+
+        boolean versionExist = this.brokerVersionTable.containsKey(brokerName)
+            && this.brokerVersionTable.get(brokerName).containsKey(brokerAddr);
+        boolean versionExpired = false;
+
+        if(this.versionUpdateTimeTable.containsKey(brokerName)){
+            Long lastUpdateTime = this.versionUpdateTimeTable.get(brokerName).get(brokerAddr);
+            if(null != lastUpdateTime && (System.currentTimeMillis() - lastUpdateTime > 60 * 1000)){
+                versionExpired = true;
             }
+        }
+
+        if (versionExist && !versionExpired) {
+
+            return this.brokerVersionTable.get(brokerName).get(brokerAddr);
         } else {
+
             HeartbeatData heartbeatData = prepareHeartbeatData();
             try {
                 int version = this.mQClientAPIImpl.sendHearbeat(brokerAddr, heartbeatData, 3000);
+                putVersionInfo(brokerName, brokerAddr, version);
                 return version;
             } catch (Exception e) {
                 if (this.isBrokerInNameServer(brokerAddr)) {
