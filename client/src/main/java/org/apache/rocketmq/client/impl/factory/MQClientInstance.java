@@ -719,9 +719,10 @@ public class MQClientInstance {
 
         return false;
     }
+
     /**
-     * This method will be removed in the version 5.0.0,because filterServer was removed,and method <code>subscribe(final String topic, final MessageSelector messageSelector)</code>
-     * is recommended.
+     * This method will be removed in the version 5.0.0,because filterServer was removed,and method
+     * <code>subscribe(final String topic, final MessageSelector messageSelector)</code> is recommended.
      */
     @Deprecated
     private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String fullClassName,
@@ -804,12 +805,12 @@ public class MQClientInstance {
         return result;
     }
 
-    private void putVersionInfo(String brokerName, String brokerAddr, int version){
+    private void putVersionInfo(String brokerName, String brokerAddr, int version) {
 
         if (!this.brokerVersionTable.containsKey(brokerName)) {
             this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));
         }
-        if (!this.versionUpdateTimeTable.containsKey(brokerName)){
+        if (!this.versionUpdateTimeTable.containsKey(brokerName)) {
             this.versionUpdateTimeTable.put(brokerName, new HashMap<String, Long>(4));
         }
         this.brokerVersionTable.get(brokerName).put(brokerAddr, version);
@@ -1058,9 +1059,9 @@ public class MQClientInstance {
             && this.brokerVersionTable.get(brokerName).containsKey(brokerAddr);
         boolean versionExpired = false;
 
-        if(this.versionUpdateTimeTable.containsKey(brokerName)){
+        if (this.versionUpdateTimeTable.containsKey(brokerName)) {
             Long lastUpdateTime = this.versionUpdateTimeTable.get(brokerName).get(brokerAddr);
-            if(null != lastUpdateTime && (System.currentTimeMillis() - lastUpdateTime > 60 * 1000)){
+            if (null != lastUpdateTime && (System.currentTimeMillis() - lastUpdateTime > 60 * 1000)) {
                 versionExpired = true;
             }
         }
