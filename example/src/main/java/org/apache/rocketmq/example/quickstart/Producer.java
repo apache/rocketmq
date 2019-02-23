@@ -47,7 +47,6 @@ public class Producer {
         /*
          * Launch the instance.
          */
-//        producer.setNamesrvAddr("47.102.149.193:9876");
         producer.start();
 
         for (int i = 0; i < 10; i++) {
@@ -76,7 +75,7 @@ public class Producer {
         /*
          * Shut down once the producer instance is not longer in use.
          */
-        Thread.sleep(30000L);
+        Thread.sleep(3000L);
         producer.shutdown();
     }
 }

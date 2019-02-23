@@ -26,10 +26,16 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.consumer.DefaultMQRealPushConsumer;
+import org.apache.rocketmq.client.consumer.MQPushConsumer;
+import org.apache.rocketmq.client.consumer.MQRealPushConsumer;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
@@ -73,10 +79,9 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
-public class DefaultMQPushConsumerImpl implements MQPushConsumerInner {
+public class DefaultMQRealPushConsumerImpl implements MQPushConsumerInner {
     /**
      * Delay some time when exception occur
      */
@@ -92,8 +97,9 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumerInner {
     private static final long BROKER_SUSPEND_MAX_TIME_MILLIS = 1000 * 15;
     private static final long CONSUMER_TIMEOUT_MILLIS_WHEN_SUSPEND = 1000 * 30;
     private final InternalLogger log = ClientLogger.getLog();
-    private final DefaultMQPushConsumer defaultMQPushConsumer;
-    private final RebalanceImpl rebalanceImpl = new RebalancePushImpl(this);
+    private final DefaultMQRealPushConsumer defaultMQPushConsumer;
+    //private final RebalanceImpl rebalanceImpl = new RebalancePushImpl(this);
+    private final RebalanceImpl rebalanceImpl;
     private final ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
     private final long consumerStartTimestamp = System.currentTimeMillis();
     private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
@@ -108,10 +114,22 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumerInner {
     private ConsumeMessageService consumeMessageService;
     private long queueFlowControlTimes = 0;
     private long queueMaxSpanFlowControlTimes = 0;
+    private boolean realPushModel = true;
+    private final ConcurrentHashMap<String, AtomicLong> localConsumerOffset = new ConcurrentHashMap<String, AtomicLong>();
+    private final ConcurrentHashMap<String, AtomicBoolean> pullStopped = new ConcurrentHashMap<String, AtomicBoolean>();
+    private final ConcurrentHashMap<String, ProcessQueue> processQueues = new ConcurrentHashMap<String, ProcessQueue>();
 
-    public DefaultMQPushConsumerImpl(DefaultMQPushConsumer defaultMQPushConsumer, RPCHook rpcHook) {
+    public DefaultMQRealPushConsumerImpl(DefaultMQRealPushConsumer defaultMQPushConsumer, RPCHook rpcHook) {
+        this(defaultMQPushConsumer, rpcHook, true);
+    }
+
+    public DefaultMQRealPushConsumerImpl(DefaultMQRealPushConsumer defaultMQPushConsumer, RPCHook rpcHook,
+        boolean realPushModel) {
         this.defaultMQPushConsumer = defaultMQPushConsumer;
         this.rpcHook = rpcHook;
+        this.realPushModel = realPushModel;
+        log.info("Open Real Push Model for {}", defaultMQPushConsumer.getConsumerGroup());
+        rebalanceImpl = new RebalanceRealPushImpl(this);
     }
 
     public void registerFilterMessageHook(final FilterMessageHook hook) {
@@ -172,7 +190,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumerInner {
         return result;
     }
 
-    public DefaultMQPushConsumer getDefaultMQPushConsumer() {
+    public MQRealPushConsumer getDefaultMQPushConsumer() {
         return defaultMQPushConsumer;
     }
 
@@ -288,7 +306,18 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumerInner {
             @Override
             public void onSuccess(PullResult pullResult) {
                 if (pullResult != null) {
-                    pullResult = DefaultMQPushConsumerImpl.this.pullAPIWrapper.processPullResult(pullRequest.getMessageQueue(), pullResult,
+                    //Update local offset according remote offset
+                    String localOffsetKey = genLocalOffsetKey(pullRequest.getConsumerGroup(),
+                        pullRequest.getMessageQueue().getTopic(),
+                        pullRequest.getMessageQueue().getBrokerName(),
+                        pullRequest.getMessageQueue().getQueueId());
+                    AtomicLong localOffset = localConsumerOffset.get(localOffsetKey);
+                    if (localOffset == null) {
+                        localConsumerOffset.putIfAbsent(localOffsetKey, new AtomicLong(-1));
+                    }
+                    localConsumerOffset.get(localOffsetKey).set(pullResult.getNextBeginOffset());
+
+                    pullResult = DefaultMQRealPushConsumerImpl.this.pullAPIWrapper.processPullResult(pullRequest.getMessageQueue(), pullResult,
                         subscriptionData);
 
                     switch (pullResult.getPullStatus()) {
@@ -296,30 +325,30 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumerInner {
                             long prevRequestOffset = pullRequest.getNextOffset();
                             pullRequest.setNextOffset(pullResult.getNextBeginOffset());
                             long pullRT = System.currentTimeMillis() - beginTimestamp;
-                            DefaultMQPushConsumerImpl.this.getConsumerStatsManager().incPullRT(pullRequest.getConsumerGroup(),
+                            DefaultMQRealPushConsumerImpl.this.getConsumerStatsManager().incPullRT(pullRequest.getConsumerGroup(),
                                 pullRequest.getMessageQueue().getTopic(), pullRT);
 
                             long firstMsgOffset = Long.MAX_VALUE;
                             if (pullResult.getMsgFoundList() == null || pullResult.getMsgFoundList().isEmpty()) {
-                                DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
+                                DefaultMQRealPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                             } else {
                                 firstMsgOffset = pullResult.getMsgFoundList().get(0).getQueueOffset();
 
-                                DefaultMQPushConsumerImpl.this.getConsumerStatsManager().incPullTPS(pullRequest.getConsumerGroup(),
+                                DefaultMQRealPushConsumerImpl.this.getConsumerStatsManager().incPullTPS(pullRequest.getConsumerGroup(),
                                     pullRequest.getMessageQueue().getTopic(), pullResult.getMsgFoundList().size());
 
                                 boolean dispatchToConsume = processQueue.putMessage(pullResult.getMsgFoundList());
-                                DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest(
+                                DefaultMQRealPushConsumerImpl.this.consumeMessageService.submitConsumeRequest(
                                     pullResult.getMsgFoundList(),
                                     processQueue,
                                     pullRequest.getMessageQueue(),
                                     dispatchToConsume);
 
-                                if (DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval() > 0) {
-                                    DefaultMQPushConsumerImpl.this.executePullRequestLater(pullRequest,
-                                        DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval());
+                                if (DefaultMQRealPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval() > 0) {
+                                    DefaultMQRealPushConsumerImpl.this.executePullRequestLater(pullRequest,
+                                        DefaultMQRealPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval());
                                 } else {
-                                    DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
+                                    DefaultMQRealPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                                 }
                             }
 
@@ -336,16 +365,16 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumerInner {
                         case NO_NEW_MSG:
                             pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
-                            DefaultMQPushConsumerImpl.this.correctTagsOffset(pullRequest);
+                            DefaultMQRealPushConsumerImpl.this.correctTagsOffset(pullRequest);
 
-                            DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
+                            DefaultMQRealPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                             break;
                         case NO_MATCHED_MSG:
                             pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
-                            DefaultMQPushConsumerImpl.this.correctTagsOffset(pullRequest);
+                            DefaultMQRealPushConsumerImpl.this.correctTagsOffset(pullRequest);
 
-                            DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
+                            DefaultMQRealPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                             break;
                         case OFFSET_ILLEGAL:
                             log.warn("the pull request offset illegal, {} {}",
@@ -353,17 +382,17 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumerInner {
                             pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
                             pullRequest.getProcessQueue().setDropped(true);
-                            DefaultMQPushConsumerImpl.this.executeTaskLater(new Runnable() {
+                            DefaultMQRealPushConsumerImpl.this.executeTaskLater(new Runnable() {
 
                                 @Override
                                 public void run() {
                                     try {
-                                        DefaultMQPushConsumerImpl.this.offsetStore.updateOffset(pullRequest.getMessageQueue(),
+                                        DefaultMQRealPushConsumerImpl.this.offsetStore.updateOffset(pullRequest.getMessageQueue(),
                                             pullRequest.getNextOffset(), false);
 
-                                        DefaultMQPushConsumerImpl.this.offsetStore.persist(pullRequest.getMessageQueue());
+                                        DefaultMQRealPushConsumerImpl.this.offsetStore.persist(pullRequest.getMessageQueue());
 
-                                        DefaultMQPushConsumerImpl.this.rebalanceImpl.removeProcessQueue(pullRequest.getMessageQueue());
+                                        DefaultMQRealPushConsumerImpl.this.rebalanceImpl.removeProcessQueue(pullRequest.getMessageQueue());
 
                                         log.warn("fix the pull request offset, {}", pullRequest);
                                     } catch (Throwable e) {
@@ -384,7 +413,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumerInner {
                     log.warn("execute the pull request exception", e);
                 }
 
-                DefaultMQPushConsumerImpl.this.executePullRequestLater(pullRequest, PULL_TIME_DELAY_MILLS_WHEN_EXCEPTION);
+                DefaultMQRealPushConsumerImpl.this.executePullRequestLater(pullRequest, PULL_TIME_DELAY_MILLS_WHEN_EXCEPTION);
             }
         };
 
@@ -445,6 +474,15 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumerInner {
     }
 
     private void executePullRequestLater(final PullRequest pullRequest, final long timeDelay) {
+        String localOffsetKey = genLocalOffsetKey(pullRequest.getConsumerGroup(),
+            pullRequest.getMessageQueue().getTopic(),
+            pullRequest.getMessageQueue().getBrokerName(),
+            pullRequest.getMessageQueue().getQueueId());
+        if (pullStopped.get(localOffsetKey) != null && pullStopped.get(localOffsetKey).get()) {
+            //Stop pull request
+            log.info("Stop pull request, {}", localOffsetKey);
+            return;
+        }
         this.mQClientFactory.getPullMessageService().executePullRequestLater(pullRequest, timeDelay);
     }
 
@@ -461,6 +499,15 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumerInner {
     }
 
     public void executePullRequestImmediately(final PullRequest pullRequest) {
+        String localOffsetKey = genLocalOffsetKey(pullRequest.getConsumerGroup(),
+            pullRequest.getMessageQueue().getTopic(),
+            pullRequest.getMessageQueue().getBrokerName(),
+            pullRequest.getMessageQueue().getQueueId());
+        if (pullStopped.get(localOffsetKey) != null && pullStopped.get(localOffsetKey).get()) {
+            //Stop pull request
+            log.info("Stop pull request, {}", localOffsetKey);
+            return;
+        }
         this.mQClientFactory.getPullMessageService().executePullRequestImmediately(pullRequest);
     }
 
@@ -497,9 +544,8 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumerInner {
     public void sendMessageBack(MessageExt msg, int delayLevel, final String brokerName)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
-            String brokerAddr = (null != brokerName) ? this.mQClientFactory.findBrokerAddressInPublish(brokerName)
-                : RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
-            this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(null, brokerAddr,msg,
+            String snodeAddr = this.mQClientFactory.findSnodeAddressInPublish();
+            this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(brokerName, snodeAddr, msg,
                 this.defaultMQPushConsumer.getConsumerGroup(), delayLevel, 5000, getMaxReconsumeTimes());
         } catch (Exception e) {
             log.error("sendMessageBack Exception, " + this.defaultMQPushConsumer.getConsumerGroup(), e);
@@ -628,10 +674,10 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumerInner {
             default:
                 break;
         }
-
+        this.tryToFindSnodePublishInfo();
         this.updateTopicSubscribeInfoWhenSubscriptionChanged();
         this.mQClientFactory.checkClientInBroker();
-        this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+        this.mQClientFactory.sendHeartbeatToAllSnodeWithLock();
         this.mQClientFactory.rebalanceImmediately();
     }
 
@@ -809,7 +855,7 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumerInner {
         try {
             Map<String, String> sub = this.defaultMQPushConsumer.getSubscription();
             if (sub != null) {
-                for (final Map.Entry<String, String> entry : sub.entrySet()) {
+                for (final Entry<String, String> entry : sub.entrySet()) {
                     final String topic = entry.getKey();
                     final String subString = entry.getValue();
                     SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),
@@ -846,9 +892,11 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumerInner {
     private void updateTopicSubscribeInfoWhenSubscriptionChanged() {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
-            for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
+            for (final Entry<String, SubscriptionData> entry : subTable.entrySet()) {
                 final String topic = entry.getKey();
                 this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
+                this.mQClientFactory.createRetryTopic(topic, this.defaultMQPushConsumer.getConsumerGroup());
+
             }
         }
     }
@@ -971,7 +1019,11 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumerInner {
 
     @Override
     public ConsumeType consumeType() {
-        return ConsumeType.CONSUME_PASSIVELY;
+        if (realPushModel) {
+            return ConsumeType.CONSUME_PUSH;
+        } else {
+            return ConsumeType.CONSUME_PASSIVELY;
+        }
     }
 
     @Override
@@ -1140,7 +1192,90 @@ public class DefaultMQPushConsumerImpl implements MQPushConsumerInner {
 
     }
 
+    private void tryToFindSnodePublishInfo() {
+        this.mQClientFactory.updateSnodeInfoFromNameServer();
+    }
+
+    public boolean processPushMessage(final MessageExt msg,
+        final String consumerGroup,
+        final String topic,
+        final String brokerName,
+        final int queueID,
+        final long offset) {
+        String localOffsetKey = genLocalOffsetKey(consumerGroup, topic, brokerName, queueID);
+        AtomicLong localOffset = this.localConsumerOffset.get(localOffsetKey);
+        if (localOffset == null) {
+            log.info("Current Local offset have not set, initiallized to -1.");
+            this.localConsumerOffset.put(localOffsetKey, new AtomicLong(-1));
+            return false;
+        }
+        if (localOffset.get() + 1 < offset) {
+            //should start pull message process
+            log.debug("#####Current Local key:{} and  offset:{} and push offset:{}", localOffsetKey, localOffset.get(), offset);
+            return false;
+        } else {
+            //Stop pull request
+            log.debug("#####Process Push : Current Local key:{} and  offset:{} and push offset:{}", localOffsetKey, localOffset.get(), offset);
+            AtomicBoolean pullStop = this.pullStopped.get(localOffsetKey);
+            if (pullStop == null) {
+                this.pullStopped.put(localOffsetKey, new AtomicBoolean(true));
+                log.info("Pull stop flag of {} is not set, initialize to TRUE", localOffsetKey);
+            }
+            pullStop = this.pullStopped.get(localOffsetKey);
+            if (!pullStop.get()) {
+                pullStop.set(true);
+                log.info("Pull stop of {} is set to TRUE, and then the pull request will stop...", localOffsetKey);
+            }
+            //update local offset
+            localOffset.set(offset);
+            //submit to process queue
+            List<MessageExt> messageExtList = new ArrayList<MessageExt>();
+            messageExtList.add(msg);
+            ProcessQueue processQueue = processQueues.get(localOffsetKey);
+            if (processQueue == null) {
+                processQueues.put(localOffsetKey, new ProcessQueue());
+                processQueue = processQueues.get(localOffsetKey);
+            }
+            processQueue.putMessage(messageExtList);
+            MessageQueue messageQueue = new MessageQueue(topic, brokerName, queueID);
+            this.consumeMessageService.submitConsumeRequest(messageExtList, processQueue, messageQueue, true);
+        }
+        return true;
+    }
+
+    private String genLocalOffsetKey(String consumerGroup, String topic, String brokerName, int queueID) {
+        return consumerGroup + "@" + topic + "@" + brokerName + "@" + queueID;
+    }
+
     public boolean resumePullRequest(String consumerGroup, String topic, String brokerName, int queueID) {
+        String localOffsetKey = genLocalOffsetKey(consumerGroup, topic, brokerName, queueID);
+        ProcessQueue processQueue = processQueues.get(localOffsetKey);
+        if (processQueue != null) {
+            log.info("Clear local expire message for {} in processQueue.", localOffsetKey);
+            processQueue.cleanExpiredMsg(this.defaultMQPushConsumer);
+        }
+        AtomicBoolean pullStop = this.pullStopped.get(localOffsetKey);
+        if (pullStop != null) {
+            if (pullStop.get()) {
+                pullStop.set(false);
+                log.info("Resume Pull Request of {} is set to TRUE, and then the pull request will start by rebalance again...", localOffsetKey);
+            }
+        }
+        return true;
+    }
+
+    public boolean pausePullRequest(String consumerGroup, String topic, String brokerName, int queueID) {
+        String localOffsetKey = genLocalOffsetKey(consumerGroup, topic, brokerName, queueID);
+        AtomicBoolean pullStop = this.pullStopped.get(localOffsetKey);
+        if (pullStop == null) {
+            this.pullStopped.put(localOffsetKey, new AtomicBoolean(true));
+            log.info("Pull stop flag of {} is not set, initialize to TRUE", localOffsetKey);
+            return true;
+        }
+        if (!pullStop.get()) {
+            pullStop.set(true);
+            log.info("Pull stop of {} is set to TRUE, and then the pull request will stop...", localOffsetKey);
+        }
         return true;
     }
 }
