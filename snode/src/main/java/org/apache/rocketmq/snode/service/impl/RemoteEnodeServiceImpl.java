@@ -263,4 +263,24 @@ public class RemoteEnodeServiceImpl implements EnodeService {
         return this.snodeController.getRemotingClient().invokeSync(address,
             request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
     }
+
+    @Override
+    public RemotingCommand lockBatchMQ(RemotingChannel remotingChannel,
+        RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        return transferToEnode(request);
+    }
+
+    @Override
+    public RemotingCommand unlockBatchMQ(RemotingChannel remotingChannel,
+        RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        return transferToEnode(request);
+    }
+
+    private RemotingCommand transferToEnode(
+        final RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        String enodeName = request.getExtFields().get(SnodeConstant.ENODE_NAME);
+        String address = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
+        return this.snodeController.getRemotingClient().invokeSync(address,
+            request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
+    }
 }

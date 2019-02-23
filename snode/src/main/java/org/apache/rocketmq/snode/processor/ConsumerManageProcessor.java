@@ -74,6 +74,10 @@ public class ConsumerManageProcessor implements RequestProcessor {
                 return getMinOffset(remotingChannel, request);
             case RequestCode.CREATE_RETRY_TOPIC:
                 return createRetryTopic(remotingChannel, request);
+            case RequestCode.LOCK_BATCH_MQ:
+                return lockBatchMQ(remotingChannel, request);
+            case RequestCode.UNLOCK_BATCH_MQ:
+                return unlockBatchMQ(remotingChannel, request);
             default:
                 break;
         }
@@ -213,6 +217,18 @@ public class ConsumerManageProcessor implements RequestProcessor {
         final CreateRetryTopicRequestHeader requestHeader = (CreateRetryTopicRequestHeader) request.decodeCommandCustomHeader(CreateRetryTopicRequestHeader.class);
         requestHeader.getEnodeName();
         return this.snodeController.getEnodeService().creatRetryTopic(remotingChannel, requestHeader.getEnodeName(), request);
+    }
+
+    public RemotingCommand lockBatchMQ(RemotingChannel remotingChannel,
+        RemotingCommand request) throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException {
+        return this.snodeController.getEnodeService().lockBatchMQ(remotingChannel, request);
+    }
+
+    public RemotingCommand unlockBatchMQ(RemotingChannel remotingChannel,
+        RemotingCommand request) throws InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException {
+        return this.snodeController.getEnodeService().unlockBatchMQ(remotingChannel, request);
     }
 }
 
