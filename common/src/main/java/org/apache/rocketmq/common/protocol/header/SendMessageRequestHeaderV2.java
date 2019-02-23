@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.common.protocol.header;
 
-import java.net.SocketAddress;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
@@ -57,9 +56,9 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
 
     private String n; //enode name
 
-    private SocketAddress o; //born host
+    private String o; //born host
 
-    private SocketAddress p; //snode host
+    private String p; //snode host
 
     public static SendMessageRequestHeader createSendMessageRequestHeaderV1(final SendMessageRequestHeaderV2 v2) {
         SendMessageRequestHeader v1 = new SendMessageRequestHeader();
@@ -219,19 +218,19 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
         this.n = n;
     }
 
-    public SocketAddress getO() {
+    public String getO() {
         return o;
     }
 
-    public void setO(SocketAddress o) {
+    public void setO(String o) {
         this.o = o;
     }
 
-    public SocketAddress getP() {
+    public String getP() {
         return p;
     }
 
-    public void setP(SocketAddress p) {
+    public void setP(String p) {
         this.p = p;
     }
 

@@ -87,10 +87,11 @@ public class PushServiceImpl implements PushService {
             messageExt.setReconsumeTimes(sendMessageRequestHeader.getReconsumeTimes());
             messageExt.setCommitLogOffset(sendMessageResponseHeader.getCommitLogOffset());
             messageExt.setBornTimestamp(sendMessageRequestHeader.getBornTimestamp());
-            messageExt.setBornHost(sendMessageRequestHeader.getBornHost());
-            messageExt.setStoreHost(RemotingUtil.string2SocketAddressWithIp(sendMessageResponseHeader.getStoreHost()));
+            messageExt.setBornHost(RemotingUtil.string2SocketAddress(sendMessageRequestHeader.getBornHost()));
+            messageExt.setStoreHost(RemotingUtil.string2SocketAddress(sendMessageResponseHeader.getStoreHost()));
             messageExt.setStoreTimestamp(sendMessageResponseHeader.getStoreTimestamp());
             messageExt.setWaitStoreMsgOK(false);
+            messageExt.setStoreSize(sendMessageResponseHeader.getStoreSize());
             messageExt.setSysFlag(sendMessageRequestHeader.getSysFlag());
             messageExt.setFlag(sendMessageRequestHeader.getFlag());
             messageExt.setBody(message);

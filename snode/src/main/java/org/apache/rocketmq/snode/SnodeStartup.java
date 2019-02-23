@@ -29,6 +29,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.SnodeConfig;
@@ -54,7 +55,9 @@ public class SnodeStartup {
     public static void main(String[] args) throws IOException, JoranException {
         SnodeConfig snodeConfig = loadConfig(args);
         if (snodeConfig.isEmbeddedModeEnable()) {
-            BrokerStartup.start(BrokerStartup.createBrokerController(args));
+            BrokerController brokerController = BrokerStartup.createBrokerController(args);
+            BrokerStartup.start(brokerController);
+            snodeConfig.setSnodeName(brokerController.getBrokerConfig().getBrokerName());
         }
         SnodeController snodeController = createSnodeController(snodeConfig);
         startup(snodeController);

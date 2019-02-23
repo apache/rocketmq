@@ -20,7 +20,6 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
-import java.net.SocketAddress;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
@@ -56,9 +55,9 @@ public class SendMessageRequestHeader implements CommandCustomHeader {
 
     private String enodeName;
 
-    private SocketAddress bornHost;
+    private String bornHost;
 
-    private SocketAddress snodeHost;
+    private String snodeHost;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -176,19 +175,19 @@ public class SendMessageRequestHeader implements CommandCustomHeader {
         this.enodeName = enodeName;
     }
 
-    public SocketAddress getBornHost() {
+    public String getBornHost() {
         return bornHost;
     }
 
-    public void setBornHost(SocketAddress bornHost) {
+    public void setBornHost(String bornHost) {
         this.bornHost = bornHost;
     }
 
-    public SocketAddress getSnodeHost() {
+    public String getSnodeHost() {
         return snodeHost;
     }
 
-    public void setSnodeHost(SocketAddress snodeHost) {
+    public void setSnodeHost(String snodeHost) {
         this.snodeHost = snodeHost;
     }
 

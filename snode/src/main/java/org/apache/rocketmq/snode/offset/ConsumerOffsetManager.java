@@ -75,19 +75,6 @@ public class ConsumerOffsetManager {
         }
     }
 
-//    private long parserOffset(final RemotingChannel remotingChannel, final String enodeName, final String group,
-//        final String topic, final int queueId) {
-//        try {
-//            RemotingCommand remotingCommand = queryOffset(remotingChannel, enodeName, group, topic, queueId);
-//            QueryConsumerOffsetResponseHeader responseHeader =
-//                (QueryConsumerOffsetResponseHeader) remotingCommand.decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
-//            return responseHeader.getOffset();
-//        } catch (Exception ex) {
-//            log.error("Load offset from broker error", ex);
-//        }
-//        return -1;
-//    }
-
     public long queryCacheOffset(final String enodeName, final String group, final String topic, final int queueId) {
         String key = buildKey(enodeName, topic, group);
         ConcurrentMap<Integer, CacheOffset> map = this.offsetTable.get(key);
