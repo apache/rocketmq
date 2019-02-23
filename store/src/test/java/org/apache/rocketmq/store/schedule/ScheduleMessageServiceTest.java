@@ -120,9 +120,7 @@ public class ScheduleMessageServiceTest {
         msg.setDelayTimeLevel(delayLevel);
         PutMessageResult result = messageStore.putMessage(msg);
         assertThat(result.isOk()).isTrue();
-        // wait offsetTable
-        TimeUnit.SECONDS.sleep(1);
-        scheduleMessageService.buildRunningStats(new HashMap<String, String>() );
+
 
         // consumer message
         int queueId = ScheduleMessageService.delayLevel2QueueId(delayLevel);
@@ -132,8 +130,11 @@ public class ScheduleMessageServiceTest {
         GetMessageResult messageResult = getMessage(queueId,offset);
         assertThat(messageResult.getStatus()).isEqualTo(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
 
-        // timer run maybe delay, advice sleep > 2
+        // timer run maybe delay, advice sleep > 2,then consumer message again
+        // and wait offsetTable
         TimeUnit.SECONDS.sleep(3);
+        scheduleMessageService.buildRunningStats(new HashMap<String, String>() );
+
         messageResult = getMessage(queueId,offset);
         // now,found the message
         assertThat(messageResult.getStatus()).isEqualTo(GetMessageStatus.FOUND);
@@ -152,8 +153,8 @@ public class ScheduleMessageServiceTest {
         String retryMsg = new String(msgList.get(0).getBody());
         assertThat(sendMessage).isEqualTo(retryMsg);
 
-
-
+        //  method will wait 10s,so I run it by myself
+        scheduleMessageService.persist();
 
         // add mapFile release
         messageResult.release();
@@ -166,11 +167,6 @@ public class ScheduleMessageServiceTest {
 
     }
 
-    @Test
-    public void persist(){
-        // because of the method will wait 10s
-        scheduleMessageService.persist();
-    }
 
 
     @After
