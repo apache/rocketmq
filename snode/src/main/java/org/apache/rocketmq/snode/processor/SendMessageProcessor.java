@@ -28,6 +28,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RequestProcessor;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.interceptor.ExceptionContext;
 import org.apache.rocketmq.remoting.interceptor.RequestContext;
@@ -74,8 +75,9 @@ public class SendMessageProcessor implements RequestProcessor {
             request.getCode() == RequestCode.SEND_BATCH_MESSAGE) {
             sendMessageRequestHeaderV2 = (SendMessageRequestHeaderV2) request.decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
             enodeName = sendMessageRequestHeaderV2.getN();
-            sendMessageRequestHeaderV2.setP(remotingChannel.localAddress());
             stringBuffer.append(sendMessageRequestHeaderV2.getB());
+            request.getExtFields().putIfAbsent("o", RemotingHelper.parseChannelRemoteAddr(remotingChannel.remoteAddress()));
+            request.getExtFields().putIfAbsent("p", RemotingHelper.parseChannelRemoteAddr(remotingChannel.localAddress()));
         } else {
             isSendBack = true;
             consumerSendMsgBackRequestHeader = (ConsumerSendMsgBackRequestHeader) request.decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
@@ -85,7 +87,6 @@ public class SendMessageProcessor implements RequestProcessor {
 
         CompletableFuture<RemotingCommand> responseFuture = snodeController.getEnodeService().sendMessage(remotingChannel, enodeName, request);
 
-        sendMessageRequestHeaderV2.setO(remotingChannel.remoteAddress());
         final byte[] message = request.getBody();
         final boolean needPush = !isSendBack;
         final SendMessageRequestHeader sendMessageRequestHeader =

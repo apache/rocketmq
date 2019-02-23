@@ -1,4 +1,4 @@
-package org.apache.rocketmq.common.protocol.body;/*
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,7 +14,7 @@ package org.apache.rocketmq.common.protocol.body;/*
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+package org.apache.rocketmq.common.protocol.body;
 import java.util.HashMap;
 import java.util.Set;
 import org.apache.rocketmq.common.protocol.route.SnodeData;

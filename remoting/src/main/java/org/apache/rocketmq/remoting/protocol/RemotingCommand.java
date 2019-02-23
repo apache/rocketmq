@@ -49,7 +49,6 @@ public class RemotingCommand {
     private static final int RPC_ONEWAY = 1;
 
 
-
     private static volatile int configVersion = -1;
 
     private static AtomicInteger requestId = new AtomicInteger(0);
