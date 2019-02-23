@@ -48,11 +48,11 @@ public class ScheduleMessageServiceTest {
     /**t
      * defaultMessageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h"
      */
-    String testMessageDelayLevel = "2s 10s";
+    String testMessageDelayLevel = "2s 3s";
     /**
      * choose delay level
      */
-    int delayLevel = 1;
+    int delayLevel = 2;
 
     private static final String storePath = System.getProperty("user.home")  + File.separator + "schedule_test#"+ UUID.randomUUID();
     private static final int commitLogFileSize = 1024;
@@ -87,10 +87,6 @@ public class ScheduleMessageServiceTest {
 
     @Before
     public void init() throws Exception {
-        // delete before
-        File file = new File(storePath);
-        UtilAll.deleteFile(file);
-
         messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMessageDelayLevel(testMessageDelayLevel);
         messageStoreConfig.setMapedFileSizeCommitLog(commitLogFileSize);
@@ -116,6 +112,7 @@ public class ScheduleMessageServiceTest {
     @Test
     public void deliverDelayedMessageTimerTaskTest() throws InterruptedException {
         MessageExtBrokerInner msg = buildMessage();
+        int realQueueId = msg.getQueueId();
         // set delayLevel,and send delay message
         msg.setDelayTimeLevel(delayLevel);
         PutMessageResult result = messageStore.putMessage(msg);
@@ -123,19 +120,21 @@ public class ScheduleMessageServiceTest {
 
 
         // consumer message
-        int queueId = ScheduleMessageService.delayLevel2QueueId(delayLevel);
+        int delayQueueId = ScheduleMessageService.delayLevel2QueueId(delayLevel);
+        assertThat(delayQueueId).isEqualTo(delayLevel - 1);
+
         Long offset = result.getAppendMessageResult().getLogicsOffset();
 
-        // now, no message in queue,must wait > 2 seconds
-        GetMessageResult messageResult = getMessage(queueId,offset);
+        // now, no message in queue,must wait > delayTime
+        GetMessageResult messageResult = getMessage(realQueueId,offset);
         assertThat(messageResult.getStatus()).isEqualTo(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
 
-        // timer run maybe delay, advice sleep > 2,then consumer message again
+        // timer run maybe delay, then consumer message again
         // and wait offsetTable
         TimeUnit.SECONDS.sleep(3);
         scheduleMessageService.buildRunningStats(new HashMap<String, String>() );
 
-        messageResult = getMessage(queueId,offset);
+        messageResult = getMessage(realQueueId,offset);
         // now,found the message
         assertThat(messageResult.getStatus()).isEqualTo(GetMessageStatus.FOUND);
 
@@ -172,7 +171,6 @@ public class ScheduleMessageServiceTest {
     @After
     public void shutdown() throws InterruptedException {
         TimeUnit.SECONDS.sleep(1);
-        scheduleMessageService.shutdown();
         messageStore.shutdown();
         messageStore.destroy();
         File file = new File(messageStoreConfig.getStorePathRootDir());
