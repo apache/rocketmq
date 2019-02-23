@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.snode.service.impl;
 
+import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -24,6 +25,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.netty.CodecHelper;
+import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.service.EnodeService;
 
@@ -100,14 +102,6 @@ public class LocalEnodeServiceImpl implements EnodeService {
     public void persistOffset(RemotingChannel remotingChannel, String enodeName, String groupName, String topic,
         int queueId, long offset) {
         try {
-//            UpdateConsumerOffsetRequestHeader requestHeader = new UpdateConsumerOffsetRequestHeader();
-//            requestHeader.setConsumerGroup(groupName);
-//            requestHeader.setTopic(topic);
-//            requestHeader.setQueueId(queueId);
-//            requestHeader.setCommitOffset(offset);
-//            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_CONSUMER_OFFSET, requestHeader);
-//            this.brokerController.getConsumerManageProcessor().processRequest(remotingChannel, request);
-
             this.brokerController.getConsumerOffsetManager().commitOffset(remotingChannel.remoteAddress().toString(), groupName,
                 topic, queueId, offset);
         } catch (Exception ex) {
@@ -134,5 +128,18 @@ public class LocalEnodeServiceImpl implements EnodeService {
     public long getOffsetByTimestamp(String enodeName,
         String topic, int queueId, long timestamp, RemotingCommand request) {
         return this.brokerController.getMessageStore().getOffsetInQueueByTime(topic, queueId, timestamp);
+    }
+
+    @Override public RemotingCommand lockBatchMQ(RemotingChannel remotingChannel, RemotingCommand request) {
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = (NettyChannelHandlerContextImpl) remotingChannel;
+        ChannelHandlerContext ctx = nettyChannelHandlerContext.getChannelHandlerContext();
+        return this.brokerController.getAdminProcessor().lockBatchMQ(ctx, request);
+    }
+
+    @Override public RemotingCommand unlockBatchMQ(RemotingChannel remotingChannel, RemotingCommand request) {
+        NettyChannelHandlerContextImpl nettyChannelHandlerContext = (NettyChannelHandlerContextImpl) remotingChannel;
+        ChannelHandlerContext ctx = nettyChannelHandlerContext.getChannelHandlerContext();
+        log.info("un");
+        return this.brokerController.getAdminProcessor().lockBatchMQ(ctx, request);
     }
 }

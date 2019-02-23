@@ -121,4 +121,10 @@ public interface EnodeService {
         long timestamp,
         RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
         RemotingConnectException, RemotingCommandException;
+
+    RemotingCommand lockBatchMQ(final RemotingChannel remotingChannel,
+        final RemotingCommand remotingCommand) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
+
+    RemotingCommand unlockBatchMQ(final RemotingChannel remotingChannel,
+        final RemotingCommand remotingCommand) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
 }

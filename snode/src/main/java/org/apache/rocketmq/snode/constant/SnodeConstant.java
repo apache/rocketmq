@@ -32,4 +32,6 @@ public class SnodeConstant {
     public static final AttributeKey<ClientRole> NETTY_CLIENT_ROLE_ATTRIBUTE_KEY = AttributeKey.valueOf("netty.client.role");
 
     public static final AttributeKey<Client> NETTY_CLIENT_ATTRIBUTE_KEY = AttributeKey.valueOf("netty.client");
+
+    public static final String ENODE_NAME = "enodeName";
 }

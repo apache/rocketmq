@@ -101,7 +101,9 @@ public class ScheduledServiceImpl implements ScheduledService {
             @Override
             public void run() {
                 try {
-                    snodeController.getEnodeService().updateEnodeAddress(snodeConfig.getClusterName());
+                    if (!snodeController.getSnodeConfig().isEmbeddedModeEnable()) {
+                        snodeController.getEnodeService().updateEnodeAddress(snodeConfig.getClusterName());
+                    }
                 } catch (Exception ex) {
                     log.warn("Update broker addr error:{}", ex);
                 }
@@ -123,7 +125,9 @@ public class ScheduledServiceImpl implements ScheduledService {
             @Override
             public void run() {
                 try {
-                    snodeController.getNnodeService().updateEnodeClusterInfo();
+                    if (!snodeController.getSnodeConfig().isEmbeddedModeEnable()) {
+                        snodeController.getNnodeService().updateEnodeClusterInfo();
+                    }
                 } catch (Exception ex) {
                     log.warn("Update broker addr error:{}", ex);
                 }
