@@ -16,6 +16,7 @@
  */
 
 package org.apache.rocketmq.store.schedule;
+
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -45,7 +46,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ScheduleMessageServiceTest {
 
 
-    /**t
+    /**
+     * t
      * defaultMessageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h"
      */
     String testMessageDelayLevel = "2s 3s";
@@ -54,7 +56,7 @@ public class ScheduleMessageServiceTest {
      */
     int delayLevel = 2;
 
-    private static final String storePath = System.getProperty("user.home")  + File.separator + "schedule_test#"+ UUID.randomUUID();
+    private static final String storePath = System.getProperty("user.home") + File.separator + "schedule_test#" + UUID.randomUUID();
     private static final int commitLogFileSize = 1024;
     private static final int cqFileSize = 10;
     private static final int cqExtFileSize = 10 * (ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE + 64);
@@ -66,7 +68,7 @@ public class ScheduleMessageServiceTest {
     BrokerConfig brokerConfig;
     ScheduleMessageService scheduleMessageService;
 
-    static String sendMessage =   " ------- schedule message test -------";
+    static String sendMessage = " ------- schedule message test -------";
     static String topic = "schedule_topic_test";
     static String messageGroup = "delayGroupTest";
 
@@ -108,7 +110,6 @@ public class ScheduleMessageServiceTest {
     }
 
 
-
     @Test
     public void deliverDelayedMessageTimerTaskTest() throws InterruptedException {
         MessageExtBrokerInner msg = buildMessage();
@@ -126,22 +127,22 @@ public class ScheduleMessageServiceTest {
         Long offset = result.getAppendMessageResult().getLogicsOffset();
 
         // now, no message in queue,must wait > delayTime
-        GetMessageResult messageResult = getMessage(realQueueId,offset);
+        GetMessageResult messageResult = getMessage(realQueueId, offset);
         assertThat(messageResult.getStatus()).isEqualTo(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
 
         // timer run maybe delay, then consumer message again
         // and wait offsetTable
         TimeUnit.SECONDS.sleep(3);
-        scheduleMessageService.buildRunningStats(new HashMap<String, String>() );
+        scheduleMessageService.buildRunningStats(new HashMap<String, String>());
 
-        messageResult = getMessage(realQueueId,offset);
+        messageResult = getMessage(realQueueId, offset);
         // now,found the message
         assertThat(messageResult.getStatus()).isEqualTo(GetMessageStatus.FOUND);
 
 
         // get the message body
         ByteBuffer byteBuffer = ByteBuffer.allocate(messageResult.getBufferTotalSize());
-        List<ByteBuffer>  byteBufferList = messageResult.getMessageBufferList();
+        List<ByteBuffer> byteBufferList = messageResult.getMessageBufferList();
         for (ByteBuffer bb : byteBufferList) {
             byteBuffer.put(bb);
         }
@@ -160,12 +161,29 @@ public class ScheduleMessageServiceTest {
 
     }
 
-    private GetMessageResult getMessage(int queueId,Long offset){
-        return messageStore.getMessage(messageGroup,topic,
-                queueId,offset,1,null);
+    /**
+     * add some [error/no use] code test
+     */
+    @Test
+    public void otherTest() {
+        // the method no use ,why need ?
+        int queueId = ScheduleMessageService.queueId2DelayLevel(delayLevel);
+        assertThat(queueId).isEqualTo(delayLevel + 1);
 
+        // error delayLevelTest
+        Long time = scheduleMessageService.computeDeliverTimestamp(999, 0);
+        assertThat(time).isEqualTo(1000);
+
+        // just decode
+        scheduleMessageService.decode(new DelayOffsetSerializeWrapper().toJson());
     }
 
+
+    private GetMessageResult getMessage(int queueId, Long offset) {
+        return messageStore.getMessage(messageGroup, topic,
+                queueId, offset, 1, null);
+
+    }
 
 
     @After
@@ -200,7 +218,6 @@ public class ScheduleMessageServiceTest {
                              byte[] filterBitMap, Map<String, String> properties) {
         }
     }
-
 
 
 }
