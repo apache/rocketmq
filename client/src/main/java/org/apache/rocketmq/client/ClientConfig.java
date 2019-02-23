@@ -50,6 +50,7 @@ public class ClientConfig {
     private boolean useTLS = TlsSystemConfig.tlsEnable;
 
     private LanguageCode language = LanguageCode.JAVA;
+    private boolean realPush = false;
 
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
@@ -100,6 +101,7 @@ public class ClientConfig {
         this.vipChannelEnabled = cc.vipChannelEnabled;
         this.useTLS = cc.useTLS;
         this.language = cc.language;
+        this.realPush = cc.realPush;
     }
 
     public ClientConfig cloneClientConfig() {
@@ -116,6 +118,7 @@ public class ClientConfig {
         cc.vipChannelEnabled = vipChannelEnabled;
         cc.useTLS = useTLS;
         cc.language = language;
+        cc.realPush = realPush;
         return cc;
     }
 
@@ -199,12 +202,20 @@ public class ClientConfig {
         this.language = language;
     }
 
+    public boolean isRealPush() {
+        return realPush;
+    }
+
+    public void setRealPush(boolean realPush) {
+        this.realPush = realPush;
+    }
+
     @Override
     public String toString() {
         return "ClientConfig [namesrvAddr=" + namesrvAddr + ", clientIP=" + clientIP + ", instanceName=" + instanceName
             + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInterval=" + pollNameServerInterval
             + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval + ", persistConsumerOffsetInterval="
             + persistConsumerOffsetInterval + ", unitMode=" + unitMode + ", unitName=" + unitName + ", vipChannelEnabled="
-            + vipChannelEnabled + ", useTLS=" + useTLS + ", language=" + language.name() + "]";
+            + vipChannelEnabled + ", useTLS=" + useTLS + ", language=" + language.name() + ", realPush=" + realPush + "]";
     }
 }

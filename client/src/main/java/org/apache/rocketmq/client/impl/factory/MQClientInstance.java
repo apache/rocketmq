@@ -38,6 +38,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
@@ -80,6 +81,7 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.interceptor.InterceptorGroup;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -290,39 +292,44 @@ public class MQClientInstance {
                 } catch (Exception e) {
                     log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", e);
                 }
-                try {
-                    MQClientInstance.this.updateSnodeInfoFromNameServer();
-                } catch (Exception e) {
-                    log.error("ScheduledTask updateSnodeInfoFromNameServer exception", e);
+
+                if (MQClientInstance.this.clientConfig.isRealPush()) {
+                    try {
+                        MQClientInstance.this.updateSnodeInfoFromNameServer();
+                    } catch (Exception e) {
+                        log.error("ScheduledTask updateSnodeInfoFromNameServer exception", e);
+                    }
                 }
             }
         }, 10, this.clientConfig.getPollNameServerInterval(), TimeUnit.MILLISECONDS);
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+        if (this.clientConfig.isRealPush()) {
+            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
-            @Override
-            public void run() {
-                try {
-                    //MQClientInstance.this.cleanOfflineSnode();
-                    MQClientInstance.this.sendHeartbeatToAllSnodeWithLock();
-                } catch (Exception e) {
-                    log.error("ScheduledTask updateSnodeInfoFromNameServer exception", e);
+                @Override
+                public void run() {
+                    try {
+                        //MQClientInstance.this.cleanOfflineSnode();
+                        MQClientInstance.this.sendHeartbeatToAllSnodeWithLock();
+                    } catch (Exception e) {
+                        log.error("ScheduledTask updateSnodeInfoFromNameServer exception", e);
+                    }
                 }
-            }
-        }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
+            }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
+        } else {
+            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
-//        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-//
-//            @Override
-//            public void run() {
-//                try {
-//               MQClientInstance.this.cleanOfflineBroker();
-//                    MQClientInstance.this.sendHeartbeatToAllBrokerWithLock();
-//                } catch (Exception e) {
-//                    log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
-//                }
-//            }
-//        }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
+                @Override
+                public void run() {
+                    try {
+                        MQClientInstance.this.cleanOfflineBroker();
+                        MQClientInstance.this.sendHeartbeatToAllBrokerWithLock();
+                    } catch (Exception e) {
+                        log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
+                    }
+                }
+            }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
+        }
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -500,9 +507,12 @@ public class MQClientInstance {
                 }
                 // may need to check one broker every cluster...
                 // assume that the configs of every broker in cluster are the the same.
-                //String addr = findBrokerAddrByTopic(subscriptionData.getTopic());
-                String addr = findSnodeAddressInPublish();
-
+                String addr = null;
+                if (this.clientConfig.isRealPush()) {
+                    addr = findSnodeAddressInPublish();
+                } else {
+                    addr = findBrokerAddrByTopic(subscriptionData.getTopic());
+                }
                 if (addr != null) {
                     try {
                         this.getMQClientAPIImpl().checkClientInBroker(
@@ -1016,20 +1026,47 @@ public class MQClientInstance {
     }
 
     private void unregisterClient(final String producerGroup, final String consumerGroup) {
-        Iterator<Entry<String, String>> it = this.snodeAddrTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, String> entry = it.next();
-            String snodeName = entry.getKey();
-            String snodeAddr = entry.getValue();
-            if (!entry.getValue().isEmpty()) {
-                try {
-                    this.mQClientAPIImpl.unregisterClient(snodeAddr, this.clientId, producerGroup, consumerGroup, 3000);
-                    log.info("unregister client[Producer: {} Consumer: {}] from snode[{} {}] success", producerGroup, consumerGroup, snodeName, snodeAddr);
-                } catch (Exception e) {
-                    log.error("unregister client exception from snode: " + snodeAddr, e);
+        if (!this.clientConfig.isRealPush()) {
+            Iterator<Entry<String, HashMap<Long, String>>> it = this.brokerAddrTable.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<String, HashMap<Long, String>> entry = it.next();
+                String brokerName = entry.getKey();
+                HashMap<Long, String> oneTable = entry.getValue();
+
+                if (oneTable != null) {
+                    for (Map.Entry<Long, String> entry1 : oneTable.entrySet()) {
+                        String addr = entry1.getValue();
+                        if (addr != null) {
+                            try {
+                                this.mQClientAPIImpl.unregisterClient(addr, this.clientId, producerGroup, consumerGroup, 3000);
+                                log.info("unregister client[Producer: {} Consumer: {}] from broker[{} {} {}] success", producerGroup, consumerGroup, brokerName, entry1.getKey(), addr);
+                            } catch (RemotingException e) {
+                                log.error("unregister client exception from broker: " + addr, e);
+                            } catch (InterruptedException e) {
+                                log.error("unregister client exception from broker: " + addr, e);
+                            } catch (MQBrokerException e) {
+                                log.error("unregister client exception from broker: " + addr, e);
+                            }
+                        }
+                    }
                 }
             }
+        } else {
+            Iterator<Entry<String, String>> it = this.snodeAddrTable.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<String, String> entry = it.next();
+                String snodeName = entry.getKey();
+                String snodeAddr = entry.getValue();
+                if (!entry.getValue().isEmpty()) {
+                    try {
+                        this.mQClientAPIImpl.unregisterClient(snodeAddr, this.clientId, producerGroup, consumerGroup, 3000);
+                        log.info("unregister client[Producer: {} Consumer: {}] from snode[{} {}] success", producerGroup, consumerGroup, snodeName, snodeAddr);
+                    } catch (Exception e) {
+                        log.error("unregister client exception from snode: " + snodeAddr, e);
+                    }
+                }
 
+            }
         }
     }
 
@@ -1192,17 +1229,26 @@ public class MQClientInstance {
     }
 
     public List<String> findConsumerIdList(final String topic, final String group) {
-        String snodeAddr = this.findSnodeAddressInPublish();
-        if (null == snodeAddr) {
-            this.updateSnodeInfoFromNameServer();
-            snodeAddr = this.findSnodeAddressInPublish();
+        String addr = null;
+        if (this.clientConfig.isRealPush()) {
+            addr = this.findSnodeAddressInPublish();
+            if (null == addr) {
+                this.updateSnodeInfoFromNameServer();
+                addr = this.findSnodeAddressInPublish();
+            }
+        } else {
+            addr = this.findBrokerAddrByTopic(topic);
+            if (null == addr) {
+                this.updateTopicRouteInfoFromNameServer(topic);
+                addr = this.findBrokerAddrByTopic(topic);
+            }
         }
 
-        if (null != snodeAddr) {
+        if (null != addr) {
             try {
-                return this.mQClientAPIImpl.getConsumerIdListByGroup(snodeAddr, group, 3000);
+                return this.mQClientAPIImpl.getConsumerIdListByGroup(addr, group, 3000);
             } catch (Exception e) {
-                log.warn("getConsumerIdListByGroup exception, " + snodeAddr + " " + group, e);
+                log.warn("getConsumerIdListByGroup exception, " + addr + " " + group, e);
             }
         }
 
@@ -1394,5 +1440,9 @@ public class MQClientInstance {
         }
 
         return false;
+    }
+
+    public org.apache.rocketmq.client.ClientConfig getClientConfig() {
+        return clientConfig;
     }
 }

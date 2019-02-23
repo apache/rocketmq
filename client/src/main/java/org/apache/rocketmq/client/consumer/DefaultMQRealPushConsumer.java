@@ -273,6 +273,7 @@ public class DefaultMQRealPushConsumer extends ClientConfig implements MQRealPus
     public DefaultMQRealPushConsumer(final String consumerGroup, RPCHook rpcHook,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
         this.consumerGroup = consumerGroup;
+        this.setRealPush(true);
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         defaultMQPushConsumerImpl = new DefaultMQRealPushConsumerImpl(this, rpcHook);
     }
@@ -287,6 +288,7 @@ public class DefaultMQRealPushConsumer extends ClientConfig implements MQRealPus
     public DefaultMQRealPushConsumer(final String consumerGroup, RPCHook rpcHook,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean realPushModel) {
         this.consumerGroup = consumerGroup;
+        this.setRealPush(true);
         if (allocateMessageQueueStrategy == null) {
             this.allocateMessageQueueStrategy = new AllocateMessageQueueAveragely();
         } else {
@@ -310,6 +312,7 @@ public class DefaultMQRealPushConsumer extends ClientConfig implements MQRealPus
         AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean enableMsgTrace,
         final String customizedTraceTopic) {
         this.consumerGroup = consumerGroup;
+        this.setRealPush(true);
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         defaultMQPushConsumerImpl = new DefaultMQRealPushConsumerImpl(this, rpcHook);
         if (enableMsgTrace) {
