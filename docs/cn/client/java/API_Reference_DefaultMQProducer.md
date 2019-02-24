@@ -6,7 +6,7 @@
 extends ClientConfig 
 implements MQProducer`
 
->`DefaultMQProducer`类是应用用来投递消息的入口，开箱即用，可通过无参构造方法快速创建一个生产者。主要负责消息的发送，支持同步/异步/onway的发送方式，发送方式均支持批量发送。可以通过它提供有一系列的getter/setter方法，调整发送者的参数。`DefaultMQProducer`提供了多个send方法，每个send方法略有不同，在使用前务必详细了解其意图。下面给出一个生产者示例代码，[点击查看更多示例代码](https://github.com/apache/rocketmq/blob/master/example/src/main/java/org/apache/rocketmq/example/)。
+>`DefaultMQProducer`类是应用用来投递消息的入口，开箱即用，可通过无参构造方法快速创建一个生产者。主要负责消息的发送，支持同步/异步/oneway的发送方式，这些发送方式均支持批量发送。可以通过该类提供的getter/setter方法，调整发送者的参数。`DefaultMQProducer`提供了多个send方法，每个send方法略有不同，在使用前务必详细了解其意图。下面给出一个生产者示例代码，[点击查看更多示例代码](https://github.com/apache/rocketmq/blob/master/example/src/main/java/org/apache/rocketmq/example/)。
 
 ``` java 
 public class Producer {
@@ -39,7 +39,7 @@ public class Producer {
 }
 ```
 
-**注意：**该类是线程安全的。在配置并启动完成后可在多个线程间安全共享。
+**注意**：该类是线程安全的。在配置并启动完成后可在多个线程间安全共享。
 
 ### 字段摘要
 |类型|字段名称|描述|
@@ -93,10 +93,10 @@ public class Producer {
 |SendResult|send(Message msg, MessageQueueSelector selector, Object arg)|向消息队列同步单条发送消息，并指定发送队列选择器|
 |SendResult|send(Message msg, MessageQueueSelector selector, Object arg, long timeout)|向消息队列同步单条发送消息，并指定发送队列选择器与超时时间|
 |void|send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback)|向指定的消息队列异步单条发送消息|
-|void|send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback, long timeout)|向指定的消息队列异步单条发送消息|
+|void|send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback, long timeout)|向指定的消息队列异步单条发送消息，并指定超时时间|
 |void|send(Message msg, SendCallback sendCallback)|异步发送消息|
 |void|send(Message msg, SendCallback sendCallback, long timeout)|异步发送消息，并指定回调方法和超时时间|
-|TransactionSendResult|sendMessageInTransaction(Message msg, LocalTransactionExecuter tranExecuter, final Object arg)|发送事务消息|
+|TransactionSendResult|sendMessageInTransaction(Message msg, LocalTransactionExecuter tranExecuter, final Object arg)|发送事务消息，并指定本地执行事务实例|
 |TransactionSendResult|sendMessageInTransaction(Message msg, Object arg)|发送事务消息|
 |void|sendOneway(Message msg)|单向发送消息，不等待broker响应|
 |void|sendOneway(Message msg, MessageQueue mq) |单向发送消息到指定队列，不等待broker响应|
@@ -104,7 +104,7 @@ public class Producer {
 |void|shutdown()|关闭当前生产者实例并释放相关资源|
 |void|start()|启动生产者|
 |MessageExt|viewMessage(String offsetMsgId)|根据给定的msgId查询消息|
-|MessageExt|public MessageExt viewMessage(String topic, String msgId)|根据给定的msgId查询消息|
+|MessageExt|public MessageExt viewMessage(String topic, String msgId)|根据给定的msgId查询消息，并指定topic|
 
 ### 字段详细信息
 
@@ -112,7 +112,7 @@ public class Producer {
 
 	`private String producerGroup`
 	
-	生产者的分组名称。 相同的分组名称表明生产者实例在概念上归属于同一个分组， 这对事务消息十分重要，如果原始生产者在事务之后崩溃，则代理可以联系同一生产者分组的不同生产者实例来提交或回滚事务；但对普通消息没什么影响。
+	生产者的分组名称。相同的分组名称表明生产者实例在概念上归属于同一分组。这对事务消息十分重要，如果原始生产者在事务之后崩溃，那么broker可以联系同一生产者分组的不同生产者实例来提交或回滚事务。
 
 	默认值：DEFAULT_PRODUCER
 
@@ -170,7 +170,7 @@ public class Producer {
 
 	默认值：2，即：默认情况下一条消息最多会被投递3次。
 
-	注意：这可能会导致消息的重复。
+	注意：在极端情况下，这可能会导致消息的重复。
 
 - retryTimesWhenSendAsyncFailed
 
@@ -180,7 +180,7 @@ public class Producer {
 
 	默认值：2，即：默认情况下一条消息最多会被投递3次。
 
-	注意：这可能会导致消息的重复。
+	注意：在极端情况下，这可能会导致消息的重复。
 
 - retryAnotherBrokerWhenNotStoreOK
 
@@ -250,7 +250,7 @@ public class Producer {
 		参数名 | 类型 | 是否必须 | 缺省值 |描述
 		---|---|---|---|---
 		producerGroup | String | 是 | DEFAULT_PRODUCER | 生产者的分组名称
-		rpcHook | RPCHook | 否 | null |每个远程命令执行后会回掉rpcHook
+		rpcHook | RPCHook | 否 | null |每个远程命令执行后会回调rpcHook
 		enableMsgTrace | boolean | 是 | false |是否开启消息追踪
 		customizedTraceTopic | String | 否 | RMQ_SYS_TRACE_TOPIC | 消息跟踪topic的名称
 
@@ -264,7 +264,7 @@ public class Producer {
 
 		参数名 | 类型 | 是否必须 | 缺省值 |描述
 		---|---|---|---|---
-		rpcHook | RPCHook | 否 | null |每个远程命令执行后会回掉rpcHook
+		rpcHook | RPCHook | 否 | null |每个远程命令执行后会回调rpcHook
 
 6. DefaultMQProducer
 
@@ -277,7 +277,7 @@ public class Producer {
 		参数名 | 类型 | 是否必须 | 缺省值 |描述
 		---|---|---|---|---
 		producerGroup | String | 是 | DEFAULT_PRODUCER | 生产者的分组名称
-		rpcHook | RPCHook | 否 | null |每个远程命令执行后会回掉rpcHook
+		rpcHook | RPCHook | 否 | null |每个远程命令执行后会回调rpcHook
 
 7. DefaultMQProducer
 
@@ -290,7 +290,7 @@ public class Producer {
 	参数名 | 类型 | 是否必须 | 缺省值 |描述
 	---|---|---|---|---
 	producerGroup | String | 是 | DEFAULT_PRODUCER | 生产者的分组名称
-	rpcHook | RPCHook | 否 | null |每个远程命令执行后会回掉rpcHook
+	rpcHook | RPCHook | 否 | null |每个远程命令执行后会回调rpcHook
 	enableMsgTrace | boolean | 是 | false |是否开启消息追踪
 	customizedTraceTopic | String | 否 | RMQ_SYS_TRACE_TOPIC | 消息跟踪topic的名称
 
@@ -307,7 +307,7 @@ public class Producer {
 		参数名 | 类型 | 是否必须 | 默认值 |值范围 | 说明
 		---|---|---|---|---|---
 		key | String | 是 | | | 访问密钥。
-		newTopic | String | 是 | |  | 新建topic的名称。由数字、字母、下划线、横杠（-）、竖线（|）或百分号组成；<br>长度小于255；不能为TBW102或空。
+		newTopic | String | 是 | |  | 新建topic的名称。由数字、字母、下划线（_）、横杠（-）、竖线（&#124;）或百分号（%）组成；<br>长度小于255；不能为TBW102或空。
 		queueNum | int | 是 | 0 | (0, maxIntValue] | topic的队列数量。
 
 	- 返回值描述：
@@ -329,9 +329,9 @@ public class Producer {
 		参数名 | 类型 | 是否必须 | 默认值 |值范围 | 说明
 		---|---|---|---|---|---
 		key | String | 是 | | | 访问密钥。
-		newTopic | String | 是 | |  | 新建topic的名称。由数字、字母、下划线、横杠（-）、竖线（|）或百分号组成；<br>长度小于255；不能为TBW102或空。
+		newTopic | String | 是 | |  | 新建topic的名称。
 		queueNum | int | 是 | 0 | (0, maxIntValue] | topic的队列数量。
-		topicSysFlag | int | 是 | 0 | | 保留字段，暂未使用。默认值：0。
+		topicSysFlag | int | 是 | 0 | | 保留字段，暂未使用。
 
 	- 返回值描述：
 
@@ -355,7 +355,7 @@ public class Producer {
 		
 	- 返回值描述：
 
-		指定队列最早的消息存储时间。单位：毫秒
+		指定队列最早的消息存储时间。单位：毫秒。
 
 	- 异常描述：
 
@@ -434,8 +434,8 @@ public class Producer {
 		topic | String | 是 | | | topic名称
 		key | String | 否 | null | | 查找的关键字
 		maxNum | int | 是 | | | 返回消息的最大数量
-		begin | long | 是 | | | 开始时间戳，单位：毫秒。
-		end | long | 是 | | | 结束时间戳，单位：毫秒。
+		begin | long | 是 | | | 开始时间戳，单位：毫秒
+		end | long | 是 | | | 结束时间戳，单位：毫秒
 
 	- 返回值描述：
 
@@ -457,7 +457,7 @@ public class Producer {
 		参数名 | 类型 | 是否必须 | 默认值 | 值范围 | 说明
 		---|---|---|---|---|---
 		mq | MessageQueue | 是 | | | 要查询的消息队列。
-		timestamp | long | 是 | | | | 指定要查询时间的时间戳。单位：毫秒。
+		timestamp | long | 是 | | | 指定要查询时间的时间戳。单位：毫秒。
 
 	- 返回值描述：
 
@@ -467,19 +467,18 @@ public class Producer {
 
 		MQClientException - 生产者状态非Running；没有找到broker；broker返回失败；网络异常；线程中断等客户端异常。
 
-10. send
+9. send
 
 	`public SendResult send(Collection<Message> msgs)`
 
-	同步批量发送消息，如果在既定的超时时间内未完成消息投递，会抛出*RemotingTooMuchRequestException*。在返回发送失败之前，内部尝试重新发送消息的最大次数（参见*retryTimesWhenSendFailed*属性），这可能会导致消息的重复。未明确指定发送队列，默认采取轮询策略发送。
-	
-	注意：指定队列意味着所有消息均为同一个topic。
+	同步批量发送消息，如果在默认的超时时间内未完成消息投递，会抛出*RemotingTooMuchRequestException*。
+	在返回发送失败之前，内部尝试重新发送消息的最大次数（参见*retryTimesWhenSendFailed*属性）。未明确指定发送队列，默认采取轮询策略发送。
 
 	- 入参描述：
 		
 		参数名 | 类型 | 是否必须 | 默认值 | 值范围 | 说明
 		---|---|---|---|---|---
-		msgs | Collection<Message> | 是 | | | 待发送的消息集合。集合内的消息必须属同一个topic
+		msgs | Collection<Message> | 是 | | | 待发送的消息集合。集合内的消息必须属同一个topic。
 
 	- 返回值描述：
 
@@ -497,9 +496,8 @@ public class Producer {
 
 	`public SendResult send(Collection<Message> msgs, long timeout)`
 
-	同步批量发送消息，如果在指定的超时时间内未完成消息投递，会抛出*RemotingTooMuchRequestException*。在返回发送失败之前，内部尝试重新发送消息的最大次数（参见*retryTimesWhenSendFailed*属性），这可能会导致消息的重复。未明确指定发送队列，默认采取轮询策略发送。
-
-	注意：指定队列意味着所有消息均为同一个topic。
+	同步批量发送消息，如果在指定的超时时间内未完成消息投递，会抛出*RemotingTooMuchRequestException*。
+	在返回发送失败之前，内部尝试重新发送消息的最大次数（参见*retryTimesWhenSendFailed*属性）。未明确指定发送队列，默认采取轮询策略发送。
 
 	- 入参描述：
 		
@@ -524,7 +522,8 @@ public class Producer {
 
 	`public SendResult send(Collection<Message> msgs, MessageQueue messageQueue)`
 
-	向给定队列同步批量发送消息，如果在既定的超时时间内未完成消息投递，会抛出*RemotingTooMuchRequestException*。在返回发送失败之前，内部尝试重新发送消息的最大次数（参见*retryTimesWhenSendFailed*属性），这可能会导致消息的重复。
+	向给定队列同步批量发送消息，如果在默认的超时时间内未完成消息投递，会抛出*RemotingTooMuchRequestException*。
+	
 	注意：指定队列意味着所有消息均为同一个topic。
 
 	- 入参描述：
@@ -550,7 +549,8 @@ public class Producer {
 
 	`public SendResult send(Collection<Message> msgs, MessageQueue messageQueue, long timeout)`
 
-	向给定队列同步批量发送消息，如果在指定的超时时间内未完成消息投递，会抛出*RemotingTooMuchRequestException*。在返回发送失败之前，内部尝试重新发送消息的最大次数（参见*retryTimesWhenSendFailed*属性），这可能会导致消息的重复。
+	向给定队列同步批量发送消息，如果在指定的超时时间内未完成消息投递，会抛出*RemotingTooMuchRequestException*。
+	
 	注意：指定队列意味着所有消息均为同一个topic。
 
 	- 入参描述：
@@ -578,7 +578,7 @@ public class Producer {
 	`public SendResult send(Message msg)`
 
 	以同步模式发送消息，如果在默认的超时时间内未完成消息投递，会抛出*RemotingTooMuchRequestException*。仅当发送过程完全完成时，此方法才会返回。
-	在返回发送失败之前，内部尝试重新发送消息的最大次数（参见*retryTimesWhenSendFailed*属性），这可能会导致消息的重复。未明确指定发送队列，默认采取轮询策略发送。
+	在返回发送失败之前，内部尝试重新发送消息的最大次数（参见*retryTimesWhenSendFailed*属性）。未明确指定发送队列，默认采取轮询策略发送。
 
 	- 入参描述：
 		
@@ -603,7 +603,7 @@ public class Producer {
 	`public SendResult send(Message msg, long timeout)`
 
 	以同步模式发送消息，如果在指定的超时时间内未完成消息投递，会抛出*RemotingTooMuchRequestException*。仅当发送过程完全完成时，此方法才会返回。
-	在返回发送失败之前，内部尝试重新发送消息的最大次数（参见*retryTimesWhenSendFailed*属性），这可能会导致消息的重复。未明确指定发送队列，默认采取轮询策略发送。
+	在返回发送失败之前，内部尝试重新发送消息的最大次数（参见*retryTimesWhenSendFailed*属性）。未明确指定发送队列，默认采取轮询策略发送。
 
 	- 入参描述：
 		
@@ -626,10 +626,9 @@ public class Producer {
 
 15. send
 
-	`send(Message msg, MessageQueue mq)`
+	`public SendResult send(Message msg, MessageQueue mq)`
 
 	向指定的消息队列同步发送单条消息，如果在指定的超时时间内未完成消息投递，会抛出*RemotingTooMuchRequestException*。仅当发送过程完全完成时，此方法才会返回。
-	在返回发送失败之前，内部尝试重新发送消息的最大次数（参见*retryTimesWhenSendFailed*属性），这可能会导致消息的重复。
 
 	- 入参描述：
 		
@@ -655,7 +654,6 @@ public class Producer {
 	`public SendResult send(Message msg, MessageQueue mq, long timeout)`
 
 	向指定的消息队列同步发送单条消息，如果在指定的超时时间内未完成消息投递，会抛出*RemotingTooMuchRequestException*。仅当发送过程完全完成时，此方法才会返回。
-	在返回发送失败之前，内部尝试重新发送消息的最大次数（参见*retryTimesWhenSendFailed*属性），这可能会导致消息的重复。
 
 	- 入参描述：
 		
@@ -681,7 +679,8 @@ public class Producer {
 
 	`public void send(Message msg, MessageQueue mq, SendCallback sendCallback)`
 
-	向指定的消息队列异步发送单条消息，异步发送调用后直接返回，并在在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。异步发送时，在成功发送前，其内部会尝试重新发送消息的最大次数（参见*retryTimesWhenSendAsyncFailed*属性），这有可能会导致消息的重复。
+	向指定的消息队列异步发送单条消息，异步发送调用后直接返回，并在在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
+	异步发送时，在成功发送前，其内部会尝试重新发送消息的最大次数（参见*retryTimesWhenSendAsyncFailed*属性）。
 
 	- 入参描述：
 		
@@ -705,7 +704,9 @@ public class Producer {
 
 	`public void send(Message msg, MessageQueue mq, SendCallback sendCallback, long timeout)`
 
-	向指定的消息队列异步发送单条消息，并在发送操作完成后（不论成功还是失败）或者异常时调用设置的回调方法。
+	向指定的消息队列异步发送单条消息，异步发送调用后直接返回，并在在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
+	若在指定时间内消息未发送成功，回调方法会收到*RemotingTooMuchRequestException*异常。
+	异步发送时，在成功发送前，其内部会尝试重新发送消息的最大次数（参见*retryTimesWhenSendAsyncFailed*属性）。
 
 	- 入参描述：
 		
@@ -730,10 +731,11 @@ public class Producer {
 	`public SendResult send(Message msg, MessageQueueSelector selector, Object arg)`
 
 	向通过`MessageQueueSelector`计算出的队列同步发送消息。
-	注意：此消息发送失败内部不会重试。
 
 	可以通过自实现`MessageQueueSelector`接口，将某一类消息发送至固定的队列。比如：将同一个订单的状态变更消息投递至固定的队列。
 
+    注意：此消息发送失败内部不会重试。
+    
 	- 入参描述：
 		
 		参数名 | 类型 | 是否必须 | 默认值 | 值范围 | 说明
@@ -759,10 +761,10 @@ public class Producer {
 	`public SendResult send(Message msg, MessageQueueSelector selector, Object arg, long timeout)`
 
 	向通过`MessageQueueSelector`计算出的队列同步发送消息，并指定发送超时时间。
-	
-	注意：此消息发送失败内部不会重试。
 
 	可以通过自实现`MessageQueueSelector`接口，将某一类消息发送至固定的队列。比如：将同一个订单的状态变更消息投递至固定的队列。
+	
+	注意：此消息发送失败内部不会重试。
 
 	- 入参描述：
 		
@@ -789,8 +791,7 @@ public class Producer {
 	`public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback)`
 
 	向通过`MessageQueueSelector`计算出的队列异步发送单条消息，异步发送调用后直接返回，并在在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
-
-	注意：此消息发送失败内部不会重试。
+	异步发送时，在成功发送前，其内部会尝试重新发送消息的最大次数（参见*retryTimesWhenSendAsyncFailed*属性）。
 
 	可以通过自实现`MessageQueueSelector`接口，将某一类消息发送至固定的队列。比如：将同一个订单的状态变更消息投递至固定的队列。
 
@@ -818,8 +819,7 @@ public class Producer {
 	`public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback, long timeout)`
 
 	向通过`MessageQueueSelector`计算出的队列异步发送单条消息，异步发送调用后直接返回，并在在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
-
-	注意：此消息发送失败内部不会重试。
+	异步发送时，在成功发送前，其内部会尝试重新发送消息的最大次数（参见*retryTimesWhenSendAsyncFailed*属性）。
 
 	可以通过自实现`MessageQueueSelector`接口，将某一类消息发送至固定的队列。比如：将同一个订单的状态变更消息投递至固定的队列。
 
@@ -847,7 +847,8 @@ public class Producer {
 
 	`public void send(Message msg, SendCallback sendCallback)`
 
-	异步发送单条消息，异步发送调用后直接返回，并在在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。异步发送时，在成功发送前，其内部会尝试重新发送消息的最大次数（参见*retryTimesWhenSendAsyncFailed*属性），这可能会导致消息的重复。
+	异步发送单条消息，异步发送调用后直接返回，并在在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
+	异步发送时，在成功发送前，其内部会尝试重新发送消息的最大次数（参见*retryTimesWhenSendAsyncFailed*属性）。
 
 	- 入参描述：
 		
@@ -870,7 +871,8 @@ public class Producer {
 
 	`public void send(Message msg, SendCallback sendCallback, long timeout)`
 
-	异步发送单条消息，异步发送调用后直接返回，并在在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。异步发送时，在成功发送前，其内部会尝试重新发送消息的最大次数（参见*retryTimesWhenSendAsyncFailed*属性），这可能会导致消息的重复。
+	异步发送单条消息，异步发送调用后直接返回，并在在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
+	异步发送时，在成功发送前，其内部会尝试重新发送消息的最大次数（参见*retryTimesWhenSendAsyncFailed*属性）。
 
 	- 入参描述：
 		
@@ -937,7 +939,7 @@ public class Producer {
 
 	`public void sendOneway(Message msg)`
 
-	  oneway发送之后broker不会响应任何执行结果，和[UDP](https://en.wikipedia.org/wiki/User_Datagram_Protocol)类似。它具有最大的吞吐量但消息可能会丢失。
+	  以oneway形式发送消息，broker不会响应任何执行结果，和[UDP](https://en.wikipedia.org/wiki/User_Datagram_Protocol)类似。它具有最大的吞吐量但消息可能会丢失。
 
 	  可在消息量大，追求高吞吐量并允许消息丢失的情况下使用该方式。
 
@@ -961,7 +963,7 @@ public class Producer {
 
 	`public void sendOneway(Message msg, MessageQueue mq)`
 
-	  oneway发送之后broker不会响应任何执行结果，和[UDP](https://en.wikipedia.org/wiki/User_Datagram_Protocol)类似。它具有最大的吞吐量但消息可能会丢失。
+	  向指定队列以oneway形式发送消息，broker不会响应任何执行结果，和[UDP](https://en.wikipedia.org/wiki/User_Datagram_Protocol)类似。它具有最大的吞吐量但消息可能会丢失。
 
 	  可在消息量大，追求高吞吐量并允许消息丢失的情况下使用该方式。
 
@@ -983,7 +985,7 @@ public class Producer {
 
 	`public void sendOneway(Message msg, MessageQueueSelector selector, Object arg)`
 
-	   oneway发送之后broker不会响应任何执行结果，和[UDP](https://en.wikipedia.org/wiki/User_Datagram_Protocol)类似。它具有最大的吞吐量但消息可能会丢失。
+	  向通过`MessageQueueSelector`计算出的队列以oneway形式发送消息，broker不会响应任何执行结果，和[UDP](https://en.wikipedia.org/wiki/User_Datagram_Protocol)类似。它具有最大的吞吐量但消息可能会丢失。
 
 	  可在消息量大，追求高吞吐量并允许消息丢失的情况下使用该方式。
 
@@ -1066,7 +1068,7 @@ public class Producer {
 
 	`public MessageExt viewMessage(String topic, String msgId)`
 
-	根据给定的msgId查询消息。
+	根据给定的msgId查询消息，并指定topic。
 
 	- 入参描述：
 
