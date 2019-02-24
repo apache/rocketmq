@@ -6,6 +6,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.junit.Test;
 
+import java.util.Map;
 import java.util.Properties;
 
 
@@ -35,9 +36,9 @@ public class ConfigurationTest {
         System.out.println("--------------------------------");
         configuration.registerConfig(nettyServerConfig);
         Properties allConfigs = configuration.getAllConfigs();
-        allConfigs.forEach((k,v)->{
-            System.out.println(k+"-->"+v);
-        });
+        for (Map.Entry<Object, Object> entry : allConfigs.entrySet()) {
+            System.out.println(entry.getKey()+" : "+entry.getValue());
+        }
         System.out.println("--------------------------------");
         Properties extProter = new Properties();
         extProter.setProperty("hello","word");
