@@ -471,8 +471,7 @@ public class Producer {
 
 	`public SendResult send(Collection<Message> msgs)`
 
-	同步批量发送消息，如果在默认的超时时间内未完成消息投递，会抛出*RemotingTooMuchRequestException*。
-	在返回发送失败之前，内部尝试重新发送消息的最大次数（参见*retryTimesWhenSendFailed*属性）。未明确指定发送队列，默认采取轮询策略发送。
+	同步批量发送消息。在返回发送失败之前，内部尝试重新发送消息的最大次数（参见*retryTimesWhenSendFailed*属性）。未明确指定发送队列，默认采取轮询策略发送。
 
 	- 入参描述：
 		
@@ -522,7 +521,7 @@ public class Producer {
 
 	`public SendResult send(Collection<Message> msgs, MessageQueue messageQueue)`
 
-	向给定队列同步批量发送消息，如果在默认的超时时间内未完成消息投递，会抛出*RemotingTooMuchRequestException*。
+	向给定队列同步批量发送消息。
 	
 	注意：指定队列意味着所有消息均为同一个topic。
 
@@ -577,7 +576,7 @@ public class Producer {
 
 	`public SendResult send(Message msg)`
 
-	以同步模式发送消息，如果在默认的超时时间内未完成消息投递，会抛出*RemotingTooMuchRequestException*。仅当发送过程完全完成时，此方法才会返回。
+	以同步模式发送消息，仅当发送过程完全完成时，此方法才会返回。
 	在返回发送失败之前，内部尝试重新发送消息的最大次数（参见*retryTimesWhenSendFailed*属性）。未明确指定发送队列，默认采取轮询策略发送。
 
 	- 入参描述：
@@ -628,7 +627,7 @@ public class Producer {
 
 	`public SendResult send(Message msg, MessageQueue mq)`
 
-	向指定的消息队列同步发送单条消息，如果在指定的超时时间内未完成消息投递，会抛出*RemotingTooMuchRequestException*。仅当发送过程完全完成时，此方法才会返回。
+	向指定的消息队列同步发送单条消息。仅当发送过程完全完成时，此方法才会返回。
 
 	- 入参描述：
 		
