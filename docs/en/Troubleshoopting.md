@@ -1,6 +1,6 @@
 # Operation FAQ
 
-## 1. RocketMQ's mqadmin command error
+## 1. RocketMQ's mqadmin command error.
 
 >  Problem: Sometimes after deploying the RocketMQ cluster, when you try to execute some commands of "mqadmin", the following exception will appear：
 >
