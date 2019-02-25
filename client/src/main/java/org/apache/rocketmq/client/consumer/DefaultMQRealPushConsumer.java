@@ -28,7 +28,6 @@ import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAverage
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQRealPushConsumerImpl;
 import org.apache.rocketmq.client.impl.consumer.MQPushConsumerInner;
 import org.apache.rocketmq.client.log.ClientLogger;
