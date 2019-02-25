@@ -8,7 +8,7 @@ The following questions are frequently asked with regard to the RocketMQ project
 
 Please refer to [Why RocketMQ](http://rocketmq.apache.org/docs/motivation)
 
-### 2. Do I have to install other softewares, such as zookeeper, to use RocketMQ?
+### 2. Do I have to install other softeware, such as zookeeper, to use RocketMQ?
 
 No. RocketMQ can run independently.
 
