@@ -1,8 +1,8 @@
-# **6 The system configuration** #
+# ** The system configuration** #
 
 This section focuses on the configuration of the system (JVM/OS)
 
-## **6.1 JVM Options** ##
+## **1 JVM Options** ##
 
 The latest released version of JDK 1.8 is recommended. Set the same Xms and Xmx value to prevent the JVM from resizing the heap for better performance. A simple JVM configurations looks like this:
 
@@ -34,7 +34,7 @@ If write GC file will increase latency of broker, consider redirect GC log file 
     
     -Xloggc:/dev/shm/mq_gc_%p.log123
 
-## 6.2 Linux Kernel Parameters ##
+## 2 Linux Kernel Parameters ##
 
 There is a os.sh script that lists a lot of kernel parameters in folder bin which can be used for production use with minor changes. Below parameters need attention, and more details please refer to documentation for /proc/sys/vm/*.
 
