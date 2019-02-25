@@ -82,7 +82,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
 
                 RemotingCommand response;
-                SocketAddress bornHost = RemotingHelper.string2SocketAddress(requestHeader.getBornHost());
+                SocketAddress bornHost = null;
+                if (requestHeader.getBornHost() != null) {
+                    bornHost = RemotingHelper.string2SocketAddress(requestHeader.getBornHost());
+                } else {
+                    bornHost = ctx.channel().remoteAddress();
+                }
 
                 if (requestHeader.isBatch()) {
                     response = this.sendBatchMessage(bornHost, request, mqtraceContext, requestHeader);
