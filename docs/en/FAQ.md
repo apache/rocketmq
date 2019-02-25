@@ -46,7 +46,7 @@ The following answers are all default values and can be modified by configuratio
 
 ### 1. How long are the messages saved on the server?
 
-Stored messages are will be saved for up to 3 days, and messages that are not consumed for more than 3 days will be deleted.
+Stored messages will be saved for up to 3 days, and messages that are not consumed for more than 3 days will be deleted.
 
 ### 2. What is the size limit for message Body?
 
