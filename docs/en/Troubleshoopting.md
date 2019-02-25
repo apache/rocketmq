@@ -20,7 +20,7 @@ Solution: Execute  `export NAMESRV_ADDR=ip:9876` (ip refers to the address of Na
 
 Solution: The jar package of RocketMQ, such as rocketmq-client, should be the same version on the consumer and producer.
 
-## 3. When adding a new topic consumer group, historical messages can't be consumed.
+## 3. When adding a new topic consumer group, historical messages can‘t be consumed.
 
 > Problem: When a new consumer group of the same topic is started, the consumed message is the current offset message, and the historical message is not obtained.
 
