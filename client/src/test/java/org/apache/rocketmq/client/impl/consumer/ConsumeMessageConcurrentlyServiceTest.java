@@ -64,7 +64,7 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class ConsumeMessageConcurrentlyServiceTest {
     private String consumerGroup;
-    private String topic = "FooBarConsume";
+    private String topic = "FooBar";
     private String brokerName = "BrokerA";
     private MQClientInstance mQClientFactory;
 
@@ -76,7 +76,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
 
     @Before
     public void init() throws Exception {
-        consumerGroup = "FooBarConsumeGroup" + System.currentTimeMillis();
+        consumerGroup = "FooBarGroup" + System.currentTimeMillis();
         pushConsumer = new DefaultMQPushConsumer(consumerGroup);
         pushConsumer.setNamesrvAddr("127.0.0.1:9876");
         pushConsumer.setPullInterval(60 * 1000);
