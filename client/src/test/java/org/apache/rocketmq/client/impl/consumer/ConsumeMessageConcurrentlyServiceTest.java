@@ -64,7 +64,7 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class ConsumeMessageConcurrentlyServiceTest {
     private String consumerGroup;
-    private String topic = "FooBar";
+    private String topic = "FooBarConsume";
     private String brokerName = "BrokerA";
     private MQClientInstance mQClientFactory;
 
@@ -76,7 +76,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
 
     @Before
     public void init() throws Exception {
-        consumerGroup = "FooBarGroup" + System.currentTimeMillis();
+        consumerGroup = "FooBarConsumeGroup" + System.currentTimeMillis();
         pushConsumer = new DefaultMQPushConsumer(consumerGroup);
         pushConsumer.setNamesrvAddr("127.0.0.1:9876");
         pushConsumer.setPullInterval(60 * 1000);
@@ -136,11 +136,9 @@ public class ConsumeMessageConcurrentlyServiceTest {
                 });
 
         doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
-        doReturn(Collections.singletonList(mQClientFactory.getClientId())).when(mQClientFactory).findConsumerIdList(anyString(), anyString());
         Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
         messageQueueSet.add(createPullRequest().getMessageQueue());
         pushConsumer.getDefaultMQPushConsumerImpl().updateTopicSubscribeInfo(topic, messageQueueSet);
-        doReturn(123L).when(rebalancePushImpl).computePullFromWhere(any(MessageQueue.class));
     }
 
     @Test
@@ -163,6 +161,8 @@ public class ConsumeMessageConcurrentlyServiceTest {
         pullMessageService.executePullRequestImmediately(createPullRequest());
         countDownLatch.await();
 
+        Thread.sleep(1000);
+
         org.apache.rocketmq.common.protocol.body.ConsumeStatus stats = normalServie.getConsumerStatsManager().consumeStatus(pushConsumer.getDefaultMQPushConsumerImpl().groupName(),topic);
 
         ConsumerStatsManager mgr  =   normalServie.getConsumerStatsManager();
@@ -173,7 +173,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
         StatsItemSet itemSet = (StatsItemSet)statItmeSetField.get(mgr);
         StatsItem item = itemSet.getAndCreateStatsItem(topic + "@" + pushConsumer.getDefaultMQPushConsumerImpl().groupName());
 
-        assertThat(item.getValue().get()).isEqualTo(1L);
+         assertThat(item.getValue().get()).isEqualTo(1L);
         assertThat(messageExts[0].getTopic()).isEqualTo(topic);
         assertThat(messageExts[0].getBody()).isEqualTo(new byte[] {'a'});
     }
