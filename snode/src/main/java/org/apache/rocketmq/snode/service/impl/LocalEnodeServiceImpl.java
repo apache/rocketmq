@@ -48,7 +48,7 @@ public class LocalEnodeServiceImpl implements EnodeService {
         RemotingCommand request) {
         CompletableFuture<RemotingCommand> completableFuture = new CompletableFuture<>();
         try {
-            log.debug("Send message request：{}", request);
+            log.debug("Send message request: {}", request);
             RemotingCommand remotingCommand = this.brokerController.getSendProcessor().processRequest(remotingChannel, request);
             CodecHelper.encodeHeader(remotingCommand);
             completableFuture.complete(remotingCommand);

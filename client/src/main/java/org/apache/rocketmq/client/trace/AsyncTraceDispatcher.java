@@ -16,6 +16,19 @@
  */
 package org.apache.rocketmq.client.trace;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.MQPushConsumerInner;
@@ -33,21 +46,6 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
-
-import java.io.IOException;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.UUID;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.HashSet;
-
 
 import static org.apache.rocketmq.client.trace.TraceConstants.TRACE_INSTANCE_NAME;
 
@@ -73,7 +71,6 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private String traceTopicName;
     private AtomicBoolean isStarted = new AtomicBoolean(false);
 
-
     public AsyncTraceDispatcher(String traceTopicName, RPCHook rpcHook) throws MQClientException {
         // queueSize is greater than or equal to the n power of 2 of value
         this.queueSize = 2048;
@@ -88,12 +85,12 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             this.traceTopicName = MixAll.RMQ_SYS_TRACE_TOPIC;
         }
         this.traceExecuter = new ThreadPoolExecutor(//
-                10, //
-                20, //
-                1000 * 60, //
-                TimeUnit.MILLISECONDS, //
-                this.appenderQueue, //
-                new ThreadFactoryImpl("MQTraceSendThread_"));
+            10, //
+            20, //
+            1000 * 60, //
+            TimeUnit.MILLISECONDS, //
+            this.appenderQueue, //
+            new ThreadFactoryImpl("MQTraceSendThread_"));
         traceProducer = getAndCreateTraceProducer(rpcHook);
     }
 
@@ -317,7 +314,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
          * Send message trace data
          *
          * @param keySet the keyset in this batch(including msgId in original message not offsetMsgId)
-         * @param data   the message trace data in this batch
+         * @param data the message trace data in this batch
          */
         private void sendTraceDataByMQ(Set<String> keySet, final String data) {
             String topic = traceTopicName;
