@@ -43,15 +43,27 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
         return "ConsumeMessageTraceHook";
     }
 
+    /**
+     * 消息轨迹  消费前
+     * @param context
+     */
     @Override
     public void consumeMessageBefore(ConsumeMessageContext context) {
         if (context == null || context.getMsgList() == null || context.getMsgList().isEmpty()) {
             return;
         }
+
+        /**
+         * TraceContext
+         */
         TraceContext traceContext = new TraceContext();
         context.setMqTraceContext(traceContext);
         traceContext.setTraceType(TraceType.SubBefore);//
         traceContext.setGroupName(context.getConsumerGroup());//
+
+        /**
+         * TraceBean
+         */
         List<TraceBean> beans = new ArrayList<TraceBean>();
         for (MessageExt msg : context.getMsgList()) {
             if (msg == null) {
@@ -75,24 +87,40 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
             traceContext.setRegionId(regionId);//
             beans.add(traceBean);
         }
+
         if (beans.size() > 0) {
             traceContext.setTraceBeans(beans);
             traceContext.setTimeStamp(System.currentTimeMillis());
+            /**
+             * 注入traceContextQueue
+             */
             localDispatcher.append(traceContext);
         }
     }
 
+    /**
+     * 消息轨迹  消费后
+     * @param context
+     */
     @Override
     public void consumeMessageAfter(ConsumeMessageContext context) {
         if (context == null || context.getMsgList() == null || context.getMsgList().isEmpty()) {
             return;
         }
+
+        /**
+         * subBeforeContext
+         */
         TraceContext subBeforeContext = (TraceContext) context.getMqTraceContext();
 
         if (subBeforeContext.getTraceBeans() == null || subBeforeContext.getTraceBeans().size() < 1) {
             // If subbefore bean is null ,skip it
             return;
         }
+
+        /**
+         * subAfterContext
+         */
         TraceContext subAfterContext = new TraceContext();
         subAfterContext.setTraceType(TraceType.SubAfter);//
         subAfterContext.setRegionId(subBeforeContext.getRegionId());//
@@ -108,6 +136,9 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
         if (contextType != null) {
             subAfterContext.setContextCode(ConsumeReturnType.valueOf(contextType).ordinal());
         }
+        /**
+         * 注入traceContextQueue
+         */
         localDispatcher.append(subAfterContext);
     }
 }

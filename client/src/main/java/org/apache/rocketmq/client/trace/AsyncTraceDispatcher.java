@@ -83,7 +83,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         this.traceContextQueue = new ArrayBlockingQueue<TraceContext>(1024);
         this.appenderQueue = new ArrayBlockingQueue<Runnable>(queueSize);
         /**
-         * 发送tipic为RMQ_SYS_TRACE_TOPIC（默认）
+         * 发送topic为RMQ_SYS_TRACE_TOPIC（默认）
          */
         if (!UtilAll.isBlank(traceTopicName)) {
             this.traceTopicName = traceTopicName;

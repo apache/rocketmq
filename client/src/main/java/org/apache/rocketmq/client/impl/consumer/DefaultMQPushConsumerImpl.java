@@ -123,11 +123,19 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         return !this.consumeMessageHookList.isEmpty();
     }
 
+    /**
+     * consumeMessageHookList添加元素
+     * @param hook
+     */
     public void registerConsumeMessageHook(final ConsumeMessageHook hook) {
         this.consumeMessageHookList.add(hook);
         log.info("register consumeMessageHook Hook, {}", hook.hookName());
     }
 
+    /**
+     * 消息轨迹   消费前
+     * @param context
+     */
     public void executeHookBefore(final ConsumeMessageContext context) {
         if (!this.consumeMessageHookList.isEmpty()) {
             for (ConsumeMessageHook hook : this.consumeMessageHookList) {
@@ -139,6 +147,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
     }
 
+    /**
+     * 消息轨迹  消费后
+     * @param context
+     */
     public void executeHookAfter(final ConsumeMessageContext context) {
         if (!this.consumeMessageHookList.isEmpty()) {
             for (ConsumeMessageHook hook : this.consumeMessageHookList) {
