@@ -30,13 +30,15 @@ public class ConsumerOffsetSerializeWrapperTest {
     public void testFromJson() {
         ConsumerOffsetSerializeWrapper consumerOffsetSerializeWrapper = new ConsumerOffsetSerializeWrapper();
         String offsetTableString = "offsetTable";
+        String expectJsonValue = "{\n\t\"offsetTable\":{\n\t\t\"offsetTable\":{1:2\n\t\t}\n\t}\n}";
         ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable =
                 new ConcurrentHashMap<String, ConcurrentMap<Integer, Long>>();
         ConcurrentMap<Integer, Long> integerLongConcurrentMap = new ConcurrentHashMap<Integer, Long>();
-        integerLongConcurrentMap.put(1, 2L);
+        integerLongConcurrentMap.put(1, 2L) ;
         offsetTable.put(offsetTableString, integerLongConcurrentMap);
         consumerOffsetSerializeWrapper.setOffsetTable(offsetTable);
         String json = RemotingSerializable.toJson(consumerOffsetSerializeWrapper, true);
+        assertThat(json).isEqualTo(expectJsonValue);
         ConsumerOffsetSerializeWrapper fromJson = RemotingSerializable.fromJson(json, ConsumerOffsetSerializeWrapper.class);
         assertThat(fromJson).isNotNull();
         assertThat(fromJson.getOffsetTable()).isEqualTo(consumerOffsetSerializeWrapper.getOffsetTable());
