@@ -22,7 +22,7 @@ No. RocketMQ can run independently.
 
 ### 2. How to reconsume message when consumption fails?
 
-1. Cluster consumption patternThe consumer business logic code returns Action.ReconsumerLater, NULL, or throws an exception, if a message failed to be consumed, it will retry for up to 16 times, after that, the message would be descarded.
+1. Cluster consumption pattern, The consumer business logic code returns Action.ReconsumerLater, NULL, or throws an exception, if a message failed to be consumed, it will retry for up to 16 times, after that, the message would be descarded.
 2. Broadcast consumption patternThe broadcaset consumption still ensures that a message is consumered at least once, but no resend option is provided.
 
 ### 3. How to query the failed message if there is a consumption failure?
