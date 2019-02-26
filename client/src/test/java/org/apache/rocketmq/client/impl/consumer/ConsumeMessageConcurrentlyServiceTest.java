@@ -127,15 +127,15 @@ public class ConsumeMessageConcurrentlyServiceTest {
                         messageClientExt.setMsgId("123");
                         messageClientExt.setBody(new byte[] {'a'});
                         messageClientExt.setOffsetMsgId("234");
-                        messageClientExt.setBornHost(new InetSocketAddress(8080));
-                        messageClientExt.setStoreHost(new InetSocketAddress(8080));
+                        messageClientExt.setBornHost(new InetSocketAddress(8090));
+                        messageClientExt.setStoreHost(new InetSocketAddress(8090));
                         PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
                         ((PullCallback) mock.getArgument(4)).onSuccess(pullResult);
                         return pullResult;
                     }
                 });
 
-        doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
+        doReturn(new FindBrokerResult("127.0.0.1:10912", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
         Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
         messageQueueSet.add(createPullRequest().getMessageQueue());
         pushConsumer.getDefaultMQPushConsumerImpl().updateTopicSubscribeInfo(topic, messageQueueSet);
