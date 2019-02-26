@@ -100,7 +100,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             msgExt.setCommitLogOffset(
                 putMessageResult.getAppendMessageResult().getWroteOffset());
             msgExt.setMsgId(putMessageResult.getAppendMessageResult().getMsgId());
-            log.info(
+            log.debug(
                 "Send check message, the offset={} restored in queueOffset={} "
                     + "commitLogOffset={} "
                     + "newMsgId={} realMsgId={} topic={}",
@@ -127,7 +127,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 log.warn("The queue of topic is empty :" + topic);
                 return;
             }
-            log.info("Check topic={}, queues={}", topic, msgQueues);
+            log.debug("Check topic={}, queues={}", topic, msgQueues);
             for (MessageQueue messageQueue : msgQueues) {
                 long startTime = System.currentTimeMillis();
                 MessageQueue opQueue = getOpQueue(messageQueue);
@@ -168,7 +168,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                                 break;
                             }
                             if (getResult.getPullResult().getPullStatus() == PullStatus.NO_NEW_MSG) {
-                                log.info("No new msg, the miss offset={} in={}, continue check={}, pull result={}", i,
+                                log.debug("No new msg, the miss offset={} in={}, continue check={}, pull result={}", i,
                                     messageQueue, getMessageNullCount, getResult.getPullResult());
                                 break;
                             } else {
@@ -187,7 +187,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             continue;
                         }
                         if (msgExt.getStoreTimestamp() >= startTime) {
-                            log.info("Fresh stored. the miss offset={}, check it later, store={}", i,
+                            log.debug("Fresh stored. the miss offset={}, check it later, store={}", i,
                                 new Date(msgExt.getStoreTimestamp()));
                             break;
                         }
@@ -206,7 +206,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             }
                         } else {
                             if ((0 <= valueOfCurrentMinusBorn) && (valueOfCurrentMinusBorn < checkImmunityTime)) {
-                                log.info("New arrived, the miss offset={}, check it later checkImmunity={}, born={}", i,
+                                log.debug("New arrived, the miss offset={}, check it later checkImmunity={}, born={}", i,
                                     checkImmunityTime, new Date(msgExt.getBornTimestamp()));
                                 break;
                             }
