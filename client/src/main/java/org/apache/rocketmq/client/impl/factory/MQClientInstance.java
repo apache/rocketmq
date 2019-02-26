@@ -149,7 +149,7 @@ public class MQClientInstance {
 
         this.consumerStatsManager = new ConsumerStatsManager(this.scheduledExecutorService);
 
-        log.info("created a new client Instance, FactoryIndex: {} ClinetID: {} {} {}, serializeType={}",
+        log.info("Created a new client Instance, InstanceIndex:{}, ClientID:{}, ClientConfig:{}, ClientVersion:{}, SerializerType:{}",
             this.instanceIndex,
             this.clientId,
             this.clientConfig,
@@ -654,7 +654,7 @@ public class MQClientInstance {
                         log.warn("updateTopicRouteInfoFromNameServer, getTopicRouteInfoFromNameServer return null, Topic: {}", topic);
                     }
                 } catch (Exception e) {
-                    if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) && !topic.equals(MixAll.DEFAULT_TOPIC)) {
+                    if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) && !topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
                         log.warn("updateTopicRouteInfoFromNameServer Exception", e);
                     }
                 } finally {
@@ -720,7 +720,11 @@ public class MQClientInstance {
 
         return false;
     }
-
+    /**
+     * This method will be removed in the version 5.0.0,because filterServer was removed,and method <code>subscribe(final String topic, final MessageSelector messageSelector)</code>
+     * is recommended.
+     */
+    @Deprecated
     private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String fullClassName,
         final String topic,
         final String filterClassSource) throws UnsupportedEncodingException {
@@ -1041,6 +1045,19 @@ public class MQClientInstance {
         if (this.brokerVersionTable.containsKey(brokerName)) {
             if (this.brokerVersionTable.get(brokerName).containsKey(brokerAddr)) {
                 return this.brokerVersionTable.get(brokerName).get(brokerAddr);
+            }
+        } else {
+            HeartbeatData heartbeatData = prepareHeartbeatData();
+            try {
+                int version = this.mQClientAPIImpl.sendHearbeat(brokerAddr, heartbeatData, 3000);
+                return version;
+            } catch (Exception e) {
+                if (this.isBrokerInNameServer(brokerAddr)) {
+                    log.info("send heart beat to broker[{} {}] failed", brokerName, brokerAddr);
+                } else {
+                    log.info("send heart beat to broker[{} {}] exception, because the broker not up, forget it", brokerName,
+                        brokerAddr);
+                }
             }
         }
         return 0;

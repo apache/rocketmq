@@ -21,6 +21,8 @@ It offers a variety of features:
 * Various message filter mechanics such as SQL and Tag
 * Docker images for isolated testing and cloud isolated clusters
 * Feature-rich administrative dashboard for configuration, metrics and monitoring
+* Access control list
+* Message trace
 
 
 ----------
@@ -29,19 +31,19 @@ It offers a variety of features:
 * Mailing Lists: <https://rocketmq.apache.org/about/contact/>
 * Home: <https://rocketmq.apache.org>
 * Docs: <https://rocketmq.apache.org/docs/quick-start/>
-* Issues: <https://issues.apache.org/jira/browse/RocketMQ>
+* Issues: <https://github.com/apache/rocketmq/issues>
 * Ask: <https://stackoverflow.com/questions/tagged/rocketmq>
+* Slack: <https://rocketmq-invite-automation.herokuapp.com/>
  
 
 ----------
 
 ## Apache RocketMQ Community
 * [RocketMQ Community Projects](https://github.com/apache/rocketmq-externals)
-
 ----------
 
 ## Contributing
-We always welcome new contributions, whether for trivial cleanups, big new features or other material rewards, more details see [here](http://rocketmq.apache.org/docs/how-to-contribute/) 
+We always welcome new contributions, whether for trivial cleanups, big new features or other material rewards, more details see [here](http://rocketmq.apache.org/docs/how-to-contribute/).
  
 ----------
 ## License
