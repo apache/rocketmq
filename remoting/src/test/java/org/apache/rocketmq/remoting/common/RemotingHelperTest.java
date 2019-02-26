@@ -37,7 +37,26 @@ public class RemotingHelperTest {
         }
 
         assertThat(exceptionExactDesc).contains("RemotingHelperTest.generateNumberFormatException");
+        assertThat(exceptionExactDesc).contains("NumberFormatException");
     }
+
+    /**
+     * This unit test case ensures that {@link RemotingHelper#exceptionSimpleDesc(Throwable)} could not return the root cause of the exception.
+     */
+    @Test
+    public void testExceptionSimpleDesc() {
+        String exceptionExactDesc = null;
+
+        try {
+            generateNumberFormatException();
+        } catch (Throwable t) {
+            exceptionExactDesc = RemotingHelper.exceptionSimpleDesc(t);
+        }
+
+        assertThat(exceptionExactDesc).doesNotContain("RemotingHelperTest.generateNumberFormatException");
+        assertThat(exceptionExactDesc).contains("NumberFormatException");
+    }
+
 
     /**
      * Generate a {@link NumberFormatException}.
@@ -46,5 +65,4 @@ public class RemotingHelperTest {
         String emptyStr = null;
         Long.parseLong(emptyStr);
     }
-
 }
