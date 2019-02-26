@@ -40,6 +40,8 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class PrintMessageByQueueCommand implements SubCommand {
 
+    private DefaultMQPullConsumer consumer;
+
     public static long timestampFormat(final String value) {
         long timestamp = 0;
         try {
@@ -158,7 +160,9 @@ public class PrintMessageByQueueCommand implements SubCommand {
 
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
-        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(MixAll.TOOLS_CONSUMER_GROUP, rpcHook);
+        if (consumer == null) {
+            consumer = new DefaultMQPullConsumer(MixAll.TOOLS_CONSUMER_GROUP, rpcHook);
+        }
 
         try {
             String charsetName =
