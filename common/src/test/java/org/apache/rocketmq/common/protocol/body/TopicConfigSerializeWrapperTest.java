@@ -1,26 +1,35 @@
 package org.apache.rocketmq.common.protocol.body;
 
+import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 public class TopicConfigSerializeWrapperTest {
 
-    String topicName = "xxxx";
-
     @Test
-    public void testEncode(){
-        TopicConfig config = new TopicConfig(topicName);
-        Assert.assertNotNull(TopicConfigSerializeWrapper.encode(config));
-    }
+    public void testFromJson(){
+        TopicConfigSerializeWrapper wrapper = new TopicConfigSerializeWrapper();
 
-    @Test
-    public void testDecode(){
-        String json = "{\"order\":false,\"perm\":6,\"readQueueNums\":16,\"topicFilterType\":\"SINGLE_TAG\",\"topicName\":\"xxxx\",\"topicSysFlag\":0,\"writeQueueNums\":16}";
-        TopicConfig config = TopicConfigSerializeWrapper.decode(json.getBytes(), TopicConfig.class);
-        Assert.assertNotNull(config);
-        Assert.assertEquals(topicName, config.getTopicName());
-    }
+        ConcurrentMap<String, TopicConfig> topicConfigs = new ConcurrentHashMap<String, TopicConfig>();
+        TopicConfig topicConfig = new TopicConfig("topic-xxx");
+        topicConfigs.put("config", topicConfig);
+        wrapper.setTopicConfigTable(topicConfigs);
 
+        DataVersion dataVersion = new DataVersion();
+        dataVersion.nextVersion();
+        wrapper.setDataVersion(dataVersion);
+
+        String json = RemotingSerializable.toJson(wrapper, false);
+
+        TopicConfigSerializeWrapper fromJsonWrapper =
+                RemotingSerializable.fromJson(json, TopicConfigSerializeWrapper.class);
+
+        Assert.assertEquals("topic-xxx", fromJsonWrapper.getTopicConfigTable().get("config").getTopicName());
+    }
 
 }
