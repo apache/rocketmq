@@ -277,6 +277,15 @@ public class IndexFile {
         return result;
     }
 
+    /**
+     * 根据key查询消息对应的PhyOffset集合
+     * @param phyOffsets
+     * @param key
+     * @param maxNum
+     * @param begin
+     * @param end
+     * @param lock
+     */
     public void selectPhyOffset(final List<Long> phyOffsets, final String key, final int maxNum,
         final long begin, final long end, boolean lock) {
         if (this.mappedFile.hold()) {

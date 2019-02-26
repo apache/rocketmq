@@ -1067,13 +1067,30 @@ public class DefaultMessageStore implements MessageStore {
         this.cleanCommitLogService.excuteDeleteFilesManualy();
     }
 
+    /**
+     * 查询消息
+     * @param topic topic of the message.
+     * @param key message key.
+     * @param maxNum maximum number of the messages possible.
+     * @param begin begin timestamp.
+     * @param end end timestamp.
+     * @return
+     */
     @Override
     public QueryMessageResult queryMessage(String topic, String key, int maxNum, long begin, long end) {
         QueryMessageResult queryMessageResult = new QueryMessageResult();
 
         long lastQueryMsgTime = end;
 
+        /**
+         * 最多3次
+         */
         for (int i = 0; i < 3; i++) {
+            /**
+             * 在index文件中查询消息
+             * 在index文件中查询消息
+             * 在index文件中查询消息
+             */
             QueryOffsetResult queryOffsetResult = this.indexService.queryOffset(topic, key, maxNum, begin, lastQueryMsgTime);
             if (queryOffsetResult.getPhyOffsets().isEmpty()) {
                 break;
@@ -1084,12 +1101,18 @@ public class DefaultMessageStore implements MessageStore {
             queryMessageResult.setIndexLastUpdatePhyoffset(queryOffsetResult.getIndexLastUpdatePhyoffset());
             queryMessageResult.setIndexLastUpdateTimestamp(queryOffsetResult.getIndexLastUpdateTimestamp());
 
+            /**
+             * 遍历结果   基于index存储特性   getPhyOffsets（）存储的数据为倒序排列
+             */
             for (int m = 0; m < queryOffsetResult.getPhyOffsets().size(); m++) {
                 long offset = queryOffsetResult.getPhyOffsets().get(m);
 
                 try {
 
                     boolean match = true;
+                    /**
+                     * 获取offset处的消息
+                     */
                     MessageExt msg = this.lookMessageByOffset(offset);
                     if (0 == m) {
                         lastQueryMsgTime = msg.getStoreTimestamp();
@@ -1106,6 +1129,9 @@ public class DefaultMessageStore implements MessageStore {
 //                    }
 
                     if (match) {
+                        /**
+                         * 获取offset处对应消息的ByteBuffer  并存储在queryMessageResult
+                         */
                         SelectMappedBufferResult result = this.commitLog.getData(offset, false);
                         if (result != null) {
                             int size = result.getByteBuffer().getInt(0);

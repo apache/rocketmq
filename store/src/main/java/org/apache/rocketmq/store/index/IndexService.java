@@ -182,25 +182,57 @@ public class IndexService {
         }
     }
 
+    /**
+     * 查询消息
+     * @param topic
+     * @param key
+     * @param maxNum
+     * @param begin
+     * @param end
+     * @return
+     */
     public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
+        /**
+         * 存储结果（符合topic，key对应的hash的结果）
+         */
         List<Long> phyOffsets = new ArrayList<Long>(maxNum);
 
         long indexLastUpdateTimestamp = 0;
         long indexLastUpdatePhyoffset = 0;
+
+        /**
+         * 查询个数  比对最小值
+         */
         maxNum = Math.min(maxNum, this.defaultMessageStore.getMessageStoreConfig().getMaxMsgsNumBatch());
         try {
             this.readWriteLock.readLock().lock();
             if (!this.indexFileList.isEmpty()) {
+                /**
+                 * 遍历所有index文件
+                 */
                 for (int i = this.indexFileList.size(); i > 0; i--) {
                     IndexFile f = this.indexFileList.get(i - 1);
+                    /**
+                     * 是否是最后一个index文件
+                     */
                     boolean lastFile = i == this.indexFileList.size();
                     if (lastFile) {
+                        /**
+                         * 最后一个消息(Message)的存储时间
+                         */
                         indexLastUpdateTimestamp = f.getEndTimestamp();
+                        /**
+                         * 最后一个消息(Message)的在CommitLog(消息存储文件)的物理位置偏移量
+                         */
                         indexLastUpdatePhyoffset = f.getEndPhyOffset();
                     }
 
                     if (f.isTimeMatched(begin, end)) {
-
+                        /**
+                         * 查询消息
+                         * 查询消息
+                         * 查询消息
+                         */
                         f.selectPhyOffset(phyOffsets, buildKey(topic, key), maxNum, begin, end, lastFile);
                     }
 

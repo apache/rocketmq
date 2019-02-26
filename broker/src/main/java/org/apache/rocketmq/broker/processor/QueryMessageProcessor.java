@@ -52,6 +52,10 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         throws RemotingCommandException {
         switch (request.getCode()) {
             case RequestCode.QUERY_MESSAGE:
+                /**
+                 * 查询消息    broker查询时不区分是根据msgid查询还是根据key查询
+                 * 而是依照index文件存储的特性（分别对msgid和key进行存储）
+                 */
                 return this.queryMessage(ctx, request);
             case RequestCode.VIEW_MESSAGE_BY_ID:
                 return this.viewMessageById(ctx, request);
@@ -67,6 +71,14 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         return false;
     }
 
+    /**
+     * 查询消息
+     * RemotingCommand [code=12, language=JAVA, version=293, opaque=425, flag(B)=0, remark=null, extFields={_UNIQUE_KEY_QUERY=true, beginTimestamp=1551034577966, topic=RMQ_SYS_TRACE_TOPIC, maxNum=32, endTimestamp=9223372036854775807, key=C0A8326B0E6818B4AAC27F0424AE0004}, serializeTypeCurrentRPC=JSON]
+     * @param ctx
+     * @param request
+     * @return
+     * @throws RemotingCommandException
+     */
     public RemotingCommand queryMessage(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
         final RemotingCommand response =
@@ -80,10 +92,19 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         response.setOpaque(request.getOpaque());
 
         String isUniqueKey = request.getExtFields().get(MixAll.UNIQUE_MSG_QUERY_FLAG);
+
+        /**
+         * 替换最大查询结果数量  即最多查询MaxNum条数据
+         */
         if (isUniqueKey != null && isUniqueKey.equals("true")) {
             requestHeader.setMaxNum(this.brokerController.getMessageStoreConfig().getDefaultQueryMaxNum());
         }
 
+        /**
+         * 查询消息
+         * 查询消息
+         * 查询消息
+         */
         final QueryMessageResult queryMessageResult =
             this.brokerController.getMessageStore().queryMessage(requestHeader.getTopic(),
                 requestHeader.getKey(), requestHeader.getMaxNum(), requestHeader.getBeginTimestamp(),
