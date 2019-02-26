@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.common.protocol;
+package org.apache.rocketmq.common.protocol.body;
 
 import org.apache.rocketmq.common.protocol.body.QueryCorrectionOffsetBody;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
