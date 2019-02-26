@@ -201,8 +201,7 @@ public class PrintMessageByQueueCommand implements SubCommand {
             READQ:
             for (long offset = minOffset; offset < maxOffset; ) {
                 try {
-                    int maxPullNum = getMaxPullNum(offset, maxOffset);
-                    PullResult pullResult = consumer.pull(mq, subExpression, offset, maxPullNum);
+                    PullResult pullResult = consumer.pull(mq, subExpression, offset, 32);
                     offset = pullResult.getNextBeginOffset();
                     switch (pullResult.getPullStatus()) {
                         case FOUND:
@@ -226,11 +225,6 @@ public class PrintMessageByQueueCommand implements SubCommand {
         } finally {
             consumer.shutdown();
         }
-    }
-
-    public static int getMaxPullNum(long start, long end) {
-        int remain = (int) (end - start) ;
-        return remain > 32 ? 32 : remain;
     }
 
 
