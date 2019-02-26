@@ -109,7 +109,7 @@ public class DefaultMessageStoreCleanFilesTest {
     @Test
     public void testDeleteExpiredFilesBySpaceFull() throws Exception {
         String deleteWhen = "04";
-        // the min value of diskMaxUsedSpaceRatio. make sure disk space usage is greater than 10%
+        // the min value of diskMaxUsedSpaceRatio.
         int diskMaxUsedSpaceRatio = 1;
         // used to ensure that automatic file deletion is not triggered
         double diskSpaceCleanForciblyRatio = 0.999D;
@@ -148,7 +148,7 @@ public class DefaultMessageStoreCleanFilesTest {
     @Test
     public void testDeleteFilesImmediatelyBySpaceFull() throws Exception {
         String deleteWhen = "04";
-        // the min value of diskMaxUsedSpaceRatio. make sure disk space usage is greater than 10%
+        // the min value of diskMaxUsedSpaceRatio.
         int diskMaxUsedSpaceRatio = 1;
         // make sure to trigger the automatic file deletion feature
         double diskSpaceCleanForciblyRatio = 0.01D;
