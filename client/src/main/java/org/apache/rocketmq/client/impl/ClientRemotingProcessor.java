@@ -24,6 +24,7 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.MQProducerInner;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -44,10 +45,10 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.slf4j.Logger;
+
 
 public class ClientRemotingProcessor implements NettyRequestProcessor {
-    private final Logger log = ClientLogger.getLog();
+    private final InternalLogger log = ClientLogger.getLog();
     private final MQClientInstance mqClientFactory;
 
     public ClientRemotingProcessor(final MQClientInstance mqClientFactory) {
@@ -90,6 +91,10 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         final ByteBuffer byteBuffer = ByteBuffer.wrap(request.getBody());
         final MessageExt messageExt = MessageDecoder.decode(byteBuffer);
         if (messageExt != null) {
+            String transactionId = messageExt.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+            if (null != transactionId && !"".equals(transactionId)) {
+                messageExt.setTransactionId(transactionId);
+            }
             final String group = messageExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
             if (group != null) {
                 MQProducerInner producer = this.mqClientFactory.selectProducer(group);

@@ -42,6 +42,8 @@ import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
@@ -55,13 +57,11 @@ import org.apache.rocketmq.store.index.IndexService;
 import org.apache.rocketmq.store.index.QueryOffsetResult;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.store.config.BrokerRole.SLAVE;
 
 public class DefaultMessageStore implements MessageStore {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     private final MessageStoreConfig messageStoreConfig;
     // CommitLog
@@ -247,7 +247,7 @@ public class DefaultMessageStore implements MessageStore {
 
             try {
 
-                Thread.sleep(1000 * 3);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 log.error("shutdown Exception, ", e);
             }
@@ -1276,12 +1276,12 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private void recover(final boolean lastExitOK) {
-        this.recoverConsumeQueue();
+        long maxPhyOffsetOfConsumeQueue = this.recoverConsumeQueue();
 
         if (lastExitOK) {
-            this.commitLog.recoverNormally();
+            this.commitLog.recoverNormally(maxPhyOffsetOfConsumeQueue);
         } else {
-            this.commitLog.recoverAbnormally();
+            this.commitLog.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
         }
 
         this.recoverTopicQueueTable();
@@ -1306,12 +1306,18 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    private void recoverConsumeQueue() {
+    private long recoverConsumeQueue() {
+        long maxPhysicOffset = -1;
         for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
             for (ConsumeQueue logic : maps.values()) {
                 logic.recover();
+                if (logic.getMaxPhysicOffset() > maxPhysicOffset) {
+                    maxPhysicOffset = logic.getMaxPhysicOffset();
+                }
             }
         }
+
+        return maxPhysicOffset;
     }
 
     private void recoverTopicQueueTable() {
@@ -1371,6 +1377,7 @@ public class DefaultMessageStore implements MessageStore {
         cq.putMessagePositionInfoWrapper(dispatchRequest);
     }
 
+    @Override
     public BrokerStatsManager getBrokerStatsManager() {
         return brokerStatsManager;
     }

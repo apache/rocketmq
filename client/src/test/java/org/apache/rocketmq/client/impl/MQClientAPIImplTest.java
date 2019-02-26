@@ -162,7 +162,7 @@ public class MQClientAPIImplTest {
             public Object answer(InvocationOnMock mock) throws Throwable {
                 InvokeCallback callback = mock.getArgument(3);
                 RemotingCommand request = mock.getArgument(1);
-                ResponseFuture responseFuture = new ResponseFuture(request.getOpaque(), 3 * 1000, null, null);
+                ResponseFuture responseFuture = new ResponseFuture(null,request.getOpaque(), 3 * 1000, null, null);
                 responseFuture.setResponseCommand(createSuccessResponse(request));
                 callback.operationComplete(responseFuture);
                 return null;

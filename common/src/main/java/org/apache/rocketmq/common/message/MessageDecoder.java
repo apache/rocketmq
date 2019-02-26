@@ -38,7 +38,7 @@ public class MessageDecoder {
     public final static int MESSAGE_FLAG_POSTION = 16;
     public final static int MESSAGE_PHYSIC_OFFSET_POSTION = 28;
     public final static int MESSAGE_STORE_TIMESTAMP_POSTION = 56;
-    public final static int MESSAGE_MAGIC_CODE = 0xAABBCCDD ^ 1880681586 + 8;
+    public final static int MESSAGE_MAGIC_CODE = -626843481;
     public static final char NAME_VALUE_SEPARATOR = 1;
     public static final char PROPERTY_SEPARATOR = 2;
     public static final int BODY_SIZE_POSITION = 4 // 1 TOTALSIZE

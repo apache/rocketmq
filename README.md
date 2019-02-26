@@ -30,19 +30,19 @@ It offers a variety of features:
 * Home: <https://rocketmq.apache.org>
 * Docs: <https://rocketmq.apache.org/docs/quick-start/>
 * Issues: <https://github.com/apache/rocketmq/issues>
+* Rips: <https://github.com/apache/rocketmq/wiki/RocketMQ-Improvement-Proposal>
 * Ask: <https://stackoverflow.com/questions/tagged/rocketmq>
-* Slack: <https://rocketmq-community.slack.com/>
+* Slack: <https://rocketmq-invite-automation.herokuapp.com/>
  
 
 ----------
 
 ## Apache RocketMQ Community
 * [RocketMQ Community Projects](https://github.com/apache/rocketmq-externals)
-
 ----------
 
 ## Contributing
-We always welcome new contributions, whether for trivial cleanups, big new features or other material rewards, more details see [here](http://rocketmq.apache.org/docs/how-to-contribute/) 
+We always welcome new contributions, whether for trivial cleanups, [big new features](https://github.com/apache/rocketmq/wiki/RocketMQ-Improvement-Proposal) or other material rewards, more details see [here](http://rocketmq.apache.org/docs/how-to-contribute/).
  
 ----------
 ## License
