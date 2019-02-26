@@ -52,6 +52,23 @@ public class RemotingHelper {
         return sb.toString();
     }
 
+    public static String exceptionExactDesc(final Throwable e) {
+        StringBuffer sb = new StringBuffer();
+        if (e != null) {
+            sb.append(e.toString());
+
+            StackTraceElement[] stackTrace = e.getStackTrace();
+            if (stackTrace != null && stackTrace.length > 0) {
+                for (StackTraceElement element : stackTrace) {
+                    sb.append(", ");
+                    sb.append(element.toString());
+                }
+            }
+        }
+
+        return sb.toString();
+    }
+
     public static SocketAddress string2SocketAddress(final String addr) {
         String[] s = addr.split(":");
         InetSocketAddress isa = new InetSocketAddress(s[0], Integer.parseInt(s[1]));

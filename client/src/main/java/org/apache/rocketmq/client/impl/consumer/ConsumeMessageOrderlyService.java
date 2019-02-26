@@ -173,7 +173,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             result.setRemark(RemotingHelper.exceptionSimpleDesc(e));
 
             log.warn(String.format("consumeMessageDirectly exception: %s Group: %s Msgs: %s MQ: %s",
-                RemotingHelper.exceptionSimpleDesc(e),
+                RemotingHelper.exceptionExactDesc(e),
                 ConsumeMessageOrderlyService.this.consumerGroup,
                 msgs,
                 mq), e);
@@ -471,7 +471,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                                 status = messageListener.consumeMessage(Collections.unmodifiableList(msgs), context);
                             } catch (Throwable e) {
                                 log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",
-                                    RemotingHelper.exceptionSimpleDesc(e),
+                                    RemotingHelper.exceptionExactDesc(e),
                                     ConsumeMessageOrderlyService.this.consumerGroup,
                                     msgs,
                                     messageQueue);
