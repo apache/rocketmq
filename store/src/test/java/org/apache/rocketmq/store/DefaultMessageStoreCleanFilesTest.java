@@ -310,6 +310,18 @@ public class DefaultMessageStoreCleanFilesTest {
         for (int i = 0; i < 100 && isCommitLogAvailable(messageStore); i++) {
             Thread.sleep(100);
         }
+        flushConsumeQueue();
+    }
+
+    private void flushConsumeQueue() throws Exception {
+        Field field = messageStore.getClass().getDeclaredField("flushConsumeQueueService");
+        field.setAccessible(true);
+        DefaultMessageStore.FlushConsumeQueueService flushService = (DefaultMessageStore.FlushConsumeQueueService) field.get(messageStore);
+
+        final int RETRY_TIMES_OVER = 3;
+        Method method = DefaultMessageStore.FlushConsumeQueueService.class.getDeclaredMethod("doFlush", int.class);
+        method.setAccessible(true);
+        method.invoke(flushService, RETRY_TIMES_OVER);
     }
 
     private boolean isCommitLogAvailable(DefaultMessageStore store) {
