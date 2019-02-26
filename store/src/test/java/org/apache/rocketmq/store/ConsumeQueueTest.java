@@ -212,6 +212,7 @@ public class ConsumeQueueTest {
         try {
             try {
                 putMsg(master);
+                Thread.sleep(3000L);//wait ConsumeQueue create success.
             } catch (Exception e) {
                 e.printStackTrace();
                 assertThat(Boolean.FALSE).isTrue();
