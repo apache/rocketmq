@@ -28,6 +28,7 @@ import java.io.UnsupportedEncodingException;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
+import org.apache.rocketmq.remoting.util.MqttEncodeDecodeUtil;
 
 public class MqttSubackEncodeDecode implements Message2MessageEncodeDecode {
 
@@ -43,6 +44,6 @@ public class MqttSubackEncodeDecode implements Message2MessageEncodeDecode {
             new MqttFixedHeader(MqttMessageType.SUBACK, mqttHeader.isDup(),
                 MqttQoS.valueOf(mqttHeader.getQosLevel()), mqttHeader.isRetain(),
                 mqttHeader.getRemainingLength()),
-            MqttMessageIdVariableHeader.from(mqttHeader.getMessageId()), (MqttSubAckPayload) remotingCommand.getPayload());
+            MqttMessageIdVariableHeader.from(mqttHeader.getMessageId()), (MqttSubAckPayload) MqttEncodeDecodeUtil.decode(remotingCommand.getBody(),MqttSubAckPayload.class));
     }
 }

@@ -20,14 +20,14 @@ import io.netty.handler.codec.mqtt.MqttConnectPayload;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import java.io.UnsupportedEncodingException;
+import org.apache.rocketmq.common.MqttConfig;
 import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.RemotingChannel;
-import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
+import org.apache.rocketmq.remoting.util.MqttEncodeDecodeUtil;
 import org.apache.rocketmq.snode.SnodeController;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,7 +41,7 @@ public class DefaultMqttMessageProcessorTest {
     private DefaultMqttMessageProcessor defaultMqttMessageProcessor;
 
     @Spy
-    private SnodeController snodeController = new SnodeController(new ServerConfig(), new ClientConfig(), new SnodeConfig());
+    private SnodeController snodeController = new SnodeController(new SnodeConfig(), new MqttConfig());
 
     @Mock
     private RemotingChannel remotingChannel;
@@ -88,7 +88,7 @@ public class DefaultMqttMessageProcessorTest {
         MqttHeader mqttHeader = createMqttConnectMesssageHeader();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.MQTT_MESSAGE, mqttHeader);
         MqttConnectPayload payload = new MqttConnectPayload("1234567", "testTopic", "willMessage".getBytes(), null, "1234567".getBytes());
-        request.setPayload(payload);
+        request.setBody(MqttEncodeDecodeUtil.encode(payload));
         return request;
     }
 }

@@ -23,6 +23,7 @@ import io.netty.handler.codec.mqtt.MqttMessageIdVariableHeader;
 import io.netty.handler.codec.mqtt.MqttSubscribeMessage;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
+import org.apache.rocketmq.remoting.util.MqttEncodeDecodeUtil;
 
 public class MqttSubscribeEncodeDecode implements Message2MessageEncodeDecode {
 
@@ -44,7 +45,7 @@ public class MqttSubscribeEncodeDecode implements Message2MessageEncodeDecode {
 
         requestCommand = RemotingCommand
             .createRequestCommand(1000, mqttHeader);
-        requestCommand.setPayload(((MqttSubscribeMessage) mqttMessage).payload());
+        requestCommand.setBody(MqttEncodeDecodeUtil.encode(((MqttSubscribeMessage) mqttMessage).payload()));
         return requestCommand;
     }
 

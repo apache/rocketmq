@@ -18,6 +18,7 @@
 package org.apache.rocketmq.remoting.transport.mqtt.dispatcher;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.mqtt.MqttFixedHeader;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttMessageType;
@@ -48,9 +49,12 @@ public class MqttPublishEncodeDecode implements Message2MessageEncodeDecode {
 
         requestCommand = RemotingCommand
             .createRequestCommand(1000, mqttHeader);
-        //invoke copy to generate a new ByteBuf or increase refCnt by 1 by invoking retain() method, because release method is invoked in Message2MessageEncodeDecode.channelRead
-        requestCommand.setPayload(((MqttPublishMessage) mqttMessage).payload().copy());
+        ByteBuf payload = ((MqttPublishMessage) mqttMessage).payload();
+        byte[] body = new byte[payload.readableBytes()];
+        payload.readBytes(body);
+        requestCommand.setBody(body);
         return requestCommand;
+
     }
 
     @Override
@@ -60,6 +64,6 @@ public class MqttPublishEncodeDecode implements Message2MessageEncodeDecode {
             new MqttFixedHeader(MqttMessageType.PUBLISH, mqttHeader.isDup(),
                 MqttQoS.valueOf(mqttHeader.getQosLevel()), mqttHeader.isRetain(),
                 mqttHeader.getRemainingLength()),
-            new MqttPublishVariableHeader(mqttHeader.getTopicName(), mqttHeader.getPacketId()), (ByteBuf) remotingCommand.getPayload());
+            new MqttPublishVariableHeader(mqttHeader.getTopicName(), mqttHeader.getPacketId()), Unpooled.copiedBuffer(remotingCommand.getBody()));
     }
 }

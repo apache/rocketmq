@@ -20,11 +20,10 @@ import io.netty.handler.codec.mqtt.MqttFixedHeader;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.codec.mqtt.MqttQoS;
+import org.apache.rocketmq.common.MqttConfig;
 import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.message.mqtt.WillMessage;
-import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.RemotingChannel;
-import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.client.Client;
 import org.apache.rocketmq.snode.client.impl.IOTClientManagerImpl;
@@ -43,8 +42,7 @@ public class MqttDisconnectMessageHandlerTest {
     @Test
     public void testHandlerMessage() throws Exception {
 
-        SnodeController snodeController = new SnodeController(new ServerConfig(),
-            new ClientConfig(), new SnodeConfig());
+        SnodeController snodeController = new SnodeController(new SnodeConfig(), new MqttConfig());
         MqttDisconnectMessageHandler mqttDisconnectMessageHandler = new MqttDisconnectMessageHandler(
             snodeController);
         Client client = new Client();

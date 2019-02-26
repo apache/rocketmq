@@ -60,12 +60,6 @@ public class SnodeConfig {
 
     private int snodeSendMessageMaxPoolSize = 20;
 
-    private int snodeHandleMqttThreadPoolQueueCapacity = 10000;
-
-    private int snodeHandleMqttMessageMinPoolSize = 10;
-
-    private int snodeHandleMqttMessageMaxPoolSize = 20;
-
     private int snodeHeartBeatCorePoolSize = 1;
 
     private int snodeHeartBeatMaxPoolSize = 2;
@@ -87,12 +81,6 @@ public class SnodeConfig {
     private int snodePushMessageMaxPoolSize = 20;
 
     private int snodePushMessageThreadPoolQueueCapacity = 10000;
-
-    private int snodePushMqttMessageMinPoolSize = 10;
-
-    private int snodePushMqttMessageMaxPoolSize = 20;
-
-    private int snodePushMqttMessageThreadPoolQueueCapacity = 10000;
 
     private int slowConsumerThreshold = 1024;
 
@@ -277,30 +265,6 @@ public class SnodeConfig {
         this.snodeId = snodeId;
     }
 
-    public int getSnodeHandleMqttThreadPoolQueueCapacity() {
-        return snodeHandleMqttThreadPoolQueueCapacity;
-    }
-
-    public void setSnodeHandleMqttThreadPoolQueueCapacity(int snodeHandleMqttThreadPoolQueueCapacity) {
-        this.snodeHandleMqttThreadPoolQueueCapacity = snodeHandleMqttThreadPoolQueueCapacity;
-    }
-
-    public int getSnodeHandleMqttMessageMinPoolSize() {
-        return snodeHandleMqttMessageMinPoolSize;
-    }
-
-    public void setSnodeHandleMqttMessageMinPoolSize(int snodeHandleMqttMessageMinPoolSize) {
-        this.snodeHandleMqttMessageMinPoolSize = snodeHandleMqttMessageMinPoolSize;
-    }
-
-    public int getSnodeHandleMqttMessageMaxPoolSize() {
-        return snodeHandleMqttMessageMaxPoolSize;
-    }
-
-    public void setSnodeHandleMqttMessageMaxPoolSize(int snodeHandleMqttMessageMaxPoolSize) {
-        this.snodeHandleMqttMessageMaxPoolSize = snodeHandleMqttMessageMaxPoolSize;
-    }
-
     public String getSnodeName() {
         return snodeName;
     }
@@ -363,30 +327,6 @@ public class SnodeConfig {
 
     public void setSnodePushMessageThreadPoolQueueCapacity(int snodePushMessageThreadPoolQueueCapacity) {
         this.snodePushMessageThreadPoolQueueCapacity = snodePushMessageThreadPoolQueueCapacity;
-    }
-
-    public int getSnodePushMqttMessageMinPoolSize() {
-        return snodePushMqttMessageMinPoolSize;
-    }
-
-    public void setSnodePushMqttMessageMinPoolSize(int snodePushMqttMessageMinPoolSize) {
-        this.snodePushMqttMessageMinPoolSize = snodePushMqttMessageMinPoolSize;
-    }
-
-    public int getSnodePushMqttMessageMaxPoolSize() {
-        return snodePushMqttMessageMaxPoolSize;
-    }
-
-    public void setSnodePushMqttMessageMaxPoolSize(int snodePushMqttMessageMaxPoolSize) {
-        this.snodePushMqttMessageMaxPoolSize = snodePushMqttMessageMaxPoolSize;
-    }
-
-    public int getSnodePushMqttMessageThreadPoolQueueCapacity() {
-        return snodePushMqttMessageThreadPoolQueueCapacity;
-    }
-
-    public void setSnodePushMqttMessageThreadPoolQueueCapacity(int snodePushMqttMessageThreadPoolQueueCapacity) {
-        this.snodePushMqttMessageThreadPoolQueueCapacity = snodePushMqttMessageThreadPoolQueueCapacity;
     }
 
     public String getSendMessageInterceptorPath() {

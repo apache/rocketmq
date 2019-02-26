@@ -71,7 +71,7 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
     private ServerBootstrap serverBootstrap;
     private EventLoopGroup eventLoopGroupSelector;
     private EventLoopGroup eventLoopGroupBoss;
-    private ServerConfig nettyServerConfig;
+    private ServerConfig mqttServerConfig;
 
     private ExecutorService publicExecutor;
     private ChannelEventListener channelEventListener;
@@ -89,32 +89,32 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
         super();
     }
 
-    public MqttRemotingServer(final ServerConfig nettyServerConfig) {
-        this(nettyServerConfig, null);
+    public MqttRemotingServer(final ServerConfig mqttServerConfig) {
+        this(mqttServerConfig, null);
     }
 
-    public MqttRemotingServer(final ServerConfig nettyServerConfig,
+    public MqttRemotingServer(final ServerConfig mqttServerConfig,
         final ChannelEventListener channelEventListener) {
-        init(nettyServerConfig, channelEventListener);
+        init(mqttServerConfig, channelEventListener);
     }
 
     @Override
     public RemotingServer init(ServerConfig serverConfig,
         ChannelEventListener channelEventListener) {
-        this.nettyServerConfig = serverConfig;
-        super.init(nettyServerConfig.getServerOnewaySemaphoreValue(),
-            nettyServerConfig.getServerAsyncSemaphoreValue());
+        this.mqttServerConfig = serverConfig;
+        super.init(mqttServerConfig.getServerOnewaySemaphoreValue(),
+            mqttServerConfig.getServerAsyncSemaphoreValue());
         this.serverBootstrap = new ServerBootstrap();
         this.channelEventListener = channelEventListener;
 
-        int publicThreadNums = nettyServerConfig.getServerCallbackExecutorThreads();
+        int publicThreadNums = mqttServerConfig.getServerCallbackExecutorThreads();
         if (publicThreadNums <= 0) {
             publicThreadNums = 4;
         }
         this.publicExecutor = ThreadUtils.newFixedThreadPool(
             publicThreadNums,
             10000, "MqttRemoting-PublicExecutor", true);
-        if (JvmUtils.isUseEpoll() && this.nettyServerConfig.isUseEpollNativeSelector()) {
+        if (JvmUtils.isUseEpoll() && this.mqttServerConfig.isUseEpollNativeSelector()) {
             this.eventLoopGroupSelector = new EpollEventLoopGroup(
                 serverConfig.getServerSelectorThreads(),
                 ThreadUtils.newGenericThreadFactory("MqttNettyEpollIoThreads",
@@ -134,7 +134,7 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
                     serverConfig.getServerSelectorThreads()));
             this.socketChannelClass = NioServerSocketChannel.class;
         }
-        this.port = nettyServerConfig.getMqttListenPort();
+        this.port = mqttServerConfig.getListenPort();
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(
             serverConfig.getServerWorkerThreads(),
             ThreadUtils.newGenericThreadFactory("MqttNettyWorkerThreads",
@@ -169,9 +169,9 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
                 .option(ChannelOption.SO_KEEPALIVE, false)
                 .childOption(ChannelOption.TCP_NODELAY, true)
                 .childOption(ChannelOption.SO_SNDBUF,
-                    nettyServerConfig.getServerSocketSndBufSize())
+                    mqttServerConfig.getServerSocketSndBufSize())
                 .childOption(ChannelOption.SO_RCVBUF,
-                    nettyServerConfig.getServerSocketRcvBufSize())
+                    mqttServerConfig.getServerSocketRcvBufSize())
                 .localAddress(new InetSocketAddress(this.port))
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
@@ -184,11 +184,11 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
                                 MqttEncoder.INSTANCE,
                                 new MqttMessage2RemotingCommandHandler(),
                                 new RemotingCommand2MqttMessageHandler(),
-                                new IdleStateHandler(nettyServerConfig
+                                new IdleStateHandler(mqttServerConfig
                                     .getConnectionChannelReaderIdleSeconds(),
-                                    nettyServerConfig
+                                    mqttServerConfig
                                         .getConnectionChannelWriterIdleSeconds(),
-                                    nettyServerConfig
+                                    mqttServerConfig
                                         .getServerChannelMaxIdleTimeSeconds()),
                                 new NettyConnectManageHandler(),
                                 new NettyServerHandler()
@@ -197,7 +197,7 @@ public class MqttRemotingServer extends NettyRemotingServerAbstract implements R
                     }
                 });
 
-        if (nettyServerConfig.isServerPooledByteBufAllocatorEnable()) {
+        if (mqttServerConfig.isServerPooledByteBufAllocatorEnable()) {
             childHandler.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
         }
 

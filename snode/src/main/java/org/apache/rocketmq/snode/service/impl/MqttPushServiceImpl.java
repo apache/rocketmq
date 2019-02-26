@@ -53,12 +53,12 @@ public class MqttPushServiceImpl {
     public MqttPushServiceImpl(final SnodeController snodeController) {
         this.snodeController = snodeController;
         pushMqttMessageExecutorService = ThreadUtils.newThreadPoolExecutor(
-            this.snodeController.getSnodeConfig().getSnodePushMqttMessageMinPoolSize(),
-            this.snodeController.getSnodeConfig().getSnodePushMqttMessageMaxPoolSize(),
+            this.snodeController.getMqttConfig().getPushMqttMessageMinPoolSize(),
+            this.snodeController.getMqttConfig().getPushMqttMessageMaxPoolSize(),
             3000,
             TimeUnit.MILLISECONDS,
-            new ArrayBlockingQueue<>(this.snodeController.getSnodeConfig().getSnodePushMqttMessageThreadPoolQueueCapacity()),
-            "SnodePushMqttMessageThread",
+            new ArrayBlockingQueue<>(this.snodeController.getMqttConfig().getPushMqttMessageThreadPoolQueueCapacity()),
+            "pushMqttMessageThread",
             false);
     }
 
@@ -106,12 +106,14 @@ public class MqttPushServiceImpl {
                         if (client.getRemotingChannel() instanceof NettyChannelHandlerContextImpl) {
                             remotingChannel = new NettyChannelImpl(((NettyChannelHandlerContextImpl) client.getRemotingChannel()).getChannelHandlerContext().channel());
                         }
-                        requestCommand.setPayload(message.copy());
+                        byte[] body = new byte[message.readableBytes()];
+                        message.readBytes(body);
+                        requestCommand.setBody(body);
                         snodeController.getMqttRemotingServer().push(remotingChannel, requestCommand, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
                     }
                 } catch (Exception ex) {
                     log.warn("Exception was thrown when pushing MQTT message to topic: {}, exception={}", topic, ex.getMessage());
-                }finally {
+                } finally {
                     System.out.println("Release Bytebuf");
                     ReferenceCountUtil.release(message);
                 }
@@ -136,7 +138,6 @@ public class MqttPushServiceImpl {
             mqttHeader.setRemainingLength(4 + topic.getBytes().length + message.readableBytes());
 
             RemotingCommand pushMessage = RemotingCommand.createRequestCommand(RequestCode.MQTT_MESSAGE, mqttHeader);
-//            pushMessage.setPayload(message);
             return pushMessage;
         }
 

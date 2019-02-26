@@ -16,10 +16,9 @@
  */
 package org.apache.rocketmq.snode.service;
 
+import org.apache.rocketmq.common.MqttConfig;
 import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.message.mqtt.WillMessage;
-import org.apache.rocketmq.remoting.ClientConfig;
-import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.SnodeTestBase;
 import org.apache.rocketmq.snode.service.impl.WillMessageServiceImpl;
@@ -33,8 +32,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class WillMessageServiceImplTest extends SnodeTestBase {
 
     @Spy
-    private SnodeController snodeController = new SnodeController(new ServerConfig(),
-        new ClientConfig(), new SnodeConfig());
+    private SnodeController snodeController = new SnodeController(new SnodeConfig(), new MqttConfig());
 
     private WillMessageService willMessageService;
 

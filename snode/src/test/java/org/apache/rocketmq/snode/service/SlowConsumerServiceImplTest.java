@@ -16,9 +16,8 @@
  */
 package org.apache.rocketmq.snode.service;
 
+import org.apache.rocketmq.common.MqttConfig;
 import org.apache.rocketmq.common.SnodeConfig;
-import org.apache.rocketmq.remoting.ClientConfig;
-import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.client.SlowConsumerService;
 import org.apache.rocketmq.snode.client.impl.SlowConsumerServiceImpl;
@@ -38,7 +37,7 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class SlowConsumerServiceImplTest {
     @Spy
-    private SnodeController snodeController = new SnodeController(new ServerConfig(), new ClientConfig(), new SnodeConfig());
+    private SnodeController snodeController = new SnodeController(new SnodeConfig(), new MqttConfig());
 
     private final String enodeName = "testEndoe";
 

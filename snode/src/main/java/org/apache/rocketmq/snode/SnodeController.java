@@ -24,6 +24,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.broker.BrokerStartup;
+import org.apache.rocketmq.common.MqttConfig;
 import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -85,8 +86,11 @@ public class SnodeController {
         .getLogger(LoggerName.SNODE_LOGGER_NAME);
 
     private final SnodeConfig snodeConfig;
+    private final MqttConfig mqttConfig;
     private final ServerConfig nettyServerConfig;
     private final ClientConfig nettyClientConfig;
+    private final ServerConfig mqttServerConfig;
+    private final ClientConfig mqttClientConfig;
     private RemotingClient remotingClient;
     private RemotingServer snodeServer;
     private RemotingClient mqttRemotingClient;
@@ -125,12 +129,13 @@ public class SnodeController {
         .newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
             "SnodeControllerScheduledThread"));
 
-    public SnodeController(ServerConfig nettyServerConfig,
-        ClientConfig nettyClientConfig,
-        SnodeConfig snodeConfig) {
-        this.nettyClientConfig = nettyClientConfig;
-        this.nettyServerConfig = nettyServerConfig;
+    public SnodeController(SnodeConfig snodeConfig, MqttConfig mqttConfig) {
+        this.nettyClientConfig = snodeConfig.getNettyClientConfig();
+        this.nettyServerConfig = snodeConfig.getNettyServerConfig();
+        this.mqttServerConfig = mqttConfig.getMqttServerConfig();
+        this.mqttClientConfig = mqttConfig.getMqttClientConfig();
         this.snodeConfig = snodeConfig;
+        this.mqttConfig = mqttConfig;
         if (!this.snodeConfig.isEmbeddedModeEnable()) {
             this.enodeService = new RemoteEnodeServiceImpl(this);
         } else {
@@ -144,8 +149,9 @@ public class SnodeController {
         }
         this.mqttRemotingClient = RemotingClientFactory.getInstance()
             .createRemotingClient(RemotingUtil.MQTT_PROTOCOL);
+
         if (this.mqttRemotingClient != null) {
-            this.mqttRemotingClient.init(this.getNettyClientConfig(), null);
+            this.mqttRemotingClient.init(this.mqttClientConfig, null);
         }
 
         this.sendMessageExecutor = ThreadUtils.newThreadPoolExecutor(
@@ -185,12 +191,12 @@ public class SnodeController {
             false);
 
         this.handleMqttMessageExecutor = ThreadUtils.newThreadPoolExecutor(
-            snodeConfig.getSnodeHandleMqttMessageMinPoolSize(),
-            snodeConfig.getSnodeHandleMqttMessageMaxPoolSize(),
+            mqttConfig.getHandleMqttMessageMinPoolSize(),
+            mqttConfig.getHandleMqttMessageMaxPoolSize(),
             3000,
             TimeUnit.MILLISECONDS,
-            new ArrayBlockingQueue<>(snodeConfig.getSnodeHandleMqttThreadPoolQueueCapacity()),
-            "SnodeHandleMqttMessageThread",
+            new ArrayBlockingQueue<>(mqttConfig.getHandleMqttThreadPoolQueueCapacity()),
+            "handleMqttMessageThread",
             false);
 
         if (this.snodeConfig.getNamesrvAddr() != null) {
@@ -224,6 +230,10 @@ public class SnodeController {
         return snodeConfig;
     }
 
+    public MqttConfig getMqttConfig() {
+        return mqttConfig;
+    }
+
     private void initRemotingServerInterceptorGroup() {
         List<Interceptor> remotingServerInterceptors = InterceptorFactory.getInstance()
             .loadInterceptors(this.snodeConfig.getRemotingServerInterceptorPath());
@@ -251,7 +261,7 @@ public class SnodeController {
         this.mqttRemotingServer = RemotingServerFactory.getInstance().createRemotingServer(
             RemotingUtil.MQTT_PROTOCOL);
         if (this.mqttRemotingServer != null) {
-            this.mqttRemotingServer.init(this.nettyServerConfig, this.clientHousekeepingService);
+            this.mqttRemotingServer.init(this.mqttServerConfig, this.clientHousekeepingService);
             this.mqttRemotingServer.registerInterceptorGroup(this.remotingServerInterceptorGroup);
         }
         registerProcessor();
@@ -350,7 +360,6 @@ public class SnodeController {
     }
 
     public void start() {
-        initialize();
         if (snodeServer != null) {
             this.snodeServer.start();
         }

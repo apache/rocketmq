@@ -45,5 +45,4 @@ public class EncodeDecodeDispatcher {
     public static Map<MqttMessageType, Message2MessageEncodeDecode> getEncodeDecodeDispatcher() {
         return encodeDecodeDispatcher;
     }
-
 }

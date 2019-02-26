@@ -18,13 +18,12 @@ package org.apache.rocketmq.snode.service;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.common.MqttConfig;
 import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
-import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.InvokeCallback;
-import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.rocketmq.NettyRemotingClient;
@@ -56,7 +55,7 @@ public class RemoteEnodeServiceImplTest extends SnodeTestBase {
     private EnodeService enodeService;
 
     @Spy
-    private SnodeController snodeController = new SnodeController(new ServerConfig(), new ClientConfig(), new SnodeConfig());
+    private SnodeController snodeController = new SnodeController(new SnodeConfig(), new MqttConfig());
 
     @Mock
     private NnodeService nnodeService;

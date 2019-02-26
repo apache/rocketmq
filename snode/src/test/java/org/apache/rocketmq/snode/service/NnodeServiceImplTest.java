@@ -18,9 +18,8 @@ package org.apache.rocketmq.snode.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.rocketmq.common.MqttConfig;
 import org.apache.rocketmq.common.SnodeConfig;
-import org.apache.rocketmq.remoting.ClientConfig;
-import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -46,7 +45,7 @@ import static org.mockito.Mockito.when;
 public class NnodeServiceImplTest extends SnodeTestBase {
 
     @Spy
-    private SnodeController snodeController = new SnodeController(new ServerConfig(), new ClientConfig(), new SnodeConfig());
+    private SnodeController snodeController = new SnodeController(new SnodeConfig(), new MqttConfig());
 
     @Mock
     private NettyRemotingClient remotingClient;

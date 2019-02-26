@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.snode.processor;
 
-import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.mqtt.MqttConnectMessage;
 import io.netty.handler.codec.mqtt.MqttConnectPayload;
 import io.netty.handler.codec.mqtt.MqttConnectVariableHeader;
@@ -41,6 +41,7 @@ import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
+import org.apache.rocketmq.remoting.util.MqttEncodeDecodeUtil;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.processor.mqtthandler.MessageHandler;
 import org.apache.rocketmq.snode.processor.mqtthandler.MqttConnectMessageHandler;
@@ -98,16 +99,18 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
                     mqttHeader.isHasPassword(), mqttHeader.isWillRetain(),
                     mqttHeader.getWillQos(), mqttHeader.isWillFlag(),
                     mqttHeader.isCleanSession(), mqttHeader.getKeepAliveTimeSeconds());
-                MqttConnectPayload mqttConnectPayload = (MqttConnectPayload) message.getPayload();
+//                MqttConnectPayload mqttConnectPayload = (MqttConnectPayload) message.getPayload();
+                MqttConnectPayload mqttConnectPayload = (MqttConnectPayload) MqttEncodeDecodeUtil.decode(message.getBody(), MqttConnectPayload.class);
                 mqttMessage = new MqttConnectMessage(fixedHeader, mqttConnectVariableHeader, mqttConnectPayload);
                 break;
             case PUBLISH:
                 MqttPublishVariableHeader mqttPublishVariableHeader = new MqttPublishVariableHeader(mqttHeader.getTopicName(), mqttHeader.getPacketId());
-                mqttMessage = new MqttPublishMessage(fixedHeader, mqttPublishVariableHeader, (ByteBuf) message.getPayload());
+                mqttMessage = new MqttPublishMessage(fixedHeader, mqttPublishVariableHeader, Unpooled.copiedBuffer(message.getBody()));
                 break;
             case SUBSCRIBE:
                 MqttMessageIdVariableHeader mqttMessageIdVariableHeader = MqttMessageIdVariableHeader.from(mqttHeader.getMessageId());
-                mqttMessage = new MqttSubscribeMessage(fixedHeader, mqttMessageIdVariableHeader, (MqttSubscribePayload) message.getPayload());
+                MqttSubscribePayload mqttSubscribePayload = (MqttSubscribePayload) MqttEncodeDecodeUtil.decode(message.getBody(), MqttSubscribePayload.class);
+                mqttMessage = new MqttSubscribeMessage(fixedHeader, mqttMessageIdVariableHeader, mqttSubscribePayload);
                 break;
             case UNSUBSCRIBE:
             case PINGREQ:

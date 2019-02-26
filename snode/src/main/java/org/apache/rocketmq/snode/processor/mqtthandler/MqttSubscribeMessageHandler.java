@@ -38,6 +38,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
+import org.apache.rocketmq.remoting.util.MqttEncodeDecodeUtil;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.client.Client;
 import org.apache.rocketmq.snode.client.impl.IOTClientManagerImpl;
@@ -104,7 +105,7 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
         List<Integer> grantQoss = doSubscribe(client, payload.topicSubscriptions(), iotClientManager);
         //Publish retained messages to subscribers.
         MqttSubAckPayload mqttSubAckPayload = new MqttSubAckPayload(grantQoss);
-        command.setPayload(mqttSubAckPayload);
+        command.setBody(MqttEncodeDecodeUtil.encode(mqttSubAckPayload));
         mqttHeader.setRemainingLength(0x02 + mqttSubAckPayload.grantedQoSLevels().size());
         command.setRemark(null);
         command.setCode(ResponseCode.SUCCESS);

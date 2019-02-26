@@ -60,7 +60,7 @@ import org.apache.rocketmq.remoting.util.ThreadUtils;
 public class MqttRemotingClient extends NettyRemotingClientAbstract implements RemotingClient {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
-    private ClientConfig nettyClientConfig;
+    private ClientConfig mqttClientConfig;
     private Bootstrap bootstrap = new Bootstrap();
     private EventLoopGroup eventLoopGroupWorker;
 
@@ -76,33 +76,38 @@ public class MqttRemotingClient extends NettyRemotingClientAbstract implements R
 
     public MqttRemotingClient() {
         super();
+        loadProperties();
     }
 
-    public MqttRemotingClient(final ClientConfig nettyClientConfig) {
-        this(nettyClientConfig, null);
+    private void loadProperties() {
+
     }
 
-    public MqttRemotingClient(final ClientConfig nettyClientConfig,
+    public MqttRemotingClient(final ClientConfig mqttClientConfig) {
+        this(mqttClientConfig, null);
+    }
+
+    public MqttRemotingClient(final ClientConfig mqttClientConfig,
         final ChannelEventListener channelEventListener) {
-        super(nettyClientConfig.getClientOnewaySemaphoreValue(), nettyClientConfig.getClientAsyncSemaphoreValue());
-        init(nettyClientConfig, channelEventListener);
+        super(mqttClientConfig.getClientOnewaySemaphoreValue(), mqttClientConfig.getClientAsyncSemaphoreValue());
+        init(mqttClientConfig, channelEventListener);
     }
 
     @Override
-    public RemotingClient init(ClientConfig nettyClientConfig, ChannelEventListener channelEventListener) {
-        this.nettyClientConfig = nettyClientConfig;
+    public RemotingClient init(ClientConfig mqttClientConfig, ChannelEventListener channelEventListener) {
+        this.mqttClientConfig = mqttClientConfig;
         this.channelEventListener = channelEventListener;
-        this.eventLoopGroupWorker = new NioEventLoopGroup(nettyClientConfig.getClientWorkerThreads(), ThreadUtils.newGenericThreadFactory("NettyClientEpollIoThreads",
-            nettyClientConfig.getClientWorkerThreads()));
+        this.eventLoopGroupWorker = new NioEventLoopGroup(mqttClientConfig.getClientWorkerThreads(), ThreadUtils.newGenericThreadFactory("NettyClientEpollIoThreads",
+            mqttClientConfig.getClientWorkerThreads()));
         this.publicExecutor = ThreadUtils.newFixedThreadPool(
-            nettyClientConfig.getClientCallbackExecutorThreads(),
-            10000, "Remoting-PublicExecutor", true);
-        this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(nettyClientConfig.getClientWorkerThreads(),
-            ThreadUtils.newGenericThreadFactory("NettyClientWorkerThreads", nettyClientConfig.getClientWorkerThreads()));
-        if (nettyClientConfig.isUseTLS()) {
+            mqttClientConfig.getClientCallbackExecutorThreads(),
+            10000, "MqttRemoting-PublicExecutor", true);
+        this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(mqttClientConfig.getClientWorkerThreads(),
+            ThreadUtils.newGenericThreadFactory("MqttNettyClientWorkerThreads", mqttClientConfig.getClientWorkerThreads()));
+        if (mqttClientConfig.isUseTLS()) {
             try {
                 sslContext = TlsHelper.buildSslContext(true);
-                log.info("SSL enabled for client");
+                log.info("SSL enabled for mqtt client");
             } catch (IOException e) {
                 log.error("Failed to create SSLContext", e);
             } catch (CertificateException e) {
@@ -123,14 +128,14 @@ public class MqttRemotingClient extends NettyRemotingClientAbstract implements R
         bootstrap = this.bootstrap.group(this.eventLoopGroupWorker).channel(NioSocketChannel.class)
             .option(ChannelOption.TCP_NODELAY, true)
             .option(ChannelOption.SO_KEEPALIVE, false)
-            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, nettyClientConfig.getConnectTimeoutMillis())
-            .option(ChannelOption.SO_SNDBUF, nettyClientConfig.getClientSocketSndBufSize())
-            .option(ChannelOption.SO_RCVBUF, nettyClientConfig.getClientSocketRcvBufSize())
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, mqttClientConfig.getConnectTimeoutMillis())
+            .option(ChannelOption.SO_SNDBUF, mqttClientConfig.getClientSocketSndBufSize())
+            .option(ChannelOption.SO_RCVBUF, mqttClientConfig.getClientSocketRcvBufSize())
             .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) {
                     ChannelPipeline pipeline = ch.pipeline();
-                    if (nettyClientConfig.isUseTLS()) {
+                    if (mqttClientConfig.isUseTLS()) {
                         if (null != sslContext) {
                             pipeline.addFirst(defaultEventExecutorGroup, "sslHandler", sslContext.newHandler(ch.alloc()));
                             log.info("Prepend SSL handler");
@@ -142,7 +147,7 @@ public class MqttRemotingClient extends NettyRemotingClientAbstract implements R
                         defaultEventExecutorGroup,
                         MqttEncoder.INSTANCE,
                         new MqttDecoder(),
-                        new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),
+                        new IdleStateHandler(0, 0, mqttClientConfig.getClientChannelMaxIdleTimeSeconds()),
                         new NettyConnectManageHandler(),
                         new NettyClientHandler());
                 }
@@ -199,7 +204,7 @@ public class MqttRemotingClient extends NettyRemotingClientAbstract implements R
                     throw (RemotingSendRequestException) remotingException;
                 }
                 if (remotingException instanceof RemotingTimeoutException) {
-                    if (nettyClientConfig.isClientCloseSocketIfTimeout()) {
+                    if (mqttClientConfig.isClientCloseSocketIfTimeout()) {
                         this.closeRemotingChannel(addr, remotingChannel);
                         log.warn("InvokeSync: close socket because of timeout, {}ms, {}", timeoutMillis, addr);
                     }

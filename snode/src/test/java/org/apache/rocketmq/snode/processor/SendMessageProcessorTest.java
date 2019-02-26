@@ -18,13 +18,12 @@ package org.apache.rocketmq.snode.processor;
 
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.MqttConfig;
 import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
-import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.RemotingChannel;
-import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.CodecHelper;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -48,7 +47,7 @@ public class SendMessageProcessorTest {
     private SendMessageProcessor sendMessageProcessor;
 
     @Spy
-    private SnodeController snodeController = new SnodeController(new ServerConfig(), new ClientConfig(), new SnodeConfig());
+    private SnodeController snodeController = new SnodeController(new SnodeConfig(), new MqttConfig());
 
     @Mock
     private RemotingChannel remotingChannel;
@@ -56,7 +55,7 @@ public class SendMessageProcessorTest {
     private String topic = "snodeTopic";
 
     private String group = "snodeGroup";
-    
+
     @Mock
     private EnodeService enodeService;
 

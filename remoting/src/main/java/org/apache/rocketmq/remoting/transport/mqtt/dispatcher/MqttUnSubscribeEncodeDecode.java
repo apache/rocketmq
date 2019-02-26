@@ -23,6 +23,7 @@ import io.netty.handler.codec.mqtt.MqttMessageIdVariableHeader;
 import io.netty.handler.codec.mqtt.MqttUnsubscribeMessage;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
+import org.apache.rocketmq.remoting.util.MqttEncodeDecodeUtil;
 
 public class MqttUnSubscribeEncodeDecode implements Message2MessageEncodeDecode {
 
@@ -42,7 +43,7 @@ public class MqttUnSubscribeEncodeDecode implements Message2MessageEncodeDecode 
         mqttHeader.setMessageId(variableHeader.messageId());
 
         requestCommand = RemotingCommand.createRequestCommand(1000, mqttHeader);
-        requestCommand.setPayload(((MqttUnsubscribeMessage) mqttMessage).payload());
+        requestCommand.setBody(MqttEncodeDecodeUtil.encode(((MqttUnsubscribeMessage) mqttMessage).payload()));
         return requestCommand;
     }
 
