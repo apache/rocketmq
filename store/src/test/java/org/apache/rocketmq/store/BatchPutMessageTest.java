@@ -31,6 +31,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -111,8 +113,10 @@ public class BatchPutMessageTest {
 
         PutMessageResult putMessageResult = messageStore.putMessages(messageExtBatch);
         assertThat(putMessageResult.isOk()).isTrue();
-        
-        Thread.sleep(3 * 1000);
+
+        for (int i = 0; i < 100 && isCommitLogAvailable((DefaultMessageStore) messageStore); i++) {
+            Thread.sleep(100);
+        }
 
         for (long i = 0; i < 10; i++) {
             MessageExt messageExt = messageStore.lookMessageByOffset(msgLengthArr[(int) i]);
@@ -169,4 +173,16 @@ public class BatchPutMessageTest {
                              byte[] filterBitMap, Map<String, String> properties) {
         }
     }
+
+    private boolean isCommitLogAvailable(DefaultMessageStore store) throws Exception {
+        Field serviceField = store.getClass().getDeclaredField("reputMessageService");
+        serviceField.setAccessible(true);
+        DefaultMessageStore.ReputMessageService reputService =
+                (DefaultMessageStore.ReputMessageService) serviceField.get(store);
+
+        Method method = DefaultMessageStore.ReputMessageService.class.getDeclaredMethod("isCommitLogAvailable");
+        method.setAccessible(true);
+        return (boolean) method.invoke(reputService);
+    }
+
 }
