@@ -51,8 +51,7 @@ public class HeartbeatDataTest {
         hbd.setProducerDataSet(producerDataSet);
         hbd.setConsumerDataSet(consumerDataSet);
 
-        String json = RemotingSerializable.toJson(hbd, false);System.out.println(json);
-        //assertThat(str).isEqualTo("HeartbeatData [clientID=ClientID, producerDataSet=[ProducerData [groupName=testGroupName]],consumerDataSet=[ConsumerData [groupName=testGroupName, consumeType=null,messageModel=null, consumeFromWhere=null, unitMode=true, subscriptionDataSet=[]]]]");
+        String json = RemotingSerializable.toJson(hbd, false);
         HeartbeatData anotherHbd = RemotingSerializable.fromJson(json, HeartbeatData.class);
 
         //System.out.println(anotherHbd.getConsumerDataSet().size() );
