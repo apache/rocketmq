@@ -228,8 +228,8 @@ public class PrintMessageByQueueCommand implements SubCommand {
         }
     }
 
-    public static int getMaxPullNum(long start, long end){
-        int remain =(int) (end - start) ;
+    public static int getMaxPullNum(long start, long end) {
+        int remain = (int) (end - start) ;
         return remain > 32 ? 32 : remain;
     }
 
