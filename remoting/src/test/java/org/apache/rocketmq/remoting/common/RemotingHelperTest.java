@@ -19,6 +19,9 @@ package org.apache.rocketmq.remoting.common;
 
 import org.junit.Test;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class RemotingHelperTest {
@@ -64,5 +67,25 @@ public class RemotingHelperTest {
     private static void generateNumberFormatException() {
         String emptyStr = null;
         Long.parseLong(emptyStr);
+    }
+
+    /**
+     * This unit test case ensures that {@link RemotingHelper#string2SocketAddress(String)} could parse the string to the correct socket address.
+     */
+    @Test
+    public void testString2SocketAddress() {
+        String address = "127.0.0.1:9876";
+        InetSocketAddress inetSocketAddress = (InetSocketAddress) RemotingHelper.string2SocketAddress(address);
+        assertThat(inetSocketAddress.getPort()).isEqualTo(9876);
+    }
+
+    /**
+     * This unit test case ensures that {@link RemotingHelper#parseSocketAddressAddr(SocketAddress)} could parse the socket address to the correct string.
+     */
+    @Test
+    public void testParseSocketAddressAddr() {
+        SocketAddress inetSocketAddress = new InetSocketAddress("127.0.0.1", 9876);
+        String address = RemotingHelper.parseSocketAddressAddr(inetSocketAddress);
+        assertThat(address).isEqualTo("127.0.0.1:9876");
     }
 }
