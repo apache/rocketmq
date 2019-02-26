@@ -40,6 +40,8 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class PrintMessageByQueueCommand implements SubCommand {
 
+    private DefaultMQPullConsumer consumer;
+
     public static long timestampFormat(final String value) {
         long timestamp = 0;
         try {
@@ -158,7 +160,9 @@ public class PrintMessageByQueueCommand implements SubCommand {
 
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
-        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(MixAll.TOOLS_CONSUMER_GROUP, rpcHook);
+        if (consumer == null) {
+            consumer = new DefaultMQPullConsumer(MixAll.TOOLS_CONSUMER_GROUP, rpcHook);
+        }
 
         try {
             String charsetName =
@@ -197,7 +201,8 @@ public class PrintMessageByQueueCommand implements SubCommand {
             READQ:
             for (long offset = minOffset; offset < maxOffset; ) {
                 try {
-                    PullResult pullResult = consumer.pull(mq, subExpression, offset, 32);
+                    int maxPullNum = getMaxPullNum(offset, maxOffset);
+                    PullResult pullResult = consumer.pull(mq, subExpression, offset, maxPullNum);
                     offset = pullResult.getNextBeginOffset();
                     switch (pullResult.getPullStatus()) {
                         case FOUND:
@@ -222,6 +227,12 @@ public class PrintMessageByQueueCommand implements SubCommand {
             consumer.shutdown();
         }
     }
+
+    public static int getMaxPullNum(long start, long end){
+        int remain =(int) (end - start) ;
+        return remain > 32 ? 32 : remain;
+    }
+
 
     static class TagCountBean implements Comparable<TagCountBean> {
         private String tag;
