@@ -64,7 +64,7 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class ConsumeMessageConcurrentlyServiceTest {
     private String consumerGroup;
-    private String topic = "FooBarConsume";
+    private String topic = "FooBar";
     private String brokerName = "BrokerA";
     private MQClientInstance mQClientFactory;
 
@@ -127,8 +127,8 @@ public class ConsumeMessageConcurrentlyServiceTest {
                         messageClientExt.setMsgId("123");
                         messageClientExt.setBody(new byte[] {'a'});
                         messageClientExt.setOffsetMsgId("234");
-                        messageClientExt.setBornHost(new InetSocketAddress(8090));
-                        messageClientExt.setStoreHost(new InetSocketAddress(8090));
+                        messageClientExt.setBornHost(new InetSocketAddress(8080));
+                        messageClientExt.setStoreHost(new InetSocketAddress(8080));
                         PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
                         ((PullCallback) mock.getArgument(4)).onSuccess(pullResult);
                         return pullResult;
@@ -173,7 +173,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
         StatsItemSet itemSet = (StatsItemSet)statItmeSetField.get(mgr);
         StatsItem item = itemSet.getAndCreateStatsItem(topic + "@" + pushConsumer.getDefaultMQPushConsumerImpl().groupName());
 
-         assertThat(item.getValue().get()).isEqualTo(1L);
+        assertThat(item.getValue().get()).isGreaterThan(0L);
         assertThat(messageExts[0].getTopic()).isEqualTo(topic);
         assertThat(messageExts[0].getBody()).isEqualTo(new byte[] {'a'});
     }
