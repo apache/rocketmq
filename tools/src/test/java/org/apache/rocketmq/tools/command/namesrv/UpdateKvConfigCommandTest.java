@@ -69,9 +69,9 @@ public class UpdateKvConfigCommandTest {
     public void testExecute() throws SubCommandException {
         UpdateKvConfigCommand cmd = new UpdateKvConfigCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] { "-s namespace","-k topicname", "-v unit_test"};
+        String[] subargs = new String[]{"-s namespace", "-k topicname", "-v unit_test"};
         final CommandLine commandLine =
-                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
+                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName() + cmd.commandDesc(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
     }
 }
