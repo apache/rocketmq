@@ -77,6 +77,7 @@ public class RemotingHelperTest {
         String address = "127.0.0.1:9876";
         InetSocketAddress inetSocketAddress = (InetSocketAddress) RemotingHelper.string2SocketAddress(address);
         assertThat(inetSocketAddress.getPort()).isEqualTo(9876);
+        assertThat(inetSocketAddress.getAddress().getHostAddress()).isEqualTo("127.0.0.1");
     }
 
     /**
