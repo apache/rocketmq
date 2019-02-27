@@ -233,7 +233,14 @@ public class MappedFile extends ReferenceResource {
         }
     }
 
+    /**
+     * 获取文件最后一次修改时间
+     * @return
+     */
     public long getLastModifiedTimestamp() {
+        /**
+         * jdk方法   返回文件的最后修改时间
+         */
         return this.file.lastModified();
     }
 

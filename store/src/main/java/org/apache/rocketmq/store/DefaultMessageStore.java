@@ -878,6 +878,13 @@ public class DefaultMessageStore implements MessageStore {
         return 0;
     }
 
+    /**
+     * 查询指定时间戳存储的消息的physical offset
+     * @param topic Topic of the message.
+     * @param queueId Queue ID.
+     * @param timestamp Timestamp to look up.
+     * @return
+     */
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
@@ -974,6 +981,10 @@ public class DefaultMessageStore implements MessageStore {
         return this.commitLog.getMaxOffset();
     }
 
+    /**
+     * 获取最小PhyOffset
+     * @return
+     */
     @Override
     public long getMinPhyOffset() {
         return this.commitLog.getMinOffset();

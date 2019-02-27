@@ -224,6 +224,12 @@ public class ConsumeQueue {
         }
     }
 
+    /**
+     * 获取timestamp存储的消息
+     * 获取当前文件存储的数据   采用每次都取中间值的算法   得到最接近timestamp的存储时间所对应的消息的offset
+     * @param timestamp
+     * @return
+     */
     public long getOffsetInQueueByTime(final long timestamp) {
         MappedFile mappedFile = this.mappedFileQueue.getMappedFileByTime(timestamp);
         if (mappedFile != null) {
@@ -232,15 +238,36 @@ public class ConsumeQueue {
             int high = 0;
             int midOffset = -1, targetOffset = -1, leftOffset = -1, rightOffset = -1;
             long leftIndexValue = -1L, rightIndexValue = -1L;
+            /**
+             * 获取最小PhyOffset
+             */
             long minPhysicOffset = this.defaultMessageStore.getMinPhyOffset();
+            /**
+             * 获取当前文件已写入的内容
+             */
             SelectMappedBufferResult sbr = mappedFile.selectMappedBuffer(0);
             if (null != sbr) {
                 ByteBuffer byteBuffer = sbr.getByteBuffer();
+                /**
+                 * byteBuffer.limit()即当前文件存储数据的长度
+                 * 但依照consumeQueue存储特性  最后一个有效数据起始位置为byteBuffer.limit() - CQ_STORE_UNIT_SIZE
+                 * byteBuffer.limit()为下一次存储数据的起始位置
+                 */
                 high = byteBuffer.limit() - CQ_STORE_UNIT_SIZE;
                 try {
                     while (high >= low) {
+                        /**
+                         * 获取low和high对应的中间的数据  即获取中间数
+                         */
                         midOffset = (low + high) / (2 * CQ_STORE_UNIT_SIZE) * CQ_STORE_UNIT_SIZE;
                         byteBuffer.position(midOffset);
+                        /**
+                         * ConsumeQueue存储结构
+                         * |—————————————————————————————————————————————————————|
+                         * |   commitlog offset  |     size     |  tag hashcode  |
+                         * |         8byte       |    4byte     |      8byte     |
+                         * |—————————————————————————————————————————————————————|
+                         */
                         long phyOffset = byteBuffer.getLong();
                         int size = byteBuffer.getInt();
                         if (phyOffset < minPhysicOffset) {
@@ -249,18 +276,30 @@ public class ConsumeQueue {
                             continue;
                         }
 
+                        /**
+                         * 获取phyOffset处消息的storeTime
+                         */
                         long storeTime =
                             this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
                         if (storeTime < 0) {
                             return 0;
                         } else if (storeTime == timestamp) {
+                            /**
+                             * 命中
+                             */
                             targetOffset = midOffset;
                             break;
                         } else if (storeTime > timestamp) {
+                            /**
+                             * 存储时间大于timestamp   修改右侧
+                             */
                             high = midOffset - CQ_STORE_UNIT_SIZE;
                             rightOffset = midOffset;
                             rightIndexValue = storeTime;
                         } else {
+                            /**
+                             * 存储时间小于timestamp  修改左侧
+                             */
                             low = midOffset + CQ_STORE_UNIT_SIZE;
                             leftOffset = midOffset;
                             leftIndexValue = storeTime;
@@ -268,16 +307,27 @@ public class ConsumeQueue {
                     }
 
                     if (targetOffset != -1) {
-
+                        /**
+                         * 命中
+                         */
                         offset = targetOffset;
                     } else {
                         if (leftIndexValue == -1) {
 
+                            /**
+                             * 存储时间一直大于timestamp  offset = rightOffset = low
+                             */
                             offset = rightOffset;
                         } else if (rightIndexValue == -1) {
 
+                            /**
+                             * 存储时间一直小于timestamp  offset = leftOffset = byteBuffer.limit() - CQ_STORE_UNIT_SIZE
+                             */
                             offset = leftOffset;
                         } else {
+                            /**
+                             * 取最接近timestamp时间所对应的offset
+                             */
                             offset =
                                 Math.abs(timestamp - leftIndexValue) > Math.abs(timestamp
                                     - rightIndexValue) ? rightOffset : leftOffset;

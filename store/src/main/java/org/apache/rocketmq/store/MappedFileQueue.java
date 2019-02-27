@@ -74,7 +74,15 @@ public class MappedFileQueue {
         }
     }
 
+    /**
+     * 获取最后一次修改日期大于timestamp的文件列表中的第一个文件  如果没有则返回最后一个文件
+     * @param timestamp
+     * @return
+     */
     public MappedFile getMappedFileByTime(final long timestamp) {
+        /**
+         * 获取文件数组
+         */
         Object[] mfs = this.copyMappedFiles(0);
 
         if (null == mfs)
@@ -82,11 +90,17 @@ public class MappedFileQueue {
 
         for (int i = 0; i < mfs.length; i++) {
             MappedFile mappedFile = (MappedFile) mfs[i];
+            /**
+             * 文件最后修改时间大于等于当前时间戳
+             */
             if (mappedFile.getLastModifiedTimestamp() >= timestamp) {
                 return mappedFile;
             }
         }
 
+        /**
+         * 返回最后一个文件
+         */
         return (MappedFile) mfs[mfs.length - 1];
     }
 

@@ -1108,9 +1108,15 @@ public class CommitLog {
      */
     public long pickupStoreTimestamp(final long offset, final int size) {
         if (offset >= this.getMinOffset()) {
+            /**
+             * 查询commitLogOffset处的消息的size个字节
+             */
             SelectMappedBufferResult result = this.getMessage(offset, size);
             if (null != result) {
                 try {
+                    /**
+                     * 获取消息的StoreTimes
+                     */
                     return result.getByteBuffer().getLong(MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSTION);
                 } finally {
                     result.release();
