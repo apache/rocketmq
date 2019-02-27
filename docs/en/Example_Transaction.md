@@ -2,9 +2,9 @@
 
 ## 1 Transaction message status 
 There are three states for transactional message:  
-1. TransactionStatus.CommitTransaction: commit transaction，it means that allow consumers to consume this message.  
-2. TransactionStatus.RollbackTransaction: rollback transaction，it means that the message will be deleted and not allowed to consume.  
-3. TransactionStatus.Unknown: intermediate state，it means that MQ is needed to check back to determine the status.
+- TransactionStatus.CommitTransaction: commit transaction，it means that allow consumers to consume this message.  
+- TransactionStatus.RollbackTransaction: rollback transaction，it means that the message will be deleted and not allowed to consume.  
+- TransactionStatus.Unknown: intermediate state，it means that MQ is needed to check back to determine the status.
 
 ## 2 Send transactional message example
 
