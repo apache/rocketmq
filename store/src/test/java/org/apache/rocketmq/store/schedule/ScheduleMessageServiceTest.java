@@ -119,9 +119,8 @@ public class ScheduleMessageServiceTest {
         PutMessageResult result = messageStore.putMessage(msg);
         assertThat(result.isOk()).isTrue();
 
+        // make sure consumerQueue offset = commitLog offset
         StoreTestUtil.waitCommitLogReput(messageStore);
-        StoreTestUtil.flushConsumeQueue(messageStore);
-
 
         // consumer message
         int delayQueueId = ScheduleMessageService.delayLevel2QueueId(delayLevel);
