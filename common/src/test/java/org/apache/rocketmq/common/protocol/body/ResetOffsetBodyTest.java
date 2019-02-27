@@ -18,8 +18,6 @@
 package org.apache.rocketmq.common.protocol.body;
 
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.body.QueryCorrectionOffsetBody;
-import org.apache.rocketmq.common.protocol.body.ResetOffsetBody;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.junit.Test;
 
@@ -27,7 +25,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.offset;
 
 public class ResetOffsetBodyTest {
 
