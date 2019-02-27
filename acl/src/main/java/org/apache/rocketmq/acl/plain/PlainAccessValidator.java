@@ -52,6 +52,11 @@ public class PlainAccessValidator implements AccessValidator {
         } else {
             accessResource.setWhiteRemoteAddress(remoteAddr);
         }
+
+        if (request.getExtFields() == null) {
+            throw new AclException("request's extFields value is null");
+        }
+        
         accessResource.setRequestCode(request.getCode());
         accessResource.setAccessKey(request.getExtFields().get(SessionCredentials.ACCESS_KEY));
         accessResource.setSignature(request.getExtFields().get(SessionCredentials.SIGNATURE));
