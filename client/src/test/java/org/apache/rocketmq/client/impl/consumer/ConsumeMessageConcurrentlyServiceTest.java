@@ -85,7 +85,6 @@ public class ConsumeMessageConcurrentlyServiceTest {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                                                             ConsumeConcurrentlyContext context) {
-                System.err.println(msgs);
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
