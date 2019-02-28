@@ -360,6 +360,9 @@ public abstract class RebalanceImpl {
                             }
                             break;
                         case CONSUME_PUSH:
+                            if (isOrder) {
+                                break;
+                            }
                             pq.setDropped(true);
                             if (this.removeUnnecessaryMessageQueue(mq, pq)) {
                                 it.remove();
