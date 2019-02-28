@@ -50,7 +50,7 @@ public class ScheduleMessageServiceTest {
      * t
      * defaultMessageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h"
      */
-    String testMessageDelayLevel = "2s 3s";
+    String testMessageDelayLevel = "5s 8s";
     /**
      * choose delay level
      */
@@ -111,7 +111,7 @@ public class ScheduleMessageServiceTest {
 
 
     @Test
-    public void deliverDelayedMessageTimerTaskTest() throws InterruptedException {
+    public void deliverDelayedMessageTimerTaskTest() throws Exception {
         MessageExtBrokerInner msg = buildMessage();
         int realQueueId = msg.getQueueId();
         // set delayLevel,and send delay message
@@ -119,6 +119,8 @@ public class ScheduleMessageServiceTest {
         PutMessageResult result = messageStore.putMessage(msg);
         assertThat(result.isOk()).isTrue();
 
+        // make sure consumerQueue offset = commitLog offset
+        StoreTestUtil.waitCommitLogReput(messageStore);
 
         // consumer message
         int delayQueueId = ScheduleMessageService.delayLevel2QueueId(delayLevel);
@@ -132,7 +134,7 @@ public class ScheduleMessageServiceTest {
 
         // timer run maybe delay, then consumer message again
         // and wait offsetTable
-        TimeUnit.SECONDS.sleep(3);
+        TimeUnit.SECONDS.sleep(10);
         scheduleMessageService.buildRunningStats(new HashMap<String, String>());
 
         messageResult = getMessage(realQueueId, offset);
@@ -188,7 +190,6 @@ public class ScheduleMessageServiceTest {
 
     @After
     public void shutdown() throws InterruptedException {
-        TimeUnit.SECONDS.sleep(1);
         messageStore.shutdown();
         messageStore.destroy();
         File file = new File(messageStoreConfig.getStorePathRootDir());
