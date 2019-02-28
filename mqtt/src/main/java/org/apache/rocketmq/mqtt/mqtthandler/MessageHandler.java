@@ -14,26 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client.impl;
 
-import org.apache.rocketmq.common.client.ClientManagerImpl;
+package org.apache.rocketmq.mqtt.mqtthandler;
+
+import io.netty.handler.codec.mqtt.MqttMessage;
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class ProducerManagerImpl extends ClientManagerImpl {
+public interface MessageHandler {
 
-    @Override
-    public void onClosed(String group, RemotingChannel remotingChannel) {
-
-    }
-
-    @Override
-    public void onUnregister(String group, RemotingChannel remotingChannel) {
-
-    }
-
-    @Override
-    public void onRegister(String group, RemotingChannel remotingChannel) {
-
-    }
-
+    /**
+     * Handle message from client
+     *
+     * @param message
+     */
+    RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel);
 }

@@ -20,6 +20,8 @@ import io.netty.channel.Channel;
 import io.netty.util.Attribute;
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.rocketmq.common.client.Client;
+import org.apache.rocketmq.common.client.ClientRole;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.protocol.RequestCode;
@@ -41,8 +43,6 @@ import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
-import org.apache.rocketmq.snode.client.Client;
-import org.apache.rocketmq.snode.client.impl.ClientRole;
 import org.apache.rocketmq.snode.constant.SnodeConstant;
 
 public class HeartbeatProcessor implements RequestProcessor {

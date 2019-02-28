@@ -17,6 +17,7 @@
 package org.apache.rocketmq.snode.processor;
 
 import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.common.client.Subscription;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -36,7 +37,6 @@ import org.apache.rocketmq.remoting.interceptor.RequestContext;
 import org.apache.rocketmq.remoting.interceptor.ResponseContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
-import org.apache.rocketmq.snode.client.impl.Subscription;
 
 public class PullMessageProcessor implements RequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);

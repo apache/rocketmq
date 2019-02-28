@@ -17,13 +17,13 @@
 package org.apache.rocketmq.snode.client;
 
 import java.util.Set;
+import org.apache.rocketmq.common.client.Subscription;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.RemotingChannel;
-import org.apache.rocketmq.snode.client.impl.Subscription;
 
 public interface SubscriptionManager {
     boolean subscribe(String groupId, Set<SubscriptionData> subscriptionDataSet, ConsumeType consumeType,

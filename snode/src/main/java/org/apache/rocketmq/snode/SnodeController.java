@@ -27,11 +27,13 @@ import org.apache.rocketmq.broker.BrokerStartup;
 import org.apache.rocketmq.common.MqttConfig;
 import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.client.ClientManager;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
 import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.RemotingClientFactory;
@@ -48,18 +50,15 @@ import org.apache.rocketmq.remoting.interceptor.ResponseContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.util.ServiceProvider;
 import org.apache.rocketmq.snode.client.ClientHousekeepingService;
-import org.apache.rocketmq.snode.client.ClientManager;
 import org.apache.rocketmq.snode.client.SlowConsumerService;
 import org.apache.rocketmq.snode.client.SubscriptionGroupManager;
 import org.apache.rocketmq.snode.client.SubscriptionManager;
 import org.apache.rocketmq.snode.client.impl.ConsumerManagerImpl;
-import org.apache.rocketmq.snode.client.impl.IOTClientManagerImpl;
 import org.apache.rocketmq.snode.client.impl.ProducerManagerImpl;
 import org.apache.rocketmq.snode.client.impl.SlowConsumerServiceImpl;
 import org.apache.rocketmq.snode.client.impl.SubscriptionManagerImpl;
 import org.apache.rocketmq.snode.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.snode.processor.ConsumerManageProcessor;
-import org.apache.rocketmq.snode.processor.DefaultMqttMessageProcessor;
 import org.apache.rocketmq.snode.processor.HeartbeatProcessor;
 import org.apache.rocketmq.snode.processor.PullMessageProcessor;
 import org.apache.rocketmq.snode.processor.SendMessageProcessor;
@@ -69,16 +68,13 @@ import org.apache.rocketmq.snode.service.MetricsService;
 import org.apache.rocketmq.snode.service.NnodeService;
 import org.apache.rocketmq.snode.service.PushService;
 import org.apache.rocketmq.snode.service.ScheduledService;
-import org.apache.rocketmq.snode.service.WillMessageService;
 import org.apache.rocketmq.snode.service.impl.ClientServiceImpl;
 import org.apache.rocketmq.snode.service.impl.LocalEnodeServiceImpl;
 import org.apache.rocketmq.snode.service.impl.MetricsServiceImpl;
-import org.apache.rocketmq.snode.service.impl.MqttPushServiceImpl;
 import org.apache.rocketmq.snode.service.impl.NnodeServiceImpl;
 import org.apache.rocketmq.snode.service.impl.PushServiceImpl;
 import org.apache.rocketmq.snode.service.impl.RemoteEnodeServiceImpl;
 import org.apache.rocketmq.snode.service.impl.ScheduledServiceImpl;
-import org.apache.rocketmq.snode.service.impl.WillMessageServiceImpl;
 
 public class SnodeController {
 
@@ -105,7 +101,7 @@ public class SnodeController {
     private ScheduledService scheduledService;
     private ClientManager producerManager;
     private ClientManager consumerManager;
-    private ClientManager iotClientManager;
+//    private ClientManager iotClientManager;
     private SubscriptionManager subscriptionManager;
     private ClientHousekeepingService clientHousekeepingService;
     private SubscriptionGroupManager subscriptionGroupManager;
@@ -122,8 +118,8 @@ public class SnodeController {
     private ClientService clientService;
     private SlowConsumerService slowConsumerService;
     private MetricsService metricsService;
-    private WillMessageService willMessageService;
-    private MqttPushServiceImpl mqttPushService;
+//    private WillMessageService willMessageService;
+//    private MqttPushServiceImpl mqttPushService;
 
     private final ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
@@ -153,7 +149,12 @@ public class SnodeController {
         if (this.mqttRemotingClient != null) {
             this.mqttRemotingClient.init(this.mqttClientConfig, null);
         }
-
+        this.mqttRemotingServer = RemotingServerFactory.getInstance().createRemotingServer(
+            RemotingUtil.MQTT_PROTOCOL);
+        if (this.mqttRemotingServer != null) {
+            this.mqttRemotingServer.init(this.mqttServerConfig, this.clientHousekeepingService);
+            this.mqttRemotingServer.registerInterceptorGroup(this.remotingServerInterceptorGroup);
+        }
         this.sendMessageExecutor = ThreadUtils.newThreadPoolExecutor(
             snodeConfig.getSnodeSendMessageMinPoolSize(),
             snodeConfig.getSnodeSendMessageMaxPoolSize(),
@@ -211,19 +212,19 @@ public class SnodeController {
         this.sendMessageProcessor = new SendMessageProcessor(this);
         this.heartbeatProcessor = new HeartbeatProcessor(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
-        this.defaultMqttMessageProcessor = new DefaultMqttMessageProcessor(this);
+        this.defaultMqttMessageProcessor = new DefaultMqttMessageProcessor(this.mqttConfig, mqttRemotingServer);
         this.pushService = new PushServiceImpl(this);
         this.clientService = new ClientServiceImpl(this);
         this.subscriptionManager = new SubscriptionManagerImpl();
         this.producerManager = new ProducerManagerImpl();
         this.consumerManager = new ConsumerManagerImpl(this);
-        this.iotClientManager = new IOTClientManagerImpl(this);
+//        this.iotClientManager = new IOTClientManagerImpl(this);
         this.clientHousekeepingService = new ClientHousekeepingService(this.producerManager,
-            this.consumerManager, this.iotClientManager);
+            this.consumerManager, null);
         this.slowConsumerService = new SlowConsumerServiceImpl(this);
         this.metricsService = new MetricsServiceImpl();
-        this.willMessageService = new WillMessageServiceImpl(this);
-        this.mqttPushService = new MqttPushServiceImpl(this);
+//        this.willMessageService = new WillMessageServiceImpl(this);
+//        this.mqttPushService = new MqttPushServiceImpl(this);
     }
 
     public SnodeConfig getSnodeConfig() {
@@ -257,12 +258,6 @@ public class SnodeController {
         if (this.snodeServer != null) {
             this.snodeServer.init(this.nettyServerConfig, this.clientHousekeepingService);
             this.snodeServer.registerInterceptorGroup(this.remotingServerInterceptorGroup);
-        }
-        this.mqttRemotingServer = RemotingServerFactory.getInstance().createRemotingServer(
-            RemotingUtil.MQTT_PROTOCOL);
-        if (this.mqttRemotingServer != null) {
-            this.mqttRemotingServer.init(this.mqttServerConfig, this.clientHousekeepingService);
-            this.mqttRemotingServer.registerInterceptorGroup(this.remotingServerInterceptorGroup);
         }
         registerProcessor();
         return true;
@@ -507,13 +502,13 @@ public class SnodeController {
         this.consumerManager = consumerManager;
     }
 
-    public ClientManager getIotClientManager() {
+/*    public ClientManager getIotClientManager() {
         return iotClientManager;
     }
 
     public void setIotClientManager(ClientManager iotClientManager) {
         this.iotClientManager = iotClientManager;
-    }
+    }*/
 
     public SubscriptionManager getSubscriptionManager() {
         return subscriptionManager;
@@ -551,7 +546,7 @@ public class SnodeController {
         this.metricsService = metricsService;
     }
 
-    public WillMessageService getWillMessageService() {
+/*    public WillMessageService getWillMessageService() {
         return willMessageService;
     }
 
@@ -566,5 +561,5 @@ public class SnodeController {
 
     public void setMqttPushService(MqttPushServiceImpl mqttPushService) {
         this.mqttPushService = mqttPushService;
-    }
+    }*/
 }

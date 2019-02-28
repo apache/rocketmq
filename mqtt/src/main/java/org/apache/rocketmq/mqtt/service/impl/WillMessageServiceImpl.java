@@ -14,26 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client.impl;
 
-import org.apache.rocketmq.common.client.ClientManagerImpl;
-import org.apache.rocketmq.remoting.RemotingChannel;
+package org.apache.rocketmq.mqtt.service.impl;
 
-public class ProducerManagerImpl extends ClientManagerImpl {
+import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.common.message.mqtt.WillMessage;
+import org.apache.rocketmq.mqtt.service.WillMessageService;
+
+public class WillMessageServiceImpl implements WillMessageService {
+
+    private static ConcurrentHashMap<String/*clientId*/, WillMessage> willMessageTable = new ConcurrentHashMap<>();
+
+    public WillMessageServiceImpl() {
+    }
 
     @Override
-    public void onClosed(String group, RemotingChannel remotingChannel) {
+    public void saveWillMessage(String clientId, WillMessage willMessage) {
+        willMessageTable.put(clientId, willMessage);
+    }
+
+    @Override
+    public void sendWillMessage(String clientId) {
 
     }
 
     @Override
-    public void onUnregister(String group, RemotingChannel remotingChannel) {
-
+    public void deleteWillMessage(String clientId) {
+        willMessageTable.remove(clientId);
     }
-
-    @Override
-    public void onRegister(String group, RemotingChannel remotingChannel) {
-
-    }
-
 }

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client;
+package org.apache.rocketmq.mqtt.client;
 
 import io.netty.channel.Channel;
 import io.netty.util.Attribute;
@@ -23,41 +23,32 @@ import org.apache.rocketmq.common.client.ClientManager;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.mqtt.constant.MqttConstant;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
-import org.apache.rocketmq.snode.constant.SnodeConstant;
 
-public class ClientHousekeepingService implements ChannelEventListener {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
-    private final ClientManager producerManager;
-    private final ClientManager consumerManager;
+public class MqttClientHousekeepingService implements ChannelEventListener {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.MQTT_LOGGER_NAME);
     private final ClientManager iotClientManager;
 
-    public ClientHousekeepingService(final ClientManager producerManager,
-        final ClientManager consumerManager, final ClientManager iotClientManager) {
-        this.producerManager = producerManager;
-        this.consumerManager = consumerManager;
+    public MqttClientHousekeepingService(final ClientManager iotClientManager) {
         this.iotClientManager = iotClientManager;
     }
 
     public void start(long interval) {
-        this.producerManager.startScan(interval);
-        this.consumerManager.startScan(interval);
-//        this.iotClientManager.startScan(interval);
+        this.iotClientManager.startScan(interval);
     }
 
     public void shutdown() {
-        this.producerManager.shutdown();
-        this.consumerManager.shutdown();
-//        this.iotClientManager.shutdown();
+        this.iotClientManager.shutdown();
     }
 
     private Client getClient(RemotingChannel remotingChannel) {
         if (remotingChannel instanceof NettyChannelImpl) {
             Channel channel = ((NettyChannelImpl) remotingChannel).getChannel();
-            Attribute<Client> clientAttribute = channel.attr(SnodeConstant.NETTY_CLIENT_ATTRIBUTE_KEY);
+            Attribute<Client> clientAttribute = channel.attr(MqttConstant.MQTT_CLIENT_ATTRIBUTE_KEY);
             if (clientAttribute != null) {
                 Client client = clientAttribute.get();
                 return client;
@@ -71,15 +62,9 @@ public class ClientHousekeepingService implements ChannelEventListener {
         Client client = getClient(remotingChannel);
         if (client != null) {
             switch (client.getClientRole()) {
-                case Consumer:
-                    this.consumerManager.onClose(client.getGroups(), remotingChannel);
+                case IOTCLIENT:
+                    this.iotClientManager.onClose(client.getGroups(), remotingChannel);
                     return;
-                case Producer:
-                    this.producerManager.onClose(client.getGroups(), remotingChannel);
-                    return;
-//                case IOTCLIENT:
-//                    this.iotClientManager.onClose(client.getGroups(), remotingChannel);
-//                    return;
                 default:
             }
         }
