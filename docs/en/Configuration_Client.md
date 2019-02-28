@@ -25,7 +25,7 @@ export   NAMESRV_ADDR=192.168.0.1:9876;192.168.0.2:9876
 ```
 - HTTP static server addressing(default)
 
-After client started，it will access a http static server address, as: <http://jmenv.tbsite.net:8080/rocketmq/nsaddr>, this URL return the following contents:
+After client started, it will access a http static server address, as: <http://jmenv.tbsite.net:8080/rocketmq/nsaddr>, this URL return the following contents:
 
 ```text
 192.168.0.1:9876;192.168.0.2:9876   
@@ -38,7 +38,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 
 ### Client Configuration
 
-```DefaultMQProducer```、```TransactionMQProducer```、```DefaultMQPushConsumer```、```DefaultMQPullConsumer``` all extends the ```ClientConfig``` Class，```ClientConfig``` as the client common configuration class。Client configuration style like getXXX、setXXX, each of the parameters can config by spring and also config their in the code. Such as the ```namesrvAddr``` parameter: ```producer.setNamesrvAddr("192.168.0.1:9876")```, same with the other parameters.
+```DefaultMQProducer```,```TransactionMQProducer```,```DefaultMQPushConsumer```,```DefaultMQPullConsumer``` all extends the ```ClientConfig``` Class, ```ClientConfig``` as the client common configuration class. Client configuration style like getXXX,setXXX, each of the parameters can config by spring and also config their in the code. Such as the ```namesrvAddr``` parameter: ```producer.setNamesrvAddr("192.168.0.1:9876")```, same with the other parameters.
 
 #### Client Common Configuration
 
@@ -96,8 +96,8 @@ HTTP static server addressing is recommended, because it is simple client deploy
 | Pamater Name                     | Default Value                 | Description                                                         |
 | -------------------------------- | ----------------------------- | ------------------------------------------------------------ |
 | consumerGroup                    | DEFAULT_CONSUMER              | Consumer group name. If multi Consumer belong to an application, subscribe the same message and consume logic as the same, they should be gathered together |
-| brokerSuspendMaxTimeMillis       | 20000                         | Long polling，Consumer pull message request suspended for the longest time in the Broker in milliseconds     |
-| consumerTimeoutMillisWhenSuspend | 30000                         | Long polling，Consumer pull message request suspend in the Broker over this time value, client think timeout. Unit is milliseconds |
+| brokerSuspendMaxTimeMillis       | 20000                         | Long polling, Consumer pull message request suspended for the longest time in the Broker in milliseconds     |
+| consumerTimeoutMillisWhenSuspend | 30000                         | Long polling, Consumer pull message request suspend in the Broker over this time value, client think timeout. Unit is milliseconds |
 | consumerPullTimeoutMillis        | 10000                         | Not long polling, timeout time of pull message in milliseconds                            |
 | messageModel                     | BROADCASTING                  | Message support two mode: cluster consumption and broadcast consumption           |
 | messageQueueListener             |                               | Listening changing of queue                                                 |
@@ -112,7 +112,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 | Topic          | null   | Required, the name of the topic to which the message belongs                                       |
 | Body           | null   | Required, message body                                                |
 | Tags           | null   | Optional, message tag, convenient for server filtering. Currently only one tag per message is supported |
-| Keys           | null   | Optional, represent this message's business keys, server create hash indexes based keys. After setting, you can find message by ```Topics```、```Keys``` in Console system. Because of hash indexes, please make key as unique as possible, such as order number, goods Id and so on.|
+| Keys           | null   | Optional, represent this message's business keys, server create hash indexes based keys. After setting, you can find message by ```Topics```,```Keys``` in Console system. Because of hash indexes, please make key as unique as possible, such as order number, goods Id and so on.|
 | Flag           | 0      | Optional, it is entirely up to the application, and RocketMQ does not intervene                     |
 | DelayTimeLevel | 0      | Optional, message delay level, 0 represent no delay, greater tan 0 can consume |
 | WaitStoreMsgOK | TRUE   | Optional, indicates whether the message is not answered until the server is down.                |
