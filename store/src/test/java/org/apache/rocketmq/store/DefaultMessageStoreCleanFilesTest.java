@@ -28,8 +28,6 @@ import org.junit.Test;
 
 import java.io.File;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -306,37 +304,9 @@ public class DefaultMessageStoreCleanFilesTest {
             assertTrue(result != null && result.isOk());
         }
 
-        // wait for build consume queue completion
-        for (int i = 0; i < 100 && isCommitLogAvailable(messageStore); i++) {
-            Thread.sleep(100);
-        }
-        flushConsumeQueue();
-    }
-
-    private void flushConsumeQueue() throws Exception {
-        Field field = messageStore.getClass().getDeclaredField("flushConsumeQueueService");
-        field.setAccessible(true);
-        DefaultMessageStore.FlushConsumeQueueService flushService = (DefaultMessageStore.FlushConsumeQueueService) field.get(messageStore);
-
-        final int RETRY_TIMES_OVER = 3;
-        Method method = DefaultMessageStore.FlushConsumeQueueService.class.getDeclaredMethod("doFlush", int.class);
-        method.setAccessible(true);
-        method.invoke(flushService, RETRY_TIMES_OVER);
-    }
-
-    private boolean isCommitLogAvailable(DefaultMessageStore store) {
-        try {
-            Field serviceField = store.getClass().getDeclaredField("reputMessageService");
-            serviceField.setAccessible(true);
-            DefaultMessageStore.ReputMessageService reputService =
-                    (DefaultMessageStore.ReputMessageService) serviceField.get(store);
-
-            Method method = DefaultMessageStore.ReputMessageService.class.getDeclaredMethod("isCommitLogAvailable");
-            method.setAccessible(true);
-            return (boolean) method.invoke(reputService);
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
+        StoreTestUtil.waitCommitLogReput(messageStore);
+        StoreTestUtil.flushConsumeQueue(messageStore);
+        StoreTestUtil.flushConsumeIndex(messageStore);
     }
 
     private void expireFiles(MappedFileQueue commitLogQueue, int expireCount) {
