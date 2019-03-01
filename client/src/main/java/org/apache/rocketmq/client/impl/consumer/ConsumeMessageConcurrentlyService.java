@@ -279,12 +279,12 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         final String groupTopic = MixAll.getRetryTopic(consumerGroup);
         for (MessageExt msg : msgs) {
             /**
-             * 得到msg对应的RETRY_TOPIC的名称
+             * 得到msg对应的RETRY_TOPIC的名称  即消息初始的topic
              */
             String retryTopic = msg.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
 
             /**
-             * 如果groupTopic和retryTopic相等   则认为该条消息来自重试队列   并修改msg对应的主题名称
+             * 如果groupTopic和retryTopic相等   则认为该条消息来自重试队列   并修改msg对应的主题为初始topic
              */
             if (retryTopic != null && groupTopic.equals(msg.getTopic())) {
                 msg.setTopic(retryTopic);

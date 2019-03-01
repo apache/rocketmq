@@ -19,7 +19,7 @@ public class Consumer1 {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("consumerGroup7");
 //        consumer.setNamesrvAddr("47.98.130.29:9876");
         consumer.setNamesrvAddr("localhost:9876");
-        consumer.setInstanceName("test2");
+        consumer.setInstanceName("test1");
 
         /*
          * Specify name server addresses.
@@ -52,7 +52,7 @@ public class Consumer1 {
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                                                             ConsumeConcurrentlyContext context) {
                 System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
-                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                return ConsumeConcurrentlyStatus.RECONSUME_LATER;
             }
         });
 
