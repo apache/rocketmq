@@ -49,7 +49,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class BrokerConsumeStatsSubCommadTest {
+
     private static BrokerConsumeStatsSubCommad cmd = new BrokerConsumeStatsSubCommad();
+
     private static DefaultMQAdminExt defaultMQAdminExt;
     private static DefaultMQAdminExtImpl defaultMQAdminExtImpl;
     private static MQClientInstance mqClientInstance = MQClientManager.getInstance().getAndCreateMQClientInstance(new ClientConfig());
