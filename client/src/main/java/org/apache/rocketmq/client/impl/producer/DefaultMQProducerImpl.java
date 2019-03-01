@@ -236,6 +236,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 break;
             case RUNNING:
                 this.mQClientFactory.unregisterProducer(this.defaultMQProducer.getProducerGroup());
+                this.defaultAsyncSenderExecutor.shutdown();
                 if (shutdownFactory) {
                     this.mQClientFactory.shutdown();
                 }
