@@ -50,7 +50,6 @@ import static org.mockito.Mockito.when;
 
 public class BrokerConsumeStatsSubCommadTest {
 
-
     private static BrokerConsumeStatsSubCommad cmd = new BrokerConsumeStatsSubCommad();
 
     private static DefaultMQAdminExt defaultMQAdminExt;
