@@ -6,7 +6,6 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.junit.Test;
 
-import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -21,28 +20,18 @@ public class ConfigurationTest {
         NamesrvConfig namesrvConfig = new NamesrvConfig();
         NettyServerConfig nettyServerConfig = new NettyServerConfig();
         Configuration configuration = new Configuration(log, namesrvConfig);
-        String allConfigsFormatString = configuration.getAllConfigsFormatString();
-        String dataVersionJson = configuration.getDataVersionJson();
+        configuration.getAllConfigsFormatString();
+        configuration.getDataVersionJson();
         Properties properties = new Properties();
         properties.setProperty("test", "mq config");
         configuration.setStorePathFromConfig(namesrvConfig, "kvConfigPath");
         configuration.setStorePath("c://");
         configuration.update(properties);
-        System.out.println("--------------------------------");
-        System.out.println("dataVersion:" + dataVersionJson + "");
-        System.out.println("--------------------------------");
-        System.out.println("all config string:\n" + allConfigsFormatString);
-        System.out.println("--------------------------------");
         configuration.registerConfig(nettyServerConfig);
         Properties allConfigs = configuration.getAllConfigs();
-        for (Map.Entry<Object, Object> entry : allConfigs.entrySet()) {
-            System.out.println(entry.getKey() + " : " + entry.getValue());
-        }
-        System.out.println("--------------------------------");
         Properties extProter = new Properties();
         extProter.setProperty("hello", "word");
         configuration.registerConfig(extProter);
-        System.out.println("all config string:\n" + configuration.getAllConfigsFormatString());
     }
 
 }
