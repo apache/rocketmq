@@ -44,10 +44,10 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
         } else {
             defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
             defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
-            try{
+            try {
                 defaultMQAdminExt.start();
             }
-            catch (Exception e){
+            catch (Exception e) {
                 throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
             }
             return defaultMQAdminExt;
