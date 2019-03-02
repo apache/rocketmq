@@ -69,6 +69,16 @@ public class DefaultMessageStoreTest {
         messageStore.start();
     }
 
+    @After
+    public void destroy() {
+        messageStore.shutdown();
+        messageStore.destroy();
+
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        File file = new File(messageStoreConfig.getStorePathRootDir());
+        UtilAll.deleteFile(file);
+    }
+
     @Test(expected = OverlappingFileLockException.class)
     public void test_repeat_restart() throws Exception {
         QUEUE_TOTAL = 1;
@@ -91,27 +101,6 @@ public class DefaultMessageStoreTest {
             master.shutdown();
             master.destroy();
         }
-    }
-
-    @After
-    public void destroy() {
-        messageStore.shutdown();
-        messageStore.destroy();
-
-        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        File file = new File(messageStoreConfig.getStorePathRootDir());
-        UtilAll.deleteFile(file);
-    }
-
-    private MessageStore buildMessageStore() throws Exception {
-        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        messageStoreConfig.setMapedFileSizeCommitLog(1024 * 1024 * 10);
-        messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 1024 * 10);
-        messageStoreConfig.setMaxHashSlotNum(10000);
-        messageStoreConfig.setMaxIndexNum(100 * 100);
-        messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
-        messageStoreConfig.setFlushIntervalConsumeQueue(1);
-        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MyMessageArrivingListener(), new BrokerConfig());
     }
 
     @Test
@@ -338,6 +327,108 @@ public class DefaultMessageStoreTest {
         assertThat(storeTime).isEqualTo(-1);
     }
 
+    @Test
+    public void test_getMessage_success() throws Exception {
+        String topic = "pullSizeTopic";
+        int queueId = 0;
+        String group = "simple";
+        putMessages(32, topic, queueId);
+        StoreTestUtil.flushConsumeQueue(getDefaultMessageStore());
+
+        GetMessageResult getMessageResult32 = messageStore.getMessage(group, topic, 0, 0, 32, null);
+        GetMessageResult getMessageResult20 = messageStore.getMessage(group, topic, 0, 0, 20, null);
+        GetMessageResult getMessageResult45 = messageStore.getMessage(group, topic, 0, 0, 10, null);
+
+        assertThat(getMessageResult32.getMessageBufferList().size()).isEqualTo(32);
+        assertThat(getMessageResult20.getMessageBufferList().size()).isEqualTo(20);
+        assertThat(getMessageResult45.getMessageBufferList().size()).isEqualTo(10);
+    }
+
+    @Test
+    public void test_recover_justRestart() throws Exception {
+        String topic = "recoverTopic";
+        int queueId = 0;
+        int messageAmount = 100;
+        AppendMessageResult[] appendMessageResults = putMessages(messageAmount, topic, queueId);
+        long maxOffset = getMaxOffset(appendMessageResults);
+        StoreTestUtil.flushConsumeQueue(getDefaultMessageStore());
+
+        long lastPhyOffset = messageStore.getMaxPhyOffset();
+        long lastCqOffset = messageStore.getMaxOffsetInQueue(topic, queueId);
+
+        assertThat(lastPhyOffset).isEqualTo(maxOffset);
+        assertThat(lastCqOffset).isEqualTo(messageAmount);
+
+        //1.just reboot
+        messageStore.shutdown();
+        messageStore = buildMessageStore();
+        assertTrue(messageStore.load());
+        messageStore.start();
+
+        assertThat(messageStore.getMaxPhyOffset()).isEqualTo(maxOffset);
+        assertThat(messageStore.getMaxOffsetInQueue(topic, queueId)).isEqualTo(messageAmount);
+    }
+
+    @Test
+    public void test_recover_damageLastMessage() throws Exception {
+        String topic = "recoverTopic";
+        int queueId = 0;
+        int messageAmount = 100;
+        AppendMessageResult[] appendMessageResults = putMessages(messageAmount + 1, topic, queueId);
+        StoreTestUtil.flushConsumeQueue(getDefaultMessageStore());
+        long lastPhyOffset = getMessageOffset(appendMessageResults, messageAmount - 1);
+
+        messageStore.shutdown();
+        damageCommitLog(lastPhyOffset);
+        messageStore = buildMessageStore();
+        assertTrue(messageStore.load());
+        messageStore.start();
+
+        assertThat(messageStore.getMaxPhyOffset()).isEqualTo(lastPhyOffset);
+        assertThat(messageStore.getMaxOffsetInQueue(topic, queueId)).isEqualTo(messageAmount);
+    }
+
+    @Test
+    public void test_recover_abort() throws Exception {
+        String topic = "recoverTopic";
+        int queueId = 0;
+        int messageAmount = 100;
+
+        AppendMessageResult[] appendMessageResults = putMessages(messageAmount + 1, topic, queueId);
+        StoreTestUtil.flushConsumeQueue(getDefaultMessageStore());
+        long lastPhyOffset = getMessageOffset(appendMessageResults, messageAmount - 1);
+
+        messageStore.shutdown();
+
+        //damage last message
+        damageCommitLog(lastPhyOffset);
+        //add abort file
+        String fileName = StorePathConfigHelper.getAbortFile(((DefaultMessageStore) messageStore).getMessageStoreConfig().getStorePathRootDir());
+        File file = new File(fileName);
+        MappedFile.ensureDirOK(file.getParent());
+        file.createNewFile();
+
+        messageStore = buildMessageStore();
+        assertTrue(messageStore.load());
+        messageStore.start();
+        assertThat(messageStore.getMaxPhyOffset()).isEqualTo(lastPhyOffset);
+        assertThat(messageStore.getMaxOffsetInQueue(topic, queueId)).isEqualTo(messageAmount);
+
+        AppendMessageResult[] results = putMessages(1, topic, queueId);
+        assertThat(results[0].getStatus()).isEqualTo(AppendMessageStatus.PUT_OK);
+    }
+
+    private MessageStore buildMessageStore() throws Exception {
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setMapedFileSizeCommitLog(1024 * 1024 * 10);
+        messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 1024 * 10);
+        messageStoreConfig.setMaxHashSlotNum(10000);
+        messageStoreConfig.setMaxIndexNum(100 * 100);
+        messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
+        messageStoreConfig.setFlushIntervalConsumeQueue(1);
+        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MyMessageArrivingListener(), new BrokerConfig());
+    }
+
     private DefaultMessageStore getDefaultMessageStore() {
         return (DefaultMessageStore)this.messageStore;
     }
@@ -423,98 +514,7 @@ public class DefaultMessageStoreTest {
         }
     }
 
-    @Test
-    public void test_getMessage_success() throws Exception {
-        String topic = "pullSizeTopic";
-        int queueId = 0;
-        String group = "simple";
-        putMessages(32, topic, queueId);
-        StoreTestUtil.flushConsumeQueue(getDefaultMessageStore());
-
-        GetMessageResult getMessageResult32 = messageStore.getMessage(group, topic, 0, 0, 32, null);
-        GetMessageResult getMessageResult20 = messageStore.getMessage(group, topic, 0, 0, 20, null);
-        GetMessageResult getMessageResult45 = messageStore.getMessage(group, topic, 0, 0, 10, null);
-
-        assertThat(getMessageResult32.getMessageBufferList().size()).isEqualTo(32);
-        assertThat(getMessageResult20.getMessageBufferList().size()).isEqualTo(20);
-        assertThat(getMessageResult45.getMessageBufferList().size()).isEqualTo(10);
-    }
-
-    @Test
-    public void test_recover_justRestart() throws Exception {
-        String topic = "recoverTopic";
-        int queueId = 0;
-        int messageAmount = 100;
-        AppendMessageResult[] appendMessageResults = putMessages(messageAmount, topic, queueId);
-        long maxOffset = getMaxOffset(appendMessageResults);
-        StoreTestUtil.flushConsumeQueue(getDefaultMessageStore());
-
-        long lastPhyOffset = messageStore.getMaxPhyOffset();
-        long lastCqOffset = messageStore.getMaxOffsetInQueue(topic, queueId);
-
-        assertThat(lastPhyOffset).isEqualTo(maxOffset);
-        assertThat(lastCqOffset).isEqualTo(messageAmount);
-
-        //1.just reboot
-        messageStore.shutdown();
-        messageStore = buildMessageStore();
-        assertTrue(messageStore.load());
-        messageStore.start();
-
-        assertThat(messageStore.getMaxPhyOffset()).isEqualTo(maxOffset);
-        assertThat(messageStore.getMaxOffsetInQueue(topic, queueId)).isEqualTo(messageAmount);
-    }
-
-    @Test
-    public void test_recover_damageLastMessage() throws Exception {
-        String topic = "recoverTopic";
-        int queueId = 0;
-        int messageAmount = 100;
-        AppendMessageResult[] appendMessageResults = putMessages(messageAmount + 1, topic, queueId);
-        StoreTestUtil.flushConsumeQueue(getDefaultMessageStore());
-        long lastPhyOffset = getMessageOffset(appendMessageResults, messageAmount - 1);
-
-        messageStore.shutdown();
-        damageCommitlog(lastPhyOffset);
-        messageStore = buildMessageStore();
-        assertTrue(messageStore.load());
-        messageStore.start();
-
-        assertThat(messageStore.getMaxPhyOffset()).isEqualTo(lastPhyOffset);
-        assertThat(messageStore.getMaxOffsetInQueue(topic, queueId)).isEqualTo(messageAmount);
-    }
-
-    @Test
-    public void test_recover_abort() throws Exception {
-        String topic = "recoverTopic";
-        int queueId = 0;
-        int messageAmount = 100;
-
-        AppendMessageResult[] appendMessageResults = putMessages(messageAmount + 1, topic, queueId);
-        StoreTestUtil.flushConsumeQueue(getDefaultMessageStore());
-        long lastPhyOffset = getMessageOffset(appendMessageResults, messageAmount - 1);
-
-        messageStore.shutdown();
-
-        //damage last message
-        damageCommitlog(lastPhyOffset);
-        //add abort file
-        String fileName = StorePathConfigHelper.getAbortFile(((DefaultMessageStore) messageStore).getMessageStoreConfig().getStorePathRootDir());
-        File file = new File(fileName);
-        MappedFile.ensureDirOK(file.getParent());
-        file.createNewFile();
-
-        messageStore = buildMessageStore();
-        assertTrue(messageStore.load());
-        messageStore.start();
-        assertThat(messageStore.getMaxPhyOffset()).isEqualTo(lastPhyOffset);
-        assertThat(messageStore.getMaxOffsetInQueue(topic, queueId)).isEqualTo(messageAmount);
-
-        AppendMessageResult[] results = putMessages(1, topic, queueId);
-        assertThat(results[0].getStatus()).isEqualTo(AppendMessageStatus.PUT_OK);
-    }
-
-    private void damageCommitlog(long offset) throws Exception {
+    private void damageCommitLog(long offset) throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         File file = new File(messageStoreConfig.getStorePathCommitLog() + File.separator + "00000000000000000000");
 
