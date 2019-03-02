@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class ClusterListSubCommandTest {
 
-    
+
 
     @Test
     public void testExecute() {
