@@ -28,7 +28,7 @@ SQL feature could do some calculation through the properties you put in when sen
 ------------
 ```
 
-## 1. Grammars
+## 1.Grammars
 RocketMQ only defines some basic grammars to support this feature. You could also extend it easily.
 
 - Numeric comparison, like **>**, **>=**, **<**, **<=**, **BETWEEN**, **=**;
@@ -43,13 +43,13 @@ Constant types are:
 - **NULL**, special constant;
 - Boolean, **TRUE** or **FALSE**;
 
-## 2. Usage constraints
+## 2.Usage constraints
 Only push consumer could select messages by SQL92. The interface is:
 ```
 public void subscribe(finalString topic, final MessageSelector messageSelector)
 ```
 
-## 3. Producer example
+## 3.Producer example
 You can put properties in message through method putUserProperty when sending.
 
 ```java
@@ -67,7 +67,7 @@ producer.shutdown();
 
 ```
 
-## 4. Consumer example
+## 4.Consumer example
 Use `MessageSelector.bySql` to select messages through SQL when consuming.
 
 
