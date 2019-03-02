@@ -20,7 +20,7 @@ The picture above shows the overall architecture of transactional message, inclu
 The compensation phase is used to resolve the timeout or failure case of the message Commit or Rollback.
 
 ### 1.2 The design of RocketMQ Transaction Message
-1. Transactional message is invisible to users in first phase(commit-request phase)   
+1. Transaction message is invisible to users in first phase(commit-request phase)   
   
   Upon on the main process of transactional message, the message of first phase is invisible to the user. This is also the biggest difference from normal message. So how do we write the message while making it invisible to the user? And below is the solution of RocketMQ: if the message is a Half message, the topic and queueId of the original message will be backed up, and then changes the topic to RMQ_SYS_TRANS_HALF_TOPIC. Since the consumer group does not subscribe to the topic, the consumer cannot consume the Half message. Then RocketMQ starts a timing task, pulls the message for RMQ_SYS_TRANS_HALF_TOPIC, obtains a channel according to producer group and sends a back-check to query local transaction status, and decide whether to submit or roll back the message according to the status.  
   
