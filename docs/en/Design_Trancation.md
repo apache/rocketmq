@@ -1,10 +1,10 @@
-#  Transactional Message
-## 1 Transactional Message
+#  Transaction Message
+## 1 Transaction Message
 Apache RocketMQ supports distributed transactional message from version 4.3.0. RocketMQ implements transactional message by using the protocol of 2PC(two-phase commit), in addition adding a compensation logic to handle timeout-case or failure-case of commit-phase, as shown below.
 
 ![](../cn/image/rocketmq_design_10.png)
 
-### 1.1 The Process of RocketMQ Transactional Message
+### 1.1 The Process of RocketMQ Transaction Message
 The picture above shows the overall architecture of transactional message, including the sending of message(commit-request phase), the sending of commit/rollback(commit phase) and the compensation process.
 
 1. The sending of message and Commit/Rollback.  
@@ -19,7 +19,7 @@ The picture above shows the overall architecture of transactional message, inclu
   (3) Redo Commit or Rollback based on local transaction status.
 The compensation phase is used to resolve the timeout or failure case of the message Commit or Rollback.
 
-### 1.2 The design of RocketMQ Transactional Message
+### 1.2 The design of RocketMQ Transaction Message
 1. Transactional message is invisible to users in first phase(commit-request phase)   
   
   Upon on the main process of transactional message, the message of first phase is invisible to the user. This is also the biggest difference from normal message. So how do we write the message while making it invisible to the user? And below is the solution of RocketMQ: if the message is a Half message, the topic and queueId of the original message will be backed up, and then changes the topic to RMQ_SYS_TRANS_HALF_TOPIC. Since the consumer group does not subscribe to the topic, the consumer cannot consume the Half message. Then RocketMQ starts a timing task, pulls the message for RMQ_SYS_TRANS_HALF_TOPIC, obtains a channel according to producer group and sends a back-check to query local transaction status, and decide whether to submit or roll back the message according to the status.  
