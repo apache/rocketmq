@@ -1,11 +1,11 @@
-# Message Queries
+# Message Message
 
 RocketMQ supports message queries by two dimensions, which are "Query Message by Message Id" and "Query Message by Message Key".
 
-## 1. Query Message by Message Id
+## 1 Query Message by Message Id
 The MessageId in RocketMQ has a total length of 16 bytes, including the broker address (IP address and port) and CommitLog offset. In RocketMQ, the specific approach is that the Client resolves the Broker's address (IP address and port) and the CommitLog's offset address from the MessageId. Then both of them are encapsulated into an RPC request, and finally it will be sent through the communication layer (business request code: VIEW_MESSAGE_BY_ID). The Broker reads a message by using the CommitLog offset and size to find the real message in the CommitLog and then return, which is how QueryMessageProcessor works.
 
-## 2. Query Message by Message Id
+## 2 Query Message by Message Id
 "Query Messages by Message Key" is mainly based on RocketMQ's IndexFile. The logical structure of the IndexFile is similar to the implementation of HashMap in JDK. The specific structure of the IndexFile is as follows:
 
 ![](images/rocketmq_design_message_query.png)
