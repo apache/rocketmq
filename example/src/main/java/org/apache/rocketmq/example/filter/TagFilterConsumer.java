@@ -14,31 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.rocketmq.example.filter;
 
+import java.io.IOException;
+import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 
-import java.util.List;
+public class TagFilterConsumer {
 
-public class SqlConsumer {
+    public static void main(String[] args) throws InterruptedException, MQClientException, IOException {
 
-    public static void main(String[] args) {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
-        try {
-            consumer.subscribe("TopicTest",
-                MessageSelector.bySql("(TAGS is not null and TAGS in ('TagA', 'TagB'))" +
-                    "and (a is not null and a between 0  3)"));
-        } catch (MQClientException e) {
-            e.printStackTrace();
-            return;
-        }
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name");
+
+        consumer.subscribe("TagFilterTest", "TagA || TagC");
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
 
@@ -50,12 +43,8 @@ public class SqlConsumer {
             }
         });
 
-        try {
-            consumer.start();
-        } catch (MQClientException e) {
-            e.printStackTrace();
-            return;
-        }
+        consumer.start();
+
         System.out.printf("Consumer Started.%n");
     }
 }
