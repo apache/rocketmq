@@ -167,7 +167,7 @@ public class Producer {
 
 ```
 
-## 2.2 Consume ordered messages
+## 2 Consume ordered messages
 
 ```
 
