@@ -33,7 +33,7 @@ import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class PrintMessageSubCommand implements SubCommand {
-
+    private DefaultMQPullConsumer consumer;
     public static long timestampFormat(final String value) {
         long timestamp = 0;
         try {
@@ -102,8 +102,9 @@ public class PrintMessageSubCommand implements SubCommand {
 
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
-        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(MixAll.TOOLS_CONSUMER_GROUP, rpcHook);
-
+        if (null == consumer){
+            consumer = new DefaultMQPullConsumer(MixAll.TOOLS_CONSUMER_GROUP, rpcHook);
+        }
         try {
             String topic = commandLine.getOptionValue('t').trim();
 
