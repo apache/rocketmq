@@ -33,10 +33,10 @@ From the above figure, the transport content can be divided into four parts:
 (3) Header data: serialized header data;
 
 (4) Message body data: binary byte data content of message body;
-#### 3 Message Communication Mode and Procedure
+### 3 Message Communication Mode and Procedure
 There are three main ways to support communication in RocketMQ message queue: synchronous (sync), asynchronous (async), one-way (oneway). The "one-way" communication mode is relatively simple and is generally used in sending heartbeat packets without paying attention to its Response. Here, mainly introduce the asynchronous communication flow of RocketMQ.
 ![](https://github.com/apache/rocketmq/raw/develop/docs/cn/image/rocketmq_design_5.png)
-#### 4 Reactor Multithread Design
+### 4 Reactor Multithread Design
 The RPC communication of RocketMQ uses Netty component as the underlying communication library, and also follows the Reactor multithread model. At the same time, some extensions and optimizations are made on it.
 ![](https://github.com/apache/rocketmq/raw/develop/docs/cn/image/rocketmq_design_6.png)
 Above block diagram can roughly understand the Reactor multi-thread model of NettyRemotingServer in RocketMQ. A Reactor main thread (eventLoopGroupBoss, is 1 above) is responsible for listening to TCP network connection requests, establishing connections, creating SocketChannel, and registering on selector. The source code of RocketMQ automatically selects NIO and Epoll according to the type of OS. Then listen to real network data. After you get the network data, you throw it to the Worker thread pool (eventLoopGroupSelector, is the "N" above, the default is 3 in the source code). You need to do SSL verification, codec, idle check, network connection management before you really execute the business logic. These tasks to defaultEventExecutorGroup (that is, "M1" above, the default set to 8 in the source code) to do. The processing business operations are executed in the business thread pool. According to the RomotingCommand business request code, the corresponding processor is found in the processorTable local cache variable and encapsulated into the task, and then submitted to the corresponding business processor processing thread pool for execution (sendMessageExecutor,). Take sending a message, for example, the "M2" above. The thread pool continues to increase in several steps from entry to business logic, which is related to the complexity of each step. The more complex the thread pool is, the wider the concurrent channel is required.
