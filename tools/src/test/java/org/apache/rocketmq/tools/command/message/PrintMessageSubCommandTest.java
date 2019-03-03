@@ -99,13 +99,13 @@ public class PrintMessageSubCommandTest {
     @Test
     public void testCommandName(){
         String name = printMessageSubCommand.commandName();
-        Assert.assertTrue(name.equals("printMsg"));
+        Assert.assertEquals("printMsg", name);
     }
 
     @Test
     public void testCommandDesc(){
         String descr = printMessageSubCommand.commandDesc();
-        Assert.assertTrue(descr.equals("Print Message Detail"));
+        Assert.assertEquals("Print Message Detail", descr);
     }
 
     /**
