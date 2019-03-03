@@ -59,7 +59,7 @@ There is a os.sh script that lists a lot of kernel parameters in folder bin whic
 
 
 
-- **File descriptor limits**, RocketMQ needs open file descriptors for files(CommitLog and ConsumeQueue) and network connections. We recommend set 655350 for file descriptors.
+- **File descriptor limits**, RocketMQ needs open file descriptors for files(CommitLog and ConsumeQueue) and network connections. We recommend setting 655350 for file descriptors.
 
 
 
