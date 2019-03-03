@@ -61,7 +61,7 @@ import static org.mockito.Mockito.*;
 /**
  * test class for ConsumeMessageOrderlyService
  */
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class ConsumeMessageOrderlyServiceTest {
 
     private static final int DEFAULT_THREAD_MAX = 64;
