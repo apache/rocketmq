@@ -16,7 +16,7 @@ As the role of the transfer station, the Broker Server stores and forwards messa
 ## 6 Name Server
 The Name Server serves as the provider of routing service. The producer or the consumer can find the list of broker IP addresses for each topic through name server. Multiple name servers can be deployed in one cluster, but they are independent of each other and do not exchange information.
 ## 7 Pull Consumer
-A type of Consumer. The application pulls messages from brokers by actively invoking the consumer's pull message method, and the application has the advantages of controlling the timing and frequency of pulling messages. Once the batch of messages is pulled, user application will initiate consuming process.                    
+A type of Consumer, the application pulls messages from brokers by actively invoking the consumer's pull message method, and the application has the advantages of controlling the timing and frequency of pulling messages. Once the batch of messages is pulled, user application will initiate consuming process.                    
 ## 8 Push Consumer
 A type of Consumer. Under this high real-time performance mode, it will push the message to the consumer actively when the Broker receives the data.                       
 ## 9 Producer Group
