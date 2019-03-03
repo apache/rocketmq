@@ -283,7 +283,7 @@ Before introducing the mqadmin management tool, the following points need to be 
   <td rowspan=8 height=391 class=xl67 width=177 style='border-bottom:1.0pt;
   height:292.0pt;border-top:none;width:133pt'>clusterRT</td>
   <td rowspan=8 class=xl70 width=175 style='border-bottom:1.0pt;
-  border-top:none;width:131pt'>Send message to detect each broker RT of the cluster.the message send to ${BrokerName} Topic。</td>
+  border-top:none;width:131pt'>Send message to detect each broker RT of the cluster.the message send to ${BrokerName} Topic</td>
   <td class=xl65 width=177 style='width:133pt'>-a</td>
   <td class=xl66 width=185 style='width:139pt'>amount，total number per probe，RT = Total time/amount</td>
  </tr>
