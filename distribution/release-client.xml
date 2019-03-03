@@ -26,7 +26,6 @@
     <fileSet>
         <directory>../</directory>
         <includes>
-            <include>DISCLAIMER</include>
             <include>README.md</include>
         </includes>
     </fileSet>

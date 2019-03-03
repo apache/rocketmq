@@ -50,14 +50,14 @@ public class DecodeMessageIdCommond implements SubCommand {
         String messageId = commandLine.getOptionValue('i').trim();
 
         try {
-            System.out.printf("ip=" + MessageClientIDSetter.getIPStrFromID(messageId));
+            System.out.printf("ip=%s", MessageClientIDSetter.getIPStrFromID(messageId));
         } catch (Exception e) {
             e.printStackTrace();
         }
 
         try {
             String date = UtilAll.formatDate(MessageClientIDSetter.getNearlyTimeFromID(messageId), UtilAll.YYYY_MM_DD_HH_MM_SS_SSS);
-            System.out.printf("date=" + date);
+            System.out.printf("date=%s", date);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         }

@@ -57,6 +57,26 @@ public class RebalancePushImpl extends RebalanceImpl {
         long newVersion = System.currentTimeMillis();
         log.info("{} Rebalance changed, also update version: {}, {}", topic, subscriptionData.getSubVersion(), newVersion);
         subscriptionData.setSubVersion(newVersion);
+
+        int currentQueueCount = this.processQueueTable.size();
+        if (currentQueueCount != 0) {
+            int pullThresholdForTopic = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getPullThresholdForTopic();
+            if (pullThresholdForTopic != -1) {
+                int newVal = Math.max(1, pullThresholdForTopic / currentQueueCount);
+                log.info("The pullThresholdForQueue is changed from {} to {}",
+                    this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getPullThresholdForQueue(), newVal);
+                this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().setPullThresholdForQueue(newVal);
+            }
+
+            int pullThresholdSizeForTopic = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getPullThresholdSizeForTopic();
+            if (pullThresholdSizeForTopic != -1) {
+                int newVal = Math.max(1, pullThresholdSizeForTopic / currentQueueCount);
+                log.info("The pullThresholdSizeForQueue is changed from {} to {}",
+                    this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getPullThresholdSizeForQueue(), newVal);
+                this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().setPullThresholdSizeForQueue(newVal);
+            }
+        }
+
         // notify broker
         this.getmQClientFactory().sendHeartbeatToAllBrokerWithLock();
     }

@@ -19,6 +19,8 @@ package org.apache.rocketmq.client;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
+import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
 /**
  * Client Common configuration
@@ -44,6 +46,10 @@ public class ClientConfig {
     private boolean unitMode = false;
     private String unitName;
     private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "true"));
+
+    private boolean useTLS = TlsSystemConfig.tlsEnable;
+
+    private LanguageCode language = LanguageCode.JAVA;
 
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
@@ -92,6 +98,8 @@ public class ClientConfig {
         this.unitMode = cc.unitMode;
         this.unitName = cc.unitName;
         this.vipChannelEnabled = cc.vipChannelEnabled;
+        this.useTLS = cc.useTLS;
+        this.language = cc.language;
     }
 
     public ClientConfig cloneClientConfig() {
@@ -106,6 +114,8 @@ public class ClientConfig {
         cc.unitMode = unitMode;
         cc.unitName = unitName;
         cc.vipChannelEnabled = vipChannelEnabled;
+        cc.useTLS = useTLS;
+        cc.language = language;
         return cc;
     }
 
@@ -173,12 +183,28 @@ public class ClientConfig {
         this.vipChannelEnabled = vipChannelEnabled;
     }
 
+    public boolean isUseTLS() {
+        return useTLS;
+    }
+
+    public void setUseTLS(boolean useTLS) {
+        this.useTLS = useTLS;
+    }
+
+    public LanguageCode getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(LanguageCode language) {
+        this.language = language;
+    }
+
     @Override
     public String toString() {
         return "ClientConfig [namesrvAddr=" + namesrvAddr + ", clientIP=" + clientIP + ", instanceName=" + instanceName
             + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInterval=" + pollNameServerInterval
             + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval + ", persistConsumerOffsetInterval="
             + persistConsumerOffsetInterval + ", unitMode=" + unitMode + ", unitName=" + unitName + ", vipChannelEnabled="
-            + vipChannelEnabled + "]";
+            + vipChannelEnabled + ", useTLS=" + useTLS + ", language=" + language.name() + "]";
     }
 }

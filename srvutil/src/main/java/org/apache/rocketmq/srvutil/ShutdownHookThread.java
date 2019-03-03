@@ -17,9 +17,10 @@
 
 package org.apache.rocketmq.srvutil;
 
+import org.apache.rocketmq.logging.InternalLogger;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.slf4j.Logger;
 
 /**
  * {@link ShutdownHookThread} is the standard hook for filtersrv and namesrv modules.
@@ -28,7 +29,7 @@ import org.slf4j.Logger;
 public class ShutdownHookThread extends Thread {
     private volatile boolean hasShutdown = false;
     private AtomicInteger shutdownTimes = new AtomicInteger(0);
-    private final Logger log;
+    private final InternalLogger log;
     private final Callable callback;
 
     /**
@@ -37,7 +38,7 @@ public class ShutdownHookThread extends Thread {
      * @param log The log instance is used in hook thread.
      * @param callback The call back function.
      */
-    public ShutdownHookThread(Logger log, Callable callback) {
+    public ShutdownHookThread(InternalLogger log, Callable callback) {
         super("ShutdownHook");
         this.log = log;
         this.callback = callback;
