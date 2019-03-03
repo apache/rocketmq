@@ -1,8 +1,6 @@
-# Deployment Architectures and Setup Steps
+# Installation Guides
 
-## Cluster Setup
-
-### 1 Single Master mode
+### 1 Single Master Mode
 
 This is the simplest, but also the riskiest, mode that makes the entire service unavailable once the broker restarts or goes down. Production environments are not recommended, but can be used for local testing and development. Here are the steps to build.
 
