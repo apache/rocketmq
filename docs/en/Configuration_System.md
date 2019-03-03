@@ -4,7 +4,7 @@ This section focuses on the configuration of the system (JVM/OS)
 
 ## **1 JVM Options** ##
 
-The latest released version of JDK 1.8 is recommended. Set the same Xms and Xmx value to prevent the JVM from resizing the heap for better performance. A simple JVM configuration is as follows:
+The latest released version of JDK 1.8 is recommended. Set the same Xms and Xmx value to prevent the JVM from resizing the heap for better performance. A simple JVM configurations looks like this:
 
     -server -Xms8g -Xmx8g -Xmn4g
 
@@ -24,13 +24,13 @@ As for garbage collection, G1 collector with JDK 1.8 is recommended:
 
 These GC options looks a little aggressive, but it’s proved to have good performance in our production environment
 
-Don’t set a too small value for -XX:MaxGCPauseMillis, otherwise JVM will use a small young generation to achieve this goal which will cause very frequent minor GC.so rolling GC log file is recommended:
+Don’t set a too small value for -XX:MaxGCPauseMillis, otherwise JVM will use a small young generation to achieve this goal which will cause very frequent minor GC.So use rolling GC log file is recommended:
     
     -XX:+UseGCLogFileRotation 
     -XX:NumberOfGCLogFiles=5 
     -XX:GCLogFileSize=30m
     
-If writing a GC file increases the latency of broker, please consider redirecting it to memory file system:
+If write GC file will increase latency of broker, consider redirect GC log file to a memory file system:
     
     -Xloggc:/dev/shm/mq_gc_%p.log123
 
