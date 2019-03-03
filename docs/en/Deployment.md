@@ -1,6 +1,4 @@
-# Deployment Architectures and Setup Steps
-
-## Cluster Setup
+# Installation Guides
 
 ### 1 Single Master mode
 
