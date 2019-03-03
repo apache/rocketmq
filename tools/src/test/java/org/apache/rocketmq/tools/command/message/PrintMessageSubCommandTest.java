@@ -65,7 +65,6 @@ public class PrintMessageSubCommandTest {
         long longTimeStramp = PrintMessageSubCommand.timestampFormat(longFormatTime);
         Assert.assertEquals(longTimeStramp,1551347292123L);
 
-        //yyyy-MM-dd#HH:mm:ss:SSS
         String dateFormatTime = "2019-02-28#17:48:12:123";
         longTimeStramp = PrintMessageSubCommand.timestampFormat(dateFormatTime);
         Assert.assertEquals(longTimeStramp,1551347292123L);
@@ -134,7 +133,6 @@ public class PrintMessageSubCommandTest {
 
     @Test
     public void testExecute() throws SubCommandException {
-        //mqadmin printMsg -t TopicTest -c UTF-8 -s TagA "-e 2019-03-05#19:07:01:123"
         PrintStream out = System.out;
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         System.setOut(new PrintStream(bos));
