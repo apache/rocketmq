@@ -1,4 +1,4 @@
-# Example for ordered messages
+# Example for Ordered Messages
 
 RocketMQ provides ordered messages using FIFO order. All related messages need to be sent into the same message queue in an orderly manner.
 
@@ -168,7 +168,7 @@ public class Producer {
 
 ```
 
-## 2.2 Consume ordered messages
+## 2 Consume ordered messages
 
 ```java
 
