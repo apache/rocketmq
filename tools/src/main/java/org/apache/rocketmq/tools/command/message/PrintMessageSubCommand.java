@@ -102,9 +102,8 @@ public class PrintMessageSubCommand implements SubCommand {
 
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
-        if (null == consumer){
+        if (null == consumer)
             consumer = new DefaultMQPullConsumer(MixAll.TOOLS_CONSUMER_GROUP, rpcHook);
-        }
         try {
             String topic = commandLine.getOptionValue('t').trim();
 
