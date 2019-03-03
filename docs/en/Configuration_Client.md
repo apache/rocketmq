@@ -2,7 +2,7 @@
 
   Relative to RocketMQ's Broker cluster, producers and consumers are client. In this section, it mainly describes the common behavior configuration of producers and consumers.
 ​ 
-### Client Addressing mode
+### 1 Client Addressing mode
 
 ```RocketMQ``` can let client find the ```Name Server```, and then find the ```Broker```by the ```Name Server```. Followings show a variety of configurations, and priority level from highly to lower, the highly priority configurations can override the lower priority configurations.
 
@@ -36,11 +36,11 @@ By default, the client accesses the HTTP server every 2 minutes, and update the 
 ```
 HTTP static server addressing is recommended, because it is simple client deployment, and the Name Server cluster can be upgraded hot.
 
-### Client Configuration
+### 2 Client Configuration
 
 ```DefaultMQProducer```,```TransactionMQProducer```,```DefaultMQPushConsumer```,```DefaultMQPullConsumer``` all extends the ```ClientConfig``` Class, ```ClientConfig``` as the client common configuration class. Client configuration style like getXXX,setXXX, each of the parameters can config by spring and also config their in the code. Such as the ```namesrvAddr``` parameter: ```producer.setNamesrvAddr("192.168.0.1:9876")```, same with the other parameters.
 
-#### Client Common Configuration
+#### 2.1 Client Common Configuration
 
 | Pamater Name                        | Default Value  | Description                                                         |
 | ----------------------------- | ------- | ------------------------------------------------------------ |
@@ -52,7 +52,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 | heartbeatBrokerInterval       | 30000   | The heartbeat interval, in milliseconds, is sent to the Broker                         |
 | persistConsumerOffsetInterval | 5000    | The persistent Consumer consumes the progress interval in milliseconds         |
 
-#### Producer Configuration
+#### 2.2 Producer Configuration
 
 | Pamater Name                       | Default Value          | Description                                                        |
 | -------------------------------- | ---------------- | ------------------------------------------------------------ |
@@ -70,7 +70,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 | checkRequestHoldMax              | 2000             | Producer local buffer request queue size when Broker look back Producer transaction status                     |
 | RPCHook                          | null             | This parameter is passed in when the Producer is creating, including the pre-processing before the message sending and the processing after the message response. The user can do some security control or other operations in the first interface.|
 
-#### PushConsumer Configuration
+#### 2.3 PushConsumer Configuration
 
 | Pamater Name                         | Default Value                      | Description                                                         |
 | ---------------------------- | ----------------------------- | ------------------------------------------------------------ |
@@ -91,7 +91,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 | consumeMessageBatchMaxSize   | 1                             | Batch consume message                                 |
 | pullBatchSize                | 32                            | Batch pull message                                 |
 
-#### PullConsumer Configuration
+#### 2.4 PullConsumer Configuration
 
 | Pamater Name                     | Default Value                 | Description                                                         |
 | -------------------------------- | ----------------------------- | ------------------------------------------------------------ |
@@ -105,7 +105,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 | registerTopics                   |                               | Collection of registered topics                                              |
 | allocateMessageQueueStrategy     | AllocateMessageQueueAveragely | Implements strategy about Rebalance algorithm                                     |
 
-#### Message Data Structure
+#### 2.5 Message Data Structure
 
 | Field Name         | Default Value  | Description                                                         |
 | -------------- | ------ | ------------------------------------------------------------ |
