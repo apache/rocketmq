@@ -35,7 +35,7 @@ Before introducing the mqadmin management tool, the following points need to be 
   <td class=xl66 width=159 style='width:119pt'>The -c option declares the name of the cluster, which represents the cluster in which the current topic is located. (clusters are available through clusterList query)</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-h</td>
+  <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt' >-h</td>
   <td class=xl66 width=159 style='width:119pt'>Print help information</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
