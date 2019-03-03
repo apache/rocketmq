@@ -1,7 +1,5 @@
 # Message Trace
 
-
-
 ## 1. Key Attributes of Message Trace Data
 
 | Producer        | Consumer        | Broker     |
@@ -103,4 +101,5 @@ The initialization of `DefaultMQProducer` and `DefaultMQPushConsumer` instances 
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1",true,"Topic_test11111");
         ......
+
 ```
