@@ -28,7 +28,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * @author: bianlanzhou
  * @date: 2019-02-26 09:37
  */
 public class ResetOffsetBodyForCTest {
