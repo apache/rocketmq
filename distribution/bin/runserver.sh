@@ -31,17 +31,33 @@ error_exit ()
 export JAVA_HOME
 export JAVA="$JAVA_HOME/bin/java"
 export BASE_DIR=$(dirname $0)/..
-export CLASSPATH=.:${BASE_DIR}/conf:${CLASSPATH}
+export CLASSPATH=.:${BASE_DIR}/conf:${CLASSPATH}:${BASE_DIR}/lib/*
+read JAVA_MAJOR_VERSION JAVA_MINOR_VERSION <<<$("$JAVA" -version 2>&1 | awk -F '"' '/version/ {print $2}' | awk -F. '{print $1,$2}')
 
 #===========================================================================================
 # JVM Configuration
 #===========================================================================================
-JAVA_OPT="${JAVA_OPT} -server -Xms4g -Xmx4g -Xmn2g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m"
-JAVA_OPT="${JAVA_OPT} -XX:+UseConcMarkSweepGC -XX:+UseCMSCompactAtFullCollection -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:SoftRefLRUPolicyMSPerMB=0 -XX:+CMSClassUnloadingEnabled -XX:SurvivorRatio=8  -XX:-UseParNewGC"
-JAVA_OPT="${JAVA_OPT} -verbose:gc -Xloggc:/dev/shm/rmq_srv_gc.log -XX:+PrintGCDetails"
+JAVA_OPT="${JAVA_OPT} -server -Xms4g -Xmx4g -Xmn2g"
+# JDK1.8 don't support PermSize and replace it with Metaspace
+if [[ "$JAVA_MAJOR_VERSION" -eq "1" && "$JAVA_MINOR_VERSION" -lt "8" ]]; then
+    JAVA_OPT="${JAVA_OPT} -XX:PermSize=128m -XX:MaxPermSize=320m"
+else
+    JAVA_OPT="${JAVA_OPT} -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m"
+fi
+# JDK9 don't support PrintGCDetails, and replace it with -Xlog:gc and -Xlog:gc*
+# JDK9 don't support -Djava.ext.dirs, and use -classpath instead.
+# JDK9 don’t support UseCMSCompactAtFullCollection.
+# UseParNewGC was deprecated in Java 9 and removed in Java 10.
+# UseConcMarkSweepGC was deprecated in Java 9.
+# JDK9 Make G1 the default garbage collector, and for JDK of lower release, G1 can be enabled with the -XX:+UseG1GC parameter.
+JAVA_OPT="${JAVA_OPT} -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:SoftRefLRUPolicyMSPerMB=0 -XX:+CMSClassUnloadingEnabled -XX:SurvivorRatio=8"
+if [[ "$JAVA_MAJOR_VERSION" -lt 9 ]] ; then
+    JAVA_OPT="${JAVA_OPT} -XX:+UseConcMarkSweepGC -XX:+UseCMSCompactAtFullCollection -XX:-UseParNewGC"
+    JAVA_OPT="${JAVA_OPT} -verbose:gc -Xloggc:/dev/shm/rmq_srv_gc.log -XX:+PrintGCDetails"
+    JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${JAVA_HOME}/jre/lib/ext:${BASE_DIR}/lib"
+fi
 JAVA_OPT="${JAVA_OPT} -XX:-OmitStackTraceInFastThrow"
-JAVA_OPT="${JAVA_OPT}  -XX:-UseLargePages"
-JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${JAVA_HOME}/jre/lib/ext:${BASE_DIR}/lib"
+JAVA_OPT="${JAVA_OPT} -XX:-UseLargePages"
 #JAVA_OPT="${JAVA_OPT} -Xdebug -Xrunjdwp:transport=dt_socket,address=9555,server=y,suspend=n"
 JAVA_OPT="${JAVA_OPT} ${JAVA_OPT_EXT}"
 JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"

@@ -31,13 +31,23 @@ error_exit ()
 export JAVA_HOME
 export JAVA="$JAVA_HOME/bin/java"
 export BASE_DIR=$(dirname $0)/..
-export CLASSPATH=.:${BASE_DIR}/conf:${CLASSPATH}
+export CLASSPATH=.:${BASE_DIR}/conf:${CLASSPATH}:${BASE_DIR}/lib/*
+read JAVA_MAJOR_VERSION JAVA_MINOR_VERSION <<<$("$JAVA" -version 2>&1 | awk -F '"' '/version/ {print $2}' | awk -F. '{print $1,$2}')
 
 #===========================================================================================
 # JVM Configuration
 #===========================================================================================
-JAVA_OPT="${JAVA_OPT} -server -Xms1g -Xmx1g -Xmn256m -XX:PermSize=128m -XX:MaxPermSize=128m"
-JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${BASE_DIR}/lib:${JAVA_HOME}/jre/lib/ext"
+JAVA_OPT="${JAVA_OPT} -server -Xms1g -Xmx1g -Xmn256m"
+# JDK1.8 don't support PermSize and replace it with Metaspace
+if [[ "$JAVA_MAJOR_VERSION" -eq "1" && "$JAVA_MINOR_VERSION" -lt "8" ]]; then
+    JAVA_OPT="${JAVA_OPT} -XX:PermSize=128m -XX:MaxPermSize=128m"
+else
+    JAVA_OPT="${JAVA_OPT} -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=128m"
+fi
+# JDK9 don't support -Djava.ext.dirs, and use -classpath instead.
+if [[ "$JAVA_MAJOR_VERSION" -lt "9" ]] ; then
+    JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${BASE_DIR}/lib:${JAVA_HOME}/jre/lib/ext"
+fi
 JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
 
 $JAVA ${JAVA_OPT} $@
