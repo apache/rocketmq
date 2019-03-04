@@ -3,7 +3,10 @@
 
 ![](images/rocketmq_storage_arch.png)
 
-Message storage is the most complicated and important part of RocketMQ. This section will describe the three aspects of RocketMQ: message storage architecture, PageCache and memory mapping, and RocketMQ's two different disk flushing methods.
+Message storage is the most complicated and important part of RocketMQ. This section will describe the three aspects of RocketMQ:
+* message storage architecture
+* PageCache and memory mapping
+* and RocketMQ's two different disk flushing methods.
 
 ## 1 Message Storage Architecture
 
