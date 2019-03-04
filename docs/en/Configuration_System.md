@@ -30,7 +30,7 @@ Don’t set a too small value for -XX:MaxGCPauseMillis, otherwise JVM will use a
     -XX:NumberOfGCLogFiles=5 
     -XX:GCLogFileSize=30m
     
-If write GC file will increase latency of broker, consider redirect GC log file to a memory file system:
+If writing a GC file increases the latency of broker, please consider redirecting it to memory file system:
     
     -Xloggc:/dev/shm/mq_gc_%p.log123
 
