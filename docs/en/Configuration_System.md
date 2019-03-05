@@ -8,6 +8,10 @@ The latest released version of JDK 1.8 is recommended. Set the same Xms and Xmx 
 
     -server -Xms8g -Xmx8g -Xmn4g
 
+Direct ByteBuffer memory size setting. Full GC will be triggered when the Direct ByteBuffer up to the specified size:
+
+    -XX:MaxDirectMemorySize=15g
+
 If you don’t care about the boot time of RocketMQ broker, pre-touch the Java heap to make sure that every page will be allocated during JVM initialization is a better choice. Those who don’t care about the boot time can enable it:
     
     -XX:+AlwaysPreTouch
