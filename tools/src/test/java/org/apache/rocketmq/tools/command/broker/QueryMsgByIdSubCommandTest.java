@@ -37,7 +37,6 @@ public class QueryMsgByIdSubCommandTest {
     public void testExecute()
             throws SubCommandException{
 
-        //模拟查看消息
         QueryMsgByIdSubCommand queryMsgByIdSubCommand = new QueryMsgByIdSubCommand();
         Options  options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs = new String[] {"-i " +messageId};
@@ -45,7 +44,6 @@ public class QueryMsgByIdSubCommandTest {
                 ServerUtil.parseCmdLine("mqadmin " + queryMsgByIdSubCommand.commandName(), subargs, queryMsgByIdSubCommand.buildCommandlineOptions(options), new PosixParser());
         queryMsgByIdSubCommand.execute(commandLine, options, null);
 
-        //模拟消费消息
         queryMsgByIdSubCommand = new QueryMsgByIdSubCommand();
         options = ServerUtil.buildCommandlineOptions(new Options());
         subargs = new String[] {"-i " +messageId,"-g consumerMessageGroup","-d consumerMessageGroup"};
@@ -53,7 +51,6 @@ public class QueryMsgByIdSubCommandTest {
                 ServerUtil.parseCmdLine("mqadmin " + queryMsgByIdSubCommand.commandName(), subargs, queryMsgByIdSubCommand.buildCommandlineOptions(options), new PosixParser());
         queryMsgByIdSubCommand.execute(commandLine, options, null);
 
-        //模拟重新发送消息
         queryMsgByIdSubCommand = new QueryMsgByIdSubCommand();
         options = ServerUtil.buildCommandlineOptions(new Options());
         subargs = new String[] {"-i " +messageId,"-s messageTest"};
