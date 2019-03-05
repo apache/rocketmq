@@ -1,4 +1,4 @@
-#  最佳实践(best practice)
+#  最佳实践
 
 
 ## 1   生产者
@@ -38,7 +38,7 @@
 
 - **SLAVE_NOT_AVAILABLE**
 
-消息发送成功，但是此时Slave不可用。此时消息已经进入Master服务器队列，只有Master服务器宕机，消息才会丢失。如果Broker服务器的角色是同步Master，即SYNC_MASTER（默认是异步Master服务器即ASYNC_MASTER），但没有配置slave Broker服务器，则将返回该状态——无Slave服务器可用。
+消息发送成功，但是此时Slave不可用。如果Broker服务器的角色是同步Master，即SYNC_MASTER（默认是异步Master服务器即ASYNC_MASTER），但没有配置slave Broker服务器，则将返回该状态——无Slave服务器可用。
 
 
 ### 1.2 消息发送失败处理方式
