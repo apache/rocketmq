@@ -474,6 +474,9 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                             (int) (this.brokerController.getMessageStore().now() - beginTimeMills));
                         response.setBody(r);
                     } else {
+                        /**
+                         * zero-copy
+                         */
                         try {
                             FileRegion fileRegion =
                                 new ManyMessageTransfer(response.encodeHeader(getMessageResult.getBufferTotalSize()), getMessageResult);
@@ -497,6 +500,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 case ResponseCode.PULL_NOT_FOUND:
                     /**
                      * 没有拉取到数据
+                     * brokerAllowSuspend:broker是否允许允许长轮询（等待）
+                     * hasSuspendFlag：consumer端是否允许拉取不到信息时执行等待操作（当有消息时再返回）
                      */
                     if (brokerAllowSuspend && hasSuspendFlag) {
                         long pollingTimeMills = suspendTimeoutMillisLong;
@@ -516,6 +521,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
                         /**
                          * 缓存consumer端拉取消息的请求数据  待有数据时通知consumer
+                         *
+                         * 在reputMessageService中  会判断是否有新消息加入   对长轮询进行处理
                          */
                         this.brokerController.getPullRequestHoldService().suspendPullRequest(topic, queueId, pullRequest);
                         response = null;
@@ -659,6 +666,9 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             @Override
             public void run() {
                 try {
+                    /**
+                     * brokerAllowSuspend=false   拉取不到信息时  不再等待
+                     */
                     final RemotingCommand response = PullMessageProcessor.this.processRequest(channel, request, false);
 
                     if (response != null) {

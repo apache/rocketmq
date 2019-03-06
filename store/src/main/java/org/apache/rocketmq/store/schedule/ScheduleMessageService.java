@@ -369,7 +369,7 @@ public class ScheduleMessageService extends ConfigManager {
                             long deliverTimestamp = this.correctDeliverTimestamp(now, tagsCode);
 
                             /**
-                             * 下次消费得offset  i从0开始   即i=0——————nextOffset = offset
+                             * 本次消费得offset  i从0开始   即i=0时，nextOffset = offset
                              */
                             nextOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
 
@@ -410,6 +410,9 @@ public class ScheduleMessageService extends ConfigManager {
                                             log.error(
                                                 "ScheduleMessageService, a message time up, but reput it failed, topic: {} msgId {}",
                                                 msgExt.getTopic(), msgExt.getMsgId());
+                                            /**
+                                             * 当前delayLevel的消息间隔countdown   从nextOffset处再次执行
+                                             */
                                             ScheduleMessageService.this.timer.schedule(
                                                 new DeliverDelayedMessageTimerTask(this.delayLevel,
                                                     nextOffset), DELAY_FOR_A_PERIOD);
@@ -444,7 +447,7 @@ public class ScheduleMessageService extends ConfigManager {
                         } // end of for
 
                         /**
-                         * 下次消费得offset  i从0开始   即i=0——————nextOffset = offset
+                         * 本次消费得offset  i从0开始   即i=0时，nextOffset = offset
                          */
                         nextOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
 

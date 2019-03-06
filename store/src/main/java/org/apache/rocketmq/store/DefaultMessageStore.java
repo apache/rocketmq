@@ -818,7 +818,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     /**
-     * 获得当前consumequeue下得最大消费进度
+     * 获得当前consumequeue下得最大offset
      * @param topic Topic name.
      * @param queueId Queue ID.
      * @return
@@ -830,7 +830,7 @@ public class DefaultMessageStore implements MessageStore {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
             /**
-             * 获得当前consumequeue下得最大消费进度
+             * 获得当前consumequeue下得最大offset
              */
             long offset = logic.getMaxOffsetInQueue();
             return offset;

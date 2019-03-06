@@ -180,7 +180,7 @@ public class PullRequestHoldService extends ServiceThread {
                     if (newestOffset <= request.getPullFromThisOffset()) {
 
                         /**
-                         * 获得当前consumequeue下得最大消费进度
+                         * 获得当前consumequeue下得最大offset
                          */
                         newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
                     }
@@ -205,7 +205,7 @@ public class PullRequestHoldService extends ServiceThread {
                         if (match) {
                             try {
                                 /**
-                                 * 再次拉取数据
+                                 * 再次拉取数据   拉取不到消息时  不再等待
                                  */
                                 this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
                                     request.getRequestCommand());
@@ -222,7 +222,7 @@ public class PullRequestHoldService extends ServiceThread {
                     if (System.currentTimeMillis() >= (request.getSuspendTimestamp() + request.getTimeoutMillis())) {
                         try {
                             /**
-                             * 再次拉取数据
+                             * 再次拉取数据  拉取不到消息时  不再等待
                              */
                             this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
                                 request.getRequestCommand());
