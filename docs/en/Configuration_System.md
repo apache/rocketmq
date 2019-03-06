@@ -51,7 +51,7 @@ There is a os.sh script that lists a lot of kernel parameters in folder bin whic
 
 
 
-- **vm.max_map_count**, limits the maximum number of memory map areas a process may have. RocketMQ will use mmap to load CommitLog and ConsumeQueue, so set a bigger value for this parameter is recommended.
+- **vm.max_map_count**, limits the maximum number of memory map areas a process may have. RocketMQ will use mmap to load CommitLog and ConsumeQueue, so a bigger value is recommended.
 
 
 
