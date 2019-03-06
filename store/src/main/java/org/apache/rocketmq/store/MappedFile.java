@@ -202,12 +202,16 @@ public class MappedFile extends ReferenceResource {
         assert messageExt != null;
         assert cb != null;
 
+        //获取MappedFile当前写指针
         int currentPos = this.wrotePosition.get();
 
+        //如果currentPos大于或等于文件大小则表明文件写满，抛出异常END_OF_FILE，根据这个异常信息会重新创建一个新的CommitLog文件来存储这个消息
         if (currentPos < this.fileSize) {
+            //创建一个与MappedFile的共享内存区
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
             AppendMessageResult result = null;
+            //进行消息追加
             if (messageExt instanceof MessageExtBrokerInner) {
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBrokerInner) messageExt);
             } else if (messageExt instanceof MessageExtBatch) {
