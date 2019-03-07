@@ -36,7 +36,7 @@ If writing a GC file increases the latency of broker, please consider redirectin
 
 ## 2 Linux Kernel Parameters ##
 
-There is a os.sh script that lists a lot of kernel parameters in folder bin which can be used for production use with minor changes. Below parameters need attention, and more details please refer to documentation for /proc/sys/vm/*.
+There is an os.sh script that lists a lot of kernel parameters in folder bin which can be used for production enviroment with minor changes. Below parameters need attention, if need more details please refer to documentation for /proc/sys/vm/*.
 
 
 
