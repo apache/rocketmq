@@ -1,34 +1,35 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements. See the NOTICE
+ * file distributed with this work for additional information regarding copyright ownership. The ASF licenses this file
+ * to You under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package org.apache.rocketmq.common;
 
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.Properties;
 
-/**
- * @author huhui
- * @create 2019-02-22 20:57
- */
 public class ConfigurationTest {
     private static final InternalLogger log = InternalLoggerFactory.getLogger("ConfigurationTest");
+
+    private File file;
+
+    @Before
+    public void getPath() {
+        file = new File(this.getClass().getResource("").getPath());
+    }
 
     @Test
     public void registerConfig() {
@@ -39,7 +40,7 @@ public class ConfigurationTest {
     @Test
     public void registerConfig1() {
         CustomeConfig customeConfig = new CustomeConfig();
-        customeConfig.setConfigPath("C://");
+        customeConfig.setConfigPath(file.getPath());
         Configuration configuration = new Configuration(log, customeConfig);
         Properties properties = new Properties();
         properties.setProperty("date", "2019-03-01");
@@ -50,7 +51,7 @@ public class ConfigurationTest {
     @Test
     public void setStorePathFromConfig() {
         CustomeConfig customeConfig = new CustomeConfig();
-        customeConfig.setConfigPath("C://");
+        customeConfig.setConfigPath(file.getPath());
         Configuration configuration = new Configuration(log, new TestConfig("jim", "19"));
         configuration.setStorePathFromConfig(customeConfig, "configPath");
     }
@@ -58,13 +59,13 @@ public class ConfigurationTest {
     @Test
     public void setStorePath() {
         Configuration configuration = new Configuration(log, new TestConfig("jim", "19"));
-        configuration.setStorePath("C://");
+        configuration.setStorePath(file.getPath());
     }
 
     @Test
     public void update() {
         Configuration configuration =
-            new Configuration(log, "C://", new TestConfig("jim", "19"), new CustomeConfig("custome", "E://"));
+            new Configuration(log, file.getPath(), new TestConfig("jim", "19"), new CustomeConfig("custome", file.getPath()));
         Properties pro = new Properties();
         pro.setProperty("testName", "jack");
         configuration.update(pro);
@@ -83,8 +84,7 @@ public class ConfigurationTest {
     @Test
     public void getAllConfigsFormatString() {
         Configuration configuration = new Configuration(log, new TestConfig("jim", "19"));
-        Assert.assertTrue(configuration.getAllConfigsFormatString().equals("testName=jim\n" +
-                "age=19\n"));
+        Assert.assertTrue(configuration.getAllConfigsFormatString().equals("testName=jim\n" + "age=19\n"));
     }
 
     @Test
@@ -96,18 +96,18 @@ public class ConfigurationTest {
     @Test
     public void getAllConfigs() {
         CustomeConfig customeConfig = new CustomeConfig();
-        customeConfig.setConfigPath("E://");
+        customeConfig.setConfigPath(file.getPath());
         customeConfig.setName("tom");
-        Configuration configuration = new Configuration(log,customeConfig);
+        Configuration configuration = new Configuration(log, customeConfig);
         Properties allConfigs = configuration.getAllConfigs();
-        Assert.assertTrue(allConfigs.getProperty("configPath").equals("E://"));
+        Assert.assertTrue(allConfigs.getProperty("configPath").equals(file.getPath()));
         Assert.assertTrue(allConfigs.getProperty("name").equals("tom"));
     }
 
     class CustomeConfig {
 
         String name;
-        String configPath = "/etc/test";
+        String configPath = new File(this.getClass().getResource("/").getPath()).getPath();
 
         public CustomeConfig() {}
 
