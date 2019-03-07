@@ -24,9 +24,11 @@ import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.netty.handler.codec.mqtt.MqttSubAckMessage;
 import io.netty.handler.codec.mqtt.MqttSubAckPayload;
+import java.io.UnsupportedEncodingException;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
+import org.apache.rocketmq.remoting.util.MqttEncodeDecodeUtil;
 
 public class MqttSubackEncodeDecode implements Message2MessageEncodeDecode {
 
@@ -36,14 +38,12 @@ public class MqttSubackEncodeDecode implements Message2MessageEncodeDecode {
     }
 
     @Override
-    public MqttMessage encode(RemotingCommand remotingCommand) throws RemotingCommandException {
-        MqttHeader mqttHeader = (MqttHeader) remotingCommand
-            .decodeCommandCustomHeader(MqttHeader.class);
-
+    public MqttMessage encode(RemotingCommand remotingCommand) throws RemotingCommandException, UnsupportedEncodingException {
+        MqttHeader mqttHeader = (MqttHeader) remotingCommand.readCustomHeader();
         return new MqttSubAckMessage(
             new MqttFixedHeader(MqttMessageType.SUBACK, mqttHeader.isDup(),
                 MqttQoS.valueOf(mqttHeader.getQosLevel()), mqttHeader.isRetain(),
                 mqttHeader.getRemainingLength()),
-            MqttMessageIdVariableHeader.from(mqttHeader.getMessageId()), new MqttSubAckPayload());
+            MqttMessageIdVariableHeader.from(mqttHeader.getMessageId()), (MqttSubAckPayload) MqttEncodeDecodeUtil.decode(remotingCommand.getBody(),MqttSubAckPayload.class));
     }
 }

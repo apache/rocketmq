@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.snode;
 
+import org.apache.rocketmq.common.MqttConfig;
 import org.apache.rocketmq.common.SnodeConfig;
-import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.ServerConfig;
 import org.junit.Test;
 
@@ -29,10 +29,7 @@ public class SnodeControllerTest {
     public void testSnodeRestart() {
         ServerConfig serverConfig = new ServerConfig();
         serverConfig.setListenPort(10912);
-        SnodeController snodeController = new SnodeController(
-            serverConfig,
-            new ClientConfig(),
-            new SnodeConfig());
+        SnodeController snodeController = new SnodeController(new SnodeConfig(), new MqttConfig());
         assertThat(snodeController.initialize());
         snodeController.start();
         snodeController.shutdown();
@@ -44,10 +41,7 @@ public class SnodeControllerTest {
         System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml");
         SnodeConfig snodeConfig = new SnodeConfig();
         snodeConfig.setAclEnable(true);
-        SnodeController snodeController = new SnodeController(
-            new ServerConfig(),
-            new ClientConfig(),
-            snodeConfig);
+        SnodeController snodeController = new SnodeController(new SnodeConfig(), new MqttConfig());
         assertThat(snodeController.initialize());
         snodeController.start();
         snodeController.shutdown();

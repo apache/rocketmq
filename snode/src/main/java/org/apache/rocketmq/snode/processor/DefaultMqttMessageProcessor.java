@@ -17,15 +17,20 @@
 
 package org.apache.rocketmq.snode.processor;
 
-import com.alibaba.fastjson.JSON;
+import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.mqtt.MqttConnectMessage;
+import io.netty.handler.codec.mqtt.MqttConnectPayload;
 import io.netty.handler.codec.mqtt.MqttConnectVariableHeader;
 import io.netty.handler.codec.mqtt.MqttFixedHeader;
 import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.handler.codec.mqtt.MqttMessageIdVariableHeader;
 import io.netty.handler.codec.mqtt.MqttMessageType;
+import io.netty.handler.codec.mqtt.MqttPublishMessage;
+import io.netty.handler.codec.mqtt.MqttPublishVariableHeader;
 import io.netty.handler.codec.mqtt.MqttQoS;
+import io.netty.handler.codec.mqtt.MqttSubscribeMessage;
+import io.netty.handler.codec.mqtt.MqttSubscribePayload;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -33,11 +38,10 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RequestProcessor;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
-import org.apache.rocketmq.remoting.transport.mqtt.RocketMQMqttConnectPayload;
+import org.apache.rocketmq.remoting.util.MqttEncodeDecodeUtil;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.processor.mqtthandler.MessageHandler;
 import org.apache.rocketmq.snode.processor.mqtthandler.MqttConnectMessageHandler;
@@ -83,20 +87,33 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
     @Override
     public RemotingCommand processRequest(RemotingChannel remotingChannel, RemotingCommand message)
         throws RemotingCommandException, UnsupportedEncodingException {
-        MqttHeader mqttHeader = (MqttHeader) message.decodeCommandCustomHeader(MqttHeader.class);
+        MqttHeader mqttHeader = (MqttHeader) message.readCustomHeader();
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.valueOf(mqttHeader.getMessageType()),
             mqttHeader.isDup(), MqttQoS.valueOf(mqttHeader.getQosLevel()), mqttHeader.isRetain(),
             mqttHeader.getRemainingLength());
         MqttMessage mqttMessage = null;
         switch (fixedHeader.messageType()) {
             case CONNECT:
-                MqttConnectVariableHeader variableHeader = new MqttConnectVariableHeader(
+                MqttConnectVariableHeader mqttConnectVariableHeader = new MqttConnectVariableHeader(
                     mqttHeader.getName(), mqttHeader.getVersion(), mqttHeader.isHasUserName(),
                     mqttHeader.isHasPassword(), mqttHeader.isWillRetain(),
                     mqttHeader.getWillQos(), mqttHeader.isWillFlag(),
                     mqttHeader.isCleanSession(), mqttHeader.getKeepAliveTimeSeconds());
-                RocketMQMqttConnectPayload payload = decode(message.getBody(), RocketMQMqttConnectPayload.class);
-                mqttMessage = new MqttConnectMessage(fixedHeader, variableHeader, payload.toMqttConnectPayload());
+//                MqttConnectPayload mqttConnectPayload = (MqttConnectPayload) message.getPayload();
+                MqttConnectPayload mqttConnectPayload = (MqttConnectPayload) MqttEncodeDecodeUtil.decode(message.getBody(), MqttConnectPayload.class);
+                mqttMessage = new MqttConnectMessage(fixedHeader, mqttConnectVariableHeader, mqttConnectPayload);
+                break;
+            case PUBLISH:
+                MqttPublishVariableHeader mqttPublishVariableHeader = new MqttPublishVariableHeader(mqttHeader.getTopicName(), mqttHeader.getPacketId());
+                mqttMessage = new MqttPublishMessage(fixedHeader, mqttPublishVariableHeader, Unpooled.copiedBuffer(message.getBody()));
+                break;
+            case SUBSCRIBE:
+                MqttMessageIdVariableHeader mqttMessageIdVariableHeader = MqttMessageIdVariableHeader.from(mqttHeader.getMessageId());
+                MqttSubscribePayload mqttSubscribePayload = (MqttSubscribePayload) MqttEncodeDecodeUtil.decode(message.getBody(), MqttSubscribePayload.class);
+                mqttMessage = new MqttSubscribeMessage(fixedHeader, mqttMessageIdVariableHeader, mqttSubscribePayload);
+                break;
+            case UNSUBSCRIBE:
+            case PINGREQ:
             case DISCONNECT:
         }
         return type2handler.get(MqttMessageType.valueOf(mqttHeader.getMessageType())).handleMessage(mqttMessage, remotingChannel);
@@ -105,11 +122,6 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
     @Override
     public boolean rejectRequest() {
         return false;
-    }
-
-    private <T> T decode(final byte[] data, Class<T> classOfT) {
-        final String json = new String(data, Charset.forName(RemotingUtil.REMOTING_CHARSET));
-        return JSON.parseObject(json, classOfT);
     }
 
     private void registerMessageHandler(MqttMessageType type, MessageHandler handler) {

@@ -19,9 +19,10 @@ package org.apache.rocketmq.snode.client.impl;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.protocol.heartbeat.MqttSubscriptionData;
+import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
@@ -35,7 +36,7 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
     public static final String IOT_GROUP = "IOT_GROUP";
     private final SnodeController snodeController;
 
-    private final ConcurrentHashMap<String/*root topic*/, ConcurrentHashMap<Client, List<MqttSubscriptionData>>> topic2SubscriptionTable = new ConcurrentHashMap<>(
+    private final ConcurrentHashMap<String/*root topic*/, ConcurrentHashMap<Client, Set<SubscriptionData>>> topic2SubscriptionTable = new ConcurrentHashMap<>(
         1024);
     private final ConcurrentHashMap<String/*clientId*/, Subscription> clientId2Subscription = new ConcurrentHashMap<>(1024);
 
@@ -47,9 +48,25 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
         //do the logic when client sends unsubscribe packet.
     }
 
+    @Override public void onClose(Set<String> groups, RemotingChannel remotingChannel) {
+        for (String groupId : groups) {
+            //remove client after invoking onClosed method(client may be used in onClosed)
+            onClosed(groupId, remotingChannel);
+            removeClient(groupId, remotingChannel);
+        }
+    }
+
     @Override
     public void onClosed(String group, RemotingChannel remotingChannel) {
         //do the logic when connection is closed by any reason.
+        //step1. Clean subscription data if cleanSession=1
+        Client client = this.getClient(IOT_GROUP, remotingChannel);
+        if (client.isCleanSession()) {
+            cleanSessionState(client.getClientId());
+        }
+        //step2. Publish will message associated with current connection(Question: Does will message need to be deleted after publishing.)
+
+        //step3. If will retain is true, add the will message to retain message.
     }
 
     @Override
@@ -63,10 +80,10 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
 
     public void cleanSessionState(String clientId) {
         clientId2Subscription.remove(clientId);
-        for (Iterator<Map.Entry<String, ConcurrentHashMap<Client, List<MqttSubscriptionData>>>> iterator = topic2SubscriptionTable.entrySet().iterator(); iterator.hasNext(); ) {
-            Map.Entry<String, ConcurrentHashMap<Client, List<MqttSubscriptionData>>> next = iterator.next();
-            for (Iterator<Map.Entry<Client, List<MqttSubscriptionData>>> iterator1 = next.getValue().entrySet().iterator(); iterator1.hasNext(); ) {
-                Map.Entry<Client, List<MqttSubscriptionData>> next1 = iterator1.next();
+        for (Iterator<Map.Entry<String, ConcurrentHashMap<Client, Set<SubscriptionData>>>> iterator = topic2SubscriptionTable.entrySet().iterator(); iterator.hasNext(); ) {
+            Map.Entry<String, ConcurrentHashMap<Client, Set<SubscriptionData>>> next = iterator.next();
+            for (Iterator<Map.Entry<Client, Set<SubscriptionData>>> iterator1 = next.getValue().entrySet().iterator(); iterator1.hasNext(); ) {
+                Map.Entry<Client, Set<SubscriptionData>> next1 = iterator1.next();
                 if (!next1.getKey().getClientId().equals(clientId)) {
                     continue;
                 }
@@ -84,7 +101,7 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
         return snodeController;
     }
 
-    public ConcurrentHashMap<String, ConcurrentHashMap<Client, List<MqttSubscriptionData>>> getTopic2SubscriptionTable() {
+    public ConcurrentHashMap<String, ConcurrentHashMap<Client, Set<SubscriptionData>>> getTopic2SubscriptionTable() {
         return topic2SubscriptionTable;
     }
 

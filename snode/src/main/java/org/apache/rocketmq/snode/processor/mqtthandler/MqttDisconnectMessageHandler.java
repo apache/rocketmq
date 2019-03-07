@@ -62,7 +62,9 @@ public class MqttDisconnectMessageHandler implements MessageHandler {
             snodeController.getWillMessageService().deleteWillMessage(client.getClientId());
         }
         client.setConnected(false);
-        remotingChannel.close();
+        if (remotingChannel.isActive()) {
+            remotingChannel.close();
+        }
         return null;
     }
 }

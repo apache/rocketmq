@@ -42,7 +42,7 @@ public class MqttMessage2RemotingCommandHandler extends MessageToMessageDecoder<
         if (!(msg instanceof MqttMessage)) {
             return;
         }
-        RemotingCommand requestCommand = null;
+        RemotingCommand requestCommand;
         Message2MessageEncodeDecode message2MessageEncodeDecode = EncodeDecodeDispatcher
             .getEncodeDecodeDispatcher().get(msg.fixedHeader().messageType());
         if (message2MessageEncodeDecode == null) {

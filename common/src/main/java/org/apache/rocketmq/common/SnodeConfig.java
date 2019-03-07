@@ -56,15 +56,9 @@ public class SnodeConfig {
 
     private int snodeSendThreadPoolQueueCapacity = 10000;
 
-    private int snodeHandleMqttThreadPoolQueueCapacity = 10000;
-
     private int snodeSendMessageMinPoolSize = 10;
 
     private int snodeSendMessageMaxPoolSize = 20;
-
-    private int snodeHandleMqttMessageMinPoolSize = 10;
-
-    private int snodeHandleMqttMessageMaxPoolSize = 20;
 
     private int snodeHeartBeatCorePoolSize = 1;
 
@@ -230,14 +224,6 @@ public class SnodeConfig {
         this.snodeSendThreadPoolQueueCapacity = snodeSendThreadPoolQueueCapacity;
     }
 
-    public int getSnodeHandleMqttThreadPoolQueueCapacity() {
-        return snodeHandleMqttThreadPoolQueueCapacity;
-    }
-
-    public void setSnodeHandleMqttThreadPoolQueueCapacity(
-        int snodeHandleMqttThreadPoolQueueCapacity) {
-        this.snodeHandleMqttThreadPoolQueueCapacity = snodeHandleMqttThreadPoolQueueCapacity;
-    }
 
     public int getSnodeSendMessageMinPoolSize() {
         return snodeSendMessageMinPoolSize;
@@ -277,22 +263,6 @@ public class SnodeConfig {
 
     public void setSnodeId(long snodeId) {
         this.snodeId = snodeId;
-    }
-
-    public int getSnodeHandleMqttMessageMinPoolSize() {
-        return snodeHandleMqttMessageMinPoolSize;
-    }
-
-    public void setSnodeHandleMqttMessageMinPoolSize(int snodeHandleMqttMessageMinPoolSize) {
-        this.snodeHandleMqttMessageMinPoolSize = snodeHandleMqttMessageMinPoolSize;
-    }
-
-    public int getSnodeHandleMqttMessageMaxPoolSize() {
-        return snodeHandleMqttMessageMaxPoolSize;
-    }
-
-    public void setSnodeHandleMqttMessageMaxPoolSize(int snodeHandleMqttMessageMaxPoolSize) {
-        this.snodeHandleMqttMessageMaxPoolSize = snodeHandleMqttMessageMaxPoolSize;
     }
 
     public String getSnodeName() {

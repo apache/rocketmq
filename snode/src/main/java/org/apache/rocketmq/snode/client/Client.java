@@ -44,6 +44,8 @@ public class Client {
 
     private boolean cleanSession;
 
+    private boolean willFlag;
+
     private String snodeAddress;
 
     public ClientRole getClientRole() {
@@ -71,13 +73,14 @@ public class Client {
             language == client.language &&
             isConnected == client.isConnected &&
             cleanSession == client.cleanSession &&
+            willFlag == client.willFlag &&
             snodeAddress == client.snodeAddress;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(clientRole, clientId, groups, remotingChannel, heartbeatInterval,
-            lastUpdateTimestamp, version, language, isConnected, cleanSession, snodeAddress);
+            lastUpdateTimestamp, version, language, isConnected, cleanSession, willFlag, snodeAddress);
     }
 
     public RemotingChannel getRemotingChannel() {
@@ -144,6 +147,14 @@ public class Client {
         this.cleanSession = cleanSession;
     }
 
+    public boolean isWillFlag() {
+        return willFlag;
+    }
+
+    public void setWillFlag(boolean willFlag) {
+        this.willFlag = willFlag;
+    }
+
     public String getSnodeAddress() {
         return snodeAddress;
     }
@@ -173,6 +184,7 @@ public class Client {
             ", language=" + language +
             ", isConnected=" + isConnected +
             ", cleanSession=" + cleanSession +
+            ", willFlag=" + willFlag +
             ", snodeAddress=" + snodeAddress +
             '}';
     }

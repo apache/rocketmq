@@ -15,16 +15,24 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.transport.mqtt.dispatcher;
+package org.apache.rocketmq.remoting.util;
 
-import io.netty.handler.codec.mqtt.MqttMessage;
-import java.io.UnsupportedEncodingException;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import com.google.gson.Gson;
+import java.nio.charset.Charset;
 
-public interface Message2MessageEncodeDecode {
+public class MqttEncodeDecodeUtil {
+    private static final Gson GSON = new Gson();
 
-    RemotingCommand decode(MqttMessage mqttMessage);
+    public static byte[] encode(Object object) {
+        final String json = GSON.toJson(object);
+        if (json != null) {
+            return json.getBytes(Charset.forName("UTF-8"));
+        }
+        return null;
+    }
 
-    MqttMessage encode(RemotingCommand remotingCommand) throws RemotingCommandException, UnsupportedEncodingException;
+    public static <T> Object decode(byte[] body, Class<T> classOfT) {
+        final String json = new String(body, Charset.forName("UTF-8"));
+        return GSON.fromJson(json, classOfT);
+    }
 }

@@ -648,6 +648,16 @@
                 <artifactId>simpleclient_hotspot</artifactId>
                 <version>0.6.0</version>
             </dependency>
+            <dependency>
+                <groupId>org.eclipse.paho</groupId>
+                <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
+                <version>1.2.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+                <version>LATEST</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>

@@ -20,7 +20,9 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -32,12 +34,14 @@ import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.MqttConfig;
 import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.ServerConfig;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -47,19 +51,22 @@ import org.slf4j.LoggerFactory;
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_ENABLE;
 
 public class SnodeStartup {
-    private static InternalLogger log;
+    private static InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
     public static Properties properties = null;
     public static CommandLine commandLine = null;
     public static String configFile = null;
+    private static final String DEFAULT_MQTT_CONFIG_FILE = "/conf/mqtt.properties";
+    private static String mqttConfigFileName = System.getProperty("rocketmq.mqtt.config", DEFAULT_MQTT_CONFIG_FILE);
 
     public static void main(String[] args) throws IOException, JoranException {
         SnodeConfig snodeConfig = loadConfig(args);
+        MqttConfig mqttConfig = loadMqttConfig(snodeConfig);
         if (snodeConfig.isEmbeddedModeEnable()) {
             BrokerController brokerController = BrokerStartup.createBrokerController(args);
             BrokerStartup.start(brokerController);
             snodeConfig.setSnodeName(brokerController.getBrokerConfig().getBrokerName());
         }
-        SnodeController snodeController = createSnodeController(snodeConfig);
+        SnodeController snodeController = createSnodeController(snodeConfig, mqttConfig);
         startup(snodeController);
     }
 
@@ -93,7 +100,6 @@ public class SnodeStartup {
         SnodeConfig snodeConfig = new SnodeConfig();
         final ServerConfig nettyServerConfig = new ServerConfig();
         final ClientConfig nettyClientConfig = new ClientConfig();
-
         nettyServerConfig.setListenPort(snodeConfig.getListenPort());
         nettyClientConfig.setUseTLS(Boolean.parseBoolean(System.getProperty(TLS_ENABLE,
             String.valueOf(TlsSystemConfig.tlsMode == TlsMode.ENFORCING))));
@@ -119,18 +125,47 @@ public class SnodeStartup {
             System.exit(-2);
         }
 
+        MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), snodeConfig);
+        String namesrvAddr = snodeConfig.getNamesrvAddr();
+        if (null != namesrvAddr) {
+            try {
+                String[] addrArray = namesrvAddr.split(";");
+                for (String addr : addrArray) {
+                    RemotingUtil.string2SocketAddress(addr);
+                }
+            } catch (Exception e) {
+                System.out.printf(
+                    "The Name Server Address[%s] illegal, please set it as follows, \"127.0.0.1:9876;192.168.0.1:9876\"%n",
+                    namesrvAddr);
+                System.exit(-3);
+            }
+        }
+
         MixAll.printObjectProperties(log, snodeConfig);
         MixAll.printObjectProperties(log, snodeConfig.getNettyServerConfig());
         MixAll.printObjectProperties(log, snodeConfig.getNettyClientConfig());
         return snodeConfig;
     }
 
-    public static SnodeController createSnodeController(SnodeConfig snodeConfig) throws JoranException {
+    public static MqttConfig loadMqttConfig(SnodeConfig snodeConfig) throws IOException {
+        MqttConfig mqttConfig = new MqttConfig();
+        final ServerConfig mqttServerConfig = new ServerConfig();
+        final ClientConfig mqttClientConfig = new ClientConfig();
+        mqttServerConfig.setListenPort(mqttConfig.getListenPort());
+        String file = snodeConfig.getRocketmqHome() + File.separator + mqttConfigFileName;
+        loadMqttProperties(file, mqttServerConfig, mqttClientConfig);
+        mqttConfig.setMqttServerConfig(mqttServerConfig);
+        mqttConfig.setMqttClientConfig(mqttClientConfig);
 
-        final SnodeController snodeController = new SnodeController(
-            snodeConfig.getNettyServerConfig(),
-            snodeConfig.getNettyClientConfig(),
-            snodeConfig);
+        MixAll.printObjectProperties(log, mqttConfig);
+        MixAll.printObjectProperties(log, mqttConfig.getMqttServerConfig());
+        MixAll.printObjectProperties(log, mqttConfig.getMqttClientConfig());
+        return mqttConfig;
+    }
+
+    public static SnodeController createSnodeController(SnodeConfig snodeConfig, MqttConfig mqttConfig) throws JoranException {
+
+        final SnodeController snodeController = new SnodeController(snodeConfig, mqttConfig);
 
         boolean initResult = snodeController.initialize();
         if (!initResult) {
@@ -181,6 +216,22 @@ public class SnodeStartup {
         options.addOption(opt);
 
         return options;
+    }
+
+    private static void loadMqttProperties(String file, ServerConfig mqttServerConfig,
+        ClientConfig mqttClientConfig) throws IOException {
+        InputStream in;
+        try {
+            in = new BufferedInputStream(new FileInputStream(file));
+            Properties properties = new Properties();
+            properties.load(in);
+            MixAll.properties2Object(properties, mqttServerConfig);
+            MixAll.properties2Object(properties, mqttClientConfig);
+            in.close();
+        } catch (FileNotFoundException e) {
+            log.info("The mqtt config file is not found. filePath={}", file);
+        }
+
     }
 }
 

@@ -68,8 +68,6 @@ public class MqttSubscriptionData extends SubscriptionData {
         if (getClass() != obj.getClass())
             return false;
         MqttSubscriptionData other = (MqttSubscriptionData) obj;
-        if (qos != other.qos)
-            return false;
         if (clientId != other.clientId) {
             return false;
         }

@@ -43,8 +43,8 @@ public class RemotingCommand2MqttMessageHandler extends MessageToMessageEncoder<
         if (!(msg instanceof RemotingCommand)) {
             return;
         }
-        MqttMessage mqttMessage = null;
-        MqttHeader mqttHeader = (MqttHeader) msg.decodeCommandCustomHeader(MqttHeader.class);
+        MqttMessage mqttMessage;
+        MqttHeader mqttHeader = (MqttHeader) msg.readCustomHeader();
         Message2MessageEncodeDecode message2MessageEncodeDecode = EncodeDecodeDispatcher
             .getEncodeDecodeDispatcher().get(
                 MqttMessageType.valueOf(mqttHeader.getMessageType()));
