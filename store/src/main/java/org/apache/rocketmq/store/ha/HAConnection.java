@@ -90,7 +90,7 @@ public class HAConnection {
             this.selector = RemotingUtil.openSelector();
             this.socketChannel = socketChannel;
             this.socketChannel.register(this.selector, SelectionKey.OP_READ);
-            this.thread.setDaemon(true);
+            this.setDaemon(true);
         }
 
         @Override
@@ -205,7 +205,7 @@ public class HAConnection {
             this.selector = RemotingUtil.openSelector();
             this.socketChannel = socketChannel;
             this.socketChannel.register(this.selector, SelectionKey.OP_WRITE);
-            this.thread.setDaemon(true);
+            this.setDaemon(true);
         }
 
         @Override
