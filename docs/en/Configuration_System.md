@@ -64,4 +64,4 @@ There is a os.sh script that lists a lot of kernel parameters in folder bin whic
 
 
 - **Disk scheduler**, the deadline I/O scheduler is recommended for RocketMQ, which attempts to provide a guaranteed latency for requests.
-
+ 
