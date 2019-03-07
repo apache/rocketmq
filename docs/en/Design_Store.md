@@ -3,9 +3,12 @@
 
 ![](images/rocketmq_storage_arch.png)
 
-Message storage is the most complicated and important part of RocketMQ. This section will describe the three aspects of RocketMQ: message storage architecture, PageCache and memory mapping, and RocketMQ's two different disk flushing methods.
+Message storage is the most complicated and important part of RocketMQ. This section will describe the three aspects of RocketMQ:
+* Message storage architecture
+* PageCache and memory mapping
+* RocketMQ's two different disk flushing methods.
 
-## 1. Message Storage Architecture
+## 1 Message Storage Architecture
 
 
 The message storage architecture diagram consists of 3 files related to message storage: `CommitLog` file, `ConsumeQueue` file, and `IndexFile`.
