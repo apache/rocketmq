@@ -1,4 +1,4 @@
-#The system configuration #
+#The system configuration
 
 This section focuses on the configuration of the system (JVM/OS)
 
