@@ -93,7 +93,7 @@ public class TraceDataEncoder {
                 subAfterContext.getTraceBeans().add(bean);
                 subAfterContext.setCostTime(Integer.parseInt(line[3]));
                 subAfterContext.setSuccess(Boolean.parseBoolean(line[4]));
-                bean.setClientHost(line[6]);
+                bean.setClientHost(line[6]); 
                 if (line.length >= 8) {
                     // add the context type
                     subAfterContext.setContextCode(Integer.parseInt(line[7]));
