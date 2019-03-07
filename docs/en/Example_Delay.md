@@ -1,6 +1,6 @@
 # Schedule example
 
-### 1.Start consumer to wait for incoming subscribed messages 
+### 1 Start consumer to wait for incoming subscribed messages 
 
 ```java
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -35,7 +35,7 @@ public class ScheduledMessageConsumer {
 }
 ```
 
-### 2.Send scheduled messages 
+### 2 Send scheduled messages 
 
 ```java
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -64,15 +64,15 @@ public class ScheduledMessageProducer {
 }
 ```
 
-### 3.Verification 
+### 3 Verification 
 
 You should see messages are consumed about 10 seconds later than their storing time. 
 
-### 4.Use scenarios for scheduled messages
+### 4 Use scenarios for scheduled messages
 
 For example, in e-commerce, if an order is submitted, a delay message can be sent, and the status of the order can be checked after 1 hour. If the order is still unpaid, the order can be cancelled and the inventory released.
 
-### 5.Restrictions on the use of scheduled messages
+### 5 Restrictions on the use of scheduled messages
 
 ```java 
 // org/apache/rocketmq/store/config/MessageStoreConfig.java

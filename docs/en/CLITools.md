@@ -262,7 +262,7 @@ Before introducing the mqadmin management tool, the following points need to be 
   height:244.0pt;border-top:none;width:133pt'><span
   style='mso-spacerun:yes'> </span>clusterList</td>
   <td rowspan=4 class=xl70 width=175 style='border-bottom:1.0pt;
-  border-top:none;width:131pt'>View cluster information, cluster, brokerName, brokerId, TPS, and so on.</td>
+  border-top:none;width:131pt'>View cluster information, cluster, brokerName, brokerId, TPS, and so on</td>
   <td class=xl65 width=177 style='width:133pt'>-m</td>
   <td class=xl66 width=185 style='width:139pt'>Print more information (add print to # InTotalYest,
   #OutTotalYest, #InTotalToday ,#OutTotalToday)</td>
