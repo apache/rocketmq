@@ -1,6 +1,6 @@
 # Operation FAQ
 
-## 1. RocketMQ's mqadmin command error.
+## 1 RocketMQ's mqadmin command error.
 
 >  Problem: Sometimes after deploying the RocketMQ cluster, when you try to execute some commands of "mqadmin", the following exception will appear：
 >
@@ -10,7 +10,7 @@
 
 Solution: Execute  `export NAMESRV_ADDR=ip:9876` (ip refers to the address of NameServer deployed in the cluster) on the VM that deploys the RocketMQ cluster.Then you will execute commands of "mqadmin" successfully.
 
-## 2. The inconsistent version of RocketMQ between the producer and consumer leads to the problem that message can't be consumed normally.
+## 2 The inconsistent version of RocketMQ between the producer and consumer leads to the problem that message can't be consumed normally.
 
 > Problem: The same producer sends a message, consumer A can consume, but consumer B can't consume, and the RocketMQ Console appears:
 >
@@ -20,7 +20,7 @@ Solution: Execute  `export NAMESRV_ADDR=ip:9876` (ip refers to the address of Na
 
 Solution: The jar package of RocketMQ, such as rocketmq-client, should be the same version on the consumer and producer.
 
-## 3. When adding a new topic consumer group, historical messages can't be consumed.
+## 3 When adding a new topic consumer group, historical messages can't be consumed.
 
 > Problem: When a new consumer group of the same topic is started, the consumed message is the current offset message, and the historical message is not obtained.
 
@@ -50,11 +50,11 @@ consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
 consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
 ```
 
-## 4. How to enable reading data from Slave
+## 4 How to enable reading data from Slave
 
 In some cases, the Consumer needs to reset the consume position to 1-2 days ago. At this time, on the Master Broker with limited memory, the CommitLog will carry a relatively heavy IO pressure, affecting the reading and writing of other messages on that Broker. You can enable `slaveReadEnable=true`. When Master Broker finds that the difference between the Consumer's consume position and the latest value of CommitLog exceeds the percentage of machine's memory (`accessMessageInMemoryMaxRatio=40%`), it will recommend Consumer  to read from Slave Broker and relieve Master Broker's IO.
 
-## 5. Performance
+## 5 Performance
 
 Asynchronous flush disk is recommended to use spin lock.
 
@@ -64,7 +64,7 @@ Asynchronous flush disk is recommended to open `TransientStorePoolEnable` and cl
 
 Synchronous flush disk is recommended to increase the `sendMessageThreadPoolNums` appropriately. The specific configuration needs to be tested.
 
-## 6. The meaning and difference between msgId and offsetMsgId in RocketMQ
+## 6 The meaning and difference between msgId and offsetMsgId in RocketMQ
 
 After sending message with RocketMQ, you will usually see the following log:
 
