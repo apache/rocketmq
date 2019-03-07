@@ -1,5 +1,7 @@
 # Message Trace
 
+
+
 ## 1. Key Attributes of Message Trace Data
 
 | Producer        | Consumer        | Broker     |
