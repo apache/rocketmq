@@ -36,13 +36,13 @@ import org.apache.rocketmq.test.util.MQAdmin;
 import org.apache.rocketmq.test.util.MQRandomUtils;
 
 public class BaseConf {
-    protected static String nsAddr;
+    public static String nsAddr;
     protected static String broker1Name;
     protected static String broker2Name;
     protected static String clusterName;
     protected static int brokerNum;
     protected static int waitTime = 5;
-    protected static int consumeTime = 5 * 60 * 1000;
+    protected static int consumeTime = 2 * 60 * 1000;
     protected static NamesrvController namesrvController;
     protected static BrokerController brokerController1;
     protected static BrokerController brokerController2;

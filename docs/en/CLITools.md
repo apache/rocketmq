@@ -2,12 +2,12 @@
 
 Before introducing the mqadmin management tool, the following points need to be declared:
 
-1. The way of executing a command is:./mqadmin {command} {args}
-2. Almost all commands need to attach the -n option to represent the nameServer address, formatted as ip:port;
-3. Almost all commands can get help information with the -h option;
-4. If the broker address -b option and clusterName -c option are both configured with specific values, the command execution will select the broker address specified by -b option. The value of the -b option can only be configured with a single address. The format is ip:port. The default port value is 10911. If the value of the -b option is not configured, the command will be applied to all brokers in the entire cluster.
-5. You can see many commands under tools, but not all commands can be used, only the commands initialized in MQAdminStartup can be used, you can also modify this class, add or customize commands;
-6. Due to the issue of version update, a small number of commands may not be updated in time, please read the related command source code to eliminate and resolve the error.
+- The way of executing a command is:./mqadmin {command} {args}
+- Almost all commands need to attach the -n option to represent the nameServer address, formatted as ip:port;
+- Almost all commands can get help information with the -h option;
+- If the broker address -b option and clusterName -c option are both configured with specific values, the command execution will select the broker address specified by -b option. The value of the -b option can only be configured with a single address. The format is ip:port. The default port value is 10911. If the value of the -b option is not configured, the command will be applied to all brokers in the entire cluster.
+- You can see many commands under tools, but not all commands can be used, only the commands initialized in MQAdminStartup can be used, you can also modify this class, add or customize commands;
+- Due to the issue of version update, a small number of commands may not be updated in time, please read the related command source code to eliminate and resolve the error.
 
 ## 1 Topic related command instructions
 
@@ -262,7 +262,7 @@ Before introducing the mqadmin management tool, the following points need to be 
   height:244.0pt;border-top:none;width:133pt'><span
   style='mso-spacerun:yes'> </span>clusterList</td>
   <td rowspan=4 class=xl70 width=175 style='border-bottom:1.0pt;
-  border-top:none;width:131pt'>View cluster information, cluster, brokerName, brokerId, TPS, and so on.</td>
+  border-top:none;width:131pt'>View cluster information, cluster, brokerName, brokerId, TPS, and so on</td>
   <td class=xl65 width=177 style='width:133pt'>-m</td>
   <td class=xl66 width=185 style='width:139pt'>Print more information (add print to # InTotalYest,
   #OutTotalYest, #InTotalToday ,#OutTotalToday)</td>
@@ -283,7 +283,7 @@ Before introducing the mqadmin management tool, the following points need to be 
   <td rowspan=8 height=391 class=xl67 width=177 style='border-bottom:1.0pt;
   height:292.0pt;border-top:none;width:133pt'>clusterRT</td>
   <td rowspan=8 class=xl70 width=175 style='border-bottom:1.0pt;
-  border-top:none;width:131pt'>Send message to detect each broker RT of the cluster.the message send to ${BrokerName} Topic。</td>
+  border-top:none;width:131pt'>Send message to detect each broker RT of the cluster.the message send to ${BrokerName} Topic</td>
   <td class=xl65 width=177 style='width:133pt'>-a</td>
   <td class=xl66 width=185 style='width:139pt'>amount，total number per probe，RT = Total time/amount</td>
  </tr>

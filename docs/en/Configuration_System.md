@@ -1,10 +1,10 @@
-# ** The system configuration** #
+# The system configuration
 
 This section focuses on the configuration of the system (JVM/OS)
 
 ## **1 JVM Options** ##
 
-The latest released version of JDK 1.8 is recommended. Set the same Xms and Xmx value to prevent the JVM from resizing the heap for better performance. A simple JVM configurations looks like this:
+The latest released version of JDK 1.8 is recommended. Set the same Xms and Xmx value to prevent the JVM from resizing the heap for better performance. A simple JVM configuration is as follows:
 
     -server -Xms8g -Xmx8g -Xmn4g
 
