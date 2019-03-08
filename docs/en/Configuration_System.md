@@ -1,10 +1,10 @@
-#  The system configuration #
+# The system configuration
 
 This section focuses on the configuration of the system (JVM/OS)
 
 ## **1 JVM Options** ##
 
-The latest released version of JDK 1.8 is recommended. Set the same Xms and Xmx value to prevent the JVM from resizing the heap for better performance. A simple JVM configuration is as follows:
+The latest released version of JDK 1.8 is recommended. Set the same Xms and Xmx value to prevent the JVM from resizing the heap for better performance. A simple JVM configurations looks like this:
 
     -server -Xms8g -Xmx8g -Xmn4g
 
@@ -22,7 +22,7 @@ As for garbage collection, G1 collector with JDK 1.8 is recommended:
     -XX:G1ReservePercent=25
     -XX:InitiatingHeapOccupancyPercent=30
 
-These GC options looks a little aggressive, but it’s proved to have good performance in our production environment.
+These GC options looks a little aggressive, but it’s proved to have good performance in our production environment
 
 Don’t set a too small value for -XX:MaxGCPauseMillis, otherwise JVM will use a small young generation to achieve this goal which will cause very frequent minor GC.So use rolling GC log file is recommended:
     
@@ -30,13 +30,13 @@ Don’t set a too small value for -XX:MaxGCPauseMillis, otherwise JVM will use a
     -XX:NumberOfGCLogFiles=5 
     -XX:GCLogFileSize=30m
     
-If writing a GC file increases the latency of broker, please consider redirecting it to memory file system:
+If write GC file will increase latency of broker, consider redirect GC log file to a memory file system:
     
     -Xloggc:/dev/shm/mq_gc_%p.log123
 
 ## 2 Linux Kernel Parameters ##
 
-There is an os.sh script that lists a lot of kernel parameters in folder bin which can be used for production enviroment with minor changes. Below parameters need attention, if need more details please refer to documentation for /proc/sys/vm/*.
+There is a os.sh script that lists a lot of kernel parameters in folder bin which can be used for production use with minor changes. Below parameters need attention, and more details please refer to documentation for /proc/sys/vm/*.
 
 
 
@@ -51,11 +51,11 @@ There is an os.sh script that lists a lot of kernel parameters in folder bin whi
 
 
 
-- **vm.max_map_count**, limits the maximum number of memory map areas a process may have. RocketMQ will use mmap to load CommitLog and ConsumeQueue, so a bigger value is recommended.
+- **vm.max_map_count**, limits the maximum number of memory map areas a process may have. RocketMQ will use mmap to load CommitLog and ConsumeQueue, so set a bigger value for this parameter is recommended.
 
 
 
-- **vm.swappiness**, defines how aggressive the kernel will swap memory pages. Higher values will increase agressiveness, lower values decrease the amount of swap. 10 is recommended for this value to avoid swap latency.
+- **vm.swappiness**, define how aggressive the kernel will swap memory pages. Higher values will increase agressiveness, lower values decrease the amount of swap. 10 is recommended for this value to avoid swap latency.
 
 
 
@@ -64,4 +64,4 @@ There is an os.sh script that lists a lot of kernel parameters in folder bin whi
 
 
 - **Disk scheduler**, the deadline I/O scheduler is recommended for RocketMQ, which attempts to provide a guaranteed latency for requests.
- 
+
