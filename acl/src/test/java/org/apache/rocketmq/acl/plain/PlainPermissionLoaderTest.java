@@ -158,10 +158,10 @@ public class PlainPermissionLoaderTest {
 
     }
     @Test(expected = AclException.class)
-    public void checkErrorPerm() {
+    public void checkErrorPermDefaultValueNotMatch() {
 
         plainAccessResource = new PlainAccessResource();
-        plainAccessResource.addResourceAndPerm("topicF", Permission.SUB);
+        plainAccessResource.addResourceAndPerm("topicF", Permission.PUB);
         plainPermissionLoader.checkPerm(plainAccessResource, SUBPlainAccessResource);
     }
     @Test(expected = AclException.class)
