@@ -36,23 +36,19 @@ public class StatsItemSetTest {
 
     @Test
     public void test_getAndCreateStatsItem_multiThread() throws InterruptedException {
-        for (int i = 0; i < 50; i++) {
-            assertEquals(20000L, test_unit().longValue());
-        }
+        assertEquals(20L, test_unit().longValue());
     }
 
     @Test
     public void test_getAndCreateMomentStatsItem_multiThread() throws InterruptedException {
-        for (int i = 0; i < 50; i++) {
-            assertEquals(10, test_unit_moment().longValue());
-        }
+        assertEquals(10, test_unit_moment().longValue());
     }
 
     private AtomicLong test_unit() throws InterruptedException {
         final StatsItemSet statsItemSet = new StatsItemSet("topicTest", scheduler, null);
-        executor = new ThreadPoolExecutor(100, 200, 10, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<Runnable>(10000), new ThreadFactoryImpl("testMultiThread"));
-        for (int i = 0; i < 10000; i++) {
+        executor = new ThreadPoolExecutor(10, 20, 10, TimeUnit.SECONDS,
+            new ArrayBlockingQueue<Runnable>(100), new ThreadFactoryImpl("testMultiThread"));
+        for (int i = 0; i < 10; i++) {
             executor.submit(new Runnable() {
                 @Override
                 public void run() {
@@ -61,7 +57,7 @@ public class StatsItemSetTest {
             });
         }
         while (true) {
-            if (executor.getCompletedTaskCount() == 10000) {
+            if (executor.getCompletedTaskCount() == 10) {
                 break;
             }
             Thread.sleep(1000);
@@ -71,9 +67,9 @@ public class StatsItemSetTest {
 
     private AtomicLong test_unit_moment() throws InterruptedException {
         final MomentStatsItemSet statsItemSet = new MomentStatsItemSet("topicTest", scheduler, null);
-        executor = new ThreadPoolExecutor(100, 200, 10, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<Runnable>(10000), new ThreadFactoryImpl("testMultiThread"));
-        for (int i = 0; i < 10000; i++) {
+        executor = new ThreadPoolExecutor(10, 20, 10, TimeUnit.SECONDS,
+            new ArrayBlockingQueue<Runnable>(100), new ThreadFactoryImpl("testMultiThread"));
+        for (int i = 0; i < 10; i++) {
             executor.submit(new Runnable() {
                 @Override
                 public void run() {
@@ -82,7 +78,7 @@ public class StatsItemSetTest {
             });
         }
         while (true) {
-            if (executor.getCompletedTaskCount() == 10000) {
+            if (executor.getCompletedTaskCount() == 10) {
                 break;
             }
             Thread.sleep(1000);
