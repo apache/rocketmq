@@ -132,7 +132,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
          */
         if (MessageSysFlag.TRANSACTION_COMMIT_TYPE == requestHeader.getCommitOrRollback()) {
             /**
-             * 获取预提交得消息
+             * 获取预提交得消息（half消息）
              */
             result = this.brokerController.getTransactionalMessageService().commitMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
@@ -148,7 +148,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     msgInner.setSysFlag(MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(), requestHeader.getCommitOrRollback()));
                     msgInner.setQueueOffset(requestHeader.getTranStateTableOffset());
                     /**
-                     * 保存消息的preparedTransactionOffset
+                     * 保存消息的preparedTransactionOffset   即half消息存储得offset
                      */
                     msgInner.setPreparedTransactionOffset(requestHeader.getCommitLogOffset());
                     msgInner.setStoreTimestamp(result.getPrepareMessage().getStoreTimestamp());
@@ -165,7 +165,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                      */
                     if (sendResult.getCode() == ResponseCode.SUCCESS) {
                         /**
-                         * 向RMQ_SYS_TRANS_OP_HALF_TOPIC存入消息
+                         * 向RMQ_SYS_TRANS_OP_HALF_TOPIC存入消息   消息的body部分  存储得是half消息的QueueOffset
                          */
                         this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
                     }
@@ -177,7 +177,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
             /**
              * 消息回滚
              *
-             * 获得待回滚的消息
+             * 获得待回滚的消息（half）
              */
             result = this.brokerController.getTransactionalMessageService().rollbackMessage(requestHeader);
 
@@ -188,7 +188,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
                     /**
-                     * 向RMQ_SYS_TRANS_OP_HALF_TOPIC存入消息
+                     * 向RMQ_SYS_TRANS_OP_HALF_TOPIC存入消息   消息的body部分  存储得是half消息的QueueOffset
                      */
                     this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
                 }
@@ -273,7 +273,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         msgInner.setStoreHost(msgExt.getStoreHost());
         msgInner.setReconsumeTimes(msgExt.getReconsumeTimes());
         /**
-         * 不等待
+         * 不等待刷盘和ha
          */
         msgInner.setWaitStoreMsgOK(false);
         msgInner.setTransactionId(msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
@@ -287,7 +287,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
 
         /**
-         * 清除属性
+         * 清除属性   但是在PropertiesString中还存在下面得值
          */
         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC);
         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID);

@@ -40,7 +40,7 @@ public class TransactionListenerImpl implements TransactionListener {
 //        int value = transactionIndex.getAndIncrement();
 //        int status = value % 3;
 //        localTrans.put(msg.getTransactionId(), status);
-        return LocalTransactionState.UNKNOW;
+        return LocalTransactionState.COMMIT_MESSAGE;
     }
 
     @Override

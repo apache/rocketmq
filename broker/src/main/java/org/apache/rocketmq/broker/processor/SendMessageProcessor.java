@@ -501,6 +501,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             }
             /**
              * 存储预提交消息  重置发送得topic和queueid
+             * 存储预提交消息  重置发送得topic和queueid
+             * 存储预提交消息  重置发送得topic和queueid
              */
             putMessageResult = this.brokerController.getTransactionalMessageService().prepareMessage(msgInner);
         } else {
