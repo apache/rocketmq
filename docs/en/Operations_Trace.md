@@ -1,7 +1,5 @@
 # Message Trace
 
-This document focuses on how to quickly deploy and use RocketMQ clusters that support message trace features
-
 ## 1 Key Attributes of Message Trace Data
 
 | Producer        | Consumer        | Broker     |
