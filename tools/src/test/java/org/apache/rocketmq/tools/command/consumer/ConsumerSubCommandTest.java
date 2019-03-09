@@ -47,9 +47,11 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
+
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -72,6 +74,9 @@ public class ConsumerSubCommandTest {
         Field field = ConsumerSubCommand.class.getDeclaredField("defaultMQAdminExt");
         field.setAccessible(true);
         field.set(consumerSubCommand, defaultMQAdminExt);
+        field = ConsumerSubCommand.class.getDeclaredField("write2File");
+        field.setAccessible(true);
+        field.set(consumerSubCommand, false);
         field = DefaultMQAdminExtImpl.class.getDeclaredField("mqClientInstance");
         field.setAccessible(true);
         field.set(defaultMQAdminExtImpl, mqClientInstance);

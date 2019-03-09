@@ -36,6 +36,7 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class ConsumerSubCommand implements SubCommand {
     private DefaultMQAdminExt defaultMQAdminExt;
+    private boolean write2File = true;
 
     private DefaultMQAdminExt createMQAdminExt(RPCHook rpcHook) throws SubCommandException {
         if (this.defaultMQAdminExt != null) {
@@ -101,7 +102,9 @@ public class ConsumerSubCommand implements SubCommand {
                         if (consumerRunningInfo != null) {
                             criTable.put(conn.getClientId(), consumerRunningInfo);
                             String filePath = now + "/" + conn.getClientId();
-                            MixAll.string2FileNotSafe(consumerRunningInfo.formatString(), filePath);
+                            if (write2File) {
+                                MixAll.string2FileNotSafe(consumerRunningInfo.formatString(), filePath);
+                            }
                             System.out.printf("%03d  %-40s %-20s %s%n",
                                     i++,
                                     conn.getClientId(),
