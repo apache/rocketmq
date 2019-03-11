@@ -66,6 +66,9 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
             return response;
         }
 
+        /**
+         * 是否是事务回查
+         */
         if (requestHeader.getFromTransactionCheck()) {
             switch (requestHeader.getCommitOrRollback()) {
                 case MessageSysFlag.TRANSACTION_NOT_TYPE: {
