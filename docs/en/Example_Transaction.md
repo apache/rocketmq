@@ -1,15 +1,15 @@
-# Transaction message example 
+# Transaction Message Example 
 
 ## 1 Transaction message status 
-There are three states for transactional message:  
-1. TransactionStatus.CommitTransaction: commit transaction，it means that allow consumers to consume this message.  
-2. TransactionStatus.RollbackTransaction: rollback transaction，it means that the message will be deleted and not allowed to consume.  
-3. TransactionStatus.Unknown: intermediate state，it means that MQ is needed to check back to determine the status.
+There are three states for transaction message:  
+- TransactionStatus.CommitTransaction: commit transaction, it means that allow consumers to consume this message.  
+- TransactionStatus.RollbackTransaction: rollback transaction, it means that the message will be deleted and not allowed to consume.  
+- TransactionStatus.Unknown: intermediate state, it means that MQ is needed to check back to determine the status.
 
 ## 2 Send transactional message example
 
 ### 2.1 Create the transactional producer 
-Use ```TransactionMQProducer```class to create producer client, and specify a unique ```ProducerGroup```, and you can set up a custom thread pool to process check requests. After executing the local transaction, you need to reply to MQ according to the execution result，and the reply status is described in the above section.  
+Use ```TransactionMQProducer```class to create producer client, and specify a unique ```ProducerGroup```, and you can set up a custom thread pool to process check requests. After executing the local transaction, you need to reply to MQ according to the execution result, and the reply status is described in the above section.  
 ```java
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
@@ -88,7 +88,7 @@ public class TransactionListenerImpl implements TransactionListener {
 
 ## 3 Usage Constraint  
 1. Messages of the transactional have no schedule and batch support.
-2. In order to avoid a single message being checked too many times and lead to half queue message accumulation， we limited the number of checks for a single message to 15 times by default, but users can change this limit by change the ```transactionCheckMax``` parameter in the configuration of the broker， if one message has been checked over ```transactionCheckMax``` times， broker will discard this message and print an error log at the same time by default. Users can change this behavior by override the ```AbstractTransactionCheckListener``` class.
+2. In order to avoid a single message being checked too many times and lead to half queue message accumulation,  we limited the number of checks for a single message to 15 times by default, but users can change this limit by change the ```transactionCheckMax``` parameter in the configuration of the broker,  if one message has been checked over ```transactionCheckMax``` times,  broker will discard this message and print an error log at the same time by default. Users can change this behavior by override the ```AbstractTransactionCheckListener``` class.
 3. A transactional message will be checked after a certain period of time that determined by parameter ```transactionTimeout``` in the configuration of the broker. And users also can change this limit by set user property “CHECK_IMMUNITY_TIME_IN_SECONDS” when sending transactional message, this parameter takes precedence over the “transactionMsgTimeout” parameter. 
 4. A transactional message maybe checked or consumed more than once. 
 5. Committed message reput to the user’s target topic may fail. Currently, it depends on the log record. High availability is ensured by the high availability mechanism of RocketMQ itself. If you want to ensure that the transactional message isn’t lost and the transaction integrity is guaranteed, it is recommended to use synchronous double write. mechanism. 

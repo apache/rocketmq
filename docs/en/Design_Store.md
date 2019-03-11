@@ -3,9 +3,12 @@
 
 ![](images/rocketmq_storage_arch.png)
 
-Message storage is the most complicated and important part of RocketMQ. This section will describe the three aspects of RocketMQ: message storage architecture, PageCache and memory mapping, and RocketMQ's two different disk flushing methods.
+Message storage is the most complicated and important part of RocketMQ. This section will describe the three aspects of RocketMQ:
+* Message storage architecture
+* PageCache and memory mapping
+* RocketMQ's two different disk flushing methods.
 
-## 1. Message Storage Architecture
+## 1 Message Storage Architecture
 
 
 The message storage architecture diagram consists of 3 files related to message storage: `CommitLog` file, `ConsumeQueue` file, and `IndexFile`.
@@ -18,7 +21,7 @@ The message storage architecture diagram consists of 3 files related to message 
 
 From the above architecture of the RocketMQ message storage, we can see RocketMQ uses a hybrid storage structure, that is, all the queues in an instance of the broker share a single log file `CommitLog` to store messages. RocketMQ's hybrid storage structure(messages of multiple topics are stored in one CommitLog) uses a separate storage structure for the data and index parts for Producer and Consumer respectively. The Producer sends the message to the Broker, then the Broker persists the message to the CommitLog file synchronously or asynchronously. As long as the message is persisted to the CommitLog on the disk, the message sent by the Producer will not be lost. Because of this, Consumer will definitely have the opportunity to consume this message. When no message can be pulled, the consumer can wait for the next pull. And the server also supports the long polling mode: if a pull request pulls no messages, the Broker can wait for 30 seconds, as long as new message arrives in this interval, it will be returned directly to the consumer. Here, RocketMQ's specific approach is using Broker's background service thread `ReputMessageService` to continuously dispatch requests and asynchronously build ConsumeQueue (Logical Queue) and IndexFile data.
 
-## 2 PageCache and memory map
+## 2 PageCache and Memory Map
 
 PageCache is a cache of files by the operating system to speed up the reading and writing of files. In general, the speed of sequential read and write files is almost the same as the speed of read and write memory. The main reason is that the OS uses a portion of the memory as PageCache to optimize the performance of the read and write operations. For data writing, the OS will first write to the Cache, and then the `pdflush` kernel thread asynchronously flush the data in the Cache to the physical disk. For data reading, if it can not hit the page cache when reading a file at a time, the OS will read the file from the physical disk and prefetch the data files of other neighboring blocks sequentially.
 
