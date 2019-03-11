@@ -239,20 +239,21 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         break;
                     }
                     /**
-                     *
+                     * removeMap<halfoffSet,opOffset>
+                     * 如果true   表示该消息对应的half消息在op消息中有对应   即half消息有明确的commit或rollback
                      */
                     if (removeMap.containsKey(i)) {
                         log.info("Half offset {} has been committed/rolled back", i);
                         removeMap.remove(i);
                     } else {
                         /**
-                         * 获取half消息  从i处开始   一条
+                         * 获取i处的half消息
                          */
                         GetResult getResult = getHalfMsg(messageQueue, i);
                         MessageExt msgExt = getResult.getMsg();
 
                         /**
-                         * 没有拉取到消息
+                         * i处的消息为null
                          */
                         if (msgExt == null) {
                             /**
@@ -322,7 +323,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         List<MessageExt> opMsg = pullResult.getMsgFoundList();
 
                         /**
-                         * 是否需要向producer发起事务状态回查
+                         *  是否需要向producer发起事务状态回查
                          *  1、如果从操作队列(RMQ_SYS_TRANS_OP_HALF_TOPIC)中没有已处理消息并且已经超过（应用程序事务结束时间），参数transactionTimeOut值。
                          *  2、如果操作队列不为空，并且最后一条消息的存储时间已经超过transactionTimeOut值。
                          *  3、时间差值等于-1
@@ -334,12 +335,14 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         if (isNeedCheck) {
                             /**
                              * 再次将msgExt存入commitlog
+                             * 并更新msgExt对应的queueoffset、commitlogoffset和msgid为新存入的消息的值
                              */
                             if (!putBackHalfMsgQueue(msgExt, i)) {
                                 continue;
                             }
                             /**
                              * 向producer发起事务状态回查
+                             * 回查的结果对应着最新存入的消息
                              */
                             listener.resolveHalfMsg(msgExt);
                         } else {
@@ -354,6 +357,10 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                      * 此处+1 即offsettable中缓存的消费进度比正常值大1
                      * 所以GetResult getResult = getHalfMsg(messageQueue, i);
                      * 此处的代码获取的消息有可能为null
+                     *
+                     *
+                     * 如果某消息需要回查   则这里+1  即认为当前消息已成功消费
+                     * 对应的真正结果   转移给新的消息来验证
                      */
                     newOffset = i + 1;
                     i++;
