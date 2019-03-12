@@ -17,7 +17,6 @@
 package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
-import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import org.apache.rocketmq.broker.BrokerController;
@@ -25,7 +24,6 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageId;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.ResumeCheckHalfMessageRequestHeader;
@@ -80,9 +78,6 @@ public class AdminBrokerProcessorTest {
     public void testProcessRequest_success() throws RemotingCommandException, UnknownHostException {
         RemotingCommand request = createResumeCheckHalfMessageCommand();
         when(messageStore.selectOneMessageByOffset(any(Long.class))).thenReturn(createSelectMappedBufferResult());
-//        PowerMockito.mockStatic(MessageDecoder.class);
-//        PowerMockito.when(MessageDecoder.decode(any(ByteBuffer.class))).thenReturn(createDefaultMessageExt());
-//        PowerMockito.when(MessageDecoder.decodeMessageId(any(String.class))).thenReturn(createMessageId());
         when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult
                 (PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
@@ -93,9 +88,6 @@ public class AdminBrokerProcessorTest {
     public void testProcessRequest_fail() throws RemotingCommandException, UnknownHostException {
         RemotingCommand request = createResumeCheckHalfMessageCommand();
         when(messageStore.selectOneMessageByOffset(any(Long.class))).thenReturn(createSelectMappedBufferResult());
-//        PowerMockito.mockStatic(MessageDecoder.class);
-//        PowerMockito.when(MessageDecoder.decode(any(ByteBuffer.class))).thenReturn(createDefaultMessageExt());
-//        PowerMockito.when(MessageDecoder.decodeMessageId(any(String.class))).thenReturn(createMessageId());
         when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult
                 (PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
@@ -112,11 +104,6 @@ public class AdminBrokerProcessorTest {
         MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_REAL_TOPIC, "testTopic");
         MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES, "15");
         return messageExt;
-    }
-
-    private MessageId createMessageId() {
-        return new MessageId(new SocketAddress() {
-        }, 0);
     }
 
     private SelectMappedBufferResult createSelectMappedBufferResult(){
