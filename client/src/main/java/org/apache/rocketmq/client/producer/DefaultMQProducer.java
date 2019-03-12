@@ -702,6 +702,15 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         return this.defaultMQProducerImpl.queryMessageByUniqKey(topic, msgId);
     }
 
+    /**
+     * 批量发送
+     * @param msgs
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     @Override
     public SendResult send(
         Collection<Message> msgs) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
@@ -746,12 +755,27 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.defaultMQProducerImpl.setAsyncSenderExecutor(asyncSenderExecutor);
     }
 
+    /**
+     * 组织批量发送对象
+     * @param msgs 消息集合
+     * @return
+     * @throws MQClientException
+     */
     private MessageBatch batch(Collection<Message> msgs) throws MQClientException {
         MessageBatch msgBatch;
         try {
+            /**
+             * 初始化MessageBatch   并检查消息是否满足条件
+             */
             msgBatch = MessageBatch.generateFromList(msgs);
             for (Message message : msgBatch) {
+                /**
+                 * 检查消息
+                 */
                 Validators.checkMessage(message, this);
+                /**
+                 * 添加UNIQ_KEY属性
+                 */
                 MessageClientIDSetter.setUniqID(message);
             }
             msgBatch.setBody(msgBatch.encode());

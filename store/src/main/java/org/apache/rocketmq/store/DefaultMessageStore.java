@@ -478,12 +478,20 @@ public class DefaultMessageStore implements MessageStore {
         return result;
     }
 
+    /**
+     * 存储批量消息
+     * @param messageExtBatch Message batch.
+     * @return
+     */
     public PutMessageResult putMessages(MessageExtBatch messageExtBatch) {
         if (this.shutdown) {
             log.warn("DefaultMessageStore has shutdown, so putMessages is forbidden");
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         }
 
+        /**
+         * slave不支持消息存储
+         */
         if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
@@ -493,6 +501,9 @@ public class DefaultMessageStore implements MessageStore {
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         }
 
+        /**
+         * 硬件环境不支持消息存储
+         */
         if (!this.runningFlags.isWriteable()) {
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
@@ -504,21 +515,36 @@ public class DefaultMessageStore implements MessageStore {
             this.printTimes.set(0);
         }
 
+        /**
+         * 消息topic太长
+         */
         if (messageExtBatch.getTopic().length() > Byte.MAX_VALUE) {
             log.warn("PutMessages topic length too long " + messageExtBatch.getTopic().length());
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
 
+        /**
+         * 消息内容太大
+         */
         if (messageExtBatch.getBody().length > messageStoreConfig.getMaxMessageSize()) {
             log.warn("PutMessages body length too long " + messageExtBatch.getBody().length);
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
 
+        /**
+         * PAGECACHE  繁忙   有消息在写入时耗时超过1秒
+         */
         if (this.isOSPageCacheBusy()) {
             return new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, null);
         }
 
         long beginTime = this.getSystemClock().now();
+
+        /**
+         * 批量消息存储
+         * 批量消息存储
+         * 批量消息存储
+         */
         PutMessageResult result = this.commitLog.putMessages(messageExtBatch);
 
         long eclipseTime = this.getSystemClock().now() - beginTime;

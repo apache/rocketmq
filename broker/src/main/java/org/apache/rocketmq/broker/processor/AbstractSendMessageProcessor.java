@@ -159,6 +159,9 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         return response;
     }
 
+    /**
+     * 校验topic  是否顺序  名称是否为默认  已经是否存在  如果不存在是否需要创建并通知nameserver  以及ha
+     */
     protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,
         final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
         /**
@@ -316,6 +319,9 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         SendMessageRequestHeaderV2 requestHeaderV2 = null;
         SendMessageRequestHeader requestHeader = null;
         switch (request.getCode()) {
+            /**
+             * 批量消息
+             */
             case RequestCode.SEND_BATCH_MESSAGE:
             case RequestCode.SEND_MESSAGE_V2:
                 requestHeaderV2 =

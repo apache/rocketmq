@@ -45,18 +45,30 @@ public class MessageBatch extends Message implements Iterable<Message> {
         List<Message> messageList = new ArrayList<Message>(messages.size());
         Message first = null;
         for (Message message : messages) {
+            /**
+             * 非延迟消息
+             */
             if (message.getDelayTimeLevel() > 0) {
                 throw new UnsupportedOperationException("TimeDelayLevel in not supported for batching");
             }
+            /**
+             * 非重试队列
+             */
             if (message.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                 throw new UnsupportedOperationException("Retry Group is not supported for batching");
             }
             if (first == null) {
                 first = message;
             } else {
+                /**
+                 * 消息集合的topic需要一致
+                 */
                 if (!first.getTopic().equals(message.getTopic())) {
                     throw new UnsupportedOperationException("The topic of the messages in one batch should be the same");
                 }
+                /**
+                 * 消息集合的wait属性（是否等待消息刷盘结束）需要一致
+                 */
                 if (first.isWaitStoreMsgOK() != message.isWaitStoreMsgOK()) {
                     throw new UnsupportedOperationException("The waitStoreMsgOK of the messages in one batch should the same");
                 }

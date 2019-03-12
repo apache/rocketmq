@@ -88,10 +88,13 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
 
                 RemotingCommand response;
-                /**
-                 * 批量消息
-                 */
+
                 if (requestHeader.isBatch()) {
+                    /**
+                     * 批量消息
+                     * 批量消息
+                     * 批量消息
+                     */
                     response = this.sendBatchMessage(ctx, request, mqtraceContext, requestHeader);
                 } else {
                     /**
@@ -626,6 +629,15 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         return response;
     }
 
+    /**
+     * 处理producer发送的批量消息
+     * @param ctx
+     * @param request
+     * @param sendMessageContext
+     * @param requestHeader
+     * @return
+     * @throws RemotingCommandException
+     */
     private RemotingCommand sendBatchMessage(final ChannelHandlerContext ctx,
                                              final RemotingCommand request,
                                              final SendMessageContext sendMessageContext,
@@ -641,6 +653,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         log.debug("Receive SendMessage request command {}", request);
 
+        /**
+         * broker开始提供服务
+         */
         final long startTimstamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
         if (this.brokerController.getMessageStore().now() < startTimstamp) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -649,24 +664,39 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
 
         response.setCode(-1);
+        /**
+         * 校验topic  是否顺序  名称是否为默认  已经是否存在  如果不存在是否需要创建并通知nameserver  以及ha
+         */
         super.msgCheck(ctx, requestHeader, response);
         if (response.getCode() != -1) {
             return response;
         }
 
+        /**
+         * msg对应的queueid
+         */
         int queueIdInt = requestHeader.getQueueId();
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
 
+        /**
+         * queueIdInt小于0  则随机选取一个
+         */
         if (queueIdInt < 0) {
             queueIdInt = Math.abs(this.random.nextInt() % 99999999) % topicConfig.getWriteQueueNums();
         }
 
+        /**
+         * topic长度
+         */
         if (requestHeader.getTopic().length() > Byte.MAX_VALUE) {
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             response.setRemark("message topic length too long " + requestHeader.getTopic().length());
             return response;
         }
 
+        /**
+         * 重试topic不能发送批量消息
+         */
         if (requestHeader.getTopic() != null && requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             response.setRemark("batch request does not support retry group " + requestHeader.getTopic());
@@ -688,8 +718,16 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         messageExtBatch.setBornTimestamp(requestHeader.getBornTimestamp());
         messageExtBatch.setBornHost(ctx.channel().remoteAddress());
         messageExtBatch.setStoreHost(this.getStoreHost());
+        /**
+         * 默认为0
+         */
         messageExtBatch.setReconsumeTimes(requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes());
 
+        /**
+         * 存储批量消息
+         * 存储批量消息
+         * 存储批量消息
+         */
         PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessages(messageExtBatch);
 
         return handlePutMessageResult(putMessageResult, response, request, messageExtBatch, responseHeader, sendMessageContext, ctx, queueIdInt);

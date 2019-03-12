@@ -1006,6 +1006,11 @@ public class CommitLog {
 
     }
 
+    /**
+     * 批量消息存储
+     * @param messageExtBatch
+     * @return
+     */
     public PutMessageResult putMessages(final MessageExtBatch messageExtBatch) {
         messageExtBatch.setStoreTimestamp(System.currentTimeMillis());
         AppendMessageResult result;
@@ -1014,9 +1019,16 @@ public class CommitLog {
 
         final int tranType = MessageSysFlag.getTransactionValue(messageExtBatch.getSysFlag());
 
+        /**
+         * 只支持一般消息类型
+         */
         if (tranType != MessageSysFlag.TRANSACTION_NOT_TYPE) {
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
+
+        /**
+         * 不支持延迟消息
+         */
         if (messageExtBatch.getDelayTimeLevel() > 0) {
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
