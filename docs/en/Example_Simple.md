@@ -1,4 +1,4 @@
-# Basic Sample 
+# Basic Sample  
 ------
 Two functions below are provided in the basic sample:
 * The RocketMQ can be utilized to send messages in three ways: reliable synchronous, reliable asynchronous, and one-way transmission.  The first two message types are reliable because there is a response whether they were sent successfully.
