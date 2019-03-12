@@ -2,10 +2,10 @@
 RocketMQ message queue cluster mainly includes four roles: NameServer, Broker (Master/Slave), Producer and Consumer. The basic communication process is as follows:
 (1) After Broker start-up, it needs to complete one operation: register itself to NameServer, and then report Topic routing information to NameServer at regular intervals of 30 seconds.
 (2) When message Producer sends a message as a client, it needs to obtain routing information from the local cache TopicPublishInfoTable according to the Topic of the message. If not, it will be retrieved from NameServer and update to local cache, at the same time, Producer will retrieve routing information from NameServer every 30 seconds by default.
-(3) Message producer Producer chooses a queue to send the message according to the routing information obtained in 2); Broker receives the message and records it in disk as the receiver of the message.
-(4) After message consumer Consumer get the routing information according to 2) and complete the load balancing of the client, then select one or several message queues to pull messages and consume them.
+(3) Message Producer chooses a queue to send the message according to the routing information obtained in 2); Broker receives the message and records it in disk as the receiver of the message.
+(4) After message Consumer gets the routing information according to 2) and complete the load balancing of the client, then select one or several message queues to pull messages and consume them.
 
-From 1) ~ 3 above, we can see that both Producer, Broker and NameServer communicate with each other(only part of MQ communication is mentioned here), so how to design a good network communication module is very important in MQ. It will determine the overall messaging capability and final performance of the RocketMQ cluster.
+From 1) ~ 3) above, we can see that both Producer, Broker and NameServer communicate with each other(only part of MQ communication is mentioned here), so how to design a good network communication module is very important in MQ. It will determine the overall messaging capability and final performance of the RocketMQ cluster.
 
 rocketmq-remoting module is the module responsible for network communication in RocketMQ message queue. It is relied on and referenced by almost all other modules (such as rocketmq-client,rocketmq-broker,rocketmq-namesrv) that need network communication. In order to realize the efficient data request and reception between the client and the server, the RocketMQ message queue defines the communication protocol and extends the communication module on the basis of Netty.
 
