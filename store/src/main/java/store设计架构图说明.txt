@@ -1,0 +1,19 @@
+从架构图中可以总结出如下几个关键点：
+ （1）消息生产与消息消费相互分离，Producer端发送消息最终写入的是CommitLog（消息存储的日志数据文件），
+    Consumer端先从ConsumeQueue（消息逻辑队列）读取持久化消息的起始物理位置偏移量offset、大小size和消息Tag的HashCode值，
+    随后再从CommitLog中进行读取待拉取消费消息的真正实体内容部分；
+ （2）RocketMQ的CommitLog文件采用混合型存储（所有的Topic下的消息队列共用同一个CommitLog的日志数据文件），
+    并通过建立类似索引文件—ConsumeQueue的方式来区分不同Topic下面的不同MessageQueue的消息，同时为消费消息起到一定的缓冲作用
+    （只有ReputMessageService异步服务线程通过doDispatch异步生成了ConsumeQueue队列的元素后，Consumer端才能进行消费）。
+    这样，只要消息写入并刷盘至CommitLog文件后，消息就不会丢失，即使ConsumeQueue中的数据丢失，也可以通过CommitLog来恢复。
+ （3）RocketMQ每次读写文件的时候真的是完全顺序读写么？这里，发送消息时，生产者端的消息确实是顺序写入CommitLog；
+    订阅消息时，消费者端也是顺序读取ConsumeQueue，然而根据其中的起始物理位置偏移量offset读取消息真实内容却是随机读取CommitLog。
+    在RocketMQ集群整体的吞吐量、并发量非常高的情况下，随机读取文件带来的性能开销影响还是比较大的，
+    那么这里如何去优化和避免这个问题呢？后面的章节将会逐步来解答这个问题。
+这里，同样也可以总结下RocketMQ存储架构的优缺点：
+ （1）优点：
+ a、ConsumeQueue消息逻辑队列较为轻量级；
+ b、对磁盘的访问串行化，避免磁盘竟争，不会因为队列增加导致IOWAIT增高；
+ （2）缺点：
+ a、对于CommitLog来说写入消息虽然是顺序写，但是读却变成了完全的随机读；
+ b、Consumer端订阅消费一条消息，需要先读ConsumeQueue，再读Commit Log，一定程度上增加了开销。

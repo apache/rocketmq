@@ -41,6 +41,13 @@ import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
+ * 消息持久化
+ *
+ * 消息主体以及元数据的存储主体，存储Producer端写入的消息主体内容。单个文件大小默认1G ，文件名长度为20位，
+ * 左边补零，剩余为起始偏移量，比如00000000000000000000代表了第一个文件，起始偏移量为0，文件大小为1G=1073741824；
+ * 当第一个文件写满了，第二个文件为00000000001073741824，起始偏移量为1073741824，以此类推。
+ *
+ * 消息主要是顺序写入日志文件，当文件满了，写入下一个文件；
  */
 public class CommitLog {
     // Message's MAGIC CODE daa320a7
@@ -541,6 +548,7 @@ public class CommitLog {
         // Back to Results
         AppendMessageResult result = null;
 
+        //获取消息存储统计服务
         StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
 
         String topic = msg.getTopic();
@@ -571,7 +579,7 @@ public class CommitLog {
 
         long eclipseTimeInLock = 0;
         MappedFile unlockMappedFile = null;
-        //MappedFile可以看作是commitlog文件
+        //MappedFile可以看作是commitlog文件，获取最后一个MappedFile文件
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
 
         //申请锁，消息存储到CommitLog文件中是串行的
@@ -824,6 +832,11 @@ public class CommitLog {
         return -1;
     }
 
+    /**
+     * 获取目录最小偏移量
+     * 首先获取目录下第一个文件，如果该文件可用，则返回该文件的起始偏移量，否则返回下一个文件的起始偏移量
+     * @return
+     */
     public long getMinOffset() {
         MappedFile mappedFile = this.mappedFileQueue.getFirstMappedFile();
         if (mappedFile != null) {
@@ -1202,7 +1215,7 @@ public class CommitLog {
         }
 
         /**
-         * CommitLog追加
+         * CommitLog追加，顺序写
          * @param fileFromOffset 文件起始偏移量
          * @param byteBuffer 共享内存
          * @param maxBlank 最大空余空间

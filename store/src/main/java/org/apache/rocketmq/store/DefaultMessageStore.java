@@ -70,6 +70,7 @@ public class DefaultMessageStore implements MessageStore {
      * 消息存储配置属性
      */
     private final MessageStoreConfig messageStoreConfig;
+
     /**
      * CommitLog文件的存储实现类
      */
@@ -96,27 +97,35 @@ public class DefaultMessageStore implements MessageStore {
     private final CleanConsumeQueueService cleanConsumeQueueService;
 
     /**
-     * 索引文件实现类
+     * 索引文件服务线程
      */
     private final IndexService indexService;
 
     /**
-     * MappedFile分配服务
+     * MappedFile预分配服务线程
      */
     private final AllocateMappedFileService allocateMappedFileService;
 
     /**
      * CommitLog消息分发，根据CommitLog文件构建ConsumeQueue、IndexFile文件
+     * 回放存储消息服务线程
      */
     private final ReputMessageService reputMessageService;
 
     /**
      * 存储HA机制（高可用机制）
+     * Broker主从同步高可用服务线程
      */
     private final HAService haService;
 
+    /**
+     * 定时消息服务
+     */
     private final ScheduleMessageService scheduleMessageService;
 
+    /**
+     * 消息存储统计服务线程
+     */
     private final StoreStatsService storeStatsService;
 
     /**
@@ -349,6 +358,12 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    /**
+     * 对CommitLog消息存储的日志数据文件进行写操作
+     * @param msg Message instance to store
+     * @return
+     */
+    @Override
     public PutMessageResult putMessage(MessageExtBrokerInner msg) {
         //当前Broker停止工作
         if (this.shutdown) {
@@ -489,6 +504,17 @@ public class DefaultMessageStore implements MessageStore {
         return commitLog;
     }
 
+    /**
+     * 对CommitLog消息存储的日志数据文件进行读操作
+     * @param group Consumer group that launches this query.
+     * @param topic Topic to query.
+     * @param queueId Queue ID to query.
+     * @param offset Logical offset to start from.
+     * @param maxMsgNums Maximum count of messages to query.
+     * @param messageFilter Message filter used to screen desired messages.
+     * @return
+     */
+    @Override
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
         final int maxMsgNums,
         final MessageFilter messageFilter) {
@@ -1800,6 +1826,9 @@ public class DefaultMessageStore implements MessageStore {
             return this.reputFromOffset < DefaultMessageStore.this.commitLog.getMaxOffset();
         }
 
+        /**
+         * 从commitLog获取数据，将信息（偏移量，消息大小，tag的Hash值）顺序写到逻辑消费队列中
+         */
         private void doReput() {
             for (boolean doNext = true; this.isCommitLogAvailable() && doNext; ) {
 

@@ -24,6 +24,14 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
+/**
+ * 消息消费的逻辑队列
+ * 其中包含了这个MessageQueue在CommitLog中的起始物理位置偏移量offset，消息实体内容的大小和Message Tag的哈希值。
+ *
+ * 从实际物理存储来说，ConsumeQueue对应每个Topic和QueuId下面的文件。
+ * 单个文件大小约5.72M，每个文件由30W条数据组成，每个文件默认大小为600万个字节，
+ * 当一个ConsumeQueue类型的文件写满了，则写入下一个文件；
+ */
 public class ConsumeQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 

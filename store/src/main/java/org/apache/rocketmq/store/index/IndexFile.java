@@ -27,6 +27,11 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.MappedFile;
 
+/**
+ * 用于为生成的索引文件提供访问服务，通过消息Key值查询消息真正的实体内容。
+ * 在实际的物理存储上，文件名则是以创建时的时间戳命名的，固定的单个IndexFile文件大小约为400M，
+ * 一个IndexFile可以保存 2000W个索引；
+ */
 public class IndexFile {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static int hashSlotSize = 4;

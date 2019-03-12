@@ -18,6 +18,9 @@ package org.apache.rocketmq.store;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * 记录该MapedFile中的内存对象被引用的次数
+ */
 public abstract class ReferenceResource {
     protected final AtomicLong refCount = new AtomicLong(1);
     protected volatile boolean available = true;

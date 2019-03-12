@@ -31,6 +31,9 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 /**
  * 映射文件队列，相当于目录 ${ROCKET_HOME}/store/commitlog
+ *
+ * 对连续物理存储的抽象封装类，源码中可以通过消息存储的物理偏移量位置快速定位该offset所在MappedFile(具体物理存储位置的抽象)、
+ * 创建、删除MappedFile等操作；
  */
 public class MappedFileQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -207,25 +210,37 @@ public class MappedFileQueue {
         return 0;
     }
 
+    /**
+     * 根据偏移量获取MappedFile
+     * @param startOffset 偏移量
+     * @param needCreate 不存在时是否需要创建
+     * @return
+     */
     public MappedFile getLastMappedFile(final long startOffset, boolean needCreate) {
         long createOffset = -1;
         MappedFile mappedFileLast = getLastMappedFile();
 
+        //如果为空，则创建第一个文件
         if (mappedFileLast == null) {
             createOffset = startOffset - (startOffset % this.mappedFileSize);
         }
 
+        //如果不为空，则根据上一个文件的结束偏移量+单个文件大小
         if (mappedFileLast != null && mappedFileLast.isFull()) {
             createOffset = mappedFileLast.getFileFromOffset() + this.mappedFileSize;
         }
 
+        //需要创建
         if (createOffset != -1 && needCreate) {
+            //下一个文件路径
             String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
+            //下下一个文件路径（预分配策略）
             String nextNextFilePath = this.storePath + File.separator
                 + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
             MappedFile mappedFile = null;
 
             if (this.allocateMappedFileService != null) {
+                //将下一个文件的路径、下下个文件的路径、文件大小为参数封装为AllocateRequest对象
                 mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(nextFilePath,
                     nextNextFilePath, this.mappedFileSize);
             } else {
@@ -253,6 +268,11 @@ public class MappedFileQueue {
         return getLastMappedFile(startOffset, true);
     }
 
+    /**
+     * mappedFiles不为空的时候，会循环获取直到成功获取最新MappedFile文件
+     * 为空则返回null
+     * @return
+     */
     public MappedFile getLastMappedFile() {
         MappedFile mappedFileLast = null;
 

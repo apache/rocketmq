@@ -26,6 +26,8 @@ public interface AppendMessageCallback {
 
     /**
      * After message serialization, write MapedByteBuffer
+     * 目前只有CommitLog的内部类DefaultAppendMessageCallback实现了该回调类的方法，
+     * 故该顺序写方法只有在写入commitlog文件是才调用。
      *
      * @return How many bytes to write
      */
