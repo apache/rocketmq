@@ -34,7 +34,8 @@ public class ConsumerRunningInfo extends RemotingSerializable {
     public static final String PROP_CONSUME_TYPE = "PROP_CONSUME_TYPE";
     public static final String PROP_CLIENT_VERSION = "PROP_CLIENT_VERSION";
     public static final String PROP_CONSUMER_START_TIMESTAMP = "PROP_CONSUMER_START_TIMESTAMP";
-
+    public static final String PROP_CONSUMER_PACKAGE_NAME = "PROP_CONSUMER_PACKAGE_NAME";
+    
     private Properties properties = new Properties();
 
     private TreeSet<SubscriptionData> subscriptionSet = new TreeSet<SubscriptionData>();

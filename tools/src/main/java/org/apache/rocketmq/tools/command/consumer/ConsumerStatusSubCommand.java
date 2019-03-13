@@ -90,12 +90,26 @@ public class ConsumerStatusSubCommand implements SubCommand {
                             criTable.put(conn.getClientId(), consumerRunningInfo);
                             String filePath = now + "/" + conn.getClientId();
                             MixAll.string2FileNotSafe(consumerRunningInfo.formatString(), filePath);
-                            System.out.printf("%03d  %-40s %-20s %s%n",
+                            String packageName = consumerRunningInfo.getProperties()
+                                .getProperty(ConsumerRunningInfo.PROP_CONSUMER_PACKAGE_NAME);
+                            if (packageName != null) {
+                                String[] nameList = packageName.split("\\.");
+                                StringBuffer sb = new StringBuffer();
+                                if (nameList.length >= 3) {
+                                    sb.append(nameList[0]).append(".").append(nameList[1]).append(".").append(nameList[2]);
+                                    packageName = sb.toString();
+                                }
+                            }
+                            System.out.printf("%03d  %-40s %-20s  %s  %s%n",
                                 i++,
                                 conn.getClientId(),
                                 MQVersion.getVersionDesc(conn.getVersion()),
-                                filePath);
+                                filePath,
+                                packageName
+                            );
+
                         }
+
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
