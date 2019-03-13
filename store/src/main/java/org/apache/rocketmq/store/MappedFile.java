@@ -502,6 +502,11 @@ public class MappedFile extends ReferenceResource {
         return null;
     }
 
+    /**
+     * 以pos为起始偏移量，进行内容读取
+     * @param pos
+     * @return
+     */
     public SelectMappedBufferResult selectMappedBuffer(int pos) {
         int readPosition = getReadPosition();
         if (pos < readPosition && pos >= 0) {

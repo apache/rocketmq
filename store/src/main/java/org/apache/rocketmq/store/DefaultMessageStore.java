@@ -261,8 +261,10 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     /**
+     * 启动
      * @throws Exception
      */
+    @Override
     public void start() throws Exception {
 
         lock = lockFile.getChannel().tryLock(0, 1, false);
@@ -281,9 +283,13 @@ public class DefaultMessageStore implements MessageStore {
             this.scheduleMessageService.start();
         }
 
+        //启动reputMessageService服务线程
+        // reputFromOffset参数含义：从哪个物理偏移量开始转发消息给ConsumeQueue和IndexFile
         if (this.getMessageStoreConfig().isDuplicationEnable()) {
+            //如果允许重复转发，设置为CommitLog的提交指针
             this.reputMessageService.setReputFromOffset(this.commitLog.getConfirmOffset());
         } else {
+            //如果不允许重复转发，设置为CommitLog的内存最大偏移量
             this.reputMessageService.setReputFromOffset(this.commitLog.getMaxOffset());
         }
         this.reputMessageService.start();
@@ -295,6 +301,7 @@ public class DefaultMessageStore implements MessageStore {
         this.shutdown = false;
     }
 
+    @Override
     public void shutdown() {
         if (!this.shutdown) {
             this.shutdown = true;
@@ -342,6 +349,7 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    @Override
     public void destroy() {
         this.destroyLogics();
         this.commitLog.destroy();
@@ -917,7 +925,6 @@ public class DefaultMessageStore implements MessageStore {
                 long offset = queryOffsetResult.getPhyOffsets().get(m);
 
                 try {
-
                     boolean match = true;
                     MessageExt msg = this.lookMessageByOffset(offset);
                     if (0 == m) {
@@ -1451,7 +1458,12 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    /**
+     * 更新消费队列
+     * @param dispatchRequest
+     */
     public void putMessagePositionInfo(DispatchRequest dispatchRequest) {
+        //根据消息主题与队列ID，获取对应的ConsumeQueue文件
         ConsumeQueue cq = this.findConsumeQueue(dispatchRequest.getTopic(), dispatchRequest.getQueueId());
         cq.putMessagePositionInfoWrapper(dispatchRequest);
     }
@@ -1493,6 +1505,9 @@ public class DefaultMessageStore implements MessageStore {
         }, 6, TimeUnit.SECONDS);
     }
 
+    /**
+     * 构建消息消费队列
+     */
     class CommitLogDispatcherBuildConsumeQueue implements CommitLogDispatcher {
 
         @Override
@@ -1510,6 +1525,9 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    /**
+     * 构建索引文件
+     */
     class CommitLogDispatcherBuildIndex implements CommitLogDispatcher {
 
         @Override
@@ -1837,11 +1855,13 @@ public class DefaultMessageStore implements MessageStore {
                     break;
                 }
 
+                //返回reputFromOffset偏移量开始的全部有效数据（commitLog文件）
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
                 if (result != null) {
                     try {
                         this.reputFromOffset = result.getStartOffset();
 
+                        //然后从ByteBuffer中循环读取，一次一条，解析并构建成DispatchRequest
                         for (int readSize = 0; readSize < result.getSize() && doNext; ) {
                             DispatchRequest dispatchRequest =
                                 DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false);
@@ -1849,6 +1869,7 @@ public class DefaultMessageStore implements MessageStore {
 
                             if (dispatchRequest.isSuccess()) {
                                 if (size > 0) {
+                                    //消息转发
                                     DefaultMessageStore.this.doDispatch(dispatchRequest);
 
                                     if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()
@@ -1897,6 +1918,9 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
 
+        /**
+         * 每隔1毫秒，转发一次
+         */
         @Override
         public void run() {
             DefaultMessageStore.log.info(this.getServiceName() + " service started");

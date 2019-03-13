@@ -30,7 +30,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 /**
- * 映射文件队列，相当于目录 ${ROCKET_HOME}/store/commitlog
+ * 映射文件队列，例如：相当于目录 ${ROCKET_HOME}/store/commitlog或者${ROCKET_HOME}/store/consumequeue/{topic}/{index}
  *
  * 对连续物理存储的抽象封装类，源码中可以通过消息存储的物理偏移量位置快速定位该offset所在MappedFile(具体物理存储位置的抽象)、
  * 创建、删除MappedFile等操作；
@@ -89,6 +89,7 @@ public class MappedFileQueue {
 
     /**
      * 根据消息存储时间戳来查找MappedFile
+     * 从第一个文件开始找到第一个文件更新时间大于该时间戳的文件
      * @param timestamp 时间戳
      * @return
      */
