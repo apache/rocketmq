@@ -374,6 +374,7 @@ public class HAService {
                 }
             }
 
+            lastWriteTimestamp = HAService.this.defaultMessageStore.getSystemClock().now();
             return !this.reportOffset.hasRemaining();
         }
 
@@ -406,7 +407,6 @@ public class HAService {
                 try {
                     int readSize = this.socketChannel.read(this.byteBufferRead);
                     if (readSize > 0) {
-                        lastWriteTimestamp = HAService.this.defaultMessageStore.getSystemClock().now();
                         readSizeZeroTimes = 0;
                         boolean result = this.dispatchReadRequest();
                         if (!result) {
