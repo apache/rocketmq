@@ -1040,6 +1040,11 @@ public class CommitLog {
         //fine-grained lock instead of the coarse-grained
         MessageExtBatchEncoder batchEncoder = batchEncoderThreadLocal.get();
 
+        /**
+         * 解析messageExtBatch
+         * 解析messageExtBatch
+         * 解析messageExtBatch
+         */
         messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
 
         putMessageLock.lock();
@@ -1060,11 +1065,19 @@ public class CommitLog {
                 return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null);
             }
 
+            /**
+             * 批量消息存储
+             * 批量消息存储
+             * 批量消息存储
+             */
             result = mappedFile.appendMessages(messageExtBatch, this.appendMessageCallback);
             switch (result.getStatus()) {
                 case PUT_OK:
                     break;
                 case END_OF_FILE:
+                    /**
+                     * 文件已经写满  则创建新commitlog  并写入
+                     */
                     unlockMappedFile = mappedFile;
                     // Create a new file, re-write the message
                     mappedFile = this.mappedFileQueue.getLastMappedFile(0);
@@ -1074,6 +1087,9 @@ public class CommitLog {
                         beginTimeInLock = 0;
                         return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
                     }
+                    /**
+                     * 再次写入剩余消息
+                     */
                     result = mappedFile.appendMessages(messageExtBatch, this.appendMessageCallback);
                     break;
                 case MESSAGE_SIZE_EXCEEDED:
@@ -1108,8 +1124,14 @@ public class CommitLog {
         storeStatsService.getSinglePutMessageTopicTimesTotal(messageExtBatch.getTopic()).addAndGet(result.getMsgNum());
         storeStatsService.getSinglePutMessageTopicSizeTotal(messageExtBatch.getTopic()).addAndGet(result.getWroteBytes());
 
+        /**
+         * 刷盘
+         */
         handleDiskFlush(result, putMessageResult, messageExtBatch);
 
+        /**
+         * ha
+         */
         handleHA(result, putMessageResult, messageExtBatch);
 
         return putMessageResult;
@@ -1861,6 +1883,9 @@ public class CommitLog {
                                             final MessageExtBatch messageExtBatch) {
             byteBuffer.mark();
             //physical offset
+            /**
+             * 当前commitlog文件的写入位置
+             */
             long wroteOffset = fileFromOffset + byteBuffer.position();
             // Record ConsumeQueue information
             keyBuilder.setLength(0);
@@ -1868,6 +1893,10 @@ public class CommitLog {
             keyBuilder.append('-');
             keyBuilder.append(messageExtBatch.getQueueId());
             String key = keyBuilder.toString();
+
+            /**
+             * 获取queueOffset
+             */
             Long queueOffset = CommitLog.this.topicQueueTable.get(key);
             if (null == queueOffset) {
                 queueOffset = 0L;
@@ -1878,16 +1907,27 @@ public class CommitLog {
             int msgNum = 0;
             msgIdBuilder.setLength(0);
             final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
+
+            /**
+             * 获取批量消息
+             */
             ByteBuffer messagesByteBuff = messageExtBatch.getEncodedBuff();
             this.resetByteBuffer(hostHolder, 8);
             ByteBuffer storeHostBytes = messageExtBatch.getStoreHostBytes(hostHolder);
             messagesByteBuff.mark();
+
+            /**
+             * 轮询消息体
+             */
             while (messagesByteBuff.hasRemaining()) {
                 // 1 TOTALSIZE
                 final int msgPos = messagesByteBuff.position();
                 final int msgLen = messagesByteBuff.getInt();
                 final int bodyLen = msgLen - 40; //only for log, just estimate it
                 // Exceeds the maximum message
+                /**
+                 * 消息体长度限制
+                 */
                 if (msgLen > this.maxMessageSize) {
                     CommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLen
                         + ", maxMessageSize: " + this.maxMessageSize);
@@ -1895,6 +1935,11 @@ public class CommitLog {
                 }
                 totalMsgLen += msgLen;
                 // Determines whether there is sufficient free space
+                /**
+                 * commitlog 预存8个字节长度  表示当前文件已写到末尾
+                 *
+                 * 消息大小+8字节的长度大于文件剩余长度   则写入8字节的数据表示文件已经写到末尾并返回END_OF_FILE
+                 */
                 if ((totalMsgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank) {
                     this.resetByteBuffer(this.msgStoreItemMemory, 8);
                     // 1 TOTALSIZE
@@ -1911,11 +1956,23 @@ public class CommitLog {
                         beginQueueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
                 }
                 //move to add queue offset and commitlog offset
+                /**
+                 * 后移
+                 */
                 messagesByteBuff.position(msgPos + 20);
+                /**
+                 * 写入消息对应的queueOffset
+                 */
                 messagesByteBuff.putLong(queueOffset);
+                /**
+                 * 写入消息对应的commitlogOffset
+                 */
                 messagesByteBuff.putLong(wroteOffset + totalMsgLen - msgLen);
 
                 storeHostBytes.rewind();
+                /**
+                 * 根据addr和commitlogoffset生成msgId
+                 */
                 String msgId = MessageDecoder.createMessageId(this.msgIdMemory, storeHostBytes, wroteOffset + totalMsgLen - msgLen);
                 if (msgIdBuilder.length() > 0) {
                     msgIdBuilder.append(',').append(msgId);
@@ -1926,14 +1983,21 @@ public class CommitLog {
                 msgNum++;
                 messagesByteBuff.position(msgPos + msgLen);
             }
+            //while循环结束
 
             messagesByteBuff.position(0);
             messagesByteBuff.limit(totalMsgLen);
+            /**
+             * 存储批量消息
+             */
             byteBuffer.put(messagesByteBuff);
             messageExtBatch.setEncodedBuff(null);
             AppendMessageResult result = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, totalMsgLen, msgIdBuilder.toString(),
                 messageExtBatch.getStoreTimestamp(), beginQueueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
             result.setMsgNum(msgNum);
+            /**
+             * 缓存topicQueueTable
+             */
             CommitLog.this.topicQueueTable.put(key, queueOffset);
 
             return result;
@@ -1959,11 +2023,24 @@ public class CommitLog {
             this.maxMessageSize = size;
         }
 
+        /**
+         * 解析messageExtBatch   并将producer提交的批量消息保存到msgBatchMemory
+         *
+         * producer端批量消息的编码   详见MessageDecoder#encodeMessage（）
+         * @param messageExtBatch
+         * @return
+         */
         public ByteBuffer encode(final MessageExtBatch messageExtBatch) {
             msgBatchMemory.clear(); //not thread-safe
             int totalMsgLen = 0;
+            /**
+             * 将批量消息内容转换为ByteBuffer
+             */
             ByteBuffer messagesByteBuff = messageExtBatch.wrap();
             while (messagesByteBuff.hasRemaining()) {
+                /**
+                 * 依照消息在producer端编码的格式解析处消息（body、properties、flag等）
+                 */
                 // 1 TOTALSIZE
                 messagesByteBuff.getInt();
                 // 2 MAGICCODE
@@ -1976,20 +2053,32 @@ public class CommitLog {
                 int bodyLen = messagesByteBuff.getInt();
                 int bodyPos = messagesByteBuff.position();
                 int bodyCrc = UtilAll.crc32(messagesByteBuff.array(), bodyPos, bodyLen);
+                /**
+                 * 此处不获取body的值  而且根据长度略过  进入一个内容
+                 */
                 messagesByteBuff.position(bodyPos + bodyLen);
                 // 6 properties
                 short propertiesLen = messagesByteBuff.getShort();
                 int propertiesPos = messagesByteBuff.position();
+                /**
+                 * 此处不获取properties的值  而且根据长度略过  进入一个内容
+                 */
                 messagesByteBuff.position(propertiesPos + propertiesLen);
 
                 final byte[] topicData = messageExtBatch.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
 
                 final int topicLength = topicData.length;
 
+                /**
+                 * 按commitlog存储格式  计算单条消息总长度
+                 */
                 final int msgLen = calMsgLength(bodyLen, topicLength, propertiesLen);
 
                 // Exceeds the maximum message
                 if (msgLen > this.maxMessageSize) {
+                    /**
+                     * 单条消息长度不能超过最大值
+                     */
                     CommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLen
                         + ", maxMessageSize: " + this.maxMessageSize);
                     throw new RuntimeException("message size exceeded");
@@ -1998,9 +2087,15 @@ public class CommitLog {
                 totalMsgLen += msgLen;
                 // Determines whether there is sufficient free space
                 if (totalMsgLen > maxMessageSize) {
+                    /**
+                     * 批量消息长度不能超过最大值
+                     */
                     throw new RuntimeException("message size exceeded");
                 }
 
+                /**
+                 * 按commitlog存储格式  存储当前消息
+                 */
                 // 1 TOTALSIZE
                 this.msgBatchMemory.putInt(msgLen);
                 // 2 MAGICCODE
@@ -2012,8 +2107,14 @@ public class CommitLog {
                 // 5 FLAG
                 this.msgBatchMemory.putInt(flag);
                 // 6 QUEUEOFFSET
+                /**
+                 * 此处赋值0   待实际存储时   添加对应的数据
+                 */
                 this.msgBatchMemory.putLong(0);
                 // 7 PHYSICALOFFSET
+                /**
+                 * 此处赋值0   待实际存储时   添加对应的数据
+                 */
                 this.msgBatchMemory.putLong(0);
                 // 8 SYSFLAG
                 this.msgBatchMemory.putInt(messageExtBatch.getSysFlag());
@@ -2043,6 +2144,7 @@ public class CommitLog {
                 if (propertiesLen > 0)
                     this.msgBatchMemory.put(messagesByteBuff.array(), propertiesPos, propertiesLen);
             }
+            //while循环结束
             msgBatchMemory.flip();
             return msgBatchMemory;
         }

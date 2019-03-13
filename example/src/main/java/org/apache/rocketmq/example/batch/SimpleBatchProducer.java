@@ -20,6 +20,7 @@ package org.apache.rocketmq.example.batch;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 
 public class SimpleBatchProducer {
@@ -37,6 +38,7 @@ public class SimpleBatchProducer {
         messages.add(new Message(topic, "Tag", "OrderID002", "Hello world 1".getBytes()));
         messages.add(new Message(topic, "Tag", "OrderID003", "Hello world 2".getBytes()));
 
-        producer.send(messages);
+        SendResult result = producer.send(messages);
+        System.out.printf("%s%n", result);
     }
 }

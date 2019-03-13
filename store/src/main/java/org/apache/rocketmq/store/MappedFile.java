@@ -262,6 +262,12 @@ public class MappedFile extends ReferenceResource {
         return appendMessagesInner(msg, cb);
     }
 
+    /**
+     * 批量消息存储
+     * @param messageExtBatch
+     * @param cb
+     * @return
+     */
     public AppendMessageResult appendMessages(final MessageExtBatch messageExtBatch, final AppendMessageCallback cb) {
         return appendMessagesInner(messageExtBatch, cb);
     }

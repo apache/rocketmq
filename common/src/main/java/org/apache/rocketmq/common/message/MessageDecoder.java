@@ -434,11 +434,22 @@ public class MessageDecoder {
         return map;
     }
 
+    /**
+     * 消息编码
+     * @param message
+     * @return
+     */
     public static byte[] encodeMessage(Message message) {
         //only need flag, body, properties
         byte[] body = message.getBody();
         int bodyLen = body.length;
+        /**
+         * 消息属性转换为字符串
+         */
         String properties = messageProperties2String(message.getProperties());
+        /**
+         * utf-8
+         */
         byte[] propertiesBytes = properties.getBytes(CHARSET_UTF8);
         //note properties length must not more than Short.MAX
         short propertiesLength = (short) propertiesBytes.length;
@@ -449,6 +460,10 @@ public class MessageDecoder {
             + 4 // 4 FLAG
             + 4 + bodyLen // 4 BODY
             + 2 + propertiesLength;
+
+        /**
+         * 将信息存储到ByteBuffer中
+         */
         ByteBuffer byteBuffer = ByteBuffer.allocate(storeSize);
         // 1 TOTALSIZE
         byteBuffer.putInt(storeSize);
@@ -505,17 +520,33 @@ public class MessageDecoder {
         return message;
     }
 
+    /**
+     * 批量消息编码
+     * @param messages
+     * @return
+     */
     public static byte[] encodeMessages(List<Message> messages) {
         //TO DO refactor, accumulate in one buffer, avoid copies
         List<byte[]> encodedMessages = new ArrayList<byte[]>(messages.size());
         int allSize = 0;
         for (Message message : messages) {
+            /**
+             * 消息编码
+             */
             byte[] tmp = encodeMessage(message);
             encodedMessages.add(tmp);
             allSize += tmp.length;
         }
         byte[] allBytes = new byte[allSize];
         int pos = 0;
+        /**
+         * 数组复制   将bytes数组复制到allBytes中
+         * src:源数组；
+         * srcPos:源数组要复制的起始位置；
+         * dest:目的数组；
+         * destPos:目的数组放置的起始位置；
+         * length:复制的长度。
+         */
         for (byte[] bytes : encodedMessages) {
             System.arraycopy(bytes, 0, allBytes, pos, bytes.length);
             pos += bytes.length;

@@ -702,6 +702,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             response.setRemark("batch request does not support retry group " + requestHeader.getTopic());
             return response;
         }
+
+        /**
+         * 初始化MessageExtBatch
+         */
         MessageExtBatch messageExtBatch = new MessageExtBatch();
         messageExtBatch.setTopic(requestHeader.getTopic());
         messageExtBatch.setQueueId(queueIdInt);

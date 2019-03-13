@@ -21,10 +21,16 @@ import org.apache.rocketmq.common.message.MessageQueue;
 
 public class SendResult {
     private SendStatus sendStatus;
+    /**
+     * 消息id  UNIQ_KEY属性
+     */
     private String msgId;
     private MessageQueue messageQueue;
     private long queueOffset;
     private String transactionId;
+    /**
+     * broker中   根据broker对应的addr和消息的commitlogOffset计算出的id
+     */
     private String offsetMsgId;
     private String regionId;
     private boolean traceOn = true;

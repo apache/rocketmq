@@ -524,7 +524,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         /**
-         * 消息内容太大
+         * 消息内容太大   4m
          */
         if (messageExtBatch.getBody().length > messageStoreConfig.getMaxMessageSize()) {
             log.warn("PutMessages body length too long " + messageExtBatch.getBody().length);

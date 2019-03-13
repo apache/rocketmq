@@ -31,6 +31,10 @@ public class MessageBatch extends Message implements Iterable<Message> {
         this.messages = messages;
     }
 
+    /**
+     * 批量消息编码
+     * @return
+     */
     public byte[] encode() {
         return MessageDecoder.encodeMessages(messages);
     }

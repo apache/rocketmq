@@ -578,6 +578,8 @@ public class ConsumeQueue {
 
             /**
              * 向consumequeue写入message
+             * 向consumequeue写入message
+             * 向consumequeue写入message
              */
             boolean result = this.putMessagePositionInfo(request.getCommitLogOffset(),
                 request.getMsgSize(), tagsCode, request.getConsumeQueueOffset());
