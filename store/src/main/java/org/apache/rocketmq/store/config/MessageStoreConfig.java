@@ -143,6 +143,11 @@ public class MessageStoreConfig {
     private int transientStorePoolSize = 5;
     private boolean fastFailIfNoBufferInStorePool = false;
 
+    private boolean enableDLegerCommitLog = false;
+    private String dLegerGroup;
+    private String dLegerPeers;
+    private String dLegerSelfId;
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -666,4 +671,35 @@ public class MessageStoreConfig {
         this.commitCommitLogThoroughInterval = commitCommitLogThoroughInterval;
     }
 
+    public String getdLegerGroup() {
+        return dLegerGroup;
+    }
+
+    public void setdLegerGroup(String dLegerGroup) {
+        this.dLegerGroup = dLegerGroup;
+    }
+
+    public String getdLegerPeers() {
+        return dLegerPeers;
+    }
+
+    public void setdLegerPeers(String dLegerPeers) {
+        this.dLegerPeers = dLegerPeers;
+    }
+
+    public String getdLegerSelfId() {
+        return dLegerSelfId;
+    }
+
+    public void setdLegerSelfId(String dLegerSelfId) {
+        this.dLegerSelfId = dLegerSelfId;
+    }
+
+    public boolean isEnableDLegerCommitLog() {
+        return enableDLegerCommitLog;
+    }
+
+    public void setEnableDLegerCommitLog(boolean enableDLegerCommitLog) {
+        this.enableDLegerCommitLog = enableDLegerCommitLog;
+    }
 }

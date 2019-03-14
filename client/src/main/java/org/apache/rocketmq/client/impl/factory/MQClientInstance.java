@@ -548,10 +548,10 @@ public class MQClientInstance {
                                 }
                             } catch (Exception e) {
                                 if (this.isBrokerInNameServer(addr)) {
-                                    log.info("send heart beat to broker[{} {} {}] failed", brokerName, id, addr);
+                                    log.info("send heart beat to broker[{} {} {}] failed", brokerName, id, addr, e);
                                 } else {
                                     log.info("send heart beat to broker[{} {} {}] exception, because the broker not up, forget it", brokerName,
-                                        id, addr);
+                                        id, addr, e);
                                 }
                             }
                         }
@@ -1046,20 +1046,8 @@ public class MQClientInstance {
             if (this.brokerVersionTable.get(brokerName).containsKey(brokerAddr)) {
                 return this.brokerVersionTable.get(brokerName).get(brokerAddr);
             }
-        } else {
-            HeartbeatData heartbeatData = prepareHeartbeatData();
-            try {
-                int version = this.mQClientAPIImpl.sendHearbeat(brokerAddr, heartbeatData, 3000);
-                return version;
-            } catch (Exception e) {
-                if (this.isBrokerInNameServer(brokerAddr)) {
-                    log.info("send heart beat to broker[{} {}] failed", brokerName, brokerAddr);
-                } else {
-                    log.info("send heart beat to broker[{} {}] exception, because the broker not up, forget it", brokerName,
-                        brokerAddr);
-                }
-            }
         }
+        //To do need to fresh the version
         return 0;
     }
 
