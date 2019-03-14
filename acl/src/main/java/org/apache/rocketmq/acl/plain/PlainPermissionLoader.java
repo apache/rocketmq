@@ -123,12 +123,17 @@ public class PlainPermissionLoader {
             return;
         }
 
+        if (ownedPermMap == null && ownedAccess.isAdmin()) {
+            // If the ownedPermMap is null and it is an admin user, then return
+            return;
+        }
+
         for (Map.Entry<String, Byte> needCheckedEntry : needCheckedPermMap.entrySet()) {
             String resource = needCheckedEntry.getKey();
             Byte neededPerm = needCheckedEntry.getValue();
             boolean isGroup = PlainAccessResource.isRetryTopic(resource);
 
-            if (!ownedPermMap.containsKey(resource)) {
+            if (ownedPermMap == null || !ownedPermMap.containsKey(resource)) {
                 // Check the default perm
                 byte ownedPerm = isGroup ? ownedAccess.getDefaultGroupPerm() :
                     ownedAccess.getDefaultTopicPerm();
