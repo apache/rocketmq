@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.namesrv;
 
+import org.apache.commons.lang3.time.DateUtils;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.junit.After;
@@ -31,6 +32,7 @@ public class NameServerInstanceTest {
     @Before
     public void startup() throws Exception {
         nettyServerConfig.setListenPort(9876);
+        namesrvConfig.setRocketmqHome("/Users/zhanglei/codeing/persional/rocketmq/distribution/");
         nameSrvController = new NamesrvController(namesrvConfig, nettyServerConfig);
         boolean initResult = nameSrvController.initialize();
         assertThat(initResult).isTrue();
@@ -43,5 +45,19 @@ public class NameServerInstanceTest {
             nameSrvController.shutdown();
         }
         //maybe need to clean the file store. But we do not suggest deleting anything.
+    }
+
+    public static void main(String[] args)  throws Exception{
+
+        // NamesrvConfig 配置
+        final NamesrvConfig namesrvConfig = new NamesrvConfig();
+        namesrvConfig.setRocketmqHome("/Users/zhanglei/codeing/persional/rocketmq/distribution/");
+        // NettyServerConfig 配置
+        final NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        nettyServerConfig.setListenPort(9876); // 设置端口
+        // 创建 NamesrvController 对象，并启动
+        NamesrvController namesrvController = new NamesrvController(namesrvConfig, nettyServerConfig);
+        namesrvController.initialize();
+        namesrvController.start();
     }
 }

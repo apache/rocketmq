@@ -21,11 +21,11 @@
 package org.apache.rocketmq.common.protocol.route;
 
 public class QueueData implements Comparable<QueueData> {
-    private String brokerName;
-    private int readQueueNums;
-    private int writeQueueNums;
-    private int perm;
-    private int topicSynFlag;
+    private String brokerName;  //breakName
+    private int readQueueNums;  //写队列的个数
+    private int writeQueueNums; //读队列的个数
+    private int perm;           //权限
+    private int topicSynFlag;   //同步复制 还是异步复制
 
     public int getReadQueueNums() {
         return readQueueNums;

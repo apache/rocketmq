@@ -47,13 +47,13 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
-    private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
-    private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
-    private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
-    private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
-    private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
-    private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
+    private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;  //NameServer 与broker的空闲时间 查过俩分钟没有收到心跳 关闭该链接
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();   //读写锁
+    private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;   //topic 与队列的关系  以及topic 分布在哪些Broker上 每个broker存在该topic的个数
+    private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;   // 所有的broker信息 brokerName 为key
+    private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;  //broker集群信息，每个集群包含哪些Broker。 key节点信息
+    private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;  // 当前存活的Broker,该信息不是实时的，NameServer每10S扫描一次所有的broker,根据心跳包的时间得知broker的状态，该机制也是导致当一个master Down掉后，消息生产者无法感知，可能继续向Down掉的Master发送消息，导致失败
+    private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable; //过滤?????
 
     public RouteInfoManager() {
         this.topicQueueTable = new HashMap<String, List<QueueData>>(1024);

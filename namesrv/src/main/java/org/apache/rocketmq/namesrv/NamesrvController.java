@@ -44,16 +44,19 @@ public class NamesrvController {
 
     private final NamesrvConfig namesrvConfig;
 
-    private final NettyServerConfig nettyServerConfig;
+    private final NettyServerConfig nettyServerConfig;//网络编程配置信息
 
+    //定时线程 一个线程 默认执行俩个任务
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "NSScheduledThread"));
-    private final KVConfigManager kvConfigManager;
-    private final RouteInfoManager routeInfoManager;
+
+    private final KVConfigManager kvConfigManager; // 读取或变更NameServer的属性 加载NamerServer的属性到内存
+    private final RouteInfoManager routeInfoManager; //  NameServer数据的载体，记录Broker,Topic等信息。
+
 
     private RemotingServer remotingServer;
 
-    private BrokerHousekeepingService brokerHousekeepingService;
+    private BrokerHousekeepingService brokerHousekeepingService; //ChannelEventListener 接口 监测 链接 关闭 异常 心跳事件
 
     private ExecutorService remotingExecutor;
 
@@ -79,12 +82,16 @@ public class NamesrvController {
 
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
+        /**
+         * 业务类型线程池
+         *registerProcessor() 会使用
+         */
         this.remotingExecutor =
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
         this.registerProcessor();
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {  //每隔10s 扫描当前存活的broker 信息
 
             @Override
             public void run() {
@@ -96,7 +103,7 @@ public class NamesrvController {
 
             @Override
             public void run() {
-                NamesrvController.this.kvConfigManager.printAllPeriodically();
+                NamesrvController.this.kvConfigManager.printAllPeriodically();  //每隔10s 打印 kvconfig的信息
             }
         }, 1, 10, TimeUnit.MINUTES);
 
@@ -144,6 +151,7 @@ public class NamesrvController {
     private void registerProcessor() {
         if (namesrvConfig.isClusterTest()) {
 
+           // org.apache.rocketmq.remoting.netty.NettyRemotingAbstract
             this.remotingServer.registerDefaultProcessor(new ClusterTestRequestProcessor(this, namesrvConfig.getProductEnvName()),
                 this.remotingExecutor);
         } else {

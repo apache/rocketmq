@@ -17,17 +17,24 @@
 package org.apache.rocketmq.remoting.netty;
 
 public class NettyServerConfig implements Cloneable {
-    private int listenPort = 8888;
-    private int serverWorkerThreads = 8;
-    private int serverCallbackExecutorThreads = 0;
-    private int serverSelectorThreads = 3;
-    private int serverOnewaySemaphoreValue = 256;
-    private int serverAsyncSemaphoreValue = 64;
-    private int serverChannelMaxIdleTimeSeconds = 120;
+    private int listenPort = 8888;  //netty端口
+    /**
+     * 1：业务线程池的个数
+     * 2：发送消息 消费消息 等每个人物类型都会有各自的线程池
+     */
+    private int serverWorkerThreads = 8;   //业务线程池的个数
 
-    private int serverSocketSndBufSize = NettySystemConfig.socketSndbufSize;
-    private int serverSocketRcvBufSize = NettySystemConfig.socketRcvbufSize;
-    private boolean serverPooledByteBufAllocatorEnable = true;
+    private int serverCallbackExecutorThreads = 0; //默认业务线程池，采用fixed类型，线程个数就是由serverCallbackExecutorThreads
+
+    private int serverSelectorThreads = 3;  //Netty的IO线程数  Selector所在的线程个数，也就主从Reactor模型中的从Reactor线程数量
+
+    private int serverOnewaySemaphoreValue = 256;    //服务端单向执行
+    private int serverAsyncSemaphoreValue = 64;      //服务端异步调用的信号量  用在broker与客户端的交互
+    private int serverChannelMaxIdleTimeSeconds = 120;  //channel的空闲时间 idleHandler实现
+
+    private int serverSocketSndBufSize = NettySystemConfig.socketSndbufSize; //socket 发送缓冲区大小
+    private int serverSocketRcvBufSize = NettySystemConfig.socketRcvbufSize; //socket 接收缓冲区大小
+    private boolean serverPooledByteBufAllocatorEnable = true; //是否使用PooledByteBuf(可以重用 缓存ByteBuf)
 
     /**
      * make make install
