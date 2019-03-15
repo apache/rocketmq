@@ -250,6 +250,7 @@ public class DefaultMessageStore implements MessageStore {
                 //load IndexFile
                 this.indexService.load(lastExitOK);
 
+                //执行恢复策略
                 this.recover(lastExitOK);
 
                 log.info("load over, and the max phy offset = {}", this.getMaxPhyOffset());
@@ -1376,15 +1377,22 @@ public class DefaultMessageStore implements MessageStore {
         return true;
     }
 
+    /**
+     * 文件恢复
+     * @param lastExitOK
+     */
     private void recover(final boolean lastExitOK) {
+        //恢复消费队列
         long maxPhyOffsetOfConsumeQueue = this.recoverConsumeQueue();
 
+        //根据Broker是否正常停止执行不同的恢复策略
         if (lastExitOK) {
             this.commitLog.recoverNormally(maxPhyOffsetOfConsumeQueue);
         } else {
             this.commitLog.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
         }
 
+        //
         this.recoverTopicQueueTable();
     }
 

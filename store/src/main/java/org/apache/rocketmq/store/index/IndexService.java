@@ -70,7 +70,7 @@ public class IndexService {
                     IndexFile f = new IndexFile(file.getPath(), this.hashSlotNum, this.indexNum, 0, 0);
                     f.load();
 
-                    //如果上次异常退出
+                    //如果上次异常退出，而且索引文件上次刷盘时间小于该索引文件文件刷盘检测点，立即销毁
                     if (!lastExitOK) {
                         if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint()
                             .getIndexMsgTimestamp()) {
