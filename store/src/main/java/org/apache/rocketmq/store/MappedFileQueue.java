@@ -169,9 +169,10 @@ public class MappedFileQueue {
         File[] files = dir.listFiles();
         if (files != null) {
             // ascending order
+            //按文件名排序
             Arrays.sort(files);
             for (File file : files) {
-
+                //如果文件大小与配置的单个文件大小不一致，则忽略该目录下的所有文件
                 if (file.length() != this.mappedFileSize) {
                     log.warn(file + "\t" + file.length()
                         + " length not matched message store config value, ignore it");
@@ -179,6 +180,7 @@ public class MappedFileQueue {
                 }
 
                 try {
+                    //创建mappedFile，三个指针都设置为文件大小
                     MappedFile mappedFile = new MappedFile(file.getPath(), mappedFileSize);
 
                     mappedFile.setWrotePosition(this.mappedFileSize);

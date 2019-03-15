@@ -96,6 +96,10 @@ public class CommitLog {
 
     }
 
+    /**
+     * 加载CommitLog文件，加载${ROCKET_HOME}/store/commitlog目录下所有文件
+     * @return
+     */
     public boolean load() {
         boolean result = this.mappedFileQueue.load();
         log.info("load commit log " + (result ? "OK" : "Failed"));

@@ -219,15 +219,19 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     /**
+     * 加载以前存储的消息
      * @throws IOException
      */
+    @Override
     public boolean load() {
         boolean result = true;
 
         try {
+            //判断上次退出是否正常
             boolean lastExitOK = !this.isTempFileExist();
             log.info("last shutdown {}", lastExitOK ? "normally" : "abnormally");
 
+            //加载延迟队列
             if (null != scheduleMessageService) {
                 result = result && this.scheduleMessageService.load();
             }
@@ -239,9 +243,11 @@ public class DefaultMessageStore implements MessageStore {
             result = result && this.loadConsumeQueue();
 
             if (result) {
+                //加载存储检测点checkpoint文件，检测点主要记录commitlog，consumequeue，index的刷盘点
                 this.storeCheckpoint =
                     new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
 
+                //load IndexFile
                 this.indexService.load(lastExitOK);
 
                 this.recover(lastExitOK);
@@ -1318,12 +1324,21 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    /**
+     * 机制：Broker在启动的时候创建${ROCKET_HOME}/store/abort文件，在退出时通过注册JVM钩子函数删除abort文件
+     * 说明Broker异常退出，Commitlog与Consumequeue数据可能不一致，需要进行修复
+     * @return
+     */
     private boolean isTempFileExist() {
         String fileName = StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir());
         File file = new File(fileName);
         return file.exists();
     }
 
+    /**
+     * 加载消费队列
+     * @return
+     */
     private boolean loadConsumeQueue() {
         File dirLogic = new File(StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()));
         File[] fileTopicList = dirLogic.listFiles();

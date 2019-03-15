@@ -54,6 +54,11 @@ public class IndexService {
             StorePathConfigHelper.getStorePathIndex(store.getMessageStoreConfig().getStorePathRootDir());
     }
 
+    /**
+     * 加载索引文件
+     * @param lastExitOK
+     * @return
+     */
     public boolean load(final boolean lastExitOK) {
         File dir = new File(this.storePath);
         File[] files = dir.listFiles();
@@ -65,6 +70,7 @@ public class IndexService {
                     IndexFile f = new IndexFile(file.getPath(), this.hashSlotNum, this.indexNum, 0, 0);
                     f.load();
 
+                    //如果上次异常退出
                     if (!lastExitOK) {
                         if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint()
                             .getIndexMsgTimestamp()) {
@@ -198,6 +204,10 @@ public class IndexService {
         return topic + "#" + key;
     }
 
+    /**
+     * 创建索引
+     * @param req
+     */
     public void buildIndex(DispatchRequest req) {
         IndexFile indexFile = retryGetAndCreateIndexFile();
         if (indexFile != null) {
@@ -205,6 +215,7 @@ public class IndexService {
             DispatchRequest msg = req;
             String topic = msg.getTopic();
             String keys = msg.getKeys();
+            //如果该消息的物理偏移量小于索引文件中的物理偏移量，则说明数据重复，忽略
             if (msg.getCommitLogOffset() < endPhyOffset) {
                 return;
             }
@@ -219,6 +230,7 @@ public class IndexService {
                     return;
             }
 
+            //如果消息的唯一键不为空，则添加到Hash索引中，以便加速根据唯一索引检索消息
             if (req.getUniqKey() != null) {
                 indexFile = putKey(indexFile, msg, buildKey(topic, req.getUniqKey()));
                 if (indexFile == null) {
@@ -227,6 +239,7 @@ public class IndexService {
                 }
             }
 
+            //构建索引键，支持为同一个消息建立多个索引，多个索引键空格分开
             if (keys != null && keys.length() > 0) {
                 String[] keyset = keys.split(MessageConst.KEY_SEPARATOR);
                 for (int i = 0; i < keyset.length; i++) {
@@ -261,6 +274,7 @@ public class IndexService {
     }
 
     /**
+     * 重试获取或创建索引文件
      * Retries to get or create index file.
      *
      * @return {@link IndexFile} or null on failure.
@@ -289,6 +303,10 @@ public class IndexService {
         return indexFile;
     }
 
+    /**
+     * 获取并创建最新的索引文件
+     * @return
+     */
     public IndexFile getAndCreateLastIndexFile() {
         IndexFile indexFile = null;
         IndexFile prevIndexFile = null;
