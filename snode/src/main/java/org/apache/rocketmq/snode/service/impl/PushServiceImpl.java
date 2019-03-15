@@ -24,6 +24,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.client.Client;
+import org.apache.rocketmq.common.client.Subscription;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -40,8 +42,6 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
-import org.apache.rocketmq.snode.client.Client;
-import org.apache.rocketmq.snode.client.impl.Subscription;
 import org.apache.rocketmq.snode.constant.SnodeConstant;
 import org.apache.rocketmq.snode.service.PushService;
 

@@ -50,17 +50,17 @@ public class MqttSampleConsumer {
                 log.info("Connected");
                 sampleClient.setCallback(new MqttCallback() {
                     @Override public void connectionLost(Throwable throwable) {
-                        System.out.println("connection lost." + throwable.getLocalizedMessage());
+                        log.info("connection lost." + throwable.getLocalizedMessage());
                     }
 
                     @Override public void messageArrived(String s, MqttMessage message) throws Exception {
-                        System.out.println(message.toString());
+                        log.info(message.toString());
 //                        System.exit(0);
                     }
 
                     @Override public void deliveryComplete(IMqttDeliveryToken token) {
                         try {
-                            System.out.println("delivery complete." + token.getMessage().toString());
+                            log.info("delivery complete." + token.getMessage().toString());
                         } catch (MqttException e) {
                             e.printStackTrace();
                         }

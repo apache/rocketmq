@@ -17,8 +17,8 @@
 package org.apache.rocketmq.snode.constant;
 
 import io.netty.util.AttributeKey;
-import org.apache.rocketmq.snode.client.Client;
-import org.apache.rocketmq.snode.client.impl.ClientRole;
+import org.apache.rocketmq.common.client.Client;
+import org.apache.rocketmq.common.client.ClientRole;
 
 public class SnodeConstant {
     public static final long HEARTBEAT_TIME_OUT = 3000;

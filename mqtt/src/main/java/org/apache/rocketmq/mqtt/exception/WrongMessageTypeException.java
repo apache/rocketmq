@@ -14,26 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client.impl;
 
-import org.apache.rocketmq.common.client.ClientManagerImpl;
-import org.apache.rocketmq.remoting.RemotingChannel;
+package org.apache.rocketmq.mqtt.exception;
 
-public class ProducerManagerImpl extends ClientManagerImpl {
+public class WrongMessageTypeException extends RuntimeException {
 
-    @Override
-    public void onClosed(String group, RemotingChannel remotingChannel) {
-
+    public WrongMessageTypeException(String message) {
+        super(message);
     }
-
-    @Override
-    public void onUnregister(String group, RemotingChannel remotingChannel) {
-
-    }
-
-    @Override
-    public void onRegister(String group, RemotingChannel remotingChannel) {
-
-    }
-
 }

@@ -14,26 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client.impl;
 
-import org.apache.rocketmq.common.client.ClientManagerImpl;
-import org.apache.rocketmq.remoting.RemotingChannel;
+package org.apache.rocketmq.mqtt.constant;
 
-public class ProducerManagerImpl extends ClientManagerImpl {
+import io.netty.util.AttributeKey;
+import org.apache.rocketmq.common.client.Client;
 
-    @Override
-    public void onClosed(String group, RemotingChannel remotingChannel) {
-
-    }
-
-    @Override
-    public void onUnregister(String group, RemotingChannel remotingChannel) {
-
-    }
-
-    @Override
-    public void onRegister(String group, RemotingChannel remotingChannel) {
-
-    }
-
+public class MqttConstant {
+    public static final int MAX_SUPPORTED_QOS = 0;
+    public static final String SUBSCRIPTION_FLAG_PLUS = "+";
+    public static final String SUBSCRIPTION_FLAG_SHARP = "#";
+    public static final String SUBSCRIPTION_SEPARATOR = "/";
+    public static final long DEFAULT_TIMEOUT_MILLS = 3000L;
+    public static final AttributeKey<Client> MQTT_CLIENT_ATTRIBUTE_KEY = AttributeKey.valueOf("mqtt.client");
 }

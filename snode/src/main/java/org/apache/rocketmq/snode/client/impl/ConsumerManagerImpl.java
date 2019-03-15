@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.snode.client.impl;
 
+import org.apache.rocketmq.common.client.ClientManagerImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;

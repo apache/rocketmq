@@ -14,26 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client.impl;
 
-import org.apache.rocketmq.common.client.ClientManagerImpl;
-import org.apache.rocketmq.remoting.RemotingChannel;
+package org.apache.rocketmq.mqtt.service;
 
-public class ProducerManagerImpl extends ClientManagerImpl {
+import org.apache.rocketmq.common.message.mqtt.WillMessage;
 
-    @Override
-    public void onClosed(String group, RemotingChannel remotingChannel) {
+public interface WillMessageService {
 
-    }
+    void saveWillMessage(String clientId, WillMessage willMessage);
 
-    @Override
-    public void onUnregister(String group, RemotingChannel remotingChannel) {
+    void sendWillMessage(String clientId);
 
-    }
-
-    @Override
-    public void onRegister(String group, RemotingChannel remotingChannel) {
-
-    }
-
+    void deleteWillMessage(String clientId);
 }

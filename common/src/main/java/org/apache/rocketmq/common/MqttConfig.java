@@ -50,6 +50,8 @@ public class MqttConfig {
     @ImportantField
     private boolean aclEnable = false;
 
+    private long houseKeepingInterval = 10 * 1000;
+
     public int getListenPort() {
         return listenPort;
     }
@@ -129,5 +131,13 @@ public class MqttConfig {
 
     public void setPushMqttMessageThreadPoolQueueCapacity(int pushMqttMessageThreadPoolQueueCapacity) {
         this.pushMqttMessageThreadPoolQueueCapacity = pushMqttMessageThreadPoolQueueCapacity;
+    }
+
+    public long getHouseKeepingInterval() {
+        return houseKeepingInterval;
+    }
+
+    public void setHouseKeepingInterval(long houseKeepingInterval) {
+        this.houseKeepingInterval = houseKeepingInterval;
     }
 }

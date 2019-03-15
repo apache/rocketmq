@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.client.impl;
+package org.apache.rocketmq.common.client;
 
-import org.apache.rocketmq.common.client.ClientManagerImpl;
+import java.util.List;
+import java.util.Set;
 import org.apache.rocketmq.remoting.RemotingChannel;
 
-public class ProducerManagerImpl extends ClientManagerImpl {
+public interface ClientManager {
+    boolean register(String groupId, Client client);
 
-    @Override
-    public void onClosed(String group, RemotingChannel remotingChannel) {
+    void unRegister(String groupId, RemotingChannel remotingChannel);
 
-    }
+    void onClose(Set<String> groupId, RemotingChannel remotingChannel);
 
-    @Override
-    public void onUnregister(String group, RemotingChannel remotingChannel) {
+    List<RemotingChannel> getChannels(String groupId);
 
-    }
+    List<String> getAllClientId(String groupId);
 
-    @Override
-    public void onRegister(String group, RemotingChannel remotingChannel) {
+    Client getClient(String groupId, RemotingChannel remotingChannel);
 
-    }
+    void startScan(long interval);
 
+    void shutdown();
 }

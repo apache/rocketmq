@@ -126,6 +126,7 @@
         <module>distribution</module>
         <module>openmessaging</module>
         <module>logging</module>
+        <module>mqtt</module>
         <module>snode</module>
         <module>acl</module>
     </modules>
@@ -531,6 +532,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-snode</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-mqtt</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
