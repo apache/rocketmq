@@ -65,6 +65,7 @@ public class CommitLog {
 
     private final AppendMessageCallback appendMessageCallback;
     private final ThreadLocal<MessageExtBatchEncoder> batchEncoderThreadLocal;
+    //消息主题-消费队列序号，对应的物理偏移量记录表
     private HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(1024);
     private volatile long confirmOffset = -1L;
 
@@ -170,37 +171,44 @@ public class CommitLog {
 
     /**
      * When the normal exit, data recovery, all memory data have been flush
+     * 当正常退出、数据恢复时，所有内存数据都已刷新
      */
     public void recoverNormally(long maxPhyOffsetOfConsumeQueue) {
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
-            // Began to recover from the last third file
+            // 开始从最后的第三个文件中恢复，数量不够从第一个开始
             int index = mappedFiles.size() - 3;
             if (index < 0)
                 index = 0;
 
             MappedFile mappedFile = mappedFiles.get(index);
             ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
+            //该文件的初始偏移量
             long processOffset = mappedFile.getFileFromOffset();
+            //当前文件已校验通过的offset
             long mappedFileOffset = 0;
             while (true) {
+                //遍历commitlog文件，每次取出一条消息
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
                 int size = dispatchRequest.getMsgSize();
-                // Normal data
+                // 如果获取到解析成功的消息，且消息长度大于0，则mappedFileOffset指针向前移动本条消息的长度
                 if (dispatchRequest.isSuccess() && size > 0) {
                     mappedFileOffset += size;
                 }
                 // Come the end of the file, switch to the next file Since the
                 // return 0 representatives met last hole,
                 // this can not be included in truncate offset
+                // 如果获取到解析成功的消息，且消息长度等于0，表示已到该文件的末尾
                 else if (dispatchRequest.isSuccess() && size == 0) {
                     index++;
+                    //如果没有下一个文件，则跳出循环
                     if (index >= mappedFiles.size()) {
                         // Current branch can not happen
                         log.info("recover last 3 physics file over, last mapped file " + mappedFile.getFileName());
                         break;
                     } else {
+                        //如果还有下一个文件，则重置processOffset，mappedFileOffset
                         mappedFile = mappedFiles.get(index);
                         byteBuffer = mappedFile.sliceByteBuffer();
                         processOffset = mappedFile.getFileFromOffset();
@@ -209,13 +217,16 @@ public class CommitLog {
                     }
                 }
                 // Intermediate file read error
+                //文件解析错误，跳出循环
                 else if (!dispatchRequest.isSuccess()) {
                     log.info("recover physics file end, " + mappedFile.getFileName());
                     break;
                 }
             }
 
+            //commitlog文件已确认的物理偏移量等于mappedFile.getFileFromOffset()加上mappedFileOffset
             processOffset += mappedFileOffset;
+            //更新当前刷盘指针和当前数据提交指针
             this.mappedFileQueue.setFlushedWhere(processOffset);
             this.mappedFileQueue.setCommittedWhere(processOffset);
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
@@ -240,6 +251,7 @@ public class CommitLog {
 
     /**
      * check the message and returns the message size
+     * 检查消息并返回消息大小
      *
      * @return 0 Come the end of the file // >0 Normal messages // -1 Message checksum failure
      */

@@ -1392,7 +1392,7 @@ public class DefaultMessageStore implements MessageStore {
             this.commitLog.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
         }
 
-        //
+        //恢复主题消费队列物理偏移量表
         this.recoverTopicQueueTable();
     }
 
