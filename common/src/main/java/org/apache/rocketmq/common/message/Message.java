@@ -21,14 +21,22 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-
+//Message 消息体
 public class Message implements Serializable {
     private static final long serialVersionUID = 8445773977080406428L;
 
-    private String topic;
-    private int flag;
+    private String topic; //主题名称
+    private int flag; //附带的消息体 不作处理
+    /**
+     * map 参数
+     * tag 消息的tag 用于消息过滤
+     * keys message 索引 多个用空格隔开 可以根据这些key 快速检索信息
+     * waitStoreMsgOK 消息发送时候是否等消息存储完成在发送
+     * delayTimeLevel消息的延时级别 用于定时消息 或者消息重试的时候
+     *
+     */
     private Map<String, String> properties;
-    private byte[] body;
+    private byte[] body; //消息体
     private String transactionId;
 
     public Message() {

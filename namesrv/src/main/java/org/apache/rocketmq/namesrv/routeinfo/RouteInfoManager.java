@@ -389,6 +389,7 @@ public class RouteInfoManager {
         }
     }
 
+    //封装topic路由信息
     public TopicRouteData pickupTopicRouteData(final String topic) {
         TopicRouteData topicRouteData = new TopicRouteData();
         boolean foundQueueData = false;
