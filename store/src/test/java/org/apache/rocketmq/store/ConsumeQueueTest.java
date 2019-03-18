@@ -30,8 +30,9 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
-import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class ConsumeQueueTest {
 
@@ -212,6 +213,7 @@ public class ConsumeQueueTest {
         try {
             try {
                 putMsg(master);
+                Thread.sleep(3000L);//wait ConsumeQueue create success.
             } catch (Exception e) {
                 e.printStackTrace();
                 assertThat(Boolean.FALSE).isTrue();

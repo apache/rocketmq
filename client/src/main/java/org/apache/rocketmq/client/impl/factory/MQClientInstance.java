@@ -548,10 +548,10 @@ public class MQClientInstance {
                                 }
                             } catch (Exception e) {
                                 if (this.isBrokerInNameServer(addr)) {
-                                    log.info("send heart beat to broker[{} {} {}] failed", brokerName, id, addr);
+                                    log.info("send heart beat to broker[{} {} {}] failed", brokerName, id, addr, e);
                                 } else {
                                     log.info("send heart beat to broker[{} {} {}] exception, because the broker not up, forget it", brokerName,
-                                        id, addr);
+                                        id, addr, e);
                                 }
                             }
                         }
@@ -720,7 +720,11 @@ public class MQClientInstance {
 
         return false;
     }
-
+    /**
+     * This method will be removed in the version 5.0.0,because filterServer was removed,and method <code>subscribe(final String topic, final MessageSelector messageSelector)</code>
+     * is recommended.
+     */
+    @Deprecated
     private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String fullClassName,
         final String topic,
         final String filterClassSource) throws UnsupportedEncodingException {
@@ -1043,6 +1047,7 @@ public class MQClientInstance {
                 return this.brokerVersionTable.get(brokerName).get(brokerAddr);
             }
         }
+        //To do need to fresh the version
         return 0;
     }
 

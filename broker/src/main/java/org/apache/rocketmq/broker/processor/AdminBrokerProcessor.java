@@ -114,6 +114,7 @@ import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageFilter;
+import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 
 public class AdminBrokerProcessor implements NettyRequestProcessor {
@@ -760,12 +761,19 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private RemotingCommand getAllDelayOffset(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
+        if (!(this.brokerController.getMessageStore() instanceof DefaultMessageStore)) {
+            log.error("Delay offset not supported in this messagetore, client: {} ", ctx.channel().remoteAddress());
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Delay offset not supported in this messagetore");
+            return response;
+        }
+
         String content = ((DefaultMessageStore) this.brokerController.getMessageStore()).getScheduleMessageService().encode();
         if (content != null && content.length() > 0) {
             try {
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             } catch (UnsupportedEncodingException e) {
-                log.error("get all delay offset from master error.", e);
+                log.error("Get all delay offset from master error.", e);
 
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("UnsupportedEncodingException " + e);
@@ -1051,7 +1059,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final ViewBrokerStatsDataRequestHeader requestHeader =
             (ViewBrokerStatsDataRequestHeader) request.decodeCommandCustomHeader(ViewBrokerStatsDataRequestHeader.class);
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        DefaultMessageStore messageStore = (DefaultMessageStore) this.brokerController.getMessageStore();
+        MessageStore messageStore = this.brokerController.getMessageStore();
 
         StatsItem statsItem = messageStore.getBrokerStatsManager().getStatsItem(requestHeader.getStatsName(), requestHeader.getStatsKey());
         if (null == statsItem) {
@@ -1209,6 +1217,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         runtimeInfo.put("queryThreadPoolQueueSize", String.valueOf(this.brokerController.getQueryThreadPoolQueue().size()));
         runtimeInfo.put("queryThreadPoolQueueCapacity",
             String.valueOf(this.brokerController.getBrokerConfig().getQueryThreadPoolQueueCapacity()));
+
+        runtimeInfo.put("EndTransactionQueueSize", String.valueOf(this.brokerController.getEndTransactionThreadPoolQueue().size()));
+        runtimeInfo.put("EndTransactionThreadPoolQueueCapacity",
+            String.valueOf(this.brokerController.getBrokerConfig().getEndTransactionPoolQueueCapacity()));
 
         runtimeInfo.put("dispatchBehindBytes", String.valueOf(this.brokerController.getMessageStore().dispatchBehindBytes()));
         runtimeInfo.put("pageCacheLockTimeMills", String.valueOf(this.brokerController.getMessageStore().lockTimeMills()));
