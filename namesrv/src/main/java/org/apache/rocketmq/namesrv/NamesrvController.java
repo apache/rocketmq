@@ -46,7 +46,7 @@ public class NamesrvController {
 
     private final NettyServerConfig nettyServerConfig;//网络编程配置信息
 
-    //定时线程 一个线程 默认执行俩个任务
+    //定时线程 一个线程 默认执行俩个任务 统一被称为心跳检测
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "NSScheduledThread"));
 
@@ -91,6 +91,9 @@ public class NamesrvController {
 
         this.registerProcessor();
 
+        /**
+         * 定时扫描超过120秒则记录 则任务broker失联
+         */
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {  //每隔10s 扫描当前存活的broker 信息
 
             @Override

@@ -811,6 +811,8 @@ public class BrokerController {
 
         this.registerBrokerAll(true, false, true);
 
+
+        //Broker 发送心跳包
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -857,8 +859,14 @@ public class BrokerController {
         doRegisterBrokerAll(true, false, topicConfigSerializeWrapper);
     }
 
+    /**
+     * 发送心跳包 实现路由注册
+     * @param checkOrderConfig
+     * @param oneway
+     * @param forceRegister
+     */
     public synchronized void registerBrokerAll(final boolean checkOrderConfig, boolean oneway, boolean forceRegister) {
-        TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
+        TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper(); //topic 配置
 
         if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
             || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
@@ -869,7 +877,7 @@ public class BrokerController {
                         this.brokerConfig.getBrokerPermission());
                 topicConfigTable.put(topicConfig.getTopicName(), tmp);
             }
-            topicConfigWrapper.setTopicConfigTable(topicConfigTable);
+            topicConfigWrapper.setTopicConfigTable(topicConfigTable);   //配置topic信息 主体信息
         }
 
         if (forceRegister || needRegister(this.brokerConfig.getBrokerClusterName(),
@@ -881,6 +889,13 @@ public class BrokerController {
         }
     }
 
+
+    /**
+     *
+     * @param checkOrderConfig
+     * @param oneway
+     * @param topicConfigWrapper
+     */
     private void doRegisterBrokerAll(boolean checkOrderConfig, boolean oneway,
         TopicConfigSerializeWrapper topicConfigWrapper) {
         List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(

@@ -111,29 +111,46 @@ public class BrokerOuterAPI {
         this.remotingClient.updateNameServerAddressList(lst);
     }
 
+    /**
+     *
+     * @param clusterName 集群名称
+     * @param brokerAddr  broker地址
+     * @param brokerName  broker名称
+     * @param brokerId    主从标志 0从 1主
+     * @param haServerAddr
+     * @param topicConfigWrapper
+     * @param filterServerList
+     * @param oneway
+     * @param timeoutMills
+     * @param compressed
+     * @return
+     * 注册所有的broker
+     */
     public List<RegisterBrokerResult> registerBrokerAll(
-        final String clusterName,
-        final String brokerAddr,
-        final String brokerName,
+        final String clusterName,  //集群名称
+        final String brokerAddr,   // broker地址
+        final String brokerName,   //name
         final long brokerId,
-        final String haServerAddr,
-        final TopicConfigSerializeWrapper topicConfigWrapper,
+        final String haServerAddr, //master地址 初次注册为null
+        final TopicConfigSerializeWrapper topicConfigWrapper, //主题配置信息
         final List<String> filterServerList,
         final boolean oneway,
         final int timeoutMills,
         final boolean compressed) {
 
+        //获取所有的nameServer地址  从一个缓存的List中获取
         final List<RegisterBrokerResult> registerBrokerResultList = Lists.newArrayList();
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
         if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
 
             final RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
-            requestHeader.setBrokerAddr(brokerAddr);
-            requestHeader.setBrokerId(brokerId);
-            requestHeader.setBrokerName(brokerName);
-            requestHeader.setClusterName(clusterName);
-            requestHeader.setHaServerAddr(haServerAddr);
-            requestHeader.setCompressed(compressed);
+            //封装请求头
+            requestHeader.setBrokerAddr(brokerAddr); //broker地址
+            requestHeader.setBrokerId(brokerId);     //brokerId  0 从 1: 主
+            requestHeader.setBrokerName(brokerName); //brokerName
+            requestHeader.setClusterName(clusterName); //集群名称
+            requestHeader.setHaServerAddr(haServerAddr); //主 master 地址
+            requestHeader.setCompressed(compressed);    //消息是否压缩
 
             RegisterBrokerBody requestBody = new RegisterBrokerBody();
             requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper);
@@ -147,6 +164,7 @@ public class BrokerOuterAPI {
                     @Override
                     public void run() {
                         try {
+                            //开始注册
                             RegisterBrokerResult result = registerBroker(namesrvAddr,oneway, timeoutMills,requestHeader,body);
                             if (result != null) {
                                 registerBrokerResultList.add(result);
@@ -171,6 +189,7 @@ public class BrokerOuterAPI {
         return registerBrokerResultList;
     }
 
+    //broker 像nameServer注册信息
     private RegisterBrokerResult registerBroker(
         final String namesrvAddr,
         final boolean oneway,
@@ -179,6 +198,7 @@ public class BrokerOuterAPI {
         final byte[] body
     ) throws RemotingCommandException, MQBrokerException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
         InterruptedException {
+        //创建命令 103 像nameSever注册broker的命令
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.REGISTER_BROKER, requestHeader);
         request.setBody(body);
 
@@ -190,7 +210,7 @@ public class BrokerOuterAPI {
             }
             return null;
         }
-
+        //zhixing yuancheng
         RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, timeoutMills);
         assert response != null;
         switch (response.getCode()) {

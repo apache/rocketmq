@@ -20,13 +20,13 @@ import org.apache.rocketmq.common.constant.PermName;
 
 public class TopicConfig {
     private static final String SEPARATOR = " ";
-    public static int defaultReadQueueNums = 16;
-    public static int defaultWriteQueueNums = 16;
-    private String topicName;
-    private int readQueueNums = defaultReadQueueNums;
-    private int writeQueueNums = defaultWriteQueueNums;
-    private int perm = PermName.PERM_READ | PermName.PERM_WRITE;
-    private TopicFilterType topicFilterType = TopicFilterType.SINGLE_TAG;
+    public static int defaultReadQueueNums = 16;  //默认读消息队列数量
+    public static int defaultWriteQueueNums = 16; // 默认写消息对列
+    private String topicName; //topic 主题名称
+    private int readQueueNums = defaultReadQueueNums;  //readQueue数量
+    private int writeQueueNums = defaultWriteQueueNums; //write Queue适量
+    private int perm = PermName.PERM_READ | PermName.PERM_WRITE; //读取权限
+    private TopicFilterType topicFilterType = TopicFilterType.SINGLE_TAG; //topic 类型 single 还是 mulity ？？？？后续了解什么意思
     private int topicSysFlag = 0;
     private boolean order = false;
 
