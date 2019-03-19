@@ -212,6 +212,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @throws InterruptedException if the sending thread is interrupted.
      */
     //同步的发送消息 具体发送到某个队列是由内部负载均衡的算法决定
+    //具体额发送消息逻辑
     @Override
     public SendResult send(
         Message msg) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
