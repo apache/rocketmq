@@ -718,8 +718,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                                       final TopicPublishInfo topicPublishInfo, //主题信息
                                       final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         long beginStartTime = System.currentTimeMillis(); //开始时间
-        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName()); //获取broker 的ip地址
-        if (null == brokerAddr) {
+        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName()); //获取broker的网络地址
+        if (null == brokerAddr) { //
             tryToFindTopicPublishInfo(mq.getTopic());
             brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         }
