@@ -24,13 +24,21 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 
+//该接口为延时机制
 public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> {
     private final ConcurrentHashMap<String, FaultItem> faultItemTable = new ConcurrentHashMap<String, FaultItem>(16);
 
     private final ThreadLocalIndex whichItemWorst = new ThreadLocalIndex();
 
+    /**
+     * 更新失败条数
+     * @param name            broker name 失败节点名称
+     * @param currentLatency  消息发送故障的延迟时间
+     * @param notAvailableDuration 不可用持续时间在这个时间内 该节点broker奖被规避
+     */
     @Override
     public void updateFaultItem(final String name, final long currentLatency, final long notAvailableDuration) {
+        //节点缓存 key为 brokername value为 FaultItem
         FaultItem old = this.faultItemTable.get(name);
         if (null == old) {
             final FaultItem faultItem = new FaultItem(name);
@@ -48,15 +56,16 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         }
     }
 
+    //判断broker是否可用
     @Override
-    public boolean isAvailable(final String name) {
+    public boolean isAvailable(final String name) { // name 是 broker 的名称
         final FaultItem faultItem = this.faultItemTable.get(name);
         if (faultItem != null) {
             return faultItem.isAvailable();
         }
         return true;
     }
-
+    //如果可用的broker的话就移除
     @Override
     public void remove(final String name) {
         this.faultItemTable.remove(name);
@@ -64,16 +73,19 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
 
     @Override
     public String pickOneAtLeast() {
-        final Enumeration<FaultItem> elements = this.faultItemTable.elements();
+        final Enumeration<FaultItem> elements = this.faultItemTable.elements(); // 获取所有的规避的broker 也就是失败的broker
         List<FaultItem> tmpList = new LinkedList<FaultItem>();
         while (elements.hasMoreElements()) {
             final FaultItem faultItem = elements.nextElement();
             tmpList.add(faultItem);
-        }
+        } //所有的item 转为 LinkedList 为什么转为LinkedList？？？ LinkedList addd的时候 效率比arrayList
+        // 但是同时 查询的时候会比arrayList 慢
 
         if (!tmpList.isEmpty()) {
+            // 内部有随机数  打乱list的顺序
             Collections.shuffle(tmpList);
 
+            //再重新根据内部 FaultItem 的排列方式 排序
             Collections.sort(tmpList);
 
             final int half = tmpList.size() / 2;
@@ -85,6 +97,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             }
         }
 
+        //如果找不到规避的broker 返回null
         return null;
     }
 
@@ -96,10 +109,11 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             '}';
     }
 
+    //失败的broker 内部类
     class FaultItem implements Comparable<FaultItem> {
-        private final String name;
-        private volatile long currentLatency;
-        private volatile long startTimestamp;
+        private final String name;            // broker name
+        private volatile long currentLatency; // 消费故障的延时时间
+        private volatile long startTimestamp; //是当前系统时间加上需要规避的
 
         public FaultItem(final String name) {
             this.name = name;
@@ -129,7 +143,8 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
 
             return 0;
         }
-
+        //这里是判断是否可用 当前系统时间 - starttime
+        // starttime  = 当前检测不可用的时间 + 规避时间
         public boolean isAvailable() {
             return (System.currentTimeMillis() - startTimestamp) >= 0;
         }

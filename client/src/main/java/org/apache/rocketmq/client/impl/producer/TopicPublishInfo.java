@@ -66,24 +66,29 @@ public class TopicPublishInfo {
         this.haveTopicRouterInfo = haveTopicRouterInfo;
     }
 
+    //默认机制选择消息队列
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
         if (lastBrokerName == null) {
+            //如果不是重试的 进去重新选择队列
             return selectOneMessageQueue();
         } else {
+            //这里代表已经发过一次的 是重试的
             int index = this.sendWhichQueue.getAndIncrement();
             for (int i = 0; i < this.messageQueueList.size(); i++) {
                 int pos = Math.abs(index++) % this.messageQueueList.size();
                 if (pos < 0)
                     pos = 0;
                 MessageQueue mq = this.messageQueueList.get(pos);
-                if (!mq.getBrokerName().equals(lastBrokerName)) {
+                if (!mq.getBrokerName().equals(lastBrokerName)) { //规则上避免上个broker 另外选择broker
                     return mq;
                 }
             }
+            // 找不到别的broker 会重新选择新的队列
             return selectOneMessageQueue();
         }
     }
 
+    //算法去选择队列
     public MessageQueue selectOneMessageQueue() {
         int index = this.sendWhichQueue.getAndIncrement();
         int pos = Math.abs(index) % this.messageQueueList.size();

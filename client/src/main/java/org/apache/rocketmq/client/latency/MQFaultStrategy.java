@@ -24,6 +24,8 @@ import org.apache.rocketmq.common.message.MessageQueue;
 
 public class MQFaultStrategy {
     private final static InternalLogger log = ClientLogger.getLog();
+
+    //延时机制的接口规范
     private final LatencyFaultTolerance<String> latencyFaultTolerance = new LatencyFaultToleranceImpl();
 
     private boolean sendLatencyFaultEnable = false;
@@ -55,23 +57,26 @@ public class MQFaultStrategy {
         this.sendLatencyFaultEnable = sendLatencyFaultEnable;
     }
 
+    //选择消息队列 sendLatencyFaultEnable == true 故障延迟机制
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
         if (this.sendLatencyFaultEnable) {
+            //进入故障延时机制选择队列
             try {
-                int index = tpInfo.getSendWhichQueue().getAndIncrement();
+                int index = tpInfo.getSendWhichQueue().getAndIncrement(); //获取下个messaqueue 的index小标
                 for (int i = 0; i < tpInfo.getMessageQueueList().size(); i++) {
                     int pos = Math.abs(index++) % tpInfo.getMessageQueueList().size();
                     if (pos < 0)
                         pos = 0;
-                    MessageQueue mq = tpInfo.getMessageQueueList().get(pos);
-                    if (latencyFaultTolerance.isAvailable(mq.getBrokerName())) {
-                        if (null == lastBrokerName || mq.getBrokerName().equals(lastBrokerName))
+                    MessageQueue mq = tpInfo.getMessageQueueList().get(pos); //队列选择
+                    if (latencyFaultTolerance.isAvailable(mq.getBrokerName())) {//验证这和队列所在broker 是否活跃着 是否可用
+                        if (null == lastBrokerName || mq.getBrokerName().equals(lastBrokerName)) // 判断是否是同一个broker 同一个broker 直接return
                             return mq;
                     }
                 }
-
+                //走到这里 说明 mq所在的broker 宕机了 或者 选择的mq 不是上一个broker lastBrokerName
+                //找一个规避的broker
                 final String notBestBroker = latencyFaultTolerance.pickOneAtLeast();
-                int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker);
+                int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker); // 获取这个broker 的写队列数
                 if (writeQueueNums > 0) {
                     final MessageQueue mq = tpInfo.selectOneMessageQueue();
                     if (notBestBroker != null) {
@@ -80,6 +85,7 @@ public class MQFaultStrategy {
                     }
                     return mq;
                 } else {
+                    // 这里说明找不到规避的broker 了 说明已经不故障 移除故障
                     latencyFaultTolerance.remove(notBestBroker);
                 }
             } catch (Exception e) {

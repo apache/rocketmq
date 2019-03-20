@@ -491,7 +491,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     }
 
-
+    //选择消息队列
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
         return this.mqFaultStrategy.selectOneMessageQueue(tpInfo, lastBrokerName);
     }
@@ -535,28 +535,32 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         long endTimestamp = beginTimestampFirst;
         //寻找Topic路由信息
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
-        if (topicPublishInfo != null && topicPublishInfo.ok()) {
-            boolean callTimeout = false;
-            MessageQueue mq = null;
+        if (topicPublishInfo != null && topicPublishInfo.ok()) {//生产者topic信息准备好 而且订阅该topic的队列不为null 开始发送message
+            boolean callTimeout = false;  //超时标志
+            MessageQueue mq = null;       //实际发送的队列
             Exception exception = null;
-            SendResult sendResult = null;
-            int timesTotal = communicationMode == CommunicationMode.SYNC ? 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed() : 1;
+            SendResult sendResult = null; //发送结果
+            int timesTotal = communicationMode == CommunicationMode.SYNC ? 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed() : 1; //消息发送次数 同步的一次 + 重试的次数
             int times = 0;
             String[] brokersSent = new String[timesTotal];
             for (; times < timesTotal; times++) {
-                String lastBrokerName = null == mq ? null : mq.getBrokerName();
+
+                String lastBrokerName = null == mq ? null : mq.getBrokerName(); //第一次发送为 lastBroker 为null 上次发送此条消息的是哪个broker
+                //选择队列
                 MessageQueue mqSelected = this.selectOneMessageQueue(topicPublishInfo, lastBrokerName);
+                //这里已经选择好队列
                 if (mqSelected != null) {
-                    mq = mqSelected;
-                    brokersSent[times] = mq.getBrokerName();
+                    mq = mqSelected; //把选择好的队列复制给 局部变脸mq
+                    brokersSent[times] = mq.getBrokerName(); //记录发送的每一次 都发送到了哪个broker
                     try {
-                        beginTimestampPrev = System.currentTimeMillis();
+                        beginTimestampPrev = System.currentTimeMillis();    //这里是准备时间 选择好队列的准备时间
                         long costTime = beginTimestampPrev - beginTimestampFirst;
                         if (timeout < costTime) {
+                            //超时 > costTime 条件的准备条件 则说明此次已经超时
                             callTimeout = true;
                             break;
                         }
-
+                        //重点 重点!!!! 消息发送的真正逻辑
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout - costTime);
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false);
@@ -693,14 +697,28 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
     }
 
-    private SendResult sendKernelImpl(final Message msg,
-                                      final MessageQueue mq,
-                                      final CommunicationMode communicationMode,
-                                      final SendCallback sendCallback,
-                                      final TopicPublishInfo topicPublishInfo,
+    /**
+     *
+     * @param msg  消息体
+     * @param mq   具体发送到哪条队列
+     * @param communicationMode  发送模式 同步 异步 oneway(自己负责发送不管结果)
+     * @param sendCallback       异步模式的回调结果
+     * @param topicPublishInfo   topic主体信息
+     * @param timeout            发送的超时时间
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
+    private SendResult sendKernelImpl(final Message msg, // 消息体
+                                      final MessageQueue mq, // 具体发送到哪条队列
+                                      final CommunicationMode communicationMode, //发送模式 同步 异步 oneway(自己负责发送不管结果)
+                                      final SendCallback sendCallback, // 异步模式的回调函数
+                                      final TopicPublishInfo topicPublishInfo, //主题信息
                                       final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        long beginStartTime = System.currentTimeMillis();
-        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
+        long beginStartTime = System.currentTimeMillis(); //开始时间
+        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName()); //获取broker 的ip地址
         if (null == brokerAddr) {
             tryToFindTopicPublishInfo(mq.getTopic());
             brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());

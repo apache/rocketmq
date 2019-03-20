@@ -648,6 +648,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
                             // Update sub info
                             {
+                                //更新订阅该topic的
                                 Set<MessageQueue> subscribeInfo = topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
                                 Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
                                 while (it.hasNext()) {
