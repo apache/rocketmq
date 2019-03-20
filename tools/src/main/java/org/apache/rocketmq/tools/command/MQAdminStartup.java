@@ -27,6 +27,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
+import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.common.MQVersion;
@@ -253,12 +254,20 @@ public class MQAdminStartup {
         try {
             yamlDataObject = AclUtils.getYamlDataObject(fileHome + fileName,
                 JSONObject.class);
+        } catch (AclException e) {
+            //Ignore
         } catch (Exception e) {
             e.printStackTrace();
+            return null;
         }
 
-        if (yamlDataObject == null || yamlDataObject.isEmpty()) {
-            System.out.printf(" Cannot find conf file %s, acl is not be enabled.%n" ,fileHome + fileName);
+        if (yamlDataObject == null) {
+            System.out.printf("Cannot find conf file %s, acl is not be enabled.%n" ,fileHome + fileName);
+            return null;
+        }
+
+        if (yamlDataObject.isEmpty()) {
+            System.out.printf("Content of conf file %s is empty, acl is not be enabled.%n" ,fileHome + fileName);
             return null;
         }
 

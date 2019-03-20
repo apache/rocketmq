@@ -125,13 +125,12 @@ public class AclUtils {
             fis = new FileInputStream(new File(path));
             return ymal.loadAs(fis, clazz);
         } catch (Exception e) {
-            throw new AclException(String.format("The  file for Plain mode was not found , paths %s", path), e);
+            throw new AclException(String.format("The file for Plain mode was not found, paths %s", path), e);
         } finally {
             if (fis != null) {
                 try {
                     fis.close();
-                } catch (IOException e) {
-                    throw new AclException("close transport fileInputStream Exception", e);
+                } catch (IOException ignore) {
                 }
             }
         }
