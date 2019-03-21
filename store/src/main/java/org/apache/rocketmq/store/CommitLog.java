@@ -550,6 +550,20 @@ public class CommitLog {
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+
+            String userSpecifiedDeliveryTime = msg.getUserProperty(MessageConst.PROPERTY_DELIVERY_TIME);
+            if (userSpecifiedDeliveryTime != null) {
+                try {
+                    long deliveryTime = Long.parseLong(userSpecifiedDeliveryTime);
+                    int delayLevel = this.defaultMessageStore.getScheduleMessageService().computeDelayLevel(deliveryTime);
+                    if (delayLevel > 0) {
+                        msg.setDelayTimeLevel(delayLevel);
+                    }
+                } catch (NumberFormatException e) {
+                    //ignore
+                }
+            }
+
             // Delay Delivery
             if (msg.getDelayTimeLevel() > 0) {
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
@@ -560,8 +574,13 @@ public class CommitLog {
                 queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
 
                 // Backup real topic, queueId
-                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
-                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
+                if (msg.getProperty(MessageConst.PROPERTY_REAL_TOPIC) == null) {
+                    MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
+                }
+                if (msg.getProperty(MessageConst.PROPERTY_REAL_QUEUE_ID) == null) {
+                    MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
+                }
+
                 msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
 
                 msg.setTopic(topic);

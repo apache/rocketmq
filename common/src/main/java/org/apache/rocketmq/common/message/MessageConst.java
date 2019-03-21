@@ -45,6 +45,7 @@ public class MessageConst {
     public static final String PROPERTY_TRANSACTION_CHECK_TIMES = "TRANSACTION_CHECK_TIMES";
     public static final String PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS = "CHECK_IMMUNITY_TIME_IN_SECONDS";
     public static final String PROPERTY_INSTANCE_ID = "INSTANCE_ID";
+    public static final String PROPERTY_DELIVERY_TIME = "DELIVERY_TIME";
 
     public static final String KEY_SEPARATOR = " ";
 

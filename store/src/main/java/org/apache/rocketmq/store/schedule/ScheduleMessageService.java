@@ -401,4 +401,26 @@ public class ScheduleMessageService extends ConfigManager {
             return msgInner;
         }
     }
+
+    public int computeDelayLevel(long deliveryTimeInMills) {
+        long timeToElapse = deliveryTimeInMills - System.currentTimeMillis();
+
+        if (timeToElapse <= 0) {
+            return 0;
+        }
+
+        Integer mostSuitableLevel = null;
+        for (Map.Entry<Integer, Long> levelTime : delayLevelTable.entrySet()) {
+            if (mostSuitableLevel == null) {
+                mostSuitableLevel = levelTime.getKey();
+            }
+
+            if (timeToElapse > levelTime.getValue()) {
+                mostSuitableLevel = levelTime.getKey();
+            } else {
+                return mostSuitableLevel;
+            }
+        }
+        return this.getMaxDelayLevel();
+    }
 }
