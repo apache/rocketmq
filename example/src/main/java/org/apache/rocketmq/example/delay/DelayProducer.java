@@ -69,7 +69,7 @@ public class DelayProducer {
                     (System.currentTimeMillis() + " Hello RocketMQ " + i + "  " + delay).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
                 );
 
-                msg.putUserProperty(MessageConst.PROPERTY_DELIVERY_TIME, String.valueOf(System.currentTimeMillis() + delay));
+                msg.putUserProperty(MessageConst.PROPERTY_DELIVERY_TIME_MILLIS, String.valueOf(System.currentTimeMillis() + delay));
                 /*
                  * Call send message to deliver message to one of brokers.
                  */

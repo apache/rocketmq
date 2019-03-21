@@ -551,7 +551,7 @@ public class CommitLog {
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
 
-            String userSpecifiedDeliveryTime = msg.getUserProperty(MessageConst.PROPERTY_DELIVERY_TIME);
+            String userSpecifiedDeliveryTime = msg.getUserProperty(MessageConst.PROPERTY_DELIVERY_TIME_MILLIS);
             if (userSpecifiedDeliveryTime != null) {
                 try {
                     long deliveryTime = Long.parseLong(userSpecifiedDeliveryTime);
