@@ -18,6 +18,7 @@ package org.apache.rocketmq.acl.common;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Map;
 import java.util.SortedMap;
@@ -124,8 +125,10 @@ public class AclUtils {
         try {
             fis = new FileInputStream(new File(path));
             return ymal.loadAs(fis, clazz);
+        } catch (FileNotFoundException ignore) {
+            return null;
         } catch (Exception e) {
-            throw new AclException(String.format("The file for Plain mode was not found, paths %s", path), e);
+            throw new AclException(e.getMessage());
         } finally {
             if (fis != null) {
                 try {
