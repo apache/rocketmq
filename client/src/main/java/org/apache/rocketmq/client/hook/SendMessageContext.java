@@ -25,12 +25,12 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageType;
 
 public class SendMessageContext {
-    private String producerGroup;
-    private Message message;
-    private MessageQueue mq;
-    private String brokerAddr;
+    private String producerGroup;   //生产者group
+    private Message message;        //发送的message
+    private MessageQueue mq;        //发送到某个队列
+    private String brokerAddr;      //指定的brokerAddress
     private String bornHost;
-    private CommunicationMode communicationMode;
+    private CommunicationMode communicationMode; //发送模式 同步 异步 还是oneway
     private SendResult sendResult;
     private Exception exception;
     private Object mqTraceContext;

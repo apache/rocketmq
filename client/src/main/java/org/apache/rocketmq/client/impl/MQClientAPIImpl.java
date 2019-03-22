@@ -293,37 +293,38 @@ public class MQClientAPIImpl {
     ) throws RemotingException, MQBrokerException, InterruptedException {
         return sendMessage(addr, brokerName, msg, requestHeader, timeoutMillis, communicationMode, null, null, null, 0, context, producer);
     }
-
+    //发送消息
     public SendResult sendMessage(
-        final String addr,
-        final String brokerName,
-        final Message msg,
-        final SendMessageRequestHeader requestHeader,
-        final long timeoutMillis,
-        final CommunicationMode communicationMode,
-        final SendCallback sendCallback,
-        final TopicPublishInfo topicPublishInfo,
-        final MQClientInstance instance,
-        final int retryTimesWhenSendFailed,
-        final SendMessageContext context,
-        final DefaultMQProducerImpl producer
+        final String addr,  // broker ip
+        final String brokerName,  //broker name
+        final Message msg,   //消息实体
+        final SendMessageRequestHeader requestHeader, //消息请求header
+        final long timeoutMillis,     //超时
+        final CommunicationMode communicationMode, //发送模式
+        final SendCallback sendCallback,   //回调函数
+        final TopicPublishInfo topicPublishInfo,  //生产者发送主信息
+        final MQClientInstance instance,          //instance 实例
+        final int retryTimesWhenSendFailed,       //重试时间
+        final SendMessageContext context,         //消息上下文
+        final DefaultMQProducerImpl producer      //发送者实现类
     ) throws RemotingException, MQBrokerException, InterruptedException {
         long beginStartTime = System.currentTimeMillis();
-        RemotingCommand request = null;
-        if (sendSmartMsg || msg instanceof MessageBatch) {
-            SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
+        RemotingCommand request = null;   //封装各模块统一的消息一RemotingCommand
+        if (sendSmartMsg || msg instanceof MessageBatch) {  //???? sendSmartMsg
+            //判断是不是批量发送消息
+            SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader); //封装新的请求header
             request = RemotingCommand.createRequestCommand(msg instanceof MessageBatch ? RequestCode.SEND_BATCH_MESSAGE : RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
         } else {
             request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
         }
 
-        request.setBody(msg.getBody());
+        request.setBody(msg.getBody());  //设置消息体
 
-        switch (communicationMode) {
-            case ONEWAY:
+        switch (communicationMode) {   //选择模式
+            case ONEWAY: //直接发送 不需要等结果返回
                 this.remotingClient.invokeOneway(addr, request, timeoutMillis);
                 return null;
-            case ASYNC:
+            case ASYNC:  //异步发送 有回调结果
                 final AtomicInteger times = new AtomicInteger();
                 long costTimeAsync = System.currentTimeMillis() - beginStartTime;
                 if (timeoutMillis < costTimeAsync) {
@@ -332,11 +333,13 @@ public class MQClientAPIImpl {
                 this.sendMessageAsync(addr, brokerName, msg, timeoutMillis - costTimeAsync, request, sendCallback, topicPublishInfo, instance,
                     retryTimesWhenSendFailed, times, context, producer);
                 return null;
-            case SYNC:
+            case SYNC: // 同步发送逻辑
                 long costTimeSync = System.currentTimeMillis() - beginStartTime;
-                if (timeoutMillis < costTimeSync) {
+                //todo 为了debug 注释掉超时时间
+               /* if (timeoutMillis < costTimeSync) { //代码跑到这里花费的时间 > timeoutMillis超时时间 直接抛异常发送超时
                     throw new RemotingTooMuchRequestException("sendMessage call timeout");
-                }
+                }*/
+                //进入同步发送逻辑
                 return this.sendMessageSync(addr, brokerName, msg, timeoutMillis - costTimeSync, request);
             default:
                 assert false;
@@ -346,9 +349,10 @@ public class MQClientAPIImpl {
         return null;
     }
 
+    //同步发送消息的逻辑
     private SendResult sendMessageSync(
-        final String addr,
-        final String brokerName,
+        final String addr,   // broker 地址
+        final String brokerName, //broker name
         final Message msg,
         final long timeoutMillis,
         final RemotingCommand request

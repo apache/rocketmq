@@ -22,13 +22,13 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class CheckForbiddenContext {
-    private String nameSrvAddr;
-    private String group;
-    private Message message;
-    private MessageQueue mq;
-    private String brokerAddr;
-    private CommunicationMode communicationMode;
-    private SendResult sendResult;
+    private String nameSrvAddr;   //nameServeradd
+    private String group;         //生产者group
+    private Message message;      //消息
+    private MessageQueue mq;      //消息队列
+    private String brokerAddr;    //broker 地址
+    private CommunicationMode communicationMode; //发送方式 同步 异步 oneway
+    private SendResult sendResult; //发送结果
     private Exception exception;
     private Object arg;
     private boolean unitMode = false;

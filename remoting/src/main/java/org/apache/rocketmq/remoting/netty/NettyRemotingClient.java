@@ -362,7 +362,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
      * @param addr
      * @param request
      * @param timeoutMillis
-     * @return
+     * @return 同步发送消息到broker
      * @throws InterruptedException
      * @throws RemotingConnectException
      * @throws RemotingSendRequestException
@@ -372,16 +372,20 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     public RemotingCommand invokeSync(String addr, final RemotingCommand request, long timeoutMillis)
         throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
         long beginStartTime = System.currentTimeMillis();
+        //通过ip地址 获取channel
         final Channel channel = this.getAndCreateChannel(addr); //获取channel
         if (channel != null && channel.isActive()) {
             try {
+                // 如果钩子函数不为null 执行发送前置钩子函数
                 if (this.rpcHook != null) {
                     this.rpcHook.doBeforeRequest(addr, request);
                 }
                 long costTime = System.currentTimeMillis() - beginStartTime;
+                // todo 再次判断发送 为了debug 把超时时间注释掉
                 if (timeoutMillis < costTime) {
                     throw new RemotingTimeoutException("invokeSync call timeout");
                 }
+
                 RemotingCommand response = this.invokeSyncImpl(channel, request, timeoutMillis - costTime);
                 if (this.rpcHook != null) {
                     this.rpcHook.doAfterResponse(RemotingHelper.parseChannelRemoteAddr(channel), request, response);
@@ -644,6 +648,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
+    //消息发送到broker是 broker在这里接收
     class NettyClientHandler extends SimpleChannelInboundHandler<RemotingCommand> {
 
         @Override
