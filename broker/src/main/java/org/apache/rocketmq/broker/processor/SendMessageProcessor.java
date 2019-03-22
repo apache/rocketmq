@@ -76,8 +76,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 if (requestHeader == null) {
                     return null;
                 }
-
+                //封装mq 上下文 实际的发送
                 mqtraceContext = buildMsgContext(ctx, requestHeader);
+                // 执行hook函数
                 this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
 
                 RemotingCommand response;
@@ -295,7 +296,16 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         return true;
     }
 
-    private RemotingCommand sendMessage(final ChannelHandlerContext ctx,
+    /**
+     * broker 这里发送消息 到消费这
+     * @param ctx
+     * @param request
+     * @param sendMessageContext
+     * @param requestHeader
+     * @return
+     * @throws RemotingCommandException
+     */
+    private RemotingCommand sendMessage(final ChannelHandlerContext ctx, // netty
                                         final RemotingCommand request,
                                         final SendMessageContext sendMessageContext,
                                         final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
