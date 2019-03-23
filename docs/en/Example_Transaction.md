@@ -1,4 +1,4 @@
-# Transaction message example 
+# Transaction Message Example 
 
 ## 1 Transaction message status 
 There are three states for transaction message:  
