@@ -251,7 +251,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         response.setRemark("putMessageResult is null");
         return response;
     }
-
+    //todo 延时队列
     private boolean handleRetryAndDLQ(SendMessageRequestHeader requestHeader, RemotingCommand response,
                                       RemotingCommand request,
                                       MessageExt msg, TopicConfig topicConfig) {
@@ -306,39 +306,40 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
      * @throws RemotingCommandException
      */
     private RemotingCommand sendMessage(final ChannelHandlerContext ctx, // netty
-                                        final RemotingCommand request,
-                                        final SendMessageContext sendMessageContext,
+                                        final RemotingCommand request,  // 统一封装的消息
+                                        final SendMessageContext sendMessageContext, //消息上下文
                                         final SendMessageRequestHeader requestHeader) throws RemotingCommandException {
 
-        final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
-        final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader)response.readCustomHeader();
+        final RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);  //创建返回给客户端
+        final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader)response.readCustomHeader();  //创建response的header
 
-        response.setOpaque(request.getOpaque());
+        response.setOpaque(request.getOpaque()); //指定消息Id
 
-        response.addExtField(MessageConst.PROPERTY_MSG_REGION, this.brokerController.getBrokerConfig().getRegionId());
+        response.addExtField(MessageConst.PROPERTY_MSG_REGION, this.brokerController.getBrokerConfig().getRegionId());   //扩展属性
         response.addExtField(MessageConst.PROPERTY_TRACE_SWITCH, String.valueOf(this.brokerController.getBrokerConfig().isTraceOn()));
 
         log.debug("receive SendMessage request command, {}", request);
 
-        final long startTimstamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
-        if (this.brokerController.getMessageStore().now() < startTimstamp) {
+        final long startTimstamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp(); //如果未开始接收消息
+        if (this.brokerController.getMessageStore().now() < startTimstamp) {   //
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(String.format("broker unable to service, until %s", UtilAll.timeMillisToHumanString2(startTimstamp)));
             return response;
         }
 
         response.setCode(-1);
+        //校验消息 topic配置等信息
         super.msgCheck(ctx, requestHeader, response);
-        if (response.getCode() != -1) {
+        if (response.getCode() != -1) {  //校验不通过直接返回
             return response;
         }
 
-        final byte[] body = request.getBody();
+        final byte[] body = request.getBody(); //获取消息内容
 
-        int queueIdInt = requestHeader.getQueueId();
-        TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
+        int queueIdInt = requestHeader.getQueueId(); //获取队列Id
+        TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic()); //获取发送的Topicconfig 信息
 
-        if (queueIdInt < 0) {
+        if (queueIdInt < 0) { //如果可用的消息id小于0 从可用的消息对杜烈 随机喜欢则
             queueIdInt = Math.abs(this.random.nextInt() % 99999999) % topicConfig.getWriteQueueNums();
         }
 
@@ -346,7 +347,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgInner.setTopic(requestHeader.getTopic());
         msgInner.setQueueId(queueIdInt);
 
-        if (!handleRetryAndDLQ(requestHeader, response, request, msgInner, topicConfig)) {
+        if (!handleRetryAndDLQ(requestHeader, response, request, msgInner, topicConfig)) {  //检查message的重试次数 大于限制充实次数 会进去的DLD的延时队列
             return response;
         }
 
@@ -361,7 +362,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         PutMessageResult putMessageResult = null;
         Map<String, String> oriProps = MessageDecoder.string2messageProperties(requestHeader.getProperties());
         String traFlag = oriProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
-        if (traFlag != null && Boolean.parseBoolean(traFlag)) {
+        if (traFlag != null && Boolean.parseBoolean(traFlag)) { //判断是否允许发送事务消息 事务消息后续研究
             if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
                 response.setCode(ResponseCode.NO_PERMISSION);
                 response.setRemark(
@@ -369,9 +370,11 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                         + "] sending transaction message is forbidden");
                 return response;
             }
+            //事务消息
             putMessageResult = this.brokerController.getTransactionalMessageService().prepareMessage(msgInner);
         } else {
-            putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
+            //普通的消息
+            putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner); //这里进行消息的存储 到此消息发送结束
         }
 
         return handlePutMessageResult(putMessageResult, response, request, msgInner, responseHeader, sendMessageContext, ctx, queueIdInt);

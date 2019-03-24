@@ -60,16 +60,18 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 import static org.apache.rocketmq.store.config.BrokerRole.SLAVE;
 
+
+//消息存贮的重要类
 public class DefaultMessageStore implements MessageStore {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    private final MessageStoreConfig messageStoreConfig;
+    private final MessageStoreConfig messageStoreConfig;  //消息存储配置属性
     // CommitLog
-    private final CommitLog commitLog;
+    private final CommitLog commitLog; //CommitLog文件存储的实现类
 
-    private final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;
+    private final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable; //消息队列存储缓存表 按照topic 区分
 
-    private final FlushConsumeQueueService flushConsumeQueueService;
+    private final FlushConsumeQueueService flushConsumeQueueService; //消息队列文件 ConsumeQueue 的刷盘线程
 
     private final CleanCommitLogService cleanCommitLogService;
 
@@ -1599,7 +1601,7 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    class CleanConsumeQueueService {
+    class  CleanConsumeQueueService {
         private long lastPhysicalMinOffset = 0;
 
         public void run() {

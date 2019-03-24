@@ -61,7 +61,7 @@ public class RemotingCommand {
     private static SerializeType serializeTypeConfigInThisServer = SerializeType.JSON;
 
     static {
-        final String protocol = System.getProperty(SERIALIZE_TYPE_PROPERTY, System.getenv(SERIALIZE_TYPE_ENV));
+        final String protocol = System.getProperty(SERIALIZE_TYPE_PROPERTY, System.getenv(SERIALIZE_TYPE_ENV)); //序列化方式
         if (!isBlank(protocol)) {
             try {
                 serializeTypeConfigInThisServer = SerializeType.valueOf(protocol);
@@ -71,18 +71,18 @@ public class RemotingCommand {
         }
     }
 
-    private int code;
-    private LanguageCode language = LanguageCode.JAVA;
-    private int version = 0;
-    private int opaque = requestId.getAndIncrement();
-    private int flag = 0;
-    private String remark;
-    private HashMap<String, String> extFields;
-    private transient CommandCustomHeader customHeader;
+    private int code;   //请求命令编码
+    private LanguageCode language = LanguageCode.JAVA; //版本号
+    private int version = 0;  //版本号
+    private int opaque = requestId.getAndIncrement(); //请求客户端的序列号
+    private int flag = 0; //标记 倒数第一位 表示请求类型 0 ：request 1 : response ,倒数第二位
+    private String remark; //描述
+    private HashMap<String, String> extFields; //扩展属性
+    private transient CommandCustomHeader customHeader; // 每个请求的请求头
 
-    private SerializeType serializeTypeCurrentRPC = serializeTypeConfigInThisServer;
+    private SerializeType serializeTypeCurrentRPC = serializeTypeConfigInThisServer; //序列化type
 
-    private transient byte[] body;
+    private transient byte[] body;  //消息体内容
 
     protected RemotingCommand() {
     }

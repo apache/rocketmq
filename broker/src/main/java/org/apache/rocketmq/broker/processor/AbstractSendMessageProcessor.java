@@ -159,16 +159,23 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         return response;
     }
 
-    protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,
-        final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
-        if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
+    /**
+     * 校验消息
+     * @param ctx
+     * @param requestHeader
+     * @param response
+     * @return
+     */
+    protected RemotingCommand msgCheck(final ChannelHandlerContext ctx, final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
+
+        if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission()) //检查该broker 是否有写的权限
             && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1()
                 + "] sending message is forbidden");
             return response;
         }
-        if (!this.brokerController.getTopicConfigManager().isTopicCanSendMessage(requestHeader.getTopic())) {
+        if (!this.brokerController.getTopicConfigManager().isTopicCanSendMessage(requestHeader.getTopic())) { //检查topic是否可以被发送 主要针对默认的 default的
             String errorMsg = "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
             log.warn(errorMsg);
             response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -176,9 +183,8 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             return response;
         }
 
-        TopicConfig topicConfig =
-            this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
-        if (null == topicConfig) {
+        TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic()); //获取该topic 相关的配置信息x
+        if (null == topicConfig) { //如果topic 不存在 则开始创建topic
             int topicSysFlag = 0;
             if (requestHeader.isUnitMode()) {
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -189,6 +195,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             }
 
             log.warn("the topic {} not exist, producer: {}", requestHeader.getTopic(), ctx.channel().remoteAddress());
+            //创建topic
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(
                 requestHeader.getTopic(),
                 requestHeader.getDefaultTopic(),
@@ -204,7 +211,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 }
             }
 
-            if (null == topicConfig) {
+            if (null == topicConfig) {  //经过创建后还是null 直接返回 topic 不存在了
                 response.setCode(ResponseCode.TOPIC_NOT_EXIST);
                 response.setRemark("topic[" + requestHeader.getTopic() + "] not exist, apply first please!"
                     + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
@@ -212,7 +219,9 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             }
         }
 
+        //获取队列的Id
         int queueIdInt = requestHeader.getQueueId();
+        //检查队列
         int idValid = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());
         if (queueIdInt >= idValid) {
             String errorInfo = String.format("request queueId[%d] is illegal, %s Producer: %s",

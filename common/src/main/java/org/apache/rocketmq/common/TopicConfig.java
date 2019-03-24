@@ -26,9 +26,9 @@ public class TopicConfig {
     private int readQueueNums = defaultReadQueueNums;  //readQueue数量
     private int writeQueueNums = defaultWriteQueueNums; //write Queue适量
     private int perm = PermName.PERM_READ | PermName.PERM_WRITE; //读取权限
-    private TopicFilterType topicFilterType = TopicFilterType.SINGLE_TAG; //topic 类型 single 还是 mulity ？？？？后续了解什么意思
+    private TopicFilterType topicFilterType = TopicFilterType.SINGLE_TAG; //主题过滤方式
     private int topicSysFlag = 0;
-    private boolean order = false;
+    private boolean order = false; //是否顺序消息
 
     public TopicConfig() {
     }
