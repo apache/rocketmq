@@ -73,7 +73,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private final FlushConsumeQueueService flushConsumeQueueService; //消息队列文件 ConsumeQueue 的刷盘线程
 
-    private final CleanCommitLogService cleanCommitLogService;
+    private final CleanCommitLogService cleanCommitLogService; //清楚commitlog文件服务
 
     private final CleanConsumeQueueService cleanConsumeQueueService;
 
