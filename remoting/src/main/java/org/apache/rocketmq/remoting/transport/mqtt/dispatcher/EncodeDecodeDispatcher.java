@@ -38,8 +38,8 @@ public class EncodeDecodeDispatcher {
         encodeDecodeDispatcher.put(MqttMessageType.SUBACK, new MqttSubackEncodeDecode());
         encodeDecodeDispatcher.put(MqttMessageType.UNSUBSCRIBE, new MqttUnSubscribeEncodeDecode());
         encodeDecodeDispatcher.put(MqttMessageType.UNSUBACK, new MqttUnSubackEncodeDecode());
-        encodeDecodeDispatcher.put(MqttMessageType.PINGREQ, null);
-        encodeDecodeDispatcher.put(MqttMessageType.PINGRESP, null);
+        encodeDecodeDispatcher.put(MqttMessageType.PINGREQ, new MqttPingReqEncodeDecode() );
+        encodeDecodeDispatcher.put(MqttMessageType.PINGRESP, new MqttPingRespEncodeDecode());
     }
 
     public static Map<MqttMessageType, Message2MessageEncodeDecode> getEncodeDecodeDispatcher() {

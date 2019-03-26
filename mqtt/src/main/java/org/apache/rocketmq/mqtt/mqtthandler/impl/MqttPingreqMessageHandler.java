@@ -17,14 +17,22 @@
 
 package org.apache.rocketmq.mqtt.mqtthandler.impl;
 
+import io.netty.handler.codec.mqtt.MqttConnectMessage;
 import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.handler.codec.mqtt.MqttMessageType;
+import io.netty.handler.codec.mqtt.MqttPubAckMessage;
+import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.mqtt.client.IOTClientManagerImpl;
+import org.apache.rocketmq.mqtt.exception.WrongMessageTypeException;
 import org.apache.rocketmq.mqtt.mqtthandler.MessageHandler;
 import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
 
 public class MqttPingreqMessageHandler implements MessageHandler {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.MQTT_LOGGER_NAME);
@@ -43,6 +51,24 @@ public class MqttPingreqMessageHandler implements MessageHandler {
      */
     @Override
     public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
-        return null;
+        IOTClientManagerImpl iotClientManager = (IOTClientManagerImpl) defaultMqttMessageProcessor.getIotClientManager();
+        Client client = iotClientManager.getClient(IOTClientManagerImpl.IOT_GROUP, remotingChannel);
+        log.debug("Handle MQTT client: {} Pingreq.", client.getClientId());
+        RemotingCommand response = RemotingCommand.createResponseCommand(MqttHeader.class);
+        if (client != null && client.isConnected()) {
+            client.setLastUpdateTimestamp(System.currentTimeMillis());
+            MqttHeader mqttHeader = (MqttHeader) response.readCustomHeader();
+            mqttHeader.setMessageType(MqttMessageType.PINGRESP.value());
+            mqttHeader.setDup(false);
+            mqttHeader.setQosLevel(0);
+            mqttHeader.setRetain(false);
+            mqttHeader.setRemainingLength(0);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+            return response;
+        }
+        response.setCode(ResponseCode.SYSTEM_ERROR);
+        response.setRemark("MQTT Client is null or not connected");
+        return response;
     }
 }

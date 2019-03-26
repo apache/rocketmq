@@ -132,6 +132,7 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
                 break;
             case UNSUBSCRIBE:
             case PINGREQ:
+                break;
             case DISCONNECT:
         }
         return type2handler.get(MqttMessageType.valueOf(mqttHeader.getMessageType())).handleMessage(mqttMessage, remotingChannel);
