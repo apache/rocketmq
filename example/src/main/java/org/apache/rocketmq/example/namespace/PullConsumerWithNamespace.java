@@ -79,7 +79,7 @@ public class PullConsumerWithNamespace {
             return;
         }
         pullResult.getMsgFoundList().stream().forEach(
-            (msg) -> System.out.println("Topic is:" + msg.getTopic() + "msgId is:" + msg.getMsgId()));
+            (msg) -> System.out.printf("Topic is:%s, msgId is:%s%n" , msg.getTopic(), msg.getMsgId()));
     }
 
     private static void putMessageQueueOffset(MessageQueue mq, long offset) {
