@@ -30,7 +30,7 @@ public class ProducerWithNamespace {
             Message message = new Message("topicTest", "tagTest", "Hello world".getBytes());
             try {
                 SendResult result = producer.send(message);
-                System.out.println("Topic:" + message.getTopic() + " send success, msgId is:" + result.getMsgId());
+                System.out.printf("Topic:%s send success, misId is:%s%n", message.getTopic(), result.getMsgId());
             } catch (Exception e) {
                 e.printStackTrace();
             }
