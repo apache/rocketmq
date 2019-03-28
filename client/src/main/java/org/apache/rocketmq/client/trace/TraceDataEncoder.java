@@ -130,7 +130,8 @@ public class TraceDataEncoder {
                     .append(ctx.getCostTime()).append(TraceConstants.CONTENT_SPLITOR)//
                     .append(bean.getMsgType().ordinal()).append(TraceConstants.CONTENT_SPLITOR)//
                     .append(bean.getOffsetMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(ctx.isSuccess()).append(TraceConstants.FIELD_SPLITOR);
+                    .append(ctx.isSuccess()).append(TraceConstants.CONTENT_SPLITOR)//
+                    .append(bean.getClientHost()).append(TraceConstants.FIELD_SPLITOR);
             }
             break;
             case SubBefore: {
@@ -142,7 +143,9 @@ public class TraceDataEncoder {
                         .append(ctx.getRequestId()).append(TraceConstants.CONTENT_SPLITOR)//
                         .append(bean.getMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
                         .append(bean.getRetryTimes()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(bean.getKeys()).append(TraceConstants.FIELD_SPLITOR);//
+                        .append(bean.getKeys()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(bean.getStoreHost()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(bean.getClientHost()).append(TraceConstants.FIELD_SPLITOR);//
                 }
             }
             break;
@@ -154,7 +157,8 @@ public class TraceDataEncoder {
                         .append(ctx.getCostTime()).append(TraceConstants.CONTENT_SPLITOR)//
                         .append(ctx.isSuccess()).append(TraceConstants.CONTENT_SPLITOR)//
                         .append(bean.getKeys()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(ctx.getContextCode()).append(TraceConstants.FIELD_SPLITOR);
+                        .append(ctx.getContextCode()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(bean.getClientHost()).append(TraceConstants.FIELD_SPLITOR);
                 }
             }
             break;
