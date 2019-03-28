@@ -16,8 +16,14 @@
  */
 package org.apache.rocketmq.client;
 
+import java.util.HashSet;
+import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
@@ -31,6 +37,7 @@ public class ClientConfig {
     private String clientIP = RemotingUtil.getLocalAddress();
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
     private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
+    protected String namespace;
     /**
      * Pulling topic information interval from the named server
      */
@@ -87,6 +94,38 @@ public class ClientConfig {
         }
     }
 
+
+    public String withNamespace(String resource) {
+        return NamespaceUtil.wrapNamespace(this.getNamespace(), resource);
+    }
+
+    public Set<String> withNamespace(Set<String> resourceSet) {
+        Set<String> resourceWithNamespace = new HashSet<String>();
+        for (String resource : resourceSet) {
+            resourceWithNamespace.add(withNamespace(resource));
+        }
+        return resourceWithNamespace;
+    }
+
+    public String withoutNamespace(String resource) {
+        return NamespaceUtil.withoutNamespace(resource, this.getNamespace());
+    }
+
+    public Set<String> withoutNamespace(Set<String> resourceSet) {
+        Set<String> resourceWithoutNamespace = new HashSet<String>();
+        for (String resource : resourceSet) {
+            resourceWithoutNamespace.add(withoutNamespace(resource));
+        }
+        return resourceWithoutNamespace;
+    }
+
+    public MessageQueue queueWithNamespace(MessageQueue queue) {
+        if (StringUtils.isEmpty(this.getNamespace())) {
+            return queue;
+        }
+
+        return new MessageQueue(withNamespace(queue.getTopic()), queue.getBrokerName(), queue.getQueueId());
+    }
     public void resetClientConfig(final ClientConfig cc) {
         this.namesrvAddr = cc.namesrvAddr;
         this.clientIP = cc.clientIP;
@@ -99,6 +138,7 @@ public class ClientConfig {
         this.unitName = cc.unitName;
         this.vipChannelEnabled = cc.vipChannelEnabled;
         this.useTLS = cc.useTLS;
+        this.namespace = cc.namespace;
         this.language = cc.language;
     }
 
@@ -115,6 +155,7 @@ public class ClientConfig {
         cc.unitName = unitName;
         cc.vipChannelEnabled = vipChannelEnabled;
         cc.useTLS = useTLS;
+        cc.namespace = namespace;
         cc.language = language;
         return cc;
     }
@@ -199,12 +240,20 @@ public class ClientConfig {
         this.language = language;
     }
 
+    public String getNamespace() {
+        return namespace;
+    }
+
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
+    }
+
     @Override
     public String toString() {
         return "ClientConfig [namesrvAddr=" + namesrvAddr + ", clientIP=" + clientIP + ", instanceName=" + instanceName
             + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInterval=" + pollNameServerInterval
             + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval + ", persistConsumerOffsetInterval="
             + persistConsumerOffsetInterval + ", unitMode=" + unitMode + ", unitName=" + unitName + ", vipChannelEnabled="
-            + vipChannelEnabled + ", useTLS=" + useTLS + ", language=" + language.name() + "]";
+            + vipChannelEnabled + ", useTLS=" + useTLS + ", language=" + language.name() + ", namespace=" + namespace + "]";
     }
 }
