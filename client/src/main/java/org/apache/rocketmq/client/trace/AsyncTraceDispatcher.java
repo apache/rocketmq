@@ -57,7 +57,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private final int queueSize;
     private final int batchSize;
     private final int maxMsgSize;
-    private final DefaultMQProducer traceProducer;
+    private static DefaultMQProducer traceProducer;
     private final ThreadPoolExecutor traceExecuter;
     // The last discard number of log
     private AtomicLong discardCount;
@@ -71,7 +71,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
     private String dispatcherId = UUID.randomUUID().toString();
     private String traceTopicName;
-    private AtomicBoolean isStarted = new AtomicBoolean(false);
+    private static final AtomicBoolean isStarted = new AtomicBoolean(false);
 
 
     public AsyncTraceDispatcher(String traceTopicName, RPCHook rpcHook) throws MQClientException {
@@ -138,7 +138,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     }
 
     private DefaultMQProducer getAndCreateTraceProducer(RPCHook rpcHook) {
-        DefaultMQProducer traceProducerInstance = this.traceProducer;
+        DefaultMQProducer traceProducerInstance = AsyncTraceDispatcher.traceProducer;
         if (traceProducerInstance == null) {
             traceProducerInstance = new DefaultMQProducer(rpcHook);
             traceProducerInstance.setProducerGroup(TraceConstants.GROUP_NAME);
