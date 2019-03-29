@@ -27,7 +27,7 @@ Apache RocketMQ开发者指南
 - [消息轨迹指南(Message Trace)](msg_trace/user_guide.md)：介绍RocketMQ消息轨迹的使用方法。
 - [权限管理(Auth Management)](acl/user_guide.md)：介绍如何快速部署和使用支持权限控制特性的RocketMQ集群。
 
-- [dledger快速搭建(Quick Start)](dledger/quick_start.md)：介绍Dledger的快速搭建方法。
+- [Dledger快速搭建(Quick Start)](dledger/quick_start.md)：介绍Dledger的快速搭建方法。
 
 - [集群部署(Cluster Deployment)](dledger/deploy_guide.md)：介绍Dledger的集群部署方式。
 
