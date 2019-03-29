@@ -1,4 +1,4 @@
-#Dledger集群搭建
+# Dledger集群搭建
 ---
 ## 前言
 该文档主要介绍如何部署自动容灾切换的 RocketMQ-on-DLedger Group。
