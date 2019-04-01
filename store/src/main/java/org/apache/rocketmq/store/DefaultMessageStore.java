@@ -75,38 +75,38 @@ public class DefaultMessageStore implements MessageStore {
 
     private final CleanCommitLogService cleanCommitLogService; //清楚commitlog文件服务
 
-    private final CleanConsumeQueueService cleanConsumeQueueService;
+    private final CleanConsumeQueueService cleanConsumeQueueService; //清楚ConsumeQueue文件服务
 
-    private final IndexService indexService;
+    private final IndexService indexService;  //索引文件实现类
 
-    private final AllocateMappedFileService allocateMappedFileService;
+    private final AllocateMappedFileService allocateMappedFileService; //MappedFile分配线程 Rocketmq使用内存映射处理commitlog consumeQueue文件
 
-    private final ReputMessageService reputMessageService;
+    private final ReputMessageService reputMessageService; //CommitLog 消息分发 ，根据commitLog文件构建ConsumeQueue，IndexFile 文件
 
-    private final HAService haService;
+    private final HAService haService; //存储HA机制
 
-    private final ScheduleMessageService scheduleMessageService;
+    private final ScheduleMessageService scheduleMessageService; //定时任务调度器,执行定时任务 处理定时任务
 
-    private final StoreStatsService storeStatsService;
+    private final StoreStatsService storeStatsService; //存储统计服务
 
-    private final TransientStorePool transientStorePool;
+    private final TransientStorePool transientStorePool; //DataBuffer池 消息堆内存缓存
 
-    private final RunningFlags runningFlags = new RunningFlags();
-    private final SystemClock systemClock = new SystemClock();
+    private final RunningFlags runningFlags = new RunningFlags(); //存储服务状态
+    private final SystemClock systemClock = new SystemClock();    //系统锁
 
     private final ScheduledExecutorService scheduledExecutorService =
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread"));
     private final BrokerStatsManager brokerStatsManager;
-    private final MessageArrivingListener messageArrivingListener;
-    private final BrokerConfig brokerConfig;
+    private final MessageArrivingListener messageArrivingListener; //消息拉取长轮询模式达到的监听器
+    private final BrokerConfig brokerConfig; // broker 信息
 
     private volatile boolean shutdown = true;
 
-    private StoreCheckpoint storeCheckpoint;
+    private StoreCheckpoint storeCheckpoint; // 文件刷盘检测点
 
     private AtomicLong printTimes = new AtomicLong(0);
 
-    private final LinkedList<CommitLogDispatcher> dispatcherList;
+    private final LinkedList<CommitLogDispatcher> dispatcherList; //  转发comitlog日志，主要是从commitlog转发到consumeQueue、commitlog index。
 
     private RandomAccessFile lockFile;
 
@@ -303,14 +303,14 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
     }
-
+    //消息存储
     public PutMessageResult putMessage(MessageExtBrokerInner msg) {
-        if (this.shutdown) {
+        if (this.shutdown) {  //判断message的状态
             log.warn("message store has shutdown, so putMessage is forbidden");
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         }
 
-        if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
+        if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {  //如果是SLAVE的话 不允许
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
                 log.warn("message store is slave mode, so putMessage is forbidden ");
@@ -330,12 +330,12 @@ public class DefaultMessageStore implements MessageStore {
             this.printTimes.set(0);
         }
 
-        if (msg.getTopic().length() > Byte.MAX_VALUE) {
+        if (msg.getTopic().length() > Byte.MAX_VALUE) { //消息主题长度
             log.warn("putMessage message topic length too long " + msg.getTopic().length());
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
 
-        if (msg.getPropertiesString() != null && msg.getPropertiesString().length() > Short.MAX_VALUE) {
+        if (msg.getPropertiesString() != null && msg.getPropertiesString().length() > Short.MAX_VALUE) { //消息的最大长度
             log.warn("putMessage message properties length too long " + msg.getPropertiesString().length());
             return new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, null);
         }
@@ -344,7 +344,8 @@ public class DefaultMessageStore implements MessageStore {
             return new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, null);
         }
 
-        long beginTime = this.getSystemClock().now();
+        long beginTime = this.getSystemClock().now(); //获取系统时间
+        //开始消息存储
         PutMessageResult result = this.commitLog.putMessage(msg);
 
         long eclipseTime = this.getSystemClock().now() - beginTime;

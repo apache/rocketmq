@@ -29,22 +29,22 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
-public class MappedFileQueue {
+public class MappedFileQueue { //映射文件队列
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
     private static final int DELETE_FILES_BATCH_MAX = 10;
 
-    private final String storePath;
+    private final String storePath; //commit log 的存储目录
 
-    private final int mappedFileSize;
+    private final int mappedFileSize; //单个问价的存储大小
 
-    private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
+    private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>(); // commit log目录下的文件集合
 
-    private final AllocateMappedFileService allocateMappedFileService;
+    private final AllocateMappedFileService allocateMappedFileService;//创建mapperfile 的文件服务类
 
-    private long flushedWhere = 0;
-    private long committedWhere = 0;
+    private long flushedWhere = 0;//当前刷盘指针 表示该指针之前的所有数据全部持久化到磁盘
+    private long committedWhere = 0; //当前数据的提交指针 内存中ByteBuffer当前的写指针 committedWhere >= flushedWhere
 
     private volatile long storeTimestamp = 0;
 
@@ -74,15 +74,20 @@ public class MappedFileQueue {
         }
     }
 
+    /**
+     * /根据存储的时间戳查询 MappedFile
+     * @param timestamp 时间戳
+     * @return
+     */
     public MappedFile getMappedFileByTime(final long timestamp) {
-        Object[] mfs = this.copyMappedFiles(0);
+        Object[] mfs = this.copyMappedFiles(0); //获取所有的MappedFile
 
         if (null == mfs)
             return null;
 
-        for (int i = 0; i < mfs.length; i++) {
+        for (int i = 0; i < mfs.length; i++) { //遍历
             MappedFile mappedFile = (MappedFile) mfs[i];
-            if (mappedFile.getLastModifiedTimestamp() >= timestamp) {
+            if (mappedFile.getLastModifiedTimestamp() >= timestamp) { //判断上次修改时间 >= timestamp 的第一份文件
                 return mappedFile;
             }
         }
@@ -191,9 +196,15 @@ public class MappedFileQueue {
         return 0;
     }
 
+    /**
+     *
+     * @param startOffset 初始偏移量
+     * @param needCreate  是否需要重新创建爱 true 是
+     * @return
+     */
     public MappedFile getLastMappedFile(final long startOffset, boolean needCreate) {
         long createOffset = -1;
-        MappedFile mappedFileLast = getLastMappedFile();
+        MappedFile mappedFileLast = getLastMappedFile(); //获取最后一个写入的Commitlog 文件
 
         if (mappedFileLast == null) {
             createOffset = startOffset - (startOffset % this.mappedFileSize);
@@ -242,7 +253,7 @@ public class MappedFileQueue {
 
         while (!this.mappedFiles.isEmpty()) {
             try {
-                mappedFileLast = this.mappedFiles.get(this.mappedFiles.size() - 1);
+                mappedFileLast = this.mappedFiles.get(this.mappedFiles.size() - 1); //获取最后一个mappedFiles
                 break;
             } catch (IndexOutOfBoundsException e) {
                 //continue;
@@ -454,15 +465,15 @@ public class MappedFileQueue {
 
     /**
      * Finds a mapped file by offset.
-     *
+     * 根据偏移量查找mapped file
      * @param offset Offset.
      * @param returnFirstOnNotFound If the mapped file is not found, then return the first one.
      * @return Mapped file or null (when not found and returnFirstOnNotFound is <code>false</code>).
      */
     public MappedFile findMappedFileByOffset(final long offset, final boolean returnFirstOnNotFound) {
         try {
-            MappedFile firstMappedFile = this.getFirstMappedFile();
-            MappedFile lastMappedFile = this.getLastMappedFile();
+            MappedFile firstMappedFile = this.getFirstMappedFile();//获取第一个MappedFile
+            MappedFile lastMappedFile = this.getLastMappedFile();  //获取最后一个MappedFile
             if (firstMappedFile != null && lastMappedFile != null) {
                 if (offset < firstMappedFile.getFileFromOffset() || offset >= lastMappedFile.getFileFromOffset() + this.mappedFileSize) {
                     LOG_ERROR.warn("Offset not matched. Request offset: {}, firstOffset: {}, lastOffset: {}, mappedFileSize: {}, mappedFiles count: {}",

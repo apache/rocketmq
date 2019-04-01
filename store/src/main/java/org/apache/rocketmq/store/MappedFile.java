@@ -42,16 +42,16 @@ import org.apache.rocketmq.store.util.LibC;
 import sun.nio.ch.DirectBuffer;
 
 public class MappedFile extends ReferenceResource {
-    public static final int OS_PAGE_SIZE = 1024 * 4;
+    public static final int OS_PAGE_SIZE = 1024 * 4;  //操作系统每页的大小 默认4K
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    private static final AtomicLong TOTAL_MAPPED_VIRTUAL_MEMORY = new AtomicLong(0);
+    private static final AtomicLong TOTAL_MAPPED_VIRTUAL_MEMORY = new AtomicLong(0); //实际映射内存量
 
-    private static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0);
-    protected final AtomicInteger wrotePosition = new AtomicInteger(0);
+    private static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0); //映射文件总数
+    protected final AtomicInteger wrotePosition = new AtomicInteger(0); //文件写的位置
     //ADD BY ChenYang
-    protected final AtomicInteger committedPosition = new AtomicInteger(0);
-    private final AtomicInteger flushedPosition = new AtomicInteger(0);
+    protected final AtomicInteger committedPosition = new AtomicInteger(0); //commitlog 的位置
+    private final AtomicInteger flushedPosition = new AtomicInteger(0); //当前刷盘的位置
     protected int fileSize;
     protected FileChannel fileChannel;
     /**
@@ -198,19 +198,20 @@ public class MappedFile extends ReferenceResource {
         return appendMessagesInner(messageExtBatch, cb);
     }
 
+    //将消息追加到mappFile中
     public AppendMessageResult appendMessagesInner(final MessageExt messageExt, final AppendMessageCallback cb) {
         assert messageExt != null;
         assert cb != null;
 
-        int currentPos = this.wrotePosition.get();
+        int currentPos = this.wrotePosition.get(); //获取当前文件的写指针
 
-        if (currentPos < this.fileSize) {
-            ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
-            byteBuffer.position(currentPos);
+        if (currentPos < this.fileSize) {   //小于当前文件的最大值
+            ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice(); //创建一个mapperfile的共享区ByteBuffer
+            byteBuffer.position(currentPos); //设置currentPos 为当前指针
             AppendMessageResult result = null;
-            if (messageExt instanceof MessageExtBrokerInner) {
+            if (messageExt instanceof MessageExtBrokerInner) { //区分是单个消息
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBrokerInner) messageExt);
-            } else if (messageExt instanceof MessageExtBatch) {
+            } else if (messageExt instanceof MessageExtBatch) {//批量消息
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBatch) messageExt);
             } else {
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);

@@ -23,19 +23,19 @@ import org.apache.rocketmq.store.ConsumeQueue;
 public class MessageStoreConfig {
     //The root directory in which the log data is kept
     @ImportantField
-    private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
+    private String storePathRootDir = System.getProperty("user.home") + File.separator + "store"; //消息存储基的根路径
 
     //The directory in which the commitlog is kept
     @ImportantField
-    private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
+    private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store" //commitlog 存储路径
         + File.separator + "commitlog";
 
     // CommitLog file size,default is 1G
-    private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
+    private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;        //commitLog映射文件大小默认是1G
     // ConsumeQueue file size,default is 30W
-    private int mapedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
+    private int mapedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE; //映射消费队列 默认是30m
     // enable consume queue ext
-    private boolean enableConsumeQueueExt = false;
+    private boolean enableConsumeQueueExt = false;  //消费队列扩展属性
     // ConsumeQueue extend file size, 48M
     private int mappedFileSizeConsumeQueueExt = 48 * 1024 * 1024;
     // Bit count of filter bit map.
