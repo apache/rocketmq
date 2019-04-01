@@ -45,26 +45,27 @@ public class MappedFile extends ReferenceResource {
     public static final int OS_PAGE_SIZE = 1024 * 4;  //操作系统每页的大小 默认4K
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    private static final AtomicLong TOTAL_MAPPED_VIRTUAL_MEMORY = new AtomicLong(0); //实际映射内存量
+    private static final AtomicLong TOTAL_MAPPED_VIRTUAL_MEMORY = new AtomicLong(0); //当前JVM中MappedFIle的虚拟内存
 
-    private static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0); //映射文件总数
-    protected final AtomicInteger wrotePosition = new AtomicInteger(0); //文件写的位置
+    private static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0); //当前JVM中MappedFIle的个数
+    protected final AtomicInteger wrotePosition = new AtomicInteger(0); //当前该文件的写指针 从 0 开始 也是内存文件的写指针
     //ADD BY ChenYang
-    protected final AtomicInteger committedPosition = new AtomicInteger(0); //commitlog 的位置
-    private final AtomicInteger flushedPosition = new AtomicInteger(0); //当前刷盘的位置
-    protected int fileSize;
-    protected FileChannel fileChannel;
+    protected final AtomicInteger committedPosition = new AtomicInteger(0); //commitlog 的位置 当前文件的提交指针
+    //如果开启transientstore-poolEnable  则数据会存储早TransientStorePool
+    private final AtomicInteger flushedPosition = new AtomicInteger(0); //当前刷盘的位置 该指针之前的的全部序列化到磁盘之中
+    protected int fileSize;    //文件的大小
+    protected FileChannel fileChannel; //文件通道
     /**
      * Message will put to here first, and then reput to FileChannel if writeBuffer is not null.
      */
-    protected ByteBuffer writeBuffer = null;
+    protected ByteBuffer writeBuffer = null; //堆内存 如果不为null 数据会先存储在writeBuffer 然后提交到MappedFile 对应的buffer 文件
     protected TransientStorePool transientStorePool = null;
-    private String fileName;
-    private long fileFromOffset;
-    private File file;
-    private MappedByteBuffer mappedByteBuffer;
-    private volatile long storeTimestamp = 0;
-    private boolean firstCreateInQueue = false;
+    private String fileName; //文件名称
+    private long fileFromOffset; //该文件的初始偏移量
+    private File file;  //File 物理文件
+    private MappedByteBuffer mappedByteBuffer; // 物理文件映射buffer 内存
+    private volatile long storeTimestamp = 0; //文件最后一次写入时间
+    private boolean firstCreateInQueue = false; //是否是Mapper的Queue中的第一个文件
 
     public MappedFile() {
     }
