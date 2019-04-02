@@ -805,14 +805,14 @@ public class CommitLog {
 
         return -1;
     }
-
+    //获取commitLog的最小偏移量 也就是第一个文件的偏移量
     public long getMinOffset() {
-        MappedFile mappedFile = this.mappedFileQueue.getFirstMappedFile();
+        MappedFile mappedFile = this.mappedFileQueue.getFirstMappedFile(); //获取文件加下第一个文件
         if (mappedFile != null) {
-            if (mappedFile.isAvailable()) {
-                return mappedFile.getFileFromOffset();
+            if (mappedFile.isAvailable()) {//该文件可用
+                return mappedFile.getFileFromOffset();//直接返回文件的初始偏移量
             } else {
-                return this.rollNextFile(mappedFile.getFileFromOffset());
+                return this.rollNextFile(mappedFile.getFileFromOffset()); //返回下一个文件的偏移量
             }
         }
 
@@ -829,9 +829,12 @@ public class CommitLog {
         return null;
     }
 
-    public long rollNextFile(final long offset) {
-        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
-        return offset + mappedFileSize - offset % mappedFileSize;
+    public long rollNextFile(final long offset) { //offset 上一个文件的初始量
+        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog(); //获取每个mappffile 的文件大小
+
+        //这段代码保证了必定是下个文件的初始值 也就是第一个
+        return offset + mappedFileSize - offset % mappedFileSize; //上一个文件的偏移量 + 文件的容量 +  上个文件的初始量 % mappedFileSize
+
     }
 
     public HashMap<String, Long> getTopicQueueTable() {
