@@ -71,9 +71,14 @@ public class ClientLogger {
 
         Layout layout = LoggingBuilder.newLayoutBuilder().withDefaultLayout().build();
 
+/*
         rocketmqClientAppender = LoggingBuilder.newAppenderBuilder()
             .withRollingFileAppender(logFileName, maxFileSize, maxFileIndex)
             .withAsync(false, queueSize).withName(ROCKETMQ_CLIENT_APPENDER_NAME).withLayout(layout).build();
+*/
+        rocketmqClientAppender = LoggingBuilder.newAppenderBuilder()
+            .withConsoleAppender("System.out")
+            .withName(ROCKETMQ_CLIENT_APPENDER_NAME).withLayout(layout).build();
 
         Logger.getRootLogger().addAppender(rocketmqClientAppender);
     }
