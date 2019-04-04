@@ -18,59 +18,42 @@ package org.apache.rocketmq.common.protocol;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class NamespaceUtil {
     public static final char NAMESPACE_SEPARATOR = '%';
+    public static final String STRING_BLANK = "";
     public static final int RETRY_PREFIX_LENGTH = MixAll.RETRY_GROUP_TOPIC_PREFIX.length();
     public static final int DLQ_PREFIX_LENGTH = MixAll.DLQ_GROUP_TOPIC_PREFIX.length();
-
-    /**
-     * Parse namespace from request @see {@link RemotingCommand}, just like:
-     * (Topic_XXX, MQ_INST_XX) --> MQ_INST_XX%Topic_XXX
-     *
-     * @param request
-     * @param resource resource without namespace.
-     * @return resource with namespace.
-     */
-    public static String withNamespace(RemotingCommand request, String resource) {
-        return wrapNamespace(getNamespaceFromRequest(request), resource);
-    }
 
     /**
      * Unpack namespace from resource, just like:
      * (1) MQ_INST_XX%Topic_XXX --> Topic_XXX
      * (2) %RETRY%MQ_INST_XX%GID_XXX --> %RETRY%GID_XXX
      *
-     * @param resource
-     * @return
+     * @param resourceWithNamespace, topic/groupId with namespace.
+     * @return topic/groupId without namespace.
      */
-    public static String withoutNamespace(String resource) {
-        if (StringUtils.isEmpty(resource) || isSystemResource(resource)) {
-            return resource;
+    public static String withoutNamespace(String resourceWithNamespace) {
+        if (StringUtils.isEmpty(resourceWithNamespace) || isSystemResource(resourceWithNamespace)) {
+            return resourceWithNamespace;
         }
 
-        if (isRetryTopic(resource)) {
-            int index = resource.indexOf(NAMESPACE_SEPARATOR, RETRY_PREFIX_LENGTH);
-            if (index > 0) {
-                return MixAll.getRetryTopic(resource.substring(index + 1));
-            }
-            return resource;
+        StringBuffer strBuffer = new StringBuffer();
+        if (isRetryTopic(resourceWithNamespace)) {
+            strBuffer.append(MixAll.RETRY_GROUP_TOPIC_PREFIX);
+        }
+        if (isDLQTopic(resourceWithNamespace)) {
+            strBuffer.append(MixAll.DLQ_GROUP_TOPIC_PREFIX);
         }
 
-        if (isDLQTopic(resource)) {
-            int index = resource.indexOf(NAMESPACE_SEPARATOR, DLQ_PREFIX_LENGTH);
-            if (index > 0) {
-                return MixAll.getDLQTopic(resource.substring(index + 1));
-            }
-            return resource;
-        }
-
-        int index = resource.indexOf(NAMESPACE_SEPARATOR);
+        String resourceWithoutRetryAndDLQ = withOutRetryAndDLQ(resourceWithNamespace);
+        int index = resourceWithoutRetryAndDLQ.indexOf(NAMESPACE_SEPARATOR);
         if (index > 0) {
-            return resource.substring(index + 1);
+            String resourceWithoutNamespace = resourceWithoutRetryAndDLQ.substring(index + 1);
+            return strBuffer.append(resourceWithoutNamespace).toString();
         }
-        return resource;
+
+        return resourceWithNamespace;
     }
 
     /**
@@ -80,56 +63,44 @@ public class NamespaceUtil {
      * (3) (%RETRY%MQ_INST_XX1%GID_XXX1, MQ_INST_XX1) --> %RETRY%GID_XXX1
      * (4) (%RETRY%MQ_INST_XX2%GID_XXX2, MQ_INST_XX3) --> %RETRY%MQ_INST_XX2%GID_XXX2
      *
-     * @param resource
-     * @param namespace
-     * @return
+     * @param resourceWithNamespace, topic/groupId with namespace.
+     * @param namespace, namespace to be unpacked.
+     * @return topic/groupId without namespace.
      */
-    public static String withoutNamespace(String resource, String namespace) {
-        if (StringUtils.isEmpty(resource) || StringUtils.isEmpty(namespace)) {
-            return resource;
+    public static String withoutNamespace(String resourceWithNamespace, String namespace) {
+        if (StringUtils.isEmpty(resourceWithNamespace) || StringUtils.isEmpty(namespace)) {
+            return resourceWithNamespace;
         }
 
-        StringBuffer prefixBuffer = new StringBuffer();
-        if (isRetryTopic(resource)) {
-            prefixBuffer.append(MixAll.RETRY_GROUP_TOPIC_PREFIX);
-        } else if (isDLQTopic(resource)) {
-            prefixBuffer.append(MixAll.DLQ_GROUP_TOPIC_PREFIX);
-        }
-        prefixBuffer.append(namespace).append(NAMESPACE_SEPARATOR);
-
-        if (resource.startsWith(prefixBuffer.toString())) {
-            return withoutNamespace(resource);
+        String resourceWithoutRetryAndDLQ = withOutRetryAndDLQ(resourceWithNamespace);
+        if (resourceWithoutRetryAndDLQ.startsWith(namespace + NAMESPACE_SEPARATOR)) {
+            return withoutNamespace(resourceWithNamespace);
         }
 
-        return resource;
+        return resourceWithNamespace;
     }
 
-    public static String wrapNamespace(String namespace, String resource) {
-        if (StringUtils.isEmpty(namespace) || StringUtils.isEmpty(resource)) {
-            return resource;
+    public static String wrapNamespace(String namespace, String resourceWithOutNamespace) {
+        if (StringUtils.isEmpty(namespace) || StringUtils.isEmpty(resourceWithOutNamespace)) {
+            return resourceWithOutNamespace;
         }
 
-        if (isSystemResource(resource)) {
-            return resource;
+        if (isSystemResource(resourceWithOutNamespace) || isAlreadyWithNamespace(resourceWithOutNamespace, namespace)) {
+            return resourceWithOutNamespace;
         }
 
-        if (isAlreadyWithNamespace(resource, namespace)) {
-            return resource;
+        String resourceWithoutRetryAndDLQ = withOutRetryAndDLQ(resourceWithOutNamespace);
+        StringBuffer strBuffer = new StringBuffer();
+
+        if (isRetryTopic(resourceWithOutNamespace)) {
+            strBuffer.append(MixAll.RETRY_GROUP_TOPIC_PREFIX);
         }
 
-        StringBuffer strBuffer = new StringBuffer().append(namespace).append(NAMESPACE_SEPARATOR);
-
-        if (isRetryTopic(resource)) {
-            strBuffer.append(resource.substring(RETRY_PREFIX_LENGTH));
-            return strBuffer.insert(0, MixAll.RETRY_GROUP_TOPIC_PREFIX).toString();
+        if (isDLQTopic(resourceWithOutNamespace)) {
+            strBuffer.append(MixAll.DLQ_GROUP_TOPIC_PREFIX);
         }
 
-        if (isDLQTopic(resource)) {
-            strBuffer.append(resource.substring(DLQ_PREFIX_LENGTH));
-            return strBuffer.insert(0, MixAll.DLQ_GROUP_TOPIC_PREFIX).toString();
-        }
-
-        return strBuffer.append(resource).toString();
+        return strBuffer.append(namespace).append(NAMESPACE_SEPARATOR).append(resourceWithoutRetryAndDLQ).toString();
 
     }
 
@@ -138,19 +109,9 @@ public class NamespaceUtil {
             return false;
         }
 
-        if (isRetryTopic(resource)) {
-            resource = resource.substring(RETRY_PREFIX_LENGTH);
-        }
+        String resourceWithoutRetryAndDLQ = withOutRetryAndDLQ(resource);
 
-        if (isDLQTopic(resource)) {
-            resource = resource.substring(DLQ_PREFIX_LENGTH);
-        }
-
-        return resource.startsWith(namespace + NAMESPACE_SEPARATOR);
-    }
-
-    public static String withNamespaceAndRetry(RemotingCommand request, String consumerGroup) {
-        return wrapNamespaceAndRetry(getNamespaceFromRequest(request), consumerGroup);
+        return resourceWithoutRetryAndDLQ.startsWith(namespace + NAMESPACE_SEPARATOR);
     }
 
     public static String wrapNamespaceAndRetry(String namespace, String consumerGroup) {
@@ -164,51 +125,29 @@ public class NamespaceUtil {
             .toString();
     }
 
-    public static String getNamespaceFromRequest(RemotingCommand request) {
-        if (null == request || null == request.getExtFields()) {
-            return null;
-        }
-
-        String namespace;
-
-        switch (request.getCode()) {
-            case RequestCode.SEND_MESSAGE_V2:
-                namespace = request.getExtFields().get("n");
-                break;
-            default:
-                namespace = request.getExtFields().get("namespace");
-                break;
-        }
-
-        return namespace;
-    }
-
     public static String getNamespaceFromResource(String resource) {
         if (StringUtils.isEmpty(resource) || isSystemResource(resource)) {
-            return "";
+            return STRING_BLANK;
+        }
+        String resourceWithoutRetryAndDLQ = withOutRetryAndDLQ(resource);
+        int index = resourceWithoutRetryAndDLQ.indexOf(NAMESPACE_SEPARATOR);
+
+        return index > 0 ? resourceWithoutRetryAndDLQ.substring(0, index) : STRING_BLANK;
+    }
+
+    private static String withOutRetryAndDLQ(String originalResource) {
+        if (StringUtils.isEmpty(originalResource)) {
+            return STRING_BLANK;
+        }
+        if (isRetryTopic(originalResource)) {
+            return originalResource.substring(RETRY_PREFIX_LENGTH);
         }
 
-        if (isRetryTopic(resource)) {
-            int index = resource.indexOf(NAMESPACE_SEPARATOR, RETRY_PREFIX_LENGTH);
-            if (index > 0) {
-                return resource.substring(RETRY_PREFIX_LENGTH, index);
-            }
-            return "";
+        if (isDLQTopic(originalResource)) {
+            return originalResource.substring(DLQ_PREFIX_LENGTH);
         }
 
-        if (isDLQTopic(resource)) {
-            int index = resource.indexOf(NAMESPACE_SEPARATOR, DLQ_PREFIX_LENGTH);
-            if (index > 0) {
-                return resource.substring(DLQ_PREFIX_LENGTH, index);
-            }
-            return "";
-        }
-
-        int index = resource.indexOf(NAMESPACE_SEPARATOR);
-        if (index > 0) {
-            return resource.substring(0, index);
-        }
-        return "";
+        return originalResource;
     }
 
     private static boolean isSystemResource(String resource) {
@@ -216,11 +155,7 @@ public class NamespaceUtil {
             return false;
         }
 
-        if (MixAll.isSystemTopic(resource)) {
-            return true;
-        }
-
-        if (MixAll.isSysConsumerGroup(resource)) {
+        if (MixAll.isSystemTopic(resource) || MixAll.isSysConsumerGroup(resource)) {
             return true;
         }
 
@@ -228,18 +163,10 @@ public class NamespaceUtil {
     }
 
     public static boolean isRetryTopic(String resource) {
-        if (StringUtils.isEmpty(resource)) {
-            return false;
-        }
-
-        return resource.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
+        return StringUtils.isNotBlank(resource) && resource.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
     }
 
     public static boolean isDLQTopic(String resource) {
-        if (StringUtils.isEmpty(resource)) {
-            return false;
-        }
-
-        return resource.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX);
+        return StringUtils.isNotBlank(resource) && resource.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX);
     }
 }
