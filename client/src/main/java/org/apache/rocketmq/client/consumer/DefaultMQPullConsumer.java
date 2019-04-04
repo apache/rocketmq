@@ -186,7 +186,6 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         return brokerSuspendMaxTimeMillis;
     }
 
-
     /**
      * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
      */
@@ -243,12 +242,22 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         this.registerTopics = registerTopics;
     }
 
+    /**
+     * This method will be removed or it's visibility will be changed in a certain version after April 5, 2020, so
+     * please do not use this method.
+     */
+    @Deprecated
     @Override
     public void sendMessageBack(MessageExt msg, int delayLevel)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel, null);
     }
 
+    /**
+     * This method will be removed or it's visibility will be changed in a certain version after April 5, 2020, so
+     * please do not use this method.
+     */
+    @Deprecated
     @Override
     public void sendMessageBack(MessageExt msg, int delayLevel, String brokerName)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
@@ -384,7 +393,6 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     public OffsetStore getOffsetStore() {
         return offsetStore;
     }
-
 
     /**
      * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
