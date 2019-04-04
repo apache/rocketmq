@@ -818,12 +818,12 @@ public class CommitLog {
 
         return -1;
     }
-
+    //根据偏移量获取size 大小的消息
     public SelectMappedBufferResult getMessage(final long offset, final int size) {
-        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
-        MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, offset == 0);
+        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog(); //获取一个mappedFile的size
+        MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, offset == 0); //根据偏移量招待 对应的MappedFile
         if (mappedFile != null) {
-            int pos = (int) (offset % mappedFileSize);
+            int pos = (int) (offset % mappedFileSize); //取余获取在当前在
             return mappedFile.selectMappedBuffer(pos, size);
         }
         return null;

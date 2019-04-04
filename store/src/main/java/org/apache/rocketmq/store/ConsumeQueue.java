@@ -27,7 +27,7 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
 public class ConsumeQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    public static final int CQ_STORE_UNIT_SIZE = 20;
+    public static final int CQ_STORE_UNIT_SIZE = 20; //单个ConsumeQueue 的条目 8字节偏移量 4字节size
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
     private final DefaultMessageStore defaultMessageStore;
@@ -44,11 +44,11 @@ public class ConsumeQueue {
     private ConsumeQueueExt consumeQueueExt = null;
 
     public ConsumeQueue(
-        final String topic,
-        final int queueId,
-        final String storePath,
-        final int mappedFileSize,
-        final DefaultMessageStore defaultMessageStore) {
+        final String topic,   //主题
+        final int queueId,    //队列Id
+        final String storePath, // ConsumeQueue文件存储路径
+        final int mappedFileSize, //mappedFile 文件大熊啊
+        final DefaultMessageStore defaultMessageStore) { //文件存储类
         this.storePath = storePath;
         this.mappedFileSize = mappedFileSize;
         this.defaultMessageStore = defaultMessageStore;
@@ -76,7 +76,7 @@ public class ConsumeQueue {
     }
 
     public boolean load() {
-        boolean result = this.mappedFileQueue.load();
+        boolean result = this.mappedFileQueue.load(); //加载物理文件到mappeFile
         log.info("load consume queue " + this.topic + "-" + this.queueId + " " + (result ? "OK" : "Failed"));
         if (isExtReadEnable()) {
             result &= this.consumeQueueExt.load();
@@ -150,7 +150,7 @@ public class ConsumeQueue {
             }
         }
     }
-
+    //根据时间戳 定位偏移量 根据二分查找法定位
     public long getOffsetInQueueByTime(final long timestamp) {
         MappedFile mappedFile = this.mappedFileQueue.getMappedFileByTime(timestamp);
         if (mappedFile != null) {
@@ -482,10 +482,11 @@ public class ConsumeQueue {
         }
     }
 
+    //根基startIndex 获取获取消费队列条目
     public SelectMappedBufferResult getIndexBuffer(final long startIndex) {
         int mappedFileSize = this.mappedFileSize;
-        long offset = startIndex * CQ_STORE_UNIT_SIZE;
-        if (offset >= this.getMinLogicOffset()) {
+        long offset = startIndex * CQ_STORE_UNIT_SIZE;  //consumeQueue每个单位元20 个字节 获取偏移量
+        if (offset >= this.getMinLogicOffset()) { //小于最小的偏移量直接返回
             MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset);
             if (mappedFile != null) {
                 SelectMappedBufferResult result = mappedFile.selectMappedBuffer((int) (offset % mappedFileSize));
