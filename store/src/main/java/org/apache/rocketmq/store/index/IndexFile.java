@@ -27,9 +27,14 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.MappedFile;
 
+//index 文件 对应index文件下的文件
+
+/**
+ * index file IndexHeader hash槽 Hash条目
+ */
 public class IndexFile {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-    private static int hashSlotSize = 4;
+    private static int hashSlotSize = 4;   //哈希槽的长度
     private static int indexSize = 20;
     private static int invalidIndex = 0;
     private final int hashSlotNum;
@@ -91,8 +96,9 @@ public class IndexFile {
 
     public boolean putKey(final String key, final long phyOffset, final long storeTimestamp) {
         if (this.indexHeader.getIndexCount() < this.indexNum) {
-            int keyHash = indexKeyHashMethod(key);
-            int slotPos = keyHash % this.hashSlotNum;
+            int keyHash = indexKeyHashMethod(key); //根据key计算key的hashcode
+            int slotPos = keyHash % this.hashSlotNum; //定位到hash槽的下标
+            // hashcode对应的hash槽的物理地址 = 头部 + hash槽的下边 * hashSlotSize 每个hash槽的大小
             int absSlotPos = IndexHeader.INDEX_HEADER_SIZE + slotPos * hashSlotSize;
 
             FileLock fileLock = null;
@@ -101,11 +107,13 @@ public class IndexFile {
 
                 // fileLock = this.fileChannel.lock(absSlotPos, hashSlotSize,
                 // false);
-                int slotValue = this.mappedByteBuffer.getInt(absSlotPos);
+                int slotValue = this.mappedByteBuffer.getInt(absSlotPos); //读取hash槽的数据
+
+                //slotValue 小于零 或者 > 当前文件的索引值 置为0
                 if (slotValue <= invalidIndex || slotValue > this.indexHeader.getIndexCount()) {
                     slotValue = invalidIndex;
                 }
-
+                //计算待存储的消息时间戳 - 第一条消息的时间戳 并转换为妙
                 long timeDiff = storeTimestamp - this.indexHeader.getBeginTimestamp();
 
                 timeDiff = timeDiff / 1000;
@@ -118,16 +126,18 @@ public class IndexFile {
                     timeDiff = 0;
                 }
 
+                //计算新添加条目的起始物理偏移量
+                //头部字节长度 + 哈希槽数量*每个哈希槽大小 + 当前index条目个数 * 每个Index大小
                 int absIndexPos =
                     IndexHeader.INDEX_HEADER_SIZE + this.hashSlotNum * hashSlotSize
                         + this.indexHeader.getIndexCount() * indexSize;
 
-                this.mappedByteBuffer.putInt(absIndexPos, keyHash);
-                this.mappedByteBuffer.putLong(absIndexPos + 4, phyOffset);
-                this.mappedByteBuffer.putInt(absIndexPos + 4 + 8, (int) timeDiff);
-                this.mappedByteBuffer.putInt(absIndexPos + 4 + 8 + 4, slotValue);
+                this.mappedByteBuffer.putInt(absIndexPos, keyHash);//存放hashcode  4 字节
+                this.mappedByteBuffer.putLong(absIndexPos + 4, phyOffset); //存放消息对应的物理偏移量 8字节
+                this.mappedByteBuffer.putInt(absIndexPos + 4 + 8, (int) timeDiff);//存放与第一条消息的相差秒数 4字节
+                this.mappedByteBuffer.putInt(absIndexPos + 4 + 8 + 4, slotValue); //当前hash槽的值 为上一个条目的下标
 
-                this.mappedByteBuffer.putInt(absSlotPos, this.indexHeader.getIndexCount());
+                this.mappedByteBuffer.putInt(absSlotPos, this.indexHeader.getIndexCount()); //将当前Index包含的条目数量存入hash槽中覆盖原来的数据
 
                 if (this.indexHeader.getIndexCount() <= 1) {
                     this.indexHeader.setBeginPhyOffset(phyOffset);
@@ -186,6 +196,18 @@ public class IndexFile {
         return result;
     }
 
+
+    //根据key查找消息
+
+    /**
+     *
+     * @param phyOffsets 查找到消息物理偏移量
+     * @param key         索引key
+     * @param maxNum      本次查找的最大的消息条目
+     * @param begin       开始时间戳
+     * @param end         结束时间戳
+     * @param lock        对文件是否加锁
+     */
     public void selectPhyOffset(final List<Long> phyOffsets, final String key, final int maxNum,
         final long begin, final long end, boolean lock) {
         if (this.mappedFile.hold()) {

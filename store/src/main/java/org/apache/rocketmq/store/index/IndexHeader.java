@@ -20,14 +20,14 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class IndexHeader {
-    public static final int INDEX_HEADER_SIZE = 40;
-    private static int beginTimestampIndex = 0;
-    private static int endTimestampIndex = 8;
-    private static int beginPhyoffsetIndex = 16;
-    private static int endPhyoffsetIndex = 24;
-    private static int hashSlotcountIndex = 32;
-    private static int indexCountIndex = 36;
+public class IndexHeader { //index头部包含40节
+    public static final int INDEX_HEADER_SIZE = 40; //indexheader的大小
+    private static int beginTimestampIndex = 0;//该索引文件包含的最小存储时间
+    private static int endTimestampIndex = 8;// 该索引文件包含最大存储时间
+    private static int beginPhyoffsetIndex = 16;//该索引文件包含的最小偏移量 commitlog 文件的偏移量
+    private static int endPhyoffsetIndex = 24;// 最大偏移量 Commitlog 偏移量
+    private static int hashSlotcountIndex = 32;//hash槽的个数 并不是使用个数
+    private static int indexCountIndex = 36;//Index条目列表当前已经使用个数，Index天目在Index条目列表中按顺序存储
     private final ByteBuffer byteBuffer;
     private AtomicLong beginTimestamp = new AtomicLong(0);
     private AtomicLong endTimestamp = new AtomicLong(0);

@@ -207,11 +207,11 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     /**
-     * @throws Exception
+     * @throws Exception 启动消息存储
      */
     public void start() throws Exception {
 
-        lock = lockFile.getChannel().tryLock(0, 1, false);
+        lock = lockFile.getChannel().tryLock(0, 1, false); //获取文件锁
         if (lock == null || lock.isShared() || !lock.isValid()) {
             throw new RuntimeException("Lock failed,MQ already started");
         }
@@ -227,10 +227,10 @@ public class DefaultMessageStore implements MessageStore {
             this.scheduleMessageService.start();
         }
 
-        if (this.getMessageStoreConfig().isDuplicationEnable()) {
-            this.reputMessageService.setReputFromOffset(this.commitLog.getConfirmOffset());
+        if (this.getMessageStoreConfig().isDuplicationEnable()) {  //判断是否可以重复转发
+            this.reputMessageService.setReputFromOffset(this.commitLog.getConfirmOffset());//设置为commit 的提交指针
         } else {
-            this.reputMessageService.setReputFromOffset(this.commitLog.getMaxOffset());
+            this.reputMessageService.setReputFromOffset(this.commitLog.getMaxOffset());//最大的偏移量
         }
         this.reputMessageService.start();
 
