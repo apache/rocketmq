@@ -562,9 +562,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
     private String diskUtil() {
         double physicRatio = -1;
         if (this.brokerController.getMessageStoreConfig().isMultiCommitLogPathEnable()) {
-            for (String storePathPhysic : this.brokerController.getMessageStoreConfig().getCommitLogStorePaths()) {
-                physicRatio = Math.max(physicRatio, UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic));
-            }
+            physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(this.brokerController.getMessageStoreConfig().getCommitLogStorePaths());
         } else {
             String storePathPhysic = this.brokerController.getMessageStoreConfig().getStorePathCommitLog();
             physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);

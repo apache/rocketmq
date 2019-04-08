@@ -199,18 +199,20 @@ public class UtilAll {
         if (null == path || path.isEmpty())
             return -1;
 
+        String[] pathArr = path.trim().split(";");
         try {
-            File file = new File(path);
-
-            if (!file.exists())
-                return -1;
-
-            long totalSpace = file.getTotalSpace();
-
+            long totalSpace = 0;
+            long freeSpace = 0;
+            for (int i = 0;i < pathArr.length;i++) {
+                File file = new File(pathArr[i]);
+                if (!file.exists()) {
+                    continue;
+                }
+                totalSpace += file.getTotalSpace();
+                freeSpace += file.getFreeSpace();
+            }
             if (totalSpace > 0) {
-                long freeSpace = file.getFreeSpace();
                 long usedSpace = totalSpace - freeSpace;
-
                 return usedSpace / (double) totalSpace;
             }
         } catch (Exception e) {
