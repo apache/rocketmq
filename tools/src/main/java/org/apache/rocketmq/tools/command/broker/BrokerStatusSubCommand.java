@@ -23,7 +23,7 @@ import java.util.TreeMap;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.common.exception.MQBrokerException;
 import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;

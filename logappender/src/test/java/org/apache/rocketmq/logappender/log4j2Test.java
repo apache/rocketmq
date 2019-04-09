@@ -19,7 +19,7 @@ package org.apache.rocketmq.logappender;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
-import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.exception.MQClientException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

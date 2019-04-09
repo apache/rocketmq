@@ -17,7 +17,7 @@
 package org.apache.rocketmq.client.impl;
 
 import java.lang.reflect.Field;
-import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.common.exception.MQBrokerException;
 import org.apache.rocketmq.client.hook.SendMessageContext;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;

@@ -18,8 +18,8 @@ package org.apache.rocketmq.client.impl.consumer;
 
 import org.apache.rocketmq.client.consumer.MQRealPushConsumer;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
-import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.exception.MQBrokerException;
+import org.apache.rocketmq.common.exception.MQClientException;
 import org.apache.rocketmq.client.hook.ConsumeMessageContext;
 import org.apache.rocketmq.client.hook.ConsumeMessageHook;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;

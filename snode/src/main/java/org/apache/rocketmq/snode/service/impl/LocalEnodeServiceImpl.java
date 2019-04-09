@@ -27,7 +27,7 @@ import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.netty.CodecHelper;
 import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.snode.service.EnodeService;
+import org.apache.rocketmq.common.service.EnodeService;
 
 public class LocalEnodeServiceImpl implements EnodeService {
 

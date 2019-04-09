@@ -20,7 +20,7 @@ package org.apache.rocketmq.test.client.rmq;
 import java.util.List;
 import java.util.Map;
 import org.apache.log4j.Logger;
-import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.Message;

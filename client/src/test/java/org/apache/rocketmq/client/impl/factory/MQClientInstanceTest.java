@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
-import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.common.exception.MQBrokerException;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.consumer.MQConsumerInner;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;

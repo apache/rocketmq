@@ -22,7 +22,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.common.exception.MQBrokerException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
@@ -48,7 +48,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.serialize.RemotingSerializable;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.constant.SnodeConstant;
-import org.apache.rocketmq.snode.service.EnodeService;
+import org.apache.rocketmq.common.service.EnodeService;
 
 public class RemoteEnodeServiceImpl implements EnodeService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);

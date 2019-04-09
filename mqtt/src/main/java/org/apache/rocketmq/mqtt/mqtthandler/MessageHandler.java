@@ -18,7 +18,11 @@
 package org.apache.rocketmq.mqtt.mqtthandler;
 
 import io.netty.handler.codec.mqtt.MqttMessage;
+import org.apache.rocketmq.common.exception.MQClientException;
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface MessageHandler {
@@ -28,5 +32,5 @@ public interface MessageHandler {
      *
      * @param message
      */
-    RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel);
+    RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException;
 }

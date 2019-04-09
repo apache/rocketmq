@@ -18,8 +18,8 @@ package org.apache.rocketmq.client.consumer.store;
 
 import java.util.Map;
 import java.util.Set;
-import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.exception.MQBrokerException;
+import org.apache.rocketmq.common.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
