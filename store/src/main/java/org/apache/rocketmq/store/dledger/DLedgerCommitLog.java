@@ -99,12 +99,7 @@ public class DLedgerCommitLog extends CommitLog {
 
     @Override
     public boolean load() {
-        boolean result = super.load();
-        if (!result) {
-            return false;
-        }
-
-        return true;
+        return super.load();
     }
 
     private void refreshConfig() {
