@@ -18,7 +18,7 @@ package org.apache.rocketmq.example.simple;
 
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
-import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class PullConsumerTest {

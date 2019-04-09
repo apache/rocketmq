@@ -29,7 +29,7 @@ import org.apache.rocketmq.common.stats.StatsItemSet;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.snode.exception.SnodeException;
-import org.apache.rocketmq.snode.service.MetricsService;
+import org.apache.rocketmq.common.service.MetricsService;
 
 public class MetricsServiceImpl implements MetricsService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.ROCKETMQ_STATS_LOGGER_NAME);

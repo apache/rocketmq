@@ -34,8 +34,12 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.rocketmq.common.MqttConfig;
+import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.client.ClientManager;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.exception.MQClientException;
+import org.apache.rocketmq.common.service.EnodeService;
+import org.apache.rocketmq.common.service.NnodeService;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.mqtt.client.IOTClientManagerImpl;
@@ -58,6 +62,9 @@ import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.RequestProcessor;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
 import org.apache.rocketmq.remoting.util.MqttEncodeDecodeUtil;
@@ -74,12 +81,20 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
     private RemotingServer mqttRemotingServer;
     private MqttClientHousekeepingService mqttClientHousekeepingService;
     private MqttConfig mqttConfig;
+    private SnodeConfig snodeConfig;
+    private EnodeService enodeService;
+    private NnodeService nnodeService;
 
-    public DefaultMqttMessageProcessor(MqttConfig mqttConfig, RemotingServer mqttRemotingServer) {
+    public DefaultMqttMessageProcessor(MqttConfig mqttConfig, SnodeConfig snodeConfig, RemotingServer mqttRemotingServer,
+        EnodeService enodeService, NnodeService nnodeService) {
+        this.mqttConfig = mqttConfig;
+        this.snodeConfig = snodeConfig;
         this.willMessageService = new WillMessageServiceImpl();
         this.mqttPushService = new MqttPushServiceImpl(this, mqttConfig);
         this.iotClientManager = new IOTClientManagerImpl();
         this.mqttRemotingServer = mqttRemotingServer;
+        this.enodeService = enodeService;
+        this.nnodeService = nnodeService;
         this.mqttClientHousekeepingService = new MqttClientHousekeepingService(iotClientManager);
         this.mqttClientHousekeepingService.start(mqttConfig.getHouseKeepingInterval());
 
@@ -104,7 +119,7 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
 
     @Override
     public RemotingCommand processRequest(RemotingChannel remotingChannel, RemotingCommand message)
-        throws RemotingCommandException, UnsupportedEncodingException {
+        throws RemotingCommandException, UnsupportedEncodingException, InterruptedException, RemotingTimeoutException, MQClientException, RemotingSendRequestException, RemotingConnectException {
         MqttHeader mqttHeader = (MqttHeader) message.readCustomHeader();
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.valueOf(mqttHeader.getMessageType()),
             mqttHeader.isDup(), MqttQoS.valueOf(mqttHeader.getQosLevel()), mqttHeader.isRetain(),
@@ -163,7 +178,35 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
         return mqttConfig;
     }
 
+    public void setMqttConfig(MqttConfig mqttConfig) {
+        this.mqttConfig = mqttConfig;
+    }
+
+    public SnodeConfig getSnodeConfig() {
+        return snodeConfig;
+    }
+
+    public void setSnodeConfig(SnodeConfig snodeConfig) {
+        this.snodeConfig = snodeConfig;
+    }
+
     public RemotingServer getMqttRemotingServer() {
         return mqttRemotingServer;
+    }
+
+    public EnodeService getEnodeService() {
+        return enodeService;
+    }
+
+    public void setEnodeService(EnodeService enodeService) {
+        this.enodeService = enodeService;
+    }
+
+    public NnodeService getNnodeService() {
+        return nnodeService;
+    }
+
+    public void setNnodeService(NnodeService nnodeService) {
+        this.nnodeService = nnodeService;
     }
 }

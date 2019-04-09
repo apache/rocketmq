@@ -19,7 +19,7 @@ package org.apache.rocketmq.client;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;

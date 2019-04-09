@@ -43,7 +43,7 @@ import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.constant.SnodeConstant;
-import org.apache.rocketmq.snode.service.PushService;
+import org.apache.rocketmq.common.service.PushService;
 
 public class PushServiceImpl implements PushService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);

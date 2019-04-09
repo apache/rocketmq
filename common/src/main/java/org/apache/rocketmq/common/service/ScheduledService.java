@@ -14,11 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.exception;
+package org.apache.rocketmq.common.service;
 
-public class MQSnodeException extends MQBrokerException {
+public interface ScheduledService {
+    void startScheduleTask();
 
-    public MQSnodeException(int responseCode, String errorMessage) {
-        super(responseCode, errorMessage);
-    }
+    void shutdown();
 }
