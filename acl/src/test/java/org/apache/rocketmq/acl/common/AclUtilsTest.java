@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -147,7 +148,21 @@ public class AclUtilsTest {
         AclUtils.getYamlDataObject("src/test/resources/conf/plain_acl_format_error.yml", Map.class);
     }
 
+    @Test
+    public void getAclRPCHookTest() {
 
+        RPCHook errorContRPCHook = AclUtils.getAclRPCHook("src/test/resources/conf/plain_acl_format_error.yml");
+        Assert.assertNull(errorContRPCHook);
+
+        RPCHook noFileRPCHook = AclUtils.getAclRPCHook("src/test/resources/plain_acl_format_error1.yml");
+        Assert.assertNull(noFileRPCHook);
+
+        RPCHook emptyContRPCHook = AclUtils.getAclRPCHook("src/test/resources/conf/plain_acl_null.yml");
+        Assert.assertNull(emptyContRPCHook);
+
+        RPCHook incompleteContRPCHook = AclUtils.getAclRPCHook("src/test/resources/conf/plain_acl_incomplete.yml");
+        Assert.assertNull(incompleteContRPCHook);
+    }
 
 
 }
