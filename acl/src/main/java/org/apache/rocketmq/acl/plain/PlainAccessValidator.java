@@ -53,12 +53,12 @@ public class PlainAccessValidator implements AccessValidator {
             accessResource.setWhiteRemoteAddress(remoteAddr);
         }
 
+        accessResource.setRequestCode(request.getCode());
+
         if (request.getExtFields() == null) {
             //If request's extFields is null,then return accessResource directly(users can use whiteAddress pattern)
             return accessResource;
         }
-
-        accessResource.setRequestCode(request.getCode());
         accessResource.setAccessKey(request.getExtFields().get(SessionCredentials.ACCESS_KEY));
         accessResource.setSignature(request.getExtFields().get(SessionCredentials.SIGNATURE));
         accessResource.setSecretToken(request.getExtFields().get(SessionCredentials.SECURITY_TOKEN));
