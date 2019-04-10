@@ -249,11 +249,22 @@ public class MQAdminStartup {
     public static RPCHook getAclRPCHook() {
         String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
         String fileName = "/conf/tools.yml";
-        JSONObject yamlDataObject = AclUtils.getYamlDataObject(fileHome + fileName ,
+        JSONObject yamlDataObject = null;
+        try {
+            yamlDataObject = AclUtils.getYamlDataObject(fileHome + fileName,
                 JSONObject.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
 
-        if (yamlDataObject == null || yamlDataObject.isEmpty()) {
-            System.out.printf(" Cannot find conf file %s, acl is not be enabled.%n" ,fileHome + fileName);
+        if (yamlDataObject == null) {
+            System.out.printf("Cannot find conf file %s, acl isn't be enabled.%n" ,fileHome + fileName);
+            return null;
+        }
+
+        if (yamlDataObject.isEmpty()) {
+            System.out.printf("Content of conf file %s is empty, acl isn't be enabled.%n" ,fileHome + fileName);
             return null;
         }
 
