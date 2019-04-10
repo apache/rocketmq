@@ -116,7 +116,7 @@ public class PlainAccessValidatorTest {
         plainAccessValidator.validate(accessResource);
     }
 
-    @Test(expected = AclException.class)
+    @Test
     public void validateForAdminCommandWithOutAclRPCHook() {
         RemotingCommand consumerOffsetAdminRequest = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_CONSUMER_OFFSET, null);
         plainAccessValidator.parse(consumerOffsetAdminRequest, "192.168.0.1:9876");
