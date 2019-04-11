@@ -152,7 +152,7 @@ public class AclUtils {
             yamlDataObject = AclUtils.getYamlDataObject(fileName,
                 JSONObject.class);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("convert yaml file to data object error, ",e);
             return null;
         }
 
