@@ -55,11 +55,14 @@ public class PlainAccessValidator implements AccessValidator {
 
         accessResource.setRequestCode(request.getCode());
 
-        if (request.getExtFields() != null) {
-            accessResource.setAccessKey(request.getExtFields().get(SessionCredentials.ACCESS_KEY));
-            accessResource.setSignature(request.getExtFields().get(SessionCredentials.SIGNATURE));
-            accessResource.setSecretToken(request.getExtFields().get(SessionCredentials.SECURITY_TOKEN));
+        if (request.getExtFields() == null) {
+            //If request's extFields is null,then return accessResource directly(users can use whiteAddress pattern)
+            //The following logic codes depend on the request's extFields not to be null.
+            return accessResource;
         }
+        accessResource.setAccessKey(request.getExtFields().get(SessionCredentials.ACCESS_KEY));
+        accessResource.setSignature(request.getExtFields().get(SessionCredentials.SIGNATURE));
+        accessResource.setSecretToken(request.getExtFields().get(SessionCredentials.SECURITY_TOKEN));
 
         try {
             switch (request.getCode()) {
@@ -114,11 +117,6 @@ public class PlainAccessValidator implements AccessValidator {
             }
         } catch (Throwable t) {
             throw new AclException(t.getMessage(), t);
-        }
-
-        if (request.getExtFields() == null) {
-            //If request's extFields is null,then return accessResource firstly
-            return accessResource;
         }
 
         // Content
