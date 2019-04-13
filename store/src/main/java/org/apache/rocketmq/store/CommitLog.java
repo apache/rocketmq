@@ -922,7 +922,7 @@ public class CommitLog {
                 int commitDataThoroughInterval =
                     CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogThoroughInterval(); //俩次真实提交额最大间隔，默认200ms
 
-                long begin = System.currentTimeMillis();
+                long begin = System.currentTimeMillis(); //记录开始追加时间
                 if (begin >= (this.lastCommitTimestamp + commitDataThoroughInterval)) {
                     this.lastCommitTimestamp = begin;
                     commitDataLeastPages = 0;
