@@ -40,18 +40,16 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     protected final transient DefaultMQPullConsumerImpl defaultMQPullConsumerImpl;
 
     /**
-     * Do the same thing for the same Group, the application must be set,and
-     * guarantee Globally unique
+     * Do the same thing for the same Group, the application must be set,and guarantee Globally unique
      */
     private String consumerGroup;
     /**
-     * Long polling mode, the Consumer connection max suspend time, it is not
-     * recommended to modify
+     * Long polling mode, the Consumer connection max suspend time, it is not recommended to modify
      */
     private long brokerSuspendMaxTimeMillis = 1000 * 20;
     /**
-     * Long polling mode, the Consumer connection timeout(must greater than
-     * brokerSuspendMaxTimeMillis), it is not recommended to modify
+     * Long polling mode, the Consumer connection timeout(must greater than brokerSuspendMaxTimeMillis), it is not
+     * recommended to modify
      */
     private long consumerTimeoutMillisWhenSuspend = 1000 * 30;
     /**
@@ -102,42 +100,74 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         this(MixAll.DEFAULT_CONSUMER_GROUP, rpcHook);
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     @Override
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
         createTopic(key, newTopic, queueNum, 0);
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     @Override
     public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
         this.defaultMQPullConsumerImpl.createTopic(key, newTopic, queueNum, topicSysFlag);
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     @Override
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
         return this.defaultMQPullConsumerImpl.searchOffset(mq, timestamp);
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     @Override
     public long maxOffset(MessageQueue mq) throws MQClientException {
         return this.defaultMQPullConsumerImpl.maxOffset(mq);
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     @Override
     public long minOffset(MessageQueue mq) throws MQClientException {
         return this.defaultMQPullConsumerImpl.minOffset(mq);
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     @Override
     public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
         return this.defaultMQPullConsumerImpl.earliestMsgStoreTime(mq);
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     @Override
     public MessageExt viewMessage(String offsetMsgId) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException {
         return this.defaultMQPullConsumerImpl.viewMessage(offsetMsgId);
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     @Override
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
         throws MQClientException, InterruptedException {
@@ -156,6 +186,10 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         return brokerSuspendMaxTimeMillis;
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     public void setBrokerSuspendMaxTimeMillis(long brokerSuspendMaxTimeMillis) {
         this.brokerSuspendMaxTimeMillis = brokerSuspendMaxTimeMillis;
     }
@@ -208,12 +242,22 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         this.registerTopics = registerTopics;
     }
 
+    /**
+     * This method will be removed or it's visibility will be changed in a certain version after April 5, 2020, so
+     * please do not use this method.
+     */
+    @Deprecated
     @Override
     public void sendMessageBack(MessageExt msg, int delayLevel)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel, null);
     }
 
+    /**
+     * This method will be removed or it's visibility will be changed in a certain version after April 5, 2020, so
+     * please do not use this method.
+     */
+    @Deprecated
     @Override
     public void sendMessageBack(MessageExt msg, int delayLevel, String brokerName)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
@@ -342,14 +386,26 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel, brokerName, consumerGroup);
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     public OffsetStore getOffsetStore() {
         return offsetStore;
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     public void setOffsetStore(OffsetStore offsetStore) {
         this.offsetStore = offsetStore;
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     public DefaultMQPullConsumerImpl getDefaultMQPullConsumerImpl() {
         return defaultMQPullConsumerImpl;
     }

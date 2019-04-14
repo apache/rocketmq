@@ -160,7 +160,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Max consumer thread number
      */
-    private int consumeThreadMax = 64;
+    private int consumeThreadMax = 20;
 
     /**
      * Threshold for dynamic adjustment of the number of thread pool
@@ -346,48 +346,84 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this(consumerGroup, null, new AllocateMessageQueueAveragely());
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     @Override
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
         createTopic(key, newTopic, queueNum, 0);
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     @Override
     public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
         this.defaultMQPushConsumerImpl.createTopic(key, newTopic, queueNum, topicSysFlag);
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     @Override
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
         return this.defaultMQPushConsumerImpl.searchOffset(mq, timestamp);
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     @Override
     public long maxOffset(MessageQueue mq) throws MQClientException {
         return this.defaultMQPushConsumerImpl.maxOffset(mq);
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     @Override
     public long minOffset(MessageQueue mq) throws MQClientException {
         return this.defaultMQPushConsumerImpl.minOffset(mq);
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     @Override
     public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
         return this.defaultMQPushConsumerImpl.earliestMsgStoreTime(mq);
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     @Override
     public MessageExt viewMessage(
         String offsetMsgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         return this.defaultMQPushConsumerImpl.viewMessage(offsetMsgId);
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     @Override
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
         throws MQClientException, InterruptedException {
         return this.defaultMQPushConsumerImpl.queryMessage(topic, key, maxNum, begin, end);
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     @Override
     public MessageExt viewMessage(String topic,
         String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
@@ -456,6 +492,10 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.consumeThreadMin = consumeThreadMin;
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     public DefaultMQPushConsumerImpl getDefaultMQPushConsumerImpl() {
         return defaultMQPushConsumerImpl;
     }
@@ -528,12 +568,19 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         return subscription;
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     public void setSubscription(Map<String, String> subscription) {
         this.subscription = subscription;
     }
 
     /**
      * Send message back to broker which will be re-delivered in future.
+     *
+     * This method will be removed or it's visibility will be changed in a certain version after April 5, 2020, so
+     * please do not use this method.
      *
      * @param msg Message to send back.
      * @param delayLevel delay level.
@@ -542,6 +589,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @throws InterruptedException if the thread is interrupted.
      * @throws MQClientException if there is any client error.
      */
+    @Deprecated
     @Override
     public void sendMessageBack(MessageExt msg, int delayLevel)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
@@ -552,6 +600,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Send message back to the broker whose name is <code>brokerName</code> and the message will be re-delivered in
      * future.
      *
+     * This method will be removed or it's visibility will be changed in a certain version after April 5, 2020, so
+     * please do not use this method.
+     *
      * @param msg Message to send back.
      * @param delayLevel delay level.
      * @param brokerName broker name.
@@ -560,6 +611,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @throws InterruptedException if the thread is interrupted.
      * @throws MQClientException if there is any client error.
      */
+    @Deprecated
     @Override
     public void sendMessageBack(MessageExt msg, int delayLevel, String brokerName)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
@@ -702,10 +754,18 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.defaultMQPushConsumerImpl.resume();
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     public OffsetStore getOffsetStore() {
         return offsetStore;
     }
 
+    /**
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     */
+    @Deprecated
     public void setOffsetStore(OffsetStore offsetStore) {
         this.offsetStore = offsetStore;
     }
