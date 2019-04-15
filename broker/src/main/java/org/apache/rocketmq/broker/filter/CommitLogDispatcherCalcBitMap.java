@@ -19,11 +19,11 @@ package org.apache.rocketmq.broker.filter;
 
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.filter.util.BitsArray;
 import org.apache.rocketmq.store.CommitLogDispatcher;
 import org.apache.rocketmq.store.DispatchRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -33,7 +33,7 @@ import java.util.Iterator;
  */
 public class CommitLogDispatcherCalcBitMap implements CommitLogDispatcher {
 
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.FILTER_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.FILTER_LOGGER_NAME);
 
     protected final BrokerConfig brokerConfig;
     protected final ConsumerFilterManager consumerFilterManager;

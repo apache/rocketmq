@@ -23,17 +23,17 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * BrokerFastFailure will cover {@link BrokerController#sendThreadPoolQueue} and
  * {@link BrokerController#pullThreadPoolQueue}
  */
 public class BrokerFastFailure {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "BrokerFastFailureScheduledThread"));
     private final BrokerController brokerController;
@@ -44,8 +44,10 @@ public class BrokerFastFailure {
 
     public static RequestTask castRunnable(final Runnable runnable) {
         try {
-            FutureTaskExt object = (FutureTaskExt) runnable;
-            return (RequestTask) object.getRunnable();
+            if (runnable instanceof FutureTaskExt) {
+                FutureTaskExt object = (FutureTaskExt) runnable;
+                return (RequestTask) object.getRunnable();
+            }
         } catch (Throwable e) {
             log.error(String.format("castRunnable exception, %s", runnable.getClass().getName()), e);
         }
@@ -87,6 +89,12 @@ public class BrokerFastFailure {
 
         cleanExpiredRequestInQueue(this.brokerController.getPullThreadPoolQueue(),
             this.brokerController.getBrokerConfig().getWaitTimeMillsInPullQueue());
+
+        cleanExpiredRequestInQueue(this.brokerController.getHeartbeatThreadPoolQueue(),
+            this.brokerController.getBrokerConfig().getWaitTimeMillsInHeartbeatQueue());
+
+        cleanExpiredRequestInQueue(this.brokerController.getEndTransactionThreadPoolQueue(), this
+            .brokerController.getBrokerConfig().getWaitTimeMillsInTransactionQueue());
     }
 
     void cleanExpiredRequestInQueue(final BlockingQueue<Runnable> blockingQueue, final long maxWaitTimeMillsInQueue) {

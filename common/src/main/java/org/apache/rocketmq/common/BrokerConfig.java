@@ -16,18 +16,17 @@
  */
 package org.apache.rocketmq.common;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 public class BrokerConfig {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
     @ImportantField
@@ -52,7 +51,10 @@ public class BrokerConfig {
     @ImportantField
     private boolean autoCreateSubscriptionGroup = true;
     private String messageStorePlugIn = "";
-
+    @ImportantField
+    private String msgTraceTopicName = MixAll.RMQ_SYS_TRACE_TOPIC;
+    @ImportantField
+    private boolean traceTopicEnable = false;
     /**
      * thread numbers for send message thread pool, since spin lock will be used by default since 4.0.x, the default
      * value is 1.
@@ -64,6 +66,12 @@ public class BrokerConfig {
     private int adminBrokerThreadPoolNums = 16;
     private int clientManageThreadPoolNums = 32;
     private int consumerManageThreadPoolNums = 32;
+    private int heartbeatThreadPoolNums = Math.min(32, Runtime.getRuntime().availableProcessors());
+
+    /**
+     * Thread numbers for EndTransactionProcessor
+     */
+    private int endTransactionThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors() * 2;
 
     private int flushConsumerOffsetInterval = 1000 * 5;
 
@@ -78,6 +86,8 @@ public class BrokerConfig {
     private int queryThreadPoolQueueCapacity = 20000;
     private int clientManagerThreadPoolQueueCapacity = 1000000;
     private int consumerManagerThreadPoolQueueCapacity = 1000000;
+    private int heartbeatThreadPoolQueueCapacity = 50000;
+    private int endTransactionPoolQueueCapacity = 100000;
 
     private int filterServerNums = 0;
 
@@ -109,6 +119,8 @@ public class BrokerConfig {
     private boolean brokerFastFailureEnable = true;
     private long waitTimeMillsInSendQueue = 200;
     private long waitTimeMillsInPullQueue = 5 * 1000;
+    private long waitTimeMillsInHeartbeatQueue = 31 * 1000;
+    private long waitTimeMillsInTransactionQueue = 3 * 1000;
 
     private long startAcceptSendRequestTimeStamp = 0L;
 
@@ -132,6 +144,51 @@ public class BrokerConfig {
     // whether do filter when retry.
     private boolean filterSupportRetry = false;
     private boolean enablePropertyFilter = false;
+
+    private boolean compressedRegister = false;
+
+    private boolean forceRegister = true;
+
+    /**
+     * This configurable item defines interval of topics registration of broker to name server. Allowing values are
+     * between 10, 000 and 60, 000 milliseconds.
+     */
+    private int registerNameServerPeriod = 1000 * 30;
+
+    /**
+     * The minimum time of the transactional message  to be checked firstly, one message only exceed this time interval
+     * that can be checked.
+     */
+    @ImportantField
+    private long transactionTimeOut = 6 * 1000;
+
+    /**
+     * The maximum number of times the message was checked, if exceed this value, this message will be discarded.
+     */
+    @ImportantField
+    private int transactionCheckMax = 15;
+
+    /**
+     * Transaction message check interval.
+     */
+    @ImportantField
+    private long transactionCheckInterval = 60 * 1000;
+
+    /**
+     * Acl feature switch
+     */
+    @ImportantField
+    private boolean aclEnable = false;
+
+    public static String localHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            log.error("Failed to obtain the host name", e);
+        }
+
+        return "DEFAULT_BROKER";
+    }
 
     public boolean isTraceOn() {
         return traceOn;
@@ -195,16 +252,6 @@ public class BrokerConfig {
 
     public void setSlaveReadEnable(final boolean slaveReadEnable) {
         this.slaveReadEnable = slaveReadEnable;
-    }
-
-    public static String localHostName() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            log.error("Failed to obtain the host name", e);
-        }
-
-        return "DEFAULT_BROKER";
     }
 
     public int getRegisterBrokerTimeoutMills() {
@@ -597,5 +644,125 @@ public class BrokerConfig {
 
     public void setEnablePropertyFilter(boolean enablePropertyFilter) {
         this.enablePropertyFilter = enablePropertyFilter;
+    }
+
+    public boolean isCompressedRegister() {
+        return compressedRegister;
+    }
+
+    public void setCompressedRegister(boolean compressedRegister) {
+        this.compressedRegister = compressedRegister;
+    }
+
+    public boolean isForceRegister() {
+        return forceRegister;
+    }
+
+    public void setForceRegister(boolean forceRegister) {
+        this.forceRegister = forceRegister;
+    }
+
+    public int getHeartbeatThreadPoolQueueCapacity() {
+        return heartbeatThreadPoolQueueCapacity;
+    }
+
+    public void setHeartbeatThreadPoolQueueCapacity(int heartbeatThreadPoolQueueCapacity) {
+        this.heartbeatThreadPoolQueueCapacity = heartbeatThreadPoolQueueCapacity;
+    }
+
+    public int getHeartbeatThreadPoolNums() {
+        return heartbeatThreadPoolNums;
+    }
+
+    public void setHeartbeatThreadPoolNums(int heartbeatThreadPoolNums) {
+        this.heartbeatThreadPoolNums = heartbeatThreadPoolNums;
+    }
+
+    public long getWaitTimeMillsInHeartbeatQueue() {
+        return waitTimeMillsInHeartbeatQueue;
+    }
+
+    public void setWaitTimeMillsInHeartbeatQueue(long waitTimeMillsInHeartbeatQueue) {
+        this.waitTimeMillsInHeartbeatQueue = waitTimeMillsInHeartbeatQueue;
+    }
+
+    public int getRegisterNameServerPeriod() {
+        return registerNameServerPeriod;
+    }
+
+    public void setRegisterNameServerPeriod(int registerNameServerPeriod) {
+        this.registerNameServerPeriod = registerNameServerPeriod;
+    }
+
+    public long getTransactionTimeOut() {
+        return transactionTimeOut;
+    }
+
+    public void setTransactionTimeOut(long transactionTimeOut) {
+        this.transactionTimeOut = transactionTimeOut;
+    }
+
+    public int getTransactionCheckMax() {
+        return transactionCheckMax;
+    }
+
+    public void setTransactionCheckMax(int transactionCheckMax) {
+        this.transactionCheckMax = transactionCheckMax;
+    }
+
+    public long getTransactionCheckInterval() {
+        return transactionCheckInterval;
+    }
+
+    public void setTransactionCheckInterval(long transactionCheckInterval) {
+        this.transactionCheckInterval = transactionCheckInterval;
+    }
+
+    public int getEndTransactionThreadPoolNums() {
+        return endTransactionThreadPoolNums;
+    }
+
+    public void setEndTransactionThreadPoolNums(int endTransactionThreadPoolNums) {
+        this.endTransactionThreadPoolNums = endTransactionThreadPoolNums;
+    }
+
+    public int getEndTransactionPoolQueueCapacity() {
+        return endTransactionPoolQueueCapacity;
+    }
+
+    public void setEndTransactionPoolQueueCapacity(int endTransactionPoolQueueCapacity) {
+        this.endTransactionPoolQueueCapacity = endTransactionPoolQueueCapacity;
+    }
+
+    public long getWaitTimeMillsInTransactionQueue() {
+        return waitTimeMillsInTransactionQueue;
+    }
+
+    public void setWaitTimeMillsInTransactionQueue(long waitTimeMillsInTransactionQueue) {
+        this.waitTimeMillsInTransactionQueue = waitTimeMillsInTransactionQueue;
+    }
+
+    public String getMsgTraceTopicName() {
+        return msgTraceTopicName;
+    }
+
+    public void setMsgTraceTopicName(String msgTraceTopicName) {
+        this.msgTraceTopicName = msgTraceTopicName;
+    }
+    
+    public boolean isTraceTopicEnable() {
+        return traceTopicEnable;
+    }
+
+    public void setTraceTopicEnable(boolean traceTopicEnable) {
+        this.traceTopicEnable = traceTopicEnable;
+    }
+
+    public boolean isAclEnable() {
+        return aclEnable;
+    }
+
+    public void setAclEnable(boolean aclEnable) {
+        this.aclEnable = aclEnable;
     }
 }

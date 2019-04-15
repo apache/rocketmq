@@ -59,7 +59,7 @@ import org.apache.rocketmq.tools.admin.api.MessageTrack;
 public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     private final DefaultMQAdminExtImpl defaultMQAdminExtImpl;
     private String adminExtGroup = "admin_ext_group";
-    private String createTopicKey = MixAll.DEFAULT_TOPIC;
+    private String createTopicKey = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
     private long timeoutMillis = 5000;
 
     public DefaultMQAdminExt() {
