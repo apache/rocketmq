@@ -36,6 +36,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -63,6 +65,7 @@ import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -362,6 +365,26 @@ public class MQClientInstance {
         }
     }
 
+    /**
+     *
+     * @param offsetTable
+     * @param namespace
+     * @return newOffsetTable
+     */
+    public Map<MessageQueue, Long> parseOffsetTableFromBroker(Map<MessageQueue, Long> offsetTable, String namespace) {
+        HashMap<MessageQueue, Long> newOffsetTable = new HashMap<MessageQueue, Long>();
+        if (StringUtils.isNotEmpty(namespace)) {
+            for (Entry<MessageQueue, Long> entry : offsetTable.entrySet()) {
+                MessageQueue queue = entry.getKey();
+                queue.setTopic(NamespaceUtil.withoutNamespace(queue.getTopic(), namespace));
+                newOffsetTable.put(queue, entry.getValue());
+            }
+        } else {
+            newOffsetTable.putAll(offsetTable);
+        }
+
+        return newOffsetTable;
+    }
     /**
      * Remove offline broker
      */
@@ -1219,5 +1242,9 @@ public class MQClientInstance {
 
     public NettyClientConfig getNettyClientConfig() {
         return nettyClientConfig;
+    }
+
+    public ClientConfig getClientConfig() {
+        return clientConfig;
     }
 }
