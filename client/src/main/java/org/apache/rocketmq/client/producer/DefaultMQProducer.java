@@ -150,6 +150,15 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Constructor specifying producer group.
      *
      * @param producerGroup Producer group, see the name-sake field.
+     */
+    public DefaultMQProducer(final String producerGroup) {
+        this(null, producerGroup, null);
+    }
+
+    /**
+     * Constructor specifying producer group.
+     *
+     * @param producerGroup Producer group, see the name-sake field.
      * @param rpcHook RPC hook to execute per each remoting command execution.
      * @param enableMsgTrace Switch flag instance for message trace.
      * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
@@ -226,18 +235,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     public DefaultMQProducer(final String producerGroup, boolean enableMsgTrace, final String customizedTraceTopic) {
         this(null, producerGroup, null, enableMsgTrace, customizedTraceTopic);
-    }
-
-    /**
-     * Constructor specifying producer group, RPC hook, enabled msgTrace flag and customized trace topic name.
-     *
-     * @param producerGroup Producer group, see the name-sake field.
-     * @param rpcHook RPC hook to execute per each remoting command execution.
-     * @param enableMsgTrace Switch flag instance for message trace.
-     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
-     */
-    public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,final String customizedTraceTopic) {
-        this(null, producerGroup, rpcHook, enableMsgTrace, customizedTraceTopic);
     }
 
     /**
