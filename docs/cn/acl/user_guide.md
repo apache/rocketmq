@@ -1,6 +1,6 @@
 # 权限控制
-## 前言
-该文档主要介绍如何快速部署和使用支持权限控制特性的RocketMQ 集群。
+----
+
 
 ## 1.权限控制特性介绍
 权限控制（ACL）主要为RocketMQ提供Topic资源级别的用户访问控制。用户在使用RocketMQ权限控制时，可以在Client客户端通过 RPCHook注入AccessKey和SecretKey签名；同时，将对应的权限控制属性（包括Topic访问权限、IP白名单和AccessKey和SecretKey签名等）设置在distribution/conf/plain_acl.yml的配置文件中。Broker端对AccessKey所拥有的权限进行校验，校验不过，抛出异常；
