@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.acl.common;
 
+import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -133,9 +134,20 @@ public class AclUtilsTest {
         Assert.assertFalse(map.isEmpty());
     }
 
-    @Test(expected = Exception.class)
-    public void getYamlDataObjectExceptionTest() {
+    @Test
+    public void getYamlDataIgnoreFileNotFoundExceptionTest() {
 
-        AclUtils.getYamlDataObject("plain_acl.yml", Map.class);
+        JSONObject yamlDataObject = AclUtils.getYamlDataObject("plain_acl.yml", JSONObject.class);
+        Assert.assertTrue(yamlDataObject == null);
     }
+
+    @Test(expected = Exception.class)
+    public void getYamlDataExceptionTest() {
+
+        AclUtils.getYamlDataObject("src/test/resources/conf/plain_acl_format_error.yml", Map.class);
+    }
+
+
+
+
 }

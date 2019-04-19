@@ -40,7 +40,6 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 
 /**
  * This class is the entry point for applications intending to send messages.
@@ -151,9 +150,27 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Constructor specifying producer group.
      *
      * @param producerGroup Producer group, see the name-sake field.
+     * @param rpcHook RPC hook to execute per each remoting command execution.
+     * @param enableMsgTrace Switch flag instance for message trace.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
+     * trace topic name.
      */
-    public DefaultMQProducer(final String producerGroup) {
-        this(null, producerGroup, null);
+    public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,
+        final String customizedTraceTopic) {
+        this.producerGroup = producerGroup;
+        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
+        //if client open the message trace feature
+        if (enableMsgTrace) {
+            try {
+                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(customizedTraceTopic, rpcHook);
+                dispatcher.setHostProducer(this.defaultMQProducerImpl);
+                traceDispatcher = dispatcher;
+                this.defaultMQProducerImpl.registerSendMessageHook(
+                    new SendMessageTraceHookImpl(traceDispatcher));
+            } catch (Throwable e) {
+                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+            }
+        }
     }
 
     /**
@@ -199,13 +216,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this(null, producerGroup, null, enableMsgTrace, null);
     }
 
-
     /**
      * Constructor specifying producer group, enabled msgTrace flag and customized trace topic name.
      *
      * @param producerGroup Producer group, see the name-sake field.
      * @param enableMsgTrace Switch flag instance for message trace.
-     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
+     * trace topic name.
      */
     public DefaultMQProducer(final String producerGroup, boolean enableMsgTrace, final String customizedTraceTopic) {
         this(null, producerGroup, null, enableMsgTrace, customizedTraceTopic);
@@ -347,9 +364,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * This method returns immediately. On sending completion, <code>sendCallback</code> will be executed.
      * </p>
      *
-     * Similar to {@link #send(Message)}, internal implementation would potentially retry up to
-     * {@link #retryTimesWhenSendAsyncFailed} times before claiming sending failure, which may yield message duplication
-     * and application developers are the one to resolve this potential issue.
+     * Similar to {@link #send(Message)}, internal implementation would potentially retry up to {@link
+     * #retryTimesWhenSendAsyncFailed} times before claiming sending failure, which may yield message duplication and
+     * application developers are the one to resolve this potential issue.
      *
      * @param msg Message to send.
      * @param sendCallback Callback to execute on sending completed, either successful or unsuccessful.
@@ -599,6 +616,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * This method is used to send transactional messages.
+     *
      * @param msg Transactional message to send.
      * @param arg Argument used along with local transaction executor.
      * @return Transaction result.
@@ -611,20 +629,22 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Create a topic on broker.
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
      *
      * @param key accesskey
      * @param newTopic topic name
      * @param queueNum topic's queue number
      * @throws MQClientException if there is any client error.
      */
+    @Deprecated
     @Override
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
         createTopic(key, withNamespace(newTopic), queueNum, 0);
     }
 
     /**
-     * Create a topic on broker.
+     * Create a topic on broker. This method will be removed in a certain version after April 5, 2020, so please do not
+     * use this method.
      *
      * @param key accesskey
      * @param newTopic topic name
@@ -632,6 +652,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @param topicSysFlag topic system flag
      * @throws MQClientException if there is any client error.
      */
+    @Deprecated
     @Override
     public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
         this.defaultMQProducerImpl.createTopic(key, withNamespace(newTopic), queueNum, topicSysFlag);
@@ -653,10 +674,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Query maximum offset of the given message queue.
      *
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     *
      * @param mq Instance of MessageQueue
      * @return maximum offset of the given consume queue.
      * @throws MQClientException if there is any client error.
      */
+    @Deprecated
     @Override
     public long maxOffset(MessageQueue mq) throws MQClientException {
         return this.defaultMQProducerImpl.maxOffset(queueWithNamespace(mq));
@@ -665,10 +689,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Query minimum offset of the given message queue.
      *
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     *
      * @param mq Instance of MessageQueue
      * @return minimum offset of the given message queue.
      * @throws MQClientException if there is any client error.
      */
+    @Deprecated
     @Override
     public long minOffset(MessageQueue mq) throws MQClientException {
         return this.defaultMQProducerImpl.minOffset(queueWithNamespace(mq));
@@ -677,10 +704,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Query earliest message store time.
      *
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     *
      * @param mq Instance of MessageQueue
      * @return earliest message store time.
      * @throws MQClientException if there is any client error.
      */
+    @Deprecated
     @Override
     public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
         return this.defaultMQProducerImpl.earliestMsgStoreTime(queueWithNamespace(mq));
@@ -689,6 +719,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Query message of the given offset message ID.
      *
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     *
      * @param offsetMsgId message id
      * @return Message specified.
      * @throws MQBrokerException if there is any broker error.
@@ -696,6 +728,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @throws RemotingException if there is any network-tier error.
      * @throws InterruptedException if the sending thread is interrupted.
      */
+    @Deprecated
     @Override
     public MessageExt viewMessage(
         String offsetMsgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
@@ -704,6 +737,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * Query message by key.
+     *
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
      *
      * @param topic message topic
      * @param key message key index word
@@ -714,6 +749,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @throws MQClientException if there is any client error.
      * @throws InterruptedException if the thread is interrupted.
      */
+    @Deprecated
     @Override
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
         throws MQClientException, InterruptedException {
@@ -723,6 +759,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Query message of the given message ID.
      *
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     *
      * @param topic Topic
      * @param msgId Message ID
      * @return Message specified.
@@ -731,6 +769,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @throws RemotingException if there is any network-tier error.
      * @throws InterruptedException if the sending thread is interrupted.
      */
+    @Deprecated
     @Override
     public MessageExt viewMessage(String topic,
         String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
@@ -767,8 +806,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Sets an Executor to be used for executing callback methods.
-     * If the Executor is not set, {@link NettyRemotingClient#publicExecutor} will be used.
+     * Sets an Executor to be used for executing callback methods. If the Executor is not set, {@link
+     * NettyRemotingClient#publicExecutor} will be used.
      *
      * @param callbackExecutor the instance of Executor
      */
@@ -835,6 +874,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.compressMsgBodyOverHowmuch = compressMsgBodyOverHowmuch;
     }
 
+    @Deprecated
     public DefaultMQProducerImpl getDefaultMQProducerImpl() {
         return defaultMQProducerImpl;
     }
