@@ -33,6 +33,12 @@
     </properties>
 
     <dependencies>
+	    <!-- svm.jar is required to be manually installed first -->
+	    <dependency>
+	    <groupId>com.oracle.substratevm</groupId>
+	    <artifactId>svm</artifactId>
+	    <version>1.0.0-rc16-dev</version>
+	    </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-common</artifactId>
