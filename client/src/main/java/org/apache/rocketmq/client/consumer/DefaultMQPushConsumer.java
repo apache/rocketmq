@@ -39,6 +39,7 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -262,7 +263,47 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Default constructor.
      */
     public DefaultMQPushConsumer() {
-        this(MixAll.DEFAULT_CONSUMER_GROUP, null, new AllocateMessageQueueAveragely());
+        this(null, MixAll.DEFAULT_CONSUMER_GROUP, null, new AllocateMessageQueueAveragely());
+    }
+
+    /**
+     * Constructor specifying consumer group.
+     *
+     * @param consumerGroup Consumer group.
+     */
+    public DefaultMQPushConsumer(final String consumerGroup) {
+        this(null, consumerGroup, null, new AllocateMessageQueueAveragely());
+    }
+
+    /**
+     * Constructor specifying namespace and consumer group.
+     *
+     * @param namespace Namespace for this MQ Producer instance.
+     * @param consumerGroup Consumer group.
+     */
+    public DefaultMQPushConsumer(final String namespace, final String consumerGroup) {
+        this(namespace, consumerGroup, null, new AllocateMessageQueueAveragely());
+    }
+
+
+    /**
+     * Constructor specifying RPC hook.
+     *
+     * @param rpcHook RPC hook to execute before each remoting command.
+     */
+    public DefaultMQPushConsumer(RPCHook rpcHook) {
+        this(null, MixAll.DEFAULT_CONSUMER_GROUP, rpcHook, new AllocateMessageQueueAveragely());
+    }
+
+    /**
+     * Constructor specifying namespace, consumer group and RPC hook .
+     *
+     * @param namespace Namespace for this MQ Producer instance.
+     * @param consumerGroup Consumer group.
+     * @param rpcHook RPC hook to execute before each remoting command.
+     */
+    public DefaultMQPushConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook) {
+        this(namespace, consumerGroup, rpcHook, new AllocateMessageQueueAveragely());
     }
 
     /**
@@ -274,10 +315,46 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
+        this(null, consumerGroup, rpcHook, allocateMessageQueueStrategy);
+    }
+
+    /**
+     * Constructor specifying namespace, consumer group, RPC hook and message queue allocating algorithm.
+     *
+     * @param namespace Namespace for this MQ Producer instance.
+     * @param consumerGroup Consume queue.
+     * @param rpcHook RPC hook to execute before each remoting command.
+     * @param allocateMessageQueueStrategy Message queue allocating algorithm.
+     */
+    public DefaultMQPushConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook,
+        AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
         this.consumerGroup = consumerGroup;
+        this.namespace = namespace;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
     }
+
+    /**
+     * Constructor specifying consumer group and enabled msg trace flag.
+     *
+     * @param consumerGroup Consumer group.
+     * @param enableMsgTrace Switch flag instance for message trace.
+     */
+    public DefaultMQPushConsumer(final String consumerGroup, boolean enableMsgTrace) {
+        this(null, consumerGroup, null, new AllocateMessageQueueAveragely(), enableMsgTrace, null);
+    }
+
+    /**
+     * Constructor specifying consumer group, enabled msg trace flag and customized trace topic name.
+     *
+     * @param consumerGroup Consumer group.
+     * @param enableMsgTrace Switch flag instance for message trace.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
+     */
+    public DefaultMQPushConsumer(final String consumerGroup, boolean enableMsgTrace, final String customizedTraceTopic) {
+        this(null, consumerGroup, null, new AllocateMessageQueueAveragely(), enableMsgTrace, customizedTraceTopic);
+    }
+
 
     /**
      * Constructor specifying consumer group, RPC hook, message queue allocating algorithm, enabled msg trace flag and customized trace topic name.
@@ -290,7 +367,23 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean enableMsgTrace, final String customizedTraceTopic) {
+        this(null, consumerGroup, rpcHook, allocateMessageQueueStrategy, enableMsgTrace, customizedTraceTopic);
+    }
+
+    /**
+     * Constructor specifying namespace, consumer group, RPC hook, message queue allocating algorithm, enabled msg trace flag and customized trace topic name.
+     *
+     * @param namespace Namespace for this MQ Producer instance.
+     * @param consumerGroup Consume queue.
+     * @param rpcHook RPC hook to execute before each remoting command.
+     * @param allocateMessageQueueStrategy message queue allocating algorithm.
+     * @param enableMsgTrace Switch flag instance for message trace.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
+     */
+    public DefaultMQPushConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook,
+        AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean enableMsgTrace, final String customizedTraceTopic) {
         this.consumerGroup = consumerGroup;
+        this.namespace = namespace;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
         if (enableMsgTrace) {
@@ -307,52 +400,12 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     }
 
     /**
-     * Constructor specifying RPC hook.
-     *
-     * @param rpcHook RPC hook to execute before each remoting command.
-     */
-    public DefaultMQPushConsumer(RPCHook rpcHook) {
-        this(MixAll.DEFAULT_CONSUMER_GROUP, rpcHook, new AllocateMessageQueueAveragely());
-    }
-
-
-    /**
-     * Constructor specifying consumer group and enabled msg trace flag.
-     *
-     * @param consumerGroup Consumer group.
-     * @param enableMsgTrace Switch flag instance for message trace.
-     */
-    public DefaultMQPushConsumer(final String consumerGroup, boolean enableMsgTrace) {
-        this(consumerGroup, null, new AllocateMessageQueueAveragely(), enableMsgTrace, null);
-    }
-
-    /**
-     * Constructor specifying consumer group, enabled msg trace flag and customized trace topic name.
-     *
-     * @param consumerGroup Consumer group.
-     * @param enableMsgTrace Switch flag instance for message trace.
-     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
-     */
-    public DefaultMQPushConsumer(final String consumerGroup, boolean enableMsgTrace, final String customizedTraceTopic) {
-        this(consumerGroup, null, new AllocateMessageQueueAveragely(), enableMsgTrace, customizedTraceTopic);
-    }
-
-    /**
-     * Constructor specifying consumer group.
-     *
-     * @param consumerGroup Consumer group.
-     */
-    public DefaultMQPushConsumer(final String consumerGroup) {
-        this(consumerGroup, null, new AllocateMessageQueueAveragely());
-    }
-
-    /**
      * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
      */
     @Deprecated
     @Override
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
-        createTopic(key, newTopic, queueNum, 0);
+        createTopic(key, withNamespace(newTopic), queueNum, 0);
     }
 
     /**
@@ -361,7 +414,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Deprecated
     @Override
     public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
-        this.defaultMQPushConsumerImpl.createTopic(key, newTopic, queueNum, topicSysFlag);
+        this.defaultMQPushConsumerImpl.createTopic(key, withNamespace(newTopic), queueNum, topicSysFlag);
     }
 
     /**
@@ -370,7 +423,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Deprecated
     @Override
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
-        return this.defaultMQPushConsumerImpl.searchOffset(mq, timestamp);
+        return this.defaultMQPushConsumerImpl.searchOffset(queueWithNamespace(mq), timestamp);
     }
 
     /**
@@ -379,7 +432,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Deprecated
     @Override
     public long maxOffset(MessageQueue mq) throws MQClientException {
-        return this.defaultMQPushConsumerImpl.maxOffset(mq);
+        return this.defaultMQPushConsumerImpl.maxOffset(queueWithNamespace(mq));
     }
 
     /**
@@ -388,7 +441,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Deprecated
     @Override
     public long minOffset(MessageQueue mq) throws MQClientException {
-        return this.defaultMQPushConsumerImpl.minOffset(mq);
+        return this.defaultMQPushConsumerImpl.minOffset(queueWithNamespace(mq));
     }
 
     /**
@@ -397,7 +450,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Deprecated
     @Override
     public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
-        return this.defaultMQPushConsumerImpl.earliestMsgStoreTime(mq);
+        return this.defaultMQPushConsumerImpl.earliestMsgStoreTime(queueWithNamespace(mq));
     }
 
     /**
@@ -417,7 +470,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Override
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
         throws MQClientException, InterruptedException {
-        return this.defaultMQPushConsumerImpl.queryMessage(topic, key, maxNum, begin, end);
+        return this.defaultMQPushConsumerImpl.queryMessage(withNamespace(topic), key, maxNum, begin, end);
     }
 
     /**
@@ -433,7 +486,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         } catch (Exception e) {
             // Ignore
         }
-        return this.defaultMQPushConsumerImpl.queryMessageByUniqKey(topic, msgId);
+        return this.defaultMQPushConsumerImpl.queryMessageByUniqKey(withNamespace(topic), msgId);
     }
 
     public AllocateMessageQueueStrategy getAllocateMessageQueueStrategy() {
@@ -573,7 +626,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Deprecated
     public void setSubscription(Map<String, String> subscription) {
-        this.subscription = subscription;
+        Map<String, String> subscriptionWithNamespace = new HashMap<String, String>();
+        for (String topic : subscription.keySet()) {
+            subscriptionWithNamespace.put(withNamespace(topic), subscription.get(topic));
+        }
+        this.subscription = subscriptionWithNamespace;
     }
 
     /**
@@ -593,6 +650,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Override
     public void sendMessageBack(MessageExt msg, int delayLevel)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel, null);
     }
 
@@ -615,12 +673,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Override
     public void sendMessageBack(MessageExt msg, int delayLevel, String brokerName)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel, brokerName);
     }
 
     @Override
     public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
-        return this.defaultMQPushConsumerImpl.fetchSubscribeMessageQueues(topic);
+        return this.defaultMQPushConsumerImpl.fetchSubscribeMessageQueues(withNamespace(topic));
     }
 
     /**
@@ -630,6 +689,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Override
     public void start() throws MQClientException {
+        setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
         this.defaultMQPushConsumerImpl.start();
         if (null != traceDispatcher) {
             try {
@@ -690,7 +750,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Override
     public void subscribe(String topic, String subExpression) throws MQClientException {
-        this.defaultMQPushConsumerImpl.subscribe(topic, subExpression);
+        this.defaultMQPushConsumerImpl.subscribe(withNamespace(topic), subExpression);
     }
 
     /**
@@ -702,7 +762,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Override
     public void subscribe(String topic, String fullClassName, String filterClassSource) throws MQClientException {
-        this.defaultMQPushConsumerImpl.subscribe(topic, fullClassName, filterClassSource);
+        this.defaultMQPushConsumerImpl.subscribe(withNamespace(topic), fullClassName, filterClassSource);
     }
 
     /**
@@ -715,7 +775,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Override
     public void subscribe(final String topic, final MessageSelector messageSelector) throws MQClientException {
-        this.defaultMQPushConsumerImpl.subscribe(topic, messageSelector);
+        this.defaultMQPushConsumerImpl.subscribe(withNamespace(topic), messageSelector);
     }
 
     /**
