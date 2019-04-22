@@ -22,6 +22,7 @@ import java.util.List;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
 import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.consumer.MQConsumerInner;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
@@ -111,5 +112,11 @@ public class MQClientInstanceTest {
         mqClientInstance.unregisterAdminExt(group);
         flag = mqClientInstance.registerAdminExt(group, mock(MQAdminExtInner.class));
         assertThat(flag).isTrue();
+    }
+
+    @Test
+    public void findBrokerAddressInAdmin() {
+        FindBrokerResult findBrokerResult = mqClientInstance.findBrokerAddressInAdmin("test");
+        assertThat(findBrokerResult);
     }
 }
