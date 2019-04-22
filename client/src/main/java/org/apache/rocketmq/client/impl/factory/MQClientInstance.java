@@ -979,11 +979,11 @@ public class MQClientInstance {
 
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
-            if(map.containsKey(MixAll.MASTER_ID)){
+            if (map.containsKey(MixAll.MASTER_ID)) {
                 brokerAddr = map.get(MixAll.MASTER_ID);
-                found =true;
+                found = true;
                 slave = true;
-            }else{
+            } else {
                 for (Map.Entry<Long, String> entry : map.entrySet()) {
                     Long id = entry.getKey();
                     brokerAddr = entry.getValue();
