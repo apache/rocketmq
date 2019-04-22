@@ -39,7 +39,5 @@
 </-Xmx1g>
 <-XX:NewSize>256M</-XX:NewSize>
 <-XX:MaxNewSize>512M</-XX:MaxNewSize>
-<-XX:PermSize>128M</-XX:PermSize>
-<-XX:MaxPermSize>128M</-XX:MaxPermSize>
     </options>
     </java>
