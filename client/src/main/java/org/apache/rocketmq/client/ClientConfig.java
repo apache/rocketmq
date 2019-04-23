@@ -167,6 +167,10 @@ public class ClientConfig {
         return namesrvAddr;
     }
 
+    /**
+     * Domain name mode access way does not support the delimiter(;), and only one domain name can be set.
+     * @param namesrvAddr name server address
+     */
     public void setNamesrvAddr(String namesrvAddr) {
         this.namesrvAddr = namesrvAddr;
     }
