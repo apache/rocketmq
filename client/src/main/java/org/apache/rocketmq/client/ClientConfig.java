@@ -18,12 +18,12 @@ package org.apache.rocketmq.client;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
+import org.apache.rocketmq.common.utils.NameServerAddressUtils;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
@@ -33,7 +33,7 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
  */
 public class ClientConfig {
     public static final String SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY = "com.rocketmq.sendMessageWithVIPChannel";
-    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
+    private String namesrvAddr = NameServerAddressUtils.getNameServerAddresses();
     private String clientIP = RemotingUtil.getLocalAddress();
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
     private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
@@ -161,6 +161,9 @@ public class ClientConfig {
     }
 
     public String getNamesrvAddr() {
+        if (StringUtils.isNotEmpty(namesrvAddr) && NameServerAddressUtils.NAMESRV_ENDPOINT_PATTERN.matcher(namesrvAddr.trim()).matches()) {
+            return namesrvAddr.substring(NameServerAddressUtils.ENDPOINT_PREFIX.length());
+        }
         return namesrvAddr;
     }
 
@@ -241,6 +244,15 @@ public class ClientConfig {
     }
 
     public String getNamespace() {
+        if (StringUtils.isNotEmpty(namespace)) {
+            return namespace;
+        }
+
+        if (StringUtils.isNotEmpty(this.namesrvAddr)) {
+            if (NameServerAddressUtils.validateInstanceEndpoint(namesrvAddr)) {
+                return NameServerAddressUtils.parseInstanceIdFromEndpoint(namesrvAddr);
+            }
+        }
         return namespace;
     }
 
