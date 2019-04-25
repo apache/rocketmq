@@ -43,6 +43,8 @@ public class PullMessageService extends ServiceThread {
         this.mQClientFactory = mQClientFactory;
     }
 
+
+    //延时添加 延时将将request放到 pullRequestQueue
     public void executePullRequestLater(final PullRequest pullRequest, final long timeDelay) {
         if (!isStopped()) {
             this.scheduledExecutorService.schedule(new Runnable() {
@@ -56,6 +58,7 @@ public class PullMessageService extends ServiceThread {
         }
     }
 
+    //立即添加 将request放到 pullRequestQueue 队列里
     public void executePullRequestImmediately(final PullRequest pullRequest) {
         try {
             this.pullRequestQueue.put(pullRequest);
@@ -77,21 +80,23 @@ public class PullMessageService extends ServiceThread {
     }
 
     private void pullMessage(final PullRequest pullRequest) {
-        final MQConsumerInner consumer = this.mQClientFactory.selectConsumer(pullRequest.getConsumerGroup());
+        final MQConsumerInner consumer = this.mQClientFactory.selectConsumer(pullRequest.getConsumerGroup());//根据消费者组对应的MQConsumerInner
         if (consumer != null) {
-            DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumer;
-            impl.pullMessage(pullRequest);
+            DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumer;  //强转一下 只为push 模式服务
+            impl.pullMessage(pullRequest); //拉起消息
         } else {
             log.warn("No matched consumer for the PullRequest {}, drop it", pullRequest);
         }
     }
 
+    //PullMessageService
     @Override
     public void run() {
         log.info(this.getServiceName() + " service started");
 
         while (!this.isStopped()) {
             try {
+                //从queue
                 PullRequest pullRequest = this.pullRequestQueue.take();
                 this.pullMessage(pullRequest);
             } catch (InterruptedException ignored) {

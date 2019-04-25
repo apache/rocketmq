@@ -197,7 +197,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
     public void pullMessage(final PullRequest pullRequest) {
-        final ProcessQueue processQueue = pullRequest.getProcessQueue();
+        final ProcessQueue processQueue = pullRequest.getProcessQueue(); //获取ProcessQueue
         if (processQueue.isDropped()) {
             log.info("the pull request[{}] is dropped.", pullRequest.toString());
             return;
@@ -549,6 +549,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
     }
 
+    //消息启动
     public synchronized void start() throws MQClientException {
         switch (this.serviceState) {
             case CREATE_JUST:
@@ -561,29 +562,35 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 this.copySubscription();
 
                 if (this.defaultMQPushConsumer.getMessageModel() == MessageModel.CLUSTERING) {
-                    this.defaultMQPushConsumer.changeInstanceNameToPID();
+                    this.defaultMQPushConsumer.changeInstanceNameToPID(); //集群模式下 修改Client实例名称为进程号
                 }
 
-                this.mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQPushConsumer, this.rpcHook);
 
-                this.rebalanceImpl.setConsumerGroup(this.defaultMQPushConsumer.getConsumerGroup());
+                this.mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQPushConsumer, this.rpcHook); //初始化mqInstance
+
+                this.rebalanceImpl.setConsumerGroup(this.defaultMQPushConsumer.getConsumerGroup()); //初始化负载均衡实现类
                 this.rebalanceImpl.setMessageModel(this.defaultMQPushConsumer.getMessageModel());
                 this.rebalanceImpl.setAllocateMessageQueueStrategy(this.defaultMQPushConsumer.getAllocateMessageQueueStrategy());
                 this.rebalanceImpl.setmQClientFactory(this.mQClientFactory);
+
+
 
                 this.pullAPIWrapper = new PullAPIWrapper(
                     mQClientFactory,
                     this.defaultMQPushConsumer.getConsumerGroup(), isUnitMode());
                 this.pullAPIWrapper.registerFilterMessageHook(filterMessageHookList);
 
-                if (this.defaultMQPushConsumer.getOffsetStore() != null) {
+                if (this.defaultMQPushConsumer.getOffsetStore() != null) {//初始化消费进度 不为null 直接复制
                     this.offsetStore = this.defaultMQPushConsumer.getOffsetStore();
                 } else {
+                    //为null的话 判断消息的mode
                     switch (this.defaultMQPushConsumer.getMessageModel()) {
                         case BROADCASTING:
+                            //广播模式 消费进度存到本地消费端
                             this.offsetStore = new LocalFileOffsetStore(this.mQClientFactory, this.defaultMQPushConsumer.getConsumerGroup());
                             break;
                         case CLUSTERING:
+                            //集群模式 集群模式存储在 broker上
                             this.offsetStore = new RemoteBrokerOffsetStore(this.mQClientFactory, this.defaultMQPushConsumer.getConsumerGroup());
                             break;
                         default:
@@ -591,9 +598,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     }
                     this.defaultMQPushConsumer.setOffsetStore(this.offsetStore);
                 }
-                this.offsetStore.load();
+                this.offsetStore.load(); //获取消费存储进度
 
-                if (this.getMessageListenerInner() instanceof MessageListenerOrderly) {
+                if (this.getMessageListenerInner() instanceof MessageListenerOrderly) {  //顺序消费的Listener
                     this.consumeOrderly = true;
                     this.consumeMessageService =
                         new ConsumeMessageOrderlyService(this, (MessageListenerOrderly) this.getMessageListenerInner());
@@ -603,10 +610,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         new ConsumeMessageConcurrentlyService(this, (MessageListenerConcurrently) this.getMessageListenerInner());
                 }
 
-                this.consumeMessageService.start();
+                this.consumeMessageService.start(); //以上是创建消费端服务
 
-                boolean registerOK = mQClientFactory.registerConsumer(this.defaultMQPushConsumer.getConsumerGroup(), this);
-                if (!registerOK) {
+                boolean registerOK = mQClientFactory.registerConsumer(this.defaultMQPushConsumer.getConsumerGroup(), this);  //像mqinstance 注册消费者
+                if (!registerOK) {  //注册失败
                     this.serviceState = ServiceState.CREATE_JUST;
                     this.consumeMessageService.shutdown();
                     throw new MQClientException("The consumer group[" + this.defaultMQPushConsumer.getConsumerGroup()
@@ -614,7 +621,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         null);
                 }
 
-                mQClientFactory.start();
+                mQClientFactory.start(); //启动MqInstance
                 log.info("the consumer [{}] start OK.", this.defaultMQPushConsumer.getConsumerGroup());
                 this.serviceState = ServiceState.RUNNING;
                 break;
@@ -807,29 +814,31 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     private void copySubscription() throws MQClientException {
         try {
-            Map<String, String> sub = this.defaultMQPushConsumer.getSubscription();
+            Map<String, String> sub = this.defaultMQPushConsumer.getSubscription(); //构建主题的订阅消息 并加入到rebalanceImpl的订阅消息中
             if (sub != null) {
                 for (final Map.Entry<String, String> entry : sub.entrySet()) {
-                    final String topic = entry.getKey();
-                    final String subString = entry.getValue();
+                    final String topic = entry.getKey(); //topic key
+                    final String subString = entry.getValue(); //订阅数据
                     SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),
                         topic, subString);
-                    this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
+                    this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData); //订阅信息存放于 getSubscriptionInner map中
                 }
             }
 
-            if (null == this.messageListenerInner) {
+            if (null == this.messageListenerInner) {  //当前消息的监听器为null的话
                 this.messageListenerInner = this.defaultMQPushConsumer.getMessageListener();
             }
 
-            switch (this.defaultMQPushConsumer.getMessageModel()) {
+            switch (this.defaultMQPushConsumer.getMessageModel()) {  //判断消息消费模式 集群 还是 广播
                 case BROADCASTING:
+                    //广播直接breake
                     break;
                 case CLUSTERING:
-                    final String retryTopic = MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup());
+                    //集群模式
+                    final String retryTopic = MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup()); //获取retryTopic  %retry% + groupName
                     SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),
-                        retryTopic, SubscriptionData.SUB_ALL);
-                    this.rebalanceImpl.getSubscriptionInner().put(retryTopic, subscriptionData);
+                        retryTopic, SubscriptionData.SUB_ALL); //build 重试的订阅信息
+                    this.rebalanceImpl.getSubscriptionInner().put(retryTopic, subscriptionData); //把订阅信息放入到 rebalanceImpl 的map中
                     break;
                 default:
                     break;

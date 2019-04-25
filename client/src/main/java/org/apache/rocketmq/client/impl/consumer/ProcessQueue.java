@@ -36,62 +36,65 @@ import org.apache.rocketmq.common.protocol.body.ProcessQueueInfo;
 
 /**
  * Queue consumption snapshot
+ *
+ * 相当与message queue的快照
  */
 public class ProcessQueue {
-    public final static long REBALANCE_LOCK_MAX_LIVE_TIME =
+    public final static long REBALANCE_LOCK_MAX_LIVE_TIME =     //锁超时时间
         Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockMaxLiveTime", "30000"));
-    public final static long REBALANCE_LOCK_INTERVAL = Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockInterval", "20000"));
+    public final static long REBALANCE_LOCK_INTERVAL = Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockInterval", "20000")); //消息负载 lock 时间
     private final static long PULL_MAX_IDLE_TIME = Long.parseLong(System.getProperty("rocketmq.client.pull.pullMaxIdleTime", "120000"));
     private final InternalLogger log = ClientLogger.getLog();
-    private final ReadWriteLock lockTreeMap = new ReentrantReadWriteLock();
-    private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<Long, MessageExt>();
-    private final AtomicLong msgCount = new AtomicLong();
+    private final ReadWriteLock lockTreeMap = new ReentrantReadWriteLock(); //读写锁 控制并发处理msgTreeMap
+    private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<Long, MessageExt>(); //消息存储容器 key 为ConsumeQueque的偏移量 MessageExt 为消息实体
+    private final AtomicLong msgCount = new AtomicLong(); // ProcessQueque的消费总数
     private final AtomicLong msgSize = new AtomicLong();
-    private final Lock lockConsume = new ReentrantLock();
+    private final Lock lockConsume = new ReentrantLock(); //
     /**
      * A subset of msgTreeMap, will only be used when orderly consume
      */
+    //消息临时存储容器 用于处理顺序消息
     private final TreeMap<Long, MessageExt> consumingMsgOrderlyTreeMap = new TreeMap<Long, MessageExt>();
-    private final AtomicLong tryUnlockTimes = new AtomicLong(0);
-    private volatile long queueOffsetMax = 0L;
-    private volatile boolean dropped = false;
+    private final AtomicLong tryUnlockTimes = new AtomicLong(0); //每次尝试获取锁的次数
+    private volatile long queueOffsetMax = 0L;//最大偏移量
+    private volatile boolean dropped = false; //当期Process队列
     private volatile long lastPullTimestamp = System.currentTimeMillis();
     private volatile long lastConsumeTimestamp = System.currentTimeMillis();
     private volatile boolean locked = false;
     private volatile long lastLockTimestamp = System.currentTimeMillis();
-    private volatile boolean consuming = false;
+    private volatile boolean consuming = false; //是否正在被消费
     private volatile long msgAccCnt = 0;
 
-    public boolean isLockExpired() {
+    public boolean isLockExpired() { //判断锁是过去
         return (System.currentTimeMillis() - this.lastLockTimestamp) > REBALANCE_LOCK_MAX_LIVE_TIME;
     }
 
-    public boolean isPullExpired() {
+    public boolean isPullExpired() { //判断PullMsgService 是否空闲 默认120s  可以通过系统参数设定
         return (System.currentTimeMillis() - this.lastPullTimestamp) > PULL_MAX_IDLE_TIME;
     }
 
     /**
-     * @param pushConsumer
+     * @param pushConsumer 清楚超时消息 默认 超过15分钟的消息 将延迟3个延迟级别 在消费
      */
-    public void cleanExpiredMsg(DefaultMQPushConsumer pushConsumer) {
+    public void cleanExpiredMsg(DefaultMQPushConsumer pushConsumer) { //移除
         if (pushConsumer.getDefaultMQPushConsumerImpl().isConsumeOrderly()) {
             return;
         }
 
-        int loop = msgTreeMap.size() < 16 ? msgTreeMap.size() : 16;
+        int loop = msgTreeMap.size() < 16 ? msgTreeMap.size() : 16;//循环次数
         for (int i = 0; i < loop; i++) {
             MessageExt msg = null;
             try {
-                this.lockTreeMap.readLock().lockInterruptibly();
+                this.lockTreeMap.readLock().lockInterruptibly(); //获取读写锁
                 try {
                     if (!msgTreeMap.isEmpty() && System.currentTimeMillis() - Long.parseLong(MessageAccessor.getConsumeStartTimeStamp(msgTreeMap.firstEntry().getValue())) > pushConsumer.getConsumeTimeout() * 60 * 1000) {
-                        msg = msgTreeMap.firstEntry().getValue();
+                        msg = msgTreeMap.firstEntry().getValue(); //获取第一个值
                     } else {
 
                         break;
                     }
                 } finally {
-                    this.lockTreeMap.readLock().unlock();
+                    this.lockTreeMap.readLock().unlock(); //读锁不竞争
                 }
             } catch (InterruptedException e) {
                 log.error("getExpiredMsg exception", e);

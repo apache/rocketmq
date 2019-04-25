@@ -929,25 +929,25 @@ public class CommitLog {
                 }
 
                 try {
-                    boolean result = CommitLog.this.mappedFileQueue.commit(commitDataLeastPages);
+                    boolean result = CommitLog.this.mappedFileQueue.commit(commitDataLeastPages);//提交到MappedByteBuffer
                     long end = System.currentTimeMillis();
-                    if (!result) {
+                    if (!result) { //false 代表提交了部分数据
                         this.lastCommitTimestamp = end; // result = false means some data committed.
                         //now wake up flush thread.
-                        flushCommitLogService.wakeup();
+                        flushCommitLogService.wakeup(); //唤醒刷盘线程
                     }
 
                     if (end - begin > 500) {
                         log.info("Commit data to file costs {} ms", end - begin);
                     }
-                    this.waitForRunning(interval);
+                    this.waitForRunning(interval);//开等待线程间隔的刷盘时间
                 } catch (Throwable e) {
                     CommitLog.log.error(this.getServiceName() + " service has exception. ", e);
                 }
             }
 
             boolean result = false;
-            for (int i = 0; i < RETRY_TIMES_OVER && !result; i++) {
+            for (int i = 0; i < RETRY_TIMES_OVER && !result; i++) { //
                 result = CommitLog.this.mappedFileQueue.commit(0);
                 CommitLog.log.info(this.getServiceName() + " service shutdown, retry " + (i + 1) + " times " + (result ? "OK" : "Not OK"));
             }
@@ -955,7 +955,7 @@ public class CommitLog {
         }
     }
 
-    //每500ms 将MappedByteBuffer追加到磁盘当中
+    //每500ms 将MappedByteBuffer追加到磁盘当中 刷盘线程工作机制
     class FlushRealTimeService extends FlushCommitLogService {
         private long lastFlushTimestamp = 0;
         private long printTimes = 0;
@@ -964,18 +964,19 @@ public class CommitLog {
             CommitLog.log.info(this.getServiceName() + " service started");
 
             while (!this.isStopped()) {
-                boolean flushCommitLogTimed = CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed();
+                boolean flushCommitLogTimed = CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed(); //刷盘线程等待机制
 
-                int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog();
-                int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
+                //true Thread.sleep方法 false this.waitForRunning(interval)
+                int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog(); //刷盘线程等待间隔
+                int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();//每次刷到磁盘最少提交页数
 
                 int flushPhysicQueueThoroughInterval =
-                    CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
+                    CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();//俩次真实刷写任务的最大间隔
 
                 boolean printFlushProgress = false;
 
                 // Print flush progress
-                long currentTimeMillis = System.currentTimeMillis();
+                long currentTimeMillis = System.currentTimeMillis(); //当前时间戳
                 if (currentTimeMillis >= (this.lastFlushTimestamp + flushPhysicQueueThoroughInterval)) {
                     this.lastFlushTimestamp = currentTimeMillis;
                     flushPhysicQueueLeastPages = 0;
@@ -983,18 +984,19 @@ public class CommitLog {
                 }
 
                 try {
+                    //执行刷盘任务要阻塞一段时间
                     if (flushCommitLogTimed) {
                         Thread.sleep(interval);
                     } else {
                         this.waitForRunning(interval);
                     }
 
-                    if (printFlushProgress) {
+                    if (printFlushProgress) { //打印刷盘进程
                         this.printFlushProgress();
                     }
 
                     long begin = System.currentTimeMillis();
-                    CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
+                    CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages); //
                     long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
                     if (storeTimestamp > 0) {
                         CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
@@ -1027,8 +1029,8 @@ public class CommitLog {
         }
 
         private void printFlushProgress() {
-            // CommitLog.log.info("how much disk fall behind memory, "
-            // + CommitLog.this.mappedFileQueue.howMuchFallBehind());
+            /* CommitLog.log.info("how much disk fall behind memory, "
+             + CommitLog.this.mappedFileQueue.howMuchFallBehind());*/
         }
 
         @Override

@@ -109,7 +109,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
         }
     });
     private final ClientRemotingProcessor clientRemotingProcessor;
-    private final PullMessageService pullMessageService;
+    private final PullMessageService pullMessageService; //消息拉取线程
     private final RebalanceService rebalanceService;
     private final DefaultMQProducer defaultMQProducer;
     private final ConsumerStatsManager consumerStatsManager;
@@ -242,7 +242,9 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
                     //client端的定时线程
                     this.startScheduledTask();
                     // Start pull service
+                    // 消息拉取服务
                     this.pullMessageService.start();
+                    //消息负载线程启动
                     // Start rebalance service
                     this.rebalanceService.start();
                     // Start push service
@@ -859,11 +861,19 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
         }
     }
 
+        /**
+         *
+         * @param group 消费者所属组
+         * @param consumer
+         * @return
+         */
     public boolean registerConsumer(final String group, final MQConsumerInner consumer) {
         if (null == group || null == consumer) {
             return false;
         }
 
+        //如果消费者为空 或者 consumer 为null
+        //存入consumerTable key == group value == consumer 类
         MQConsumerInner prev = this.consumerTable.putIfAbsent(group, consumer);
         if (prev != null) {
             log.warn("the consumer group[" + group + "] exist already.");
