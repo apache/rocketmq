@@ -13,30 +13,10 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-globalWhiteRemoteAddresses:
-- 10.10.103.*
-- 192.168.0.*
-
-accounts:
-- accessKey: RocketMQ
-  secretKey: 12345678
-  whiteRemoteAddress:
-  admin: false
-  defaultTopicPerm: DENY
-  defaultGroupPerm: SUB
-  topicPerms:
-  - topicA=DENY
-  - topicB=PUB|SUB
-  - topicC=SUB
-  groupPerms:
-  # the group should convert to retry topic
-  - groupA=DENY
-  - groupB=PUB|SUB
-  - groupC=SUB
+## suggested format
 
 - accessKey: rocketmq2
-  secretKey: 12345678
+  secretKey: 
   whiteRemoteAddress: 192.168.1.*
   # if it is admin, it could access all resources
   admin: true
-    
