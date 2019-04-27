@@ -1864,10 +1864,12 @@ public class DefaultMessageStore implements MessageStore {
                                     this.reputFromOffset += size;
                                 } else {
                                     doNext = false;
-                                    
-                                    log.error("[BUG]dispatch message to consume queue error, COMMITLOG OFFSET: {}",
-                                        this.reputFromOffset);
-                                    this.reputFromOffset += result.getSize() - readSize;
+
+                                    if (DefaultMessageStore.this.getMessageStoreConfig().isEnableDLegerCommitLog()) {
+                                        log.error("[BUG]dispatch message to consume queue error, COMMITLOG OFFSET: {}",
+                                            this.reputFromOffset);
+                                        this.reputFromOffset += result.getSize() - readSize;
+                                    }
                                 }
                             }
                         }
