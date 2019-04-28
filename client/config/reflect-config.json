@@ -1,170 +1,277 @@
 [
-  
-  {
-    "name":"[B"
-  },
-  {
-    "name":"[J"
-  },
-  {
-    "name":"[Ljava.lang.Object;"
-  },
-  {
-    "name":"io.netty.channel.socket.nio.NioSocketChannel",
-    "methods":[{ "name":"<init>", "parameterTypes":[] }]
-  },
-  {
-    "name":"java.beans.Transient"
-  },
-  {
-    "name":"java.lang.Byte"
-  },
-  {
-    "name":"java.lang.Class"
-  },
-  {
-    "name":"java.lang.Comparable",
-    "allPublicMethods":true
-  },
-  {
-    "name":"java.lang.Float"
-  },
-  {
-    "name":"java.lang.Integer"
-  },
-  {
-    "name":"java.lang.Long"
-  },
-  {
-    "name":"java.lang.Object"
-  },
-  {
-    "name":"java.lang.String",
-    "fields":[{"name":"value"}]
-  },
-  {
-    "name":"java.lang.System"
-  },
-  {
-    "name":"java.nio.Bits",
-    "methods":[{ "name":"unaligned", "parameterTypes":[] }]
-  },
-  {
-    "name":"java.nio.Buffer",
-    "fields":[{"name":"address"}]
-  },
-  {
-    "name":"java.nio.DirectByteBuffer",
-    "fields":[{"name":"cleaner"}],
-    "methods":[{ "name":"<init>", "parameterTypes":["long", "int"] }]
-  },
-  {
-    "name":"java.nio.file.Path"
-  },
-  {
-    "name":"org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2",
-    "allDeclaredFields":true
-  },
-  {
-    "name":"org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader",
-    "allDeclaredFields":true,
-    "methods":[{ "name":"<init>", "parameterTypes":[] }]
-  },
-  {
-    "name":"org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader",
-    "allDeclaredFields":true
-  },
-  {
-    "name":"org.apache.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHeader",
-    "allDeclaredFields":true
-  },
-  {
-    "name":"org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData",
-    "allDeclaredFields":true,
-    "allPublicFields":true,
-    "allPublicMethods":true
-  },
-  {
-    "name":"org.apache.rocketmq.common.protocol.heartbeat.ProducerData",
-    "allDeclaredFields":true,
-    "allPublicFields":true,
-    "allPublicMethods":true
-  },
-  {
-    "name":"org.apache.rocketmq.common.protocol.route.BrokerData",
-    "allDeclaredFields":true,
-    "allDeclaredConstructors":true,
-    "allPublicFields":true,
-    "allPublicMethods":true
-  },
-  {
-    "name":"org.apache.rocketmq.common.protocol.route.QueueData",
-    "allDeclaredFields":true,
-    "allDeclaredConstructors":true,
-    "allPublicFields":true,
-    "allPublicMethods":true
-  },
-  {
-    "name":"org.apache.rocketmq.common.protocol.route.TopicRouteData",
-    "allDeclaredFields":true,
-    "allDeclaredConstructors":true,
-    "allPublicFields":true,
-    "allPublicMethods":true
-  },
-  {
-    "name":"org.apache.rocketmq.remoting.protocol.LanguageCode",
-    "fields":[
-      {"name":"CPP"}, 
-      {"name":"DELPHI"}, 
-      {"name":"DOTNET"}, 
-      {"name":"ERLANG"}, 
-      {"name":"GO"}, 
-      {"name":"HTTP"}, 
-      {"name":"JAVA"}, 
-      {"name":"OMS"}, 
-      {"name":"OTHER"}, 
-      {"name":"PHP"}, 
-      {"name":"PYTHON"}, 
-      {"name":"RUBY"}
-    ]
-  },
-  {
-    "name":"org.apache.rocketmq.remoting.protocol.RemotingCommand",
-    "allDeclaredFields":true,
-    "allDeclaredConstructors":true,
-    "allPublicFields":true,
-    "allPublicMethods":true
-  },
-  {
-    "name":"org.apache.rocketmq.remoting.protocol.RemotingSerializable",
-    "allDeclaredFields":true,
-    "allPublicMethods":true
-  },
-  {
-    "name":"org.apache.rocketmq.remoting.protocol.SerializeType",
-    "fields":[
-      {"name":"JSON"}, 
-      {"name":"ROCKETMQ"}
-    ]
-  },
-  {
-    "name":"sun.misc.Cleaner",
-    "methods":[{ "name":"clean", "parameterTypes":[] }]
-  },
-  {
-    "name":"sun.misc.Unsafe",
-    "fields":[{"name":"theUnsafe"}],
-    "methods":[{ "name":"copyMemory", "parameterTypes":["java.lang.Object", "long", "java.lang.Object", "long", "long"] }]
-  },
-  {
-    "name":"sun.misc.VM",
-    "methods":[{ "name":"maxDirectMemory", "parameterTypes":[] }]
-  },
-  {
-    "name":"sun.nio.ch.SelectorImpl",
-    "fields":[
-      {"name":"publicSelectedKeys"}, 
-      {"name":"selectedKeys"}
-    ]
-  }
+{
+  "name":"[B"
+},
+{
+  "name":"[J"
+},
+{
+  "name":"[Ljava.lang.Object;"
+},
+{
+  "name":"io.netty.buffer.AbstractReferenceCountedByteBuf",
+  "fields":[{"name":"refCnt"}]
+},
+{
+  "name":"io.netty.channel.AbstractChannelHandlerContext",
+  "fields":[{"name":"handlerState"}]
+},
+{
+  "name":"io.netty.channel.ChannelOutboundBuffer",
+  "fields":[
+    {"name":"totalPendingSize"}, 
+    {"name":"unwritable"}
+  ]
+},
+{
+  "name":"io.netty.channel.DefaultChannelConfig",
+  "fields":[{"name":"autoRead"}]
+},
+{
+  "name":"io.netty.channel.socket.nio.NioSocketChannel",
+  "methods":[
+    {"name":"<init>","parameterTypes":[] }, 
+    {"name":"<init>","parameterTypes":[] }
+  ]
+},
+{
+  "name":"io.netty.util.concurrent.DefaultPromise",
+  "fields":[{"name":"result"}]
+},
+{
+  "name":"io.netty.util.concurrent.SingleThreadEventExecutor",
+  "fields":[{"name":"state"}]
+},
+{
+  "name":"io.netty.util.internal.shaded.org.jctools.queues.MpscChunkedArrayQueueColdProducerFields",
+  "fields":[{"name":"producerLimit"}]
+},
+{
+  "name":"io.netty.util.internal.shaded.org.jctools.queues.MpscChunkedArrayQueueConsumerFields",
+  "fields":[{"name":"consumerIndex"}]
+},
+{
+  "name":"io.netty.util.internal.shaded.org.jctools.queues.MpscChunkedArrayQueueProducerFields",
+  "fields":[{"name":"producerIndex"}]
+},
+{
+  "name":"java.beans.Transient"
+},
+{
+  "name":"java.lang.Byte"
+},
+{
+  "name":"java.lang.Class"
+},
+{
+  "name":"java.lang.Comparable",
+  "allPublicMethods":true
+},
+{
+  "name":"java.lang.Double"
+},
+{
+  "name":"java.lang.Float"
+},
+{
+  "name":"java.lang.Integer"
+},
+{
+  "name":"java.lang.Long"
+},
+{
+  "name":"java.lang.Object"
+},
+{
+  "name":"java.lang.String",
+  "fields":[{"name":"value"}]
+},
+{
+  "name":"java.lang.System"
+},
+{
+  "name":"java.nio.Bits",
+  "methods":[{"name":"unaligned","parameterTypes":[] }]
+},
+{
+  "name":"java.nio.Buffer",
+  "fields":[{"name":"address"}]
+},
+{
+  "name":"java.nio.DirectByteBuffer",
+  "fields":[{"name":"cleaner"}],
+  "methods":[{"name":"<init>","parameterTypes":["long","int"] }]
+},
+{
+  "name":"java.nio.file.Path"
+},
+{
+  "name":"jdk.vm.ci.meta.DeoptimizationAction"
+},
+{
+  "name":"jdk.vm.ci.meta.DeoptimizationReason"
+},
+{
+  "name":"jdk.vm.ci.meta.JavaKind"
+},
+{
+  "name":"jdk.vm.ci.services.Services"
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allPublicMethods":true,
+  "allDeclaredConstructors":true
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader",
+  "allDeclaredFields":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader",
+  "allDeclaredFields":true,
+  "methods":[
+    {"name":"<init>","parameterTypes":[] }, 
+    {"name":"<init>","parameterTypes":[] }
+  ]
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader",
+  "allDeclaredFields":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHeader",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.heartbeat.ConsumerData",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allPublicMethods":true
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allPublicMethods":true
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.heartbeat.ProducerData",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allPublicMethods":true
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allPublicMethods":true
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.route.BrokerData",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allPublicMethods":true,
+  "allDeclaredConstructors":true
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.route.QueueData",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allPublicMethods":true,
+  "allDeclaredConstructors":true
+},
+{
+  "name":"org.apache.rocketmq.common.protocol.route.TopicRouteData",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allPublicMethods":true,
+  "allDeclaredConstructors":true
+},
+{
+  "name":"org.apache.rocketmq.remoting.protocol.LanguageCode",
+  "fields":[
+    {"name":"CPP"}, 
+    {"name":"DELPHI"}, 
+    {"name":"DOTNET"}, 
+    {"name":"ERLANG"}, 
+    {"name":"GO"}, 
+    {"name":"HTTP"}, 
+    {"name":"JAVA"}, 
+    {"name":"OMS"}, 
+    {"name":"OTHER"}, 
+    {"name":"PHP"}, 
+    {"name":"PYTHON"}, 
+    {"name":"RUBY"}
+  ]
+},
+{
+  "name":"org.apache.rocketmq.remoting.protocol.RemotingCommand",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allPublicMethods":true,
+  "allDeclaredConstructors":true
+},
+{
+  "name":"org.apache.rocketmq.remoting.protocol.RemotingSerializable",
+  "allDeclaredFields":true,
+  "allPublicMethods":true
+},
+{
+  "name":"org.apache.rocketmq.remoting.protocol.SerializeType",
+  "fields":[
+    {"name":"JSON"}, 
+    {"name":"ROCKETMQ"}
+  ]
+},
+{
+  "name":"sun.misc.Cleaner",
+  "methods":[{"name":"clean","parameterTypes":[] }]
+},
+{
+  "name":"sun.misc.Unsafe",
+  "fields":[{"name":"theUnsafe"}],
+  "methods":[
+    {"name":"copyMemory","parameterTypes":["java.lang.Object","long","java.lang.Object","long","long"] }, 
+    {"name":"getAndSetObject","parameterTypes":["java.lang.Object","long","java.lang.Object"] }
+  ]
+},
+{
+  "name":"sun.misc.VM",
+  "methods":[{"name":"maxDirectMemory","parameterTypes":[] }]
+},
+{
+  "name":"sun.nio.ch.SelectorImpl",
+  "fields":[
+    {"name":"publicSelectedKeys"}, 
+    {"name":"selectedKeys"}
+  ]
+}
 ]

@@ -1,21 +1,26 @@
-/*
-Main entry for building native image
-*/
 package org.apache.rocketmq.client;
 
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.rocketmq.client.Producer.CRocketMQDirectives;
+import org.apache.rocketmq.client.ExposedAPI.CRocketMQDirectives;
+import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.c.CContext;
 import org.graalvm.nativeimage.c.function.CEntryPoint;
+import org.graalvm.nativeimage.c.function.CFunctionPointer;
+import org.graalvm.nativeimage.c.function.InvokeCFunctionPointer;
 import org.graalvm.nativeimage.c.struct.CField;
 import org.graalvm.nativeimage.c.struct.CStruct;
 import org.graalvm.nativeimage.c.type.CCharPointer;
@@ -25,16 +30,8 @@ import org.graalvm.word.PointerBase;
 import com.alibaba.fastjson.parser.ParserConfig;
 import com.oracle.svm.core.c.ProjectHeaderFile;
 
-/**
- * @CContext annotation tells this class providing the context to interact with
- * C context. This is required to build as a SO library file, but not necessary to
- * build an executable file.
- * 
- * @author cengfeng.lzy
- *
- */
 @CContext(CRocketMQDirectives.class)
-public class Producer {
+public class ExposedAPI {
 	static class CRocketMQDirectives implements CContext.Directives {
 
 		@Override
@@ -52,9 +49,9 @@ public class Producer {
 	/**
 	 * This interface gives a Java version description of Message_Send_Struct data
 	 * structure defined in the C header file.
-	 * 
+	 *
 	 * This declaration MUST be enclosed inside the @CContext class.
-	 *  
+	 *
 	 * @author cengfeng.lzy
 	 *
 	 */
@@ -91,38 +88,35 @@ public class Producer {
 		void setBody(CCharPointer value);
 	}
 
-	/**
-	 * This main method is used to generate an executable file by SVM.
-	 * @param args
-	 * @throws MQClientException
-	 * @throws InterruptedException
-	 */
-	public static void main(String[] args) throws MQClientException, InterruptedException {
-		ParserConfig.global.setAsmEnable(false);
-		DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName");
-		producer.start();
+	@CStruct("Message_Listener_Struct")
+	interface CMessageListenerConcurrently extends PointerBase{
+		@CField("f_callback_function")
+		CallBackFunctionPointer getCallBackFunction();
 
-		for (int i = 0; i < 128; i++)
-			try {
-				{
-					Message msg = new Message("TopicTest", "TagA", "OrderID188",
-							"Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
-					SendResult sendResult = producer.send(msg);
-					System.out.printf("%s%n", sendResult);
-				}
-
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-
-		producer.shutdown();
+        @CField("f_callback_function")
+        void setCallBackFunction(CallBackFunctionPointer callBackFunction);
 	}
+	
+	 /* Import of a C function pointer type. */
+    interface CallBackFunctionPointer extends CFunctionPointer {
 
+        /*
+         * Invocation of the function pointer. A call to the function is replaced with an indirect
+         * call of the function pointer.
+         */
+        @InvokeCFunctionPointer
+        void invoke(IsolateThread thread, CCharPointer cstr);
+    }
+    
+	/*
+	 * public static void main(String[] args) { //Do nothing }
+	 */
+    
 	/**
 	 * This example shows how to expose an API with complex data structure
 	 * parameter. This API wraps SendResult
 	 * org.apache.rocketmq.client.producer.DefaultMQProducer.send(Message msg)
-	 * 
+	 *
 	 * @param thread        isolated thread is required by SVM
 	 * @param cmessageSends correspond to the Message_Send_Struct defined in the C
 	 *                      header file.
@@ -162,5 +156,37 @@ public class Producer {
 		} finally {
 			producer.shutdown();
 		}
+	}
+
+	@CEntryPoint(name="register_message_listener")
+	static void registerMessageListener(final IsolateThread thread, final CMessageListenerConcurrently listener) throws MQClientException, InterruptedException {
+		ParserConfig.global.setAsmEnable(false);
+		DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
+		consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+
+        /*
+         * Subscribe one more more topics to consume.
+         */
+        consumer.subscribe("TopicTest", "*");
+
+        /*
+         *  Register callback to execute on arrival of messages fetched from brokers.
+         */
+        consumer.registerMessageListener(new MessageListenerConcurrently() {
+
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                ConsumeConcurrentlyContext context) {
+            	listener.getCallBackFunction().invoke(thread, CTypeConversion.toCString(msgs.toString()).get());
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            }
+        });
+
+        /*
+         *  Launch the consumer instance.
+         */
+        consumer.start();
+        Thread.sleep(30000);
+        consumer.shutdown();
 	}
 }

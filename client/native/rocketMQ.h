@@ -10,6 +10,8 @@ typedef struct Message_Send{
   char* body;
 }Message_Send_Struct;
 
-
+typedef struct Message_Listener{
+	void (*f_callback_function)(void *thread, char* cstr);
+}Message_Listener_Struct;
 
 #endif /* ROCKETMQ_H_ */
