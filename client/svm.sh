@@ -7,7 +7,6 @@ SVM_OPT="${SVM_OPT} --delay-class-initialization-to-runtime=io.netty.handler.ssl
 SVM_OPT="${SVM_OPT} --delay-class-initialization-to-runtime=io.netty.handler.ssl.JdkAlpnSslEngine"
 SVM_OPT="${SVM_OPT} --delay-class-initialization-to-runtime=io.netty.util.internal.JavassistTypeParameterMatcherGenerator"
 SVM_OPT="${SVM_OPT} --delay-class-initialization-to-runtime=com.alibaba.fastjson.serializer.JodaCodec"
-#SVM_OPT="${SVM_OPT}  -H:+PrintClassInitialization"
 
 SVM_OPT="${SVM_OPT} --rerun-class-initialization-at-runtime=io.netty.handler.ssl.util.SelfSignedCertificate"
 SVM_OPT="${SVM_OPT} --rerun-class-initialization-at-runtime=io.netty.handler.ssl.util.ThreadLocalInsecureRandom"
@@ -30,7 +29,5 @@ CONFIG_OPT="${CONFIG_OPT} --shared -H:Name=rocketMQClient"
 #Specify where is the C library file which defines the data structure used in exposed API. 
 CONFIG_OPT="${CONFIG_OPT} -H:CLibraryPath=native"
 
-#CONFIG_OPT="${CONFIG_OPT} -cp dynclass"
-
 #Set your own $native_image enviroment variable which should refer to the bin\native-image file in your graalvm JDK. 
-$native_image  $CONFIG_OPT $SVM_OPT  -jar target/rocketmq-client-4.5.1-SNAPSHOT-jar-with-dependencies.jar $1
+$native_image  $CONFIG_OPT $SVM_OPT  -jar target/rocketmq-client-4.5.1-SNAPSHOT-jar-with-dependencies.jar
