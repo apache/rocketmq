@@ -126,28 +126,29 @@ public class ProcessQueue {
         }
     }
 
+    //PullMessageService 拉取到消息后 先调用此方法 加入到 ProcessQueue中
     public boolean putMessage(final List<MessageExt> msgs) {
         boolean dispatchToConsume = false;
         try {
-            this.lockTreeMap.writeLock().lockInterruptibly();
+            this.lockTreeMap.writeLock().lockInterruptibly(); //加写锁
             try {
                 int validMsgCnt = 0;
-                for (MessageExt msg : msgs) {
+                for (MessageExt msg : msgs) { //foreach 消息
                     MessageExt old = msgTreeMap.put(msg.getQueueOffset(), msg);
                     if (null == old) {
                         validMsgCnt++;
                         this.queueOffsetMax = msg.getQueueOffset();
-                        msgSize.addAndGet(msg.getBody().length);
+                        msgSize.addAndGet(msg.getBody().length); //设置msg size total
                     }
                 }
-                msgCount.addAndGet(validMsgCnt);
+                msgCount.addAndGet(validMsgCnt); //设置msg 总和
 
                 if (!msgTreeMap.isEmpty() && !this.consuming) {
                     dispatchToConsume = true;
                     this.consuming = true;
                 }
 
-                if (!msgs.isEmpty()) {
+                if (!msgs.isEmpty()) { //消息列表不问null
                     MessageExt messageExt = msgs.get(msgs.size() - 1);
                     String property = messageExt.getProperty(MessageConst.PROPERTY_MAX_OFFSET);
                     if (property != null) {
@@ -158,7 +159,7 @@ public class ProcessQueue {
                     }
                 }
             } finally {
-                this.lockTreeMap.writeLock().unlock();
+                this.lockTreeMap.writeLock().unlock(); //释放写锁
             }
         } catch (InterruptedException e) {
             log.error("putMessage exception", e);
@@ -166,13 +167,15 @@ public class ProcessQueue {
 
         return dispatchToConsume;
     }
-
+    //获取最大消息的时间间隔
     public long getMaxSpan() {
         try {
             this.lockTreeMap.readLock().lockInterruptibly();
             try {
                 if (!this.msgTreeMap.isEmpty()) {
-                    return this.msgTreeMap.lastKey() - this.msgTreeMap.firstKey();
+
+                    //lastkey - first 当前最后一条消息偏移量 - 当前第一条偏移量  = maxspan
+                    return this.msgTreeMap.lastKey() - this.msgTreeMap.firstKey(); //
                 }
             } finally {
                 this.lockTreeMap.readLock().unlock();
@@ -184,6 +187,7 @@ public class ProcessQueue {
         return 0;
     }
 
+    //移除消息
     public long removeMessage(final List<MessageExt> msgs) {
         long result = -1;
         final long now = System.currentTimeMillis();
@@ -245,11 +249,15 @@ public class ProcessQueue {
         this.locked = locked;
     }
 
+    //回滚消息
+
     public void rollback() {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
+                //将consumingMsgOrderlyTreeMap的消息重新放入msgTreeMap
                 this.msgTreeMap.putAll(this.consumingMsgOrderlyTreeMap);
+                //清楚临时map
                 this.consumingMsgOrderlyTreeMap.clear();
             } finally {
                 this.lockTreeMap.writeLock().unlock();
@@ -259,11 +267,13 @@ public class ProcessQueue {
         }
     }
 
+    //提交消息
     public long commit() {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
-                Long offset = this.consumingMsgOrderlyTreeMap.lastKey();
+                //清除 表示已经被提交
+                Long offset = this.consumingMsgOrderlyTreeMap.lastKey(); //获取最大的便宜来那个
                 msgCount.addAndGet(0 - this.consumingMsgOrderlyTreeMap.size());
                 for (MessageExt msg : this.consumingMsgOrderlyTreeMap.values()) {
                     msgSize.addAndGet(0 - msg.getBody().length);
@@ -282,6 +292,7 @@ public class ProcessQueue {
         return -1;
     }
 
+    //将msgs 从consumingMsgOrderlyTreeMap remove 再次放入msgTreeMap中
     public void makeMessageToCosumeAgain(List<MessageExt> msgs) {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
@@ -297,7 +308,7 @@ public class ProcessQueue {
             log.error("makeMessageToCosumeAgain exception", e);
         }
     }
-
+    //从msgTreeMap 去除batchSize的批量消息条目 再次放入
     public List<MessageExt> takeMessags(final int batchSize) {
         List<MessageExt> result = new ArrayList<MessageExt>(batchSize);
         final long now = System.currentTimeMillis();

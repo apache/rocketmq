@@ -1036,8 +1036,8 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
     }
 
     public FindBrokerResult findBrokerAddressInSubscribe(
-        final String brokerName,
-        final long brokerId,
+        final String brokerName, //broker name
+        final long brokerId,     //broker id
         final boolean onlyThisBroker
     ) {
         String brokerAddr = null;

@@ -139,8 +139,28 @@ public class PullAPIWrapper {
         }
     }
 
+    /**
+     *
+     * @param mq  消息队列
+     * @param subExpression 过滤
+     * @param expressionType  tag
+     * @param subVersion 版本 时间戳
+     * @param offset     //待拉取MessageQueue的偏移量
+     * @param maxNums    //每次拉取所拉取的消费条数
+     * @param sysFlag    系统标志 事务消息标志
+     * @param commitOffset  commit 偏移量
+     * @param brokerSuspendMaxTimeMillis
+     * @param timeoutMillis
+     * @param communicationMode
+     * @param pullCallback
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     public PullResult pullKernelImpl(
-        final MessageQueue mq,
+        final MessageQueue mq, //messgequeue
         final String subExpression,
         final String expressionType,
         final long subVersion,
@@ -153,6 +173,7 @@ public class PullAPIWrapper {
         final CommunicationMode communicationMode,
         final PullCallback pullCallback
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        //找到broker
         FindBrokerResult findBrokerResult =
             this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
                 this.recalculatePullFromWhichNode(mq), false);
