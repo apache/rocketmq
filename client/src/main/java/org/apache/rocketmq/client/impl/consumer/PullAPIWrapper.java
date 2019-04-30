@@ -175,19 +175,20 @@ public class PullAPIWrapper {
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         //找到broker
         FindBrokerResult findBrokerResult =
-            this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
+            this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),  //找到 broker
                 this.recalculatePullFromWhichNode(mq), false);
-        if (null == findBrokerResult) {
+        if (null == findBrokerResult) {  //没有摘到broker 的话
+            //触发一次远程更新TopicRoute
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             findBrokerResult =
-                this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
+                this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), //再次拉取
                     this.recalculatePullFromWhichNode(mq), false);
         }
 
-        if (findBrokerResult != null) {
+        if (findBrokerResult != null) {  // 不为null 为null 直接抛出异常
             {
                 // check version
-                if (!ExpressionType.isTagType(expressionType)
+                if (!ExpressionType.isTagType(expressionType) //消息过滤
                     && findBrokerResult.getBrokerVersion() < MQVersion.Version.V4_1_0_SNAPSHOT.ordinal()) {
                     throw new MQClientException("The broker[" + mq.getBrokerName() + ", "
                         + findBrokerResult.getBrokerVersion() + "] does not upgrade to support for filter message by " + expressionType, null);
@@ -199,25 +200,25 @@ public class PullAPIWrapper {
                 sysFlagInner = PullSysFlag.clearCommitOffsetFlag(sysFlagInner);
             }
 
-            PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
-            requestHeader.setConsumerGroup(this.consumerGroup);
-            requestHeader.setTopic(mq.getTopic());
-            requestHeader.setQueueId(mq.getQueueId());
-            requestHeader.setQueueOffset(offset);
-            requestHeader.setMaxMsgNums(maxNums);
-            requestHeader.setSysFlag(sysFlagInner);
-            requestHeader.setCommitOffset(commitOffset);
-            requestHeader.setSuspendTimeoutMillis(brokerSuspendMaxTimeMillis);
+            PullMessageRequestHeader requestHeader = new PullMessageRequestHeader(); //消息头部
+            requestHeader.setConsumerGroup(this.consumerGroup); //消费者group
+            requestHeader.setTopic(mq.getTopic());  //消费者topic
+            requestHeader.setQueueId(mq.getQueueId()); //队列Id
+            requestHeader.setQueueOffset(offset);  //待拉取MessageQueue的偏移量
+            requestHeader.setMaxMsgNums(maxNums);  //拉取最大的条数
+            requestHeader.setSysFlag(sysFlagInner);// 系统标志
+            requestHeader.setCommitOffset(commitOffset); //commit 偏移量
+            requestHeader.setSuspendTimeoutMillis(brokerSuspendMaxTimeMillis); //broker 挂起 maxTime
             requestHeader.setSubscription(subExpression);
             requestHeader.setSubVersion(subVersion);
             requestHeader.setExpressionType(expressionType);
 
-            String brokerAddr = findBrokerResult.getBrokerAddr();
-            if (PullSysFlag.hasClassFilterFlag(sysFlagInner)) {
-                brokerAddr = computPullFromWhichFilterServer(mq.getTopic(), brokerAddr);
+            String brokerAddr = findBrokerResult.getBrokerAddr(); //获取broker 的addr
+            if (PullSysFlag.hasClassFilterFlag(sysFlagInner)) { //过滤
+                brokerAddr = computPullFromWhichFilterServer(mq.getTopic(), brokerAddr); //获取过滤后daddr
             }
 
-            PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(
+            PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(  //开始拉取消息
                 brokerAddr,
                 requestHeader,
                 timeoutMillis,

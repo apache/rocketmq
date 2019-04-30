@@ -1040,13 +1040,13 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
         final long brokerId,     //broker id
         final boolean onlyThisBroker
     ) {
-        String brokerAddr = null;
-        boolean slave = false;
-        boolean found = false;
+        String brokerAddr = null;   //broker addr
+        boolean slave = false;      // 从节点
+        boolean found = false;      //根据
 
-        HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
-        if (map != null && !map.isEmpty()) {
-            brokerAddr = map.get(brokerId);
+        HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName); //根据brokerName 获取 地址address
+        if (map != null && !map.isEmpty()) {  //
+            brokerAddr = map.get(brokerId); //获取地址
             slave = brokerId != MixAll.MASTER_ID;
             found = brokerAddr != null;
 
