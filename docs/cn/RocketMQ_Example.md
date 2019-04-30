@@ -317,13 +317,6 @@ public class Producer {
 ### 2.2 顺序消费消息
 
 ```java
-import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
-import org.apache.rocketmq.common.message.MessageExt;
-import java.util.List;
-
 package org.apache.rocketmq.example.order2;
 
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -456,7 +449,7 @@ public class ScheduledMessageProducer {
 
 ### 3.5 延时消息的使用限制
 
-```java
+``` java
 // org/apache/rocketmq/store/config/MessageStoreConfig.java
 
 private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
@@ -474,7 +467,7 @@ private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m
 
 如果您每次只发送不超过4MB的消息，则很容易使用批处理，样例如下：
 
-```java
+```
 String topic = "BatchTest";
 List<Message> messages = new ArrayList<>();
 messages.add(new Message(topic, "TagA", "OrderID001", "Hello world 0".getBytes()));
@@ -537,6 +530,8 @@ public class ListSplitter implements Iterator<List<Message>> {
        return subList;
    }
 }
+```
+```
 //把大的消息分裂成若干个小的消息
 ListSplitter splitter = new ListSplitter(messages);
 while (splitter.hasNext()) {
@@ -549,13 +544,12 @@ while (splitter.hasNext()) {
   }
 }
 ```
-
 5 过滤消息样例
 ----------
 
 在大多数情况下，TAG是一个简单而有用的设计，其可以来选择您想要的消息。例如：
 
-```java
+```
 DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_EXAMPLE");
 consumer.subscribe("TOPIC", "TAGA || TAGB || TAGC");
 ```
@@ -622,7 +616,7 @@ producer.shutdown();
 
 用MessageSelector.bySql来使用sql筛选消息
 
-```java
+```
 DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
 // 只有订阅的消息有这个属性a, a >=0 and a <= 3
 consumer.subscribe("TopicTest", MessageSelector.bySql("a between 0 and 3");
