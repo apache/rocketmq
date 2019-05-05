@@ -20,7 +20,7 @@ import java.util.List;
 import org.apache.rocketmq.common.message.MessageExt;
 
 public class PullResult {
-    private final PullStatus pullStatus;
+    private final PullStatus pullStatus;  //消息状态
     private final long nextBeginOffset;
     private final long minOffset;
     private final long maxOffset;

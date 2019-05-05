@@ -22,13 +22,13 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class ConsumeMessageContext {
-    private String consumerGroup;
-    private List<MessageExt> msgList;
-    private MessageQueue mq;
-    private boolean success;
-    private String status;
-    private Object mqTraceContext;
-    private Map<String, String> props;
+    private String consumerGroup;    //消息消费者组
+    private List<MessageExt> msgList; //消息消费集合
+    private MessageQueue mq; // 消费队列
+    private boolean success;  //消息成功标志
+    private String status;   //消息消费状态
+    private Object mqTraceContext; //消息追踪
+    private Map<String, String> props; //属性
 
     public String getConsumerGroup() {
         return consumerGroup;

@@ -290,31 +290,32 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         PullCallback pullCallback = new PullCallback() {//拉期的回调信息
             @Override
-            public void onSuccess(PullResult pullResult) {
+            public void onSuccess(PullResult pullResult) { //拉取消费结果
                 if (pullResult != null) {
-                    //拉取消息后的回掉
+                    //拉取消息后的回掉接口
+                    //经过对二进制消息解码 消息过滤后
                     pullResult = DefaultMQPushConsumerImpl.this.pullAPIWrapper.processPullResult(pullRequest.getMessageQueue(), pullResult,
                         subscriptionData);
-
+                    //判断消息拉取状态
                     switch (pullResult.getPullStatus()) {
-                        case FOUND:
-                            long prevRequestOffset = pullRequest.getNextOffset();
-                            pullRequest.setNextOffset(pullResult.getNextBeginOffset());
-                            long pullRT = System.currentTimeMillis() - beginTimestamp;
+                        case FOUND: //拉取到消息
+                            long prevRequestOffset = pullRequest.getNextOffset();// 拉取的偏移量
+                            pullRequest.setNextOffset(pullResult.getNextBeginOffset()); //下次拉去的偏移量
+                            long pullRT = System.currentTimeMillis() - beginTimestamp;//拉取一次消息的时间查
                             DefaultMQPushConsumerImpl.this.getConsumerStatsManager().incPullRT(pullRequest.getConsumerGroup(),
                                 pullRequest.getMessageQueue().getTopic(), pullRT);
 
                             long firstMsgOffset = Long.MAX_VALUE;
                             if (pullResult.getMsgFoundList() == null || pullResult.getMsgFoundList().isEmpty()) {
-                                DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
+                                DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest); //没拉取到任何消息 继续拉取
                             } else {
-                                firstMsgOffset = pullResult.getMsgFoundList().get(0).getQueueOffset();
+                                firstMsgOffset = pullResult.getMsgFoundList().get(0).getQueueOffset();//获取第一条消息的在队列中的偏移量
 
                                 DefaultMQPushConsumerImpl.this.getConsumerStatsManager().incPullTPS(pullRequest.getConsumerGroup(),
                                     pullRequest.getMessageQueue().getTopic(), pullResult.getMsgFoundList().size());
 
-                                boolean dispatchToConsume = processQueue.putMessage(pullResult.getMsgFoundList());
-                                DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest(
+                                boolean dispatchToConsume = processQueue.putMessage(pullResult.getMsgFoundList()); //根据拉取结果采用不同的分配队列 放入到processQueue中
+                                DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest( //消费消息服务提交 判断是并发消费 还是顺序消费
                                     pullResult.getMsgFoundList(),
                                     processQueue,
                                     pullRequest.getMessageQueue(),
@@ -1003,7 +1004,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
     @Override
-    public void doRebalance() {
+    public void doRebalance() { //消息负载
         if (!this.pause) {
             this.rebalanceImpl.doRebalance(this.isConsumeOrderly());
         }

@@ -48,7 +48,7 @@ public abstract class RebalanceImpl {
     protected final ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
     protected final ConcurrentMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
         new ConcurrentHashMap<String, Set<MessageQueue>>();
-    protected final ConcurrentMap<String /* topic */, SubscriptionData> subscriptionInner =
+    protected final ConcurrentMap<String /* topic */, SubscriptionData> subscriptionInner =  //topic 和订阅信息
         new ConcurrentHashMap<String, SubscriptionData>();
     protected String consumerGroup;
     protected MessageModel messageModel;
@@ -216,6 +216,7 @@ public abstract class RebalanceImpl {
         }
     }
 
+    //消息负载
     public void doRebalance(final boolean isOrder) {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
@@ -238,10 +239,10 @@ public abstract class RebalanceImpl {
         return subscriptionInner;
     }
 
-    private void rebalanceByTopic(final String topic, final boolean isOrder) {
+    private void rebalanceByTopic(final String topic, final boolean isOrder) { //消息负载 topic
         switch (messageModel) {
-            case BROADCASTING: {
-                Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
+            case BROADCASTING: { //广播的模式
+                Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic); //获取订阅这个topic 的所有 MessageQueue
                 if (mqSet != null) {
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, mqSet, isOrder);
                     if (changed) {
@@ -327,7 +328,7 @@ public abstract class RebalanceImpl {
             }
         }
     }
-
+    //负载更新 ProcessQueueTable
     private boolean updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet,
         final boolean isOrder) {
         boolean changed = false;
