@@ -592,6 +592,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             case ResponseCode.TOPIC_NOT_EXIST:
                             case ResponseCode.SERVICE_NOT_AVAILABLE:
                             case ResponseCode.SYSTEM_ERROR:
+                            case ResponseCode.SYSTEM_BUSY:
                             case ResponseCode.NO_PERMISSION:
                             case ResponseCode.NO_BUYER_ID:
                             case ResponseCode.NOT_IN_CURRENT_UNIT:
