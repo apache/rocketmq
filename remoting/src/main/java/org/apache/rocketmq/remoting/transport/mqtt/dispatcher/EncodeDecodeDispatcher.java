@@ -38,7 +38,7 @@ public class EncodeDecodeDispatcher {
         encodeDecodeDispatcher.put(MqttMessageType.SUBACK, new MqttSubackEncodeDecode());
         encodeDecodeDispatcher.put(MqttMessageType.UNSUBSCRIBE, new MqttUnSubscribeEncodeDecode());
         encodeDecodeDispatcher.put(MqttMessageType.UNSUBACK, new MqttUnSubackEncodeDecode());
-        encodeDecodeDispatcher.put(MqttMessageType.PINGREQ, new MqttPingReqEncodeDecode() );
+        encodeDecodeDispatcher.put(MqttMessageType.PINGREQ, new MqttPingReqEncodeDecode());
         encodeDecodeDispatcher.put(MqttMessageType.PINGRESP, new MqttPingRespEncodeDecode());
     }
 
