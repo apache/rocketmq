@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.mqtt.client;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -25,10 +26,10 @@ import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.common.client.ClientManagerImpl;
 import org.apache.rocketmq.common.client.Subscription;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.eclipse.paho.client.mqttv3.MqttClient;
 
 public class IOTClientManagerImpl extends ClientManagerImpl {
 
@@ -36,9 +37,12 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
 
     public static final String IOT_GROUP = "IOT_GROUP";
 
-    private final ConcurrentHashMap<String/*root topic*/, ConcurrentHashMap<Client, Set<SubscriptionData>>> topic2SubscriptionTable = new ConcurrentHashMap<>(
+    //    private final ConcurrentHashMap<String/*root topic*/, ConcurrentHashMap<Client, Set<SubscriptionData>>> topic2SubscriptionTable = new ConcurrentHashMap<>(
+//        1024);
+    private final ConcurrentHashMap<String/*root topic*/, Set<Client>> topic2Clients = new ConcurrentHashMap<>(
         1024);
     private final ConcurrentHashMap<String/*clientId*/, Subscription> clientId2Subscription = new ConcurrentHashMap<>(1024);
+    private final Map<String/*snode ip*/, MqttClient> snode2MqttClient = new HashMap<>();
 
     public IOTClientManagerImpl() {
     }
@@ -78,7 +82,7 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
     }
 
     public void cleanSessionState(String clientId) {
-        clientId2Subscription.remove(clientId);
+/*        clientId2Subscription.remove(clientId);
         for (Iterator<Map.Entry<String, ConcurrentHashMap<Client, Set<SubscriptionData>>>> iterator = topic2SubscriptionTable.entrySet().iterator(); iterator.hasNext(); ) {
             Map.Entry<String, ConcurrentHashMap<Client, Set<SubscriptionData>>> next = iterator.next();
             for (Iterator<Map.Entry<Client, Set<SubscriptionData>>> iterator1 = next.getValue().entrySet().iterator(); iterator1.hasNext(); ) {
@@ -91,7 +95,18 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
             if (next.getValue() == null || next.getValue().size() == 0) {
                 iterator.remove();
             }
+        }*/
+        for (Iterator<Map.Entry<String, Set<Client>>> iterator = topic2Clients.entrySet().iterator(); iterator.hasNext(); ) {
+            Map.Entry<String, Set<Client>> next = iterator.next();
+            Iterator<Client> iterator1 = next.getValue().iterator();
+            while (iterator1.hasNext()) {
+                if (iterator1.next().getClientId().equals(clientId)) {
+                    iterator1.remove();
+                }
+            }
         }
+        clientId2Subscription.remove(clientId);
+
         //remove offline messages
     }
 
@@ -99,8 +114,12 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
         return clientId2Subscription.get(clientId);
     }
 
-    public ConcurrentHashMap<String, ConcurrentHashMap<Client, Set<SubscriptionData>>> getTopic2SubscriptionTable() {
-        return topic2SubscriptionTable;
+    /*    public ConcurrentHashMap<String, ConcurrentHashMap<Client, Set<SubscriptionData>>> getTopic2SubscriptionTable() {
+            return topic2SubscriptionTable;
+        }*/
+
+    public ConcurrentHashMap<String/*root topic*/, Set<Client>> getTopic2Clients() {
+        return topic2Clients;
     }
 
     public ConcurrentHashMap<String, Subscription> getClientId2Subscription() {
@@ -109,5 +128,9 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
 
     public void initSubscription(String clientId, Subscription subscription) {
         clientId2Subscription.put(clientId, subscription);
+    }
+
+    public Map<String, MqttClient> getSnode2MqttClient() {
+        return snode2MqttClient;
     }
 }

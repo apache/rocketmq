@@ -60,7 +60,6 @@ public class MqttConfig {
         this.listenPort = listenPort;
     }
 
-
     public boolean isAclEnable() {
         return aclEnable;
     }

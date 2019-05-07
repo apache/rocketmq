@@ -118,8 +118,8 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
         //do the logic when client sends subscribe packet.
         //1.update clientId2Subscription
         ConcurrentHashMap<String, Subscription> clientId2Subscription = iotClientManager.getClientId2Subscription();
-        ConcurrentHashMap<String, ConcurrentHashMap<Client, Set<SubscriptionData>>> topic2SubscriptionTable = iotClientManager.getTopic2SubscriptionTable();
-        Subscription subscription = null;
+        ConcurrentHashMap<String, Set<Client>> topic2Clients = iotClientManager.getTopic2Clients();
+        Subscription subscription;
         if (clientId2Subscription.containsKey(client.getClientId())) {
             subscription = clientId2Subscription.get(client.getClientId());
         } else {
@@ -133,23 +133,17 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
             grantQoss.add(actualQos);
             SubscriptionData subscriptionData = new MqttSubscriptionData(mqttTopicSubscription.qualityOfService().value(), client.getClientId(), mqttTopicSubscription.topicName());
             subscriptionDatas.put(mqttTopicSubscription.topicName(), subscriptionData);
-            //2.update topic2SubscriptionTable
+            //2.update topic2ClientIds
             String rootTopic = MqttUtil.getRootTopic(mqttTopicSubscription.topicName());
-            ConcurrentHashMap<Client, Set<SubscriptionData>> client2SubscriptionData = topic2SubscriptionTable.get(rootTopic);
-            if (client2SubscriptionData == null || client2SubscriptionData.size() == 0) {
-                client2SubscriptionData = new ConcurrentHashMap<>();
-                ConcurrentHashMap<Client, Set<SubscriptionData>> prev = topic2SubscriptionTable.putIfAbsent(rootTopic, client2SubscriptionData);
+            if (topic2Clients.contains(rootTopic)) {
+                final Set<Client> clientIds = topic2Clients.get(rootTopic);
+                clientIds.add(client);
+            } else {
+                Set<Client> clients = new HashSet<>();
+                clients.add(client);
+                Set<Client> prev = topic2Clients.putIfAbsent(rootTopic, clients);
                 if (prev != null) {
-                    client2SubscriptionData = prev;
-                }
-                Set<SubscriptionData> subscriptionDataSet = client2SubscriptionData.get(client);
-                if (subscriptionDataSet == null) {
-                    subscriptionDataSet = new HashSet<>();
-                    Set<SubscriptionData> prevSubscriptionDataSet = client2SubscriptionData.putIfAbsent(client, subscriptionDataSet);
-                    if (prevSubscriptionDataSet != null) {
-                        subscriptionDataSet = prevSubscriptionDataSet;
-                    }
-                    subscriptionDataSet.add(subscriptionData);
+                    prev.add(client);
                 }
             }
         }

@@ -19,11 +19,8 @@ package org.apache.rocketmq.mqtt.service.impl;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.util.ReferenceCountUtil;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -31,14 +28,11 @@ import org.apache.rocketmq.common.MqttConfig;
 import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.mqtt.client.IOTClientManagerImpl;
 import org.apache.rocketmq.mqtt.constant.MqttConstant;
 import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
-import org.apache.rocketmq.mqtt.util.MqttUtil;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
@@ -49,7 +43,7 @@ public class MqttPushServiceImpl {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.MQTT_LOGGER_NAME);
 
     private ExecutorService pushMqttMessageExecutorService;
-    private DefaultMqttMessageProcessor defaultMqttMessageProcessor;
+    private static DefaultMqttMessageProcessor defaultMqttMessageProcessor;
 
     public MqttPushServiceImpl(DefaultMqttMessageProcessor defaultMqttMessageProcessor, MqttConfig mqttConfig) {
         this.defaultMqttMessageProcessor = defaultMqttMessageProcessor;
@@ -63,21 +57,23 @@ public class MqttPushServiceImpl {
             false);
     }
 
-    public class MqttPushTask implements Runnable {
+    static class MqttPushTask implements Runnable {
         private AtomicBoolean canceled = new AtomicBoolean(false);
         private final ByteBuf message;
         private final String topic;
         private final Integer qos;
         private boolean retain;
         private Integer packetId;
+        private Client client;
 
         public MqttPushTask(final String topic, final ByteBuf message, final Integer qos, boolean retain,
-            Integer packetId) {
+            Integer packetId, Client client) {
             this.message = message;
             this.topic = topic;
             this.qos = qos;
             this.retain = retain;
             this.packetId = packetId;
+            this.client = client;
         }
 
         @Override
@@ -86,32 +82,14 @@ public class MqttPushServiceImpl {
                 try {
                     RemotingCommand requestCommand = buildRequestCommand(topic, qos, retain, packetId);
 
-                    //find those clients publishing the message to
-                    IOTClientManagerImpl iotClientManager = (IOTClientManagerImpl) defaultMqttMessageProcessor.getIotClientManager();
-                    ConcurrentHashMap<String, ConcurrentHashMap<Client, Set<SubscriptionData>>> topic2SubscriptionTable = iotClientManager.getTopic2SubscriptionTable();
-                    Set<Client> clients = new HashSet<>();
-                    if (topic2SubscriptionTable.containsKey(MqttUtil.getRootTopic(topic))) {
-                        ConcurrentHashMap<Client, Set<SubscriptionData>> client2SubscriptionDatas = topic2SubscriptionTable.get(MqttUtil.getRootTopic(topic));
-                        for (Map.Entry<Client, Set<SubscriptionData>> entry : client2SubscriptionDatas.entrySet()) {
-                            Set<SubscriptionData> subscriptionDatas = entry.getValue();
-                            for (SubscriptionData subscriptionData : subscriptionDatas) {
-                                if (MqttUtil.isMatch(subscriptionData.getTopic(), topic)) {
-                                    clients.add(entry.getKey());
-                                    break;
-                                }
-                            }
-                        }
+                    RemotingChannel remotingChannel = client.getRemotingChannel();
+                    if (client.getRemotingChannel() instanceof NettyChannelHandlerContextImpl) {
+                        remotingChannel = new NettyChannelImpl(((NettyChannelHandlerContextImpl) client.getRemotingChannel()).getChannelHandlerContext().channel());
                     }
-                    for (Client client : clients) {
-                        RemotingChannel remotingChannel = client.getRemotingChannel();
-                        if (client.getRemotingChannel() instanceof NettyChannelHandlerContextImpl) {
-                            remotingChannel = new NettyChannelImpl(((NettyChannelHandlerContextImpl) client.getRemotingChannel()).getChannelHandlerContext().channel());
-                        }
-                        byte[] body = new byte[message.readableBytes()];
-                        message.readBytes(body);
-                        requestCommand.setBody(body);
-                        defaultMqttMessageProcessor.getMqttRemotingServer().push(remotingChannel, requestCommand, MqttConstant.DEFAULT_TIMEOUT_MILLS);
-                    }
+                    byte[] body = new byte[message.readableBytes()];
+                    message.readBytes(body);
+                    requestCommand.setBody(body);
+                    defaultMqttMessageProcessor.getMqttRemotingServer().push(remotingChannel, requestCommand, MqttConstant.DEFAULT_TIMEOUT_MILLS);
                 } catch (Exception ex) {
                     log.warn("Exception was thrown when pushing MQTT message to topic: {}, exception={}", topic, ex.getMessage());
                 } finally {
@@ -147,15 +125,21 @@ public class MqttPushServiceImpl {
 
     }
 
-    public void pushMessageQos0(final String topic, final ByteBuf message) {
-        MqttPushTask pushTask = new MqttPushTask(topic, message, 0, false, 0);
-        pushMqttMessageExecutorService.submit(pushTask);
+    public void pushMessageQos0(final String topic, final ByteBuf message, Set<Client> clientsTobePublish) {
+        //For clientIds connected to the current snode
+        for (Client client : clientsTobePublish) {
+            MqttPushTask pushTask = new MqttPushTask(topic, message, 0, false, 0, client);
+            pushMqttMessageExecutorService.submit(pushTask);
+        }
+
     }
 
-    public void pushMessageQos1(final String topic, final ByteBuf message, final Integer qos, boolean retain,
-        Integer packetId) {
-        MqttPushTask pushTask = new MqttPushTask(topic, message, qos, retain, packetId);
-        pushMqttMessageExecutorService.submit(pushTask);
+    public void pushMessageQos1(final String topic, final ByteBuf message, boolean retain, Integer packetId,
+        Set<Client> clientsTobePublish) {
+        for (Client client : clientsTobePublish) {
+            MqttPushTask pushTask = new MqttPushTask(topic, message, 1, retain, packetId, client);
+            pushMqttMessageExecutorService.submit(pushTask);
+        }
     }
 
     public void shutdown() {

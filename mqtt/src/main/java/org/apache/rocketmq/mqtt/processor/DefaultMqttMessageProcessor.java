@@ -30,7 +30,6 @@ import io.netty.handler.codec.mqtt.MqttPublishVariableHeader;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.netty.handler.codec.mqtt.MqttSubscribeMessage;
 import io.netty.handler.codec.mqtt.MqttSubscribePayload;
-import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.rocketmq.common.MqttConfig;
@@ -61,7 +60,6 @@ import org.apache.rocketmq.mqtt.service.impl.WillMessageServiceImpl;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.RequestProcessor;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -85,7 +83,8 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
     private EnodeService enodeService;
     private NnodeService nnodeService;
 
-    public DefaultMqttMessageProcessor(MqttConfig mqttConfig, SnodeConfig snodeConfig, RemotingServer mqttRemotingServer,
+    public DefaultMqttMessageProcessor(MqttConfig mqttConfig, SnodeConfig snodeConfig,
+        RemotingServer mqttRemotingServer,
         EnodeService enodeService, NnodeService nnodeService) {
         this.mqttConfig = mqttConfig;
         this.snodeConfig = snodeConfig;
@@ -119,7 +118,7 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
 
     @Override
     public RemotingCommand processRequest(RemotingChannel remotingChannel, RemotingCommand message)
-        throws RemotingCommandException, UnsupportedEncodingException, InterruptedException, RemotingTimeoutException, MQClientException, RemotingSendRequestException, RemotingConnectException {
+        throws InterruptedException, RemotingTimeoutException, MQClientException, RemotingSendRequestException, RemotingConnectException {
         MqttHeader mqttHeader = (MqttHeader) message.readCustomHeader();
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.valueOf(mqttHeader.getMessageType()),
             mqttHeader.isDup(), MqttQoS.valueOf(mqttHeader.getQosLevel()), mqttHeader.isRetain(),
@@ -132,7 +131,6 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
                     mqttHeader.isHasPassword(), mqttHeader.isWillRetain(),
                     mqttHeader.getWillQos(), mqttHeader.isWillFlag(),
                     mqttHeader.isCleanSession(), mqttHeader.getKeepAliveTimeSeconds());
-//                MqttConnectPayload mqttConnectPayload = (MqttConnectPayload) message.getPayload();
                 MqttConnectPayload mqttConnectPayload = (MqttConnectPayload) MqttEncodeDecodeUtil.decode(message.getBody(), MqttConnectPayload.class);
                 mqttMessage = new MqttConnectMessage(fixedHeader, mqttConnectVariableHeader, mqttConnectPayload);
                 break;

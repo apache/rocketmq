@@ -17,21 +17,29 @@
 
 package org.apache.rocketmq.mqtt.mqtthandler.impl;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.mqtt.MqttFixedHeader;
 import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.handler.codec.mqtt.MqttPublishMessage;
+import io.netty.handler.codec.mqtt.MqttPublishVariableHeader;
+import io.netty.handler.codec.mqtt.MqttQoS;
+import java.util.Set;
+import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.mqtt.client.IOTClientManagerImpl;
 import org.apache.rocketmq.mqtt.mqtthandler.MessageHandler;
-import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
+import org.apache.rocketmq.mqtt.processor.InnerMqttMessageProcessor;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class MqttMessageForwarder implements MessageHandler {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.MQTT_LOGGER_NAME);
-    private final DefaultMqttMessageProcessor defaultMqttMessageProcessor;
+    private final InnerMqttMessageProcessor innerMqttMessageProcessor;
 
-    public MqttMessageForwarder(DefaultMqttMessageProcessor processor) {
-        this.defaultMqttMessageProcessor = processor;
+    public MqttMessageForwarder(InnerMqttMessageProcessor processor) {
+        this.innerMqttMessageProcessor = processor;
     }
 
     /**
@@ -41,6 +49,17 @@ public class MqttMessageForwarder implements MessageHandler {
      * @return whether the message is handled successfully
      */
     @Override public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
-        return null;
+        MqttPublishMessage mqttPublishMessage = (MqttPublishMessage) message;
+        MqttFixedHeader fixedHeader = mqttPublishMessage.fixedHeader();
+        MqttPublishVariableHeader variableHeader = mqttPublishMessage.variableHeader();
+        if (fixedHeader.qosLevel().equals(MqttQoS.AT_MOST_ONCE)) {
+            ByteBuf payload = mqttPublishMessage.payload();
+            //Publish message to clients
+            Set<Client> clientsTobePublish = findCurrentNodeClientsTobePublish(variableHeader.topicName(), (IOTClientManagerImpl) this.innerMqttMessageProcessor.getIotClientManager());
+            innerMqttMessageProcessor.getDefaultMqttMessageProcessor().getMqttPushService().pushMessageQos0(variableHeader.topicName(), payload, clientsTobePublish);
+        }else if(fixedHeader.qosLevel().equals(MqttQoS.AT_LEAST_ONCE)){
+            //TODO
+        }
+        return doResponse(fixedHeader);
     }
 }
