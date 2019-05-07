@@ -14,37 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.trace;
+package org.apache.rocketmq.common.service;
 
-import org.apache.rocketmq.common.exception.MQClientException;
-import java.io.IOException;
+public interface ClientService {
 
-/**
- * Interface of asynchronous transfer data
- */
-public interface TraceDispatcher {
+    void notifyConsumer(String group);
 
-    /**
-     * Initialize asynchronous transfer data module
-     */
-    void start(String nameSrvAddr) throws MQClientException;
-
-    /**
-     * Append the transfering data
-     * @param ctx data infomation
-     * @return
-     */
-    boolean append(Object ctx);
-
-    /**
-     * Write flush action
-     *
-     * @throws IOException
-     */
-    void flush() throws IOException;
-
-    /**
-     * Close the trace Hook
-     */
-    void shutdown();
 }

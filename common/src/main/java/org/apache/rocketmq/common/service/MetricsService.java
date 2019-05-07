@@ -14,7 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.service;
-public interface AdminService {
+package org.apache.rocketmq.common.service;
 
+public interface MetricsService {
+
+    interface Timer {
+        Timer startTimer(int requestCode);
+
+        void observeDuration();
+    }
+
+    void incRequestCount(int requestCode, boolean success);
+
+    void recordRequestSize(String topic, double size);
+
+    Timer startTimer(int requestCode);
+
+    void recordRequestLatency(Timer timer);
+
+    void start(int port);
+
+    void shutdown();
 }

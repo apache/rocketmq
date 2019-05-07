@@ -14,10 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.service;
 
-public interface ClientService {
+package org.apache.rocketmq.mqtt.exception;
 
-    void notifyConsumer(String group);
+public class MqttRuntimeException extends RuntimeException {
 
+    public MqttRuntimeException(String message) {
+        super(message);
+    }
 }

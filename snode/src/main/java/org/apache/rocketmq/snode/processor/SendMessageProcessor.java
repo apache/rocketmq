@@ -35,7 +35,7 @@ import org.apache.rocketmq.remoting.interceptor.RequestContext;
 import org.apache.rocketmq.remoting.interceptor.ResponseContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
-import org.apache.rocketmq.snode.service.MetricsService;
+import org.apache.rocketmq.common.service.MetricsService;
 
 public class SendMessageProcessor implements RequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);

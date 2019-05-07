@@ -31,7 +31,7 @@
         <dependency>
             <groupId>io.openmessaging.storage</groupId>
             <artifactId>dledger</artifactId>
-            <version>0.1-SNAPSHOT</version>
+            <version>0.2-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.rocketmq</groupId>

@@ -14,23 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.service;
+package org.apache.rocketmq.common.exception;
 
-import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+public class MQSnodeException extends MQBrokerException {
 
-public interface PushService {
-    /**
-     * Push message to consumer which subscribed target {@link MessageQueue}
-     * <p>
-     *
-     * @param requestHeader Send message request header
-     * @param message Message body
-     * @param response Send message response
-     */
-    void pushMessage(final SendMessageRequestHeader requestHeader, final byte[] message,
-        final RemotingCommand response);
-
-    void shutdown();
+    public MQSnodeException(int responseCode, String errorMessage) {
+        super(responseCode, errorMessage);
+    }
 }

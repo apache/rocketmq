@@ -22,7 +22,7 @@ import org.apache.rocketmq.client.consumer.MQPullConsumerScheduleService;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullTaskCallback;
 import org.apache.rocketmq.client.consumer.PullTaskContext;
-import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 

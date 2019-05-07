@@ -14,25 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.snode.service;
+package org.apache.rocketmq.common.service;
 
-public interface MetricsService {
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-    interface Timer {
-        Timer startTimer(int requestCode);
-
-        void observeDuration();
-    }
-
-    void incRequestCount(int requestCode, boolean success);
-
-    void recordRequestSize(String topic, double size);
-
-    Timer startTimer(int requestCode);
-
-    void recordRequestLatency(Timer timer);
-
-    void start(int port);
+public interface PushService {
+    /**
+     * Push message to consumer which subscribed target {@link MessageQueue}
+     * <p>
+     *
+     * @param requestHeader Send message request header
+     * @param message Message body
+     * @param response Send message response
+     */
+    void pushMessage(final SendMessageRequestHeader requestHeader, final byte[] message,
+        final RemotingCommand response);
 
     void shutdown();
 }

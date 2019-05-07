@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.client;
 
-import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.exception.MQBrokerException;
+import org.apache.rocketmq.common.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;

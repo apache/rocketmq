@@ -19,7 +19,7 @@ package org.apache.rocketmq.test.client.rmq;
 
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.exception.MQClientException;
 import org.apache.rocketmq.test.clientinterface.AbstractMQConsumer;
 import org.apache.rocketmq.test.listener.AbstractListener;
 import org.apache.rocketmq.test.util.RandomUtil;

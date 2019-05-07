@@ -17,7 +17,7 @@
 package org.apache.rocketmq.logappender.common;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MQProducer;
 

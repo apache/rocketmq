@@ -18,8 +18,8 @@ package org.apache.rocketmq.example.ordermessage;
 
 import java.io.UnsupportedEncodingException;
 import java.util.List;
-import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.exception.MQBrokerException;
+import org.apache.rocketmq.common.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;

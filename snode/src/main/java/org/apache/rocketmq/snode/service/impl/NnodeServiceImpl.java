@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -40,7 +40,7 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.constant.SnodeConstant;
-import org.apache.rocketmq.snode.service.NnodeService;
+import org.apache.rocketmq.common.service.NnodeService;
 
 public class NnodeServiceImpl implements NnodeService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
