@@ -330,8 +330,8 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
          */
         private void sendTraceDataByMQ(Set<String> keySet, final String data, String dataTopic, String regionId) {
             String traceTopic = traceTopicName;
-            if (StringUtils.isNotEmpty(regionId) && MixAll.RMQ_SYS_TRACE_TOPIC.equals(traceTopic)){
-                traceTopic = TraceConstants.traceTopic + regionId;
+            if (StringUtils.isNotEmpty(regionId) && MixAll.RMQ_SYS_TRACE_TOPIC.equals(traceTopic)) {
+                traceTopic = TraceConstants.TRACE_TOPIC_PREFIX + regionId;
             }
             final Message message = new Message(traceTopic, data.getBytes());
 
