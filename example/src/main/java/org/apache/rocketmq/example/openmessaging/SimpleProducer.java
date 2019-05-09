@@ -18,7 +18,7 @@ package org.apache.rocketmq.example.openmessaging;
 
 import io.openmessaging.Future;
 import io.openmessaging.FutureListener;
-import io.openmessaging.Message;
+import io.openmessaging.message.Message;
 import io.openmessaging.MessagingAccessPoint;
 import io.openmessaging.OMS;
 import io.openmessaging.producer.Producer;
@@ -32,15 +32,11 @@ public class SimpleProducer {
             OMS.getMessagingAccessPoint("oms:rocketmq://localhost:9876/default:default");
 
         final Producer producer = messagingAccessPoint.createProducer();
-
-        messagingAccessPoint.startup();
-        System.out.printf("MessagingAccessPoint startup OK%n");
-
-        producer.startup();
+        producer.start();
         System.out.printf("Producer startup OK%n");
 
         {
-            Message message = producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8")));
+            Message message = producer.createMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8")));
             SendResult sendResult = producer.send(message);
             //final Void aVoid = result.get(3000L);
             System.out.printf("Send async message OK, msgId: %s%n", sendResult.messageId());
@@ -48,7 +44,7 @@ public class SimpleProducer {
 
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         {
-            final Future<SendResult> result = producer.sendAsync(producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8"))));
+            final Future<SendResult> result = producer.sendAsync(producer.createMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8"))));
             result.addListener(new FutureListener<SendResult>() {
                 @Override
                 public void operationComplete(Future<SendResult> future) {
@@ -63,7 +59,7 @@ public class SimpleProducer {
         }
 
         {
-            producer.sendOneway(producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8"))));
+            producer.sendOneway(producer.createMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8"))));
             System.out.printf("Send oneway message OK%n");
         }
 
@@ -73,6 +69,6 @@ public class SimpleProducer {
         } catch (InterruptedException ignore) {
         }
 
-        producer.shutdown();
+        producer.stop();
     }
 }

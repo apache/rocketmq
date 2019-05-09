@@ -16,18 +16,15 @@
  */
 package io.openmessaging.rocketmq.utils;
 
-import io.openmessaging.BytesMessage;
 import io.openmessaging.KeyValue;
-import io.openmessaging.Message.BuiltinKeys;
 import io.openmessaging.OMS;
+import io.openmessaging.message.Header;
 import io.openmessaging.producer.SendResult;
 import io.openmessaging.rocketmq.domain.BytesMessageImpl;
 import io.openmessaging.rocketmq.domain.RocketMQConstants;
 import io.openmessaging.rocketmq.domain.SendResultImpl;
 import java.lang.reflect.Field;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.UtilAll;
@@ -44,68 +41,55 @@ public class OMSUtil {
         return Integer.toString(UtilAll.getPid()) + "%OpenMessaging" + "%" + System.nanoTime();
     }
 
-    public static org.apache.rocketmq.common.message.Message msgConvert(BytesMessage omsMessage) {
+    public static org.apache.rocketmq.common.message.Message msgConvert(BytesMessageImpl omsMessage) {
         org.apache.rocketmq.common.message.Message rmqMessage = new org.apache.rocketmq.common.message.Message();
-        rmqMessage.setBody(omsMessage.getBody(byte[].class));
+        rmqMessage.setBody(omsMessage.getData());
 
-        KeyValue sysHeaders = omsMessage.sysHeaders();
-        KeyValue userHeaders = omsMessage.userHeaders();
+        Header sysHeaders = omsMessage.header();
+        KeyValue userHeaders = omsMessage.properties();
 
         //All destinations in RocketMQ use Topic
-        rmqMessage.setTopic(sysHeaders.getString(BuiltinKeys.DESTINATION));
+        rmqMessage.setTopic(sysHeaders.getDestination());
 
-        if (sysHeaders.containsKey(BuiltinKeys.START_TIME)) {
-            long deliverTime = sysHeaders.getLong(BuiltinKeys.START_TIME, 0);
-            if (deliverTime > 0) {
-                rmqMessage.putUserProperty(RocketMQConstants.START_DELIVER_TIME, String.valueOf(deliverTime));
-            }
+        long deliverTime = sysHeaders.getBornTimestamp();
+        if (deliverTime > 0) {
+            rmqMessage.putUserProperty(RocketMQConstants.START_DELIVER_TIME, String.valueOf(deliverTime));
         }
+
 
         for (String key : userHeaders.keySet()) {
             MessageAccessor.putProperty(rmqMessage, key, userHeaders.getString(key));
         }
 
-        //System headers has a high priority
-        for (String key : sysHeaders.keySet()) {
-            MessageAccessor.putProperty(rmqMessage, key, sysHeaders.getString(key));
-        }
-
+        MessageAccessor.putProperty(rmqMessage, RocketMQConstants.PROPERTY_DELAY_TIME_LEVEL, String.valueOf(sysHeaders.getDeliveryCount()));
         return rmqMessage;
     }
 
-    public static BytesMessage msgConvert(org.apache.rocketmq.common.message.MessageExt rmqMsg) {
-        BytesMessage omsMsg = new BytesMessageImpl();
-        omsMsg.setBody(rmqMsg.getBody());
-
-        KeyValue headers = omsMsg.sysHeaders();
-        KeyValue properties = omsMsg.userHeaders();
+    public static BytesMessageImpl msgConvert(org.apache.rocketmq.common.message.MessageExt rmqMsg) {
+        BytesMessageImpl omsMsg = new BytesMessageImpl();
+        omsMsg.setData(rmqMsg.getBody());
 
         final Set<Map.Entry<String, String>> entries = rmqMsg.getProperties().entrySet();
 
         for (final Map.Entry<String, String> entry : entries) {
-            if (isOMSHeader(entry.getKey())) {
-                headers.put(entry.getKey(), entry.getValue());
-            } else {
-                properties.put(entry.getKey(), entry.getValue());
+            if (!isOMSHeader(entry.getKey())) {
+                omsMsg.properties().put(entry.getKey(), entry.getValue());
             }
         }
 
-        omsMsg.putSysHeaders(BuiltinKeys.MESSAGE_ID, rmqMsg.getMsgId());
+        omsMsg.header().setMessageId(rmqMsg.getMsgId());
+        omsMsg.header().setDestination(rmqMsg.getTopic());
+        omsMsg.header().setBornHost(String.valueOf(rmqMsg.getBornHost()));
+        omsMsg.header().setBornTimestamp(rmqMsg.getBornTimestamp());
+        omsMsg.header().setDeliveryCount(rmqMsg.getDelayTimeLevel());
 
-        omsMsg.putSysHeaders(BuiltinKeys.DESTINATION, rmqMsg.getTopic());
-
-        omsMsg.putSysHeaders(BuiltinKeys.SEARCH_KEYS, rmqMsg.getKeys());
-        omsMsg.putSysHeaders(BuiltinKeys.BORN_HOST, String.valueOf(rmqMsg.getBornHost()));
-        omsMsg.putSysHeaders(BuiltinKeys.BORN_TIMESTAMP, rmqMsg.getBornTimestamp());
-        omsMsg.putSysHeaders(BuiltinKeys.STORE_HOST, String.valueOf(rmqMsg.getStoreHost()));
-        omsMsg.putSysHeaders(BuiltinKeys.STORE_TIMESTAMP, rmqMsg.getStoreTimestamp());
         return omsMsg;
     }
 
     public static boolean isOMSHeader(String value) {
-        for (Field field : BuiltinKeys.class.getDeclaredFields()) {
+        for (Field field : Header.class.getDeclaredFields()) {
             try {
-                if (field.get(BuiltinKeys.class).equals(value)) {
+                if (field.get(Header.class).equals(value)) {
                     return true;
                 }
             } catch (IllegalAccessException e) {
@@ -131,50 +115,5 @@ public class OMSUtil {
             }
         }
         return keyValue;
-    }
-
-    /**
-     * Returns an iterator that cycles indefinitely over the elements of {@code Iterable}.
-     */
-    public static <T> Iterator<T> cycle(final Iterable<T> iterable) {
-        return new Iterator<T>() {
-            Iterator<T> iterator = new Iterator<T>() {
-                @Override
-                public synchronized boolean hasNext() {
-                    return false;
-                }
-
-                @Override
-                public synchronized T next() {
-                    throw new NoSuchElementException();
-                }
-
-                @Override
-                public synchronized void remove() {
-                    //Ignore
-                }
-            };
-
-            @Override
-            public synchronized boolean hasNext() {
-                return iterator.hasNext() || iterable.iterator().hasNext();
-            }
-
-            @Override
-            public synchronized T next() {
-                if (!iterator.hasNext()) {
-                    iterator = iterable.iterator();
-                    if (!iterator.hasNext()) {
-                        throw new NoSuchElementException();
-                    }
-                }
-                return iterator.next();
-            }
-
-            @Override
-            public synchronized void remove() {
-                iterator.remove();
-            }
-        };
     }
 }

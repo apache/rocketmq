@@ -23,4 +23,6 @@ public interface RocketMQConstants {
      */
     String START_DELIVER_TIME = "__STARTDELIVERTIME";
 
+    String PROPERTY_DELAY_TIME_LEVEL = "DELAY";
+
 }

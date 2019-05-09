@@ -175,7 +175,7 @@ public class DefaultPromise<V> implements Promise<V> {
     private V getValueOrThrowable() {
         if (exception != null) {
             Throwable e = exception.getCause() != null ? exception.getCause() : exception;
-            throw new OMSRuntimeException("-1", e);
+            throw new OMSRuntimeException(-1, e);
         }
         notifyListeners();
         return result;
