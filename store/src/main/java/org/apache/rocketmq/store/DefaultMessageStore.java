@@ -439,6 +439,16 @@ public class DefaultMessageStore implements MessageStore {
         return commitLog;
     }
 
+    /**
+     *
+     * @param group Consumer group that launches this query. 消费者名称
+     * @param topic Topic to query.  主题
+     * @param queueId Queue ID to query.  队列id
+     * @param offset Logical offset to start from. 待拉取的偏移量
+     * @param maxMsgNums Maximum count of messages to query. //最大的拉取消息条数
+     * @param messageFilter Message filter used to screen desired messages. 消息过滤器
+     * @return
+     */
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
         final int maxMsgNums,
         final MessageFilter messageFilter) {
@@ -454,47 +464,48 @@ public class DefaultMessageStore implements MessageStore {
 
         long beginTime = this.getSystemClock().now();
 
+        //根据 topic 和 queueId 查找对应的ConsumeQueue
         GetMessageStatus status = GetMessageStatus.NO_MESSAGE_IN_QUEUE;
-        long nextBeginOffset = offset;
-        long minOffset = 0;
-        long maxOffset = 0;
+        long nextBeginOffset = offset; //待查找的队列的偏移量
+        long minOffset = 0; //当前消息队列的最小偏移量
+        long maxOffset = 0; // 当前消息队列的最大偏移量
 
         GetMessageResult getResult = new GetMessageResult();
 
-        final long maxOffsetPy = this.commitLog.getMaxOffset();
+        final long maxOffsetPy = this.commitLog.getMaxOffset(); //当前commitLog的文件的最大偏移量
 
-        ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
-        if (consumeQueue != null) {
-            minOffset = consumeQueue.getMinOffsetInQueue();
-            maxOffset = consumeQueue.getMaxOffsetInQueue();
+        ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);//根据主题队列Id找到对应的 ConsumeQueue
+        if (consumeQueue != null) { //ConsumeQueue 不为null
+            minOffset = consumeQueue.getMinOffsetInQueue();//当前队列的最小偏移量
+            maxOffset = consumeQueue.getMaxOffsetInQueue();// 当前消息队列的最大偏移量
 
-            if (maxOffset == 0) {
+            if (maxOffset == 0) {// 最大偏移量为0 说明没有message在消息队列中
                 status = GetMessageStatus.NO_MESSAGE_IN_QUEUE;
-                nextBeginOffset = nextOffsetCorrection(offset, 0);
-            } else if (offset < minOffset) {
+                nextBeginOffset = nextOffsetCorrection(offset, 0); //准备下次拉取
+            } else if (offset < minOffset) { //拉取的偏移量 < 最小
                 status = GetMessageStatus.OFFSET_TOO_SMALL;
                 nextBeginOffset = nextOffsetCorrection(offset, minOffset);
-            } else if (offset == maxOffset) {
+            } else if (offset == maxOffset) { //拉取的 == 最大偏移量
                 status = GetMessageStatus.OFFSET_OVERFLOW_ONE;
-                nextBeginOffset = nextOffsetCorrection(offset, offset);
-            } else if (offset > maxOffset) {
-                status = GetMessageStatus.OFFSET_OVERFLOW_BADLY;
-                if (0 == minOffset) {
-                    nextBeginOffset = nextOffsetCorrection(offset, minOffset);
+                nextBeginOffset = nextOffsetCorrection(offset, offset); //下次的拉起结果为offset
+            } else if (offset > maxOffset) { //offset > maxOffset 大于最大
+                status = GetMessageStatus.OFFSET_OVERFLOW_BADLY; //说明越界
+                if (0 == minOffset) { //
+                    nextBeginOffset = nextOffsetCorrection(offset, minOffset); //判断minoffset 设置下次拉起为0
                 } else {
-                    nextBeginOffset = nextOffsetCorrection(offset, maxOffset);
+                    nextBeginOffset = nextOffsetCorrection(offset, maxOffset); //设置下次拉取为maxOffset；
                 }
-            } else {
-                SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(offset);
-                if (bufferConsumeQueue != null) {
+            } else { // 上述必须校对 否则容易出现消息堆积
+                SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(offset); //根据offset 偏移量 过去 MappedBuffer 内存映射文件
+                if (bufferConsumeQueue != null) { // 成功拉去到消息
                     try {
-                        status = GetMessageStatus.NO_MATCHED_MESSAGE;
+                        status = GetMessageStatus.NO_MATCHED_MESSAGE; //初始状态  NO_MATCHED_MESSAGE
 
-                        long nextPhyFileStartOffset = Long.MIN_VALUE;
-                        long maxPhyOffsetPulling = 0;
+                        long nextPhyFileStartOffset = Long.MIN_VALUE; //下一次拉取的无聊偏移量
+                        long maxPhyOffsetPulling = 0; //本次拉取的最大的实际物理偏移量
 
                         int i = 0;
-                        final int maxFilterMessageCount = Math.max(16000, maxMsgNums * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+                        final int maxFilterMessageCount = Math.max(16000, maxMsgNums * ConsumeQueue.CQ_STORE_UNIT_SIZE); // ConsumeQueue 的每次单元是20位
                         final boolean diskFallRecorded = this.messageStoreConfig.isDiskFallRecorded();
                         ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
                         for (; i < bufferConsumeQueue.getSize() && i < maxFilterMessageCount; i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
@@ -1080,8 +1091,8 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public ConsumeQueue findConsumeQueue(String topic, int queueId) {
-        ConcurrentMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
-        if (null == map) {
+        ConcurrentMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);//通过topic 获取该topic 所有队列 ConsumeQueueMap  key 为queueId value 为ConsumeQueue
+        if (null == map) { //找不到map new
             ConcurrentMap<Integer, ConsumeQueue> newMap = new ConcurrentHashMap<Integer, ConsumeQueue>(128);
             ConcurrentMap<Integer, ConsumeQueue> oldMap = consumeQueueTable.putIfAbsent(topic, newMap);
             if (oldMap != null) {
@@ -1091,8 +1102,8 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
 
-        ConsumeQueue logic = map.get(queueId);
-        if (null == logic) {
+        ConsumeQueue logic = map.get(queueId); //如果没有对应队列Id的ConsumeQueue
+        if (null == logic) { //创建一个ConsumeQueue
             ConsumeQueue newLogic = new ConsumeQueue(
                 topic,
                 queueId,

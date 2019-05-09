@@ -20,13 +20,13 @@ import java.nio.ByteBuffer;
 
 public class SelectMappedBufferResult {
 
-    private final long startOffset;
+    private final long startOffset; //开始的偏移量 startIndex
 
-    private final ByteBuffer byteBuffer;
+    private final ByteBuffer byteBuffer; //获取的内存
 
-    private int size;
+    private int size; //byteBuffer 的size 消息的size
 
-    private MappedFile mappedFile;
+    private MappedFile mappedFile; //从哪个MappedFile拉取的文件
 
     public SelectMappedBufferResult(long startOffset, ByteBuffer byteBuffer, int size, MappedFile mappedFile) {
         this.startOffset = startOffset;

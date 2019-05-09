@@ -42,8 +42,9 @@ public class PullRequestHoldService extends ServiceThread {
     }
 
     public void suspendPullRequest(final String topic, final int queueId, final PullRequest pullRequest) {
-        String key = this.buildKey(topic, queueId);
-        ManyPullRequest mpr = this.pullRequestTable.get(key);
+
+        String key = this.buildKey(topic, queueId); //build key  topic@QueueId
+        ManyPullRequest mpr = this.pullRequestTable.get(key); //先get
         if (null == mpr) {
             mpr = new ManyPullRequest();
             ManyPullRequest prev = this.pullRequestTable.putIfAbsent(key, mpr);
@@ -51,7 +52,7 @@ public class PullRequestHoldService extends ServiceThread {
                 mpr = prev;
             }
         }
-
+        //添加到 ManyPullRequest.pullRequestList 集合中
         mpr.addPullRequest(pullRequest);
     }
 
@@ -66,16 +67,17 @@ public class PullRequestHoldService extends ServiceThread {
     @Override
     public void run() {
         log.info("{} service started", this.getServiceName());
-        while (!this.isStopped()) {
+        while (!this.isStopped()) {  //开启长轮询模式
             try {
-                if (this.brokerController.getBrokerConfig().isLongPollingEnable()) {
-                    this.waitForRunning(5 * 1000);
+                if (this.brokerController.getBrokerConfig().isLongPollingEnable()) { //开启长轮询模式
+                    this.waitForRunning(5 * 1000); //休眠5s
                 } else {
-                    this.waitForRunning(this.brokerController.getBrokerConfig().getShortPollingTimeMills());
+                    //未开启长轮询 休眠 brokerConfig 的 1s 数
+                    this.waitForRunning(this.brokerController.getBrokerConfig().getShortPollingTimeMills());//
                 }
 
-                long beginLockTimestamp = this.systemClock.now();
-                this.checkHoldRequest();
+                long beginLockTimestamp = this.systemClock.now(); //获取当前的系统时间
+                this.checkHoldRequest(); //这里是核心逻辑
                 long costTime = this.systemClock.now() - beginLockTimestamp;
                 if (costTime > 5 * 1000) {
                     log.info("[NOTIFYME] check hold request cost {} ms.", costTime);
@@ -93,13 +95,16 @@ public class PullRequestHoldService extends ServiceThread {
         return PullRequestHoldService.class.getSimpleName();
     }
 
+
+    //核心逻辑
     private void checkHoldRequest() {
         for (String key : this.pullRequestTable.keySet()) {
-            String[] kArray = key.split(TOPIC_QUEUEID_SEPARATOR);
+            //截取 topic@queueId
+            String[] kArray = key.split(TOPIC_QUEUEID_SEPARATOR); //
             if (2 == kArray.length) {
-                String topic = kArray[0];
-                int queueId = Integer.parseInt(kArray[1]);
-                final long offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
+                String topic = kArray[0];//获取topic
+                int queueId = Integer.parseInt(kArray[1]);//获取 队列的
+                final long offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId); //根据队列 Id topic 找到对应的ConsumeQueue的最大偏移量
                 try {
                     this.notifyMessageArriving(topic, queueId, offset);
                 } catch (Throwable e) {
@@ -113,18 +118,28 @@ public class PullRequestHoldService extends ServiceThread {
         notifyMessageArriving(topic, queueId, maxOffset, null, 0, null, null);
     }
 
+    /**
+     *
+     * @param topic    主题
+     * @param queueId  队列Id
+     * @param maxOffset 最大偏移量
+     * @param tagsCode   过滤
+     * @param msgStoreTime msgStore time
+     * @param filterBitMap 过滤的bitmap
+     * @param properties   属性
+     */
     public void notifyMessageArriving(final String topic, final int queueId, final long maxOffset, final Long tagsCode,
         long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         String key = this.buildKey(topic, queueId);
-        ManyPullRequest mpr = this.pullRequestTable.get(key);
+        ManyPullRequest mpr = this.pullRequestTable.get(key); //从pullRequestTable 获取
         if (mpr != null) {
-            List<PullRequest> requestList = mpr.cloneListAndClear();
+            List<PullRequest> requestList = mpr.cloneListAndClear(); //存放PullRequest
             if (requestList != null) {
                 List<PullRequest> replayList = new ArrayList<PullRequest>();
 
-                for (PullRequest request : requestList) {
-                    long newestOffset = maxOffset;
-                    if (newestOffset <= request.getPullFromThisOffset()) {
+                for (PullRequest request : requestList) { //遍历requestList
+                    long newestOffset = maxOffset; //
+                    if (newestOffset <= request.getPullFromThisOffset()) { //如果
                         newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
                     }
 

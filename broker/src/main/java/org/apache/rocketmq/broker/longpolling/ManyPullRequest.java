@@ -30,6 +30,8 @@ public class ManyPullRequest {
         this.pullRequestList.addAll(many);
     }
 
+
+    //加锁 ？？？ pullRequestList private 私有属性为什么加锁
     public synchronized List<PullRequest> cloneListAndClear() {
         if (!this.pullRequestList.isEmpty()) {
             List<PullRequest> result = (ArrayList<PullRequest>) this.pullRequestList.clone();

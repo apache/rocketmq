@@ -593,17 +593,19 @@ public class MQClientAPIImpl {
         final PullCallback pullCallback
     ) throws RemotingException, InterruptedException {
 
-        //开始拉取
+        //开始拉取 异步拉取消息   对应的netty PullMessageProcessor.processRequest()
         this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
+            //异步拉取成功后的回调函数
             @Override
             public void operationComplete(ResponseFuture responseFuture) {
                 RemotingCommand response = responseFuture.getResponseCommand();
                 if (response != null) {
                     try {
-                        //发送成功后
+                        //发送成功后 RemotingCommand  协议
                         PullResult pullResult = MQClientAPIImpl.this.processPullResponse(response);
                         assert pullResult != null;
-                        pullCallback.onSuccess(pullResult);
+                        //
+                        pullCallback.onSuccess(pullResult); //拉取的最大偏移量 最小偏移量
                     } catch (Exception e) {
                         pullCallback.onException(e);
                     }
@@ -633,7 +635,7 @@ public class MQClientAPIImpl {
 
     private PullResult processPullResponse(
         final RemotingCommand response) throws MQBrokerException, RemotingCommandException {
-        PullStatus pullStatus = PullStatus.NO_NEW_MSG;
+        PullStatus pullStatus = PullStatus.NO_NEW_MSG; //转换 ResponseCode.SUCCESS -- > PullStatus
         switch (response.getCode()) {
             case ResponseCode.SUCCESS:
                 pullStatus = PullStatus.FOUND;

@@ -65,7 +65,7 @@ import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
-
+//pull 模式的长轮询拉取
 public class PullMessageProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
@@ -90,7 +90,9 @@ public class PullMessageProcessor implements NettyRequestProcessor {
     //接收netty 获取的消息请求
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend)
         throws RemotingCommandException {
-        RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
+
+        //todo 暂时不看
+        RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class); //封装返回体 RemotingCommand
         final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();
         final PullMessageRequestHeader requestHeader =
             (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
@@ -234,37 +236,39 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             messageFilter = new ExpressionMessageFilter(subscriptionData, consumerFilterData,
                 this.brokerController.getConsumerFilterManager());
         }
+        //todo 上边都是消息过滤
 
+        //从getMessageStore 中查询消息
         final GetMessageResult getMessageResult =
             this.brokerController.getMessageStore().getMessage(requestHeader.getConsumerGroup(), requestHeader.getTopic(),
                 requestHeader.getQueueId(), requestHeader.getQueueOffset(), requestHeader.getMaxMsgNums(), messageFilter);
-        if (getMessageResult != null) {
-            response.setRemark(getMessageResult.getStatus().name());
-            responseHeader.setNextBeginOffset(getMessageResult.getNextBeginOffset());
-            responseHeader.setMinOffset(getMessageResult.getMinOffset());
-            responseHeader.setMaxOffset(getMessageResult.getMaxOffset());
+        if (getMessageResult != null) { //从messageStore 查询到message
+            response.setRemark(getMessageResult.getStatus().name()); //设置Response
+            responseHeader.setNextBeginOffset(getMessageResult.getNextBeginOffset()); //设置下一次拉取的偏移量
+            responseHeader.setMinOffset(getMessageResult.getMinOffset()); //最小的偏移量
+            responseHeader.setMaxOffset(getMessageResult.getMaxOffset()); //最大
 
-            if (getMessageResult.isSuggestPullingFromSlave()) {
+            if (getMessageResult.isSuggestPullingFromSlave()) { //设置拉取任务的broker
                 responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getWhichBrokerWhenConsumeSlowly());
             } else {
-                responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
+                responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID); //设置brokerID
             }
 
-            switch (this.brokerController.getMessageStoreConfig().getBrokerRole()) {
+            switch (this.brokerController.getMessageStoreConfig().getBrokerRole()) {  //获取到broker 的角色
                 case ASYNC_MASTER:
-                case SYNC_MASTER:
+                case SYNC_MASTER: //master
                     break;
-                case SLAVE:
+                case SLAVE:  //SLAVE
                     if (!this.brokerController.getBrokerConfig().isSlaveReadEnable()) {
                         response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
-                        responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
+                        responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID); //设置主brokerId
                     }
                     break;
             }
 
-            if (this.brokerController.getBrokerConfig().isSlaveReadEnable()) {
+            if (this.brokerController.getBrokerConfig().isSlaveReadEnable()) { //
                 // consume too slow ,redirect to another machine
-                if (getMessageResult.isSuggestPullingFromSlave()) {
+                if (getMessageResult.isSuggestPullingFromSlave()) { //
                     responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getWhichBrokerWhenConsumeSlowly());
                 }
                 // consume ok
@@ -325,7 +329,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     break;
             }
 
-            if (this.hasConsumeMessageHook()) {
+            if (this.hasConsumeMessageHook()) { //
                 ConsumeMessageContext context = new ConsumeMessageContext();
                 context.setConsumerGroup(requestHeader.getConsumerGroup());
                 context.setTopic(requestHeader.getTopic());
@@ -405,19 +409,24 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                         response = null;
                     }
                     break;
+                    //未拉取到消息 开启到长轮询模式
                 case ResponseCode.PULL_NOT_FOUND:
 
                     if (brokerAllowSuspend && hasSuspendFlag) {
-                        long pollingTimeMills = suspendTimeoutMillisLong;
-                        if (!this.brokerController.getBrokerConfig().isLongPollingEnable()) {
-                            pollingTimeMills = this.brokerController.getBrokerConfig().getShortPollingTimeMills();
+                        long pollingTimeMills = suspendTimeoutMillisLong; //
+                        if (!this.brokerController.getBrokerConfig().isLongPollingEnable()) {//如果开启了长轮询模式
+                            pollingTimeMills = this.brokerController.getBrokerConfig().getShortPollingTimeMills(); //默认配置 1000ms
                         }
 
-                        String topic = requestHeader.getTopic();
-                        long offset = requestHeader.getQueueOffset();
-                        int queueId = requestHeader.getQueueId();
+                        String topic = requestHeader.getTopic();//获取topic
+                        long offset = requestHeader.getQueueOffset();//获取偏移量
+                        int queueId = requestHeader.getQueueId(); //获取队列Id
                         PullRequest pullRequest = new PullRequest(request, channel, pollingTimeMills,
                             this.brokerController.getMessageStore().now(), offset, subscriptionData, messageFilter);
+
+                        //todo Rocket的轮询机制由俩个线程共同完成
+                        //todo PullRequestHoldService 每隔5s 重试一次
+                        //todo DefaultMessageStore.ReputMessageService 没处理一次重新拉取Thread.sleep(1) 继续拉取
                         this.brokerController.getPullRequestHoldService().suspendPullRequest(topic, queueId, pullRequest);
                         response = null;
                         break;
@@ -460,7 +469,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             response.setRemark("store getMessage return null");
         }
 
-        boolean storeOffsetEnable = brokerAllowSuspend;
+        boolean storeOffsetEnable = brokerAllowSuspend; //borker =
         storeOffsetEnable = storeOffsetEnable && hasCommitOffsetFlag;
         storeOffsetEnable = storeOffsetEnable
             && this.brokerController.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE;

@@ -153,6 +153,7 @@ public abstract class NettyRemotingAbstract {
                     break;
                     //收到response响应时候会吧 reuqest的 countdownlantch.countdown() 方法
                 case RESPONSE_COMMAND:
+                    //接收server端发送的消息
                     processResponseCommand(ctx, cmd);
                     break;
                 default:
@@ -267,13 +268,13 @@ public abstract class NettyRemotingAbstract {
      */
     public void processResponseCommand(ChannelHandlerContext ctx, RemotingCommand cmd) {
         final int opaque = cmd.getOpaque();
-        final ResponseFuture responseFuture = responseTable.get(opaque);
+        final ResponseFuture responseFuture = responseTable.get(opaque);// 从server
         if (responseFuture != null) {
             responseFuture.setResponseCommand(cmd);
 
             responseTable.remove(opaque);
 
-            if (responseFuture.getInvokeCallback() != null) {
+            if (responseFuture.getInvokeCallback() != null) { //如果有回调函数 执行回调函数 说明是异步
                 executeInvokeCallback(responseFuture);
             } else {
                 responseFuture.putResponse(cmd);

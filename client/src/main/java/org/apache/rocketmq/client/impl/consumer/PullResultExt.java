@@ -25,6 +25,16 @@ public class PullResultExt extends PullResult {
     private final long suggestWhichBrokerId;
     private byte[] messageBinary;
 
+    /**
+     *
+     * @param pullStatus  拉取状态
+     * @param nextBeginOffset 下次拉取的start offset
+     * @param minOffset       拉取的最小偏移量
+     * @param maxOffset       路拉取的最大偏移量
+     * @param msgFoundList     null
+     * @param suggestWhichBrokerId  从哪个broker 拉取的
+     * @param messageBinary         拉取消息的二进制
+     */
     public PullResultExt(PullStatus pullStatus, long nextBeginOffset, long minOffset, long maxOffset,
         List<MessageExt> msgFoundList, final long suggestWhichBrokerId, final byte[] messageBinary) {
         super(pullStatus, nextBeginOffset, minOffset, maxOffset, msgFoundList);
