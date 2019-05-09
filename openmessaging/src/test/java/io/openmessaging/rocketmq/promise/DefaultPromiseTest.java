@@ -87,7 +87,7 @@ public class DefaultPromiseTest {
 
     @Test
     public void testAddListener_WithException_ListenerAfterSet() throws Exception {
-        final Throwable exception = new OMSRuntimeException("-1", "Test Error");
+        final Throwable exception = new OMSRuntimeException(-1, "Test Error");
         promise.setFailure(exception);
         promise.addListener(new FutureListener<String>() {
             @Override
@@ -99,7 +99,7 @@ public class DefaultPromiseTest {
 
     @Test
     public void testAddListener_WithException() throws Exception {
-        final Throwable exception = new OMSRuntimeException("-1", "Test Error");
+        final Throwable exception = new OMSRuntimeException(-1, "Test Error");
         promise.addListener(new FutureListener<String>() {
             @Override
             public void operationComplete(Future<String> future) {
@@ -112,7 +112,7 @@ public class DefaultPromiseTest {
     @Test
     public void getThrowable() throws Exception {
         assertThat(promise.getThrowable()).isNull();
-        Throwable exception = new OMSRuntimeException("-1", "Test Error");
+        Throwable exception = new OMSRuntimeException(-1, "Test Error");
         promise.setFailure(exception);
         assertThat(promise.getThrowable()).isEqualTo(exception);
     }

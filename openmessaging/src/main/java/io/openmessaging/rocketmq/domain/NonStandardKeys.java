@@ -27,4 +27,6 @@ public interface NonStandardKeys {
     String MESSAGE_DESTINATION = "rmq.message.destination";
     String PULL_MESSAGE_BATCH_NUMS = "rmq.pull.message.batch.nums";
     String PULL_MESSAGE_CACHE_CAPACITY = "rmq.pull.message.cache.capacity";
+    String PRODUCER_ID = "PRODUCER_ID";
+    String CONSUMER_ID ="CONSUMER_ID";
 }

@@ -16,98 +16,52 @@
  */
 package io.openmessaging.rocketmq.domain;
 
-import io.openmessaging.BytesMessage;
 import io.openmessaging.KeyValue;
-import io.openmessaging.Message;
+import io.openmessaging.consumer.MessageReceipt;
+import io.openmessaging.extension.ExtensionHeader;
+import io.openmessaging.message.Header;
+import io.openmessaging.message.Message;
 import io.openmessaging.OMS;
-import io.openmessaging.exception.OMSMessageFormatException;
-import org.apache.commons.lang3.builder.ToStringBuilder;
+import java.util.Optional;
 
-public class BytesMessageImpl implements BytesMessage {
-    private KeyValue sysHeaders;
-    private KeyValue userHeaders;
-    private byte[] body;
+public class BytesMessageImpl implements Message {
+
+    private Header sysHeaders;
+    private KeyValue userProperties;
+    private byte[] data;
 
     public BytesMessageImpl() {
-        this.sysHeaders = OMS.newKeyValue();
-        this.userHeaders = OMS.newKeyValue();
+        this.sysHeaders = new MessageHeader();
+        this.userProperties = OMS.newKeyValue();
     }
 
     @Override
-    public <T> T getBody(Class<T> type) throws OMSMessageFormatException {
-        if (type == byte[].class) {
-            return (T)body;
-        }
-
-        throw new OMSMessageFormatException("", "Cannot assign byte[] to " + type.getName());
-    }
-
-    @Override
-    public BytesMessage setBody(final byte[] body) {
-        this.body = body;
-        return this;
-    }
-
-    @Override
-    public KeyValue sysHeaders() {
+    public Header header() {
         return sysHeaders;
     }
 
     @Override
-    public KeyValue userHeaders() {
-        return userHeaders;
+    public Optional<ExtensionHeader> extensionHeader() {
+        return null;
     }
 
     @Override
-    public Message putSysHeaders(String key, int value) {
-        sysHeaders.put(key, value);
-        return this;
+    public KeyValue properties() {
+        return userProperties;
     }
 
     @Override
-    public Message putSysHeaders(String key, long value) {
-        sysHeaders.put(key, value);
-        return this;
+    public byte[] getData() {
+        return this.data;
     }
 
     @Override
-    public Message putSysHeaders(String key, double value) {
-        sysHeaders.put(key, value);
-        return this;
+    public void setData(byte[] data) {
+        this.data = data;
     }
 
     @Override
-    public Message putSysHeaders(String key, String value) {
-        sysHeaders.put(key, value);
-        return this;
-    }
-
-    @Override
-    public Message putUserHeaders(String key, int value) {
-        userHeaders.put(key, value);
-        return this;
-    }
-
-    @Override
-    public Message putUserHeaders(String key, long value) {
-        userHeaders.put(key, value);
-        return this;
-    }
-
-    @Override
-    public Message putUserHeaders(String key, double value) {
-        userHeaders.put(key, value);
-        return this;
-    }
-
-    @Override
-    public Message putUserHeaders(String key, String value) {
-        userHeaders.put(key, value);
-        return this;
-    }
-
-    @Override
-    public String toString() {
-        return ToStringBuilder.reflectionToString(this);
+    public MessageReceipt getMessageReceipt() {
+        return null;
     }
 }

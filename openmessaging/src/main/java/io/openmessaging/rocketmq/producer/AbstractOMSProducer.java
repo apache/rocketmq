@@ -16,18 +16,17 @@
  */
 package io.openmessaging.rocketmq.producer;
 
-import io.openmessaging.BytesMessage;
 import io.openmessaging.KeyValue;
-import io.openmessaging.Message;
-import io.openmessaging.MessageFactory;
-import io.openmessaging.OMSBuiltinKeys;
+import io.openmessaging.message.Message;
+import io.openmessaging.message.MessageFactory;
 import io.openmessaging.ServiceLifecycle;
 import io.openmessaging.exception.OMSMessageFormatException;
-import io.openmessaging.exception.OMSNotSupportedException;
+import io.openmessaging.exception.OMSUnsupportException;
 import io.openmessaging.exception.OMSRuntimeException;
 import io.openmessaging.exception.OMSTimeOutException;
 import io.openmessaging.rocketmq.config.ClientConfig;
 import io.openmessaging.rocketmq.domain.BytesMessageImpl;
+import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import io.openmessaging.rocketmq.utils.BeanUtils;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -56,7 +55,7 @@ abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
         if ("true".equalsIgnoreCase(System.getenv("OMS_RMQ_DIRECT_NAME_SRV"))) {
             String accessPoints = clientConfig.getAccessPoints();
             if (accessPoints == null || accessPoints.isEmpty()) {
-                throw new OMSRuntimeException("-1", "OMS AccessPoints is null or empty.");
+                throw new OMSRuntimeException(-1, "OMS AccessPoints is null or empty.");
             }
 
             this.rocketmqProducer.setNamesrvAddr(accessPoints.replace(',', ';'));
@@ -69,23 +68,23 @@ abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
         this.rocketmqProducer.setInstanceName(producerId);
         this.rocketmqProducer.setMaxMessageSize(1024 * 1024 * 4);
         this.rocketmqProducer.setLanguage(LanguageCode.OMS);
-        properties.put(OMSBuiltinKeys.PRODUCER_ID, producerId);
+        properties.put(NonStandardKeys.PRODUCER_ID, producerId);
     }
 
     @Override
-    public synchronized void startup() {
+    public synchronized void start() {
         if (!started) {
             try {
                 this.rocketmqProducer.start();
             } catch (MQClientException e) {
-                throw new OMSRuntimeException("-1", e);
+                throw new OMSRuntimeException(-1, e);
             }
         }
         this.started = true;
     }
 
     @Override
-    public synchronized void shutdown() {
+    public synchronized void stop() {
         if (this.started) {
             this.rocketmqProducer.shutdown();
         }
@@ -96,21 +95,20 @@ abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
         if (e instanceof MQClientException) {
             if (e.getCause() != null) {
                 if (e.getCause() instanceof RemotingTimeoutException) {
-                    return new OMSTimeOutException("-1", String.format("Send message to broker timeout, %dms, Topic=%s, msgId=%s",
+                    return new OMSTimeOutException(-1, String.format("Send message to broker timeout, %dms, Topic=%s, msgId=%s",
                         this.rocketmqProducer.getSendMsgTimeout(), topic, msgId), e);
                 } else if (e.getCause() instanceof MQBrokerException || e.getCause() instanceof RemotingConnectException) {
                     if (e.getCause() instanceof MQBrokerException) {
                         MQBrokerException brokerException = (MQBrokerException) e.getCause();
-                        return new OMSRuntimeException("-1", String.format("Received a broker exception, Topic=%s, msgId=%s, %s",
+                        return new OMSRuntimeException(-1, String.format("Received a broker exception, Topic=%s, msgId=%s, %s",
                             topic, msgId, brokerException.getErrorMessage()), e);
                     }
 
                     if (e.getCause() instanceof RemotingConnectException) {
                         RemotingConnectException connectException = (RemotingConnectException)e.getCause();
-                        return new OMSRuntimeException("-1",
+                        return new OMSRuntimeException(-1,
                             String.format("Network connection experiences failures. Topic=%s, msgId=%s, %s",
-                                topic, msgId, connectException.getMessage()),
-                            e);
+                                topic, msgId, connectException.getMessage()), e);
                     }
                 }
             }
@@ -118,28 +116,21 @@ abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
             else {
                 MQClientException clientException = (MQClientException) e;
                 if (-1 == clientException.getResponseCode()) {
-                    return new OMSRuntimeException("-1", String.format("Topic does not exist, Topic=%s, msgId=%s",
+                    return new OMSRuntimeException(-1, String.format("Topic does not exist, Topic=%s, msgId=%s",
                         topic, msgId), e);
                 } else if (ResponseCode.MESSAGE_ILLEGAL == clientException.getResponseCode()) {
-                    return new OMSMessageFormatException("-1", String.format("A illegal message for RocketMQ, Topic=%s, msgId=%s",
+                    return new OMSMessageFormatException(-1, String.format("A illegal message for RocketMQ, Topic=%s, msgId=%s",
                         topic, msgId), e);
                 }
             }
         }
-        return new OMSRuntimeException("-1", "Send message to RocketMQ broker failed.", e);
+        return new OMSRuntimeException(-1, "Send message to RocketMQ broker failed.", e);
     }
 
     protected void checkMessageType(Message message) {
-        if (!(message instanceof BytesMessage)) {
-            throw new OMSNotSupportedException("-1", "Only BytesMessage is supported.");
+        if (!(message instanceof BytesMessageImpl)) {
+            throw new OMSUnsupportException(-1, "Only BytesMessage is supported.");
         }
     }
 
-    @Override
-    public BytesMessage createBytesMessage(String queue, byte[] body) {
-        BytesMessage message = new BytesMessageImpl();
-        message.setBody(body);
-        message.sysHeaders().put(Message.BuiltinKeys.DESTINATION, queue);
-        return message;
-    }
 }
