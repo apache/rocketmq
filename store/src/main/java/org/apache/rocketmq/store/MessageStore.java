@@ -21,6 +21,7 @@ import java.util.LinkedList;
 import java.util.Set;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
+import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 /**
@@ -366,4 +367,10 @@ public interface MessageStore {
      * @return BrokerStatsManager.
      */
     BrokerStatsManager getBrokerStatsManager();
+
+    /**
+     * handle
+     * @param brokerRole
+     */
+    void handleScheduleMessageService(BrokerRole brokerRole);
 }

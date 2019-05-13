@@ -1,5 +1,7 @@
-1 基本样例
---------
+# 样例
+-----
+## 1 基本样例
+
 
 在基本样例中我们提供如下的功能场景：
 
@@ -639,9 +641,9 @@ consumer.start();
 
 事务消息共有三种状态，提交状态、回滚状态、中间状态：
 
-1. TransactionStatus.CommitTransaction: 提交事务，它允许消费者消费此消息。
-2. TransactionStatus.RollbackTransaction: 回滚事务，它代表该消息将被删除，不允许被消费。
-3. TransactionStatus.Unknown: 中间状态，它代表需要检查消息队列来确定状态。
+- TransactionStatus.CommitTransaction: 提交事务，它允许消费者消费此消息。
+- TransactionStatus.RollbackTransaction: 回滚事务，它代表该消息将被删除，不允许被消费。
+- TransactionStatus.Unknown: 中间状态，它代表需要检查消息队列来确定状态。
 
 ### 6.1 发送事务消息样例
 

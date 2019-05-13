@@ -16,18 +16,26 @@
  */
 package org.apache.rocketmq.acl.common;
 
+import com.alibaba.fastjson.JSONObject;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Map;
 import java.util.SortedMap;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.yaml.snakeyaml.Yaml;
 
 import static org.apache.rocketmq.acl.common.SessionCredentials.CHARSET;
 
 public class AclUtils {
+
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     public static byte[] combineRequestContent(RemotingCommand request, SortedMap<String, String> fieldsMap) {
         try {
@@ -124,17 +132,44 @@ public class AclUtils {
         try {
             fis = new FileInputStream(new File(path));
             return ymal.loadAs(fis, clazz);
+        } catch (FileNotFoundException ignore) {
+            return null;
         } catch (Exception e) {
-            throw new AclException(String.format("The  file for Plain mode was not found , paths %s", path), e);
+            throw new AclException(e.getMessage());
         } finally {
             if (fis != null) {
                 try {
                     fis.close();
-                } catch (IOException e) {
-                    throw new AclException("close transport fileInputStream Exception", e);
+                } catch (IOException ignore) {
                 }
             }
         }
+    }
+
+    public static RPCHook getAclRPCHook(String fileName) {
+        JSONObject yamlDataObject = null;
+        try {
+            yamlDataObject = AclUtils.getYamlDataObject(fileName,
+                JSONObject.class);
+        } catch (Exception e) {
+            log.error("convert yaml file to data object error, ",e);
+            return null;
+        }
+
+        if (yamlDataObject == null || yamlDataObject.isEmpty()) {
+            log.warn("Cannot find conf file :{}, acl isn't be enabled." ,fileName);
+            return null;
+        }
+        
+        String accessKey = yamlDataObject.getString("accessKey");
+        String secretKey = yamlDataObject.getString("secretKey");
+
+        if (StringUtils.isBlank(accessKey) || StringUtils.isBlank(secretKey)) {
+            log.warn("AccessKey or secretKey is blank, the acl is not enabled.");
+
+            return null;
+        }
+        return new AclClientRPCHook(new SessionCredentials(accessKey,secretKey));
     }
 
 }

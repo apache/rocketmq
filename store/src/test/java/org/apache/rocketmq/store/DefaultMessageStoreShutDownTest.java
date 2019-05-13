@@ -42,9 +42,9 @@ public class DefaultMessageStoreShutDownTest {
     public void init() throws Exception {
         messageStore = spy(buildMessageStore());
         boolean load = messageStore.load();
-        when(messageStore.dispatchBehindBytes()).thenReturn(100L);
         assertTrue(load);
         messageStore.start();
+        when(messageStore.dispatchBehindBytes()).thenReturn(100L);
     }
 
     @Test

@@ -1,6 +1,6 @@
 # 权限控制
-## 前言
-该文档主要介绍如何快速部署和使用支持权限控制特性的RocketMQ 集群。
+----
+
 
 ## 1.权限控制特性介绍
 权限控制（ACL）主要为RocketMQ提供Topic资源级别的用户访问控制。用户在使用RocketMQ权限控制时，可以在Client客户端通过 RPCHook注入AccessKey和SecretKey签名；同时，将对应的权限控制属性（包括Topic访问权限、IP白名单和AccessKey和SecretKey签名等）设置在distribution/conf/plain_acl.yml的配置文件中。Broker端对AccessKey所拥有的权限进行校验，校验不过，抛出异常；
@@ -73,10 +73,14 @@ Broker端对权限的校验逻辑主要分为以下几步：
 （2）对于某个资源，如果有显性配置权限，则采用配置的权限；如果没有显性配置权限，则采用默认的权限；
 
 ## 5. 热加载修改后权限控制定义
-RocketrMQ的权限控制存储的默认实现是基于yml配置文件。用户可以动态修改权限控制定义的属性，而不需重新启动Broker服务节点。
+RocketMQ的权限控制存储的默认实现是基于yml配置文件。用户可以动态修改权限控制定义的属性，而不需重新启动Broker服务节点。
 
+## 6. 权限控制的使用限制
+(1)如果ACL与高可用部署(Master/Slave架构)同时启用，那么需要在Broker Master节点的distribution/conf/plain_acl.yml配置文件中
+设置全局白名单信息，即为将Slave节点的ip地址设置至Master节点plain_acl.yml配置文件的全局白名单中。
 
+(2)如果ACL与高可用部署(多副本Dledger架构)同时启用，由于出现节点宕机时，Dledger Group组内会自动选主，那么就需要将Dledger Group组
+内所有Broker节点的plain_acl.yml配置文件的白名单设置所有Broker节点的ip地址。
 
-
-
+**特别注意**在[4.5.0]版本中即使使用上面所述的白名单也无法解决开启ACL的问题，解决该问题的[PR链接](https://github.com/apache/rocketmq/pull/1149)
 

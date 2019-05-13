@@ -21,14 +21,10 @@ import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
 import java.util.ArrayList;
 import java.util.List;
-import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.AclUtils;
-import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -82,6 +78,9 @@ import org.slf4j.LoggerFactory;
 public class MQAdminStartup {
     protected static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
 
+    private static String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
+        System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+
     public static void main(String[] args) {
         main0(args, null);
     }
@@ -132,7 +131,7 @@ public class MQAdminStartup {
                             System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, namesrvAddr);
                         }
 
-                        cmd.execute(commandLine, options, getAclRPCHook());
+                        cmd.execute(commandLine, options, AclUtils.getAclRPCHook(rocketmqHome + MixAll.ACL_CONF_TOOLS_FILE));
                     } else {
                         System.out.printf("The sub command %s not exist.%n", args[0]);
                     }
@@ -203,8 +202,6 @@ public class MQAdminStartup {
     }
 
     private static void initLogback() throws JoranException {
-        String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
-
         LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(lc);
@@ -244,26 +241,5 @@ public class MQAdminStartup {
 
     public static void initCommand(SubCommand command) {
         subCommandList.add(command);
-    }
-
-    public static RPCHook getAclRPCHook() {
-        String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
-        String fileName = "/conf/tools.yml";
-        JSONObject yamlDataObject = AclUtils.getYamlDataObject(fileHome + fileName ,
-                JSONObject.class);
-
-        if (yamlDataObject == null || yamlDataObject.isEmpty()) {
-            System.out.printf(" Cannot find conf file %s, acl is not be enabled.%n" ,fileHome + fileName);
-            return null;
-        }
-
-        String accessKey = yamlDataObject.getString("accessKey");
-        String secretKey = yamlDataObject.getString("secretKey");
-
-        if (StringUtils.isBlank(accessKey) || StringUtils.isBlank(secretKey)) {
-            System.out.printf("AccessKey or secretKey is blank, the acl is not enabled.%n");
-            return null;
-        }
-        return new AclClientRPCHook(new SessionCredentials(accessKey,secretKey));
     }
 }
