@@ -733,18 +733,25 @@ public class MQClientAPIImpl {
     }
 
     public List<String> getConsumerIdListByGroup(
-        final String addr,
-        final String consumerGroup,
-        final long timeoutMillis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+        final String addr,    //broker 地址
+        final String consumerGroup,   //消费者组
+        final long timeoutMillis)  //超时时间
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
         MQBrokerException, InterruptedException {
+
+
         GetConsumerListByGroupRequestHeader requestHeader = new GetConsumerListByGroupRequestHeader();
-        requestHeader.setConsumerGroup(consumerGroup);
+        requestHeader.setConsumerGroup(consumerGroup); //封装请求header
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_LIST_BY_GROUP, requestHeader);
 
-        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
+        //同步请求 判断VIP channel是否开启 开启使用VIP channel
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr), //发送同步消息
             request, timeoutMillis);
+
+        //response 由ConsumerManageProcessor.getConsumerListByGroup()返回
         assert response != null;
         switch (response.getCode()) {
+            //同步请求 decode response.body
             case ResponseCode.SUCCESS: {
                 if (response.getBody() != null) {
                     GetConsumerListByGroupResponseBody body =

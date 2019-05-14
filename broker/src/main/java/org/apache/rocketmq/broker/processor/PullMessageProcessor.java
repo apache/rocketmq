@@ -541,12 +541,20 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
     }
 
+    /**
+     *
+     * @param channel channel  通道
+     * @param request 远程命令
+     * @throws RemotingCommandException
+     */
     public void executeRequestWhenWakeup(final Channel channel,
         final RemotingCommand request) throws RemotingCommandException {
         Runnable run = new Runnable() {
             @Override
             public void run() {
                 try {
+
+                    //开始长轮询拉取消息
                     final RemotingCommand response = PullMessageProcessor.this.processRequest(channel, request, false);
 
                     if (response != null) {

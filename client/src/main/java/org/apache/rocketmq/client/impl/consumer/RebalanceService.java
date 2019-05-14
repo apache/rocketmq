@@ -21,6 +21,7 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.logging.InternalLogger;
 
+//消息的负载服务 与重新分配
 public class RebalanceService extends ServiceThread {
     private static long waitInterval =
         Long.parseLong(System.getProperty(
@@ -37,7 +38,7 @@ public class RebalanceService extends ServiceThread {
         log.info(this.getServiceName() + " service started");
 
         while (!this.isStopped()) {
-            this.waitForRunning(waitInterval); //默认20s，使用CountDownLatch2休眠等待20s
+            this.waitForRunning(waitInterval); //默认20s，使用CountDownLatch2休眠等待20s 每20s执行一次
             this.mqClientFactory.doRebalance();
         }
 

@@ -137,22 +137,24 @@ public class PullRequestHoldService extends ServiceThread {
             if (requestList != null) {
                 List<PullRequest> replayList = new ArrayList<PullRequest>();
 
+                //todo
                 for (PullRequest request : requestList) { //遍历requestList
                     long newestOffset = maxOffset; //
                     if (newestOffset <= request.getPullFromThisOffset()) { //如果
                         newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
                     }
 
-                    if (newestOffset > request.getPullFromThisOffset()) {
+                    if (newestOffset > request.getPullFromThisOffset()) { //如果newestOffset  >  request.getPullFromThisOffset说明有拉取到新的消息
                         boolean match = request.getMessageFilter().isMatchedByConsumeQueue(tagsCode,
-                            new ConsumeQueueExt.CqExtUnit(tagsCode, msgStoreTime, filterBitMap));
+                            new ConsumeQueueExt.CqExtUnit(tagsCode, msgStoreTime, filterBitMap)); //消息过滤
                         // match by bit map, need eval again when properties is not null.
                         if (match && properties != null) {
                             match = request.getMessageFilter().isMatchedByCommitLog(null, properties);
                         }
 
-                        if (match) {
+                        if (match) {//匹配后的消息
                             try {
+                                //开始长轮询拉取消息
                                 this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
                                     request.getRequestCommand());
                             } catch (Throwable e) {

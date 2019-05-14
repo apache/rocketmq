@@ -24,7 +24,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
- * Offset store interface
+ * Offset store interface  消息进度存储的机制
  */
 public interface OffsetStore {
     /**

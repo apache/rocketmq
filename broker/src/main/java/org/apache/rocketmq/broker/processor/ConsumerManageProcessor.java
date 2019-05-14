@@ -50,7 +50,7 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
         switch (request.getCode()) {
-            case RequestCode.GET_CONSUMER_LIST_BY_GROUP:
+            case RequestCode.GET_CONSUMER_LIST_BY_GROUP: //获取消费者组的Id
                 return this.getConsumerListByGroup(ctx, request);
             case RequestCode.UPDATE_CONSUMER_OFFSET:
                 return this.updateConsumerOffset(ctx, request);
@@ -69,6 +69,8 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
 
     public RemotingCommand getConsumerListByGroup(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
+
+        //获取消费者组的Id 通过ConsumerGroup 和 broker address
         final RemotingCommand response =
             RemotingCommand.createResponseCommand(GetConsumerListByGroupResponseHeader.class);
         final GetConsumerListByGroupRequestHeader requestHeader =

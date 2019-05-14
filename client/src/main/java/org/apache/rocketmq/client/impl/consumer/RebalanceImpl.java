@@ -216,12 +216,12 @@ public abstract class RebalanceImpl {
         }
     }
 
-    //消息负载
+    //消息负载 是否是顺讯消费
     public void doRebalance(final boolean isOrder) {
-        Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
+        Map<String, SubscriptionData> subTable = this.getSubscriptionInner(); //获取订阅信息
         if (subTable != null) {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
-                final String topic = entry.getKey();
+                final String topic = entry.getKey(); //key 是topic
                 try {
                     this.rebalanceByTopic(topic, isOrder);
                 } catch (Throwable e) {
@@ -231,7 +231,7 @@ public abstract class RebalanceImpl {
                 }
             }
         }
-
+        //删除？？？
         this.truncateMessageQueueNotMyTopic();
     }
 
@@ -239,9 +239,11 @@ public abstract class RebalanceImpl {
         return subscriptionInner;
     }
 
+
+
     private void rebalanceByTopic(final String topic, final boolean isOrder) { //消息负载 topic
         switch (messageModel) {
-            case BROADCASTING: { //广播的模式
+            case BROADCASTING: { //广播的模式 暂时不分析
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic); //获取订阅这个topic 的所有 MessageQueue
                 if (mqSet != null) {
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, mqSet, isOrder);
@@ -259,45 +261,66 @@ public abstract class RebalanceImpl {
                 break;
             }
             case CLUSTERING: {
-                Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
-                List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
-                if (null == mqSet) {
+                //集群模式
+                Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic); //根据topic 获取订阅这个topic的消息队列
+                List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup); //发送请求 从Broker中 该消费组内当前所有的消费客户端Id
+                if (null == mqSet) { //订阅该topic 的messageQueue 为null  但是不是重试的topic
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                         log.warn("doRebalance, {}, but the topic[{}] not exist.", consumerGroup, topic);
                     }
                 }
 
-                if (null == cidAll) {
+                if (null == cidAll) { //消费者所在客户端Id 为null
                     log.warn("doRebalance, {} {}, get consumer id list failed", consumerGroup, topic);
                 }
 
-                if (mqSet != null && cidAll != null) {
+                if (mqSet != null && cidAll != null) { //messageQueue 不为null && cidALl 不为null
+                    //不为null的话
                     List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
                     mqAll.addAll(mqSet);
 
-                    Collections.sort(mqAll);
-                    Collections.sort(cidAll);
+                    Collections.sort(mqAll); //对messageQueue 进行排序
+                    Collections.sort(cidAll);//对客户端Id sort
 
-                    AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;
+                    AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy; //负载策略
 
                     List<MessageQueue> allocateResult = null;
                     try {
-                        allocateResult = strategy.allocate(
-                            this.consumerGroup,
-                            this.mQClientFactory.getClientId(),
-                            mqAll,
-                            cidAll);
+                        /**
+                         *  ** allocate() 消息负载方法的实现
+                         *
+                         *  1: AllocateMessageQueueAveragely           平均分配messagerQueue
+                         *
+                         *  eg: 1 2 3 4 5 6 7 8  ---->  c1: 1 2 3 , c2: 4 5 6 , c3: 7 8
+                         *
+                         *  2: AllocateMessageQueueAveragelyByCircle   平均轮询分配
+                         *
+                         *  eg:  1 2 3 4 5 6 7 8  ---->  c1: 1 4 7, c2: 2 5 6 , c3: 3 6
+                         *
+                         *  3: AllocateMessageQueueConsistentHash      一致性Hash Hash算法
+                         *
+                         *  4: AllocateMessageQueueByConfig            根据配置分配
+                         *
+                         *  5: AllocateMessageQueueByMachineRoom       根据Broker name???? 待分析！！ todo //
+                         *
+                         */
+
+                        allocateResult = strategy.allocate(     //具体的负载算法
+                            this.consumerGroup,  //消费者Group
+                            this.mQClientFactory.getClientId(), //ClientId
+                            mqAll,  // all messageQueue
+                            cidAll); //所有的客户端Id
                     } catch (Throwable e) {
                         log.error("AllocateMessageQueueStrategy.allocate Exception. allocateMessageQueueStrategyName={}", strategy.getName(),
                             e);
                         return;
                     }
-
+                    //经过负载过后选择的message queue
                     Set<MessageQueue> allocateResultSet = new HashSet<MessageQueue>();
                     if (allocateResult != null) {
-                        allocateResultSet.addAll(allocateResult);
+                        allocateResultSet.addAll(allocateResult);//消息经过负载后的选择的message queue
                     }
-
+                    //topic
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
                     if (changed) {
                         log.info(
@@ -320,7 +343,7 @@ public abstract class RebalanceImpl {
         for (MessageQueue mq : this.processQueueTable.keySet()) {
             if (!subTable.containsKey(mq.getTopic())) {
 
-                ProcessQueue pq = this.processQueueTable.remove(mq);
+                ProcessQueue pq = this.processQueueTable.remove(mq); //重新分配 移除相关mq
                 if (pq != null) {
                     pq.setDropped(true);
                     log.info("doRebalance, {}, truncateMessageQueueNotMyTopic remove unnecessary mq, {}", consumerGroup, mq);

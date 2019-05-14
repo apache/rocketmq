@@ -39,16 +39,17 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
  * Local storage implementation
  */
 public class LocalFileOffsetStore implements OffsetStore {
-    public final static String LOCAL_OFFSET_STORE_DIR = System.getProperty(
+    public final static String LOCAL_OFFSET_STORE_DIR = System.getProperty(    //消息存储的根目录
         "rocketmq.client.localOffsetStoreDir",
         System.getProperty("user.home") + File.separator + ".rocketmq_offsets");
     private final static InternalLogger log = ClientLogger.getLog();
-    private final MQClientInstance mQClientFactory;
-    private final String groupName;
-    private final String storePath;
-    private ConcurrentMap<MessageQueue, AtomicLong> offsetTable =
+    private final MQClientInstance mQClientFactory;  //MQInstacne
+    private final String groupName;  //组名称
+    private final String storePath;  //具体消息消费保存文件
+    private ConcurrentMap<MessageQueue, AtomicLong> offsetTable = //消息具体某条消费Queue  value 为消费进度
         new ConcurrentHashMap<MessageQueue, AtomicLong>();
 
+    //广播模式 本地消费进度
     public LocalFileOffsetStore(MQClientInstance mQClientFactory, String groupName) {
         this.mQClientFactory = mQClientFactory;
         this.groupName = groupName;
@@ -58,7 +59,7 @@ public class LocalFileOffsetStore implements OffsetStore {
             "offsets.json";
     }
 
-    @Override
+    @Override  //laod 方法加载消费进度 主要是加载文件 offsets.json 文件 并转换成offsetTable map
     public void load() throws MQClientException {
         OffsetSerializeWrapper offsetSerializeWrapper = this.readLocalOffset();
         if (offsetSerializeWrapper != null && offsetSerializeWrapper.getOffsetTable() != null) {
@@ -183,6 +184,7 @@ public class LocalFileOffsetStore implements OffsetStore {
     private OffsetSerializeWrapper readLocalOffset() throws MQClientException {
         String content = null;
         try {
+            //加载 offsets.json文件
             content = MixAll.file2String(this.storePath);
         } catch (IOException e) {
             log.warn("Load local offset store file exception", e);

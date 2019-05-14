@@ -975,9 +975,10 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
         this.rebalanceService.wakeup();
     }
 
+    //消息负载的服务
     public void doRebalance() {
-        for (Map.Entry<String, MQConsumerInner> entry : this.consumerTable.entrySet()) {
-            MQConsumerInner impl = entry.getValue();
+        for (Map.Entry<String, MQConsumerInner> entry : this.consumerTable.entrySet()) { //遍历已经注册的消费者 对其执行doRebalance（）；方法
+            MQConsumerInner impl = entry.getValue();//像MQinstance注册的消费之
             if (impl != null) {
                 try {
                     impl.doRebalance();
@@ -1074,8 +1075,14 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
         return 0;
     }
 
+        /**
+         * 根据topic 消费者组过去所有的消费者客户端id
+         * @param topic
+         * @param group
+         * @return
+         */
     public List<String> findConsumerIdList(final String topic, final String group) {
-        String brokerAddr = this.findBrokerAddrByTopic(topic);
+        String brokerAddr = this.findBrokerAddrByTopic(topic); //随机获取一个broker的地址
         if (null == brokerAddr) {
             this.updateTopicRouteInfoFromNameServer(topic);
             brokerAddr = this.findBrokerAddrByTopic(topic);
@@ -1083,7 +1090,9 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
         if (null != brokerAddr) {
             try {
-                return this.mQClientAPIImpl.getConsumerIdListByGroup(brokerAddr, group, 3000);
+
+                //从broker 中获取消费者客户端Id
+                return this.mQClientAPIImpl.getConsumerIdListByGroup(brokerAddr, group, 3000); //broker address 消费者组 超时时间
             } catch (Exception e) {
                 log.warn("getConsumerIdListByGroup exception, " + brokerAddr + " " + group, e);
             }
