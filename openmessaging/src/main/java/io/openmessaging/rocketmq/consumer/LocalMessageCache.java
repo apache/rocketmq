@@ -17,20 +17,12 @@
 package io.openmessaging.rocketmq.consumer;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.Message;
+import io.openmessaging.ServiceLifeState;
 import io.openmessaging.ServiceLifecycle;
+import io.openmessaging.extension.QueueMetaData;
 import io.openmessaging.rocketmq.config.ClientConfig;
+import io.openmessaging.rocketmq.config.DefaultQueueMetaData;
 import io.openmessaging.rocketmq.domain.ConsumeRequest;
-import java.util.Collections;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReadWriteLock;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -43,6 +35,10 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.locks.ReadWriteLock;
+
 class LocalMessageCache implements ServiceLifecycle {
     private final BlockingQueue<ConsumeRequest> consumeRequestCache;
     private final Map<String, ConsumeRequest> consumedRequest;
@@ -50,6 +46,7 @@ class LocalMessageCache implements ServiceLifecycle {
     private final DefaultMQPullConsumer rocketmqPullConsumer;
     private final ClientConfig clientConfig;
     private final ScheduledExecutorService cleanExpireMsgExecutors;
+    private ServiceLifeState currentState;
 
     private final static InternalLogger log = ClientLogger.getLog();
 
@@ -60,7 +57,8 @@ class LocalMessageCache implements ServiceLifecycle {
         this.rocketmqPullConsumer = rocketmqPullConsumer;
         this.clientConfig = clientConfig;
         this.cleanExpireMsgExecutors = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-            "OMS_CleanExpireMsgScheduledThread_"));
+                "OMS_CleanExpireMsgScheduledThread_"));
+        this.currentState = ServiceLifeState.INITIALIZED;
     }
 
     int nextPullBatchNums() {
@@ -71,7 +69,7 @@ class LocalMessageCache implements ServiceLifecycle {
         if (!pullOffsetTable.containsKey(remoteQueue)) {
             try {
                 pullOffsetTable.putIfAbsent(remoteQueue,
-                    rocketmqPullConsumer.fetchConsumeOffset(remoteQueue, false));
+                        rocketmqPullConsumer.fetchConsumeOffset(remoteQueue, false));
             } catch (MQClientException e) {
                 log.error("A error occurred in fetch consume offset process.", e);
             }
@@ -96,8 +94,11 @@ class LocalMessageCache implements ServiceLifecycle {
 
     MessageExt poll(final KeyValue properties) {
         int currentPollTimeout = clientConfig.getOperationTimeout();
-        if (properties.containsKey(Message.BuiltinKeys.TIMEOUT)) {
+/*        if (properties.containsKey(Message.BuiltinKeys.TIMEOUT)) {
             currentPollTimeout = properties.getInt(Message.BuiltinKeys.TIMEOUT);
+        }*/
+        if (properties.containsKey("TIMEOUT")) {
+            currentPollTimeout = properties.getInt("TIMEOUT");
         }
         return poll(currentPollTimeout);
     }
@@ -113,6 +114,23 @@ class LocalMessageCache implements ServiceLifecycle {
                 return messageExt;
             }
         } catch (InterruptedException ignore) {
+        }
+        return null;
+    }
+
+    List<MessageExt> batchPoll(final KeyValue properties) {
+        List<ConsumeRequest> consumeRequests = new ArrayList<>(16);
+        int n = consumeRequestCache.drainTo(consumeRequests);
+        if (n > 0) {
+            List<MessageExt> messageExts = new ArrayList<>(n);
+            for (ConsumeRequest consumeRequest : consumeRequests) {
+                MessageExt messageExt = consumeRequest.getMessageExt();
+                consumeRequest.setStartConsumeTimeMillis(System.currentTimeMillis());
+                MessageAccessor.setConsumeStartTimeStamp(messageExt, String.valueOf(consumeRequest.getStartConsumeTimeMillis()));
+                consumedRequest.put(messageExt.getMsgId(), consumeRequest);
+                messageExts.add(messageExt);
+            }
+            return messageExts;
         }
         return null;
     }
@@ -139,24 +157,9 @@ class LocalMessageCache implements ServiceLifecycle {
         }
     }
 
-    @Override
-    public void startup() {
-        this.cleanExpireMsgExecutors.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                cleanExpireMsg();
-            }
-        }, clientConfig.getRmqMessageConsumeTimeout(), clientConfig.getRmqMessageConsumeTimeout(), TimeUnit.MINUTES);
-    }
-
-    @Override
-    public void shutdown() {
-        ThreadUtils.shutdownGracefully(cleanExpireMsgExecutors, 5000, TimeUnit.MILLISECONDS);
-    }
-
     private void cleanExpireMsg() {
         for (final Map.Entry<MessageQueue, ProcessQueue> next : rocketmqPullConsumer.getDefaultMQPullConsumerImpl()
-            .getRebalanceImpl().getProcessQueueTable().entrySet()) {
+                .getRebalanceImpl().getProcessQueueTable().entrySet()) {
             ProcessQueue pq = next.getValue();
             MessageQueue mq = next.getKey();
             ReadWriteLock lockTreeMap = getLockInProcessQueue(pq);
@@ -176,7 +179,7 @@ class LocalMessageCache implements ServiceLifecycle {
                         if (!msgTreeMap.isEmpty()) {
                             msg = msgTreeMap.firstEntry().getValue();
                             if (System.currentTimeMillis() - Long.parseLong(MessageAccessor.getConsumeStartTimeStamp(msg))
-                                > clientConfig.getRmqMessageConsumeTimeout() * 60 * 1000) {
+                                    > clientConfig.getRmqMessageConsumeTimeout() * 60 * 1000) {
                                 //Expired, ack and remove it.
                             } else {
                                 break;
@@ -194,7 +197,7 @@ class LocalMessageCache implements ServiceLifecycle {
                 try {
                     rocketmqPullConsumer.sendMessageBack(msg, 3);
                     log.info("Send expired msg back. topic={}, msgId={}, storeHost={}, queueId={}, queueOffset={}",
-                        msg.getTopic(), msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(), msg.getQueueOffset());
+                            msg.getTopic(), msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(), msg.getQueueOffset());
                     ack(mq, pq, msg);
                 } catch (Exception e) {
                     log.error("Send back expired msg exception", e);
@@ -209,5 +212,51 @@ class LocalMessageCache implements ServiceLifecycle {
         } catch (IllegalAccessException e) {
             return null;
         }
+    }
+
+    @Override
+    public void start() {
+        this.currentState = ServiceLifeState.STARTING;
+        this.cleanExpireMsgExecutors.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                cleanExpireMsg();
+            }
+        }, clientConfig.getRmqMessageConsumeTimeout(), clientConfig.getRmqMessageConsumeTimeout(), TimeUnit.MINUTES);
+        this.currentState = ServiceLifeState.STARTED;
+    }
+
+    @Override
+    public void stop() {
+        this.currentState = ServiceLifeState.STOPPING;
+        ThreadUtils.shutdownGracefully(cleanExpireMsgExecutors, 5000, TimeUnit.MILLISECONDS);
+        this.currentState = ServiceLifeState.STARTED;
+    }
+
+    @Override
+    public ServiceLifeState currentState() {
+        return currentState;
+    }
+
+    @Override
+    public QueueMetaData getQueueMetaData(String queueName) {
+        Set<MessageQueue> messageQueues;
+        try {
+            messageQueues = rocketmqPullConsumer.fetchSubscribeMessageQueues(queueName);
+        } catch (MQClientException e) {
+            log.error("A error occurred when get queue metadata.", e);
+            return null;
+        }
+        List<QueueMetaData.Partition> partitions = new ArrayList<>(16);
+        if (null != messageQueues && !messageQueues.isEmpty()) {
+            for (MessageQueue messageQueue : messageQueues) {
+                QueueMetaData.Partition partition = new DefaultQueueMetaData.DefaultPartition(messageQueue.getQueueId(), messageQueue.getBrokerName());
+                partitions.add(partition);
+            }
+        } else {
+            return null;
+        }
+        QueueMetaData queueMetaData = new DefaultQueueMetaData(queueName, partitions);
+        return queueMetaData;
     }
 }
