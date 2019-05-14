@@ -25,7 +25,6 @@ import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import java.util.HashSet;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.common.client.ClientManager;
 import org.apache.rocketmq.common.client.ClientRole;
 import org.apache.rocketmq.common.client.Subscription;
@@ -35,6 +34,7 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.mqtt.client.IOTClientManagerImpl;
+import org.apache.rocketmq.mqtt.client.MQTTSession;
 import org.apache.rocketmq.mqtt.exception.MqttConnectException;
 import org.apache.rocketmq.mqtt.exception.WrongMessageTypeException;
 import org.apache.rocketmq.mqtt.mqtthandler.MessageHandler;
@@ -117,7 +117,7 @@ public class MqttConnectMessageHandler implements MessageHandler {
             }
         }
 
-        Client client = new Client();
+        MQTTSession client = new MQTTSession();
         client.setClientId(payload.clientIdentifier());
         client.setClientRole(ClientRole.IOTCLIENT);
         client.setGroups(new HashSet<String>() {
@@ -169,7 +169,7 @@ public class MqttConnectMessageHandler implements MessageHandler {
 
     private boolean isConnected(RemotingChannel remotingChannel, String clientId) {
         ClientManager iotClientManager = defaultMqttMessageProcessor.getIotClientManager();
-        Client client = iotClientManager.getClient(IOTClientManagerImpl.IOT_GROUP, remotingChannel);
+        MQTTSession client = (MQTTSession) iotClientManager.getClient(IOTClientManagerImpl.IOT_GROUP, remotingChannel);
         if (client != null && client.getClientId().equals(clientId) && client.isConnected()) {
             return true;
         }

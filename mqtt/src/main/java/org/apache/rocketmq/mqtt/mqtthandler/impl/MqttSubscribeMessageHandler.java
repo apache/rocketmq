@@ -38,6 +38,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.mqtt.client.IOTClientManagerImpl;
+import org.apache.rocketmq.mqtt.client.MQTTSession;
 import org.apache.rocketmq.mqtt.constant.MqttConstant;
 import org.apache.rocketmq.mqtt.exception.WrongMessageTypeException;
 import org.apache.rocketmq.mqtt.mqtthandler.MessageHandler;
@@ -74,7 +75,7 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
         MqttSubscribeMessage mqttSubscribeMessage = (MqttSubscribeMessage) message;
         MqttSubscribePayload payload = mqttSubscribeMessage.payload();
         IOTClientManagerImpl iotClientManager = (IOTClientManagerImpl) defaultMqttMessageProcessor.getIotClientManager();
-        Client client = iotClientManager.getClient(IOTClientManagerImpl.IOT_GROUP, remotingChannel);
+        MQTTSession client = (MQTTSession)iotClientManager.getClient(IOTClientManagerImpl.IOT_GROUP, remotingChannel);
         if (client == null) {
             log.error("Can't find associated client, the connection will be closed. remotingChannel={}, MqttMessage={}", remotingChannel.toString(), message.toString());
             remotingChannel.close();
@@ -98,6 +99,7 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
         RemotingCommand command = RemotingCommand.createResponseCommand(MqttHeader.class);
         MqttHeader mqttHeader = (MqttHeader) command.readCustomHeader();
         mqttHeader.setMessageType(MqttMessageType.SUBACK.value());
+        // dup/qos/retain value are always as below of SUBACK
         mqttHeader.setDup(false);
         mqttHeader.setQosLevel(MqttQoS.AT_MOST_ONCE.value());
         mqttHeader.setRetain(false);
@@ -124,7 +126,7 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
             subscription = clientId2Subscription.get(client.getClientId());
         } else {
             subscription = new Subscription();
-            subscription.setCleanSession(client.isCleanSession());
+            subscription.setCleanSession(((MQTTSession)client).isCleanSession());
         }
         ConcurrentHashMap<String, SubscriptionData> subscriptionDatas = subscription.getSubscriptionTable();
         List<Integer> grantQoss = new ArrayList<>();
@@ -147,6 +149,7 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
                 }
             }
         }
+        //TODO update persistent store of topic2Clients and clientId2Subscription
         return grantQoss;
     }
 

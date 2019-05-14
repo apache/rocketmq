@@ -17,8 +17,8 @@
 package org.apache.rocketmq.mqtt.client;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,18 +37,12 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
 
     public static final String IOT_GROUP = "IOT_GROUP";
 
-    //    private final ConcurrentHashMap<String/*root topic*/, ConcurrentHashMap<Client, Set<SubscriptionData>>> topic2SubscriptionTable = new ConcurrentHashMap<>(
-//        1024);
     private final ConcurrentHashMap<String/*root topic*/, Set<Client>> topic2Clients = new ConcurrentHashMap<>(
         1024);
     private final ConcurrentHashMap<String/*clientId*/, Subscription> clientId2Subscription = new ConcurrentHashMap<>(1024);
     private final Map<String/*snode ip*/, MqttClient> snode2MqttClient = new HashMap<>();
 
     public IOTClientManagerImpl() {
-    }
-
-    public void onUnsubscribe(Client client, List<String> topics) {
-        //do the logic when client sends unsubscribe packet.
     }
 
     @Override public void onClose(Set<String> groups, RemotingChannel remotingChannel) {
@@ -63,9 +57,12 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
     public void onClosed(String group, RemotingChannel remotingChannel) {
         //do the logic when connection is closed by any reason.
         //step1. Clean subscription data if cleanSession=1
-        Client client = this.getClient(IOT_GROUP, remotingChannel);
+        MQTTSession client = (MQTTSession) this.getClient(IOT_GROUP, remotingChannel);
         if (client.isCleanSession()) {
             cleanSessionState(client.getClientId());
+        } else {
+            client.setConnected(false);
+            //TODO update persistent store
         }
         //step2. Publish will message associated with current connection(Question: Does will message need to be deleted after publishing.)
 
@@ -82,41 +79,29 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
     }
 
     public void cleanSessionState(String clientId) {
-/*        clientId2Subscription.remove(clientId);
-        for (Iterator<Map.Entry<String, ConcurrentHashMap<Client, Set<SubscriptionData>>>> iterator = topic2SubscriptionTable.entrySet().iterator(); iterator.hasNext(); ) {
-            Map.Entry<String, ConcurrentHashMap<Client, Set<SubscriptionData>>> next = iterator.next();
-            for (Iterator<Map.Entry<Client, Set<SubscriptionData>>> iterator1 = next.getValue().entrySet().iterator(); iterator1.hasNext(); ) {
-                Map.Entry<Client, Set<SubscriptionData>> next1 = iterator1.next();
-                if (!next1.getKey().getClientId().equals(clientId)) {
-                    continue;
-                }
-                iterator1.remove();
-            }
-            if (next.getValue() == null || next.getValue().size() == 0) {
-                iterator.remove();
-            }
-        }*/
+        Map<String, Set<Client>> toBeRemoveFromPersistentStore = new HashMap<>();
         for (Iterator<Map.Entry<String, Set<Client>>> iterator = topic2Clients.entrySet().iterator(); iterator.hasNext(); ) {
             Map.Entry<String, Set<Client>> next = iterator.next();
             Iterator<Client> iterator1 = next.getValue().iterator();
             while (iterator1.hasNext()) {
-                if (iterator1.next().getClientId().equals(clientId)) {
+                Client client = iterator1.next();
+                if (client.getClientId().equals(clientId)) {
                     iterator1.remove();
+                    Set<Client> clients = toBeRemoveFromPersistentStore.getOrDefault((next.getKey()), new HashSet<>());
+                    clients.add(client);
+                    toBeRemoveFromPersistentStore.put(next.getKey(), clients);
                 }
             }
         }
+        //TODO update persistent store base on toBeRemoveFromPersistentStore
         clientId2Subscription.remove(clientId);
-
-        //remove offline messages
+        //TODO update persistent store
+        //TODO remove offline messages
     }
 
     public Subscription getSubscriptionByClientId(String clientId) {
         return clientId2Subscription.get(clientId);
     }
-
-    /*    public ConcurrentHashMap<String, ConcurrentHashMap<Client, Set<SubscriptionData>>> getTopic2SubscriptionTable() {
-            return topic2SubscriptionTable;
-        }*/
 
     public ConcurrentHashMap<String/*root topic*/, Set<Client>> getTopic2Clients() {
         return topic2Clients;

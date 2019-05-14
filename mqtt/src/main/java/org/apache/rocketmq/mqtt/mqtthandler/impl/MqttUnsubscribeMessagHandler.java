@@ -84,7 +84,8 @@ public class MqttUnsubscribeMessagHandler implements MessageHandler {
 
         RemotingCommand command = RemotingCommand.createResponseCommand(MqttHeader.class);
         MqttHeader mqttHeader = (MqttHeader) command.readCustomHeader();
-        mqttHeader.setMessageType(MqttMessageType.SUBACK.value());
+        // dup/qos/retain value are always as below of UNSUBACK
+        mqttHeader.setMessageType(MqttMessageType.UNSUBACK.value());
         mqttHeader.setDup(false);
         mqttHeader.setQosLevel(MqttQoS.AT_MOST_ONCE.value());
         mqttHeader.setRetain(false);
@@ -127,5 +128,7 @@ public class MqttUnsubscribeMessagHandler implements MessageHandler {
                 iterator.remove();
             }
         }
+
+        //TODO update persistent store
     }
 }

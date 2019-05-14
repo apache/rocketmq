@@ -29,6 +29,7 @@ import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.common.client.Subscription;
 import org.apache.rocketmq.common.exception.MQClientException;
 import org.apache.rocketmq.mqtt.client.IOTClientManagerImpl;
+import org.apache.rocketmq.mqtt.client.MQTTSession;
 import org.apache.rocketmq.mqtt.util.MqttUtil;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
@@ -55,12 +56,14 @@ public interface MessageHandler {
         if (topic2Clients.containsKey(MqttUtil.getRootTopic(topic))) {
             Set<Client> clients = topic2Clients.get(MqttUtil.getRootTopic(topic));
             for (Client client : clients) {
-                Subscription subscription = clientId2Subscription.get(client.getClientId());
-                Enumeration<String> keys = subscription.getSubscriptionTable().keys();
-                while (keys.hasMoreElements()) {
-                    String topicFilter = keys.nextElement();
-                    if (MqttUtil.isMatch(topicFilter, topic)) {
-                        clientsTobePush.add(client);
+                if(((MQTTSession)client).isConnected()) {
+                    Subscription subscription = clientId2Subscription.get(client.getClientId());
+                    Enumeration<String> keys = subscription.getSubscriptionTable().keys();
+                    while (keys.hasMoreElements()) {
+                        String topicFilter = keys.nextElement();
+                        if (MqttUtil.isMatch(topicFilter, topic)) {
+                            clientsTobePush.add(client);
+                        }
                     }
                 }
             }

@@ -17,9 +17,7 @@
 package org.apache.rocketmq.mqtt.service.impl;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.util.ReferenceCountUtil;
-import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -33,13 +31,14 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.mqtt.constant.MqttConstant;
 import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
+import org.apache.rocketmq.mqtt.service.MqttPushService;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
 
-public class MqttPushServiceImpl {
+public class MqttPushServiceImpl implements MqttPushService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.MQTT_LOGGER_NAME);
 
     private ExecutorService pushMqttMessageExecutorService;
@@ -57,22 +56,23 @@ public class MqttPushServiceImpl {
             false);
     }
 
-    static class MqttPushTask implements Runnable {
+    public static class MqttPushTask implements Runnable {
         private AtomicBoolean canceled = new AtomicBoolean(false);
         private final ByteBuf message;
-        private final String topic;
-        private final Integer qos;
-        private boolean retain;
-        private Integer packetId;
+        private final MqttHeader mqttHeader;
         private Client client;
+//        private final String topic;
+//        private final Integer qos;
+//        private boolean retain;
+//        private Integer packetId;
 
-        public MqttPushTask(final String topic, final ByteBuf message, final Integer qos, boolean retain,
-            Integer packetId, Client client) {
+        public MqttPushTask(final MqttHeader mqttHeader, final ByteBuf message, Client client) {
             this.message = message;
-            this.topic = topic;
-            this.qos = qos;
-            this.retain = retain;
-            this.packetId = packetId;
+            this.mqttHeader = mqttHeader;
+//            this.topic = topic;
+//            this.qos = qos;
+//            this.retain = retain;
+//            this.packetId = packetId;
             this.client = client;
         }
 
@@ -80,7 +80,7 @@ public class MqttPushServiceImpl {
         public void run() {
             if (!canceled.get()) {
                 try {
-                    RemotingCommand requestCommand = buildRequestCommand(topic, qos, retain, packetId);
+                    RemotingCommand requestCommand = buildRequestCommand(this.mqttHeader);
 
                     RemotingChannel remotingChannel = client.getRemotingChannel();
                     if (client.getRemotingChannel() instanceof NettyChannelHandlerContextImpl) {
@@ -91,29 +91,22 @@ public class MqttPushServiceImpl {
                     requestCommand.setBody(body);
                     defaultMqttMessageProcessor.getMqttRemotingServer().push(remotingChannel, requestCommand, MqttConstant.DEFAULT_TIMEOUT_MILLS);
                 } catch (Exception ex) {
-                    log.warn("Exception was thrown when pushing MQTT message to topic: {}, exception={}", topic, ex.getMessage());
+                    log.warn("Exception was thrown when pushing MQTT message to topic: {}, clientId:{}, exception={}", mqttHeader.getTopicName(), client.getClientId(), ex.getMessage());
                 } finally {
                     ReferenceCountUtil.release(message);
                 }
             } else {
-                log.info("Push message to topic: {} canceled!", topic);
+                log.info("Push message to topic: {}, clientId:{}, canceled!", mqttHeader.getTopicName(), client.getClientId());
             }
         }
 
-        private RemotingCommand buildRequestCommand(final String topic, final Integer qos, boolean retain,
-            Integer packetId) {
-            MqttHeader mqttHeader = new MqttHeader();
-            mqttHeader.setMessageType(MqttMessageType.PUBLISH.value());
-            if (qos == 0) {
-                mqttHeader.setDup(false);//DUP is always 0 for qos=0 messages
-            } else {
-                mqttHeader.setDup(false);//DUP is depending on whether it is a re-delivery of an earlier attempt.
-            }
-            mqttHeader.setQosLevel(qos);
-            mqttHeader.setRetain(retain);
-            mqttHeader.setPacketId(packetId);
-            mqttHeader.setTopicName(topic);
-            mqttHeader.setRemainingLength(4 + topic.getBytes().length + message.readableBytes());
+        private RemotingCommand buildRequestCommand(MqttHeader mqttHeader) {
+//            if (qos == 0) {
+//                mqttHeader.setDup(false);//DUP is always 0 for qos=0 messages
+//            } else {
+//                mqttHeader.setDup(false);//DUP is depending on whether it is a re-delivery of an earlier attempt.
+//            }
+//            mqttHeader.setRemainingLength(4 + topic.getBytes().length + message.readableBytes());
 
             RemotingCommand pushMessage = RemotingCommand.createRequestCommand(RequestCode.MQTT_MESSAGE, mqttHeader);
             return pushMessage;
@@ -125,21 +118,9 @@ public class MqttPushServiceImpl {
 
     }
 
-    public void pushMessageQos0(final String topic, final ByteBuf message, Set<Client> clientsTobePublish) {
-        //For clientIds connected to the current snode
-        for (Client client : clientsTobePublish) {
-            MqttPushTask pushTask = new MqttPushTask(topic, message, 0, false, 0, client);
-            pushMqttMessageExecutorService.submit(pushTask);
-        }
-
-    }
-
-    public void pushMessageQos1(final String topic, final ByteBuf message, boolean retain, Integer packetId,
-        Set<Client> clientsTobePublish) {
-        for (Client client : clientsTobePublish) {
-            MqttPushTask pushTask = new MqttPushTask(topic, message, 1, retain, packetId, client);
-            pushMqttMessageExecutorService.submit(pushTask);
-        }
+    public void pushMessageQos(MqttHeader mqttHeader, final ByteBuf message, Client client) {
+        MqttPushTask pushTask = new MqttPushTask(mqttHeader, message, client);
+        pushMqttMessageExecutorService.submit(pushTask);
     }
 
     public void shutdown() {

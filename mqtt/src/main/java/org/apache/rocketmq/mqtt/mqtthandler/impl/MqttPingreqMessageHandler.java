@@ -17,17 +17,14 @@
 
 package org.apache.rocketmq.mqtt.mqtthandler.impl;
 
-import io.netty.handler.codec.mqtt.MqttConnectMessage;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttMessageType;
-import io.netty.handler.codec.mqtt.MqttPubAckMessage;
-import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.mqtt.client.IOTClientManagerImpl;
-import org.apache.rocketmq.mqtt.exception.WrongMessageTypeException;
+import org.apache.rocketmq.mqtt.client.MQTTSession;
 import org.apache.rocketmq.mqtt.mqtthandler.MessageHandler;
 import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
 import org.apache.rocketmq.remoting.RemotingChannel;
@@ -52,7 +49,7 @@ public class MqttPingreqMessageHandler implements MessageHandler {
     @Override
     public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
         IOTClientManagerImpl iotClientManager = (IOTClientManagerImpl) defaultMqttMessageProcessor.getIotClientManager();
-        Client client = iotClientManager.getClient(IOTClientManagerImpl.IOT_GROUP, remotingChannel);
+        MQTTSession client = (MQTTSession)iotClientManager.getClient(IOTClientManagerImpl.IOT_GROUP, remotingChannel);
         log.debug("Handle MQTT client: {} Pingreq.", client.getClientId());
         RemotingCommand response = RemotingCommand.createResponseCommand(MqttHeader.class);
         if (client != null && client.isConnected()) {

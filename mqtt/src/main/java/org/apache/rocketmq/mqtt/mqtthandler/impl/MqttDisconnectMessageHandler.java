@@ -20,11 +20,11 @@ package org.apache.rocketmq.mqtt.mqtthandler.impl;
 import io.netty.handler.codec.mqtt.MqttFixedHeader;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttQoS;
-import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.mqtt.client.IOTClientManagerImpl;
+import org.apache.rocketmq.mqtt.client.MQTTSession;
 import org.apache.rocketmq.mqtt.mqtthandler.MessageHandler;
 import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
 import org.apache.rocketmq.remoting.RemotingChannel;
@@ -56,7 +56,7 @@ public class MqttDisconnectMessageHandler implements MessageHandler {
         }
 
         //discard will message associated with the current connection(client)
-        Client client = defaultMqttMessageProcessor.getIotClientManager()
+        MQTTSession client = (MQTTSession)defaultMqttMessageProcessor.getIotClientManager()
             .getClient(IOTClientManagerImpl.IOT_GROUP, remotingChannel);
         if (client != null) {
             defaultMqttMessageProcessor.getWillMessageService().deleteWillMessage(client.getClientId());
