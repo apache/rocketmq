@@ -17,21 +17,20 @@
 package org.apache.rocketmq.mqtt.client;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.mqtt.MqttPublishMessage;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.client.Client;
-import org.apache.rocketmq.common.client.Subscription;
+import org.apache.rocketmq.common.client.ClientRole;
 import org.apache.rocketmq.mqtt.exception.MqttRuntimeException;
 import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
+import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
 
 public class MQTTSession extends Client {
@@ -41,6 +40,7 @@ public class MQTTSession extends Client {
     private final AtomicInteger inflightSlots = new AtomicInteger(10);
     private final Map<Integer, InFlightMessage> inflightWindow = new HashMap<>();
     private final DelayQueue<InFlightPacket> inflightTimeouts = new DelayQueue<>();
+    private static final int FLIGHT_BEFORE_RESEND_MS = 5_000;
     private final AtomicInteger lastPacketId = new AtomicInteger(0);
     private Hashtable inUsePacketIds = new Hashtable();
     private int nextPacketId = 0;
@@ -72,6 +72,13 @@ public class MQTTSession extends Client {
                 return -1;
             }
         }
+    }
+
+    public MQTTSession(String clientId, ClientRole clientRole, Set<String> groups, boolean isConnected, boolean cleanSession,
+        RemotingChannel remotingChannel, long lastUpdateTimestamp) {
+        super(clientId, clientRole, groups, remotingChannel, lastUpdateTimestamp);
+        this.isConnected = isConnected;
+        this.cleanSession = cleanSession;
     }
 
     @Override
@@ -114,21 +121,17 @@ public class MQTTSession extends Client {
         DefaultMqttMessageProcessor defaultMqttMessageProcessor) {
 
         if (mqttHeader.getQosLevel() > 0) {
-//            IOTClientManagerImpl iotClientManager = (IOTClientManagerImpl) defaultMqttMessageProcessor.getIotClientManager();
-//            ConcurrentHashMap<String, Subscription> clientId2Subscription = iotClientManager.getClientId2Subscription();
-//            Subscription subscription = clientId2Subscription.get(this.getClientId());
-//            Enumeration<String> topicFilters = subscription.getSubscriptionTable().keys();
-//            while (topicFilters.hasMoreElements()) {
-//                String topicFilter = topicFilters.nextElement();
-//            }
-
             inflightSlots.decrementAndGet();
             mqttHeader.setPacketId(getNextPacketId());
-            inflightWindow.put(mqttHeader.getPacketId(), new InFlightMessage(mqttHeader.getTopicName(), ));
+            inflightWindow.put(mqttHeader.getPacketId(), new InFlightMessage(mqttHeader.getTopicName(), mqttHeader.getQosLevel(), payload));
+            inflightTimeouts.add(new InFlightPacket(mqttHeader.getPacketId(), FLIGHT_BEFORE_RESEND_MS));
         }
         defaultMqttMessageProcessor.getMqttPushService().pushMessageQos(mqttHeader, payload, this);
     }
-
+    public void pubAckReceived(int ackPacketId) {
+        inflightWindow.remove(ackPacketId);
+        inflightSlots.incrementAndGet();
+    }
     private synchronized void releasePacketId(int msgId) {
         this.inUsePacketIds.remove(new Integer(msgId));
     }

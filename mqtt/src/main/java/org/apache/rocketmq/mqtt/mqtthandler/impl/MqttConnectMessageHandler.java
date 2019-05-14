@@ -117,17 +117,11 @@ public class MqttConnectMessageHandler implements MessageHandler {
             }
         }
 
-        MQTTSession client = new MQTTSession();
-        client.setClientId(payload.clientIdentifier());
-        client.setClientRole(ClientRole.IOTCLIENT);
-        client.setGroups(new HashSet<String>() {
+        MQTTSession client = new MQTTSession(payload.clientIdentifier(), ClientRole.IOTCLIENT, new HashSet<String>() {
             {
                 add("IOT_GROUP");
             }
-        });
-        client.setConnected(true);
-        client.setRemotingChannel(remotingChannel);
-        client.setLastUpdateTimestamp(System.currentTimeMillis());
+        }, true, mqttConnectMessage.variableHeader().isCleanSession(), remotingChannel, System.currentTimeMillis());
         //register remotingChannel<--->client
         iotClientManager.register(IOTClientManagerImpl.IOT_GROUP, client);
 

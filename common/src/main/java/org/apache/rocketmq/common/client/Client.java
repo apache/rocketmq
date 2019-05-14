@@ -41,7 +41,17 @@ public class Client {
 
     private String snodeAddress;
 
+    public Client() {
+    }
 
+    public Client(String clientId, ClientRole clientRole, Set<String> groups, RemotingChannel remotingChannel,
+        long lastUpdateTimestamp) {
+        this.clientId = clientId;
+        this.clientRole = clientRole;
+        this.groups = groups;
+        this.remotingChannel = remotingChannel;
+        this.lastUpdateTimestamp = lastUpdateTimestamp;
+    }
 
     public ClientRole getClientRole() {
         return clientRole;

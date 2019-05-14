@@ -17,16 +17,15 @@
 package org.apache.rocketmq.mqtt.client;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.mqtt.MqttQoS;
 
 public class InFlightMessage {
     final String topic;
-    final MqttQoS publishingQos;
+    final Integer pushQos;
     final ByteBuf payload;
 
-    InFlightMessage(String topic, MqttQoS publishingQos, ByteBuf payload) {
+    InFlightMessage(String topic, Integer pushQos, ByteBuf payload) {
         this.topic = topic;
-        this.publishingQos = publishingQos;
+        this.pushQos = pushQos;
         this.payload = payload;
     }
 }
