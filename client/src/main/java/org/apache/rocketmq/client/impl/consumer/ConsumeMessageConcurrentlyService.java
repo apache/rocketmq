@@ -49,16 +49,16 @@ import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 //并发消费service
 public class ConsumeMessageConcurrentlyService implements ConsumeMessageService {
-    private static final InternalLogger log = ClientLogger.getLog();
-    private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
-    private final DefaultMQPushConsumer defaultMQPushConsumer;
-    private final MessageListenerConcurrently messageListener;
-    private final BlockingQueue<Runnable> consumeRequestQueue;
-    private final ThreadPoolExecutor consumeExecutor;
-    private final String consumerGroup;
+    private static final InternalLogger log = ClientLogger.getLog();      //log
+    private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;    //消息推模式的实现类  push
+    private final DefaultMQPushConsumer defaultMQPushConsumer;            //消费着对象
+    private final MessageListenerConcurrently messageListener;            //并发消费业务事件类
+    private final BlockingQueue<Runnable> consumeRequestQueue;            //消息消费的任务队列
+    private final ThreadPoolExecutor consumeExecutor;                     //线程池
+    private final String consumerGroup;                                   //消费组
 
-    private final ScheduledExecutorService scheduledExecutorService;
-    private final ScheduledExecutorService cleanExpireMsgExecutors;
+    private final ScheduledExecutorService scheduledExecutorService;      //添加消费任务到consumeExecutor 延时消费线程
+    private final ScheduledExecutorService cleanExpireMsgExecutors;       //
 
     public ConsumeMessageConcurrentlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
         MessageListenerConcurrently messageListener) {
@@ -197,6 +197,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         return result;
     }
 
+
+    //消费组服务
     @Override
     public void submitConsumeRequest(  //并发消费
         final List<MessageExt> msgs,
