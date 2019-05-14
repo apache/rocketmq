@@ -92,7 +92,7 @@ public class ServiceThreadTest {
                 return "TestServiceThread";
             }
         };
-        testServiceThread.thread.setDaemon(daemon);
+        testServiceThread.setDaemon(daemon);
         // test start
         testServiceThread.start();
         assertEquals(false, testServiceThread.isStopped());
