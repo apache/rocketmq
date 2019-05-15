@@ -117,6 +117,7 @@ public class SubscriptionGroupManager extends ConfigManager {
         }
     }
 
+    //根据消费者组 查询消费者组的配置信息
     public SubscriptionGroupConfig findSubscriptionGroupConfig(final String group) {
         SubscriptionGroupConfig subscriptionGroupConfig = this.subscriptionGroupTable.get(group);
         if (null == subscriptionGroupConfig) {

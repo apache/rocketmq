@@ -43,25 +43,28 @@ import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
+//定时消息服务
 public class ScheduleMessageService extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    public static final String SCHEDULE_TOPIC = "SCHEDULE_TOPIC_XXXX";
-    private static final long FIRST_DELAY_TIME = 1000L;
-    private static final long DELAY_FOR_A_WHILE = 100L;
-    private static final long DELAY_FOR_A_PERIOD = 10000L;
+    public static final String SCHEDULE_TOPIC = "SCHEDULE_TOPIC_XXXX";  //定时消息主图
+    private static final long FIRST_DELAY_TIME = 1000L; //第一次调度延时的时间
+    private static final long DELAY_FOR_A_WHILE = 100L; // 每一延时级别调度一次后延迟改时间间隔后在次放入调度池
+    private static final long DELAY_FOR_A_PERIOD = 10000L; //发送异常后延时这么长的时间在继续参与调度
 
     private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
-        new ConcurrentHashMap<Integer, Long>(32);
+        new ConcurrentHashMap<Integer, Long>(32);// 存储延时级别
 
     private final ConcurrentMap<Integer /* level */, Long/* offset */> offsetTable =
-        new ConcurrentHashMap<Integer, Long>(32);
+        new ConcurrentHashMap<Integer, Long>(32); //延迟级别的消费 消费进度
 
-    private final Timer timer = new Timer("ScheduleMessageTimerThread", true);
+    private final Timer timer = new Timer("ScheduleMessageTimerThread", true); //time 执行器
 
-    private final DefaultMessageStore defaultMessageStore;
+    private final DefaultMessageStore defaultMessageStore; //默认的消息存储
 
-    private int maxDelayLevel;
+    private int maxDelayLevel;  //最大的消息延时级别
+
+    //方法的调用顺序 构造方法 -- > ≈() -- > start()
 
     public ScheduleMessageService(final DefaultMessageStore defaultMessageStore) {
         this.defaultMessageStore = defaultMessageStore;
@@ -73,7 +76,7 @@ public class ScheduleMessageService extends ConfigManager {
 
     public static int delayLevel2QueueId(final int delayLevel) {
         return delayLevel - 1;
-    }
+    }  //延时级别与消息队列的id对应关心  queeuId = delayLevel - 1 延时级别-1
 
     public void buildRunningStats(HashMap<String, String> stats) {
         Iterator<Entry<Integer, Long>> it = this.offsetTable.entrySet().iterator();
@@ -101,12 +104,13 @@ public class ScheduleMessageService extends ConfigManager {
         return storeTimestamp + 1000;
     }
 
+    //start 方法根据延时级别不同创建对应的定时任务
     public void start() {
 
         for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) {
-            Integer level = entry.getKey();
-            Long timeDelay = entry.getValue();
-            Long offset = this.offsetTable.get(level);
+            Integer level = entry.getKey();  //延时级别
+            Long timeDelay = entry.getValue(); //延时的时间戳
+            Long offset = this.offsetTable.get(level); //获取消费进度
             if (null == offset) {
                 offset = 0L;
             }
@@ -117,7 +121,7 @@ public class ScheduleMessageService extends ConfigManager {
         }
 
         this.timer.scheduleAtFixedRate(new TimerTask() {
-
+            //start的同事 每隔10s持久化消费进度
             @Override
             public void run() {
                 try {
@@ -142,6 +146,7 @@ public class ScheduleMessageService extends ConfigManager {
     }
 
     public boolean load() {
+        //主要完成延时消费队列消费进度的加载 与delayLeavelTable的数据构造 文件delayOffset.json 文件
         boolean result = super.load();
         result = result && this.parseDelayLevel();
         return result;
@@ -170,6 +175,7 @@ public class ScheduleMessageService extends ConfigManager {
         return delayOffsetSerializeWrapper.toJson(prettyFormat);
     }
 
+    //装载delayLevelTable 延时级别
     public boolean parseDelayLevel() {
         HashMap<String, Long> timeUnitTable = new HashMap<String, Long>();
         timeUnitTable.put("s", 1000L);
@@ -211,6 +217,7 @@ public class ScheduleMessageService extends ConfigManager {
             this.offset = offset;
         }
 
+        //具体的延时队列处理逻辑
         @Override
         public void run() {
             try {
@@ -238,15 +245,18 @@ public class ScheduleMessageService extends ConfigManager {
             return result;
         }
 
+        //具体定时任务的执行逻辑
         public void executeOnTimeup() {
+
+            //根据队列Id与主题信息查找消费队列
             ConsumeQueue cq =
                 ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(SCHEDULE_TOPIC,
-                    delayLevel2QueueId(delayLevel));
+                    delayLevel2QueueId(delayLevel));//获取到ConsumeQueue
 
             long failScheduleOffset = offset;
 
-            if (cq != null) {
-                SelectMappedBufferResult bufferCQ = cq.getIndexBuffer(this.offset);
+            if (cq != null) {  //ConsumeQueue
+                SelectMappedBufferResult bufferCQ = cq.getIndexBuffer(this.offset); //根据offset 获取byteBuffer  MappedFile文件
                 if (bufferCQ != null) {
                     try {
                         long nextOffset = offset;

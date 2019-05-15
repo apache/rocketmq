@@ -952,7 +952,19 @@ public class MQClientAPIImpl {
         return response.getCode() == ResponseCode.SUCCESS;
     }
 
-    public void consumerSendMessageBack(
+    /**
+     *
+     * @param addr  broker ip
+     * @param msg   消息实体
+     * @param consumerGroup 消费的group
+     * @param delayLevel    延时级别
+     * @param timeoutMillis 超时次数
+     * @param maxConsumeRetryTimes 最大重试次数 默认为16次
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
+    public void consumerSendMessageBack( //消息确认ack
         final String addr,
         final MessageExt msg,
         final String consumerGroup,
@@ -963,12 +975,12 @@ public class MQClientAPIImpl {
         ConsumerSendMsgBackRequestHeader requestHeader = new ConsumerSendMsgBackRequestHeader();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
 
-        requestHeader.setGroup(consumerGroup);
-        requestHeader.setOriginTopic(msg.getTopic());
-        requestHeader.setOffset(msg.getCommitLogOffset());
-        requestHeader.setDelayLevel(delayLevel);
-        requestHeader.setOriginMsgId(msg.getMsgId());
-        requestHeader.setMaxReconsumeTimes(maxConsumeRetryTimes);
+        requestHeader.setGroup(consumerGroup);        //消费者组
+        requestHeader.setOriginTopic(msg.getTopic()); // 主题
+        requestHeader.setOffset(msg.getCommitLogOffset()); //物理偏移量
+        requestHeader.setDelayLevel(delayLevel);           //消息的延时级别
+        requestHeader.setOriginMsgId(msg.getMsgId());      //消息Id
+        requestHeader.setMaxReconsumeTimes(maxConsumeRetryTimes); //最大的重试次数
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
             request, timeoutMillis);

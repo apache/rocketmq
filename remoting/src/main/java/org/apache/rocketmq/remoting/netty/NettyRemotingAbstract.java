@@ -404,7 +404,7 @@ public abstract class NettyRemotingAbstract {
                     log.warn("send a request command to channel <" + addr + "> failed.");
                 }
             });
-
+            //阻塞 经过 NettyRemotingAbstract。processMessageReceived()唤醒
             RemotingCommand responseCommand = responseFuture.waitResponse(timeoutMillis); //内部是await操作 或者等到超时countdown 在哪里
             if (null == responseCommand) {
                 if (responseFuture.isSendRequestOK()) {

@@ -27,6 +27,8 @@ public abstract class ConfigManager {
     public abstract String encode();
 
     public boolean load() {
+
+        //集中在配置
         String fileName = null;
         try {
             fileName = this.configFilePath();

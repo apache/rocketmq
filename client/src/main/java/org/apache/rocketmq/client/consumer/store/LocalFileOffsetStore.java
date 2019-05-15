@@ -36,6 +36,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
+ * 广播模式存储在
  * Local storage implementation
  */
 public class LocalFileOffsetStore implements OffsetStore {
@@ -75,7 +76,13 @@ public class LocalFileOffsetStore implements OffsetStore {
         }
     }
 
-    @Override
+    /**
+     *
+     * @param mq 消息的消费队列
+     * @param offset 消息消费的偏移量
+     * @param increaseOnly true表示 offset 必须大于当前的消费偏移量才更新
+     */
+    @Override //更新内存中的消息消费进度
     public void updateOffset(MessageQueue mq, long offset, boolean increaseOnly) {
         if (mq != null) {
             AtomicLong offsetOld = this.offsetTable.get(mq);
@@ -93,12 +100,18 @@ public class LocalFileOffsetStore implements OffsetStore {
         }
     }
 
+    /**
+     * 读取消息的消费进度
+     * @param mq  消费队列
+     * @param type
+     * @return
+     */
     @Override
     public long readOffset(final MessageQueue mq, final ReadOffsetType type) {
         if (mq != null) {
             switch (type) {
-                case MEMORY_FIRST_THEN_STORE:
-                case READ_FROM_MEMORY: {
+                case MEMORY_FIRST_THEN_STORE: //从内存中
+                case READ_FROM_MEMORY: {  //从磁盘中
                     AtomicLong offset = this.offsetTable.get(mq);
                     if (offset != null) {
                         return offset.get();
@@ -106,7 +119,7 @@ public class LocalFileOffsetStore implements OffsetStore {
                         return -1;
                     }
                 }
-                case READ_FROM_STORE: {
+                case READ_FROM_STORE: { //先从内存 在读磁盘
                     OffsetSerializeWrapper offsetSerializeWrapper;
                     try {
                         offsetSerializeWrapper = this.readLocalOffset();
@@ -130,7 +143,7 @@ public class LocalFileOffsetStore implements OffsetStore {
     }
 
     @Override
-    public void persistAll(Set<MessageQueue> mqs) {
+    public void persistAll(Set<MessageQueue> mqs) { //持久化指定的消息进度到磁盘
         if (null == mqs || mqs.isEmpty())
             return;
 
@@ -157,18 +170,18 @@ public class LocalFileOffsetStore implements OffsetStore {
     }
 
     @Override
-    public void removeOffset(MessageQueue mq) {
+    public void removeOffset(MessageQueue mq) {  //将消息队列的消费进度从内存中移除
 
     }
 
     @Override
-    public void updateConsumeOffsetToBroker(final MessageQueue mq, final long offset, final boolean isOneway)
+    public void updateConsumeOffsetToBroker(final MessageQueue mq, final long offset, final boolean isOneway) //封信存储在broker端的消息消费进度
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
 
     }
 
     @Override
-    public Map<MessageQueue, Long> cloneOffsetTable(String topic) {
+    public Map<MessageQueue, Long> cloneOffsetTable(String topic) { //克隆该主体下所有消息队列的消费进度
         Map<MessageQueue, Long> cloneOffsetTable = new HashMap<MessageQueue, Long>();
         for (Map.Entry<MessageQueue, AtomicLong> entry : this.offsetTable.entrySet()) {
             MessageQueue mq = entry.getKey();

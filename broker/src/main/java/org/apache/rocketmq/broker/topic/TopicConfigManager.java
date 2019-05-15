@@ -216,6 +216,7 @@ public class TopicConfigManager extends ConfigManager {
         return topicConfig;
     }
 
+    //创建 SendMessageBack Topic
     public TopicConfig createTopicInSendMessageBackMethod(
         final String topic,
         final int clientDefaultTopicQueueNums,

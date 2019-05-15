@@ -174,7 +174,7 @@ public class DefaultMessageStore implements MessageStore {
             boolean lastExitOK = !this.isTempFileExist();
             log.info("last shutdown {}", lastExitOK ? "normally" : "abnormally");
 
-            if (null != scheduleMessageService) {
+            if (null != scheduleMessageService) { //定时消息机制
                 result = result && this.scheduleMessageService.load();
             }
 
@@ -1090,7 +1090,7 @@ public class DefaultMessageStore implements MessageStore {
         return null;
     }
 
-    public ConsumeQueue findConsumeQueue(String topic, int queueId) {
+    public ConsumeQueue findConsumeQueue(String topic, int queueId) {//
         ConcurrentMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);//通过topic 获取该topic 所有队列 ConsumeQueueMap  key 为queueId value 为ConsumeQueue
         if (null == map) { //找不到map new
             ConcurrentMap<Integer, ConsumeQueue> newMap = new ConcurrentHashMap<Integer, ConsumeQueue>(128);

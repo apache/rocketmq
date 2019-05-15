@@ -307,7 +307,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
-            public void run() {
+            public void run() {  //将消费进度持久到到磁盘中  offsetStore.persitAll;
                 try {
                     MQClientInstance.this.persistAllConsumerOffset();
                 } catch (Exception e) {
