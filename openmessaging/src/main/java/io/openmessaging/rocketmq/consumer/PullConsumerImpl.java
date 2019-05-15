@@ -93,7 +93,7 @@ public class PullConsumerImpl implements Consumer {
 
         String consumerId = OMSUtil.buildInstanceName();
         this.rocketmqPullConsumer.setInstanceName(consumerId);
-        properties.put("TIMEOUT", consumerId);
+        properties.put("CONSUMER_ID", consumerId);
 
         this.rocketmqPullConsumer.setLanguage(LanguageCode.OMS);
 
@@ -325,7 +325,7 @@ public class PullConsumerImpl implements Consumer {
     }
 
     @Override
-    public void start() {
+    public synchronized void start() {
         if (!started) {
             try {
                 this.pullConsumerScheduleService.start();
@@ -339,7 +339,7 @@ public class PullConsumerImpl implements Consumer {
     }
 
     @Override
-    public void stop() {
+    public synchronized void stop() {
         if (this.started) {
             this.localMessageCache.stop();
             this.pullConsumerScheduleService.shutdown();

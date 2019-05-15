@@ -255,7 +255,7 @@ public class PushConsumerImpl implements Consumer {
     }
 
     @Override
-    public void start() {
+    public synchronized void start() {
         currentState = ServiceLifeState.STARTING;
         if (!started) {
             try {
@@ -269,7 +269,7 @@ public class PushConsumerImpl implements Consumer {
     }
 
     @Override
-    public void stop() {
+    public synchronized void stop() {
         currentState = ServiceLifeState.STOPPING;
         if (this.started) {
             this.rocketmqPushConsumer.shutdown();

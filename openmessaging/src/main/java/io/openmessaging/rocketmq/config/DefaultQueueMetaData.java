@@ -38,7 +38,7 @@ public class DefaultQueueMetaData implements QueueMetaData {
 
     @Override
     public List<QueueMetaData.Partition> partitions() {
-        return null;
+        return partitions;
     }
 
     public static class DefaultPartition implements Partition {
