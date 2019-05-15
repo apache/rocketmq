@@ -18,6 +18,8 @@ package io.openmessaging.rocketmq.consumer;
 
 import io.openmessaging.*;
 import io.openmessaging.consumer.Consumer;
+import io.openmessaging.manager.ResourceManager;
+import io.openmessaging.message.Message;
 import io.openmessaging.rocketmq.config.ClientConfig;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
@@ -32,6 +34,7 @@ import java.lang.reflect.Field;
 
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PullConsumerImplTest {
@@ -46,9 +49,12 @@ public class PullConsumerImplTest {
     public void init() throws NoSuchFieldException, IllegalAccessException {
         final MessagingAccessPoint messagingAccessPoint = OMS
                 .getMessagingAccessPoint("oms:rocketmq://IP1:9876,IP2:9876/namespace");
-
+        final KeyValue attributes = messagingAccessPoint.attributes();
+        final ResourceManager resourceManager = messagingAccessPoint.resourceManager();
+        resourceManager.createNamespace("TestGroup");
+        consumer = messagingAccessPoint.createConsumer();
 //        consumer = messagingAccessPoint.createPullConsumer(OMS.newKeyValue().put(OMSBuiltinKeys.CONSUMER_ID, "TestGroup"));
-//        consumer.attachQueue(queueName);
+        consumer.bindQueue(queueName);
 
         Field field = PullConsumerImpl.class.getDeclaredField("rocketmqPullConsumer");
         field.setAccessible(true);
@@ -61,9 +67,7 @@ public class PullConsumerImplTest {
         field = PullConsumerImpl.class.getDeclaredField("localMessageCache");
         field.setAccessible(true);
         field.set(consumer, localMessageCache);
-
-//        messagingAccessPoint.startup();
-//        consumer.startup();
+        consumer.start();
     }
 
     @Test
@@ -77,17 +81,17 @@ public class PullConsumerImplTest {
 
         when(localMessageCache.poll()).thenReturn(consumedMsg);
 
-//        Message message = consumer.receive();
-//        assertThat(message.sysHeaders().getString(Message.BuiltinKeys.MESSAGE_ID)).isEqualTo("NewMsgId");
-//        assertThat(((BytesMessage) message).getBody(byte[].class)).isEqualTo(testBody);
+        Message message = consumer.receive(3 * 1000);
+        assertThat(message.header().getMessageId()).isEqualTo("NewMsgId");
+        assertThat(message.getData()).isEqualTo(testBody);
     }
 
     @Test
     public void testPoll_WithTimeout() {
-        //There is a default timeout value, @see ClientConfig#omsOperationTimeout.
-//        Message message = consumer.receive();
+//        There is a default timeout value, @see ClientConfig#omsOperationTimeout.
+//        Message message = consumer.receive(3 * 1000);
 //        assertThat(message).isNull();
-//
+
 //        message = consumer.receive(OMS.newKeyValue().put(Message.BuiltinKeys.TIMEOUT, 100));
 //        assertThat(message).isNull();
     }

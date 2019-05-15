@@ -19,6 +19,8 @@ package io.openmessaging.rocketmq.consumer;
 import io.openmessaging.*;
 import io.openmessaging.consumer.Consumer;
 import io.openmessaging.consumer.MessageListener;
+import io.openmessaging.manager.ResourceManager;
+import io.openmessaging.message.Message;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
@@ -33,6 +35,7 @@ import java.lang.reflect.Field;
 import java.util.Collections;
 
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PushConsumerImplTest {
@@ -47,6 +50,9 @@ public class PushConsumerImplTest {
                 .getMessagingAccessPoint("oms:rocketmq://IP1:9876,IP2:9876/namespace");
        /* consumer = messagingAccessPoint.createPushConsumer(
                 OMS.newKeyValue().put(OMSBuiltinKeys.CONSUMER_ID, "TestGroup"));*/
+        final ResourceManager resourceManager = messagingAccessPoint.resourceManager();
+        resourceManager.createNamespace("TestGroup");
+        consumer = messagingAccessPoint.createConsumer();
 
         Field field = PushConsumerImpl.class.getDeclaredField("rocketmqPushConsumer");
         field.setAccessible(true);
@@ -54,8 +60,7 @@ public class PushConsumerImplTest {
         field.set(consumer, rocketmqPushConsumer); //Replace
 
         when(rocketmqPushConsumer.getMessageListener()).thenReturn(innerConsumer.getMessageListener());
-//        messagingAccessPoint.startup();
-//        consumer.startup();
+        consumer.start();
     }
 
     @Test
@@ -67,14 +72,14 @@ public class PushConsumerImplTest {
         consumedMsg.setBody(testBody);
         consumedMsg.putUserProperty(NonStandardKeys.MESSAGE_DESTINATION, "TOPIC");
         consumedMsg.setTopic("HELLO_QUEUE");
-/*        consumer.attachQueue("HELLO_QUEUE", new MessageListener() {
+        consumer.bindQueue("HELLO_QUEUE", new MessageListener() {
             @Override
             public void onReceived(Message message, Context context) {
-                assertThat(message.sysHeaders().getString(Message.BuiltinKeys.MESSAGE_ID)).isEqualTo("NewMsgId");
-                assertThat(((BytesMessage) message).getBody(byte[].class)).isEqualTo(testBody);
+                assertThat(message.header().getMessageId()).isEqualTo("NewMsgId");
+                assertThat(message.getData()).isEqualTo(testBody);
                 context.ack();
             }
-        });*/
+        });
         ((MessageListenerConcurrently) rocketmqPushConsumer
                 .getMessageListener()).consumeMessage(Collections.singletonList(consumedMsg), null);
     }

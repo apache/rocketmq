@@ -88,7 +88,6 @@ public class PushConsumerImpl implements Consumer {
 
         String consumerId = OMSUtil.buildInstanceName();
         this.rocketmqPushConsumer.setInstanceName(consumerId);
-//        properties.put(OMSBuiltinKeys.CONSUMER_ID, consumerId);
         properties.put("CONSUMER_ID", consumerId);
         this.rocketmqPushConsumer.setLanguage(LanguageCode.OMS);
 
@@ -120,12 +119,18 @@ public class PushConsumerImpl implements Consumer {
 
     @Override
     public void bindQueue(String queueName) {
-        throw new UnsupportedOperationException();
+        try {
+            rocketmqPushConsumer.subscribe(queueName, "*");
+        } catch (MQClientException e) {
+            throw new OMSRuntimeException(-1, String.format("RocketMQ push consumer can't attach to %s.", queueName));
+        }
     }
 
     @Override
     public void bindQueue(List<String> queueNames) {
-        throw new UnsupportedOperationException();
+        for (String queueName : queueNames) {
+            bindQueue(queueName);
+        }
     }
 
     @Override

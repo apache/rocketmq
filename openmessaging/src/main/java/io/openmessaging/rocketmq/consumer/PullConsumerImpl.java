@@ -88,7 +88,6 @@ public class PullConsumerImpl implements Consumer {
 
         String consumerId = OMSUtil.buildInstanceName();
         this.rocketmqPullConsumer.setInstanceName(consumerId);
-//        properties.put(OMSBuiltinKeys.CONSUMER_ID, consumerId);
         properties.put("TIMEOUT", consumerId);
 
         this.rocketmqPullConsumer.setLanguage(LanguageCode.OMS);
