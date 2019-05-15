@@ -23,9 +23,9 @@ import io.openmessaging.manager.ResourceManager;
 import io.openmessaging.message.MessageFactory;
 import io.openmessaging.producer.Producer;
 import io.openmessaging.producer.TransactionStateCheckListener;
+import io.openmessaging.rocketmq.consumer.PullConsumerImpl;
 import io.openmessaging.rocketmq.consumer.PushConsumerImpl;
 import io.openmessaging.rocketmq.producer.ProducerImpl;
-
 import java.util.HashSet;
 import java.util.Set;
 
@@ -57,65 +57,76 @@ public class MessagingAccessPointImpl implements MessagingAccessPoint {
     }
 
     @Override public Consumer createConsumer() {
+        String consumerId = accessPointProperties.getString("CONSUMER_ID");
+        String[] nsStrArr = consumerId.split("_");
+        if (nsStrArr.length < 2) {
+            return new PushConsumerImpl(accessPointProperties);
+        }
+        if ("pull".equals(nsStrArr[0])) {
+            return new PullConsumerImpl(accessPointProperties);
+        }
         return new PushConsumerImpl(accessPointProperties);
     }
 
     @Override
     public ResourceManager resourceManager() {
-       return new ResourceManager() {
-
-            @Override
-            public void createNamespace(String nsName) {
-                accessPointProperties.put("CONSUMER_ID", nsName);
-            }
-
-            @Override
-            public void deleteNamespace(String nsName) {
-                accessPointProperties.put("CONSUMER_ID", null);
-            }
-
-            @Override
-            public void switchNamespace(String targetNamespace) {
-                accessPointProperties.put("CONSUMER_ID", targetNamespace);
-            }
-
-            @Override
-            public Set<String> listNamespaces() {
-                return new HashSet<String>() {
-                    {
-                        add(accessPointProperties.getString("CONSUMER_ID"));
-                    }
-                };
-            }
-
-            @Override
-            public void createQueue(String queueName) {
-
-            }
-
-            @Override
-            public void deleteQueue(String queueName) {
-
-            }
-
-            @Override
-            public Set<String> listQueues(String nsName) {
-                return null;
-            }
-
-            @Override
-            public void filter(String queueName, String filterString) {
-
-            }
-
-            @Override
-            public void routing(String sourceQueue, String targetQueue) {
-
-            }
-        };
+        DefaultResourceManager resourceManager = new DefaultResourceManager();
+        return resourceManager;
     }
 
     @Override public MessageFactory messageFactory() {
         return null;
     }
+
+    class DefaultResourceManager implements ResourceManager {
+
+        @Override
+        public void createNamespace(String nsName) {
+            accessPointProperties.put("CONSUMER_ID", nsName);
+        }
+
+        @Override
+        public void deleteNamespace(String nsName) {
+            accessPointProperties.put("CONSUMER_ID", null);
+        }
+
+        @Override
+        public void switchNamespace(String targetNamespace) {
+            accessPointProperties.put("CONSUMER_ID", targetNamespace);
+        }
+
+        @Override
+        public Set<String> listNamespaces() {
+            return new HashSet<String>() {
+                {
+                    add(accessPointProperties.getString("CONSUMER_ID"));
+                }
+            };
+        }
+
+        @Override
+        public void createQueue(String queueName) {
+
+        }
+
+        @Override
+        public void deleteQueue(String queueName) {
+
+        }
+
+        @Override
+        public Set<String> listQueues(String nsName) {
+            return null;
+        }
+
+        @Override
+        public void filter(String queueName, String filterString) {
+
+        }
+
+        @Override
+        public void routing(String sourceQueue, String targetQueue) {
+
+        }
+    };
 }

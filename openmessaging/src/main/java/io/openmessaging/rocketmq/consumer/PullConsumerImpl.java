@@ -33,7 +33,17 @@ import io.openmessaging.rocketmq.domain.BytesMessageImpl;
 import io.openmessaging.rocketmq.domain.ConsumeRequest;
 import io.openmessaging.rocketmq.utils.BeanUtils;
 import io.openmessaging.rocketmq.utils.OMSUtil;
-import org.apache.rocketmq.client.consumer.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
+import org.apache.rocketmq.client.consumer.MQPullConsumer;
+import org.apache.rocketmq.client.consumer.MQPullConsumerScheduleService;
+import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.PullStatus;
+import org.apache.rocketmq.client.consumer.PullTaskCallback;
+import org.apache.rocketmq.client.consumer.PullTaskContext;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.ProcessQueue;
@@ -43,11 +53,6 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 
 public class PullConsumerImpl implements Consumer {
     private final DefaultMQPullConsumer rocketmqPullConsumer;
@@ -273,16 +278,16 @@ public class PullConsumerImpl implements Consumer {
         try {
             pullResult = rocketmqPullConsumer.pull(mq, "*", receiptId, 4 * 1024 * 1024, timeout);
         } catch (MQClientException e) {
-            e.printStackTrace();
+            log.error("A error occurred when pull message.", e);
             return null;
         } catch (RemotingException e) {
-            e.printStackTrace();
+            log.error("A error occurred when pull message.", e);
             return null;
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.error("A error occurred when pull message.", e);
             return null;
         } catch (MQBrokerException e) {
-            e.printStackTrace();
+            log.error("A error occurred when pull message.", e);
             return null;
         }
         if (null == pullResult) {

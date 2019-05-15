@@ -48,10 +48,8 @@ public class PushConsumerImplTest {
     public void init() throws NoSuchFieldException, IllegalAccessException {
         final MessagingAccessPoint messagingAccessPoint = OMS
                 .getMessagingAccessPoint("oms:rocketmq://IP1:9876,IP2:9876/namespace");
-       /* consumer = messagingAccessPoint.createPushConsumer(
-                OMS.newKeyValue().put(OMSBuiltinKeys.CONSUMER_ID, "TestGroup"));*/
         final ResourceManager resourceManager = messagingAccessPoint.resourceManager();
-        resourceManager.createNamespace("TestGroup");
+        resourceManager.createNamespace("push_TestGroup");
         consumer = messagingAccessPoint.createConsumer();
 
         Field field = PushConsumerImpl.class.getDeclaredField("rocketmqPushConsumer");
