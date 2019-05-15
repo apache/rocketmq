@@ -45,7 +45,7 @@ public class RegisterBrokerBody extends RemotingSerializable {
     private List<String> filterServerList = new ArrayList<String>();
 
     public byte[] encode(boolean compress) {
-
+        //如果不压缩，使用json序列化
         if (!compress) {
             return super.encode();
         }

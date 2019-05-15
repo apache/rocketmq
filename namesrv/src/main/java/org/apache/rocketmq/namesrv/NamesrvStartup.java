@@ -82,6 +82,7 @@ public class NamesrvStartup {
         final NamesrvConfig namesrvConfig = new NamesrvConfig();
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(9876);
+        //加载NamesrvConfig和NettyServerConfig配置
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
@@ -98,6 +99,7 @@ public class NamesrvStartup {
             }
         }
 
+        //控制台输出
         if (commandLine.hasOption('p')) {
             InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_CONSOLE_NAME);
             MixAll.printObjectProperties(console, namesrvConfig);
@@ -105,6 +107,7 @@ public class NamesrvStartup {
             System.exit(0);
         }
 
+        //命令行option设置参数
         MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), namesrvConfig);
 
         if (null == namesrvConfig.getRocketmqHome()) {
@@ -137,12 +140,15 @@ public class NamesrvStartup {
             throw new IllegalArgumentException("NamesrvController is null");
         }
 
+        //初始化
         boolean initResult = controller.initialize();
+        //初始化失败则退出
         if (!initResult) {
             controller.shutdown();
             System.exit(-3);
         }
 
+        //注册优雅关闭资源的钩子
         Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, new Callable<Void>() {
             @Override
             public Void call() throws Exception {
@@ -151,6 +157,7 @@ public class NamesrvStartup {
             }
         }));
 
+        //启动controller
         controller.start();
 
         return controller;

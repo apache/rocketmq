@@ -196,6 +196,7 @@ public class MappedFileQueue {
         MappedFile mappedFileLast = getLastMappedFile();
 
         if (mappedFileLast == null) {
+            //mappedFileSize默认为1G
             createOffset = startOffset - (startOffset % this.mappedFileSize);
         }
 
@@ -210,6 +211,7 @@ public class MappedFileQueue {
             MappedFile mappedFile = null;
 
             if (this.allocateMappedFileService != null) {
+                //异步预创建commitLog文件
                 mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(nextFilePath,
                     nextNextFilePath, this.mappedFileSize);
             } else {
@@ -422,6 +424,7 @@ public class MappedFileQueue {
         return deleteCount;
     }
 
+    //flushLeastPages为0表示强制刷盘
     public boolean flush(final int flushLeastPages) {
         boolean result = true;
         MappedFile mappedFile = this.findMappedFileByOffset(this.flushedWhere, this.flushedWhere == 0);

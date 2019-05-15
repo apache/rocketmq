@@ -97,8 +97,11 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
     }
 
     class FaultItem implements Comparable<FaultItem> {
+        //brokerName
         private final String name;
+        //本次消息发送时间
         private volatile long currentLatency;
+        //故障规避时间  System.currentTimeMillis() + notAvailableDuration
         private volatile long startTimestamp;
 
         public FaultItem(final String name) {

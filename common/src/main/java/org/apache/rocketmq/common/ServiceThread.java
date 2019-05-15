@@ -36,6 +36,7 @@ public abstract class ServiceThread implements Runnable {
         this.thread = new Thread(this, this.getServiceName());
     }
 
+    //由子类实现
     public abstract String getServiceName();
 
     public void start() {
@@ -55,6 +56,7 @@ public abstract class ServiceThread implements Runnable {
         }
 
         try {
+            //支持线程中断
             if (interrupt) {
                 this.thread.interrupt();
             }
@@ -79,6 +81,7 @@ public abstract class ServiceThread implements Runnable {
         this.stop(false);
     }
 
+    //设置中断标记
     public void stop(final boolean interrupt) {
         this.stopped = true;
         log.info("stop thread " + this.getServiceName() + " interrupt " + interrupt);
@@ -92,6 +95,7 @@ public abstract class ServiceThread implements Runnable {
         }
     }
 
+    //标记中断
     public void makeStop() {
         this.stopped = true;
         log.info("makestop thread " + this.getServiceName());
@@ -103,6 +107,7 @@ public abstract class ServiceThread implements Runnable {
         }
     }
 
+    //线程挂起
     protected void waitForRunning(long interval) {
         if (hasNotified.compareAndSet(true, false)) {
             this.onWaitEnd();

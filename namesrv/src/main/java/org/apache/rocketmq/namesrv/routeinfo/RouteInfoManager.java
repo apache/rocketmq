@@ -112,7 +112,7 @@ public class RouteInfoManager {
         try {
             try {
                 this.lock.writeLock().lockInterruptibly();
-
+                //根据集群名称获取Broker Name列表，如果没有找到，则创建
                 Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
                 if (null == brokerNames) {
                     brokerNames = new HashSet<String>();
@@ -120,8 +120,9 @@ public class RouteInfoManager {
                 }
                 brokerNames.add(brokerName);
 
-                boolean registerFirst = false;
+                boolean registerFirst = false; //是否第一次注册
 
+                //根据Broker Name获取BrokerData，没有找到则创建，并且添加到brokerAddrTable中
                 BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                 if (null == brokerData) {
                     registerFirst = true;
@@ -131,6 +132,7 @@ public class RouteInfoManager {
                 String oldAddr = brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
                 registerFirst = registerFirst || (null == oldAddr);
 
+                //如果Broker是Master并且Broker Topic配置信息发生了变化，则需要创建或者更新Topic路由元数据
                 if (null != topicConfigWrapper
                     && MixAll.MASTER_ID == brokerId) {
                     if (this.isBrokerTopicConfigChanged(brokerAddr, topicConfigWrapper.getDataVersion())
@@ -416,6 +418,7 @@ public class RouteInfoManager {
     }
 
     public void scanNotActiveBroker() {
+        //检测最后更新时间，如果超出2分钟，则关闭连接，并且从brokerLiveTable移走
         Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, BrokerLiveInfo> next = it.next();

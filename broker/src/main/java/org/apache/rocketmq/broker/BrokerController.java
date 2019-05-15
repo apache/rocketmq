@@ -855,7 +855,9 @@ public class BrokerController {
             this.filterServerManager.start();
         }
 
+        //路由注册
         this.registerBrokerAll(true, false, true);
+
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -927,6 +929,7 @@ public class BrokerController {
         }
     }
 
+    //注册Broker
     private void doRegisterBrokerAll(boolean checkOrderConfig, boolean oneway,
         TopicConfigSerializeWrapper topicConfigWrapper) {
         List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
