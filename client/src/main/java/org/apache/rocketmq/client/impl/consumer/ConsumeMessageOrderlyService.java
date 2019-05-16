@@ -50,16 +50,16 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 //顺序消费的服务
 public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     private static final InternalLogger log = ClientLogger.getLog();
-    private final static long MAX_TIME_CONSUME_CONTINUOUSLY =
+    private final static long MAX_TIME_CONSUME_CONTINUOUSLY =    //每次消费任务最大的持续时间默认60s
         Long.parseLong(System.getProperty("rocketmq.client.maxTimeConsumeContinuously", "60000"));
-    private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
-    private final DefaultMQPushConsumer defaultMQPushConsumer;
-    private final MessageListenerOrderly messageListener;
-    private final BlockingQueue<Runnable> consumeRequestQueue;
-    private final ThreadPoolExecutor consumeExecutor;
-    private final String consumerGroup;
-    private final MessageQueueLock messageQueueLock = new MessageQueueLock();
-    private final ScheduledExecutorService scheduledExecutorService;
+    private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl; //消息消费者实现类
+    private final DefaultMQPushConsumer defaultMQPushConsumer;  //消息消费者
+    private final MessageListenerOrderly messageListener;      //顺序消费监听器
+    private final BlockingQueue<Runnable> consumeRequestQueue;  //消息消费任务队列
+    private final ThreadPoolExecutor consumeExecutor;         //消息消费线程池
+    private final String consumerGroup;                       //消费组名
+    private final MessageQueueLock messageQueueLock = new MessageQueueLock(); //消息消费端消息队列锁容器
+    private final ScheduledExecutorService scheduledExecutorService;  //调度任务线程池
     private volatile boolean stopped = false;
 
     public ConsumeMessageOrderlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
@@ -82,8 +82,9 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_"));
     }
 
+    //启动方法
     public void start() {
-        if (MessageModel.CLUSTERING.equals(ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl.messageModel())) {
+        if (MessageModel.CLUSTERING.equals(ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl.messageModel())) { //集群模式下
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {

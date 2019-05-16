@@ -259,13 +259,13 @@ public class ScheduleMessageService extends ConfigManager {
                 SelectMappedBufferResult bufferCQ = cq.getIndexBuffer(this.offset); //根据offset 获取byteBuffer  MappedFile文件
                 if (bufferCQ != null) {
                     try {
-                        long nextOffset = offset;
+                        long nextOffset = offset; //初始偏移量
                         int i = 0;
-                        ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
-                        for (; i < bufferCQ.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
-                            long offsetPy = bufferCQ.getByteBuffer().getLong();
-                            int sizePy = bufferCQ.getByteBuffer().getInt();
-                            long tagsCode = bufferCQ.getByteBuffer().getLong();
+                        ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();  //consumeQueue 扩展
+                        for (; i < bufferCQ.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {  //ConsumeQueue 的每个单元的长度是20
+                            long offsetPy = bufferCQ.getByteBuffer().getLong(); //消息的物理偏移量
+                            int sizePy = bufferCQ.getByteBuffer().getInt(); //消息的长度
+                            long tagsCode = bufferCQ.getByteBuffer().getLong(); //获取tag的hashCode
 
                             if (cq.isExtAddr(tagsCode)) {
                                 if (cq.getExt(tagsCode, cqExtUnit)) {
@@ -279,24 +279,32 @@ public class ScheduleMessageService extends ConfigManager {
                                 }
                             }
 
-                            long now = System.currentTimeMillis();
+                            long now = System.currentTimeMillis(); //当前的时间戳
                             long deliverTimestamp = this.correctDeliverTimestamp(now, tagsCode);
 
+                            /**
+                             * 初始偏移量 offset = 20   nextOffset = 20 + （1 / 20）
+                             *                        nextOffset = 20 + （2 / 20）
+                             *
+                             *                        nextOffset = 20 + （21 / 20）一份单元的长度是20
+                             */
                             nextOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
 
-                            long countdown = deliverTimestamp - now;
+                            long countdown = deliverTimestamp - now; //
 
                             if (countdown <= 0) {
                                 MessageExt msgExt =
                                     ScheduleMessageService.this.defaultMessageStore.lookMessageByOffset(
-                                        offsetPy, sizePy);
+                                        offsetPy, sizePy); //查询消息
 
-                                if (msgExt != null) {
+                                if (msgExt != null) {  //查询到消息
                                     try {
+
+                                        //根据msgext重新构建消息对象
                                         MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
                                         PutMessageResult putMessageResult =
                                             ScheduleMessageService.this.defaultMessageStore
-                                                .putMessage(msgInner);
+                                                .putMessage(msgInner); //重新投递消息 存入commitLog并转发到主题对应的消息队列上去
 
                                         if (putMessageResult != null
                                             && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
@@ -336,6 +344,7 @@ public class ScheduleMessageService extends ConfigManager {
                         } // end of for
 
                         nextOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
+                        //更新消息进度 存入到下个定时任无中去
                         ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(
                             this.delayLevel, nextOffset), DELAY_FOR_A_WHILE);
                         ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
@@ -389,5 +398,9 @@ public class ScheduleMessageService extends ConfigManager {
 
             return msgInner;
         }
+    }
+
+    public static void main(String [] args){
+        System.out.println(1/20);
     }
 }

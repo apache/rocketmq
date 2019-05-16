@@ -27,7 +27,7 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
 public class ConsumeQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    public static final int CQ_STORE_UNIT_SIZE = 20; //单个ConsumeQueue 的条目 8字节偏移量 4字节size
+    public static final int CQ_STORE_UNIT_SIZE = 20; //单个ConsumeQueue 的条目 8字节偏移量 4字节size 4字节的
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
     private final DefaultMessageStore defaultMessageStore;

@@ -257,7 +257,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 return;
             }
         } else {
-            //这里是顺序消费
+            //这里是顺序消费 顺序消费 需要锁定该队列
             if (processQueue.isLocked()) {//是否被锁定
                 if (!pullRequest.isLockedFirst()) {//Locked first ？？？
                     final long offset = this.rebalanceImpl.computePullFromWhere(pullRequest.getMessageQueue());
@@ -272,7 +272,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     pullRequest.setLockedFirst(true);
                     pullRequest.setNextOffset(offset);
                 }
-            } else {
+            } else {//如果没有加锁 延时3s在将Pull Request放入到 拉取任务中
                 this.executePullRequestLater(pullRequest, PULL_TIME_DELAY_MILLS_WHEN_EXCEPTION);
                 log.info("pull message later because not locked in broker, {}", pullRequest);
                 return;
@@ -409,10 +409,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         SubscriptionData sd = this.rebalanceImpl.getSubscriptionInner().get(pullRequest.getMessageQueue().getTopic());
         if (sd != null) {
             if (this.defaultMQPushConsumer.isPostSubscriptionWhenPull() && !sd.isClassFilterMode()) {
-                subExpression = sd.getSubString();
+                subExpression = sd.getSubString(); //设置消息的过滤表达式
             }
 
-            classFilter = sd.isClassFilterMode();
+            classFilter = sd.isClassFilterMode(); //是不是分局类模式进行过滤
         }
 
         int sysFlag = PullSysFlag.buildSysFlag( //获取系统标志
@@ -883,10 +883,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         return this.rebalanceImpl.getSubscriptionInner();
     }
 
+    //订阅消息主题与消息表达式
     public void subscribe(String topic, String subExpression) throws MQClientException {
         try {
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultMQPushConsumer.getConsumerGroup(),
                 topic, subExpression);
+            //订阅后放入rebalanceImpl 的订阅信息
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
             if (this.mQClientFactory != null) {
                 this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();

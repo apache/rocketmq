@@ -42,6 +42,7 @@ public interface MQConsumerInner {
 
     void persistConsumerOffset();
 
+
     void updateTopicSubscribeInfo(final String topic, final Set<MessageQueue> info);
 
     boolean isSubscribeTopicNeedUpdate(final String topic);

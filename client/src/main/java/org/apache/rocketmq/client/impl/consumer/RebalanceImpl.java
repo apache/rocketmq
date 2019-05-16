@@ -134,6 +134,7 @@ public abstract class RebalanceImpl {
     }
 
     public boolean lock(final MessageQueue mq) {
+        //查询 订阅的Broker
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
         if (findBrokerResult != null) {
             LockBatchRequestBody requestBody = new LockBatchRequestBody();
@@ -352,6 +353,15 @@ public abstract class RebalanceImpl {
         }
     }
     //负载更新 ProcessQueueTable
+
+    /**
+     * RocketMq 集群模式下 同一个消费Group内共同承担其订阅主题下的所有的messageQueue
+     *          同一个消息的消费队列在同一时刻只能被消费组内一个消费组消费 一个消费者同一时刻 可以分配多个消费队列
+     * @param topic
+     * @param mqSet
+     * @param isOrder
+     * @return
+     */
     private boolean updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet,
         final boolean isOrder) {
         boolean changed = false;
@@ -390,15 +400,18 @@ public abstract class RebalanceImpl {
             }
         }
 
+        /**
+         * 尝试像Broker发起锁定该消息对列的请求
+         */
         List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
-        for (MessageQueue mq : mqSet) {
-            if (!this.processQueueTable.containsKey(mq)) {
-                if (isOrder && !this.lock(mq)) {
+        for (MessageQueue mq : mqSet) { //遍历mqSet
+            if (!this.processQueueTable.containsKey(mq)) {//不包含
+                if (isOrder && !this.lock(mq)) { //分配到新的队列时 像Broker发起锁定该队列的请求
                     log.warn("doRebalance, {}, add a new mq failed, {}, because lock failed", consumerGroup, mq);
                     continue;
                 }
 
-                this.removeDirtyOffset(mq);
+                this.removeDirtyOffset(mq); //将mq的消费进度移除
                 ProcessQueue pq = new ProcessQueue();
                 long nextOffset = this.computePullFromWhere(mq);
                 if (nextOffset >= 0) {
