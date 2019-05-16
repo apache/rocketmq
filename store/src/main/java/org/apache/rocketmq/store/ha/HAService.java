@@ -44,9 +44,9 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 public class HAService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    private final AtomicInteger connectionCount = new AtomicInteger(0);
+    private final AtomicInteger connectionCount = new AtomicInteger(0); //子客户端连接数
 
-    private final List<HAConnection> connectionList = new LinkedList<>();
+    private final List<HAConnection> connectionList = new LinkedList<>();//连接信息列表
 
     private final AcceptSocketService acceptSocketService;
 
