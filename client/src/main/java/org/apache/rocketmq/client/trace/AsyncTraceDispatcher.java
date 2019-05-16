@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
@@ -57,7 +58,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private final int batchSize;
     private final int maxMsgSize;
     private final DefaultMQProducer traceProducer;
-    private final ThreadPoolExecutor traceExecuter;
+    private final ThreadPoolExecutor traceExecutor;
     // The last discard number of log
     private AtomicLong discardCount;
     private Thread worker;
@@ -71,8 +72,9 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private String dispatcherId = UUID.randomUUID().toString();
     private String traceTopicName;
     private AtomicBoolean isStarted = new AtomicBoolean(false);
+    private AccessChannel accessChannel = AccessChannel.local;
 
-    public AsyncTraceDispatcher(String traceTopicName, RPCHook rpcHook) throws MQClientException {
+    public AsyncTraceDispatcher(String traceTopicName, RPCHook rpcHook) {
         // queueSize is greater than or equal to the n power of 2 of value
         this.queueSize = 2048;
         this.batchSize = 100;
@@ -85,7 +87,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         } else {
             this.traceTopicName = MixAll.RMQ_SYS_TRACE_TOPIC;
         }
-        this.traceExecuter = new ThreadPoolExecutor(//
+        this.traceExecutor = new ThreadPoolExecutor(//
             10, //
             20, //
             1000 * 60, //
@@ -93,6 +95,14 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             this.appenderQueue, //
             new ThreadFactoryImpl("MQTraceSendThread_"));
         traceProducer = getAndCreateTraceProducer(rpcHook);
+    }
+
+    public AccessChannel getAccessChannel() {
+        return accessChannel;
+    }
+
+    public void setAccessChannel(AccessChannel accessChannel) {
+        this.accessChannel = accessChannel;
     }
 
     public String getTraceTopicName() {
@@ -123,12 +133,13 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         this.hostConsumer = hostConsumer;
     }
 
-    public void start(String nameSrvAddr) throws MQClientException {
+    public void start(String nameSrvAddr, AccessChannel accessChannel) throws MQClientException {
         if (isStarted.compareAndSet(false, true)) {
             traceProducer.setNamesrvAddr(nameSrvAddr);
             traceProducer.setInstanceName(TRACE_INSTANCE_NAME + "_" + nameSrvAddr);
             traceProducer.start();
         }
+        this.accessChannel = accessChannel;
         this.worker = new Thread(new AsyncRunnable(), "MQ-AsyncTraceDispatcher-Thread-" + dispatcherId);
         this.worker.setDaemon(true);
         this.worker.start();
@@ -174,7 +185,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     @Override
     public void shutdown() {
         this.stopped = true;
-        this.traceExecuter.shutdown();
+        this.traceExecutor.shutdown();
         if (isStarted.get()) {
             traceProducer.shutdown();
         }
@@ -231,7 +242,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 }
                 if (contexts.size() > 0) {
                     AsyncAppenderRequest request = new AsyncAppenderRequest(contexts);
-                    traceExecuter.submit(request);
+                    traceExecutor.submit(request);
                 } else if (AsyncTraceDispatcher.this.stopped) {
                     this.stopped = true;
                 }
@@ -330,11 +341,10 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
          */
         private void sendTraceDataByMQ(Set<String> keySet, final String data, String dataTopic, String regionId) {
             String traceTopic = traceTopicName;
-            if (StringUtils.isNotEmpty(regionId) && MixAll.RMQ_SYS_TRACE_TOPIC.equals(traceTopic)) {
+            if (AccessChannel.cloud == accessChannel){
                 traceTopic = TraceConstants.TRACE_TOPIC_PREFIX + regionId;
             }
             final Message message = new Message(traceTopic, data.getBytes());
-
             // Keyset of message trace includes msgId of or original message
             message.setKeys(keySet);
             try {
@@ -342,6 +352,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 SendCallback callback = new SendCallback() {
                     @Override
                     public void onSuccess(SendResult sendResult) {
+
                     }
 
                     @Override
