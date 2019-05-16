@@ -37,6 +37,8 @@ public class ClientConfig {
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
     private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
     protected String namespace;
+    protected AccessChannel accessChannel = AccessChannel.local;
+
     /**
      * Pulling topic information interval from the named server
      */
@@ -261,6 +263,14 @@ public class ClientConfig {
 
     public void setNamespace(String namespace) {
         this.namespace = namespace;
+    }
+
+    public AccessChannel getAccessChannel() {
+        return this.accessChannel;
+    }
+
+    public void setAccessChannel(AccessChannel accessChannel) {
+        this.accessChannel = accessChannel;
     }
 
     @Override
