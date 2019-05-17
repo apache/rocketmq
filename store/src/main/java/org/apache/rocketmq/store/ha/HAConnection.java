@@ -28,22 +28,25 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 
+
+//HAMaster服务端连接对象的封装与broker从服务器的读写实现类
 public class HAConnection {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-    private final HAService haService;
-    private final SocketChannel socketChannel;
-    private final String clientAddr;
-    private WriteSocketService writeSocketService;
-    private ReadSocketService readSocketService;
+    private final HAService haService;   //HAService
+    private final SocketChannel socketChannel; //网络 通道
+    private final String clientAddr;     //客户端连接地址
+    private WriteSocketService writeSocketService; //HAMaster 像 slave 写数据的服务类
+    private ReadSocketService readSocketService;   //HAMaster 像  slave 读数据的服务类
 
-    private volatile long slaveRequestOffset = -1;
-    private volatile long slaveAckOffset = -1;
+    private volatile long slaveRequestOffset = -1;  //从服务器请求拉取数据额偏移量
+    private volatile long slaveAckOffset = -1;      //从服务期反馈已拉取完成的数据偏移量
 
     public HAConnection(final HAService haService, final SocketChannel socketChannel) throws IOException {
+        //初始化HAConnection
         this.haService = haService;
         this.socketChannel = socketChannel;
         this.clientAddr = this.socketChannel.socket().getRemoteSocketAddress().toString();
-        this.socketChannel.configureBlocking(false);
+        this.socketChannel.configureBlocking(false);//设置 非阻塞
         this.socketChannel.socket().setSoLinger(false, -1);
         this.socketChannel.socket().setTcpNoDelay(true);
         this.socketChannel.socket().setReceiveBufferSize(1024 * 64);
@@ -54,8 +57,8 @@ public class HAConnection {
     }
 
     public void start() {
-        this.readSocketService.start();
-        this.writeSocketService.start();
+        this.readSocketService.start(); //读实现类
+        this.writeSocketService.start();//写实现类
     }
 
     public void shutdown() {
@@ -78,12 +81,13 @@ public class HAConnection {
         return socketChannel;
     }
 
+    //读事件实现类
     class ReadSocketService extends ServiceThread {
-        private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024;
-        private final Selector selector;
-        private final SocketChannel socketChannel;
-        private final ByteBuffer byteBufferRead = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE);
-        private int processPostion = 0;
+        private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024; //一次读取的最大
+        private final Selector selector; //选择器
+        private final SocketChannel socketChannel; //客户端Socket 通道
+        private final ByteBuffer byteBufferRead = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE); //缓冲区
+        private int processPostion = 0; //当前的处理的指针
         private volatile long lastReadTimestamp = System.currentTimeMillis();
 
         public ReadSocketService(final SocketChannel socketChannel) throws IOException {
@@ -99,7 +103,7 @@ public class HAConnection {
 
             while (!this.isStopped()) {
                 try {
-                    this.selector.select(1000);
+                    this.selector.select(1000); //进行事件选择
                     boolean ok = this.processReadEvent();
                     if (!ok) {
                         HAConnection.log.error("processReadEvent error");
@@ -148,12 +152,12 @@ public class HAConnection {
         private boolean processReadEvent() {
             int readSizeZeroTimes = 0;
 
-            if (!this.byteBufferRead.hasRemaining()) {
+            if (!this.byteBufferRead.hasRemaining()) { //说明没有剩余空间
                 this.byteBufferRead.flip();
-                this.processPostion = 0;
+                this.processPostion = 0; //从头开始处理
             }
 
-            while (this.byteBufferRead.hasRemaining()) {
+            while (this.byteBufferRead.hasRemaining()) { // position < limit
                 try {
                     int readSize = this.socketChannel.read(this.byteBufferRead);
                     if (readSize > 0) {
@@ -191,7 +195,7 @@ public class HAConnection {
     }
 
     class WriteSocketService extends ServiceThread {
-        private final Selector selector;
+        private final Selector selector; // 网络事件选择器
         private final SocketChannel socketChannel;
 
         private final int headerSize = 8 + 4;
