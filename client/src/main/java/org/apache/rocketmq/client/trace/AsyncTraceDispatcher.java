@@ -72,7 +72,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private String dispatcherId = UUID.randomUUID().toString();
     private String traceTopicName;
     private AtomicBoolean isStarted = new AtomicBoolean(false);
-    private AccessChannel accessChannel = AccessChannel.local;
+    private AccessChannel accessChannel = AccessChannel.LOCAL;
 
     public AsyncTraceDispatcher(String traceTopicName, RPCHook rpcHook) {
         // queueSize is greater than or equal to the n power of 2 of value
@@ -341,7 +341,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
          */
         private void sendTraceDataByMQ(Set<String> keySet, final String data, String dataTopic, String regionId) {
             String traceTopic = traceTopicName;
-            if (AccessChannel.cloud == accessChannel){
+            if (AccessChannel.CLOUD == accessChannel) {
                 traceTopic = TraceConstants.TRACE_TOPIC_PREFIX + regionId;
             }
             final Message message = new Message(traceTopic, data.getBytes());
