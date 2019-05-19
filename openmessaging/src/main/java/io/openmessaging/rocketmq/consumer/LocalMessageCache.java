@@ -23,6 +23,7 @@ import io.openmessaging.extension.QueueMetaData;
 import io.openmessaging.rocketmq.config.ClientConfig;
 import io.openmessaging.rocketmq.config.DefaultQueueMetaData;
 import io.openmessaging.rocketmq.domain.ConsumeRequest;
+import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -103,8 +104,8 @@ class LocalMessageCache implements ServiceLifecycle {
 
     MessageExt poll(final KeyValue properties) {
         int currentPollTimeout = clientConfig.getOperationTimeout();
-        if (properties.containsKey("TIMEOUT")) {
-            currentPollTimeout = properties.getInt("TIMEOUT");
+        if (properties.containsKey(NonStandardKeys.TIMEOUT)) {
+            currentPollTimeout = properties.getInt(NonStandardKeys.TIMEOUT);
         }
         return poll(currentPollTimeout);
     }

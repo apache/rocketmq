@@ -52,7 +52,7 @@ public class PullConsumerImplTest {
         final MessagingAccessPoint messagingAccessPoint = OMS
                 .getMessagingAccessPoint("oms:rocketmq://IP1:9876,IP2:9876/namespace");
         final ResourceManager resourceManager = messagingAccessPoint.resourceManager();
-        resourceManager.createNamespace("pull_TestGroup");
+        resourceManager.createNamespace(NonStandardKeys.PULL_CONSUMER +"_TestGroup");
         consumer = messagingAccessPoint.createConsumer();
         consumer.bindQueue(queueName);
 

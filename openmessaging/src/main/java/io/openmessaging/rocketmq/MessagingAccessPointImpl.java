@@ -25,6 +25,7 @@ import io.openmessaging.producer.Producer;
 import io.openmessaging.producer.TransactionStateCheckListener;
 import io.openmessaging.rocketmq.consumer.PullConsumerImpl;
 import io.openmessaging.rocketmq.consumer.PushConsumerImpl;
+import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import io.openmessaging.rocketmq.producer.ProducerImpl;
 import java.util.HashSet;
 import java.util.Set;
@@ -57,12 +58,12 @@ public class MessagingAccessPointImpl implements MessagingAccessPoint {
     }
 
     @Override public Consumer createConsumer() {
-        String consumerId = accessPointProperties.getString("CONSUMER_ID");
+        String consumerId = accessPointProperties.getString(NonStandardKeys.CONSUMER_ID);
         String[] nsStrArr = consumerId.split("_");
         if (nsStrArr.length < 2) {
             return new PushConsumerImpl(accessPointProperties);
         }
-        if ("pull".equals(nsStrArr[0])) {
+        if (NonStandardKeys.PULL_CONSUMER.equals(nsStrArr[0])) {
             return new PullConsumerImpl(accessPointProperties);
         }
         return new PushConsumerImpl(accessPointProperties);
@@ -82,24 +83,24 @@ public class MessagingAccessPointImpl implements MessagingAccessPoint {
 
         @Override
         public void createNamespace(String nsName) {
-            accessPointProperties.put("CONSUMER_ID", nsName);
+            accessPointProperties.put(NonStandardKeys.CONSUMER_ID, nsName);
         }
 
         @Override
         public void deleteNamespace(String nsName) {
-            accessPointProperties.put("CONSUMER_ID", null);
+            accessPointProperties.put(NonStandardKeys.CONSUMER_ID, null);
         }
 
         @Override
         public void switchNamespace(String targetNamespace) {
-            accessPointProperties.put("CONSUMER_ID", targetNamespace);
+            accessPointProperties.put(NonStandardKeys.CONSUMER_ID, targetNamespace);
         }
 
         @Override
         public Set<String> listNamespaces() {
             return new HashSet<String>() {
                 {
-                    add(accessPointProperties.getString("CONSUMER_ID"));
+                    add(accessPointProperties.getString(NonStandardKeys.CONSUMER_ID));
                 }
             };
         }

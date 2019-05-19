@@ -49,7 +49,7 @@ public class PushConsumerImplTest {
         final MessagingAccessPoint messagingAccessPoint = OMS
                 .getMessagingAccessPoint("oms:rocketmq://IP1:9876,IP2:9876/namespace");
         final ResourceManager resourceManager = messagingAccessPoint.resourceManager();
-        resourceManager.createNamespace("push_TestGroup");
+        resourceManager.createNamespace(NonStandardKeys.PUSH_CONSUMER + "_TestGroup");
         consumer = messagingAccessPoint.createConsumer();
 
         Field field = PushConsumerImpl.class.getDeclaredField("rocketmqPushConsumer");

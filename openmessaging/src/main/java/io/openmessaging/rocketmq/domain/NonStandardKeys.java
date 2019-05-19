@@ -29,4 +29,8 @@ public interface NonStandardKeys {
     String PULL_MESSAGE_CACHE_CAPACITY = "rmq.pull.message.cache.capacity";
     String PRODUCER_ID = "PRODUCER_ID";
     String CONSUMER_ID = "CONSUMER_ID";
+    String TIMEOUT = "TIMEOUT";
+    String PULL_CONSUMER = "PULL";
+    String PUSH_CONSUMER = "PUSH";
+
 }
