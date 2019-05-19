@@ -16,7 +16,7 @@
  */
 package io.openmessaging.rocketmq.domain;
 
-public interface NonStandardKeys {
+public interface NonStandardKeys  {
     String CONSUMER_GROUP = "rmq.consumer.group";
     String PRODUCER_GROUP = "rmq.producer.group";
     String MAX_REDELIVERY_TIMES = "rmq.max.redelivery.times";
