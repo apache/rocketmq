@@ -163,7 +163,7 @@ public class HAConnection {
                     if (readSize > 0) {
                         readSizeZeroTimes = 0;
                         this.lastReadTimestamp = HAConnection.this.haService.getDefaultMessageStore().getSystemClock().now();
-                        if ((this.byteBufferRead.position() - this.processPostion) >= 8) {
+                        if ((this.byteBufferRead.position() - this.processPostion) >= 8) { //读取的偏移量大于8 说明是一条拉取消息的请求
                             int pos = this.byteBufferRead.position() - (this.byteBufferRead.position() % 8);
                             long readOffset = this.byteBufferRead.getLong(pos - 8);
                             this.processPostion = pos;
@@ -196,19 +196,19 @@ public class HAConnection {
 
     class WriteSocketService extends ServiceThread {
         private final Selector selector; // 网络事件选择器
-        private final SocketChannel socketChannel;
+        private final SocketChannel socketChannel;//网络socket通道
 
-        private final int headerSize = 8 + 4;
-        private final ByteBuffer byteBufferHeader = ByteBuffer.allocate(headerSize);
-        private long nextTransferFromWhere = -1;
-        private SelectMappedBufferResult selectMappedBufferResult;
-        private boolean lastWriteOver = true;
+        private final int headerSize = 8 + 4; //消息物理偏移量 + 消息长度
+        private final ByteBuffer byteBufferHeader = ByteBuffer.allocate(headerSize);//头部
+        private long nextTransferFromWhere = -1; //下一次传输的物理偏移量
+        private SelectMappedBufferResult selectMappedBufferResult; //根据偏移量查找的消息结果
+        private boolean lastWriteOver = true; //上一次数据是否传输完毕
         private long lastWriteTimestamp = System.currentTimeMillis();
 
         public WriteSocketService(final SocketChannel socketChannel) throws IOException {
             this.selector = RemotingUtil.openSelector();
             this.socketChannel = socketChannel;
-            this.socketChannel.register(this.selector, SelectionKey.OP_WRITE);
+            this.socketChannel.register(this.selector, SelectionKey.OP_WRITE); //注册事件
             this.thread.setDaemon(true);
         }
 
@@ -220,14 +220,14 @@ public class HAConnection {
                 try {
                     this.selector.select(1000);
 
-                    if (-1 == HAConnection.this.slaveRequestOffset) {
+                    if (-1 == HAConnection.this.slaveRequestOffset) { //master 还未收到服务器拉取消息的信息 放弃本次事件
                         Thread.sleep(10);
                         continue;
                     }
 
-                    if (-1 == this.nextTransferFromWhere) {
-                        if (0 == HAConnection.this.slaveRequestOffset) {
-                            long masterOffset = HAConnection.this.haService.getDefaultMessageStore().getCommitLog().getMaxOffset();
+                    if (-1 == this.nextTransferFromWhere) { //初次进行传输
+                        if (0 == HAConnection.this.slaveRequestOffset) {  //如果为0的话
+                            long masterOffset = HAConnection.this.haService.getDefaultMessageStore().getCommitLog().getMaxOffset(); //获取此时commitLog的最大偏移量
                             masterOffset =
                                 masterOffset
                                     - (masterOffset % HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig()
