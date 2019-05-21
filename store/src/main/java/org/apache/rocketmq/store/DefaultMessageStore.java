@@ -582,10 +582,11 @@ public class DefaultMessageStore implements MessageStore {
 
                         nextBeginOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
 
-                        long diff = maxOffsetPy - maxPhyOffsetPulling;
-                        long memory = (long) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE
-                            * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));
-                        getResult.setSuggestPullingFromSlave(diff > memory);
+                        long diff = maxOffsetPy - maxPhyOffsetPulling; //代表当前存储的文件最大的偏移量   maxPhyOffsetPulling 此次拉取最大的物理的偏移量
+                        //diff 对于拉起线程来说 当前违背拉渠道的消息消费端的长度
+                        long memory = (long) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE //RocketMq所在服务器总大小
+                            * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));//getAccessMessageInMemoryMaxRatio 代表RocketMq存储所用内存的最大比例
+                        getResult.setSuggestPullingFromSlave(diff > memory); //主服务器繁忙才会从从服务器开始
                     } finally {
 
                         bufferConsumeQueue.release();

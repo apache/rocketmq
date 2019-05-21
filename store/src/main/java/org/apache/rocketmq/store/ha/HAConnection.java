@@ -226,7 +226,7 @@ public class HAConnection {
                     }
 
                     if (-1 == this.nextTransferFromWhere) { //初次进行传输
-                        if (0 == HAConnection.this.slaveRequestOffset) {  //如果为0的话
+                        if (0 == HAConnection.this.slaveRequestOffset) {  //如果为0的话 从CommitLog的的最大偏移量
                             long masterOffset = HAConnection.this.haService.getDefaultMessageStore().getCommitLog().getMaxOffset(); //获取此时commitLog的最大偏移量
                             masterOffset =
                                 masterOffset
@@ -237,52 +237,53 @@ public class HAConnection {
                                 masterOffset = 0;
                             }
 
-                            this.nextTransferFromWhere = masterOffset;
+                            this.nextTransferFromWhere = masterOffset; //下次进行传输
                         } else {
-                            this.nextTransferFromWhere = HAConnection.this.slaveRequestOffset;
+                            this.nextTransferFromWhere = HAConnection.this.slaveRequestOffset;//从服务器请求的offset
                         }
 
                         log.info("master transfer data from " + this.nextTransferFromWhere + " to slave[" + HAConnection.this.clientAddr
                             + "], and slave request " + HAConnection.this.slaveRequestOffset);
                     }
 
-                    if (this.lastWriteOver) {
+                    if (this.lastWriteOver) { //判断上次请求是否全部写入客户端
 
                         long interval =
                             HAConnection.this.haService.getDefaultMessageStore().getSystemClock().now() - this.lastWriteTimestamp;
+                        //当前系统时间 - 上次写入完成后的时间
 
                         if (interval > HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig()
-                            .getHaSendHeartbeatInterval()) {
+                            .getHaSendHeartbeatInterval()) {  //如果时间差 > 心跳时间
 
                             // Build Header
                             this.byteBufferHeader.position(0);
                             this.byteBufferHeader.limit(headerSize);
                             this.byteBufferHeader.putLong(this.nextTransferFromWhere);
                             this.byteBufferHeader.putInt(0);
-                            this.byteBufferHeader.flip();
+                            this.byteBufferHeader.flip(); //
 
-                            this.lastWriteOver = this.transferData();
-                            if (!this.lastWriteOver)
-                                continue;
+                            this.lastWriteOver = this.transferData(); //这里是发送
+                            if (!this.lastWriteOver) //h
+                                continue;//结束本次循环
                         }
                     } else {
-                        this.lastWriteOver = this.transferData();
-                        if (!this.lastWriteOver)
+                        this.lastWriteOver = this.transferData(); //传输还未结束  ？？？？？完全没必要吧
+                        if (!this.lastWriteOver) //继续传输上一次数据
                             continue;
                     }
 
-                    SelectMappedBufferResult selectResult =
+                    SelectMappedBufferResult selectResult =   //获取offset 对应的MapperByteBuffer 内存映射文件
                         HAConnection.this.haService.getDefaultMessageStore().getCommitLogData(this.nextTransferFromWhere);
-                    if (selectResult != null) {
-                        int size = selectResult.getSize();
+                    if (selectResult != null) { //查到该内存文件
+                        int size = selectResult.getSize(); //byteBuffer 的size 消息的size
                         if (size > HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig().getHaTransferBatchSize()) {
-                            size = HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig().getHaTransferBatchSize();
+                            size = HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig().getHaTransferBatchSize(); //大于规定 说明
                         }
 
-                        long thisOffset = this.nextTransferFromWhere;
-                        this.nextTransferFromWhere += size;
+                        long thisOffset = this.nextTransferFromWhere; //这=这次处理的偏移量
+                        this.nextTransferFromWhere += size; //nextTransferFromWhere + 本次拉取的size
 
-                        selectResult.getByteBuffer().limit(size);
+                        selectResult.getByteBuffer().limit(size);//设置limt
                         this.selectMappedBufferResult = selectResult;
 
                         // Build Header
@@ -292,7 +293,7 @@ public class HAConnection {
                         this.byteBufferHeader.putInt(size);
                         this.byteBufferHeader.flip();
 
-                        this.lastWriteOver = this.transferData();
+                        this.lastWriteOver = this.transferData(); // 传输
                     } else {
 
                         HAConnection.this.haService.getWaitNotifyObject().allWaitForRunning(100);
@@ -331,11 +332,11 @@ public class HAConnection {
             HAConnection.log.info(this.getServiceName() + " service end");
         }
 
-        private boolean transferData() throws Exception {
+        private boolean transferData() throws Exception { //传输数据
             int writeSizeZeroTimes = 0;
             // Write Header
-            while (this.byteBufferHeader.hasRemaining()) {
-                int writeSize = this.socketChannel.write(this.byteBufferHeader);
+            while (this.byteBufferHeader.hasRemaining()) {  //发送头信息包括 offset 拉取的消息的长度
+                int writeSize = this.socketChannel.write(this.byteBufferHeader); //发送消息
                 if (writeSize > 0) {
                     writeSizeZeroTimes = 0;
                     this.lastWriteTimestamp = HAConnection.this.haService.getDefaultMessageStore().getSystemClock().now();
@@ -371,7 +372,7 @@ public class HAConnection {
                 }
             }
 
-            boolean result = !this.byteBufferHeader.hasRemaining() && !this.selectMappedBufferResult.getByteBuffer().hasRemaining();
+            boolean result = !this.byteBufferHeader.hasRemaining() && !this.selectMappedBufferResult.getByteBuffer().hasRemaining(); //false 说明消息  > 配置信息 下次还要继续拉取
 
             if (!this.selectMappedBufferResult.getByteBuffer().hasRemaining()) {
                 this.selectMappedBufferResult.release();

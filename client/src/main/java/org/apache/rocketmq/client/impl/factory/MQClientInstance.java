@@ -1036,6 +1036,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
         return null;
     }
 
+    //根据broker name  brokerId 获取broker 的ip地址
     public FindBrokerResult findBrokerAddressInSubscribe(
         final String brokerName, //broker name
         final long brokerId,     //broker id

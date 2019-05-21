@@ -268,6 +268,7 @@ public class PullAPIWrapper {
         );
     }
 
+    //跟胡消息队列获取 brokerId
     public long recalculatePullFromWhichNode(final MessageQueue mq) {
         if (this.isConnectBrokerByUser()) {
             return this.defaultBrokerId;
@@ -278,7 +279,7 @@ public class PullAPIWrapper {
             return suggest.get();
         }
 
-        return MixAll.MASTER_ID;
+        return MixAll.MASTER_ID; //拉取不到 则直接返回master Id
     }
 
     private String computPullFromWhichFilterServer(final String topic, final String brokerAddr)

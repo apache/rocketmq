@@ -21,7 +21,7 @@ import java.io.Serializable;
 public class  MessageQueue implements Comparable<MessageQueue>, Serializable {
     private static final long serialVersionUID = 6191200464116433425L;
     private String topic;        //这个队列属于哪个topiv
-    private String brokerName;   /// 属于哪个broker
+    private String brokerName;   /// 属于哪个broker  brokername 可能相同 但是 brokerId 不用  0是master  slave > 0
     private int queueId;         // id 编号
 
     public MessageQueue() {
