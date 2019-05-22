@@ -73,10 +73,14 @@ Broker端对权限的校验逻辑主要分为以下几步：
 （2）对于某个资源，如果有显性配置权限，则采用配置的权限；如果没有显性配置权限，则采用默认的权限；
 
 ## 5. 热加载修改后权限控制定义
-RocketrMQ的权限控制存储的默认实现是基于yml配置文件。用户可以动态修改权限控制定义的属性，而不需重新启动Broker服务节点。
+RocketMQ的权限控制存储的默认实现是基于yml配置文件。用户可以动态修改权限控制定义的属性，而不需重新启动Broker服务节点。
 
+## 6. 权限控制的使用限制
+(1)如果ACL与高可用部署(Master/Slave架构)同时启用，那么需要在Broker Master节点的distribution/conf/plain_acl.yml配置文件中
+设置全局白名单信息，即为将Slave节点的ip地址设置至Master节点plain_acl.yml配置文件的全局白名单中。
 
+(2)如果ACL与高可用部署(多副本Dledger架构)同时启用，由于出现节点宕机时，Dledger Group组内会自动选主，那么就需要将Dledger Group组
+内所有Broker节点的plain_acl.yml配置文件的白名单设置所有Broker节点的ip地址。
 
-
-
+**特别注意**在[4.5.0]版本中即使使用上面所述的白名单也无法解决开启ACL的问题，解决该问题的[PR链接](https://github.com/apache/rocketmq/pull/1149)
 
