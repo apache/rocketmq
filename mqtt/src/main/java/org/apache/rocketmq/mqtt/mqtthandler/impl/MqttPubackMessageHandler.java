@@ -18,13 +18,23 @@
 package org.apache.rocketmq.mqtt.mqtthandler.impl;
 
 import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.handler.codec.mqtt.MqttMessageIdVariableHeader;
+import io.netty.handler.codec.mqtt.MqttMessageType;
+import io.netty.handler.codec.mqtt.MqttPubAckMessage;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.mqtt.client.IOTClientManagerImpl;
+import org.apache.rocketmq.mqtt.client.InFlightMessage;
+import org.apache.rocketmq.mqtt.client.MQTTSession;
+import org.apache.rocketmq.mqtt.exception.WrongMessageTypeException;
 import org.apache.rocketmq.mqtt.mqtthandler.MessageHandler;
 import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
+import org.apache.rocketmq.mqtt.task.MqttPushTask;
+import org.apache.rocketmq.mqtt.util.orderedexecutor.SafeRunnable;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
 
 public class MqttPubackMessageHandler implements MessageHandler {
 
@@ -43,6 +53,24 @@ public class MqttPubackMessageHandler implements MessageHandler {
      * @return
      */
     @Override public RemotingCommand handleMessage(MqttMessage message, RemotingChannel remotingChannel) {
+        if (!(message instanceof MqttPubAckMessage)) {
+            log.error("Wrong message type! Expected type: PUBACK but {} was received. MqttMessage={}", message.fixedHeader().messageType(), message.toString());
+            throw new WrongMessageTypeException("Wrong message type exception.");
+        }
+        MqttPubAckMessage mqttPubAckMessage = (MqttPubAckMessage) message;
+        MqttMessageIdVariableHeader variableHeader = mqttPubAckMessage.variableHeader();
+        IOTClientManagerImpl iotClientManager = (IOTClientManagerImpl) defaultMqttMessageProcessor.getIotClientManager();
+        MQTTSession client = (MQTTSession) iotClientManager.getClient(IOTClientManagerImpl.IOT_GROUP, remotingChannel);
+
+        InFlightMessage removedMessage = client.pubAckReceived(variableHeader.messageId());
+        MqttHeader mqttHeader = new MqttHeader();
+        mqttHeader.setTopicName(removedMessage.getTopic());
+        mqttHeader.setMessageType(MqttMessageType.PUBLISH.value());
+        mqttHeader.setDup(false);
+        mqttHeader.setRetain(false); //TODO set to false temporarily, need to be implemented.
+        MqttPushTask task = new MqttPushTask(defaultMqttMessageProcessor, mqttHeader, client, removedMessage.getBrokerData());
+        //add task to orderedExecutor
+        this.defaultMqttMessageProcessor.getOrderedExecutor().executeOrdered(client.getClientId(), SafeRunnable.safeRun(task));
         return null;
     }
 }

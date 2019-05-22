@@ -33,9 +33,8 @@ import org.apache.rocketmq.common.service.EnodeService;
 import org.apache.rocketmq.common.service.NnodeService;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.mqtt.mqtthandler.impl.MqttMessageForwarder;
+import org.apache.rocketmq.mqtt.mqtthandler.impl.MqttMessageForwardHandler;
 import org.apache.rocketmq.mqtt.service.WillMessageService;
-import org.apache.rocketmq.mqtt.service.impl.MqttPushServiceImpl;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.RequestProcessor;
@@ -52,24 +51,22 @@ public class InnerMqttMessageProcessor implements RequestProcessor {
 
     private final DefaultMqttMessageProcessor defaultMqttMessageProcessor;
     private WillMessageService willMessageService;
-    private MqttPushServiceImpl mqttPushService;
     private ClientManager iotClientManager;
     private RemotingServer innerMqttRemotingServer;
     private MqttConfig mqttConfig;
     private SnodeConfig snodeConfig;
     private EnodeService enodeService;
     private NnodeService nnodeService;
-    private MqttMessageForwarder mqttMessageForwarder;
+    private MqttMessageForwardHandler mqttMessageForwardHandler;
 
     public InnerMqttMessageProcessor(DefaultMqttMessageProcessor defaultMqttMessageProcessor, RemotingServer innerMqttRemotingServer) {
         this.defaultMqttMessageProcessor = defaultMqttMessageProcessor;
         this.willMessageService = this.defaultMqttMessageProcessor.getWillMessageService();
-        this.mqttPushService = this.defaultMqttMessageProcessor.getMqttPushService();
         this.iotClientManager = this.defaultMqttMessageProcessor.getIotClientManager();
         this.innerMqttRemotingServer = innerMqttRemotingServer;
         this.enodeService = this.defaultMqttMessageProcessor.getEnodeService();
         this.nnodeService = this.defaultMqttMessageProcessor.getNnodeService();
-        this.mqttMessageForwarder = new MqttMessageForwarder(this);
+        this.mqttMessageForwardHandler = new MqttMessageForwardHandler(this);
     }
 
     @Override
@@ -82,7 +79,7 @@ public class InnerMqttMessageProcessor implements RequestProcessor {
                 mqttHeader.getRemainingLength());
             MqttPublishVariableHeader mqttPublishVariableHeader = new MqttPublishVariableHeader(mqttHeader.getTopicName(), mqttHeader.getPacketId());
             MqttMessage mqttMessage = new MqttPublishMessage(fixedHeader, mqttPublishVariableHeader, Unpooled.copiedBuffer(message.getBody()));
-            return mqttMessageForwarder.handleMessage(mqttMessage, remotingChannel);
+            return mqttMessageForwardHandler.handleMessage(mqttMessage, remotingChannel);
         }else{
             return defaultMqttMessageProcessor.processRequest(remotingChannel, message);
         }
@@ -96,10 +93,6 @@ public class InnerMqttMessageProcessor implements RequestProcessor {
 
     public WillMessageService getWillMessageService() {
         return willMessageService;
-    }
-
-    public MqttPushServiceImpl getMqttPushService() {
-        return mqttPushService;
     }
 
     public ClientManager getIotClientManager() {

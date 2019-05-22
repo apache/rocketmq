@@ -39,6 +39,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.exception.MQClientException;
 import org.apache.rocketmq.common.service.EnodeService;
 import org.apache.rocketmq.common.service.NnodeService;
+import org.apache.rocketmq.common.service.ScheduledService;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.mqtt.client.IOTClientManagerImpl;
@@ -55,8 +56,9 @@ import org.apache.rocketmq.mqtt.mqtthandler.impl.MqttPubrelMessageHandler;
 import org.apache.rocketmq.mqtt.mqtthandler.impl.MqttSubscribeMessageHandler;
 import org.apache.rocketmq.mqtt.mqtthandler.impl.MqttUnsubscribeMessagHandler;
 import org.apache.rocketmq.mqtt.service.WillMessageService;
-import org.apache.rocketmq.mqtt.service.impl.MqttPushServiceImpl;
+import org.apache.rocketmq.mqtt.service.impl.MqttScheduledServiceImpl;
 import org.apache.rocketmq.mqtt.service.impl.WillMessageServiceImpl;
+import org.apache.rocketmq.mqtt.util.orderedexecutor.OrderedExecutor;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.RequestProcessor;
@@ -74,7 +76,6 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
     private static final int MIN_AVAILABLE_VERSION = 3;
     private static final int MAX_AVAILABLE_VERSION = 4;
     private WillMessageService willMessageService;
-    private MqttPushServiceImpl mqttPushService;
     private ClientManager iotClientManager;
     private RemotingServer mqttRemotingServer;
     private MqttClientHousekeepingService mqttClientHousekeepingService;
@@ -82,6 +83,9 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
     private SnodeConfig snodeConfig;
     private EnodeService enodeService;
     private NnodeService nnodeService;
+    private ScheduledService mqttScheduledService;
+
+    private final OrderedExecutor orderedExecutor;
 
     public DefaultMqttMessageProcessor(MqttConfig mqttConfig, SnodeConfig snodeConfig,
         RemotingServer mqttRemotingServer,
@@ -89,7 +93,6 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
         this.mqttConfig = mqttConfig;
         this.snodeConfig = snodeConfig;
         this.willMessageService = new WillMessageServiceImpl();
-        this.mqttPushService = new MqttPushServiceImpl(this, mqttConfig);
         this.iotClientManager = new IOTClientManagerImpl();
         this.mqttRemotingServer = mqttRemotingServer;
         this.enodeService = enodeService;
@@ -97,6 +100,10 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
         this.mqttClientHousekeepingService = new MqttClientHousekeepingService(iotClientManager);
         this.mqttClientHousekeepingService.start(mqttConfig.getHouseKeepingInterval());
 
+        this.orderedExecutor = OrderedExecutor.newBuilder().name("PushMessageToConsumerThreads").numThreads(mqttConfig.getPushMqttMessageMaxPoolSize()).build();
+        this.mqttScheduledService = new MqttScheduledServiceImpl(this);
+        mqttScheduledService.startScheduleTask();
+        
         registerMessageHandler(MqttMessageType.CONNECT,
             new MqttConnectMessageHandler(this));
         registerMessageHandler(MqttMessageType.DISCONNECT,
@@ -164,10 +171,6 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
         return willMessageService;
     }
 
-    public MqttPushServiceImpl getMqttPushService() {
-        return mqttPushService;
-    }
-
     public ClientManager getIotClientManager() {
         return iotClientManager;
     }
@@ -206,5 +209,9 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
 
     public void setNnodeService(NnodeService nnodeService) {
         this.nnodeService = nnodeService;
+    }
+
+    public OrderedExecutor getOrderedExecutor() {
+        return orderedExecutor;
     }
 }

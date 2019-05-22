@@ -52,6 +52,8 @@ public class MqttConfig {
 
     private long houseKeepingInterval = 10 * 1000;
 
+    private long persistOffsetInterval = 2 * 1000;
+
     public int getListenPort() {
         return listenPort;
     }
@@ -138,5 +140,13 @@ public class MqttConfig {
 
     public void setHouseKeepingInterval(long houseKeepingInterval) {
         this.houseKeepingInterval = houseKeepingInterval;
+    }
+
+    public long getPersistOffsetInterval() {
+        return persistOffsetInterval;
+    }
+
+    public void setPersistOffsetInterval(long persistOffsetInterval) {
+        this.persistOffsetInterval = persistOffsetInterval;
     }
 }

@@ -14,12 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.mqtt.service;
 
-import io.netty.buffer.ByteBuf;
-import org.apache.rocketmq.common.client.Client;
-import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
 
-public interface MqttPushService {
-    void pushMessageQos(MqttHeader mqttHeader, final ByteBuf message, Client client);
+package org.apache.rocketmq.mqtt.transfer;
+
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.serialize.RemotingSerializable;
+
+public class TransferDataQos1 extends RemotingSerializable {
+
+    private BrokerData brokerData;
+    private String topic;
+
+    public BrokerData getBrokerData() {
+        return brokerData;
+    }
+
+    public void setBrokerData(BrokerData brokerData) {
+        this.brokerData = brokerData;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
 }

@@ -21,11 +21,13 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.common.client.ClientManagerImpl;
 import org.apache.rocketmq.common.client.Subscription;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
@@ -41,6 +43,8 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
         1024);
     private final ConcurrentHashMap<String/*clientId*/, Subscription> clientId2Subscription = new ConcurrentHashMap<>(1024);
     private final Map<String/*snode ip*/, MqttClient> snode2MqttClient = new HashMap<>();
+    private final ConcurrentHashMap<String /*broker*/, ConcurrentHashMap<String /*topic@clientId*/, TreeMap<Long/*queueOffset*/, MessageExt>>> processTable = new ConcurrentHashMap<>();
+
 
     public IOTClientManagerImpl() {
     }
@@ -79,6 +83,9 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
     }
 
     public void cleanSessionState(String clientId) {
+        if (clientId2Subscription.remove(clientId) == null) {
+            return;
+        }
         Map<String, Set<Client>> toBeRemoveFromPersistentStore = new HashMap<>();
         for (Iterator<Map.Entry<String, Set<Client>>> iterator = topic2Clients.entrySet().iterator(); iterator.hasNext(); ) {
             Map.Entry<String, Set<Client>> next = iterator.next();
@@ -94,7 +101,7 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
             }
         }
         //TODO update persistent store base on toBeRemoveFromPersistentStore
-        clientId2Subscription.remove(clientId);
+
         //TODO update persistent store
         //TODO remove offline messages
     }
@@ -117,5 +124,9 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
 
     public Map<String, MqttClient> getSnode2MqttClient() {
         return snode2MqttClient;
+    }
+
+    public ConcurrentHashMap<String, ConcurrentHashMap<String, TreeMap<Long, MessageExt>>> getProcessTable() {
+        return processTable;
     }
 }

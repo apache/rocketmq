@@ -16,16 +16,47 @@
  */
 package org.apache.rocketmq.mqtt.client;
 
-import io.netty.buffer.ByteBuf;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
 
 public class InFlightMessage {
-    final String topic;
-    final Integer pushQos;
-    final ByteBuf payload;
+    private final String topic;
+    private final Integer pushQos;
+    private final BrokerData brokerData;
+    private final byte[] body;
+    private final String messageId;
+    private final long queueOffset;
 
-    InFlightMessage(String topic, Integer pushQos, ByteBuf payload) {
+    InFlightMessage(String topic, Integer pushQos, byte[] body, BrokerData brokerData, String messageId,
+        long queueOffset) {
         this.topic = topic;
         this.pushQos = pushQos;
-        this.payload = payload;
+        this.body = body;
+        this.brokerData = brokerData;
+        this.messageId = messageId;
+        this.queueOffset = queueOffset;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public BrokerData getBrokerData() {
+        return brokerData;
+    }
+
+    public String getMessageId() {
+        return messageId;
+    }
+
+    public long getQueueOffset() {
+        return queueOffset;
+    }
+
+    public Integer getPushQos() {
+        return pushQos;
+    }
+
+    public byte[] getBody() {
+        return body;
     }
 }
