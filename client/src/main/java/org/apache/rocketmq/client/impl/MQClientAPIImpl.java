@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
@@ -56,6 +58,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.namesrv.TopAddressing;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
@@ -522,7 +525,13 @@ public class MQClientAPIImpl {
                 SendMessageResponseHeader responseHeader =
                     (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
 
-                MessageQueue messageQueue = new MessageQueue(msg.getTopic(), brokerName, responseHeader.getQueueId());
+                //If namespace not null , reset Topic without namespace.
+                String topic = msg.getTopic();
+                if (StringUtils.isNotEmpty(this.clientConfig.getNamespace())) {
+                    topic = NamespaceUtil.withoutNamespace(topic, this.clientConfig.getNamespace());
+                }
+
+                MessageQueue messageQueue = new MessageQueue(topic, brokerName, responseHeader.getQueueId());
 
                 String uniqMsgId = MessageClientIDSetter.getUniqID(msg);
                 if (msg instanceof MessageBatch) {
@@ -665,6 +674,10 @@ public class MQClientAPIImpl {
             case ResponseCode.SUCCESS: {
                 ByteBuffer byteBuffer = ByteBuffer.wrap(response.getBody());
                 MessageExt messageExt = MessageDecoder.clientDecode(byteBuffer, true);
+                //If namespace not null , reset Topic without namespace.
+                if (StringUtils.isNotEmpty(this.clientConfig.getNamespace())) {
+                    messageExt.setTopic(NamespaceUtil.withoutNamespace(messageExt.getTopic(), this.clientConfig.getNamespace()));
+                }
                 return messageExt;
             }
             default:
