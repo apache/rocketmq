@@ -14,38 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.trace;
-
-import org.apache.rocketmq.client.AccessChannel;
-import org.apache.rocketmq.client.exception.MQClientException;
-import java.io.IOException;
+package org.apache.rocketmq.client;
 
 /**
- * Interface of asynchronous transfer data
+ * Used for set access channel, if need migrate the rocketmq service to cloud, it is We recommend set the value with
+ * "CLOUD". otherwise set with "LOCAL", especially used the message trace feature.
  */
-public interface TraceDispatcher {
+public enum AccessChannel {
+    /**
+     * Means connect to private IDC cluster.
+     */
+    LOCAL,
 
     /**
-     * Initialize asynchronous transfer data module
+     * Means connect to Cloud service.
      */
-    void start(String nameSrvAddr, AccessChannel accessChannel) throws MQClientException;
-
-    /**
-     * Append the transfering data
-     * @param ctx data infomation
-     * @return
-     */
-    boolean append(Object ctx);
-
-    /**
-     * Write flush action
-     *
-     * @throws IOException
-     */
-    void flush() throws IOException;
-
-    /**
-     * Close the trace Hook
-     */
-    void shutdown();
+    CLOUD,
 }
