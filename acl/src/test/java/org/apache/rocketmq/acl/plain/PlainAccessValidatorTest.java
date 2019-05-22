@@ -116,7 +116,7 @@ public class PlainAccessValidatorTest {
         plainAccessValidator.validate(accessResource);
     }
 
-    @Test(expected = AclException.class)
+    @Test
     public void validateForAdminCommandWithOutAclRPCHook() {
         RemotingCommand consumerOffsetAdminRequest = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_CONSUMER_OFFSET, null);
         plainAccessValidator.parse(consumerOffsetAdminRequest, "192.168.0.1:9876");
@@ -282,6 +282,19 @@ public class PlainAccessValidatorTest {
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
         buf.position(0);
         PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.1.1");
+        plainAccessValidator.validate(accessResource);
+    }
+
+    @Test
+    public void validateGetAllTopicConfigTest() {
+        String whiteRemoteAddress = "192.168.0.1";
+        RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, null);
+
+        ByteBuffer buf = remotingCommand.encodeHeader();
+        buf.getInt();
+        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
+        buf.position(0);
+        PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), whiteRemoteAddress);
         plainAccessValidator.validate(accessResource);
     }
 }
