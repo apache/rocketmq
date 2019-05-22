@@ -21,6 +21,7 @@ import com.alibaba.fastjson.JSONObject;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -28,6 +29,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
+import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -55,6 +57,8 @@ public class PlainPermissionLoader {
 
     private boolean isWatchStart;
 
+    private final DataVersion dataVersion = new DataVersion();
+
     public PlainPermissionLoader() {
         load();
         watch();
@@ -67,7 +71,6 @@ public class PlainPermissionLoader {
 
         JSONObject plainAclConfData = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
             JSONObject.class);
-
         if (plainAclConfData == null || plainAclConfData.isEmpty()) {
             throw new AclException(String.format("%s file  is not data", fileHome + File.separator + fileName));
         }
@@ -89,8 +92,72 @@ public class PlainPermissionLoader {
             }
         }
 
+        //for loading dataversion part just
+        JSONArray dataVersion4Yaml = plainAclConfData.getJSONArray("dataVersion");
+        if (dataVersion4Yaml != null && !dataVersion4Yaml.isEmpty()) {
+            List<DataVersion> dataVersion = dataVersion4Yaml.toJavaList(DataVersion.class);
+            DataVersion firstElement = dataVersion.get(0);
+            this.dataVersion.assignNewOne(firstElement);
+        }
+
         this.globalWhiteRemoteAddressStrategy = globalWhiteRemoteAddressStrategy;
         this.plainAccessResourceMap = plainAccessResourceMap;
+    }
+
+    public void createOrUpdateVersionInFile() {
+
+        //for updating dataversion part
+        JSONObject plainAclConfData = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
+            JSONObject.class);
+
+        JSONArray dataVersion4Yaml = plainAclConfData.getJSONArray("dataVersion");
+        if (dataVersion4Yaml != null && !dataVersion4Yaml.isEmpty()) {
+            log.info("the acl yaml config's content is changed,then change the dataVersion");
+            List<DataVersion> dataVersion = dataVersion4Yaml.toJavaList(DataVersion.class);
+            DataVersion firstElement = dataVersion.get(0);
+            firstElement.nextVersion();
+            this.dataVersion.assignNewOne(firstElement);
+            synchronized (this.dataVersion) {
+                if (updateConfigFileVersion(false)) {
+                    log.info("update datavesion success!");
+                } else {
+                    log.error("update dataversion failed!");
+                }
+            }
+
+        } else {
+            log.info("the acl yaml config is starting to load,and dataVersion will be initialized");
+            if (updateConfigFileVersion(true)) {
+                log.info("initial datavesion success!");
+            } else {
+                log.error("initial dataversion failed!");
+            }
+        }
+    }
+
+    private boolean updateConfigFileVersion(boolean isNewOne) {
+
+        Map<String, Object> originalMap = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
+            Map.class);
+
+        List<Map<String, Object>> versionElement = new ArrayList<Map<String, Object>>();
+        Map<String, Object> accountsMap = new LinkedHashMap<String, Object>() {
+            {
+                put("counter", dataVersion.getCounter().longValue());
+                put("timestamp", dataVersion.getTimestamp());
+            }
+        };
+        versionElement.add(accountsMap);
+        originalMap.put("dataVersion", versionElement);
+        if (isNewOne) {
+            return AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, originalMap);
+        } else {
+            Map<String, Object> updatedDataVersionMap = AclUtils.getYamlDataObject(fileHome + File.separator + fileName, Map.class);
+            List<Map<String, Object>> dataVersionList = (List<Map<String, Object>>) updatedDataVersionMap.get("dataVersion");
+            dataVersionList.clear();
+            dataVersionList.add(accountsMap);
+            return AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, updatedDataVersionMap);
+        }
     }
 
     private void watch() {
@@ -299,7 +366,6 @@ public class PlainPermissionLoader {
         public void setGroupPerms(List<String> groupPerms) {
             this.groupPerms = groupPerms;
         }
-
     }
 
 }

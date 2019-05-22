@@ -20,7 +20,9 @@ import com.alibaba.fastjson.JSONObject;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Map;
 import java.util.SortedMap;
 import org.apache.commons.lang3.StringUtils;
@@ -127,11 +129,11 @@ public class AclUtils {
     }
 
     public static <T> T getYamlDataObject(String path, Class<T> clazz) {
-        Yaml ymal = new Yaml();
+        Yaml yaml = new Yaml();
         FileInputStream fis = null;
         try {
             fis = new FileInputStream(new File(path));
-            return ymal.loadAs(fis, clazz);
+            return yaml.loadAs(fis, clazz);
         } catch (FileNotFoundException ignore) {
             return null;
         } catch (Exception e) {
@@ -144,6 +146,24 @@ public class AclUtils {
                 }
             }
         }
+    }
+
+    public static boolean writeDataObject2Yaml(String path, Map<String,Object> dataMap) {
+        Yaml yaml = new Yaml();
+        PrintWriter pw = null;
+        try {
+            pw = new PrintWriter(new FileWriter(path));
+            String dumpAsMap = yaml.dumpAsMap(dataMap);
+            pw.print(dumpAsMap);
+            pw.flush();
+        } catch (Exception e) {
+            throw new AclException(e.getMessage());
+        } finally {
+            if (pw != null) {
+                pw.close();
+            }
+        }
+        return true;
     }
 
     public static RPCHook getAclRPCHook(String fileName) {
