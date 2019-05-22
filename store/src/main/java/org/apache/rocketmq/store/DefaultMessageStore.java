@@ -1864,10 +1864,14 @@ public class DefaultMessageStore implements MessageStore {
                                     this.reputFromOffset += size;
                                 } else {
                                     doNext = false;
-                                    log.error("[BUG]dispatch message to consume queue error, COMMITLOG OFFSET: {}",
-                                        this.reputFromOffset);
-
-                                    this.reputFromOffset += result.getSize() - readSize;
+                                    // If user open the dledger pattern or the broker is master node,
+                                    // it will not ignore the exception and fix the reputFromOffset variable
+                                    if (DefaultMessageStore.this.getMessageStoreConfig().isEnableDLegerCommitLog() ||
+                                        DefaultMessageStore.this.brokerConfig.getBrokerId() == MixAll.MASTER_ID) {
+                                        log.error("[BUG]dispatch message to consume queue error, COMMITLOG OFFSET: {}",
+                                            this.reputFromOffset);
+                                        this.reputFromOffset += result.getSize() - readSize;
+                                    }
                                 }
                             }
                         }
