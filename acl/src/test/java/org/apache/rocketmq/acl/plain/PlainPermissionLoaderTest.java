@@ -26,9 +26,9 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.acl.common.AclException;
+import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.acl.plain.PlainPermissionLoader.PlainAccessConfig;
-import org.apache.rocketmq.common.UtilAll;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,7 +42,6 @@ public class PlainPermissionLoaderTest {
     PlainAccessResource DENYPlainAccessResource;
     PlainAccessResource plainAccessResource = new PlainAccessResource();
     PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
-    PlainAccessResource plainAccessResourceTwo = new PlainAccessResource();
     Set<Integer> adminCode = new HashSet<>();
 
     @Before
@@ -65,6 +64,7 @@ public class PlainPermissionLoaderTest {
 
         System.setProperty("rocketmq.home.dir", "src/test/resources");
         System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml");
+        
         plainPermissionLoader = new PlainPermissionLoader();
 
     }
@@ -204,6 +204,7 @@ public class PlainPermissionLoaderTest {
         plainPermissionLoader.clearPermissionInfo();
         plainAccessResourceMap = (Map<String, List<PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionLoader, "plainAccessResourceMap", true);
         Assert.assertTrue(plainAccessResourceMap.isEmpty());
+        //removeDataVersionFromYamlFile("src/test/resources/conf/plain_acl.yml");
     }
 
     @Test
@@ -211,6 +212,8 @@ public class PlainPermissionLoaderTest {
 
         PlainPermissionLoader plainPermissionLoader = new PlainPermissionLoader();
         Assert.assertTrue(plainPermissionLoader.isWatchStart());
+        //removeDataVersionFromYamlFile("src/test/resources/conf/plain_acl.yml");
+
     }
 
 
@@ -231,6 +234,7 @@ public class PlainPermissionLoaderTest {
         writer.flush();
         writer.close();
 
+
         PlainPermissionLoader plainPermissionLoader = new PlainPermissionLoader();
         Assert.assertTrue(plainPermissionLoader.isWatchStart());
 
@@ -243,13 +247,15 @@ public class PlainPermissionLoaderTest {
 
         }
 
-        writer = new FileWriter(new File(fileName), true);
-        writer.write("- accessKey: watchrocketmq1\r\n");
-        writer.write("  secretKey: 88888888\r\n");
-        writer.write("  whiteRemoteAddress: 127.0.0.1\r\n");
-        writer.write("  admin: false\r\n");
-        writer.flush();
-        writer.close();
+        Map<String, Object> updatedMap = AclUtils.getYamlDataObject(fileName, Map.class);
+        List<Map<String, Object>> accounts = (List<Map<String, Object>>) updatedMap.get("accounts");
+        accounts.get(0).remove("accessKey");
+        accounts.get(0).remove("secretKey");
+        accounts.get(0).put("accessKey", "watchrocketmq1");
+        accounts.get(0).put("secretKey", "88888888");
+        accounts.get(0).put("admin", "false");
+        //update file and flush to yaml file
+        AclUtils.writeDataObject2Yaml(fileName, updatedMap);
 
         Thread.sleep(1000);
         {
@@ -270,6 +276,44 @@ public class PlainPermissionLoaderTest {
         System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_null.yml");
         new PlainPermissionLoader();
 
+    }
+
+    @Test
+    public void updateAclConfigFileDataVersion4InitialTest() {
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_dataversion.yml");
+        new PlainPermissionLoader().createOrUpdateVersionInFile();
+
+        String targetFileName = "src/test/resources/conf/plain_acl_dataversion.yml";
+        Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+        List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get("dataVersion");
+        Assert.assertEquals(0,dataVersions.get(0).get("counter"));
+
+        removeDataVersionFromYamlFile("src/test/resources/conf/plain_acl_dataversion.yml");
+    }
+
+    @Test
+    public void updateAclConfigFileDataVersion4NonInitialTest() {
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_dataversion.yml");
+        PlainPermissionLoader loader = new PlainPermissionLoader();
+        loader.createOrUpdateVersionInFile();
+        loader.createOrUpdateVersionInFile();
+        String targetFileName = "src/test/resources/conf/plain_acl_dataversion.yml";
+        Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+        List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get("dataVersion");
+        Assert.assertEquals(1,dataVersions.get(0).get("counter"));
+
+        removeDataVersionFromYamlFile("src/test/resources/conf/plain_acl_dataversion.yml");
+    }
+
+    private void removeDataVersionFromYamlFile(String fileName) {
+
+        Map<String, Object> updatedMap = AclUtils.getYamlDataObject(fileName, Map.class);
+        if (updatedMap != null && !updatedMap.isEmpty()) {
+            updatedMap.remove("dataVersion");
+        }
+
+        //update file and flush to yaml file
+        AclUtils.writeDataObject2Yaml(fileName, updatedMap);
     }
 
 }
