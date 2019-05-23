@@ -86,6 +86,9 @@ public class AclClientRPCHook implements RPCHook {
                     }
                 }
             }
+            if (null != request.getExtFields()) {
+                map.putAll(request.getExtFields());
+            }
             return map;
         } catch (Exception e) {
             throw new RuntimeException("incompatible exception.", e);
