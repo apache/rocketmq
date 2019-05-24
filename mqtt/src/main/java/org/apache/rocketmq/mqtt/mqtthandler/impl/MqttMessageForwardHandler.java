@@ -74,7 +74,7 @@ public class MqttMessageForwardHandler implements MessageHandler {
             mqttHeaderQos0.setRetain(false); //TODO set to false temporarily, need to be implemented later.
             Set<Client> clientsTobePublish = findCurrentNodeClientsTobePublish(variableHeader.topicName(), (IOTClientManagerImpl) this.defaultMqttMessageProcessor.getIotClientManager());
             for (Client client : clientsTobePublish) {
-                ((MQTTSession) client).pushMessageQos0(mqttHeaderQos0, body, this.defaultMqttMessageProcessor);
+                ((MQTTSession) client).pushMessageQos0(mqttHeaderQos0, body);
             }
         } else if (fixedHeader.qosLevel().equals(MqttQoS.AT_LEAST_ONCE)) {
             TransferDataQos1 transferDataQos1 = TransferDataQos1.decode(body, TransferDataQos1.class);

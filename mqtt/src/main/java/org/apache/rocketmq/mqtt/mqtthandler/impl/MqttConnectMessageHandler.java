@@ -121,7 +121,7 @@ public class MqttConnectMessageHandler implements MessageHandler {
             {
                 add("IOT_GROUP");
             }
-        }, true, mqttConnectMessage.variableHeader().isCleanSession(), remotingChannel, System.currentTimeMillis());
+        }, true, mqttConnectMessage.variableHeader().isCleanSession(), remotingChannel, System.currentTimeMillis(), defaultMqttMessageProcessor);
         //register remotingChannel<--->client
         iotClientManager.register(IOTClientManagerImpl.IOT_GROUP, client);
 

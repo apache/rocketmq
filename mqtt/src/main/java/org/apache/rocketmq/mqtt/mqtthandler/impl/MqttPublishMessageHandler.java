@@ -111,7 +111,7 @@ public class MqttPublishMessageHandler implements MessageHandler {
                 mqttHeaderQos0.setQosLevel(MqttQoS.AT_MOST_ONCE.value());
                 mqttHeaderQos0.setRetain(false); //TODO set to false temporarily, need to be implemented later.
                 for (Client client : clientsTobePublish) {
-                    ((MQTTSession) client).pushMessageQos0(mqttHeaderQos0, body, this.defaultMqttMessageProcessor);
+                    ((MQTTSession) client).pushMessageQos0(mqttHeaderQos0, body);
                 }
 
                 //For clients that connected to other snodes, transfer the message to them
@@ -219,6 +219,7 @@ public class MqttPublishMessageHandler implements MessageHandler {
         requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
         requestHeader.setBatch(false);
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, variableHeader.topicName());
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TAGS, MqttUtil.getRootTopic(variableHeader.topicName()));
         MessageAccessor.putProperty(msg, MqttConstant.PROPERTY_MQTT_QOS, fixedHeader.qosLevel().name());
         requestHeader.setEnodeName(enodeName);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);

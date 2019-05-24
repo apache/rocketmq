@@ -103,7 +103,7 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
         this.orderedExecutor = OrderedExecutor.newBuilder().name("PushMessageToConsumerThreads").numThreads(mqttConfig.getPushMqttMessageMaxPoolSize()).build();
         this.mqttScheduledService = new MqttScheduledServiceImpl(this);
         mqttScheduledService.startScheduleTask();
-        
+
         registerMessageHandler(MqttMessageType.CONNECT,
             new MqttConnectMessageHandler(this));
         registerMessageHandler(MqttMessageType.DISCONNECT,

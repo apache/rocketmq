@@ -17,23 +17,34 @@
 package org.apache.rocketmq.mqtt.task;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.PullStatus;
+import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.common.client.Subscription;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.exception.MQSnodeException;
+import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.MqttSubscriptionData;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.service.EnodeService;
+import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.mqtt.client.IOTClientManagerImpl;
@@ -76,47 +87,95 @@ public class MqttPushTask implements Runnable {
         long maxOffsetInQueue;
         try {
             maxOffsetInQueue = getMaxOffset(brokerData.getBrokerName(), rootTopic);
-            final long consumeOffset = enodeService.queryOffset(brokerData.getBrokerName(), client.getClientId(), rootTopic, 0);
-            long i = consumeOffset + 1;
-            while (i <= maxOffsetInQueue) {
-                //TODO query messages(queueOffset=i) from enode above(brokerData.getBrokerName)
-                RemotingCommand response = null;
-                ByteBuffer byteBuffer = ByteBuffer.wrap(response.getBody());
-                MessageExt messageExt = MessageDecoder.clientDecode(byteBuffer, true);
-
-                final String realTopic = messageExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
-
-                boolean needSkip = needSkip(realTopic, subscriptionTable);
-                boolean alreadyInFlight = alreadyInFight(brokerData.getBrokerName(), realTopic, client.getClientId(), messageExt.getQueueOffset());
-                if (needSkip) {
-                    log.info("Current client doesn't subscribe topic:{}, skip this message", realTopic);
-                    maxOffsetInQueue = getMaxOffset(brokerData.getBrokerName(), rootTopic);
-                    i += 1;
-                    continue;
+            long nextOffset = enodeService.queryOffset(brokerData.getBrokerName(), client.getClientId(), rootTopic, 0);
+            while (nextOffset <= maxOffsetInQueue) {
+                boolean inflightFullFlag = false;
+                //pull messages from enode above(brokerData.getBrokerName), 32 messages max.
+                PullMessageRequestHeader requestHeader = buildPullMessageRequestHeader(this.client.getClientId(), mqttHeader.getTopicName(), nextOffset, brokerData.getBrokerName());
+                RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
+                RemotingCommand response = this.defaultMqttMessageProcessor.getEnodeService().pullMessageSync(null, brokerData.getBrokerName(), request);
+                PullResult pullResult = processPullResponse(response, subscriptionTable);
+                for (MessageExt messageExt : pullResult.getMsgFoundList()) {
+                    final String realTopic = messageExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
+                    boolean alreadyInFlight = alreadyInFight(brokerData.getBrokerName(), realTopic, client.getClientId(), messageExt.getQueueOffset());
+                    if (alreadyInFlight) {
+                        log.info("The message is already inflight. MessageId={}", messageExt.getMsgId());
+                        continue;
+                    }
+                    Integer pushQos = lowerQosToTheSubscriptionDesired(realTopic, Integer.valueOf(messageExt.getProperty(MqttConstant.PROPERTY_MQTT_QOS)), subscriptionTable);
+                    mqttHeader.setQosLevel(pushQos);
+                    mqttHeader.setTopicName(realTopic);
+                    if (client.getInflightSlots().get() == 0) {
+                        log.info("The in-flight window is full, stop pushing message to consumers and update consumeOffset. ClientId={}, rootTopic={}", client.getClientId(), rootTopic);
+                        inflightFullFlag = true;
+                        break;
+                    }
+                    //push message if in-flight window has slot(not full)
+                    client.pushMessageQos1(mqttHeader, messageExt, brokerData);
                 }
-                if (alreadyInFlight) {
-                    log.info("The message is already inflight. MessageId={}", messageExt.getMsgId());
+                if (inflightFullFlag == true) {
                     break;
                 }
-                Integer pushQos = lowerQosToTheSubscriptionDesired(realTopic, Integer.valueOf(messageExt.getProperty(MqttConstant.PROPERTY_MQTT_QOS)), subscriptionTable);
-                mqttHeader.setQosLevel(pushQos);
-                mqttHeader.setTopicName(realTopic);
-                if (client.getInflightSlots().get() == 0) {
-                    log.info("The in-flight window is full, stop pushing message to consumers and update consumeOffset. ClientId={}, rootTopic={}", client.getClientId(), rootTopic);
-                    break;
-                }
-                //push message if in-flight window has slot(not full)
-                client.pushMessageQos1(mqttHeader, messageExt, brokerData);
-
                 maxOffsetInQueue = getMaxOffset(brokerData.getBrokerName(), rootTopic);
-                i += 1;
+                nextOffset = pullResult.getNextBeginOffset();
             }
-
-            //TODO update consumeOffset of rootTopic@clientId in brokerData.getBrokerName()
-            enodeService.persistOffset(null, brokerData.getBrokerName(), client.getClientId(), rootTopic, 0, i - 1);
         } catch (Exception ex) {
             log.error("Exception was thrown when pushing messages to consumer.{}", ex);
         }
+    }
+
+    private PullMessageRequestHeader buildPullMessageRequestHeader(String clientId, String topic, long offset,
+        String enodeName) {
+        PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
+        requestHeader.setConsumerGroup(clientId);
+        requestHeader.setTopic(MqttUtil.getRootTopic(topic));
+        requestHeader.setQueueId(0);
+        requestHeader.setQueueOffset(offset);
+        requestHeader.setMaxMsgNums(32);
+        requestHeader.setSysFlag(PullSysFlag.buildSysFlag(false, false, true, false));
+        requestHeader.setCommitOffset(0L);
+//        requestHeader.setSuspendTimeoutMillis(brokerSuspendMaxTimeMillis);
+        requestHeader.setSubscription(topic);
+        requestHeader.setSubVersion(0L);
+        requestHeader.setExpressionType(ExpressionType.TAG);
+        requestHeader.setEnodeName(enodeName);
+        return requestHeader;
+    }
+
+    private PullResult processPullResponse(final RemotingCommand response,
+        ConcurrentHashMap<String, SubscriptionData> subscriptionTable) throws MQSnodeException, RemotingCommandException {
+        PullStatus pullStatus;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS:
+                pullStatus = PullStatus.FOUND;
+                break;
+            case ResponseCode.PULL_NOT_FOUND:
+                pullStatus = PullStatus.NO_NEW_MSG;
+                break;
+            case ResponseCode.PULL_RETRY_IMMEDIATELY:
+                pullStatus = PullStatus.NO_MATCHED_MSG;
+                break;
+            case ResponseCode.PULL_OFFSET_MOVED:
+                pullStatus = PullStatus.OFFSET_ILLEGAL;
+                break;
+
+            default:
+                throw new MQSnodeException(response.getCode(), response.getRemark());
+        }
+
+        PullMessageResponseHeader responseHeader =
+            (PullMessageResponseHeader) response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(response.getBody());
+        List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
+        //filter messages again
+        List<MessageExt> msgListFilterAgain = new ArrayList<>(msgList.size());
+        for (MessageExt msg : msgList) {
+            if (msg.getTags() != null && !needSkip(msg.getTags(), subscriptionTable)) {
+                msgListFilterAgain.add(msg);
+            }
+        }
+        return new PullResultExt(pullStatus, responseHeader.getNextBeginOffset(), responseHeader.getMinOffset(),
+            responseHeader.getMaxOffset(), msgListFilterAgain, responseHeader.getSuggestWhichBrokerId(), response.getBody());
     }
 
     private boolean needSkip(final String realTopic, ConcurrentHashMap<String, SubscriptionData> subscriptionTable) {
