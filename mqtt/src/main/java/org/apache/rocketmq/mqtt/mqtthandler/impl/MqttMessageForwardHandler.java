@@ -38,6 +38,7 @@ import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
 import org.apache.rocketmq.mqtt.processor.InnerMqttMessageProcessor;
 import org.apache.rocketmq.mqtt.task.MqttPushTask;
 import org.apache.rocketmq.mqtt.transfer.TransferDataQos1;
+import org.apache.rocketmq.mqtt.util.MqttUtil;
 import org.apache.rocketmq.mqtt.util.orderedexecutor.SafeRunnable;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -84,10 +85,9 @@ public class MqttMessageForwardHandler implements MessageHandler {
                 //For each client, wrap a task:
                 //Pull message one by one, and push them if current client match.
                 MqttHeader mqttHeaderQos1 = new MqttHeader();
-                mqttHeaderQos1.setTopicName(variableHeader.topicName());
                 mqttHeaderQos1.setMessageType(MqttMessageType.PUBLISH.value());
                 mqttHeaderQos1.setRetain(false); //TODO set to false temporarily, need to be implemented later.
-                MqttPushTask mqttPushTask = new MqttPushTask(this.defaultMqttMessageProcessor, mqttHeaderQos1, client, transferDataQos1.getBrokerData());
+                MqttPushTask mqttPushTask = new MqttPushTask(this.defaultMqttMessageProcessor, mqttHeaderQos1, MqttUtil.getRootTopic(variableHeader.topicName()), client, transferDataQos1.getBrokerData());
                 //add task to orderedExecutor
                 this.defaultMqttMessageProcessor.getOrderedExecutor().executeOrdered(client.getClientId(), SafeRunnable.safeRun(mqttPushTask));
             }

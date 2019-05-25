@@ -56,6 +56,7 @@ import org.apache.rocketmq.mqtt.exception.WrongMessageTypeException;
 import org.apache.rocketmq.mqtt.mqtthandler.MessageHandler;
 import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
 import org.apache.rocketmq.mqtt.task.MqttPushTask;
+import org.apache.rocketmq.mqtt.transfer.TransferDataQos1;
 import org.apache.rocketmq.mqtt.util.MqttUtil;
 import org.apache.rocketmq.mqtt.util.orderedexecutor.SafeRunnable;
 import org.apache.rocketmq.remoting.RemotingChannel;
@@ -121,7 +122,7 @@ public class MqttPublishMessageHandler implements MessageHandler {
                 //step2. get snode ips by clients in step2.
                 Set<String> snodeIpsTobeTransfer = new HashSet<>();
                 try {
-                    transferMessage(snodeIpsTobeTransfer, variableHeader.topicName(), payload);
+                    transferMessage(snodeIpsTobeTransfer, variableHeader.topicName(), body);
                 } catch (MqttException e) {
                     log.error("Transfer message failed: {}", e.getMessage());
                 } finally {
@@ -159,14 +160,25 @@ public class MqttPublishMessageHandler implements MessageHandler {
                             //For each client, wrap a task:
                             //Pull message one by one, and push them if current client match.
                             MqttHeader mqttHeaderQos1 = new MqttHeader();
-                            mqttHeaderQos1.setTopicName(variableHeader.topicName());
                             mqttHeaderQos1.setMessageType(MqttMessageType.PUBLISH.value());
                             mqttHeaderQos1.setRetain(false); //TODO set to false temporarily, need to be implemented later.
-                            MqttPushTask mqttPushTask = new MqttPushTask(defaultMqttMessageProcessor, mqttHeaderQos1, client, brokerData);
+                            MqttPushTask mqttPushTask = new MqttPushTask(defaultMqttMessageProcessor, mqttHeaderQos1, MqttUtil.getRootTopic(variableHeader.topicName()), client, brokerData);
                             //add task to orderedExecutor
                             this.defaultMqttMessageProcessor.getOrderedExecutor().executeOrdered(client.getClientId(), SafeRunnable.safeRun(mqttPushTask));
                         }
-                        //TODO for clientIds connected to other snodes, forward msg
+                        //for clients connected to other snodes, forward msg
+                        Set<String> snodesTobeTransfered = new HashSet<>();
+                        TransferDataQos1 transferDataQos1 = new TransferDataQos1();
+                        transferDataQos1.setBrokerData(brokerData);
+                        transferDataQos1.setTopic(variableHeader.topicName());
+                        byte[] encode = TransferDataQos1.encode(transferDataQos1);
+                        try {
+                            transferMessage(snodesTobeTransfered, variableHeader.topicName(), encode);
+                        } catch (MqttException e) {
+                            log.error("Transfer message failed: {}", e.getMessage());
+                        } finally {
+                            ReferenceCountUtil.release(message);
+                        }
                     } else {
                         log.error("Store Qos=1 Message error: {}", ex);
                     }
@@ -178,7 +190,7 @@ public class MqttPublishMessageHandler implements MessageHandler {
         return doResponse(fixedHeader);
     }
 
-    private void transferMessage(Set<String> snodeAddresses, String topic, ByteBuf payload) throws MqttException {
+    private void transferMessage(Set<String> snodeAddresses, String topic, byte[] body) throws MqttException {
         SnodeConfig snodeConfig = defaultMqttMessageProcessor.getSnodeConfig();
         MqttConfig mqttConfig = defaultMqttMessageProcessor.getMqttConfig();
         String url = "tcp://" + snodeConfig.getSnodeIP1() + ":" + (mqttConfig.getListenPort() - 1);
@@ -196,9 +208,6 @@ public class MqttPublishMessageHandler implements MessageHandler {
                 client.connect(connOpts);
                 snode2MqttClient.put(snodeAddress, client);
             }
-
-            byte[] body = new byte[payload.readableBytes()];
-            payload.readBytes(body);
             org.eclipse.paho.client.mqttv3.MqttMessage message = new org.eclipse.paho.client.mqttv3.MqttMessage(body);
             message.setQos(0);
             client.publish(topic, message);

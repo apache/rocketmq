@@ -66,46 +66,46 @@ public class MqttPushTask implements Runnable {
     private MqttHeader mqttHeader;
     private MQTTSession client;
     private BrokerData brokerData;
+    private String rootTopic;
 
-    public MqttPushTask(DefaultMqttMessageProcessor processor, final MqttHeader mqttHeader, Client client,
+    public MqttPushTask(DefaultMqttMessageProcessor processor, final MqttHeader mqttHeader, String rootTopic, Client client,
         BrokerData brokerData) {
         this.defaultMqttMessageProcessor = processor;
         this.mqttHeader = mqttHeader;
+        this.rootTopic = rootTopic;
         this.client = (MQTTSession) client;
         this.brokerData = brokerData;
     }
 
     @Override
     public void run() {
-
-        String rootTopic = MqttUtil.getRootTopic(mqttHeader.getTopicName());
         EnodeService enodeService = this.defaultMqttMessageProcessor.getEnodeService();
         IOTClientManagerImpl iotClientManager = (IOTClientManagerImpl) this.defaultMqttMessageProcessor.getIotClientManager();
-        Subscription subscription = iotClientManager.getSubscriptionByClientId(client.getClientId());
+        Subscription subscription = iotClientManager.getSubscriptionByClientId(this.client.getClientId());
         ConcurrentHashMap<String, SubscriptionData> subscriptionTable = subscription.getSubscriptionTable();
         //compare current consumeOffset of rootTopic@clientId with maxOffset, pull message if consumeOffset < maxOffset
         long maxOffsetInQueue;
         try {
-            maxOffsetInQueue = getMaxOffset(brokerData.getBrokerName(), rootTopic);
-            long nextOffset = enodeService.queryOffset(brokerData.getBrokerName(), client.getClientId(), rootTopic, 0);
+            maxOffsetInQueue = getMaxOffset(this.brokerData.getBrokerName(), this.rootTopic);
+            long nextOffset = enodeService.queryOffset(this.brokerData.getBrokerName(), this.client.getClientId(), this.rootTopic, 0);
             while (nextOffset <= maxOffsetInQueue) {
                 boolean inflightFullFlag = false;
                 //pull messages from enode above(brokerData.getBrokerName), 32 messages max.
-                PullMessageRequestHeader requestHeader = buildPullMessageRequestHeader(this.client.getClientId(), mqttHeader.getTopicName(), nextOffset, brokerData.getBrokerName());
+                PullMessageRequestHeader requestHeader = buildPullMessageRequestHeader(this.client.getClientId(), this.mqttHeader.getTopicName(), nextOffset, this.brokerData.getBrokerName());
                 RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
-                RemotingCommand response = this.defaultMqttMessageProcessor.getEnodeService().pullMessageSync(null, brokerData.getBrokerName(), request);
+                RemotingCommand response = this.defaultMqttMessageProcessor.getEnodeService().pullMessageSync(null, this.brokerData.getBrokerName(), request);
                 PullResult pullResult = processPullResponse(response, subscriptionTable);
                 for (MessageExt messageExt : pullResult.getMsgFoundList()) {
                     final String realTopic = messageExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
-                    boolean alreadyInFlight = alreadyInFight(brokerData.getBrokerName(), realTopic, client.getClientId(), messageExt.getQueueOffset());
+                    boolean alreadyInFlight = alreadyInFight(this.brokerData.getBrokerName(), realTopic, this.client.getClientId(), messageExt.getQueueOffset());
                     if (alreadyInFlight) {
                         log.info("The message is already inflight. MessageId={}", messageExt.getMsgId());
                         continue;
                     }
                     Integer pushQos = lowerQosToTheSubscriptionDesired(realTopic, Integer.valueOf(messageExt.getProperty(MqttConstant.PROPERTY_MQTT_QOS)), subscriptionTable);
-                    mqttHeader.setQosLevel(pushQos);
-                    mqttHeader.setTopicName(realTopic);
-                    if (client.getInflightSlots().get() == 0) {
+                    this.mqttHeader.setQosLevel(pushQos);
+                    this.mqttHeader.setTopicName(realTopic);
+                    if (this.client.getInflightSlots().get() == 0) {
                         log.info("The in-flight window is full, stop pushing message to consumers and update consumeOffset. ClientId={}, rootTopic={}", client.getClientId(), rootTopic);
                         inflightFullFlag = true;
                         break;
@@ -124,18 +124,18 @@ public class MqttPushTask implements Runnable {
         }
     }
 
-    private PullMessageRequestHeader buildPullMessageRequestHeader(String clientId, String topic, long offset,
+    private PullMessageRequestHeader buildPullMessageRequestHeader(String clientId, String rootTopic, long offset,
         String enodeName) {
         PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
         requestHeader.setConsumerGroup(clientId);
-        requestHeader.setTopic(MqttUtil.getRootTopic(topic));
+        requestHeader.setTopic(rootTopic);
         requestHeader.setQueueId(0);
         requestHeader.setQueueOffset(offset);
         requestHeader.setMaxMsgNums(32);
         requestHeader.setSysFlag(PullSysFlag.buildSysFlag(false, false, true, false));
         requestHeader.setCommitOffset(0L);
 //        requestHeader.setSuspendTimeoutMillis(brokerSuspendMaxTimeMillis);
-        requestHeader.setSubscription(topic);
+        requestHeader.setSubscription(rootTopic);
         requestHeader.setSubVersion(0L);
         requestHeader.setExpressionType(ExpressionType.TAG);
         requestHeader.setEnodeName(enodeName);
