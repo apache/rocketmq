@@ -30,11 +30,11 @@ public class MqttHeader implements CommandCustomHeader {
     @CFNotNull
     private Integer messageType;
     @CFNotNull
-    private boolean isDup;
+    private boolean isDup = false;
     @CFNotNull
     private Integer qosLevel;
     @CFNotNull
-    private boolean isRetain;
+    private boolean isRetain = false;
     @CFNotNull
     private int remainingLength;
 

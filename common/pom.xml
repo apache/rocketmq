@@ -46,7 +46,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.apache.rocketmq</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-remoting</artifactId>
         </dependency>
         <dependency>
@@ -54,5 +54,5 @@
             <artifactId>snakeyaml</artifactId>
         </dependency>
     </dependencies>
-    
+
 </project>

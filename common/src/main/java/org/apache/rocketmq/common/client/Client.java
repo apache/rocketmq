@@ -39,13 +39,19 @@ public class Client {
 
     private LanguageCode language;
 
-    private boolean isConnected;
-
-    private boolean cleanSession;
-
-    private boolean willFlag;
-
     private String snodeAddress;
+
+    public Client() {
+    }
+
+    public Client(String clientId, ClientRole clientRole, Set<String> groups, RemotingChannel remotingChannel,
+        long lastUpdateTimestamp) {
+        this.clientId = clientId;
+        this.clientRole = clientRole;
+        this.groups = groups;
+        this.remotingChannel = remotingChannel;
+        this.lastUpdateTimestamp = lastUpdateTimestamp;
+    }
 
     public ClientRole getClientRole() {
         return clientRole;
@@ -70,16 +76,13 @@ public class Client {
             Objects.equals(groups, client.groups) &&
             Objects.equals(remotingChannel, client.remotingChannel) &&
             language == client.language &&
-            isConnected == client.isConnected &&
-            cleanSession == client.cleanSession &&
-            willFlag == client.willFlag &&
             snodeAddress == client.snodeAddress;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(clientRole, clientId, groups, remotingChannel, heartbeatInterval,
-            lastUpdateTimestamp, version, language, isConnected, cleanSession, willFlag, snodeAddress);
+            lastUpdateTimestamp, version, language, snodeAddress);
     }
 
     public RemotingChannel getRemotingChannel() {
@@ -130,30 +133,6 @@ public class Client {
         this.language = language;
     }
 
-    public boolean isConnected() {
-        return isConnected;
-    }
-
-    public void setConnected(boolean connected) {
-        isConnected = connected;
-    }
-
-    public boolean isCleanSession() {
-        return cleanSession;
-    }
-
-    public void setCleanSession(boolean cleanSession) {
-        this.cleanSession = cleanSession;
-    }
-
-    public boolean isWillFlag() {
-        return willFlag;
-    }
-
-    public void setWillFlag(boolean willFlag) {
-        this.willFlag = willFlag;
-    }
-
     public String getSnodeAddress() {
         return snodeAddress;
     }
@@ -181,9 +160,6 @@ public class Client {
             ", lastUpdateTimestamp=" + lastUpdateTimestamp +
             ", version=" + version +
             ", language=" + language +
-            ", isConnected=" + isConnected +
-            ", cleanSession=" + cleanSession +
-            ", willFlag=" + willFlag +
             ", snodeAddress=" + snodeAddress +
             '}';
     }

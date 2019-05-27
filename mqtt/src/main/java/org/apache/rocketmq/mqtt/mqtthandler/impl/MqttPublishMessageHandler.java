@@ -24,13 +24,17 @@ import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import io.netty.handler.codec.mqtt.MqttPublishVariableHeader;
 import io.netty.handler.codec.mqtt.MqttQoS;
-import java.util.Enumeration;
+import io.netty.util.ReferenceCountUtil;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import org.apache.rocketmq.common.client.Subscription;
+import org.apache.rocketmq.common.MqttConfig;
+import org.apache.rocketmq.common.SnodeConfig;
+import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.exception.MQClientException;
 import org.apache.rocketmq.common.message.Message;
@@ -39,30 +43,42 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.service.EnodeService;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.mqtt.client.IOTClientManagerImpl;
+import org.apache.rocketmq.mqtt.client.MQTTSession;
+import org.apache.rocketmq.mqtt.constant.MqttConstant;
+import org.apache.rocketmq.mqtt.exception.MqttRuntimeException;
 import org.apache.rocketmq.mqtt.exception.WrongMessageTypeException;
 import org.apache.rocketmq.mqtt.mqtthandler.MessageHandler;
 import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
+import org.apache.rocketmq.mqtt.task.MqttPushTask;
 import org.apache.rocketmq.mqtt.util.MqttUtil;
+import org.apache.rocketmq.mqtt.util.orderedexecutor.SafeRunnable;
 import org.apache.rocketmq.remoting.RemotingChannel;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 public class MqttPublishMessageHandler implements MessageHandler {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.MQTT_LOGGER_NAME);
     private final DefaultMqttMessageProcessor defaultMqttMessageProcessor;
+    private IOTClientManagerImpl iotClientManager;
+    private EnodeService enodeService;
 
     public MqttPublishMessageHandler(DefaultMqttMessageProcessor processor) {
         this.defaultMqttMessageProcessor = processor;
+        this.iotClientManager = (IOTClientManagerImpl) processor.getIotClientManager();
+        this.enodeService = this.defaultMqttMessageProcessor.getEnodeService();
     }
 
     @Override
@@ -82,88 +98,115 @@ public class MqttPublishMessageHandler implements MessageHandler {
         }
 
         ByteBuf payload = mqttPublishMessage.payload();
-        if (fixedHeader.qosLevel().equals(MqttQoS.AT_MOST_ONCE)) {
-            defaultMqttMessageProcessor.getMqttPushService().pushMessageQos0(variableHeader.topicName(), payload);
-        } else if (fixedHeader.qosLevel().equals(MqttQoS.AT_LEAST_ONCE)) {
-            // Store msg and invoke callback to publish msg to subscribers
-            // 1. Check if the root topic has been created
-            String rootTopic = MqttUtil.getRootTopic(variableHeader.topicName());
-            TopicRouteData topicRouteData = null;
 
-            try {
-                topicRouteData = this.defaultMqttMessageProcessor.getNnodeService().getTopicRouteDataByTopic(rootTopic, false);
-            } catch (MQClientException e) {
-                log.error("The rootTopic {} does not exist. Please create it first.", rootTopic);
-                throw new MQClientException(e.getResponseCode(), e.getErrorMessage());
-            }
-
-            //2. Store msg
-            List<BrokerData> datas = topicRouteData.getBrokerDatas();
-            BrokerData brokerData = datas.get(new Random().nextInt(datas.size()));
-            RemotingCommand request = createSendMessageRequest(rootTopic, variableHeader, payload, brokerData.getBrokerName());
-            CompletableFuture<RemotingCommand> responseFuture = this.defaultMqttMessageProcessor.getEnodeService().sendMessage(null, brokerData.getBrokerName(), request);
-            responseFuture.whenComplete((data, ex) -> {
-                if (ex == null) {
-                    //publish msg to subscribers
-                    try {
-                        SendMessageResponseHeader responseHeader = (SendMessageResponseHeader) data.decodeCommandCustomHeader(SendMessageResponseHeader.class);
-                        //find clients that subscribed this topic from all clients and put it to map.
-                        Map<String, List<String>> snodeAddr2ClientIds = new HashMap<>();
-
-                        //for clientIds connected to current snode, publish msg directly
-                        List<String> clientIds = snodeAddr2ClientIds.get(this.defaultMqttMessageProcessor.getSnodeConfig().getSnodeIP1() + this.defaultMqttMessageProcessor.getSnodeConfig().getListenPort());
-                        IOTClientManagerImpl iotClientManager = (IOTClientManagerImpl) this.defaultMqttMessageProcessor.getIotClientManager();
-                        for (String clientId : clientIds) {
-                            Subscription subscription = iotClientManager.getSubscriptionByClientId(clientId);
-                            Enumeration<String> topicFilters = subscription.getSubscriptionTable().keys();
-                            while (topicFilters.hasMoreElements()) {
-                                String topicFilter = topicFilters.nextElement();
-                                if(MqttUtil.isMatch(topicFilter, variableHeader.topicName())) {
-                                    long offset = this.defaultMqttMessageProcessor.getEnodeService().queryOffset(brokerData.getBrokerName(), clientId, topicFilter, 0);
-                                    if (offset == -1) {
-//                                        this.defaultMqttMessageProcessor.getEnodeService().persistOffset(null, brokerData.getBrokerName(), clientId, 0, );
-                                    }
-                                }
-                            }
-                        }
-                        //for clientIds connected to other snodes, forward msg
-
-                    } catch (RemotingCommandException e) {
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    } catch (RemotingConnectException e) {
-                        e.printStackTrace();
-                    } catch (RemotingTimeoutException e) {
-                        e.printStackTrace();
-                    } catch (RemotingSendRequestException e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    log.error("Store Qos=1 Message error: {}", ex);
+        switch (fixedHeader.qosLevel()) {
+            case AT_MOST_ONCE:
+                //For clients connected to the current snode and isConnected is true
+                Set<Client> clientsTobePublish = findCurrentNodeClientsTobePublish(variableHeader.topicName(), this.iotClientManager);
+                byte[] body = new byte[payload.readableBytes()];
+                payload.readBytes(body);
+                MqttHeader mqttHeaderQos0 = new MqttHeader();
+                mqttHeaderQos0.setTopicName(variableHeader.topicName());
+                mqttHeaderQos0.setMessageType(MqttMessageType.PUBLISH.value());
+                mqttHeaderQos0.setQosLevel(MqttQoS.AT_MOST_ONCE.value());
+                mqttHeaderQos0.setRetain(false); //TODO set to false temporarily, need to be implemented later.
+                for (Client client : clientsTobePublish) {
+                    ((MQTTSession) client).pushMessageQos0(mqttHeaderQos0, body, this.defaultMqttMessageProcessor);
                 }
-            });
 
+                //For clients that connected to other snodes, transfer the message to them
+                //pseudo code:
+                //step1. find clients that match the publish topic
+                //step2. remove the clients that connected to the current node(clientsTobePublish)
+                //step2. get snode ips by clients in step2.
+                Set<String> snodeIpsTobeTransfer = new HashSet<>();
+                try {
+                    transferMessage(snodeIpsTobeTransfer, variableHeader.topicName(), payload);
+                } catch (MqttException e) {
+                    log.error("Transfer message failed: {}", e.getMessage());
+                } finally {
+                    ReferenceCountUtil.release(message);
+                }
+
+            case AT_LEAST_ONCE:
+                // Store msg and invoke callback to publish msg to subscribers
+                // 1. Check if the root topic has been created
+                String rootTopic = MqttUtil.getRootTopic(variableHeader.topicName());
+                TopicRouteData topicRouteData = null;
+
+                try {
+                    topicRouteData = this.defaultMqttMessageProcessor.getNnodeService().getTopicRouteDataByTopic(rootTopic, false);
+                } catch (MQClientException e) {
+                    log.error("The rootTopic {} does not exist. Please create it first.", rootTopic);
+                    throw new MQClientException(e.getResponseCode(), e.getErrorMessage());
+                }
+
+                //2. Store msg
+                List<BrokerData> datas = topicRouteData.getBrokerDatas();
+                //select a broker randomly, need to be optimized here
+                BrokerData brokerData = datas.get(new Random().nextInt(datas.size()));
+                RemotingCommand request = createSendMessageRequest(rootTopic, fixedHeader, variableHeader, payload, brokerData.getBrokerName());
+                CompletableFuture<RemotingCommand> responseFuture = this.defaultMqttMessageProcessor.getEnodeService().sendMessage(null, brokerData.getBrokerName(), request);
+                responseFuture.whenComplete((data, ex) -> {
+                    if (ex == null) {
+                        //publish msg to subscribers
+                        //TODO find clients that subscribed this topic from all snodes and put it to map.
+                        Map<String, List<Client>> snodeAddr2Clients = new HashMap<>();
+
+                        //for clientIds connected to current snode, trigger the logic of push message
+                        List<Client> clients = snodeAddr2Clients.get(this.defaultMqttMessageProcessor.getSnodeConfig().getSnodeIP1());
+                        for (Client client : clients) {
+                            //For each client, wrap a task:
+                            //Pull message one by one, and push them if current client match.
+                            MqttHeader mqttHeaderQos1 = new MqttHeader();
+                            mqttHeaderQos1.setTopicName(variableHeader.topicName());
+                            mqttHeaderQos1.setMessageType(MqttMessageType.PUBLISH.value());
+                            mqttHeaderQos1.setRetain(false); //TODO set to false temporarily, need to be implemented later.
+                            MqttPushTask mqttPushTask = new MqttPushTask(defaultMqttMessageProcessor, mqttHeaderQos1, client, brokerData);
+                            //add task to orderedExecutor
+                            this.defaultMqttMessageProcessor.getOrderedExecutor().executeOrdered(client.getClientId(), SafeRunnable.safeRun(mqttPushTask));
+                        }
+                        //TODO for clientIds connected to other snodes, forward msg
+                    } else {
+                        log.error("Store Qos=1 Message error: {}", ex);
+                    }
+                });
+
+            case EXACTLY_ONCE:
+                throw new MqttRuntimeException("Qos = 2 messages are not supported yet.");
         }
-        if (fixedHeader.qosLevel().value() > 0) {
-            RemotingCommand command = RemotingCommand.createResponseCommand(MqttHeader.class);
-            MqttHeader mqttHeader = (MqttHeader) command.readCustomHeader();
-            if (fixedHeader.qosLevel().equals(MqttQoS.AT_MOST_ONCE)) {
-                mqttHeader.setMessageType(MqttMessageType.PUBACK.value());
-                mqttHeader.setDup(false);
-                mqttHeader.setQosLevel(MqttQoS.AT_MOST_ONCE.value());
-                mqttHeader.setRetain(false);
-                mqttHeader.setRemainingLength(2);
-                mqttHeader.setPacketId(0);
-            } else if (fixedHeader.qosLevel().equals(MqttQoS.AT_LEAST_ONCE)) {
-                //PUBREC/PUBREL/PUBCOMP
-            }
-            return command;
-        }
-        return null;
+        return doResponse(fixedHeader);
     }
 
-    private RemotingCommand createSendMessageRequest(String rootTopic, MqttPublishVariableHeader variableHeader,
+    private void transferMessage(Set<String> snodeAddresses, String topic, ByteBuf payload) throws MqttException {
+        SnodeConfig snodeConfig = defaultMqttMessageProcessor.getSnodeConfig();
+        MqttConfig mqttConfig = defaultMqttMessageProcessor.getMqttConfig();
+        String url = "tcp://" + snodeConfig.getSnodeIP1() + ":" + (mqttConfig.getListenPort() - 1);
+        String clientId = defaultMqttMessageProcessor.getSnodeConfig().getSnodeIP1();
+
+        for (String snodeAddress : snodeAddresses) {
+            final Map<String, MqttClient> snode2MqttClient = iotClientManager.getSnode2MqttClient();
+            MqttClient client;
+            if (snode2MqttClient.containsKey(snodeAddresses)) {
+                client = snode2MqttClient.get(snodeAddress);
+            } else {
+                MemoryPersistence persistence = new MemoryPersistence();
+                client = new MqttClient(url, clientId, persistence);
+                MqttConnectOptions connOpts = new MqttConnectOptions();
+                client.connect(connOpts);
+                snode2MqttClient.put(snodeAddress, client);
+            }
+
+            byte[] body = new byte[payload.readableBytes()];
+            payload.readBytes(body);
+            org.eclipse.paho.client.mqttv3.MqttMessage message = new org.eclipse.paho.client.mqttv3.MqttMessage(body);
+            message.setQos(0);
+            client.publish(topic, message);
+        }
+    }
+
+    private RemotingCommand createSendMessageRequest(String rootTopic, MqttFixedHeader fixedHeader,
+        MqttPublishVariableHeader variableHeader,
         ByteBuf payload, String enodeName) {
         byte[] body = new byte[payload.readableBytes()];
         payload.readBytes(body);
@@ -176,9 +219,11 @@ public class MqttPublishMessageHandler implements MessageHandler {
         requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
         requestHeader.setBatch(false);
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, variableHeader.topicName());
+        MessageAccessor.putProperty(msg, MqttConstant.PROPERTY_MQTT_QOS, fixedHeader.qosLevel().name());
         requestHeader.setEnodeName(enodeName);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
         request.setBody(msg.getBody());
         return request;
     }
+
 }

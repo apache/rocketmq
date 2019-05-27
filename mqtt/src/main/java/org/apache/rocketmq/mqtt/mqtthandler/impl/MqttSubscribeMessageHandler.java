@@ -38,6 +38,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.mqtt.client.IOTClientManagerImpl;
+import org.apache.rocketmq.mqtt.client.MQTTSession;
 import org.apache.rocketmq.mqtt.constant.MqttConstant;
 import org.apache.rocketmq.mqtt.exception.WrongMessageTypeException;
 import org.apache.rocketmq.mqtt.mqtthandler.MessageHandler;
@@ -74,7 +75,7 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
         MqttSubscribeMessage mqttSubscribeMessage = (MqttSubscribeMessage) message;
         MqttSubscribePayload payload = mqttSubscribeMessage.payload();
         IOTClientManagerImpl iotClientManager = (IOTClientManagerImpl) defaultMqttMessageProcessor.getIotClientManager();
-        Client client = iotClientManager.getClient(IOTClientManagerImpl.IOT_GROUP, remotingChannel);
+        MQTTSession client = (MQTTSession)iotClientManager.getClient(IOTClientManagerImpl.IOT_GROUP, remotingChannel);
         if (client == null) {
             log.error("Can't find associated client, the connection will be closed. remotingChannel={}, MqttMessage={}", remotingChannel.toString(), message.toString());
             remotingChannel.close();
@@ -98,6 +99,7 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
         RemotingCommand command = RemotingCommand.createResponseCommand(MqttHeader.class);
         MqttHeader mqttHeader = (MqttHeader) command.readCustomHeader();
         mqttHeader.setMessageType(MqttMessageType.SUBACK.value());
+        // dup/qos/retain value are always as below of SUBACK
         mqttHeader.setDup(false);
         mqttHeader.setQosLevel(MqttQoS.AT_MOST_ONCE.value());
         mqttHeader.setRetain(false);
@@ -118,13 +120,13 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
         //do the logic when client sends subscribe packet.
         //1.update clientId2Subscription
         ConcurrentHashMap<String, Subscription> clientId2Subscription = iotClientManager.getClientId2Subscription();
-        ConcurrentHashMap<String, ConcurrentHashMap<Client, Set<SubscriptionData>>> topic2SubscriptionTable = iotClientManager.getTopic2SubscriptionTable();
-        Subscription subscription = null;
+        ConcurrentHashMap<String, Set<Client>> topic2Clients = iotClientManager.getTopic2Clients();
+        Subscription subscription;
         if (clientId2Subscription.containsKey(client.getClientId())) {
             subscription = clientId2Subscription.get(client.getClientId());
         } else {
             subscription = new Subscription();
-            subscription.setCleanSession(client.isCleanSession());
+            subscription.setCleanSession(((MQTTSession)client).isCleanSession());
         }
         ConcurrentHashMap<String, SubscriptionData> subscriptionDatas = subscription.getSubscriptionTable();
         List<Integer> grantQoss = new ArrayList<>();
@@ -133,26 +135,21 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
             grantQoss.add(actualQos);
             SubscriptionData subscriptionData = new MqttSubscriptionData(mqttTopicSubscription.qualityOfService().value(), client.getClientId(), mqttTopicSubscription.topicName());
             subscriptionDatas.put(mqttTopicSubscription.topicName(), subscriptionData);
-            //2.update topic2SubscriptionTable
+            //2.update topic2ClientIds
             String rootTopic = MqttUtil.getRootTopic(mqttTopicSubscription.topicName());
-            ConcurrentHashMap<Client, Set<SubscriptionData>> client2SubscriptionData = topic2SubscriptionTable.get(rootTopic);
-            if (client2SubscriptionData == null || client2SubscriptionData.size() == 0) {
-                client2SubscriptionData = new ConcurrentHashMap<>();
-                ConcurrentHashMap<Client, Set<SubscriptionData>> prev = topic2SubscriptionTable.putIfAbsent(rootTopic, client2SubscriptionData);
+            if (topic2Clients.contains(rootTopic)) {
+                final Set<Client> clientIds = topic2Clients.get(rootTopic);
+                clientIds.add(client);
+            } else {
+                Set<Client> clients = new HashSet<>();
+                clients.add(client);
+                Set<Client> prev = topic2Clients.putIfAbsent(rootTopic, clients);
                 if (prev != null) {
-                    client2SubscriptionData = prev;
-                }
-                Set<SubscriptionData> subscriptionDataSet = client2SubscriptionData.get(client);
-                if (subscriptionDataSet == null) {
-                    subscriptionDataSet = new HashSet<>();
-                    Set<SubscriptionData> prevSubscriptionDataSet = client2SubscriptionData.putIfAbsent(client, subscriptionDataSet);
-                    if (prevSubscriptionDataSet != null) {
-                        subscriptionDataSet = prevSubscriptionDataSet;
-                    }
-                    subscriptionDataSet.add(subscriptionData);
+                    prev.add(client);
                 }
             }
         }
+        //TODO update persistent store of topic2Clients and clientId2Subscription
         return grantQoss;
     }
 

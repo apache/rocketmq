@@ -15,17 +15,30 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.mqtt.constant;
 
-import io.netty.util.AttributeKey;
-import org.apache.rocketmq.common.client.Client;
+package org.apache.rocketmq.mqtt.transfer;
 
-public class MqttConstant {
-    public static final int MAX_SUPPORTED_QOS = 0;
-    public static final String SUBSCRIPTION_FLAG_PLUS = "+";
-    public static final String SUBSCRIPTION_FLAG_SHARP = "#";
-    public static final String SUBSCRIPTION_SEPARATOR = "/";
-    public static final long DEFAULT_TIMEOUT_MILLS = 3000L;
-    public static final String PROPERTY_MQTT_QOS = "PROPERTY_MQTT_QOS";
-    public static final AttributeKey<Client> MQTT_CLIENT_ATTRIBUTE_KEY = AttributeKey.valueOf("mqtt.client");
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.serialize.RemotingSerializable;
+
+public class TransferDataQos1 extends RemotingSerializable {
+
+    private BrokerData brokerData;
+    private String topic;
+
+    public BrokerData getBrokerData() {
+        return brokerData;
+    }
+
+    public void setBrokerData(BrokerData brokerData) {
+        this.brokerData = brokerData;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
 }

@@ -30,10 +30,17 @@ import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.client.ClientManager;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.service.ClientService;
+import org.apache.rocketmq.common.service.EnodeService;
+import org.apache.rocketmq.common.service.MetricsService;
+import org.apache.rocketmq.common.service.NnodeService;
+import org.apache.rocketmq.common.service.PushService;
+import org.apache.rocketmq.common.service.ScheduledService;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
+import org.apache.rocketmq.mqtt.processor.InnerMqttMessageProcessor;
 import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.RemotingClientFactory;
@@ -62,12 +69,6 @@ import org.apache.rocketmq.snode.processor.ConsumerManageProcessor;
 import org.apache.rocketmq.snode.processor.HeartbeatProcessor;
 import org.apache.rocketmq.snode.processor.PullMessageProcessor;
 import org.apache.rocketmq.snode.processor.SendMessageProcessor;
-import org.apache.rocketmq.common.service.ClientService;
-import org.apache.rocketmq.common.service.EnodeService;
-import org.apache.rocketmq.common.service.MetricsService;
-import org.apache.rocketmq.common.service.NnodeService;
-import org.apache.rocketmq.common.service.PushService;
-import org.apache.rocketmq.common.service.ScheduledService;
 import org.apache.rocketmq.snode.service.impl.ClientServiceImpl;
 import org.apache.rocketmq.snode.service.impl.LocalEnodeServiceImpl;
 import org.apache.rocketmq.snode.service.impl.MetricsServiceImpl;
@@ -91,6 +92,7 @@ public class SnodeController {
     private RemotingServer snodeServer;
     private RemotingClient mqttRemotingClient;
     private RemotingServer mqttRemotingServer;
+    private RemotingServer innerMqttRemotingServer;
     private ExecutorService sendMessageExecutor;
     private ExecutorService handleMqttMessageExecutor;
     private ExecutorService heartbeatExecutor;
@@ -101,7 +103,6 @@ public class SnodeController {
     private ScheduledService scheduledService;
     private ClientManager producerManager;
     private ClientManager consumerManager;
-//    private ClientManager iotClientManager;
     private SubscriptionManager subscriptionManager;
     private ClientHousekeepingService clientHousekeepingService;
     private SubscriptionGroupManager subscriptionGroupManager;
@@ -111,6 +112,7 @@ public class SnodeController {
     private PullMessageProcessor pullMessageProcessor;
     private HeartbeatProcessor heartbeatProcessor;
     private DefaultMqttMessageProcessor defaultMqttMessageProcessor;
+    private InnerMqttMessageProcessor innerMqttMessageProcessor;
     private InterceptorGroup remotingServerInterceptorGroup;
     private InterceptorGroup consumeMessageInterceptorGroup;
     private InterceptorGroup sendMessageInterceptorGroup;
@@ -118,14 +120,12 @@ public class SnodeController {
     private ClientService clientService;
     private SlowConsumerService slowConsumerService;
     private MetricsService metricsService;
-//    private WillMessageService willMessageService;
-//    private MqttPushServiceImpl mqttPushService;
 
     private final ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
             "SnodeControllerScheduledThread"));
 
-    public SnodeController(SnodeConfig snodeConfig, MqttConfig mqttConfig) {
+    public SnodeController(SnodeConfig snodeConfig, MqttConfig mqttConfig) throws CloneNotSupportedException {
         this.nettyClientConfig = snodeConfig.getNettyClientConfig();
         this.nettyServerConfig = snodeConfig.getNettyServerConfig();
         this.mqttServerConfig = mqttConfig.getMqttServerConfig();
@@ -154,6 +154,14 @@ public class SnodeController {
         if (this.mqttRemotingServer != null) {
             this.mqttRemotingServer.init(this.mqttServerConfig, this.clientHousekeepingService);
             this.mqttRemotingServer.registerInterceptorGroup(this.remotingServerInterceptorGroup);
+        }
+        this.innerMqttRemotingServer = RemotingServerFactory.getInstance().createRemotingServer(
+            RemotingUtil.MQTT_PROTOCOL);
+        ServerConfig innerMqttServerConfig = (ServerConfig)mqttServerConfig.clone();
+        innerMqttServerConfig.setListenPort(mqttServerConfig.getListenPort() - 1);
+        if (this.innerMqttRemotingServer != null) {
+            this.innerMqttRemotingServer.init(innerMqttServerConfig, this.clientHousekeepingService);
+            this.innerMqttRemotingServer.registerInterceptorGroup(this.remotingServerInterceptorGroup);
         }
         this.sendMessageExecutor = ThreadUtils.newThreadPoolExecutor(
             snodeConfig.getSnodeSendMessageMinPoolSize(),
@@ -212,7 +220,8 @@ public class SnodeController {
         this.sendMessageProcessor = new SendMessageProcessor(this);
         this.heartbeatProcessor = new HeartbeatProcessor(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
-        this.defaultMqttMessageProcessor = new DefaultMqttMessageProcessor(this.mqttConfig, mqttRemotingServer, enodeService, nnodeService);
+        this.defaultMqttMessageProcessor = new DefaultMqttMessageProcessor(this.mqttConfig, this.snodeConfig, mqttRemotingServer, enodeService, nnodeService);
+        this.innerMqttMessageProcessor = new InnerMqttMessageProcessor(this.defaultMqttMessageProcessor, innerMqttRemotingServer);
         this.pushService = new PushServiceImpl(this);
         this.clientService = new ClientServiceImpl(this);
         this.subscriptionManager = new SubscriptionManagerImpl();
@@ -351,6 +360,9 @@ public class SnodeController {
         }
         if (mqttRemotingServer != null) {
             this.mqttRemotingServer.registerProcessor(RequestCode.MQTT_MESSAGE, defaultMqttMessageProcessor, handleMqttMessageExecutor);
+        }
+        if (innerMqttRemotingServer != null) {
+            this.innerMqttRemotingServer.registerProcessor(RequestCode.MQTT_MESSAGE, innerMqttMessageProcessor, handleMqttMessageExecutor);
         }
     }
 

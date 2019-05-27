@@ -25,6 +25,7 @@ import io.netty.handler.codec.mqtt.MqttUnsubscribeMessage;
 import io.netty.handler.codec.mqtt.MqttUnsubscribePayload;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.client.Client;
@@ -83,7 +84,8 @@ public class MqttUnsubscribeMessagHandler implements MessageHandler {
 
         RemotingCommand command = RemotingCommand.createResponseCommand(MqttHeader.class);
         MqttHeader mqttHeader = (MqttHeader) command.readCustomHeader();
-        mqttHeader.setMessageType(MqttMessageType.SUBACK.value());
+        // dup/qos/retain value are always as below of UNSUBACK
+        mqttHeader.setMessageType(MqttMessageType.UNSUBACK.value());
         mqttHeader.setDup(false);
         mqttHeader.setQosLevel(MqttQoS.AT_MOST_ONCE.value());
         mqttHeader.setRetain(false);
@@ -99,27 +101,34 @@ public class MqttUnsubscribeMessagHandler implements MessageHandler {
 
     private void doUnsubscribe(Client client, List<String> topics, IOTClientManagerImpl iotClientManager) {
         ConcurrentHashMap<String, Subscription> clientId2Subscription = iotClientManager.getClientId2Subscription();
-        ConcurrentHashMap<String, ConcurrentHashMap<Client, Set<SubscriptionData>>> topic2SubscriptionTable = iotClientManager.getTopic2SubscriptionTable();
+        ConcurrentHashMap<String, Set<Client>> topic2Clients = iotClientManager.getTopic2Clients();
+        Subscription subscription = clientId2Subscription.get(client.getClientId());
 
-        for (String topicFilter : topics) {
-            //1.update clientId2Subscription
-            if (clientId2Subscription.containsKey(client.getClientId())) {
-                Subscription subscription = clientId2Subscription.get(client.getClientId());
+        //1.update clientId2Subscription
+        if (clientId2Subscription.containsKey(client.getClientId())) {
+            for (String topicFilter : topics) {
                 subscription.getSubscriptionTable().remove(topicFilter);
             }
-            //2.update topic2SubscriptionTable
-            String rootTopic = MqttUtil.getRootTopic(topicFilter);
-            ConcurrentHashMap<Client, Set<SubscriptionData>> client2SubscriptionData = topic2SubscriptionTable.get(rootTopic);
-            if (client2SubscriptionData != null) {
-                Set<SubscriptionData> subscriptionDataSet = client2SubscriptionData.get(client);
-                if (subscriptionDataSet != null) {
-                    Iterator<SubscriptionData> iterator = subscriptionDataSet.iterator();
-                    while (iterator.hasNext()) {
-                        if (iterator.next().getTopic().equals(topicFilter))
-                            iterator.remove();
-                    }
+        }
+
+        for (Iterator<Map.Entry<String, Set<Client>>> iterator = topic2Clients.entrySet().iterator(); iterator.hasNext(); ) {
+            Map.Entry<String, Set<Client>> next = iterator.next();
+            String rootTopic = next.getKey();
+            boolean needRemove = true;
+            for (Map.Entry<String, SubscriptionData> entry : subscription.getSubscriptionTable().entrySet()) {
+                if (MqttUtil.getRootTopic(entry.getKey()).equals(rootTopic)) {
+                    needRemove = false;
+                    break;
                 }
             }
+            if (needRemove) {
+                next.getValue().remove(client);
+            }
+            if (next.getValue().size() == 0) {
+                iterator.remove();
+            }
         }
+
+        //TODO update persistent store
     }
 }
