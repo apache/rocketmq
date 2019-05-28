@@ -19,12 +19,13 @@ package org.apache.rocketmq.mqtt;
 import io.netty.handler.codec.mqtt.MqttConnectPayload;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.codec.mqtt.MqttQoS;
-import java.io.UnsupportedEncodingException;
-import org.apache.rocketmq.common.MqttConfig;
+import org.apache.rocketmq.common.exception.MQClientException;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
 import org.apache.rocketmq.remoting.RemotingChannel;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttRemotingServer;
@@ -37,6 +38,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultMqttMessageProcessorTest {
+
+    @Mock
     private DefaultMqttMessageProcessor defaultMqttMessageProcessor;
 
     @Mock
@@ -53,11 +56,10 @@ public class DefaultMqttMessageProcessorTest {
 
     @Before
     public void init() {
-        defaultMqttMessageProcessor = new DefaultMqttMessageProcessor(new MqttConfig(), mqttRemotingServer);
     }
 
     @Test
-    public void testProcessRequest() throws RemotingCommandException, UnsupportedEncodingException {
+    public void testProcessRequest() throws InterruptedException, RemotingTimeoutException, MQClientException, RemotingSendRequestException, RemotingConnectException {
         RemotingCommand request = createMqttConnectMesssageCommand();
         defaultMqttMessageProcessor.processRequest(remotingChannel, request);
     }

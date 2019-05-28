@@ -18,6 +18,8 @@ package org.apache.rocketmq.snode.service;
 
 import org.apache.rocketmq.common.MqttConfig;
 import org.apache.rocketmq.common.SnodeConfig;
+import org.apache.rocketmq.remoting.ClientConfig;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.client.SlowConsumerService;
 import org.apache.rocketmq.snode.client.impl.SlowConsumerServiceImpl;
@@ -36,8 +38,17 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SlowConsumerServiceImplTest {
+
     @Spy
-    private SnodeController snodeController = new SnodeController(new SnodeConfig(), new MqttConfig());
+    private ServerConfig serverConfig = new ServerConfig();
+    @Spy
+    private ClientConfig clientConfig = new ClientConfig();
+    @Spy
+    private ServerConfig mqttServerConfig = new ServerConfig();
+    @Spy
+    private ClientConfig mqttClientConfig = new ClientConfig();
+
+    private SnodeController snodeController;
 
     private final String enodeName = "testEndoe";
 
@@ -52,8 +63,22 @@ public class SlowConsumerServiceImplTest {
     @Mock
     private ConsumerOffsetManager consumerOffsetManager;
 
+    public SlowConsumerServiceImplTest() {
+    }
+
     @Before
-    public void init() {
+    public void init() throws CloneNotSupportedException {
+        SnodeConfig snodeConfig = new SnodeConfig();
+        serverConfig.setListenPort(snodeConfig.getListenPort());
+        snodeConfig.setNettyClientConfig(clientConfig);
+        snodeConfig.setNettyServerConfig(serverConfig);
+
+        MqttConfig mqttConfig = new MqttConfig();
+        mqttServerConfig.setListenPort(mqttConfig.getListenPort());
+        mqttConfig.setMqttClientConfig(mqttClientConfig);
+        mqttConfig.setMqttServerConfig(mqttServerConfig);
+
+        snodeController = new SnodeController(snodeConfig, mqttConfig);
         slowConsumerService = new SlowConsumerServiceImpl(snodeController);
     }
 

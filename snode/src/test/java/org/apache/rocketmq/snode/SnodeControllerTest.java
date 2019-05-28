@@ -18,30 +18,55 @@ package org.apache.rocketmq.snode;
 
 import org.apache.rocketmq.common.MqttConfig;
 import org.apache.rocketmq.common.SnodeConfig;
+import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.ServerConfig;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Spy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class SnodeControllerTest {
 
+    @Spy
+    private ServerConfig serverConfig = new ServerConfig();
+    @Spy
+    private ClientConfig clientConfig = new ClientConfig();
+    @Spy
+    private ServerConfig mqttServerConfig = new ServerConfig();
+    @Spy
+    private ClientConfig mqttClientConfig = new ClientConfig();
+
+    private SnodeController snodeController;
+
+    @Before
+    public void init() throws CloneNotSupportedException {
+        SnodeConfig snodeConfig = new SnodeConfig();
+        snodeConfig.setNettyClientConfig(clientConfig);
+        serverConfig.setListenPort(10912);
+        snodeConfig.setNettyServerConfig(serverConfig);
+
+        MqttConfig mqttConfig = new MqttConfig();
+        mqttServerConfig.setListenPort(mqttConfig.getListenPort());
+        mqttConfig.setMqttClientConfig(mqttClientConfig);
+        mqttConfig.setMqttServerConfig(mqttServerConfig);
+
+        snodeController = new SnodeController(snodeConfig, mqttConfig);
+    }
+
     @Test
     public void testSnodeRestart() {
-        ServerConfig serverConfig = new ServerConfig();
-        serverConfig.setListenPort(10912);
-        SnodeController snodeController = new SnodeController(new SnodeConfig(), new MqttConfig());
         assertThat(snodeController.initialize());
         snodeController.start();
         snodeController.shutdown();
     }
 
     @Test
-    public void testSnodeRestartWithAclEnable() {
+    public void testSnodeRestartWithAclEnable() throws CloneNotSupportedException {
         System.setProperty("rocketmq.home.dir", "src/test/resources");
         System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml");
         SnodeConfig snodeConfig = new SnodeConfig();
         snodeConfig.setAclEnable(true);
-        SnodeController snodeController = new SnodeController(new SnodeConfig(), new MqttConfig());
         assertThat(snodeController.initialize());
         snodeController.start();
         snodeController.shutdown();

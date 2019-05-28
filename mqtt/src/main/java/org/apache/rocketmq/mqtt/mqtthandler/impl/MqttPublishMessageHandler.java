@@ -92,7 +92,7 @@ public class MqttPublishMessageHandler implements MessageHandler {
         MqttPublishMessage mqttPublishMessage = (MqttPublishMessage) message;
         MqttFixedHeader fixedHeader = mqttPublishMessage.fixedHeader();
         MqttPublishVariableHeader variableHeader = mqttPublishMessage.variableHeader();
-        if (MqttUtil.isQosLegal(fixedHeader.qosLevel())) {
+        if (!MqttUtil.isQosLegal(fixedHeader.qosLevel())) {
             log.error("The QoS level should be 0 or 1 or 2. The connection will be closed. remotingChannel={}, MqttMessage={}", remotingChannel.toString(), message.toString());
             remotingChannel.close();
             return null;
@@ -128,7 +128,7 @@ public class MqttPublishMessageHandler implements MessageHandler {
                 } finally {
                     ReferenceCountUtil.release(message);
                 }
-
+                break;
             case AT_LEAST_ONCE:
                 // Store msg and invoke callback to publish msg to subscribers
                 // 1. Check if the root topic has been created
@@ -183,11 +183,11 @@ public class MqttPublishMessageHandler implements MessageHandler {
                         log.error("Store Qos=1 Message error: {}", ex);
                     }
                 });
-
+                break;
             case EXACTLY_ONCE:
                 throw new MqttRuntimeException("Qos = 2 messages are not supported yet.");
         }
-        return doResponse(fixedHeader);
+        return doResponse(fixedHeader, variableHeader);
     }
 
     private void transferMessage(Set<String> snodeAddresses, String topic, byte[] body) throws MqttException {

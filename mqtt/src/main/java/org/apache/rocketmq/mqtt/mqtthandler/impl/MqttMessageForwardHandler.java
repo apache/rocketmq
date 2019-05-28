@@ -91,7 +91,7 @@ public class MqttMessageForwardHandler implements MessageHandler {
                 //add task to orderedExecutor
                 this.defaultMqttMessageProcessor.getOrderedExecutor().executeOrdered(client.getClientId(), SafeRunnable.safeRun(mqttPushTask));
             }
-            return doResponse(fixedHeader);
+            return doResponse(fixedHeader, variableHeader);
         }
         return null;
     }

@@ -73,6 +73,11 @@ public class LocalEnodeServiceImpl implements EnodeService {
         return completableFuture;
     }
 
+    @Override public RemotingCommand pullMessageSync(RemotingChannel remotingChannel, String enodeName,
+        RemotingCommand request) {
+        return null;
+    }
+
     @Override public RemotingCommand creatRetryTopic(RemotingChannel remotingChannel, String enodeName,
         RemotingCommand request) {
         try {

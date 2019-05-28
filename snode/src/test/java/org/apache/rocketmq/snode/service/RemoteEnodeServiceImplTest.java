@@ -25,7 +25,9 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.service.EnodeService;
 import org.apache.rocketmq.common.service.NnodeService;
+import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.InvokeCallback;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.rocketmq.NettyRemotingClient;
@@ -57,7 +59,15 @@ public class RemoteEnodeServiceImplTest extends SnodeTestBase {
     private EnodeService enodeService;
 
     @Spy
-    private SnodeController snodeController = new SnodeController(new SnodeConfig(), new MqttConfig());
+    private ServerConfig serverConfig = new ServerConfig();
+    @Spy
+    private ClientConfig clientConfig = new ClientConfig();
+    @Spy
+    private ServerConfig mqttServerConfig = new ServerConfig();
+    @Spy
+    private ClientConfig mqttClientConfig = new ClientConfig();
+
+    private SnodeController snodeController;
 
     @Mock
     private NnodeService nnodeService;
@@ -71,8 +81,22 @@ public class RemoteEnodeServiceImplTest extends SnodeTestBase {
 
     private String group = "snodeGroup";
 
+    public RemoteEnodeServiceImplTest() {
+    }
+
     @Before
-    public void init() {
+    public void init() throws CloneNotSupportedException {
+        SnodeConfig snodeConfig = new SnodeConfig();
+        serverConfig.setListenPort(snodeConfig.getListenPort());
+        snodeConfig.setNettyClientConfig(clientConfig);
+        snodeConfig.setNettyServerConfig(serverConfig);
+
+        MqttConfig mqttConfig = new MqttConfig();
+        mqttServerConfig.setListenPort(mqttConfig.getListenPort());
+        mqttConfig.setMqttClientConfig(mqttClientConfig);
+        mqttConfig.setMqttServerConfig(mqttServerConfig);
+
+        snodeController = new SnodeController(snodeConfig, mqttConfig);
         snodeController.setNnodeService(nnodeService);
         snodeController.setRemotingClient(remotingClient);
         enodeService = new RemoteEnodeServiceImpl(snodeController);

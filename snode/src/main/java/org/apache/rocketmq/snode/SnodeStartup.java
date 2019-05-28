@@ -58,7 +58,7 @@ public class SnodeStartup {
     private static final String DEFAULT_MQTT_CONFIG_FILE = "/conf/mqtt.properties";
     private static String mqttConfigFileName = System.getProperty("rocketmq.mqtt.config", DEFAULT_MQTT_CONFIG_FILE);
 
-    public static void main(String[] args) throws IOException, JoranException {
+    public static void main(String[] args) throws IOException, JoranException, CloneNotSupportedException {
         SnodeConfig snodeConfig = loadConfig(args);
         MqttConfig mqttConfig = loadMqttConfig(snodeConfig);
         if (snodeConfig.isEmbeddedModeEnable()) {
@@ -163,7 +163,7 @@ public class SnodeStartup {
         return mqttConfig;
     }
 
-    public static SnodeController createSnodeController(SnodeConfig snodeConfig, MqttConfig mqttConfig) throws JoranException {
+    public static SnodeController createSnodeController(SnodeConfig snodeConfig, MqttConfig mqttConfig) throws JoranException, CloneNotSupportedException {
 
         final SnodeController snodeController = new SnodeController(snodeConfig, mqttConfig);
 

@@ -55,7 +55,7 @@ public class OneWaySendExceptionIT extends BaseConf {
         producer.sendOneway(msg, messageQueue);
     }
 
-    @Test(expected = org.apache.rocketmq.client.exception.MQClientException.class)
+    @Test(expected = org.apache.rocketmq.common.exception.MQClientException.class)
     public void testSendSelectorNull() throws Exception {
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
         DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
@@ -63,7 +63,7 @@ public class OneWaySendExceptionIT extends BaseConf {
         producer.sendOneway(msg, selector, 100);
     }
 
-    @Test(expected = org.apache.rocketmq.client.exception.MQClientException.class)
+    @Test(expected = org.apache.rocketmq.common.exception.MQClientException.class)
     public void testSelectorThrowsException() throws Exception {
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
         DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);

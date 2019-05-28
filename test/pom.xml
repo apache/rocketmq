@@ -46,6 +46,10 @@
             <artifactId>truth</artifactId>
             <version>0.30</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>rocketmq-common</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

@@ -113,7 +113,7 @@ public class MqttPushTask implements Runnable {
                     //push message if in-flight window has slot(not full)
                     client.pushMessageQos1(mqttHeader, messageExt, brokerData);
                 }
-                if (inflightFullFlag == true) {
+                if (inflightFullFlag) {
                     break;
                 }
                 maxOffsetInQueue = getMaxOffset(brokerData.getBrokerName(), rootTopic);
