@@ -123,15 +123,20 @@ public class PlainPermissionLoader {
             return;
         }
 
+        if (ownedPermMap == null && ownedAccess.isAdmin()) {
+            // If the ownedPermMap is null and it is an admin user, then return
+            return;
+        }
+
         for (Map.Entry<String, Byte> needCheckedEntry : needCheckedPermMap.entrySet()) {
             String resource = needCheckedEntry.getKey();
             Byte neededPerm = needCheckedEntry.getValue();
             boolean isGroup = PlainAccessResource.isRetryTopic(resource);
 
-            if (!ownedPermMap.containsKey(resource)) {
+            if (ownedPermMap == null || !ownedPermMap.containsKey(resource)) {
                 // Check the default perm
-                byte ownedPerm = isGroup ? needCheckedAccess.getDefaultGroupPerm() :
-                    needCheckedAccess.getDefaultTopicPerm();
+                byte ownedPerm = isGroup ? ownedAccess.getDefaultGroupPerm() :
+                    ownedAccess.getDefaultTopicPerm();
                 if (!Permission.checkPermission(neededPerm, ownedPerm)) {
                     throw new AclException(String.format("No default permission for %s", PlainAccessResource.printStr(resource, isGroup)));
                 }

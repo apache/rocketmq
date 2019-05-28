@@ -21,6 +21,8 @@ It offers a variety of features:
 * Various message filter mechanics such as SQL and Tag
 * Docker images for isolated testing and cloud isolated clusters
 * Feature-rich administrative dashboard for configuration, metrics and monitoring
+* Access control list
+* Message trace
 
 
 ----------
@@ -47,3 +49,5 @@ We always welcome new contributions, whether for trivial cleanups, [big new feat
 ----------
 ## License
 [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html) Copyright (C) Apache Software Foundation
+
+

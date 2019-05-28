@@ -43,6 +43,7 @@ public class PlainAccessValidatorTest {
     @Before
     public void init() {
         System.setProperty("rocketmq.home.dir", "src/test/resources");
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml");
         plainAccessValidator = new PlainAccessValidator();
         sessionCredentials = new SessionCredentials();
         sessionCredentials.setAccessKey("RocketMQ");
@@ -113,6 +114,22 @@ public class PlainAccessValidatorTest {
         buf.position(0);
         PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.0.1:9876");
         plainAccessValidator.validate(accessResource);
+    }
+
+    @Test
+    public void validateForAdminCommandWithOutAclRPCHook() {
+        RemotingCommand consumerOffsetAdminRequest = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_CONSUMER_OFFSET, null);
+        plainAccessValidator.parse(consumerOffsetAdminRequest, "192.168.0.1:9876");
+
+        RemotingCommand subscriptionGroupAdminRequest = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG, null);
+        plainAccessValidator.parse(subscriptionGroupAdminRequest, "192.168.0.1:9876");
+
+        RemotingCommand delayOffsetAdminRequest = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_DELAY_OFFSET, null);
+        plainAccessValidator.parse(delayOffsetAdminRequest, "192.168.0.1:9876");
+
+        RemotingCommand allTopicConfigAdminRequest = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, null);
+        plainAccessValidator.parse(allTopicConfigAdminRequest, "192.168.0.1:9876");
+
     }
 
     @Test
@@ -265,6 +282,19 @@ public class PlainAccessValidatorTest {
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
         buf.position(0);
         PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.1.1");
+        plainAccessValidator.validate(accessResource);
+    }
+
+    @Test
+    public void validateGetAllTopicConfigTest() {
+        String whiteRemoteAddress = "192.168.0.1";
+        RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, null);
+
+        ByteBuffer buf = remotingCommand.encodeHeader();
+        buf.getInt();
+        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
+        buf.position(0);
+        PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), whiteRemoteAddress);
         plainAccessValidator.validate(accessResource);
     }
 }
