@@ -31,6 +31,7 @@ import org.apache.rocketmq.mqtt.exception.WrongMessageTypeException;
 import org.apache.rocketmq.mqtt.mqtthandler.MessageHandler;
 import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
 import org.apache.rocketmq.mqtt.task.MqttPushTask;
+import org.apache.rocketmq.mqtt.util.MqttUtil;
 import org.apache.rocketmq.mqtt.util.orderedexecutor.SafeRunnable;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -64,11 +65,10 @@ public class MqttPubackMessageHandler implements MessageHandler {
 
         InFlightMessage removedMessage = client.pubAckReceived(variableHeader.messageId());
         MqttHeader mqttHeader = new MqttHeader();
-        mqttHeader.setTopicName(removedMessage.getTopic());
         mqttHeader.setMessageType(MqttMessageType.PUBLISH.value());
         mqttHeader.setDup(false);
         mqttHeader.setRetain(false); //TODO set to false temporarily, need to be implemented.
-        MqttPushTask task = new MqttPushTask(defaultMqttMessageProcessor, mqttHeader, client, removedMessage.getBrokerData());
+        MqttPushTask task = new MqttPushTask(defaultMqttMessageProcessor, mqttHeader, MqttUtil.getRootTopic(removedMessage.getTopic()), client, removedMessage.getBrokerData());
         //add task to orderedExecutor
         this.defaultMqttMessageProcessor.getOrderedExecutor().executeOrdered(client.getClientId(), SafeRunnable.safeRun(task));
         return null;

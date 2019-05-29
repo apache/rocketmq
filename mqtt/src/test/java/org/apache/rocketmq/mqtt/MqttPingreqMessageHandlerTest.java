@@ -18,23 +18,23 @@
 package org.apache.rocketmq.mqtt;
 
 import io.netty.handler.codec.mqtt.MqttMessage;
-import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.mqtt.client.IOTClientManagerImpl;
+import org.apache.rocketmq.mqtt.client.MQTTSession;
 import org.apache.rocketmq.mqtt.mqtthandler.impl.MqttPingreqMessageHandler;
 import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.*;
-import static org.junit.Assert.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MqttPingreqMessageHandlerTest {
@@ -45,7 +45,7 @@ public class MqttPingreqMessageHandlerTest {
     @Mock
     private MqttMessage mqttMessage;
     @Mock
-    private Client client;
+    private MQTTSession client;
     @Mock
     private DefaultMqttMessageProcessor processor;
 

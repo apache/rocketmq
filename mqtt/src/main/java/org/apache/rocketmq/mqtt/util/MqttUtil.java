@@ -39,7 +39,7 @@ public class MqttUtil {
         if (!qos.equals(MqttQoS.AT_LEAST_ONCE) && !qos.equals(MqttQoS.AT_MOST_ONCE) && !qos.equals(MqttQoS.EXACTLY_ONCE)) {
             return false;
         }
-        return false;
+        return true;
     }
 
     public static boolean isMatch(String topicFiter, String topic) {

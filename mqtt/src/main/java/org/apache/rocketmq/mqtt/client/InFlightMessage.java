@@ -26,7 +26,7 @@ public class InFlightMessage {
     private final String messageId;
     private final long queueOffset;
 
-    InFlightMessage(String topic, Integer pushQos, byte[] body, BrokerData brokerData, String messageId,
+    public InFlightMessage(String topic, Integer pushQos, byte[] body, BrokerData brokerData, String messageId,
         long queueOffset) {
         this.topic = topic;
         this.pushQos = pushQos;

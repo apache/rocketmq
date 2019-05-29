@@ -23,22 +23,31 @@ import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.codec.mqtt.MqttQoS;
+import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.common.client.ClientManager;
 import org.apache.rocketmq.common.client.ClientRole;
 import org.apache.rocketmq.common.client.Subscription;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.mqtt.WillMessage;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.mqtt.client.IOTClientManagerImpl;
 import org.apache.rocketmq.mqtt.client.MQTTSession;
 import org.apache.rocketmq.mqtt.exception.MqttConnectException;
+import org.apache.rocketmq.mqtt.exception.MqttRuntimeException;
 import org.apache.rocketmq.mqtt.exception.WrongMessageTypeException;
 import org.apache.rocketmq.mqtt.mqtthandler.MessageHandler;
 import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
+import org.apache.rocketmq.mqtt.task.MqttPushTask;
+import org.apache.rocketmq.mqtt.util.MqttUtil;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
@@ -121,7 +130,7 @@ public class MqttConnectMessageHandler implements MessageHandler {
             {
                 add("IOT_GROUP");
             }
-        }, true, mqttConnectMessage.variableHeader().isCleanSession(), remotingChannel, System.currentTimeMillis());
+        }, true, mqttConnectMessage.variableHeader().isCleanSession(), remotingChannel, System.currentTimeMillis(), defaultMqttMessageProcessor);
         //register remotingChannel<--->client
         iotClientManager.register(IOTClientManagerImpl.IOT_GROUP, client);
 
@@ -138,7 +147,8 @@ public class MqttConnectMessageHandler implements MessageHandler {
             willMessage.setBody(payload.willMessageInBytes());
             defaultMqttMessageProcessor.getWillMessageService().saveWillMessage(client.getClientId(), willMessage);
         }
-
+        //trigger to push offline messages to this client
+        pushOfflineMessages(iotClientManager.getSubscriptionByClientId(client.getClientId()), client);
         mqttHeader.setConnectReturnCode(MqttConnectReturnCode.CONNECTION_ACCEPTED.name());
         command.setCode(ResponseCode.SUCCESS);
         command.setRemark(null);
@@ -155,6 +165,37 @@ public class MqttConnectMessageHandler implements MessageHandler {
             return false;
         }
         return true;
+    }
+
+    private void pushOfflineMessages(Subscription subscription, Client client) {
+
+        Enumeration<String> keys = subscription.getSubscriptionTable().keys();
+        Set<String> topicFilters = new HashSet<>();
+        while (keys.hasMoreElements()) {
+            String topicFilter = keys.nextElement();
+            String rootTopic = MqttUtil.getRootTopic(topicFilter);
+            topicFilters.add(rootTopic);
+        }
+        for (String rootTopic : topicFilters) {
+            TopicRouteData topicRouteData;
+            try {
+                topicRouteData = this.defaultMqttMessageProcessor.getNnodeService().getTopicRouteDataByTopic(rootTopic, false);
+            } catch (Exception e) {
+                log.error("Exception was thrown when get topicRouteData. topic={}", rootTopic);
+                throw new MqttRuntimeException("Exception was thrown when get topicRouteData.");
+            }
+            MqttHeader mqttHeader = new MqttHeader();
+            mqttHeader.setMessageType(MqttMessageType.PUBLISH.value());
+            mqttHeader.setRetain(false); //TODO set to false temporarily, need to be implemented later.
+            List<BrokerData> brokerDatas = topicRouteData.getBrokerDatas();
+            for (BrokerData brokerData : brokerDatas) {
+                MqttPushTask mqttPushTask = new MqttPushTask(this.defaultMqttMessageProcessor, mqttHeader, rootTopic, client, brokerData);
+                //add task to orderedExecutor
+                this.defaultMqttMessageProcessor.getOrderedExecutor().submit(mqttPushTask);
+            }
+
+        }
+
     }
 
     private boolean authorized(String username, String password) {

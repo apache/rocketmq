@@ -22,9 +22,9 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import org.apache.rocketmq.common.exception.MQBrokerException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.exception.MQBrokerException;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHead
 import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
+import org.apache.rocketmq.common.service.EnodeService;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -48,7 +49,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.serialize.RemotingSerializable;
 import org.apache.rocketmq.snode.SnodeController;
 import org.apache.rocketmq.snode.constant.SnodeConstant;
-import org.apache.rocketmq.common.service.EnodeService;
 
 public class RemoteEnodeServiceImpl implements EnodeService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.SNODE_LOGGER_NAME);
@@ -101,10 +101,22 @@ public class RemoteEnodeServiceImpl implements EnodeService {
                 }
             });
         } catch (Exception ex) {
-            log.error("Pull message async error:", ex);
+            log.error("Pull message async error: {}", ex);
             future.completeExceptionally(ex);
         }
         return future;
+    }
+
+    @Override public RemotingCommand pullMessageSync(RemotingChannel remotingChannel, String enodeName,
+        RemotingCommand request) {
+        try {
+            String enodeAddress = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
+            RemotingCommand response = this.snodeController.getRemotingClient().invokeSync(enodeAddress, request, SnodeConstant.CONSUMER_TIMEOUT_MILLIS_WHEN_SUSPEND);
+            return response;
+        } catch (Exception ex) {
+            log.error("Pull message sync error: {}", ex);
+        }
+        return null;
     }
 
     @Override

@@ -15,18 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.mqtt.constant;
+package org.apache.rocketmq.mqtt;
 
-import io.netty.util.AttributeKey;
-import org.apache.rocketmq.common.client.Client;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
-public class MqttConstant {
-    public static final int MAX_SUPPORTED_QOS = 0;
-    public static final String SUBSCRIPTION_FLAG_PLUS = "+";
-    public static final String SUBSCRIPTION_FLAG_SHARP = "#";
-    public static final String SUBSCRIPTION_SEPARATOR = "/";
-    public static final String TOPIC_CLIENTID_SEPARATOR = "@";
-    public static final long DEFAULT_TIMEOUT_MILLS = 3000L;
-    public static final String PROPERTY_MQTT_QOS = "PROPERTY_MQTT_QOS";
-    public static final AttributeKey<Client> MQTT_CLIENT_ATTRIBUTE_KEY = AttributeKey.valueOf("mqtt.client");
+@RunWith(MockitoJUnitRunner.class)
+public class MqttSubscribeMessageHandlerTest {
+
 }

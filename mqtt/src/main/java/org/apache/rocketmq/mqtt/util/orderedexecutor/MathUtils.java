@@ -36,10 +36,6 @@ public class MathUtils {
         return mod;
     }
 
-    public static int findNextPositivePowerOfTwo(final int value) {
-        return 1 << (32 - Integer.numberOfLeadingZeros(value - 1));
-    }
-
     /**
      * Current time from some arbitrary time base in the past, counting in
      * nanoseconds, and not affected by settimeofday or similar system clock
@@ -53,17 +49,6 @@ public class MathUtils {
      */
     public static long nowInNano() {
         return System.nanoTime();
-    }
-
-    /**
-     * Milliseconds elapsed since the time specified, the input is nanoTime
-     * the only conversion happens when computing the elapsed time.
-     *
-     * @param startNanoTime the start of the interval that we are measuring
-     * @return elapsed time in milliseconds.
-     */
-    public static long elapsedMSec(long startNanoTime) {
-       return (System.nanoTime() - startNanoTime) / NANOSECONDS_PER_MILLISECOND;
     }
 
     /**

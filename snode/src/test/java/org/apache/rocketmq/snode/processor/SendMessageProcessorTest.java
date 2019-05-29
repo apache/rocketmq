@@ -23,13 +23,15 @@ import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
+import org.apache.rocketmq.common.service.EnodeService;
+import org.apache.rocketmq.common.service.NnodeService;
+import org.apache.rocketmq.remoting.ClientConfig;
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.CodecHelper;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.snode.SnodeController;
-import org.apache.rocketmq.common.service.EnodeService;
-import org.apache.rocketmq.common.service.NnodeService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,7 +49,15 @@ public class SendMessageProcessorTest {
     private SendMessageProcessor sendMessageProcessor;
 
     @Spy
-    private SnodeController snodeController = new SnodeController(new SnodeConfig(), new MqttConfig());
+    private ServerConfig serverConfig = new ServerConfig();
+    @Spy
+    private ClientConfig clientConfig = new ClientConfig();
+    @Spy
+    private ServerConfig mqttServerConfig = new ServerConfig();
+    @Spy
+    private ClientConfig mqttClientConfig = new ClientConfig();
+
+    private SnodeController snodeController;
 
     @Mock
     private RemotingChannel remotingChannel;
@@ -62,8 +72,22 @@ public class SendMessageProcessorTest {
     @Mock
     private NnodeService nnodeService;
 
+    public SendMessageProcessorTest() {
+    }
+
     @Before
-    public void init() {
+    public void init() throws CloneNotSupportedException {
+        SnodeConfig snodeConfig = new SnodeConfig();
+        serverConfig.setListenPort(snodeConfig.getListenPort());
+        snodeConfig.setNettyClientConfig(clientConfig);
+        snodeConfig.setNettyServerConfig(serverConfig);
+
+        MqttConfig mqttConfig = new MqttConfig();
+        mqttServerConfig.setListenPort(mqttConfig.getListenPort());
+        mqttConfig.setMqttClientConfig(mqttClientConfig);
+        mqttConfig.setMqttServerConfig(mqttServerConfig);
+
+        snodeController = new SnodeController(snodeConfig, mqttConfig);
         snodeController.setNnodeService(nnodeService);
         snodeController.setEnodeService(enodeService);
         sendMessageProcessor = new SendMessageProcessor(snodeController);
@@ -73,7 +97,7 @@ public class SendMessageProcessorTest {
     public void testSendMessageV2ProcessRequest() throws RemotingCommandException {
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         RemotingCommand request = createSendMesssageV2Command();
-        when(this.snodeController.getEnodeService().sendMessage(null, anyString(), any(RemotingCommand.class))).thenReturn(future);
+        when(this.snodeController.getEnodeService().sendMessage(any(RemotingChannel.class), anyString(), any(RemotingCommand.class))).thenReturn(future);
         sendMessageProcessor.processRequest(remotingChannel, request);
     }
 
@@ -82,7 +106,7 @@ public class SendMessageProcessorTest {
         snodeController.setEnodeService(enodeService);
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         RemotingCommand request = createSendBatchMesssageCommand();
-        when(this.snodeController.getEnodeService().sendMessage(null, anyString(), any(RemotingCommand.class))).thenReturn(future);
+        when(this.snodeController.getEnodeService().sendMessage(any(RemotingChannel.class), anyString(), any(RemotingCommand.class))).thenReturn(future);
         sendMessageProcessor.processRequest(remotingChannel, request);
     }
 

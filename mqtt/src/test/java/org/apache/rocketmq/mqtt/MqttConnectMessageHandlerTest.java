@@ -22,6 +22,8 @@ import io.netty.handler.codec.mqtt.MqttConnectVariableHeader;
 import io.netty.handler.codec.mqtt.MqttFixedHeader;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.codec.mqtt.MqttQoS;
+import org.apache.rocketmq.common.MqttConfig;
+import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.mqtt.mqtthandler.impl.MqttConnectMessageHandler;
 import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
 import org.apache.rocketmq.remoting.RemotingChannel;
@@ -42,6 +44,7 @@ public class MqttConnectMessageHandlerTest {
     @Test
     public void testHandlerMessage() throws Exception {
 
+        this.defaultMqttMessageProcessor = new DefaultMqttMessageProcessor(new MqttConfig(), new SnodeConfig(), null, null, null);
         MqttConnectMessageHandler mqttConnectMessageHandler = new MqttConnectMessageHandler(defaultMqttMessageProcessor);
         MqttConnectPayload payload = new MqttConnectPayload("1234567", "testTopic", "willMessage".getBytes(), null, "1234567".getBytes());
         MqttConnectMessage mqttConnectMessage = new MqttConnectMessage(new MqttFixedHeader(

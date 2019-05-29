@@ -21,6 +21,8 @@ import java.util.List;
 import org.apache.rocketmq.common.MqttConfig;
 import org.apache.rocketmq.common.SnodeConfig;
 import org.apache.rocketmq.common.service.NnodeService;
+import org.apache.rocketmq.remoting.ClientConfig;
+import org.apache.rocketmq.remoting.ServerConfig;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -46,15 +48,37 @@ import static org.mockito.Mockito.when;
 public class NnodeServiceImplTest extends SnodeTestBase {
 
     @Spy
-    private SnodeController snodeController = new SnodeController(new SnodeConfig(), new MqttConfig());
+    private ServerConfig serverConfig = new ServerConfig();
+    @Spy
+    private ClientConfig clientConfig = new ClientConfig();
+    @Spy
+    private ServerConfig mqttServerConfig = new ServerConfig();
+    @Spy
+    private ClientConfig mqttClientConfig = new ClientConfig();
+
+    private SnodeController snodeController;
 
     @Mock
     private NettyRemotingClient remotingClient;
 
     private NnodeService nnodeService;
 
+    public NnodeServiceImplTest() {
+    }
+
     @Before
-    public void init() {
+    public void init() throws CloneNotSupportedException {
+        SnodeConfig snodeConfig = new SnodeConfig();
+        serverConfig.setListenPort(snodeConfig.getListenPort());
+        snodeConfig.setNettyClientConfig(clientConfig);
+        snodeConfig.setNettyServerConfig(serverConfig);
+
+        MqttConfig mqttConfig = new MqttConfig();
+        mqttServerConfig.setListenPort(mqttConfig.getListenPort());
+        mqttConfig.setMqttClientConfig(mqttClientConfig);
+        mqttConfig.setMqttServerConfig(mqttServerConfig);
+
+        snodeController = new SnodeController(snodeConfig, mqttConfig);
         snodeController.setRemotingClient(remotingClient);
         nnodeService = new NnodeServiceImpl(snodeController);
     }

@@ -20,6 +20,7 @@ package org.apache.rocketmq.mqtt.mqtthandler;
 import io.netty.handler.codec.mqtt.MqttFixedHeader;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttMessageType;
+import io.netty.handler.codec.mqtt.MqttPublishVariableHeader;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -56,7 +57,7 @@ public interface MessageHandler {
         if (topic2Clients.containsKey(MqttUtil.getRootTopic(topic))) {
             Set<Client> clients = topic2Clients.get(MqttUtil.getRootTopic(topic));
             for (Client client : clients) {
-                if(((MQTTSession)client).isConnected()) {
+                if (((MQTTSession) client).isConnected()) {
                     Subscription subscription = clientId2Subscription.get(client.getClientId());
                     Enumeration<String> keys = subscription.getSubscriptionTable().keys();
                     while (keys.hasMoreElements()) {
@@ -71,18 +72,18 @@ public interface MessageHandler {
         return clientsTobePush;
     }
 
-    default RemotingCommand doResponse(MqttFixedHeader fixedHeader) {
+    default RemotingCommand doResponse(MqttFixedHeader fixedHeader, MqttPublishVariableHeader variableHeader) {
         if (fixedHeader.qosLevel().value() > 0) {
             RemotingCommand command = RemotingCommand.createResponseCommand(MqttHeader.class);
             MqttHeader mqttHeader = (MqttHeader) command.readCustomHeader();
-            if (fixedHeader.qosLevel().equals(MqttQoS.AT_MOST_ONCE)) {
+            if (fixedHeader.qosLevel().equals(MqttQoS.AT_LEAST_ONCE)) {
                 mqttHeader.setMessageType(MqttMessageType.PUBACK.value());
                 mqttHeader.setDup(false);
                 mqttHeader.setQosLevel(MqttQoS.AT_MOST_ONCE.value());
                 mqttHeader.setRetain(false);
                 mqttHeader.setRemainingLength(2);
-                mqttHeader.setPacketId(0);
-            } else if (fixedHeader.qosLevel().equals(MqttQoS.AT_LEAST_ONCE)) {
+                mqttHeader.setPacketId(variableHeader.packetId());
+            } else if (fixedHeader.qosLevel().equals(MqttQoS.EXACTLY_ONCE)) {
                 //PUBREC/PUBREL/PUBCOMP
             }
             return command;

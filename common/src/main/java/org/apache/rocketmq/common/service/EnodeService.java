@@ -47,13 +47,23 @@ public interface EnodeService {
         final RemotingCommand request);
 
     /**
-     * Pull message from enode server.
+     * Pull message from enode server asynchronously.
      *
      * @param enodeName Enode server name
      * @param request {@link PullMessageRequestHeader} Pull message request header
      * @return Pull message Response future
      */
     CompletableFuture<RemotingCommand> pullMessage(final RemotingChannel remotingChannel, final String enodeName,
+        final RemotingCommand request);
+
+    /**
+     * Pull message from enode server synchronously.
+     *
+     * @param enodeName Enode server name
+     * @param request {@link PullMessageRequestHeader} Pull message request header
+     * @return RemotingCommand
+     */
+    RemotingCommand pullMessageSync(final RemotingChannel remotingChannel, final String enodeName,
         final RemotingCommand request);
 
     /**

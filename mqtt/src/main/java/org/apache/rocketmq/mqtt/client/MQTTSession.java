@@ -45,6 +45,8 @@ import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
 
+import static org.apache.rocketmq.mqtt.constant.MqttConstant.TOPIC_CLIENTID_SEPARATOR;
+
 public class MQTTSession extends Client {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.MQTT_LOGGER_NAME);
 
@@ -110,6 +112,11 @@ public class MQTTSession extends Client {
         return Objects.equals(this.getClientId(), client.getClientId());
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(this.getClientId());
+    }
+
     public boolean isConnected() {
         return isConnected;
     }
@@ -143,7 +150,7 @@ public class MQTTSession extends Client {
             inflightSlots.decrementAndGet();
             mqttHeader.setPacketId(getNextPacketId());
             inflightWindow.put(mqttHeader.getPacketId(), new InFlightMessage(mqttHeader.getTopicName(), mqttHeader.getQosLevel(), messageExt.getBody(), brokerData, messageExt.getMsgId(), messageExt.getQueueOffset()));
-            inflightTimeouts.add(new InFlightPacket(mqttHeader.getPacketId(), FLIGHT_BEFORE_RESEND_MS));
+//            inflightTimeouts.add(new InFlightPacket(mqttHeader.getPacketId(), FLIGHT_BEFORE_RESEND_MS));
             put2processTable(((IOTClientManagerImpl) this.defaultMqttMessageProcessor.getIotClientManager()).getProcessTable(), brokerData.getBrokerName(), MqttUtil.getRootTopic(mqttHeader.getTopicName()), messageExt);
             pushMessage2Client(mqttHeader, messageExt.getBody());
         }
@@ -155,7 +162,7 @@ public class MQTTSession extends Client {
         ConcurrentHashMap<String, ConcurrentHashMap<String, TreeMap<Long, MessageExt>>> processTable = ((IOTClientManagerImpl) this.defaultMqttMessageProcessor.getIotClientManager()).getProcessTable();
         ConcurrentHashMap<String, TreeMap<Long, MessageExt>> map = processTable.get(remove.getBrokerData().getBrokerName());
         if (map != null) {
-            TreeMap<Long, MessageExt> treeMap = map.get(rootTopic + "@" + this.getClientId());
+            TreeMap<Long, MessageExt> treeMap = map.get(rootTopic + TOPIC_CLIENTID_SEPARATOR + this.getClientId());
             if (treeMap != null) {
                 treeMap.remove(remove.getQueueOffset());
             }
@@ -193,10 +200,10 @@ public class MQTTSession extends Client {
         MessageExt messageExt) {
         ConcurrentHashMap<String, TreeMap<Long, MessageExt>> map;
         TreeMap<Long, MessageExt> treeMap;
-        String offsetKey = rootTopic + "@" + this.getClientId();
-        if (processTable.contains(brokerName)) {
+        String offsetKey = rootTopic + TOPIC_CLIENTID_SEPARATOR + this.getClientId();
+        if (processTable.containsKey(brokerName)) {
             map = processTable.get(brokerName);
-            if (map.contains(offsetKey)) {
+            if (map.containsKey(offsetKey)) {
                 treeMap = map.get(offsetKey);
                 treeMap.putIfAbsent(messageExt.getQueueOffset(), messageExt);
             } else {
@@ -252,4 +259,11 @@ public class MQTTSession extends Client {
         return inflightWindow;
     }
 
+    public DelayQueue<InFlightPacket> getInflightTimeouts() {
+        return inflightTimeouts;
+    }
+
+    public Hashtable getInUsePacketIds() {
+        return inUsePacketIds;
+    }
 }

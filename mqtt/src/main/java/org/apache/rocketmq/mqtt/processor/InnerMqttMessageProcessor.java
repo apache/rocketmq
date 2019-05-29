@@ -59,7 +59,8 @@ public class InnerMqttMessageProcessor implements RequestProcessor {
     private NnodeService nnodeService;
     private MqttMessageForwardHandler mqttMessageForwardHandler;
 
-    public InnerMqttMessageProcessor(DefaultMqttMessageProcessor defaultMqttMessageProcessor, RemotingServer innerMqttRemotingServer) {
+    public InnerMqttMessageProcessor(DefaultMqttMessageProcessor defaultMqttMessageProcessor,
+        RemotingServer innerMqttRemotingServer) {
         this.defaultMqttMessageProcessor = defaultMqttMessageProcessor;
         this.willMessageService = this.defaultMqttMessageProcessor.getWillMessageService();
         this.iotClientManager = this.defaultMqttMessageProcessor.getIotClientManager();
@@ -73,14 +74,14 @@ public class InnerMqttMessageProcessor implements RequestProcessor {
     public RemotingCommand processRequest(RemotingChannel remotingChannel, RemotingCommand message)
         throws InterruptedException, RemotingTimeoutException, MQClientException, RemotingSendRequestException, RemotingConnectException {
         MqttHeader mqttHeader = (MqttHeader) message.readCustomHeader();
-        if(mqttHeader.getMessageType().equals(PUBLISH)){
+        if (mqttHeader.getMessageType().equals(PUBLISH)) {
             MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.valueOf(mqttHeader.getMessageType()),
                 mqttHeader.isDup(), MqttQoS.valueOf(mqttHeader.getQosLevel()), mqttHeader.isRetain(),
                 mqttHeader.getRemainingLength());
             MqttPublishVariableHeader mqttPublishVariableHeader = new MqttPublishVariableHeader(mqttHeader.getTopicName(), mqttHeader.getPacketId());
             MqttMessage mqttMessage = new MqttPublishMessage(fixedHeader, mqttPublishVariableHeader, Unpooled.copiedBuffer(message.getBody()));
             return mqttMessageForwardHandler.handleMessage(mqttMessage, remotingChannel);
-        }else{
+        } else {
             return defaultMqttMessageProcessor.processRequest(remotingChannel, message);
         }
 
