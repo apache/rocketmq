@@ -19,12 +19,16 @@ package io.openmessaging.rocketmq;
 import io.openmessaging.KeyValue;
 import io.openmessaging.MessagingAccessPoint;
 import io.openmessaging.consumer.Consumer;
-import io.openmessaging.exception.OMSUnsupportException;
 import io.openmessaging.manager.ResourceManager;
 import io.openmessaging.message.MessageFactory;
 import io.openmessaging.producer.Producer;
 import io.openmessaging.producer.TransactionStateCheckListener;
+import io.openmessaging.rocketmq.consumer.PullConsumerImpl;
+import io.openmessaging.rocketmq.consumer.PushConsumerImpl;
+import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import io.openmessaging.rocketmq.producer.ProducerImpl;
+import java.util.HashSet;
+import java.util.Set;
 
 public class MessagingAccessPointImpl implements MessagingAccessPoint {
 
@@ -54,15 +58,76 @@ public class MessagingAccessPointImpl implements MessagingAccessPoint {
     }
 
     @Override public Consumer createConsumer() {
-        return null;
+        String consumerId = accessPointProperties.getString(NonStandardKeys.CONSUMER_ID);
+        String[] nsStrArr = consumerId.split("_");
+        if (nsStrArr.length < 2) {
+            return new PushConsumerImpl(accessPointProperties);
+        }
+        if (NonStandardKeys.PULL_CONSUMER.equals(nsStrArr[0])) {
+            return new PullConsumerImpl(accessPointProperties);
+        }
+        return new PushConsumerImpl(accessPointProperties);
     }
 
     @Override
     public ResourceManager resourceManager() {
-        throw new OMSUnsupportException(-1, "ResourceManager is not supported in current version.");
+        DefaultResourceManager resourceManager = new DefaultResourceManager();
+        return resourceManager;
     }
 
     @Override public MessageFactory messageFactory() {
         return null;
     }
+
+    class DefaultResourceManager implements ResourceManager {
+
+        @Override
+        public void createNamespace(String nsName) {
+            accessPointProperties.put(NonStandardKeys.CONSUMER_ID, nsName);
+        }
+
+        @Override
+        public void deleteNamespace(String nsName) {
+            accessPointProperties.put(NonStandardKeys.CONSUMER_ID, null);
+        }
+
+        @Override
+        public void switchNamespace(String targetNamespace) {
+            accessPointProperties.put(NonStandardKeys.CONSUMER_ID, targetNamespace);
+        }
+
+        @Override
+        public Set<String> listNamespaces() {
+            return new HashSet<String>() {
+                {
+                    add(accessPointProperties.getString(NonStandardKeys.CONSUMER_ID));
+                }
+            };
+        }
+
+        @Override
+        public void createQueue(String queueName) {
+
+        }
+
+        @Override
+        public void deleteQueue(String queueName) {
+
+        }
+
+        @Override
+        public Set<String> listQueues(String nsName) {
+            return null;
+        }
+
+        @Override
+        public void filter(String queueName, String filterString) {
+
+        }
+
+        @Override
+        public void routing(String sourceQueue, String targetQueue) {
+
+        }
+    };
 }

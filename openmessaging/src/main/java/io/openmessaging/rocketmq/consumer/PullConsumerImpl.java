@@ -17,35 +17,57 @@
 package io.openmessaging.rocketmq.consumer;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.Message;
-import io.openmessaging.OMSBuiltinKeys;
-import io.openmessaging.consumer.PullConsumer;
+import io.openmessaging.ServiceLifeState;
+import io.openmessaging.consumer.BatchMessageListener;
+import io.openmessaging.consumer.Consumer;
+import io.openmessaging.consumer.MessageListener;
+import io.openmessaging.consumer.MessageReceipt;
 import io.openmessaging.exception.OMSRuntimeException;
+import io.openmessaging.extension.Extension;
+import io.openmessaging.extension.QueueMetaData;
+import io.openmessaging.interceptor.ConsumerInterceptor;
+import io.openmessaging.internal.DefaultKeyValue;
+import io.openmessaging.message.Message;
 import io.openmessaging.rocketmq.config.ClientConfig;
+import io.openmessaging.rocketmq.domain.BytesMessageImpl;
 import io.openmessaging.rocketmq.domain.ConsumeRequest;
+import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import io.openmessaging.rocketmq.utils.BeanUtils;
 import io.openmessaging.rocketmq.utils.OMSUtil;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.MQPullConsumer;
 import org.apache.rocketmq.client.consumer.MQPullConsumerScheduleService;
 import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.consumer.PullTaskCallback;
 import org.apache.rocketmq.client.consumer.PullTaskContext;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.ProcessQueue;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
-public class PullConsumerImpl implements PullConsumer {
+public class PullConsumerImpl implements Consumer {
+
+    private static final int PULL_MAX_NUMS = 32;
+    private static final int PULL_MIN_NUMS = 1;
+
     private final DefaultMQPullConsumer rocketmqPullConsumer;
     private final KeyValue properties;
     private boolean started = false;
     private final MQPullConsumerScheduleService pullConsumerScheduleService;
     private final LocalMessageCache localMessageCache;
     private final ClientConfig clientConfig;
+    private ServiceLifeState currentState;
+    private List<ConsumerInterceptor> consumerInterceptors;
 
     private final static InternalLogger log = ClientLogger.getLog();
 
@@ -55,7 +77,7 @@ public class PullConsumerImpl implements PullConsumer {
 
         String consumerGroup = clientConfig.getConsumerId();
         if (null == consumerGroup || consumerGroup.isEmpty()) {
-            throw new OMSRuntimeException("-1", "Consumer Group is necessary for RocketMQ, please set it.");
+            throw new OMSRuntimeException(-1, "Consumer Group is necessary for RocketMQ, please set it.");
         }
         pullConsumerScheduleService = new MQPullConsumerScheduleService(consumerGroup);
 
@@ -64,7 +86,7 @@ public class PullConsumerImpl implements PullConsumer {
         if ("true".equalsIgnoreCase(System.getenv("OMS_RMQ_DIRECT_NAME_SRV"))) {
             String accessPoints = clientConfig.getAccessPoints();
             if (accessPoints == null || accessPoints.isEmpty()) {
-                throw new OMSRuntimeException("-1", "OMS AccessPoints is null or empty.");
+                throw new OMSRuntimeException(-1, "OMS AccessPoints is null or empty.");
             }
             this.rocketmqPullConsumer.setNamesrvAddr(accessPoints.replace(',', ';'));
         }
@@ -76,69 +98,13 @@ public class PullConsumerImpl implements PullConsumer {
 
         String consumerId = OMSUtil.buildInstanceName();
         this.rocketmqPullConsumer.setInstanceName(consumerId);
-        properties.put(OMSBuiltinKeys.CONSUMER_ID, consumerId);
+        properties.put(NonStandardKeys.CONSUMER_ID, consumerId);
 
         this.rocketmqPullConsumer.setLanguage(LanguageCode.OMS);
 
         this.localMessageCache = new LocalMessageCache(this.rocketmqPullConsumer, clientConfig);
-    }
 
-    @Override
-    public KeyValue attributes() {
-        return properties;
-    }
-
-    @Override
-    public PullConsumer attachQueue(String queueName) {
-        registerPullTaskCallback(queueName);
-        return this;
-    }
-
-    @Override
-    public PullConsumer attachQueue(String queueName, KeyValue attributes) {
-        registerPullTaskCallback(queueName);
-        return this;
-    }
-
-    @Override
-    public PullConsumer detachQueue(String queueName) {
-        this.rocketmqPullConsumer.getRegisterTopics().remove(queueName);
-        return this;
-    }
-
-    @Override
-    public Message receive() {
-        MessageExt rmqMsg = localMessageCache.poll();
-        return rmqMsg == null ? null : OMSUtil.msgConvert(rmqMsg);
-    }
-
-    @Override
-    public Message receive(final KeyValue properties) {
-        MessageExt rmqMsg = localMessageCache.poll(properties);
-        return rmqMsg == null ? null : OMSUtil.msgConvert(rmqMsg);
-    }
-
-    @Override
-    public void ack(final String messageId) {
-        localMessageCache.ack(messageId);
-    }
-
-    @Override
-    public void ack(final String messageId, final KeyValue properties) {
-        localMessageCache.ack(messageId);
-    }
-
-    @Override
-    public synchronized void startup() {
-        if (!started) {
-            try {
-                this.pullConsumerScheduleService.start();
-                this.localMessageCache.startup();
-            } catch (MQClientException e) {
-                throw new OMSRuntimeException("-1", e);
-            }
-        }
-        this.started = true;
+        consumerInterceptors = new ArrayList<>(16);
     }
 
     private void registerPullTaskCallback(final String targetQueueName) {
@@ -174,12 +140,248 @@ public class PullConsumerImpl implements PullConsumer {
     }
 
     @Override
-    public synchronized void shutdown() {
+    public void resume() {
+        currentState = ServiceLifeState.STARTED;
+    }
+
+    @Override
+    public void suspend() {
+        currentState = ServiceLifeState.STOPPED;
+    }
+
+    @Override
+    public void suspend(long timeout) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isSuspended() {
+        if (ServiceLifeState.STOPPED.equals(currentState)) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void bindQueue(String queueName) {
+        registerPullTaskCallback(queueName);
+    }
+
+    @Override
+    public void bindQueue(List<String> queueNames) {
+        for (String queueName : queueNames) {
+            bindQueue(queueName);
+        }
+    }
+
+    @Override
+    public void bindQueue(String queueName, MessageListener listener) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void bindQueues(List<String> queueNames, MessageListener listener) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void bindQueue(String queueName, BatchMessageListener listener) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void bindQueues(List<String> queueNames, BatchMessageListener listener) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void unbindQueue(String queueName) {
+        this.rocketmqPullConsumer.getRegisterTopics().remove(queueName);
+    }
+
+    @Override
+    public void unbindQueues(List<String> queueNames) {
+        for (String queueName : queueNames) {
+            this.rocketmqPullConsumer.getRegisterTopics().remove(queueName);
+        }
+    }
+
+    @Override
+    public boolean isBindQueue() {
+        Set<String> registerTopics = rocketmqPullConsumer.getRegisterTopics();
+        if (null == registerTopics || registerTopics.isEmpty()) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public List<String> getBindQueues() {
+        Set<String> registerTopics = rocketmqPullConsumer.getRegisterTopics();
+        return new ArrayList<>(registerTopics);
+    }
+
+    @Override
+    public void addInterceptor(ConsumerInterceptor interceptor) {
+        consumerInterceptors.add(interceptor);
+    }
+
+    @Override
+    public void removeInterceptor(ConsumerInterceptor interceptor) {
+        consumerInterceptors.remove(interceptor);
+    }
+
+    @Override
+    public Message receive(long timeout) {
+        KeyValue properties = new DefaultKeyValue();
+        properties.put(NonStandardKeys.TIMEOUT, timeout);
+        MessageExt rmqMsg = localMessageCache.poll(properties);
+        return rmqMsg == null ? null : OMSUtil.msgConvert(rmqMsg);
+    }
+
+    @Override
+    public Message receive(String queueName, int partitionId, long receiptId, long timeout) {
+        MessageQueue mq = null;
+        mq = getQueue(queueName, partitionId, mq);
+        PullResult pullResult = getResult(receiptId, timeout, mq, PULL_MIN_NUMS);
+        if (pullResult == null)
+            return null;
+        PullStatus pullStatus = pullResult.getPullStatus();
+        List<Message> messages = new ArrayList<>(16);
+        if (PullStatus.FOUND.equals(pullStatus)) {
+            List<MessageExt> rmqMsgs = pullResult.getMsgFoundList();
+            if (null != rmqMsgs && !rmqMsgs.isEmpty()) {
+                for (MessageExt messageExt : rmqMsgs) {
+                    BytesMessageImpl bytesMessage = OMSUtil.msgConvert(messageExt);
+                    messages.add(bytesMessage);
+                }
+                return messages.get(0);
+            }
+        }
+        return null;
+    }
+
+    private PullResult getResult(long receiptId, long timeout, MessageQueue mq, int nums) {
+        PullResult pullResult;
+        try {
+            pullResult = rocketmqPullConsumer.pull(mq, "*", receiptId, nums, timeout);
+        } catch (MQClientException e) {
+            log.error("A error occurred when pull message.", e);
+            return null;
+        } catch (RemotingException e) {
+            log.error("A error occurred when pull message.", e);
+            return null;
+        } catch (InterruptedException e) {
+            log.error("A error occurred when pull message.", e);
+            return null;
+        } catch (MQBrokerException e) {
+            log.error("A error occurred when pull message.", e);
+            return null;
+        }
+        if (null == pullResult) {
+            return null;
+        }
+        return pullResult;
+    }
+
+    private MessageQueue getQueue(String queueName, int partitionId, MessageQueue mq) {
+        try {
+            Set<MessageQueue> messageQueues = rocketmqPullConsumer.fetchSubscribeMessageQueues(queueName);
+            for (MessageQueue messageQueue : messageQueues) {
+                if (messageQueue.getQueueId() == partitionId) {
+                    mq = messageQueue;
+                }
+            }
+        } catch (MQClientException e) {
+            log.error("A error occurred when batch pull message.", e);
+        }
+        return mq;
+    }
+
+    @Override
+    public List<Message> batchReceive(long timeout) {
+        KeyValue properties = new DefaultKeyValue();
+        properties.put(NonStandardKeys.TIMEOUT, timeout);
+        List<MessageExt> rmqMsgs = localMessageCache.batchPoll(properties);
+        if (null != rmqMsgs && !rmqMsgs.isEmpty()) {
+            List<Message> messages = new ArrayList<>(rmqMsgs.size());
+            for (MessageExt messageExt : rmqMsgs) {
+                BytesMessageImpl bytesMessage = OMSUtil.msgConvert(messageExt);
+                messages.add(bytesMessage);
+            }
+            return messages;
+        }
+        return null;
+    }
+
+    @Override
+    public List<Message> batchReceive(String queueName, int partitionId, long receiptId, long timeout) {
+        MessageQueue mq = null;
+        mq = getQueue(queueName, partitionId, mq);
+        PullResult pullResult = getResult(receiptId, timeout, mq, PULL_MAX_NUMS);
+        if (pullResult == null)
+            return null;
+        PullStatus pullStatus = pullResult.getPullStatus();
+        List<Message> messages = new ArrayList<>(16);
+        if (PullStatus.FOUND.equals(pullStatus)) {
+            List<MessageExt> rmqMsgs = pullResult.getMsgFoundList();
+            if (null != rmqMsgs && !rmqMsgs.isEmpty()) {
+                for (MessageExt messageExt : rmqMsgs) {
+                    BytesMessageImpl bytesMessage = OMSUtil.msgConvert(messageExt);
+                    messages.add(bytesMessage);
+                }
+                return messages;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public void ack(MessageReceipt receipt) {
+
+    }
+
+    @Override
+    public Optional<Extension> getExtension() {
+
+        return Optional.of(new Extension() {
+            @Override
+            public QueueMetaData getQueueMetaData(String queueName) {
+                return getQueueMetaData(queueName);
+            }
+        });
+    }
+
+    @Override
+    public synchronized void start() {
+        if (!started) {
+            try {
+                this.pullConsumerScheduleService.start();
+                this.localMessageCache.start();
+            } catch (MQClientException e) {
+                throw new OMSRuntimeException(-1, e);
+            }
+        }
+        this.started = true;
+    }
+
+    @Override
+    public synchronized void stop() {
         if (this.started) {
-            this.localMessageCache.shutdown();
+            this.localMessageCache.stop();
             this.pullConsumerScheduleService.shutdown();
             this.rocketmqPullConsumer.shutdown();
         }
         this.started = false;
+    }
+
+    @Override
+    public ServiceLifeState currentState() {
+        return localMessageCache.currentState();
+    }
+
+    @Override
+    public QueueMetaData getQueueMetaData(String queueName) {
+        return localMessageCache.getQueueMetaData(queueName);
     }
 }

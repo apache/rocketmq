@@ -18,7 +18,7 @@ package io.openmessaging.rocketmq.domain;
 
 import io.openmessaging.message.Header;
 
-public class MessageHeader implements Header{
+public class MessageHeader implements Header {
 
     private String destination;
 
