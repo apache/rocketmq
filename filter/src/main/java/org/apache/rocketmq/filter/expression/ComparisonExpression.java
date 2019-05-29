@@ -112,6 +112,7 @@ public abstract class ComparisonExpression extends BinaryExpression implements B
     private static BooleanExpression doCreateEqual(Expression left, Expression right) {
         return new ComparisonExpression(left, right) {
 
+            @Override
             public Object evaluate(EvaluationContext context) throws Exception {
                 Object lv = left.evaluate(context);
                 Object rv = right.evaluate(context);
@@ -132,10 +133,12 @@ public abstract class ComparisonExpression extends BinaryExpression implements B
                 return Boolean.FALSE;
             }
 
+            @Override
             protected boolean asBoolean(int answer) {
                 return answer == 0;
             }
 
+            @Override
             public String getExpressionSymbol() {
                 return "==";
             }
@@ -146,10 +149,12 @@ public abstract class ComparisonExpression extends BinaryExpression implements B
         checkLessThanOperand(left);
         checkLessThanOperand(right);
         return new ComparisonExpression(left, right) {
+            @Override
             protected boolean asBoolean(int answer) {
                 return answer > 0;
             }
 
+            @Override
             public String getExpressionSymbol() {
                 return ">";
             }
@@ -160,10 +165,12 @@ public abstract class ComparisonExpression extends BinaryExpression implements B
         checkLessThanOperand(left);
         checkLessThanOperand(right);
         return new ComparisonExpression(left, right) {
+            @Override
             protected boolean asBoolean(int answer) {
                 return answer >= 0;
             }
 
+            @Override
             public String getExpressionSymbol() {
                 return ">=";
             }
@@ -175,10 +182,12 @@ public abstract class ComparisonExpression extends BinaryExpression implements B
         checkLessThanOperand(right);
         return new ComparisonExpression(left, right) {
 
+            @Override
             protected boolean asBoolean(int answer) {
                 return answer < 0;
             }
 
+            @Override
             public String getExpressionSymbol() {
                 return "<";
             }
@@ -191,10 +200,12 @@ public abstract class ComparisonExpression extends BinaryExpression implements B
         checkLessThanOperand(right);
         return new ComparisonExpression(left, right) {
 
+            @Override
             protected boolean asBoolean(int answer) {
                 return answer <= 0;
             }
 
+            @Override
             public String getExpressionSymbol() {
                 return "<=";
             }
@@ -244,6 +255,7 @@ public abstract class ComparisonExpression extends BinaryExpression implements B
         }
     }
 
+    @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
     public Object evaluate(EvaluationContext context) throws Exception {
         Comparable<Comparable> lv = (Comparable) left.evaluate(context);
@@ -401,6 +413,7 @@ public abstract class ComparisonExpression extends BinaryExpression implements B
 
     protected abstract boolean asBoolean(int answer);
 
+    @Override
     public boolean matches(EvaluationContext context) throws Exception {
         Object object = evaluate(context);
         return object != null && object == Boolean.TRUE;

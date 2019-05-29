@@ -83,6 +83,7 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
     /**
      * Options are activated and become effective only after calling this method.
      */
+    @Override
     public void start() {
         int errors = 0;
 
@@ -108,6 +109,7 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
     /**
      * When system exit,this method will be called to close resources
      */
+    @Override
     public synchronized void stop() {
         // The synchronized modifier avoids concurrent append and close operations
         if (!this.started) {

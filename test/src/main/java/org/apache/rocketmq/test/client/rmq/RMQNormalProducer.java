@@ -91,6 +91,7 @@ public class RMQNormalProducer extends AbstractMQProducer {
         }
     }
 
+    @Override
     public ResultWrapper send(Object msg, Object orderKey) {
         org.apache.rocketmq.client.producer.SendResult metaqResult = null;
         Message message = (Message) msg;
@@ -160,6 +161,7 @@ public class RMQNormalProducer extends AbstractMQProducer {
         return sendResult;
     }
 
+    @Override
     public void shutdown() {
         producer.shutdown();
     }

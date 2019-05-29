@@ -35,6 +35,7 @@ public class MessageBatch extends Message implements Iterable<Message> {
         return MessageDecoder.encodeMessages(messages);
     }
 
+    @Override
     public Iterator<Message> iterator() {
         return messages.iterator();
     }

@@ -36,6 +36,7 @@ public class MessageClientExt extends MessageExt {
         }
     }
 
+    @Override
     public void setMsgId(String msgId) {
         //DO NOTHING
         //MessageClientIDSetter.setUniqID(this);

@@ -101,6 +101,7 @@ public final class ThreadUtils {
         Thread thread = new Thread(runnable, name);
         thread.setDaemon(daemon);
         thread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
             public void uncaughtException(Thread t, Throwable e) {
                 log.error("Uncaught exception in thread '" + t.getName() + "':", e);
             }

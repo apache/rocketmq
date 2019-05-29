@@ -40,6 +40,7 @@ public class RegisterBrokerRequestHeader implements CommandCustomHeader {
 
     private Integer bodyCrc32 = 0;
 
+    @Override
     public void checkFields() throws RemotingCommandException {
     }
 

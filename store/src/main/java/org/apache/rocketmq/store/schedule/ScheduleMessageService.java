@@ -156,10 +156,12 @@ public class ScheduleMessageService extends ConfigManager {
         return maxDelayLevel;
     }
 
+    @Override
     public String encode() {
         return this.encode(false);
     }
 
+    @Override
     public boolean load() {
         boolean result = super.load();
         result = result && this.parseDelayLevel();
@@ -183,6 +185,7 @@ public class ScheduleMessageService extends ConfigManager {
         }
     }
 
+    @Override
     public String encode(final boolean prettyFormat) {
         DelayOffsetSerializeWrapper delayOffsetSerializeWrapper = new DelayOffsetSerializeWrapper();
         delayOffsetSerializeWrapper.setOffsetTable(this.offsetTable);

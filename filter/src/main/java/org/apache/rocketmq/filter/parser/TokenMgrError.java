@@ -141,6 +141,7 @@ public class TokenMgrError extends Error {
      * <p/>
      * from this method for such cases in the release version of your parser.
      */
+    @Override
     public String getMessage() {
         return super.getMessage();
     }

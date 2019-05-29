@@ -44,6 +44,7 @@ public abstract class Appender {
 
     abstract protected void append(LoggingEvent event);
 
+    @Override
     public void finalize() {
         try {
             super.finalize();
@@ -125,6 +126,7 @@ public abstract class Appender {
 
         protected Vector<Appender> appenderList;
 
+        @Override
         public void addAppender(Appender newAppender) {
             if (newAppender == null) {
                 return;
@@ -152,6 +154,7 @@ public abstract class Appender {
             return size;
         }
 
+        @Override
         public Enumeration getAllAppenders() {
             if (appenderList == null) {
                 return null;
@@ -160,6 +163,7 @@ public abstract class Appender {
             }
         }
 
+        @Override
         public Appender getAppender(String name) {
             if (appenderList == null || name == null) {
                 return null;
@@ -176,6 +180,7 @@ public abstract class Appender {
             return null;
         }
 
+        @Override
         public boolean isAttached(Appender appender) {
             if (appenderList == null || appender == null) {
                 return false;
@@ -192,6 +197,7 @@ public abstract class Appender {
             return false;
         }
 
+        @Override
         public void removeAllAppenders() {
             if (appenderList != null) {
                 int len = appenderList.size();
@@ -204,6 +210,7 @@ public abstract class Appender {
             }
         }
 
+        @Override
         public void removeAppender(Appender appender) {
             if (appender == null || appenderList == null) {
                 return;
@@ -211,6 +218,7 @@ public abstract class Appender {
             appenderList.removeElement(appender);
         }
 
+        @Override
         public void removeAppender(String name) {
             if (name == null || appenderList == null) {
                 return;

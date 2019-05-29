@@ -444,6 +444,7 @@ public class StoreStatsService extends ServiceThread {
         return result;
     }
 
+    @Override
     public void run() {
         log.info(this.getServiceName() + " service started");
 

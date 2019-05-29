@@ -85,6 +85,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_"));
     }
 
+    @Override
     public void start() {
         if (MessageModel.CLUSTERING.equals(ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl.messageModel())) {
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -96,6 +97,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         }
     }
 
+    @Override
     public void shutdown() {
         this.stopped = true;
         this.scheduledExecutorService.shutdown();

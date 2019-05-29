@@ -410,6 +410,7 @@ public class TopicConfigManager extends ConfigManager {
         }
     }
 
+    @Override
     public String encode(final boolean prettyFormat) {
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
         topicConfigSerializeWrapper.setTopicConfigTable(this.topicConfigTable);

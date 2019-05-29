@@ -30,6 +30,7 @@ public class NowExpression extends ConstantExpression {
         return new Long(System.currentTimeMillis());
     }
 
+    @Override
     public Object getValue() {
         return new Long(System.currentTimeMillis());
     }
