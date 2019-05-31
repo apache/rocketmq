@@ -19,12 +19,13 @@ package io.openmessaging.rocketmq.consumer;
 import io.openmessaging.KeyValue;
 import io.openmessaging.MessagingAccessPoint;
 import io.openmessaging.OMS;
-import io.openmessaging.consumer.Consumer;
-import io.openmessaging.manager.ResourceManager;
+import io.openmessaging.consumer.PullConsumer;
 import io.openmessaging.message.Message;
 import io.openmessaging.rocketmq.config.ClientConfig;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import java.lang.reflect.Field;
+import java.util.HashSet;
+import java.util.Set;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.junit.Before;
@@ -40,7 +41,7 @@ import static org.mockito.Mockito.spy;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PullConsumerImplTest {
-    private Consumer consumer;
+    private PullConsumer pullConsumer;
     private String queueName = "HELLO_QUEUE";
 
     @Mock
@@ -50,15 +51,17 @@ public class PullConsumerImplTest {
     @Before
     public void init() throws NoSuchFieldException, IllegalAccessException {
         final MessagingAccessPoint messagingAccessPoint = OMS
-                .getMessagingAccessPoint("oms:rocketmq://IP1:9876,IP2:9876/namespace");
-        final ResourceManager resourceManager = messagingAccessPoint.resourceManager();
-        resourceManager.createNamespace(NonStandardKeys.PULL_CONSUMER +"_TestGroup");
-        consumer = messagingAccessPoint.createConsumer();
-        consumer.bindQueue(queueName);
+            .getMessagingAccessPoint("oms:rocketmq://IP1:9876,IP2:9876/namespace");
+        final KeyValue attributes = messagingAccessPoint.attributes();
+        attributes.put(NonStandardKeys.CONSUMER_ID, "TestGroup");
+        pullConsumer = messagingAccessPoint.createPullConsumer();
+        Set<String> queueNames = new HashSet<>(8);
+        queueNames.add(queueName);
+        pullConsumer.bindQueue(queueNames);
 
         Field field = PullConsumerImpl.class.getDeclaredField("rocketmqPullConsumer");
         field.setAccessible(true);
-        field.set(consumer, rocketmqPullConsumer); //Replace
+        field.set(pullConsumer, rocketmqPullConsumer); //Replace
 
         ClientConfig clientConfig = new ClientConfig();
         clientConfig.setOperationTimeout(200);
@@ -66,27 +69,27 @@ public class PullConsumerImplTest {
 
         field = PullConsumerImpl.class.getDeclaredField("localMessageCache");
         field.setAccessible(true);
-        field.set(consumer, localMessageCache);
-        consumer.start();
+        field.set(pullConsumer, localMessageCache);
+        pullConsumer.start();
     }
 
     @Test
     public void testPoll() {
-        final byte[] testBody = new byte[]{'a', 'b'};
+        final byte[] testBody = new byte[] {'a', 'b'};
         MessageExt consumedMsg = new MessageExt();
         consumedMsg.setMsgId("NewMsgId");
         consumedMsg.setBody(testBody);
         consumedMsg.putUserProperty(NonStandardKeys.MESSAGE_DESTINATION, "TOPIC");
         consumedMsg.setTopic(queueName);
         doReturn(consumedMsg).when(localMessageCache).poll(any(KeyValue.class));
-        Message message = consumer.receive(3 * 1000);
+        Message message = pullConsumer.receive(3 * 1000);
         assertThat(message.header().getMessageId()).isEqualTo("NewMsgId");
         assertThat(message.getData()).isEqualTo(testBody);
     }
 
     @Test
     public void testPoll_WithTimeout() {
-        Message message = consumer.receive(3 * 1000);
+        Message message = pullConsumer.receive(3 * 1000);
         assertThat(message).isNull();
     }
 }

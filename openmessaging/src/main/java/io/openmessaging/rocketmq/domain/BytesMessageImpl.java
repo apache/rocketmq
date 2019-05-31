@@ -22,7 +22,6 @@ import io.openmessaging.extension.ExtensionHeader;
 import io.openmessaging.message.Header;
 import io.openmessaging.message.Message;
 import io.openmessaging.OMS;
-import java.util.Optional;
 
 public class BytesMessageImpl implements Message {
 
@@ -41,7 +40,7 @@ public class BytesMessageImpl implements Message {
     }
 
     @Override
-    public Optional<ExtensionHeader> extensionHeader() {
+    public ExtensionHeader extensionHeader() {
         return null;
     }
 

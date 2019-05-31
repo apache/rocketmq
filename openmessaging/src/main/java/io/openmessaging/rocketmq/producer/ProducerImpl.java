@@ -18,14 +18,14 @@ package io.openmessaging.rocketmq.producer;
 
 import io.openmessaging.Future;
 import io.openmessaging.KeyValue;
+import io.openmessaging.Promise;
 import io.openmessaging.ServiceLifeState;
 import io.openmessaging.exception.OMSMessageFormatException;
+import io.openmessaging.exception.OMSRuntimeException;
 import io.openmessaging.extension.Extension;
 import io.openmessaging.extension.QueueMetaData;
-import io.openmessaging.message.Message;
-import io.openmessaging.Promise;
-import io.openmessaging.exception.OMSRuntimeException;
 import io.openmessaging.interceptor.ProducerInterceptor;
+import io.openmessaging.message.Message;
 import io.openmessaging.producer.Producer;
 import io.openmessaging.producer.SendResult;
 import io.openmessaging.producer.TransactionalResult;
@@ -34,8 +34,11 @@ import io.openmessaging.rocketmq.promise.DefaultPromise;
 import io.openmessaging.rocketmq.utils.OMSUtil;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.message.MessageQueue;
 
 import static io.openmessaging.rocketmq.utils.OMSUtil.msgConvert;
 
@@ -156,8 +159,15 @@ public class ProducerImpl extends AbstractOMSProducer implements Producer {
     }
 
     @Override
-    public QueueMetaData getQueueMetaData(String queueName) {
-        return null;
+    public Set<QueueMetaData> getQueueMetaData(String queueName) {
+        List<MessageQueue> messageQueues;
+        try {
+            messageQueues = this.rocketmqProducer.fetchPublishMessageQueues(queueName);
+        } catch (MQClientException e) {
+            log.error("A error occurred when get queue metadata.", e);
+            return null;
+        }
+        return OMSUtil.queueMetaDataConvert(messageQueues);
     }
 
     @Override

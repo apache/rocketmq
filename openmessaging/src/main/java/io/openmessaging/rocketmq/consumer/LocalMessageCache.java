@@ -26,6 +26,7 @@ import io.openmessaging.rocketmq.domain.ConsumeRequest;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,7 +68,7 @@ class LocalMessageCache implements ServiceLifecycle {
         this.rocketmqPullConsumer = rocketmqPullConsumer;
         this.clientConfig = clientConfig;
         this.cleanExpireMsgExecutors = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-                "OMS_CleanExpireMsgScheduledThread_"));
+            "OMS_CleanExpireMsgScheduledThread_"));
         this.currentState = ServiceLifeState.INITIALIZED;
     }
 
@@ -79,7 +80,7 @@ class LocalMessageCache implements ServiceLifecycle {
         if (!pullOffsetTable.containsKey(remoteQueue)) {
             try {
                 pullOffsetTable.putIfAbsent(remoteQueue,
-                        rocketmqPullConsumer.fetchConsumeOffset(remoteQueue, false));
+                    rocketmqPullConsumer.fetchConsumeOffset(remoteQueue, false));
             } catch (MQClientException e) {
                 log.error("A error occurred in fetch consume offset process.", e);
             }
@@ -166,7 +167,7 @@ class LocalMessageCache implements ServiceLifecycle {
 
     private void cleanExpireMsg() {
         for (final Map.Entry<MessageQueue, ProcessQueue> next : rocketmqPullConsumer.getDefaultMQPullConsumerImpl()
-                .getRebalanceImpl().getProcessQueueTable().entrySet()) {
+            .getRebalanceImpl().getProcessQueueTable().entrySet()) {
             ProcessQueue pq = next.getValue();
             MessageQueue mq = next.getKey();
             ReadWriteLock lockTreeMap = getLockInProcessQueue(pq);
@@ -186,7 +187,7 @@ class LocalMessageCache implements ServiceLifecycle {
                         if (!msgTreeMap.isEmpty()) {
                             msg = msgTreeMap.firstEntry().getValue();
                             if (System.currentTimeMillis() - Long.parseLong(MessageAccessor.getConsumeStartTimeStamp(msg))
-                                    > clientConfig.getRmqMessageConsumeTimeout() * 60 * 1000) {
+                                > clientConfig.getRmqMessageConsumeTimeout() * 60 * 1000) {
                                 //Expired, ack and remove it.
                             } else {
                                 break;
@@ -204,7 +205,7 @@ class LocalMessageCache implements ServiceLifecycle {
                 try {
                     rocketmqPullConsumer.sendMessageBack(msg, 3);
                     log.info("Send expired msg back. topic={}, msgId={}, storeHost={}, queueId={}, queueOffset={}",
-                            msg.getTopic(), msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(), msg.getQueueOffset());
+                        msg.getTopic(), msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(), msg.getQueueOffset());
                     ack(mq, pq, msg);
                 } catch (Exception e) {
                     log.error("Send back expired msg exception", e);
@@ -246,7 +247,7 @@ class LocalMessageCache implements ServiceLifecycle {
     }
 
     @Override
-    public QueueMetaData getQueueMetaData(String queueName) {
+    public Set<QueueMetaData> getQueueMetaData(String queueName) {
         Set<MessageQueue> messageQueues;
         try {
             messageQueues = rocketmqPullConsumer.fetchSubscribeMessageQueues(queueName);
@@ -254,16 +255,15 @@ class LocalMessageCache implements ServiceLifecycle {
             log.error("A error occurred when get queue metadata.", e);
             return null;
         }
-        List<QueueMetaData.Partition> partitions = new ArrayList<>(16);
+        Set<QueueMetaData> queueMetaDatas = new HashSet<>(32);
         if (null != messageQueues && !messageQueues.isEmpty()) {
             for (MessageQueue messageQueue : messageQueues) {
-                QueueMetaData.Partition partition = new DefaultQueueMetaData.DefaultPartition(messageQueue.getQueueId(), messageQueue.getBrokerName());
-                partitions.add(partition);
+                QueueMetaData queueMetaData = new DefaultQueueMetaData(messageQueue.getTopic(), messageQueue.getQueueId());
+                queueMetaDatas.add(queueMetaData);
             }
         } else {
             return null;
         }
-        QueueMetaData queueMetaData = new DefaultQueueMetaData(queueName, partitions);
-        return queueMetaData;
+        return queueMetaDatas;
     }
 }

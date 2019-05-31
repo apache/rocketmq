@@ -17,18 +17,29 @@
 package io.openmessaging.rocketmq.config;
 
 import io.openmessaging.extension.QueueMetaData;
-
-import java.util.List;
+import java.util.Objects;
 
 public class DefaultQueueMetaData implements QueueMetaData {
 
     private String queueName;
 
-    private List<QueueMetaData.Partition> partitions;
+    private int partitionId;
 
-    public DefaultQueueMetaData(String queueName, List<QueueMetaData.Partition> partitions) {
+    public DefaultQueueMetaData(String queueName, int partitionId) {
         this.queueName = queueName;
-        this.partitions = partitions;
+        this.partitionId = partitionId;
+    }
+
+    @Override public void setQueueName(String queueNaome) {
+        this.queueName = queueName;
+    }
+
+    @Override public void setPartitionId(int partitionId) {
+        this.partitionId = partitionId;
+    }
+
+    @Override public int partitionId() {
+        return partitionId;
     }
 
     @Override
@@ -36,30 +47,19 @@ public class DefaultQueueMetaData implements QueueMetaData {
         return queueName;
     }
 
-    @Override
-    public List<QueueMetaData.Partition> partitions() {
-        return partitions;
+    @Override public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        DefaultQueueMetaData data = (DefaultQueueMetaData) o;
+        return partitionId == data.partitionId &&
+            queueName.equals(data.queueName);
     }
 
-    public static class DefaultPartition implements Partition {
-
-        public DefaultPartition(int partitionId, String partitonHost) {
-            this.partitionId = partitionId;
-            this.partitonHost = partitonHost;
-        }
-
-        private int partitionId;
-
-        private String partitonHost;
-
-        @Override
-        public int partitionId() {
-            return partitionId;
-        }
-
-        @Override
-        public String partitonHost() {
-            return partitonHost;
-        }
+    @Override public int hashCode() {
+        return Objects.hash(queueName, partitionId);
     }
 }
