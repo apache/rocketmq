@@ -21,7 +21,7 @@ import io.openmessaging.OMS;
 import io.openmessaging.extension.QueueMetaData;
 import io.openmessaging.message.Header;
 import io.openmessaging.producer.SendResult;
-import io.openmessaging.rocketmq.config.DefaultQueueMetaData;
+import io.openmessaging.rocketmq.domain.DefaultQueueMetaData;
 import io.openmessaging.rocketmq.domain.BytesMessageImpl;
 import io.openmessaging.rocketmq.domain.RocketMQConstants;
 import io.openmessaging.rocketmq.domain.SendResultImpl;

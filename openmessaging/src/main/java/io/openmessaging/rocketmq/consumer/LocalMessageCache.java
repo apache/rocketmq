@@ -21,12 +21,11 @@ import io.openmessaging.ServiceLifeState;
 import io.openmessaging.ServiceLifecycle;
 import io.openmessaging.extension.QueueMetaData;
 import io.openmessaging.rocketmq.config.ClientConfig;
-import io.openmessaging.rocketmq.config.DefaultQueueMetaData;
 import io.openmessaging.rocketmq.domain.ConsumeRequest;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
+import io.openmessaging.rocketmq.utils.OMSUtil;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -126,9 +125,9 @@ class LocalMessageCache implements ServiceLifecycle {
         return null;
     }
 
-    List<MessageExt> batchPoll(final KeyValue properties) {
-        List<ConsumeRequest> consumeRequests = new ArrayList<>(16);
-        int n = consumeRequestCache.drainTo(consumeRequests);
+    List<MessageExt> batchPoll(KeyValue properties) {
+        List<ConsumeRequest> consumeRequests = new ArrayList<>(clientConfig.getRmqPullMessageBatchNums());
+        int n = consumeRequestCache.drainTo(consumeRequests, clientConfig.getRmqPullMessageBatchNums());
         if (n > 0) {
             List<MessageExt> messageExts = new ArrayList<>(n);
             for (ConsumeRequest consumeRequest : consumeRequests) {
@@ -255,15 +254,6 @@ class LocalMessageCache implements ServiceLifecycle {
             log.error("A error occurred when get queue metadata.", e);
             return null;
         }
-        Set<QueueMetaData> queueMetaDatas = new HashSet<>(32);
-        if (null != messageQueues && !messageQueues.isEmpty()) {
-            for (MessageQueue messageQueue : messageQueues) {
-                QueueMetaData queueMetaData = new DefaultQueueMetaData(messageQueue.getTopic(), messageQueue.getQueueId());
-                queueMetaDatas.add(queueMetaData);
-            }
-        } else {
-            return null;
-        }
-        return queueMetaDatas;
+        return OMSUtil.queueMetaDataConvert(messageQueues);
     }
 }

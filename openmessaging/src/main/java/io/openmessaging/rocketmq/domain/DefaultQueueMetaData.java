@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.openmessaging.rocketmq.config;
+package io.openmessaging.rocketmq.domain;
 
 import io.openmessaging.extension.QueueMetaData;
 import java.util.Objects;

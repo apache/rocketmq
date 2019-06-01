@@ -29,6 +29,7 @@ import io.openmessaging.message.Message;
 import io.openmessaging.rocketmq.config.ClientConfig;
 import io.openmessaging.rocketmq.domain.BytesMessageImpl;
 import io.openmessaging.rocketmq.domain.ConsumeRequest;
+import io.openmessaging.rocketmq.domain.DefaultMessageReceipt;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import io.openmessaging.rocketmq.utils.BeanUtils;
 import io.openmessaging.rocketmq.utils.OMSUtil;
@@ -37,11 +38,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.rocketmq.client.MQAdmin;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.MQPullConsumer;
 import org.apache.rocketmq.client.consumer.MQPullConsumerScheduleService;
 import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.consumer.PullTaskCallback;
 import org.apache.rocketmq.client.consumer.PullTaskContext;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -56,11 +57,7 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
 public class PullConsumerImpl implements PullConsumer {
 
-    private static final int PULL_MAX_NUMS = 32;
-    private static final int PULL_MIN_NUMS = 1;
-
     private final DefaultMQPullConsumer rocketmqPullConsumer;
-    private final MQAdmin mqAdmin;
     private final KeyValue properties;
     private boolean started = false;
     private final MQPullConsumerScheduleService pullConsumerScheduleService;
@@ -101,14 +98,10 @@ public class PullConsumerImpl implements PullConsumer {
         properties.put(NonStandardKeys.CONSUMER_ID, consumerId);
 
         this.rocketmqPullConsumer.setLanguage(LanguageCode.OMS);
-//        this.rocketmqPullConsumer.setNamespace();
 
         this.localMessageCache = new LocalMessageCache(this.rocketmqPullConsumer, clientConfig);
 
         consumerInterceptors = new ArrayList<>(16);
-
-        mqAdmin = rocketmqPullConsumer;
-//        mqAdmin.createTopic();
     }
 
     private void registerPullTaskCallback(final String targetQueueName) {
@@ -185,9 +178,9 @@ public class PullConsumerImpl implements PullConsumer {
 
     @Override
     public Message receive(String queueName, QueueMetaData queueMetaData, MessageReceipt messageReceipt, long timeout) {
-/*        MessageQueue mq;
+        MessageQueue mq;
         mq = getQueue(queueMetaData);
-        PullResult pullResult = getResult(receiptId, timeout, mq, PULL_MIN_NUMS);
+        PullResult pullResult = getResult(((DefaultMessageReceipt) messageReceipt).getOffset(), timeout, mq, NonStandardKeys.PULL_MIN_NUMS);
         if (pullResult == null)
             return null;
         PullStatus pullStatus = pullResult.getPullStatus();
@@ -199,9 +192,9 @@ public class PullConsumerImpl implements PullConsumer {
                     BytesMessageImpl bytesMessage = OMSUtil.msgConvert(messageExt);
                     messages.add(bytesMessage);
                 }
-                return messages.  get(0);
+                return messages.get(0);
             }
-        }*/
+        }
         return null;
     }
 
@@ -259,9 +252,9 @@ public class PullConsumerImpl implements PullConsumer {
     @Override
     public List<Message> batchReceive(String queueName, QueueMetaData queueMetaData, MessageReceipt messageReceipt,
         long timeout) {
-/*        MessageQueue mq;
+        MessageQueue mq;
         mq = getQueue(queueMetaData);
-        PullResult pullResult = getResult(receiptId, timeout, mq, PULL_MAX_NUMS);
+        PullResult pullResult = getResult(((DefaultMessageReceipt) messageReceipt).getOffset(), timeout, mq, clientConfig.getRmqPullMessageBatchNums());
         if (pullResult == null)
             return null;
         PullStatus pullStatus = pullResult.getPullStatus();
@@ -275,13 +268,13 @@ public class PullConsumerImpl implements PullConsumer {
                 }
                 return messages;
             }
-        }*/
+        }
         return null;
     }
 
     @Override
     public void ack(MessageReceipt receipt) {
-
+        localMessageCache.ack(((DefaultMessageReceipt) receipt).getMessageId());
     }
 
     @Override

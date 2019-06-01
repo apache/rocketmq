@@ -29,20 +29,21 @@ import io.openmessaging.extension.QueueMetaData;
 import io.openmessaging.interceptor.ConsumerInterceptor;
 import io.openmessaging.message.Message;
 import io.openmessaging.rocketmq.config.ClientConfig;
-import io.openmessaging.rocketmq.config.DefaultQueueMetaData;
 import io.openmessaging.rocketmq.domain.BytesMessageImpl;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import io.openmessaging.rocketmq.utils.BeanUtils;
 import io.openmessaging.rocketmq.utils.OMSUtil;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
@@ -67,6 +68,7 @@ public class PushConsumerImpl implements PushConsumer {
     private final ClientConfig clientConfig;
     private ServiceLifeState currentState;
     private List<ConsumerInterceptor> consumerInterceptors;
+    private ScheduledExecutorService scheduledExecutorService;
 
     public PushConsumerImpl(final KeyValue properties) {
         this.rocketmqPushConsumer = new DefaultMQPushConsumer();
@@ -99,6 +101,11 @@ public class PushConsumerImpl implements PushConsumer {
         this.rocketmqPushConsumer.registerMessageListener(new MessageListenerImpl());
 
         consumerInterceptors = new ArrayList<>(16);
+        scheduledExecutorService = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
+            @Override public Thread newThread(Runnable r) {
+                return new Thread(r, "SuspendTimeouThread_");
+            }
+        });
         currentState = ServiceLifeState.INITIALIZED;
     }
 
@@ -114,7 +121,12 @@ public class PushConsumerImpl implements PushConsumer {
 
     @Override
     public void suspend(long timeout) {
-        throw new UnsupportedOperationException();
+        this.rocketmqPushConsumer.suspend();
+        scheduledExecutorService.schedule(new Runnable() {
+            @Override public void run() {
+                PushConsumerImpl.this.rocketmqPushConsumer.resume();
+            }
+        }, timeout, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -253,7 +265,7 @@ public class PushConsumerImpl implements PushConsumer {
             final KeyValue contextProperties = OMS.newKeyValue();
 
             if (batchFlag) {
-                List<Message> messages = new ArrayList<>(16);
+                List<Message> messages = new ArrayList<>(32);
                 for (MessageExt messageExt : rmqMsgList) {
                     BytesMessageImpl omsMsg = OMSUtil.msgConvert(messageExt);
                     messages.add(omsMsg);

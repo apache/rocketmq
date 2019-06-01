@@ -30,4 +30,5 @@ public interface NonStandardKeys {
     String PRODUCER_ID = "PRODUCER_ID";
     String CONSUMER_ID = "CONSUMER_ID";
     String TIMEOUT = "TIMEOUT";
+    int PULL_MIN_NUMS = 1;
 }
