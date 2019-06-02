@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.tools.command.topic;
+package org.apache.rocketmq.tools.command.acl;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
@@ -24,29 +24,32 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class UpdateTopicSubCommandTest {
+public class UpdateAccessConfigSubCommandTest {
+
     @Test
     public void testExecute() {
-        UpdateTopicSubCommand cmd = new UpdateTopicSubCommand();
+        UpdateAccessConfigSubCommand cmd = new UpdateAccessConfigSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs = new String[] {
             "-b 127.0.0.1:10911",
-            "-t unit-test",
-            "-r 8",
-            "-w 8",
-            "-p 6",
-            "-o false",
-            "-u false",
-            "-s false"};
+            "-a RocketMQ",
+            "-s 12345678",
+            "-w 192.168.0.*",
+            "-i DENY",
+            "-u SUB",
+            "-t topicA=DENY;topicB=PUB|SUB",
+            "-g groupA=DENY;groupB=SUB",
+            "-m true"};
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
         assertThat(commandLine.getOptionValue('b').trim()).isEqualTo("127.0.0.1:10911");
-        assertThat(commandLine.getOptionValue('r').trim()).isEqualTo("8");
-        assertThat(commandLine.getOptionValue('w').trim()).isEqualTo("8");
-        assertThat(commandLine.getOptionValue('t').trim()).isEqualTo("unit-test");
-        assertThat(commandLine.getOptionValue('p').trim()).isEqualTo("6");
-        assertThat(commandLine.getOptionValue('o').trim()).isEqualTo("false");
-        assertThat(commandLine.getOptionValue('u').trim()).isEqualTo("false");
-        assertThat(commandLine.getOptionValue('s').trim()).isEqualTo("false");
+        assertThat(commandLine.getOptionValue('a').trim()).isEqualTo("RocketMQ");
+        assertThat(commandLine.getOptionValue('s').trim()).isEqualTo("12345678");
+        assertThat(commandLine.getOptionValue('w').trim()).isEqualTo("192.168.0.*");
+        assertThat(commandLine.getOptionValue('i').trim()).isEqualTo("DENY");
+        assertThat(commandLine.getOptionValue('u').trim()).isEqualTo("SUB");
+        assertThat(commandLine.getOptionValue('t').trim()).isEqualTo("topicA=DENY;topicB=PUB|SUB");
+        assertThat(commandLine.getOptionValue('g').trim()).isEqualTo("groupA=DENY;groupB=SUB");
+        assertThat(commandLine.getOptionValue('m').trim()).isEqualTo("true");
     }
 }

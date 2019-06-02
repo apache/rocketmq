@@ -16,19 +16,20 @@
  */
 package org.apache.rocketmq.acl.plain;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
+
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
+import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.*;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumerData;
@@ -36,7 +37,6 @@ import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.ProducerData;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -302,6 +302,154 @@ public class PlainAccessValidatorTest {
         buf.position(0);
         PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), whiteRemoteAddress);
         plainAccessValidator.validate(accessResource);
+    }
+
+    @Test
+    public void updateAccessAclYamlConfigNormalTest() {
+        System.setProperty("rocketmq.home.dir", "src/test/resources");
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_update_create.yml");
+
+        String targetFileName = "src/test/resources/conf/plain_acl_update_create.yml";
+        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+
+        PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+        plainAccessConfig.setAccessKey("RocketMQ");
+        plainAccessConfig.setSecretKey("1234567890");
+        plainAccessConfig.setDefaultGroupPerm("PUB");
+        plainAccessConfig.setDefaultTopicPerm("SUB");
+        List<String> topicPerms = new ArrayList<String>();
+        topicPerms.add("topicC=PUB|SUB");
+        topicPerms.add("topicB=PUB");
+        plainAccessConfig.setTopicPerms(topicPerms);
+        List<String> groupPerms = new ArrayList<String>();
+        groupPerms.add("groupB=PUB|SUB");
+        groupPerms.add("groupC=DENY");
+        plainAccessConfig.setGroupPerms(groupPerms);
+
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        //update acl access yaml config file
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
+
+        Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+        List<Map<String, Object>> accounts =  (List<Map<String, Object>>)readableMap.get("accounts");
+        Map<String, Object> verifyMap = null;
+        for (Map<String, Object> account : accounts) {
+            if (account.get("accessKey").equals(plainAccessConfig.getAccessKey())) {
+                verifyMap = account;
+                break;
+            }
+        }
+
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_SECRET_KEY),"1234567890");
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_DEFAULT_TOPIC_PERM),"SUB");
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_DEFAULT_GROUP_PERM),"PUB");
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_ADMIN_ROLE),false);
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_WHITE_ADDR),"192.168.0.*");
+        Assert.assertEquals(((List)verifyMap.get(AclConstants.CONFIG_TOPIC_PERMS)).size(),2);
+        Assert.assertEquals(((List)verifyMap.get(AclConstants.CONFIG_GROUP_PERMS)).size(),2);
+
+        //verify the dateversion element is correct or not
+        List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get("dataVersion");
+        Assert.assertEquals(0,dataVersions.get(0).get("counter"));
+
+        //restore the backup file and flush to yaml file
+        AclUtils.writeDataObject2Yaml(targetFileName, backUpAclConfigMap);
+    }
+
+    @Test
+    public void createAccessAclYamlConfigNormalTest() {
+        System.setProperty("rocketmq.home.dir", "src/test/resources");
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_update_create.yml");
+
+        String targetFileName = "src/test/resources/conf/plain_acl_update_create.yml";
+        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+
+        PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+        plainAccessConfig.setAccessKey("RocketMQ33");
+        plainAccessConfig.setSecretKey("123456789111");
+        plainAccessConfig.setDefaultGroupPerm("PUB");
+        plainAccessConfig.setDefaultTopicPerm("DENY");
+        List<String> topicPerms = new ArrayList<String>();
+        topicPerms.add("topicC=PUB|SUB");
+        topicPerms.add("topicB=PUB");
+        plainAccessConfig.setTopicPerms(topicPerms);
+        List<String> groupPerms = new ArrayList<String>();
+        groupPerms.add("groupB=PUB|SUB");
+        groupPerms.add("groupC=DENY");
+        plainAccessConfig.setGroupPerms(groupPerms);
+
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        //update acl access yaml config file
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
+
+        Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+        List<Map<String, Object>> accounts =  (List<Map<String, Object>>)readableMap.get("accounts");
+        Map<String, Object> verifyMap = null;
+        for (Map<String, Object> account : accounts) {
+            if (account.get("accessKey").equals(plainAccessConfig.getAccessKey())) {
+                verifyMap = account;
+                break;
+            }
+        }
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_SECRET_KEY),"123456789111");
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_DEFAULT_TOPIC_PERM),"DENY");
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_DEFAULT_GROUP_PERM),"PUB");
+        Assert.assertEquals(((List)verifyMap.get(AclConstants.CONFIG_TOPIC_PERMS)).size(),2);
+        Assert.assertEquals(((List)verifyMap.get(AclConstants.CONFIG_GROUP_PERMS)).size(),2);
+
+        //verify the dateversion element is correct or not
+        List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get("dataVersion");
+        Assert.assertEquals(0,dataVersions.get(0).get("counter"));
+
+        //restore the backup file and flush to yaml file
+        AclUtils.writeDataObject2Yaml(targetFileName, backUpAclConfigMap);
+    }
+
+    @Test(expected = AclException.class)
+    public void updateAccessAclYamlConfigExceptionTest() {
+        System.setProperty("rocketmq.home.dir", "src/test/resources");
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_update_create.yml");
+
+        PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+        plainAccessConfig.setAccessKey("RocketMQ");
+        plainAccessConfig.setSecretKey("12345");
+
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        //update acl access yaml config file
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
+    }
+
+    @Test
+    public void deleteAccessAclYamlConfigNormalTest() {
+        System.setProperty("rocketmq.home.dir", "src/test/resources");
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_delete.yml");
+
+        String targetFileName = "src/test/resources/conf/plain_acl_delete.yml";
+        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+
+
+        String accessKey = "rocketmq2";
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        plainAccessValidator.deleteAccessConfig(accessKey);
+
+        Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+        List<Map<String, Object>> accounts =  (List<Map<String, Object>>)readableMap.get("accounts");
+        Map<String, Object> verifyMap = null;
+        for (Map<String, Object> account : accounts) {
+            if (account.get("accessKey").equals(accessKey)) {
+                verifyMap = account;
+                break;
+            }
+        }
+
+        //verify the specified element is removed or not
+        Assert.assertEquals(verifyMap,null);
+        //verify the dateversion element is correct or not
+        List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get("dataVersion");
+        Assert.assertEquals(0,dataVersions.get(0).get("counter"));
+        
+        //restore the backup file and flush to yaml file
+        AclUtils.writeDataObject2Yaml(targetFileName, backUpAclConfigMap);
     }
 
 }

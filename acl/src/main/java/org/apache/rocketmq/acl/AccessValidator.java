@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.acl;
 
+import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface AccessValidator {
@@ -35,4 +36,26 @@ public interface AccessValidator {
      * @param accessResource
      */
     void validate(AccessResource accessResource);
+
+    /**
+     * update the access resource config
+     *
+     * @param plainAccessConfig
+     * @return
+     */
+    boolean updateAccessConfig(PlainAccessConfig plainAccessConfig);
+
+    /**
+     * delete the access resource config
+     *
+     * @return
+     */
+    boolean deleteAccessConfig(String accesskey);
+
+    /**
+     * get the access resource config version information
+     *
+     * @return
+     */
+    String getAclConfigVersion();
 }

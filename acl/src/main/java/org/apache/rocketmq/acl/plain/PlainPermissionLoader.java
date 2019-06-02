@@ -24,13 +24,14 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -41,8 +42,6 @@ public class PlainPermissionLoader {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     private static final String DEFAULT_PLAIN_ACL_FILE = "/conf/plain_acl.yml";
-
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     private String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
@@ -83,7 +82,7 @@ public class PlainPermissionLoader {
             }
         }
 
-        JSONArray accounts = plainAclConfData.getJSONArray("accounts");
+        JSONArray accounts = plainAclConfData.getJSONArray(AclConstants.CONFIG_ACCOUNTS);
         if (accounts != null && !accounts.isEmpty()) {
             List<PlainAccessConfig> plainAccessConfigList = accounts.toJavaList(PlainAccessConfig.class);
             for (PlainAccessConfig plainAccessConfig : plainAccessConfigList) {
@@ -93,7 +92,7 @@ public class PlainPermissionLoader {
         }
 
         //for loading dataversion part just
-        JSONArray dataVersion4Yaml = plainAclConfData.getJSONArray("dataVersion");
+        JSONArray dataVersion4Yaml = plainAclConfData.getJSONArray(AclConstants.CONFIG_DATA_VERSION);
         if (dataVersion4Yaml != null && !dataVersion4Yaml.isEmpty()) {
             List<DataVersion> dataVersion = dataVersion4Yaml.toJavaList(DataVersion.class);
             DataVersion firstElement = dataVersion.get(0);
@@ -104,33 +103,39 @@ public class PlainPermissionLoader {
         this.plainAccessResourceMap = plainAccessResourceMap;
     }
 
-    public void createOrUpdateVersionInFile() {
+    public String getAclConfigDataVersion() {
+        return this.dataVersion.toJson();
+    }
+
+    public boolean createOrUpdateVersionInFile() {
 
         //for updating dataversion part
         JSONObject plainAclConfData = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
             JSONObject.class);
 
-        JSONArray dataVersion4Yaml = plainAclConfData.getJSONArray("dataVersion");
+        JSONArray dataVersion4Yaml = plainAclConfData.getJSONArray(AclConstants.CONFIG_DATA_VERSION);
         if (dataVersion4Yaml != null && !dataVersion4Yaml.isEmpty()) {
             log.info("the acl yaml config's content is changed,then change the dataVersion");
             List<DataVersion> dataVersion = dataVersion4Yaml.toJavaList(DataVersion.class);
+            //dataversion is only one element in acl yam file
             DataVersion firstElement = dataVersion.get(0);
             firstElement.nextVersion();
             this.dataVersion.assignNewOne(firstElement);
-            synchronized (this.dataVersion) {
-                if (updateConfigFileVersion(false)) {
-                    log.info("update datavesion success!");
-                } else {
-                    log.error("update dataversion failed!");
-                }
+            if (updateConfigFileVersion(false)) {
+                log.info("update datavesion success!");
+                return true;
+            } else {
+                log.error("update dataversion failed!");
+                return false;
             }
-
         } else {
             log.info("the acl yaml config is starting to load,and dataVersion will be initialized");
             if (updateConfigFileVersion(true)) {
                 log.info("initial datavesion success!");
+                return true;
             } else {
                 log.error("initial dataversion failed!");
+                return false;
             }
         }
     }
@@ -143,21 +148,139 @@ public class PlainPermissionLoader {
         List<Map<String, Object>> versionElement = new ArrayList<Map<String, Object>>();
         Map<String, Object> accountsMap = new LinkedHashMap<String, Object>() {
             {
-                put("counter", dataVersion.getCounter().longValue());
-                put("timestamp", dataVersion.getTimestamp());
+                put(AclConstants.CONFIG_COUNTER, dataVersion.getCounter().longValue());
+                put(AclConstants.CONFIG_TIME_STAMP, dataVersion.getTimestamp());
             }
         };
         versionElement.add(accountsMap);
-        originalMap.put("dataVersion", versionElement);
+        originalMap.put(AclConstants.CONFIG_DATA_VERSION, versionElement);
         if (isNewOne) {
             return AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, originalMap);
         } else {
             Map<String, Object> updatedDataVersionMap = AclUtils.getYamlDataObject(fileHome + File.separator + fileName, Map.class);
-            List<Map<String, Object>> dataVersionList = (List<Map<String, Object>>) updatedDataVersionMap.get("dataVersion");
+            List<Map<String, Object>> dataVersionList = (List<Map<String, Object>>) updatedDataVersionMap.get(AclConstants.CONFIG_DATA_VERSION);
             dataVersionList.clear();
             dataVersionList.add(accountsMap);
             return AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, updatedDataVersionMap);
         }
+    }
+
+    public boolean updateAccessConfig(PlainAccessConfig plainAccessConfig) {
+
+        if (plainAccessConfig == null) {
+            log.error("parameter value plainAccessConfig is null,please check your parameter");
+            return false;
+        }
+
+        Map<String, Object> aclAccessConfigMap = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
+            Map.class);
+
+        List<Map<String, Object>> accounts = (List<Map<String, Object>>) aclAccessConfigMap.get(AclConstants.CONFIG_ACCOUNTS);
+        Map<String, Object> updateAccountMap = null;
+        if (accounts != null && !accounts.isEmpty()) {
+            for (Map<String, Object> account : accounts) {
+                if (account.get(AclConstants.CONFIG_ACCESS_KEY).equals(plainAccessConfig.getAccessKey())) {
+                    //update acl access config elements
+                    accounts.remove(account);
+                    updateAccountMap = createAclAccessConfigMap(account, plainAccessConfig);
+                    accounts.add(updateAccountMap);
+                    aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
+
+                    if (AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, aclAccessConfigMap)) {
+                        if (createOrUpdateVersionInFile()) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            }
+            //create acl access config elements
+            accounts.add(createAclAccessConfigMap(null, plainAccessConfig));
+            aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
+            if (AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, aclAccessConfigMap)) {
+                if (createOrUpdateVersionInFile()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        log.error("users must ensure the acl yaml config file has accounts node element");
+        return false;
+    }
+
+    private Map<String, Object> createAclAccessConfigMap(Map<String, Object> existedAccoutMap, PlainAccessConfig plainAccessConfig) {
+
+        Map<String, Object> newAccountsMap = null;
+        if (existedAccoutMap == null) {
+            newAccountsMap = new LinkedHashMap<String, Object>();
+        } else {
+            newAccountsMap = existedAccoutMap;
+        }
+
+        if (plainAccessConfig.getAccessKey() == null
+            || plainAccessConfig.getSecretKey() == null
+            || plainAccessConfig.getAccessKey().length() <= 6
+            || plainAccessConfig.getSecretKey().length() <= 6) {
+            throw new AclException(String.format(
+                "The accessKey=%s and secretKey=%s cannot be null and length should longer than 6",
+                plainAccessConfig.getAccessKey(), plainAccessConfig.getSecretKey()));
+        }
+        
+        newAccountsMap.put(AclConstants.CONFIG_ACCESS_KEY, plainAccessConfig.getAccessKey());
+        newAccountsMap.put(AclConstants.CONFIG_SECRET_KEY, (String)plainAccessConfig.getSecretKey());
+
+        if (!StringUtils.isEmpty(plainAccessConfig.getWhiteRemoteAddress())) {
+            newAccountsMap.put(AclConstants.CONFIG_WHITE_ADDR, plainAccessConfig.getWhiteRemoteAddress());
+        }
+        if (!StringUtils.isEmpty(String.valueOf(plainAccessConfig.isAdmin()))) {
+            newAccountsMap.put(AclConstants.CONFIG_ADMIN_ROLE, plainAccessConfig.isAdmin());
+        }
+        if (!StringUtils.isEmpty(plainAccessConfig.getDefaultTopicPerm())) {
+            newAccountsMap.put(AclConstants.CONFIG_DEFAULT_TOPIC_PERM, plainAccessConfig.getDefaultTopicPerm());
+        }
+        if (!StringUtils.isEmpty(plainAccessConfig.getDefaultGroupPerm())) {
+            newAccountsMap.put(AclConstants.CONFIG_DEFAULT_GROUP_PERM, plainAccessConfig.getDefaultGroupPerm());
+        }
+        if (!plainAccessConfig.getTopicPerms().isEmpty()) {
+            newAccountsMap.put(AclConstants.CONFIG_TOPIC_PERMS, plainAccessConfig.getTopicPerms());
+        }
+        if (!plainAccessConfig.getGroupPerms().isEmpty()) {
+            newAccountsMap.put(AclConstants.CONFIG_GROUP_PERMS, plainAccessConfig.getGroupPerms());
+        }
+
+        return newAccountsMap;
+    }
+
+    public boolean deleteAccessConfig(String accesskey) {
+        if (StringUtils.isEmpty(accesskey)) {
+            log.error("parameter value accesskey is null or empty String,please check your parameter");
+            return false;
+        }
+
+        Map<String, Object> aclAccessConfigMap = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
+                    Map.class);
+
+        List<Map<String, Object>> accounts = (List<Map<String, Object>>) aclAccessConfigMap.get("accounts");
+        if (accounts != null && !accounts.isEmpty()) {
+            for (Map<String, Object> account : accounts) {
+                if (account.get(AclConstants.CONFIG_ACCESS_KEY).equals(accesskey)) {
+                    //delete the related acl config element
+                    accounts.remove(account);
+                    aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
+
+                    if (AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, aclAccessConfigMap)) {
+                        if (createOrUpdateVersionInFile()) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            }
+        }
+        log.error("users must ensure the acl yaml config file has related acl config elements");
+
+        return false;
     }
 
     private void watch() {
@@ -284,88 +407,4 @@ public class PlainPermissionLoader {
     public boolean isWatchStart() {
         return isWatchStart;
     }
-
-    static class PlainAccessConfig {
-
-        private String accessKey;
-
-        private String secretKey;
-
-        private String whiteRemoteAddress;
-
-        private boolean admin;
-
-        private String defaultTopicPerm;
-
-        private String defaultGroupPerm;
-
-        private List<String> topicPerms;
-
-        private List<String> groupPerms;
-
-        public String getAccessKey() {
-            return accessKey;
-        }
-
-        public void setAccessKey(String accessKey) {
-            this.accessKey = accessKey;
-        }
-
-        public String getSecretKey() {
-            return secretKey;
-        }
-
-        public void setSecretKey(String secretKey) {
-            this.secretKey = secretKey;
-        }
-
-        public String getWhiteRemoteAddress() {
-            return whiteRemoteAddress;
-        }
-
-        public void setWhiteRemoteAddress(String whiteRemoteAddress) {
-            this.whiteRemoteAddress = whiteRemoteAddress;
-        }
-
-        public boolean isAdmin() {
-            return admin;
-        }
-
-        public void setAdmin(boolean admin) {
-            this.admin = admin;
-        }
-
-        public String getDefaultTopicPerm() {
-            return defaultTopicPerm;
-        }
-
-        public void setDefaultTopicPerm(String defaultTopicPerm) {
-            this.defaultTopicPerm = defaultTopicPerm;
-        }
-
-        public String getDefaultGroupPerm() {
-            return defaultGroupPerm;
-        }
-
-        public void setDefaultGroupPerm(String defaultGroupPerm) {
-            this.defaultGroupPerm = defaultGroupPerm;
-        }
-
-        public List<String> getTopicPerms() {
-            return topicPerms;
-        }
-
-        public void setTopicPerms(List<String> topicPerms) {
-            this.topicPerms = topicPerms;
-        }
-
-        public List<String> getGroupPerms() {
-            return groupPerms;
-        }
-
-        public void setGroupPerms(List<String> groupPerms) {
-            this.groupPerms = groupPerms;
-        }
-    }
-
 }

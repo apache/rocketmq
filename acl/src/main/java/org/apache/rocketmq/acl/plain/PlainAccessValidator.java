@@ -25,6 +25,7 @@ import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
@@ -133,6 +134,20 @@ public class PlainAccessValidator implements AccessValidator {
     @Override
     public void validate(AccessResource accessResource) {
         aclPlugEngine.validate((PlainAccessResource) accessResource);
+    }
+
+    @Override
+    public boolean updateAccessConfig(PlainAccessConfig plainAccessConfig) {
+        return aclPlugEngine.updateAccessConfig(plainAccessConfig);
+    }
+
+    @Override
+    public boolean deleteAccessConfig(String accesskey) {
+        return aclPlugEngine.deleteAccessConfig(accesskey);
+    }
+
+    @Override public String getAclConfigVersion() {
+        return aclPlugEngine.getAclConfigDataVersion();
     }
 
 }

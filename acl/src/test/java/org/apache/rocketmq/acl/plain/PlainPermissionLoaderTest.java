@@ -28,7 +28,7 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
-import org.apache.rocketmq.acl.plain.PlainPermissionLoader.PlainAccessConfig;
+import org.apache.rocketmq.common.PlainAccessConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
