@@ -24,6 +24,7 @@ import io.openmessaging.message.Message;
 import io.openmessaging.rocketmq.config.ClientConfig;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
@@ -81,6 +82,8 @@ public class PullConsumerImplTest {
         consumedMsg.setBody(testBody);
         consumedMsg.putUserProperty(NonStandardKeys.MESSAGE_DESTINATION, "TOPIC");
         consumedMsg.setTopic(queueName);
+        consumedMsg.setQueueId(0);
+        consumedMsg.setStoreHost(new InetSocketAddress("127.0.0.1", 9876));
         doReturn(consumedMsg).when(localMessageCache).poll(any(KeyValue.class));
         Message message = pullConsumer.receive(3 * 1000);
         assertThat(message.header().getMessageId()).isEqualTo("NewMsgId");

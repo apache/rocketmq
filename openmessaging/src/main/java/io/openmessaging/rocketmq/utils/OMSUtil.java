@@ -86,6 +86,13 @@ public class OMSUtil {
         omsMsg.header().setBornHost(String.valueOf(rmqMsg.getBornHost()));
         omsMsg.header().setBornTimestamp(rmqMsg.getBornTimestamp());
         omsMsg.header().setDeliveryCount(rmqMsg.getDelayTimeLevel());
+        omsMsg.extensionHeader().setPartition(rmqMsg.getQueueId());
+        omsMsg.extensionHeader().setOffset(rmqMsg.getQueueOffset());
+        omsMsg.extensionHeader().setDelayTime(rmqMsg.getDelayTimeLevel());
+        omsMsg.extensionHeader().setMessageKey(rmqMsg.getKeys());
+        omsMsg.extensionHeader().setStoreHost(rmqMsg.getStoreHost().toString());
+        omsMsg.extensionHeader().setStoreTimestamp(rmqMsg.getStoreTimestamp());
+        omsMsg.extensionHeader().setTransactionId(rmqMsg.getTransactionId());
 
         return omsMsg;
     }

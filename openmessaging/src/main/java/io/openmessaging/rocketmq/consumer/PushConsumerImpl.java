@@ -138,6 +138,7 @@ public class PushConsumerImpl implements PushConsumer {
         for (String queueName : queueNames) {
             this.subscribeTable.put(queueName, listener);
             this.batchSubscribeTable.remove(queueName);
+            this.rocketmqPushConsumer.setConsumeMessageBatchMaxSize(NonStandardKeys.PULL_MIN_NUMS);
             try {
                 this.rocketmqPushConsumer.subscribe(queueName, "*");
             } catch (MQClientException e) {
@@ -150,6 +151,7 @@ public class PushConsumerImpl implements PushConsumer {
         for (String queueName : queueNames) {
             this.batchSubscribeTable.put(queueName, listener);
             this.subscribeTable.remove(queueName);
+            this.rocketmqPushConsumer.setConsumeMessageBatchMaxSize(clientConfig.getRmqPullMessageBatchNums());
             try {
                 this.rocketmqPushConsumer.subscribe(queueName, "*");
             } catch (MQClientException e) {

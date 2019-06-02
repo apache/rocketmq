@@ -17,21 +17,26 @@
 package io.openmessaging.rocketmq.domain;
 
 import io.openmessaging.KeyValue;
+import io.openmessaging.OMS;
 import io.openmessaging.consumer.MessageReceipt;
 import io.openmessaging.extension.ExtensionHeader;
 import io.openmessaging.message.Header;
 import io.openmessaging.message.Message;
-import io.openmessaging.OMS;
+import java.util.Arrays;
 
 public class BytesMessageImpl implements Message {
 
     private Header sysHeaders;
+    private ExtensionHeader extensionHeader;
+    private MessageReceipt messageReceipt;
     private KeyValue userProperties;
     private byte[] data;
 
     public BytesMessageImpl() {
         this.sysHeaders = new MessageHeader();
         this.userProperties = OMS.newKeyValue();
+        this.extensionHeader = new MessageExtensionHeader();
+        this.messageReceipt = new DefaultMessageReceipt();
     }
 
     @Override
@@ -41,7 +46,7 @@ public class BytesMessageImpl implements Message {
 
     @Override
     public ExtensionHeader extensionHeader() {
-        return null;
+        return extensionHeader;
     }
 
     @Override
@@ -61,6 +66,16 @@ public class BytesMessageImpl implements Message {
 
     @Override
     public MessageReceipt getMessageReceipt() {
-        return null;
+        return messageReceipt;
+    }
+
+    @Override public String toString() {
+        return "BytesMessageImpl{" +
+            "sysHeaders=" + sysHeaders +
+            ", extensionHeader=" + extensionHeader +
+            ", messageReceipt=" + messageReceipt +
+            ", userProperties=" + userProperties +
+            ", data=" + Arrays.toString(data) +
+            '}';
     }
 }

@@ -25,6 +25,15 @@ public class DefaultMessageReceipt implements MessageReceipt {
 
     private String messageId;
 
+    public DefaultMessageReceipt() {
+
+    }
+
+    public DefaultMessageReceipt(String messageId, long offset) {
+        this.messageId = messageId;
+        this.offset = offset;
+    }
+
     public void setOffset(long offset) {
         this.offset = offset;
     }
