@@ -30,6 +30,7 @@ import io.openmessaging.producer.Producer;
 import io.openmessaging.producer.SendResult;
 import io.openmessaging.producer.TransactionalResult;
 import io.openmessaging.rocketmq.domain.BytesMessageImpl;
+import io.openmessaging.rocketmq.domain.MessageExtension;
 import io.openmessaging.rocketmq.promise.DefaultPromise;
 import io.openmessaging.rocketmq.utils.OMSUtil;
 import java.util.List;
@@ -44,8 +45,11 @@ import static io.openmessaging.rocketmq.utils.OMSUtil.msgConvert;
 
 public class ProducerImpl extends AbstractOMSProducer implements Producer {
 
+    private final Extension extension;
+
     public ProducerImpl(final KeyValue properties) {
         super(properties);
+        extension = new MessageExtension(this);
     }
 
     @Override
@@ -115,7 +119,7 @@ public class ProducerImpl extends AbstractOMSProducer implements Producer {
         }
 
         for (Message message : messages) {
-            sendOneway(messages);
+            sendOneway(message);
         }
     }
 
@@ -131,7 +135,7 @@ public class ProducerImpl extends AbstractOMSProducer implements Producer {
         }
 
         for (Message message : messages) {
-            sendOneway(messages);
+            sendOneway(message);
         }
     }
 
@@ -155,7 +159,7 @@ public class ProducerImpl extends AbstractOMSProducer implements Producer {
 
     @Override
     public Optional<Extension> getExtension() {
-        return null;
+        return Optional.of(extension);
     }
 
     @Override

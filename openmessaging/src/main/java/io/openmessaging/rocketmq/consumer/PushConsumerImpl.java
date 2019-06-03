@@ -30,6 +30,7 @@ import io.openmessaging.interceptor.ConsumerInterceptor;
 import io.openmessaging.message.Message;
 import io.openmessaging.rocketmq.config.ClientConfig;
 import io.openmessaging.rocketmq.domain.BytesMessageImpl;
+import io.openmessaging.rocketmq.domain.MessageExtension;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import io.openmessaging.rocketmq.utils.BeanUtils;
 import io.openmessaging.rocketmq.utils.OMSUtil;
@@ -43,7 +44,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
@@ -51,6 +51,7 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -69,6 +70,7 @@ public class PushConsumerImpl implements PushConsumer {
     private ServiceLifeState currentState;
     private List<ConsumerInterceptor> consumerInterceptors;
     private ScheduledExecutorService scheduledExecutorService;
+    private final Extension extension;
 
     public PushConsumerImpl(final KeyValue properties) {
         this.rocketmqPushConsumer = new DefaultMQPushConsumer();
@@ -101,11 +103,9 @@ public class PushConsumerImpl implements PushConsumer {
         this.rocketmqPushConsumer.registerMessageListener(new MessageListenerImpl());
 
         consumerInterceptors = new ArrayList<>(16);
-        scheduledExecutorService = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
-            @Override public Thread newThread(Runnable r) {
-                return new Thread(r, "SuspendTimeouThread_");
-            }
-        });
+        scheduledExecutorService = new ScheduledThreadPoolExecutor(1, new ThreadFactoryImpl(
+            "OMS_SuspendTimeouThread_"));
+        extension = new MessageExtension(this);
         currentState = ServiceLifeState.INITIALIZED;
     }
 
@@ -198,13 +198,7 @@ public class PushConsumerImpl implements PushConsumer {
 
     @Override
     public Optional<Extension> getExtension() {
-        return Optional.of(new Extension() {
-
-            @Override
-            public Set<QueueMetaData> getQueueMetaData(String queueName) {
-                return PushConsumerImpl.this.getQueueMetaData(queueName);
-            }
-        });
+        return Optional.of(extension);
     }
 
     @Override

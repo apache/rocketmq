@@ -26,16 +26,18 @@ import io.openmessaging.producer.Producer;
 import io.openmessaging.producer.TransactionStateCheckListener;
 import io.openmessaging.rocketmq.consumer.PullConsumerImpl;
 import io.openmessaging.rocketmq.consumer.PushConsumerImpl;
+import io.openmessaging.rocketmq.domain.DefaultMessageFactory;
 import io.openmessaging.rocketmq.producer.ProducerImpl;
 
 public class MessagingAccessPointImpl implements MessagingAccessPoint {
 
     private final KeyValue accessPointProperties;
 
-    private ResourceManager resourceManager;
+    private final MessageFactory messageFactory;
 
     public MessagingAccessPointImpl(final KeyValue accessPointProperties) {
         this.accessPointProperties = accessPointProperties;
+        this.messageFactory = new DefaultMessageFactory();
     }
 
     @Override
@@ -85,6 +87,6 @@ public class MessagingAccessPointImpl implements MessagingAccessPoint {
     }
 
     @Override public MessageFactory messageFactory() {
-        return null;
+        return messageFactory;
     }
 }

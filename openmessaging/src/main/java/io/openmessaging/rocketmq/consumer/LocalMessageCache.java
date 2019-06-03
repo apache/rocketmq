@@ -36,6 +36,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReadWriteLock;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
@@ -127,17 +128,26 @@ class LocalMessageCache implements ServiceLifecycle {
 
     List<MessageExt> batchPoll(KeyValue properties) {
         List<ConsumeRequest> consumeRequests = new ArrayList<>(clientConfig.getRmqPullMessageBatchNums());
-        int n = consumeRequestCache.drainTo(consumeRequests, clientConfig.getRmqPullMessageBatchNums());
-        if (n > 0) {
-            List<MessageExt> messageExts = new ArrayList<>(n);
-            for (ConsumeRequest consumeRequest : consumeRequests) {
-                MessageExt messageExt = consumeRequest.getMessageExt();
-                consumeRequest.setStartConsumeTimeMillis(System.currentTimeMillis());
-                MessageAccessor.setConsumeStartTimeStamp(messageExt, String.valueOf(consumeRequest.getStartConsumeTimeMillis()));
-                consumedRequest.put(messageExt.getMsgId(), consumeRequest);
-                messageExts.add(messageExt);
+        long timeout = properties.getLong(NonStandardKeys.TIMEOUT);
+        while (timeout >= 0) {
+            int n = consumeRequestCache.drainTo(consumeRequests, clientConfig.getRmqPullMessageBatchNums());
+            if (n > 0) {
+                List<MessageExt> messageExts = new ArrayList<>(n);
+                for (ConsumeRequest consumeRequest : consumeRequests) {
+                    MessageExt messageExt = consumeRequest.getMessageExt();
+                    consumeRequest.setStartConsumeTimeMillis(System.currentTimeMillis());
+                    MessageAccessor.setConsumeStartTimeStamp(messageExt, String.valueOf(consumeRequest.getStartConsumeTimeMillis()));
+                    consumedRequest.put(messageExt.getMsgId(), consumeRequest);
+                    messageExts.add(messageExt);
+                }
+                return messageExts;
             }
-            return messageExts;
+            if (timeout > 0) {
+                LockSupport.parkNanos(timeout * 1000 * 1000);
+                timeout = 0;
+            } else {
+                timeout = -1;
+            }
         }
         return null;
     }

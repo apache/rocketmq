@@ -30,6 +30,7 @@ import io.openmessaging.rocketmq.config.ClientConfig;
 import io.openmessaging.rocketmq.domain.BytesMessageImpl;
 import io.openmessaging.rocketmq.domain.ConsumeRequest;
 import io.openmessaging.rocketmq.domain.DefaultMessageReceipt;
+import io.openmessaging.rocketmq.domain.MessageExtension;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import io.openmessaging.rocketmq.utils.BeanUtils;
 import io.openmessaging.rocketmq.utils.OMSUtil;
@@ -64,7 +65,8 @@ public class PullConsumerImpl implements PullConsumer {
     private final LocalMessageCache localMessageCache;
     private final ClientConfig clientConfig;
     private ServiceLifeState currentState;
-    private List<ConsumerInterceptor> consumerInterceptors;
+    private final List<ConsumerInterceptor> consumerInterceptors;
+    private final Extension extension;
 
     private final static InternalLogger log = ClientLogger.getLog();
 
@@ -100,8 +102,8 @@ public class PullConsumerImpl implements PullConsumer {
         this.rocketmqPullConsumer.setLanguage(LanguageCode.OMS);
 
         this.localMessageCache = new LocalMessageCache(this.rocketmqPullConsumer, clientConfig);
-
         consumerInterceptors = new ArrayList<>(16);
+        this.extension = new MessageExtension(this);
     }
 
     private void registerPullTaskCallback(final String targetQueueName) {
@@ -181,8 +183,9 @@ public class PullConsumerImpl implements PullConsumer {
         MessageQueue mq;
         mq = getQueue(queueMetaData);
         PullResult pullResult = getResult(((DefaultMessageReceipt) messageReceipt).getOffset(), timeout, mq, NonStandardKeys.PULL_MIN_NUMS);
-        if (pullResult == null)
+        if (pullResult == null) {
             return null;
+        }
         PullStatus pullStatus = pullResult.getPullStatus();
         List<Message> messages = new ArrayList<>(16);
         if (PullStatus.FOUND.equals(pullStatus)) {
@@ -255,8 +258,9 @@ public class PullConsumerImpl implements PullConsumer {
         MessageQueue mq;
         mq = getQueue(queueMetaData);
         PullResult pullResult = getResult(((DefaultMessageReceipt) messageReceipt).getOffset(), timeout, mq, clientConfig.getRmqPullMessageBatchNums());
-        if (pullResult == null)
+        if (pullResult == null) {
             return null;
+        }
         PullStatus pullStatus = pullResult.getPullStatus();
         List<Message> messages = new ArrayList<>(16);
         if (PullStatus.FOUND.equals(pullStatus)) {
@@ -279,12 +283,7 @@ public class PullConsumerImpl implements PullConsumer {
 
     @Override
     public Optional<Extension> getExtension() {
-        return Optional.of(new Extension() {
-            @Override
-            public Set<QueueMetaData> getQueueMetaData(String queueName) {
-                return PullConsumerImpl.this.getQueueMetaData(queueName);
-            }
-        });
+        return Optional.of(extension);
     }
 
     @Override
