@@ -107,44 +107,9 @@ public class PlainPermissionLoader {
         return this.dataVersion.toJson();
     }
 
-    public boolean createOrUpdateVersionInFile() {
+    private Map<String, Object> updateAclConfigFileVersion(Map<String, Object> updateAclConfigMap) {
 
-        //for updating dataversion part
-        JSONObject plainAclConfData = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
-            JSONObject.class);
-
-        JSONArray dataVersion4Yaml = plainAclConfData.getJSONArray(AclConstants.CONFIG_DATA_VERSION);
-        if (dataVersion4Yaml != null && !dataVersion4Yaml.isEmpty()) {
-            log.info("the acl yaml config's content is changed,then change the dataVersion");
-            List<DataVersion> dataVersion = dataVersion4Yaml.toJavaList(DataVersion.class);
-            //dataversion is only one element in acl yam file
-            DataVersion firstElement = dataVersion.get(0);
-            firstElement.nextVersion();
-            this.dataVersion.assignNewOne(firstElement);
-            if (updateConfigFileVersion(false)) {
-                log.info("update datavesion success!");
-                return true;
-            } else {
-                log.error("update dataversion failed!");
-                return false;
-            }
-        } else {
-            log.info("the acl yaml config is starting to load,and dataVersion will be initialized");
-            if (updateConfigFileVersion(true)) {
-                log.info("initial datavesion success!");
-                return true;
-            } else {
-                log.error("initial dataversion failed!");
-                return false;
-            }
-        }
-    }
-
-    private boolean updateConfigFileVersion(boolean isNewOne) {
-
-        Map<String, Object> originalMap = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
-            Map.class);
-
+        dataVersion.nextVersion();
         List<Map<String, Object>> versionElement = new ArrayList<Map<String, Object>>();
         Map<String, Object> accountsMap = new LinkedHashMap<String, Object>() {
             {
@@ -153,16 +118,8 @@ public class PlainPermissionLoader {
             }
         };
         versionElement.add(accountsMap);
-        originalMap.put(AclConstants.CONFIG_DATA_VERSION, versionElement);
-        if (isNewOne) {
-            return AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, originalMap);
-        } else {
-            Map<String, Object> updatedDataVersionMap = AclUtils.getYamlDataObject(fileHome + File.separator + fileName, Map.class);
-            List<Map<String, Object>> dataVersionList = (List<Map<String, Object>>) updatedDataVersionMap.get(AclConstants.CONFIG_DATA_VERSION);
-            dataVersionList.clear();
-            dataVersionList.add(accountsMap);
-            return AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, updatedDataVersionMap);
-        }
+        updateAclConfigMap.put(AclConstants.CONFIG_DATA_VERSION, versionElement);
+        return updateAclConfigMap;
     }
 
     public boolean updateAccessConfig(PlainAccessConfig plainAccessConfig) {
@@ -186,10 +143,8 @@ public class PlainPermissionLoader {
                     accounts.add(updateAccountMap);
                     aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
 
-                    if (AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, aclAccessConfigMap)) {
-                        if (createOrUpdateVersionInFile()) {
-                            return true;
-                        }
+                    if (AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap))) {
+                        return true;
                     }
                     return false;
                 }
@@ -197,10 +152,8 @@ public class PlainPermissionLoader {
             //create acl access config elements
             accounts.add(createAclAccessConfigMap(null, plainAccessConfig));
             aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
-            if (AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, aclAccessConfigMap)) {
-                if (createOrUpdateVersionInFile()) {
-                    return true;
-                }
+            if (AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap))) {
+                return true;
             }
             return false;
         }
@@ -242,10 +195,10 @@ public class PlainPermissionLoader {
         if (!StringUtils.isEmpty(plainAccessConfig.getDefaultGroupPerm())) {
             newAccountsMap.put(AclConstants.CONFIG_DEFAULT_GROUP_PERM, plainAccessConfig.getDefaultGroupPerm());
         }
-        if (!plainAccessConfig.getTopicPerms().isEmpty()) {
+        if (plainAccessConfig.getTopicPerms() != null && !plainAccessConfig.getTopicPerms().isEmpty()) {
             newAccountsMap.put(AclConstants.CONFIG_TOPIC_PERMS, plainAccessConfig.getTopicPerms());
         }
-        if (!plainAccessConfig.getGroupPerms().isEmpty()) {
+        if (plainAccessConfig.getGroupPerms() != null && !plainAccessConfig.getGroupPerms().isEmpty()) {
             newAccountsMap.put(AclConstants.CONFIG_GROUP_PERMS, plainAccessConfig.getGroupPerms());
         }
 
@@ -269,10 +222,8 @@ public class PlainPermissionLoader {
                     accounts.remove(account);
                     aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
 
-                    if (AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, aclAccessConfigMap)) {
-                        if (createOrUpdateVersionInFile()) {
-                            return true;
-                        }
+                    if (AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap))) {
+                        return true;
                     }
                     return false;
                 }

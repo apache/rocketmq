@@ -350,14 +350,14 @@ public class PlainAccessValidatorTest {
 
         //verify the dateversion element is correct or not
         List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get("dataVersion");
-        Assert.assertEquals(0,dataVersions.get(0).get("counter"));
+        Assert.assertEquals(1,dataVersions.get(0).get("counter"));
 
         //restore the backup file and flush to yaml file
         AclUtils.writeDataObject2Yaml(targetFileName, backUpAclConfigMap);
     }
 
     @Test
-    public void createAccessAclYamlConfigNormalTest() {
+    public void createAndUpdateAccessAclYamlConfigNormalTest() {
         System.setProperty("rocketmq.home.dir", "src/test/resources");
         System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_update_create.yml");
 
@@ -379,14 +379,14 @@ public class PlainAccessValidatorTest {
         plainAccessConfig.setGroupPerms(groupPerms);
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
-        //update acl access yaml config file
+        //create element in the acl access yaml config file
         plainAccessValidator.updateAccessConfig(plainAccessConfig);
 
         Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
-        List<Map<String, Object>> accounts =  (List<Map<String, Object>>)readableMap.get("accounts");
+        List<Map<String, Object>> accounts =  (List<Map<String, Object>>)readableMap.get(AclConstants.CONFIG_ACCOUNTS);
         Map<String, Object> verifyMap = null;
         for (Map<String, Object> account : accounts) {
-            if (account.get("accessKey").equals(plainAccessConfig.getAccessKey())) {
+            if (account.get(AclConstants.CONFIG_ACCESS_KEY).equals(plainAccessConfig.getAccessKey())) {
                 verifyMap = account;
                 break;
             }
@@ -398,8 +398,32 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(((List)verifyMap.get(AclConstants.CONFIG_GROUP_PERMS)).size(),2);
 
         //verify the dateversion element is correct or not
-        List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get("dataVersion");
-        Assert.assertEquals(0,dataVersions.get(0).get("counter"));
+        List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get(AclConstants.CONFIG_DATA_VERSION);
+        Assert.assertEquals(1,dataVersions.get(0).get(AclConstants.CONFIG_COUNTER));
+
+        //update element in the acl config yaml file
+        PlainAccessConfig plainAccessConfig2 = new PlainAccessConfig();
+        plainAccessConfig2.setAccessKey("rocketmq2");
+        plainAccessConfig2.setSecretKey("1234567890123");
+
+        //update acl access yaml config file secondly
+        plainAccessValidator.updateAccessConfig(plainAccessConfig2);
+
+        Map<String, Object> readableMap2 = AclUtils.getYamlDataObject(targetFileName, Map.class);
+        List<Map<String, Object>> accounts2 =  (List<Map<String, Object>>)readableMap2.get(AclConstants.CONFIG_ACCOUNTS);
+        Map<String, Object> verifyMap2 = null;
+        for (Map<String, Object> account : accounts2) {
+            if (account.get(AclConstants.CONFIG_ACCESS_KEY).equals(plainAccessConfig2.getAccessKey())) {
+                verifyMap2 = account;
+                break;
+            }
+        }
+
+        //verify the dateversion element after updating is correct or not
+        List<Map<String, Object>> dataVersions2 = (List<Map<String, Object>>) readableMap2.get(AclConstants.CONFIG_DATA_VERSION);
+        Assert.assertEquals(2,dataVersions2.get(0).get(AclConstants.CONFIG_COUNTER));
+        Assert.assertEquals(verifyMap2.get(AclConstants.CONFIG_SECRET_KEY),"1234567890123");
+
 
         //restore the backup file and flush to yaml file
         AclUtils.writeDataObject2Yaml(targetFileName, backUpAclConfigMap);
@@ -446,7 +470,7 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(verifyMap,null);
         //verify the dateversion element is correct or not
         List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get("dataVersion");
-        Assert.assertEquals(0,dataVersions.get(0).get("counter"));
+        Assert.assertEquals(1,dataVersions.get(0).get("counter"));
         
         //restore the backup file and flush to yaml file
         AclUtils.writeDataObject2Yaml(targetFileName, backUpAclConfigMap);

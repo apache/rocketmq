@@ -277,43 +277,4 @@ public class PlainPermissionLoaderTest {
         new PlainPermissionLoader();
 
     }
-
-    @Test
-    public void updateAclConfigFileDataVersion4InitialTest() {
-        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_dataversion.yml");
-        new PlainPermissionLoader().createOrUpdateVersionInFile();
-
-        String targetFileName = "src/test/resources/conf/plain_acl_dataversion.yml";
-        Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
-        List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get("dataVersion");
-        Assert.assertEquals(0,dataVersions.get(0).get("counter"));
-
-        removeDataVersionFromYamlFile("src/test/resources/conf/plain_acl_dataversion.yml");
-    }
-
-    @Test
-    public void updateAclConfigFileDataVersion4NonInitialTest() {
-        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_dataversion.yml");
-        PlainPermissionLoader loader = new PlainPermissionLoader();
-        loader.createOrUpdateVersionInFile();
-        loader.createOrUpdateVersionInFile();
-        String targetFileName = "src/test/resources/conf/plain_acl_dataversion.yml";
-        Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
-        List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get("dataVersion");
-        Assert.assertEquals(1,dataVersions.get(0).get("counter"));
-
-        removeDataVersionFromYamlFile("src/test/resources/conf/plain_acl_dataversion.yml");
-    }
-
-    private void removeDataVersionFromYamlFile(String fileName) {
-
-        Map<String, Object> updatedMap = AclUtils.getYamlDataObject(fileName, Map.class);
-        if (updatedMap != null && !updatedMap.isEmpty()) {
-            updatedMap.remove("dataVersion");
-        }
-
-        //update file and flush to yaml file
-        AclUtils.writeDataObject2Yaml(fileName, updatedMap);
-    }
-
 }
