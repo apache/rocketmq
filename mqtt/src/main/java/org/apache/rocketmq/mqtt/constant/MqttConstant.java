@@ -27,6 +27,7 @@ public class MqttConstant {
     public static final String SUBSCRIPTION_SEPARATOR = "/";
     public static final String TOPIC_CLIENTID_SEPARATOR = "@";
     public static final long DEFAULT_TIMEOUT_MILLS = 3000L;
+    public static final int FLIGHT_BEFORE_RESEND_MS = 5_000;
     public static final String PROPERTY_MQTT_QOS = "PROPERTY_MQTT_QOS";
     public static final AttributeKey<Client> MQTT_CLIENT_ATTRIBUTE_KEY = AttributeKey.valueOf("mqtt.client");
 }

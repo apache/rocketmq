@@ -31,7 +31,7 @@ public interface NnodeService {
      *
      * @param snodeConfig {@link SnodeConfig}
      */
-    void registerSnode(SnodeConfig snodeConfig) throws Exception;
+    void  registerSnode(SnodeConfig snodeConfig) throws Exception;
 
     /**
      * Update Nnode server address list.

@@ -23,9 +23,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.DelayQueue;
-import java.util.concurrent.Delayed;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.common.client.ClientRole;
@@ -45,6 +42,7 @@ import org.apache.rocketmq.remoting.netty.NettyChannelImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
 
+import static org.apache.rocketmq.mqtt.constant.MqttConstant.FLIGHT_BEFORE_RESEND_MS;
 import static org.apache.rocketmq.mqtt.constant.MqttConstant.TOPIC_CLIENTID_SEPARATOR;
 
 public class MQTTSession extends Client {
@@ -57,39 +55,8 @@ public class MQTTSession extends Client {
     private final DefaultMqttMessageProcessor defaultMqttMessageProcessor;
     private final AtomicInteger inflightSlots = new AtomicInteger(10);
     private final Map<Integer, InFlightMessage> inflightWindow = new HashMap<>();
-    private final DelayQueue<InFlightPacket> inflightTimeouts = new DelayQueue<>();
-    private static final int FLIGHT_BEFORE_RESEND_MS = 5_000;
     private Hashtable inUsePacketIds = new Hashtable();
     private int nextPacketId = 0;
-
-    static class InFlightPacket implements Delayed {
-
-        final int packetId;
-        private long startTime;
-
-        InFlightPacket(int packetId, long delayInMilliseconds) {
-            this.packetId = packetId;
-            this.startTime = System.currentTimeMillis() + delayInMilliseconds;
-        }
-
-        @Override
-        public long getDelay(TimeUnit unit) {
-            long diff = startTime - System.currentTimeMillis();
-            return unit.convert(diff, TimeUnit.MILLISECONDS);
-        }
-
-        @Override
-        public int compareTo(Delayed o) {
-            if ((this.startTime - ((InFlightPacket) o).startTime) == 0) {
-                return 0;
-            }
-            if ((this.startTime - ((InFlightPacket) o).startTime) > 0) {
-                return 1;
-            } else {
-                return -1;
-            }
-        }
-    }
 
     public MQTTSession(String clientId, ClientRole clientRole, Set<String> groups, boolean isConnected,
         boolean cleanSession, RemotingChannel remotingChannel, long lastUpdateTimestamp,
@@ -149,9 +116,10 @@ public class MQTTSession extends Client {
         if (inflightSlots.get() > 0) {
             inflightSlots.decrementAndGet();
             mqttHeader.setPacketId(getNextPacketId());
-            inflightWindow.put(mqttHeader.getPacketId(), new InFlightMessage(mqttHeader.getTopicName(), mqttHeader.getQosLevel(), messageExt.getBody(), brokerData, messageExt.getMsgId(), messageExt.getQueueOffset()));
-//            inflightTimeouts.add(new InFlightPacket(mqttHeader.getPacketId(), FLIGHT_BEFORE_RESEND_MS));
-            put2processTable(((IOTClientManagerImpl) this.defaultMqttMessageProcessor.getIotClientManager()).getProcessTable(), brokerData.getBrokerName(), MqttUtil.getRootTopic(mqttHeader.getTopicName()), messageExt);
+            inflightWindow.put(mqttHeader.getPacketId(), new InFlightMessage(mqttHeader.getTopicName(), mqttHeader.getQosLevel(), messageExt.getBody(), brokerData, messageExt.getQueueOffset()));
+            IOTClientManagerImpl iotClientManager = (IOTClientManagerImpl) this.defaultMqttMessageProcessor.getIotClientManager();
+            iotClientManager.getInflightTimeouts().add(new InFlightPacket(this, mqttHeader.getPacketId(), FLIGHT_BEFORE_RESEND_MS));
+            put2processTable(iotClientManager.getProcessTable(), brokerData.getBrokerName(), MqttUtil.getRootTopic(mqttHeader.getTopicName()), messageExt);
             pushMessage2Client(mqttHeader, messageExt.getBody());
         }
     }
@@ -168,11 +136,12 @@ public class MQTTSession extends Client {
             }
         }
         inflightSlots.incrementAndGet();
+        ((IOTClientManagerImpl) this.defaultMqttMessageProcessor.getIotClientManager()).getInflightTimeouts().remove(new InFlightPacket(this, ackPacketId, 0));
         releasePacketId(ackPacketId);
         return remove;
     }
 
-    private void pushMessage2Client(MqttHeader mqttHeader, byte[] body) {
+    public void pushMessage2Client(MqttHeader mqttHeader, byte[] body) {
         try {
             //set remaining length
             int remainingLength = mqttHeader.getTopicName().getBytes().length + body.length;
@@ -257,10 +226,6 @@ public class MQTTSession extends Client {
 
     public Map<Integer, InFlightMessage> getInflightWindow() {
         return inflightWindow;
-    }
-
-    public DelayQueue<InFlightPacket> getInflightTimeouts() {
-        return inflightTimeouts;
     }
 
     public Hashtable getInUsePacketIds() {
