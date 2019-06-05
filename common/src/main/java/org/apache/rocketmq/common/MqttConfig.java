@@ -54,6 +54,8 @@ public class MqttConfig {
 
     private long persistOffsetInterval = 2 * 1000;
 
+    private long scanAckTimeoutInterval = 1000;
+
     public int getListenPort() {
         return listenPort;
     }
@@ -148,5 +150,13 @@ public class MqttConfig {
 
     public void setPersistOffsetInterval(long persistOffsetInterval) {
         this.persistOffsetInterval = persistOffsetInterval;
+    }
+
+    public long getScanAckTimeoutInterval() {
+        return scanAckTimeoutInterval;
+    }
+
+    public void setScanAckTimeoutInterval(long scanAckTimeoutInterval) {
+        this.scanAckTimeoutInterval = scanAckTimeoutInterval;
     }
 }

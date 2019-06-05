@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.mqtt.service.impl;
 
+import io.netty.handler.codec.mqtt.MqttMessageType;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,7 +32,12 @@ import org.apache.rocketmq.common.service.ScheduledService;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.mqtt.client.IOTClientManagerImpl;
+import org.apache.rocketmq.mqtt.client.InFlightMessage;
+import org.apache.rocketmq.mqtt.client.InFlightPacket;
+import org.apache.rocketmq.mqtt.client.MQTTSession;
+import org.apache.rocketmq.mqtt.constant.MqttConstant;
 import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
+import org.apache.rocketmq.remoting.transport.mqtt.MqttHeader;
 
 public class MqttScheduledServiceImpl implements ScheduledService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.MQTT_LOGGER_NAME);
@@ -67,6 +75,36 @@ public class MqttScheduledServiceImpl implements ScheduledService {
                 }
             }
         }, 0, defaultMqttMessageProcessor.getMqttConfig().getPersistOffsetInterval(), TimeUnit.MILLISECONDS);
+        this.mqttScheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override public void run() {
+                IOTClientManagerImpl iotClientManager = (IOTClientManagerImpl) defaultMqttMessageProcessor.getIotClientManager();
+                Collection<InFlightPacket> expired = new ArrayList<>();
+                iotClientManager.getInflightTimeouts().drainTo(expired);
+                for (InFlightPacket notAcked : expired) {
+                    MQTTSession client = notAcked.getClient();
+                    if (!client.isConnected()) {
+                        continue;
+                    }
+                    if (notAcked.getResendTime() > 3) {
+                        client.getRemotingChannel().close();
+                        continue;
+                    }
+                    if (client.getInflightWindow().containsKey(notAcked.getPacketId())) {
+                        InFlightMessage inFlightMessage = client.getInflightWindow().get(notAcked.getPacketId());
+                        MqttHeader mqttHeader = new MqttHeader();
+                        mqttHeader.setTopicName(inFlightMessage.getTopic());
+                        mqttHeader.setQosLevel(inFlightMessage.getPushQos());
+                        mqttHeader.setRetain(false);
+                        mqttHeader.setDup(true);
+                        mqttHeader.setMessageType(MqttMessageType.PUBLISH.value());
+                        notAcked.setStartTime(System.currentTimeMillis() + MqttConstant.FLIGHT_BEFORE_RESEND_MS);
+                        notAcked.setResendTime(notAcked.getResendTime() + 1);
+                        iotClientManager.getInflightTimeouts().add(notAcked);
+                        client.pushMessage2Client(mqttHeader, inFlightMessage.getBody());
+                    }
+                }
+            }
+        }, 10000, defaultMqttMessageProcessor.getMqttConfig().getScanAckTimeoutInterval(), TimeUnit.MILLISECONDS);
     }
 
     @Override

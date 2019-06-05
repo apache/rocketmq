@@ -75,7 +75,7 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
         MqttSubscribeMessage mqttSubscribeMessage = (MqttSubscribeMessage) message;
         MqttSubscribePayload payload = mqttSubscribeMessage.payload();
         IOTClientManagerImpl iotClientManager = (IOTClientManagerImpl) defaultMqttMessageProcessor.getIotClientManager();
-        MQTTSession client = (MQTTSession)iotClientManager.getClient(IOTClientManagerImpl.IOT_GROUP, remotingChannel);
+        MQTTSession client = (MQTTSession) iotClientManager.getClient(IOTClientManagerImpl.IOT_GROUP, remotingChannel);
         if (client == null) {
             log.error("Can't find associated client, the connection will be closed. remotingChannel={}, MqttMessage={}", remotingChannel.toString(), message.toString());
             remotingChannel.close();
@@ -91,7 +91,7 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
             remotingChannel.close();
             return null;
         }
-        if (isTopicWithWildcard(payload.topicSubscriptions())) {
+        if (topicStartWithWildcard(payload.topicSubscriptions())) {
             log.error("Client can not subscribe topic starts with wildcards! clientId={}, topicSubscriptions={}", client.getClientId(), payload.topicSubscriptions().toString());
 
         }
@@ -126,7 +126,7 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
             subscription = clientId2Subscription.get(client.getClientId());
         } else {
             subscription = new Subscription();
-            subscription.setCleanSession(((MQTTSession)client).isCleanSession());
+            subscription.setCleanSession(((MQTTSession) client).isCleanSession());
         }
         ConcurrentHashMap<String, SubscriptionData> subscriptionDatas = subscription.getSubscriptionTable();
         List<Integer> grantQoss = new ArrayList<>();
@@ -155,17 +155,17 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
 
     private boolean isQosLegal(List<MqttTopicSubscription> mqttTopicSubscriptions) {
         for (MqttTopicSubscription subscription : mqttTopicSubscriptions) {
-            if (!(subscription.qualityOfService().equals(MqttQoS.AT_LEAST_ONCE) || subscription.qualityOfService().equals(MqttQoS.EXACTLY_ONCE) || subscription.qualityOfService().equals(MqttQoS.AT_MOST_ONCE))) {
+            if (MqttUtil.isQosLegal(subscription.qualityOfService())) {
                 return true;
             }
         }
         return false;
     }
 
-    private boolean isTopicWithWildcard(List<MqttTopicSubscription> mqttTopicSubscriptions) {
+    private boolean topicStartWithWildcard(List<MqttTopicSubscription> mqttTopicSubscriptions) {
         for (MqttTopicSubscription subscription : mqttTopicSubscriptions) {
             String rootTopic = MqttUtil.getRootTopic(subscription.topicName());
-            if (rootTopic.contains(MqttConstant.SUBSCRIPTION_FLAG_PLUS) || rootTopic.contains(MqttConstant.SUBSCRIPTION_FLAG_SHARP)) {
+            if (rootTopic.contains(MqttConstant.SUBSCRIPTION_FLAG_PLUS) || rootTopic.contains(MqttConstant.SUBSCRIPTION_FLAG_SHARP) || rootTopic.isEmpty()) {
                 return true;
             }
         }

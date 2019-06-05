@@ -14,20 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.mqtt;
 
-package org.apache.rocketmq.mqtt.constant;
+import org.apache.rocketmq.mqtt.util.MqttUtil;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
-import io.netty.util.AttributeKey;
-import org.apache.rocketmq.common.client.Client;
+import static org.junit.Assert.assertEquals;
 
-public class MqttConstant {
-    public static final int MAX_SUPPORTED_QOS = 0;
-    public static final String SUBSCRIPTION_FLAG_PLUS = "+";
-    public static final String SUBSCRIPTION_FLAG_SHARP = "#";
-    public static final String SUBSCRIPTION_SEPARATOR = "/";
-    public static final String TOPIC_CLIENTID_SEPARATOR = "@";
-    public static final long DEFAULT_TIMEOUT_MILLS = 3000L;
-    public static final int FLIGHT_BEFORE_RESEND_MS = 5_000;
-    public static final String PROPERTY_MQTT_QOS = "PROPERTY_MQTT_QOS";
-    public static final AttributeKey<Client> MQTT_CLIENT_ATTRIBUTE_KEY = AttributeKey.valueOf("mqtt.client");
+@RunWith(MockitoJUnitRunner.class)
+public class MqttUtilTest {
+
+    @Test
+    public void test_getRootTopic() {
+
+        String rootTopic = MqttUtil.getRootTopic("/test/topic");
+        assertEquals("", rootTopic);
+
+        String rootTopic2 = MqttUtil.getRootTopic("test/topic");
+        assertEquals("test", rootTopic2);
+    }
 }

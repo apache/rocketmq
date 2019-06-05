@@ -68,8 +68,8 @@ public class MqttPushTask implements Runnable {
     private BrokerData brokerData;
     private String rootTopic;
 
-    public MqttPushTask(DefaultMqttMessageProcessor processor, final MqttHeader mqttHeader, String rootTopic, Client client,
-        BrokerData brokerData) {
+    public MqttPushTask(DefaultMqttMessageProcessor processor, final MqttHeader mqttHeader, String rootTopic,
+        Client client, BrokerData brokerData) {
         this.defaultMqttMessageProcessor = processor;
         this.mqttHeader = mqttHeader;
         this.rootTopic = rootTopic;

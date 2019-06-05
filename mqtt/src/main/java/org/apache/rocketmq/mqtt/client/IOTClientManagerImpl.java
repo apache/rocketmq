@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.DelayQueue;
 import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.common.client.ClientManagerImpl;
 import org.apache.rocketmq.common.client.Subscription;
@@ -43,8 +44,9 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
         1024);
     private final ConcurrentHashMap<String/*clientId*/, Subscription> clientId2Subscription = new ConcurrentHashMap<>(1024);
     private final Map<String/*snode ip*/, MqttClient> snode2MqttClient = new HashMap<>();
-    private final ConcurrentHashMap<String /*broker*/, ConcurrentHashMap<String /*topic@clientId*/, TreeMap<Long/*queueOffset*/, MessageExt>>> processTable = new ConcurrentHashMap<>();
-
+    private final ConcurrentHashMap<String /*broker*/, ConcurrentHashMap<String /*rootTopic@clientId*/, TreeMap<Long/*queueOffset*/, MessageExt>>> processTable = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String /*rootTopic@clientId*/, Integer> consumeOffsetTable = new ConcurrentHashMap<>();
+    private final DelayQueue<InFlightPacket> inflightTimeouts = new DelayQueue<>();
 
     public IOTClientManagerImpl() {
     }
@@ -128,5 +130,9 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
 
     public ConcurrentHashMap<String, ConcurrentHashMap<String, TreeMap<Long, MessageExt>>> getProcessTable() {
         return processTable;
+    }
+
+    public DelayQueue<InFlightPacket> getInflightTimeouts() {
+        return inflightTimeouts;
     }
 }

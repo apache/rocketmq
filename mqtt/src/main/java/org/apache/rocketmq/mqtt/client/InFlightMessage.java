@@ -23,16 +23,13 @@ public class InFlightMessage {
     private final Integer pushQos;
     private final BrokerData brokerData;
     private final byte[] body;
-    private final String messageId;
     private final long queueOffset;
 
-    public InFlightMessage(String topic, Integer pushQos, byte[] body, BrokerData brokerData, String messageId,
-        long queueOffset) {
+    public InFlightMessage(String topic, Integer pushQos, byte[] body, BrokerData brokerData, long queueOffset) {
         this.topic = topic;
         this.pushQos = pushQos;
         this.body = body;
         this.brokerData = brokerData;
-        this.messageId = messageId;
         this.queueOffset = queueOffset;
     }
 
@@ -42,10 +39,6 @@ public class InFlightMessage {
 
     public BrokerData getBrokerData() {
         return brokerData;
-    }
-
-    public String getMessageId() {
-        return messageId;
     }
 
     public long getQueueOffset() {
