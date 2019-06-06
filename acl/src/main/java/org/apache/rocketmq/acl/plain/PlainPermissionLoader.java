@@ -164,6 +164,7 @@ public class PlainPermissionLoader {
 
     private Map<String, Object> createAclAccessConfigMap(Map<String, Object> existedAccoutMap, PlainAccessConfig plainAccessConfig) {
 
+
         Map<String, Object> newAccountsMap = null;
         if (existedAccoutMap == null) {
             newAccountsMap = new LinkedHashMap<String, Object>();
@@ -171,18 +172,22 @@ public class PlainPermissionLoader {
             newAccountsMap = existedAccoutMap;
         }
 
-        if (plainAccessConfig.getAccessKey() == null
-            || plainAccessConfig.getSecretKey() == null
-            || plainAccessConfig.getAccessKey().length() <= 6
-            || plainAccessConfig.getSecretKey().length() <= 6) {
+        if (StringUtils.isEmpty(plainAccessConfig.getAccessKey()) ||
+            plainAccessConfig.getSecretKey().length() <= 6) {
             throw new AclException(String.format(
-                "The accessKey=%s and secretKey=%s cannot be null and length should longer than 6",
-                plainAccessConfig.getAccessKey(), plainAccessConfig.getSecretKey()));
+                    "The accessKey=%s cannot be null and length should longer than 6",
+                    plainAccessConfig.getAccessKey()));
         }
-        
         newAccountsMap.put(AclConstants.CONFIG_ACCESS_KEY, plainAccessConfig.getAccessKey());
-        newAccountsMap.put(AclConstants.CONFIG_SECRET_KEY, (String)plainAccessConfig.getSecretKey());
 
+        if (!StringUtils.isEmpty(plainAccessConfig.getSecretKey())) {
+            if (plainAccessConfig.getSecretKey().length() <= 6) {
+                throw new AclException(String.format(
+                    "The secretKey=%s value length should longer than 6",
+                    plainAccessConfig.getSecretKey()));
+            }
+            newAccountsMap.put(AclConstants.CONFIG_SECRET_KEY, (String) plainAccessConfig.getSecretKey());
+        }
         if (!StringUtils.isEmpty(plainAccessConfig.getWhiteRemoteAddress())) {
             newAccountsMap.put(AclConstants.CONFIG_WHITE_ADDR, plainAccessConfig.getWhiteRemoteAddress());
         }

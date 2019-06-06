@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.common.protocol.header;
 
-import java.util.List;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -26,7 +25,7 @@ public class CreateAccessConfigRequestHeader implements CommandCustomHeader {
 
     @CFNotNull
     private String accessKey;
-    @CFNotNull
+
     private String secretKey;
 
     private String whiteRemoteAddress;
@@ -37,9 +36,11 @@ public class CreateAccessConfigRequestHeader implements CommandCustomHeader {
 
     private String defaultGroupPerm;
 
-    private List<String> topicPerms;
+    // list string,eg: topicA=DENY,topicD=SUB
+    private String topicPerms;
 
-    private List<String> groupPerms;
+    // list string,eg: groupD=DENY,groupD=SUB
+    private String groupPerms;
     
 
     @Override public void checkFields() throws RemotingCommandException {
@@ -94,19 +95,19 @@ public class CreateAccessConfigRequestHeader implements CommandCustomHeader {
         this.defaultGroupPerm = defaultGroupPerm;
     }
 
-    public List<String> getTopicPerms() {
+    public String getTopicPerms() {
         return topicPerms;
     }
 
-    public void setTopicPerms(List<String> topicPerms) {
+    public void setTopicPerms(String topicPerms) {
         this.topicPerms = topicPerms;
     }
 
-    public List<String> getGroupPerms() {
+    public String getGroupPerms() {
         return groupPerms;
     }
 
-    public void setGroupPerms(List<String> groupPerms) {
+    public void setGroupPerms(String groupPerms) {
         this.groupPerms = groupPerms;
     }
 }

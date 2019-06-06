@@ -56,16 +56,12 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
         optionGroup.setRequired(true);
         options.addOptionGroup(optionGroup);
 
-        //opt = new Option("g", "globalWhiteRemoteAddresses", true, "set global White Ip Addresses in acl config file,can be splited by semicolon");
-        //opt.setRequired(false);
-        //options.addOption(opt);
-
         opt = new Option("a", "accessKey", true, "set accessKey in acl config file");
         opt.setRequired(true);
         options.addOption(opt);
 
         opt = new Option("s", "secretKey", true, "set secretKey in acl config file");
-        opt.setRequired(true);
+        opt.setRequired(false);
         options.addOption(opt);
 
         opt = new Option("w", "whiteRemoteAddress", true, "set white ip Address for account in acl config file");
@@ -80,11 +76,11 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("t", "topicPerms", true, "set topicPerms in acl config file,can be splited by semicolon");
+        opt = new Option("t", "topicPerms", true, "set topicPerms list,eg: topicA=DENY,topicD=SUB");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("g", "groupPerms", true, "set groupPerms in acl config file,can be splited by semicolon");
+        opt = new Option("g", "groupPerms", true, "set groupPerms list,eg: groupD=DENY,groupD=SUB");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -105,7 +101,10 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
         try {
             PlainAccessConfig accessConfig = new PlainAccessConfig();
             accessConfig.setAccessKey(commandLine.getOptionValue('a').trim());
-            accessConfig.setSecretKey(commandLine.getOptionValue('s').trim());
+            //secretkey
+            if (commandLine.hasOption('s')) {
+                accessConfig.setSecretKey(commandLine.getOptionValue('s').trim());
+            }
 
             // admin
             if (commandLine.hasOption('m')) {
@@ -129,10 +128,10 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
 
             // topicPerms list value
             if (commandLine.hasOption('t')) {
-                String[] topicPerms = commandLine.getOptionValue('t').trim().split(";");
+                String[] topicPerms = commandLine.getOptionValue('t').trim().split(",");
                 List<String> topicPermList = new ArrayList<String>();
                 if (topicPerms != null) {
-                    for (String topicPerm: topicPerms) {
+                    for (String topicPerm : topicPerms) {
                         topicPermList.add(topicPerm);
                     }
                 }
@@ -141,10 +140,10 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
 
             // groupPerms list value
             if (commandLine.hasOption('g')) {
-                String[] groupPerms = commandLine.getOptionValue('g').trim().split(";");
+                String[] groupPerms = commandLine.getOptionValue('g').trim().split(",");
                 List<String> groupPermList = new ArrayList<String>();
                 if (groupPerms != null) {
-                    for (String groupPerm: groupPerms) {
+                    for (String groupPerm : groupPerms) {
                         groupPermList.add(groupPerm);
                     }
                 }
@@ -165,7 +164,6 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
                 String clusterName = commandLine.getOptionValue('c').trim();
 
                 defaultMQAdminExt.start();
-
                 Set<String> masterSet =
                     CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
                 for (String addr : masterSet) {

@@ -28,15 +28,17 @@ import java.net.NetworkInterface;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
-
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -528,5 +530,29 @@ public class UtilAll {
             }
             file.delete();
         }
+    }
+
+    public static String List2String(List<String> list,String splitor) {
+        if (list == null || list.size() == 0) {
+            return null;
+        }
+        StringBuffer str = new StringBuffer();
+        for (int i = 0;i < list.size();i++) {
+            str.append(list.get(i));
+            if (i == list.size() - 1) {
+                continue;
+            }
+            str.append(splitor);
+        }
+        return str.toString();
+    }
+
+    public static List<String> String2List(String str,String splitor) {
+        if (StringUtils.isEmpty(str)) {
+            return null;
+        }
+
+        String[] addrArray = str.split(splitor);
+        return Arrays.asList(addrArray);
     }
 }

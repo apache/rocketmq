@@ -287,7 +287,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         final CreateAccessConfigRequestHeader requestHeader =
             (CreateAccessConfigRequestHeader) request.decodeCommandCustomHeader(CreateAccessConfigRequestHeader.class);
-        log.info("updateAndCreateAccessConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         PlainAccessConfig accessConfig = new PlainAccessConfig();
         accessConfig.setAccessKey(requestHeader.getAccessKey());
@@ -295,10 +294,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         accessConfig.setWhiteRemoteAddress(requestHeader.getWhiteRemoteAddress());
         accessConfig.setDefaultTopicPerm(requestHeader.getDefaultTopicPerm());
         accessConfig.setDefaultGroupPerm(requestHeader.getDefaultGroupPerm());
-        accessConfig.setTopicPerms(requestHeader.getTopicPerms());
-        accessConfig.setGroupPerms(requestHeader.getGroupPerms());
+        accessConfig.setTopicPerms(UtilAll.String2List(requestHeader.getTopicPerms(),","));
+        accessConfig.setGroupPerms(UtilAll.String2List(requestHeader.getGroupPerms(),","));
         accessConfig.setAdmin(requestHeader.isAdmin());
-
         try {
 
             AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
@@ -317,6 +315,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
         } catch (Exception e) {
             log.error("Failed to generate a proper update accessvalidator response", e);
+            response.setCode(ResponseCode.UPDATE_AND_CREATE_ACL_CONFIG_FAILED);
+            response.setRemark(e.getMessage());
+            return response;
         }
 
         return null;
@@ -349,6 +350,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         } catch (Exception e) {
             log.error("Failed to generate a proper delete accessvalidator response", e);
+            response.setCode(ResponseCode.DELETE_ACL_CONFIG_FAILED);
+            response.setRemark(e.getMessage());
+            return response;
         }
 
         return null;

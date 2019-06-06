@@ -357,6 +357,38 @@ public class PlainAccessValidatorTest {
     }
 
     @Test
+    public void updateAccessAclYamlConfigTest() {
+        System.setProperty("rocketmq.home.dir", "src/test/resources");
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_update_create.yml");
+
+        String targetFileName = "src/test/resources/conf/plain_acl_update_create.yml";
+        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+
+        PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+        plainAccessConfig.setAccessKey("RocketMQ");
+        plainAccessConfig.setSecretKey("123456789111");
+
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        //update element in the acl access yaml config file
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
+
+        Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+        List<Map<String, Object>> accounts =  (List<Map<String, Object>>)readableMap.get(AclConstants.CONFIG_ACCOUNTS);
+        Map<String, Object> verifyMap = null;
+        for (Map<String, Object> account : accounts) {
+            if (account.get(AclConstants.CONFIG_ACCESS_KEY).equals(plainAccessConfig.getAccessKey())) {
+                verifyMap = account;
+                break;
+            }
+        }
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_SECRET_KEY),"123456789111");
+
+        //restore the backup file and flush to yaml file
+        AclUtils.writeDataObject2Yaml(targetFileName, backUpAclConfigMap);
+    }
+
+
+    @Test
     public void createAndUpdateAccessAclYamlConfigNormalTest() {
         System.setProperty("rocketmq.home.dir", "src/test/resources");
         System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_update_create.yml");
@@ -396,6 +428,10 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_DEFAULT_GROUP_PERM),"PUB");
         Assert.assertEquals(((List)verifyMap.get(AclConstants.CONFIG_TOPIC_PERMS)).size(),2);
         Assert.assertEquals(((List)verifyMap.get(AclConstants.CONFIG_GROUP_PERMS)).size(),2);
+        Assert.assertTrue(((List)verifyMap.get(AclConstants.CONFIG_TOPIC_PERMS)).contains("topicC=PUB|SUB"));
+        Assert.assertTrue(((List)verifyMap.get(AclConstants.CONFIG_TOPIC_PERMS)).contains("topicB=PUB"));
+        Assert.assertTrue(((List)verifyMap.get(AclConstants.CONFIG_GROUP_PERMS)).contains("groupB=PUB|SUB"));
+        Assert.assertTrue(((List)verifyMap.get(AclConstants.CONFIG_GROUP_PERMS)).contains("groupC=DENY"));
 
         //verify the dateversion element is correct or not
         List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get(AclConstants.CONFIG_DATA_VERSION);

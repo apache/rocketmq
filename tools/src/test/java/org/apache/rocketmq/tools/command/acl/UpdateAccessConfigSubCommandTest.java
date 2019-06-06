@@ -16,10 +16,14 @@
  */
 package org.apache.rocketmq.tools.command.acl;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.srvutil.ServerUtil;
+import org.junit.Assert;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,5 +55,35 @@ public class UpdateAccessConfigSubCommandTest {
         assertThat(commandLine.getOptionValue('t').trim()).isEqualTo("topicA=DENY;topicB=PUB|SUB");
         assertThat(commandLine.getOptionValue('g').trim()).isEqualTo("groupA=DENY;groupB=SUB");
         assertThat(commandLine.getOptionValue('m').trim()).isEqualTo("true");
+
+        PlainAccessConfig accessConfig = new PlainAccessConfig();
+
+        // topicPerms list value
+        if (commandLine.hasOption('t')) {
+            String[] topicPerms = commandLine.getOptionValue('t').trim().split(";");
+            List<String> topicPermList = new ArrayList<String>();
+            if (topicPerms != null) {
+                for (String topicPerm : topicPerms) {
+                    topicPermList.add(topicPerm);
+                }
+            }
+            accessConfig.setTopicPerms(topicPermList);
+        }
+
+        // groupPerms list value
+        if (commandLine.hasOption('g')) {
+            String[] groupPerms = commandLine.getOptionValue('g').trim().split(";");
+            List<String> groupPermList = new ArrayList<String>();
+            if (groupPerms != null) {
+                for (String groupPerm : groupPerms) {
+                    groupPermList.add(groupPerm);
+                }
+            }
+            accessConfig.setGroupPerms(groupPermList);
+        }
+
+        Assert.assertTrue(accessConfig.getTopicPerms().contains("topicB=PUB|SUB"));
+        Assert.assertTrue(accessConfig.getGroupPerms().contains("groupB=SUB"));
+
     }
 }

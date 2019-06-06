@@ -108,12 +108,12 @@ public class ClusterAclConfigVersionListSubCommand implements SubCommand {
 
         ClusterAclVersionInfo clusterAclVersionInfo = defaultMQAdminExt.examineBrokerClusterAclVersionInfo(addr);
 
-        System.out.printf("%-16s  %-22s  %-22s  %-4s  %-10s%n",
+        System.out.printf("%-16s  %-22s  %-22s  %-20s  %-22s%n",
             "#Cluster Name",
             "#Broker Name",
             "#Broker Addr",
-            "#AclConfigVersion",
-            "#AclUpdateTime"
+            "#AclConfigVersionNum",
+            "#AclLastUpdateTime"
         );
         DataVersion aclDataVersion = clusterAclVersionInfo.getAclConfigDataVersion();
         String versionNum = String.valueOf(aclDataVersion.getCounter());
@@ -121,7 +121,7 @@ public class ClusterAclConfigVersionListSubCommand implements SubCommand {
         DateFormat sdf = new SimpleDateFormat(UtilAll.YYYY_MM_DD_HH_MM_SS);
         String timeStampStr = sdf.format(new Timestamp(aclDataVersion.getTimestamp()));
 
-        System.out.printf("%-16s  %-22s  %-22s  %-4s  %-10s%n",
+        System.out.printf("%-16s  %-22s  %-22s  %-20s  %-22s%n",
             clusterAclVersionInfo.getClusterName(),
             clusterAclVersionInfo.getBrokerName(),
             clusterAclVersionInfo.getBrokerAddr(),

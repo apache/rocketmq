@@ -290,24 +290,6 @@ public class MQClientAPIImplTest {
         }
     }
 
-    @Test
-    public void testGetBrokerClusterAclInfo_Success() throws InterruptedException, RemotingException, MQBrokerException {
-
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock mock) throws Throwable {
-                RemotingCommand request = mock.getArgument(1);
-                return createSuccessResponse4GetAclConfigVersionResponse(request);
-            }
-        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
-
-        ClusterAclVersionInfo clusterAclVersionInfo = mqClientAPI.getBrokerClusterAclInfo(brokerAddr,  3 * 1000);
-        assertThat(clusterAclVersionInfo.getBrokerAddr()).isEqualTo("127.1.1.1");
-        assertThat(clusterAclVersionInfo.getBrokerName()).isEqualTo("defaultBroker");
-        assertThat(clusterAclVersionInfo.getClusterName()).isEqualTo("defaultCluster");
-        assertThat(String.valueOf(clusterAclVersionInfo.getAclConfigDataVersion().getCounter())).isEqualTo("0");
-    }
-
     private RemotingCommand createSuccessResponse(RemotingCommand request) {
         RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
         response.setCode(ResponseCode.SUCCESS);
@@ -362,22 +344,6 @@ public class MQClientAPIImplTest {
         response.setOpaque(request.getOpaque());
         response.markResponseType();
         response.setRemark("corresponding to accessConfig has been deleted failed");
-
-        return response;
-    }
-
-    private RemotingCommand createSuccessResponse4GetAclConfigVersionResponse(RemotingCommand request) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerAclConfigResponseHeader.class);
-        final GetBrokerAclConfigResponseHeader responseHeader = (GetBrokerAclConfigResponseHeader)response.readCustomHeader();
-        DataVersion dataVersion = new DataVersion();
-        responseHeader.setVersion(dataVersion.toJson());
-        responseHeader.setBrokerAddr("127.1.1.1");
-        responseHeader.setBrokerName("defaultBroker");
-        responseHeader.setClusterName("defaultCluster");
-        response.setCode(ResponseCode.SUCCESS);
-        response.setOpaque(request.getOpaque());
-        response.markResponseType();
-        response.setRemark(null);
 
         return response;
     }
