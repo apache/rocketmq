@@ -173,7 +173,7 @@ public class PlainPermissionLoader {
         }
 
         if (StringUtils.isEmpty(plainAccessConfig.getAccessKey()) ||
-            plainAccessConfig.getSecretKey().length() <= 6) {
+            plainAccessConfig.getAccessKey().length() <= 6) {
             throw new AclException(String.format(
                     "The accessKey=%s cannot be null and length should longer than 6",
                     plainAccessConfig.getAccessKey()));
