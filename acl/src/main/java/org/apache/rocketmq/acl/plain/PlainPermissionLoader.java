@@ -134,7 +134,7 @@ public class PlainPermissionLoader {
 
         List<Map<String, Object>> accounts = (List<Map<String, Object>>) aclAccessConfigMap.get(AclConstants.CONFIG_ACCOUNTS);
         Map<String, Object> updateAccountMap = null;
-        if (accounts != null && !accounts.isEmpty()) {
+        if (accounts != null) {
             for (Map<String, Object> account : accounts) {
                 if (account.get(AclConstants.CONFIG_ACCESS_KEY).equals(plainAccessConfig.getAccessKey())) {
                     //update acl access config elements
@@ -220,7 +220,7 @@ public class PlainPermissionLoader {
                     Map.class);
 
         List<Map<String, Object>> accounts = (List<Map<String, Object>>) aclAccessConfigMap.get("accounts");
-        if (accounts != null && !accounts.isEmpty()) {
+        if (accounts != null) {
             for (Map<String, Object> account : accounts) {
                 if (account.get(AclConstants.CONFIG_ACCESS_KEY).equals(accesskey)) {
                     //delete the related acl config element
@@ -236,6 +236,34 @@ public class PlainPermissionLoader {
         }
         log.error("users must ensure the acl yaml config file has related acl config elements");
 
+        return false;
+    }
+
+    public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList) {
+
+        if (globalWhiteAddrsList == null) {
+            log.error("parameter value globalWhiteAddrsList is null,please check your parameter");
+            return false;
+        }
+
+        Map<String, Object> aclAccessConfigMap = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
+            Map.class);
+
+        List<String> globalWhiteRemoteAddrList = (List<String>) aclAccessConfigMap.get(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS);
+
+        if (globalWhiteRemoteAddrList != null) {
+            globalWhiteRemoteAddrList.clear();
+            globalWhiteRemoteAddrList.addAll(globalWhiteAddrsList);
+
+            //update globalWhiteRemoteAddr element in memeory map firstly
+            aclAccessConfigMap.put(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS,globalWhiteRemoteAddrList);
+            if (AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap))) {
+                return true;
+            }
+            return false;
+        }
+
+        log.error("users must ensure the acl yaml config file has globalWhiteRemoteAddresses flag firstly");
         return false;
     }
 

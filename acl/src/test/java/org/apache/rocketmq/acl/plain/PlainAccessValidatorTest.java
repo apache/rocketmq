@@ -493,10 +493,10 @@ public class PlainAccessValidatorTest {
         plainAccessValidator.deleteAccessConfig(accessKey);
 
         Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
-        List<Map<String, Object>> accounts =  (List<Map<String, Object>>)readableMap.get("accounts");
+        List<Map<String, Object>> accounts =  (List<Map<String, Object>>)readableMap.get(AclConstants.CONFIG_ACCOUNTS);
         Map<String, Object> verifyMap = null;
         for (Map<String, Object> account : accounts) {
-            if (account.get("accessKey").equals(accessKey)) {
+            if (account.get(AclConstants.CONFIG_ACCESS_KEY).equals(accessKey)) {
                 verifyMap = account;
                 break;
             }
@@ -505,9 +505,58 @@ public class PlainAccessValidatorTest {
         //verify the specified element is removed or not
         Assert.assertEquals(verifyMap,null);
         //verify the dateversion element is correct or not
-        List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get("dataVersion");
-        Assert.assertEquals(1,dataVersions.get(0).get("counter"));
+        List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get(AclConstants.CONFIG_DATA_VERSION);
+        Assert.assertEquals(1,dataVersions.get(0).get(AclConstants.CONFIG_COUNTER));
         
+        //restore the backup file and flush to yaml file
+        AclUtils.writeDataObject2Yaml(targetFileName, backUpAclConfigMap);
+    }
+
+    @Test
+    public void updateAccessAclYamlConfigWithNoAccoutsExceptionTest() {
+        System.setProperty("rocketmq.home.dir", "src/test/resources");
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_with_no_accouts.yml");
+
+        String targetFileName = "src/test/resources/conf/plain_acl_with_no_accouts.yml";
+        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+
+        PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+        plainAccessConfig.setAccessKey("RocketMQ");
+        plainAccessConfig.setSecretKey("1234567890");
+
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        //update acl access yaml config file and verify the return value is true
+        Assert.assertEquals(plainAccessValidator.updateAccessConfig(plainAccessConfig), false);
+    }
+
+    @Test
+    public void updateGlobalWhiteAddrsNormalTest() {
+        System.setProperty("rocketmq.home.dir", "src/test/resources");
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_global_white_addrs.yml");
+
+        String targetFileName = "src/test/resources/conf/plain_acl_global_white_addrs.yml";
+        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        //update global white remote addr value list in the acl access yaml config file
+
+        List<String> globalWhiteAddrsList = new ArrayList<String>();
+        globalWhiteAddrsList.add("10.10.154.1");
+        globalWhiteAddrsList.add("10.10.154.2");
+        globalWhiteAddrsList.add("10.10.154.3");
+        plainAccessValidator.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList);
+
+        Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+
+        List<String> globalWhiteAddrList =  (List<String>)readableMap.get(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS);
+        Assert.assertTrue(globalWhiteAddrList.contains("10.10.154.1"));
+        Assert.assertTrue(globalWhiteAddrList.contains("10.10.154.2"));
+        Assert.assertTrue(globalWhiteAddrList.contains("10.10.154.3"));
+
+        //verify the dateversion element is correct or not
+        List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get(AclConstants.CONFIG_DATA_VERSION);
+        Assert.assertEquals(1,dataVersions.get(0).get(AclConstants.CONFIG_COUNTER));
+
         //restore the backup file and flush to yaml file
         AclUtils.writeDataObject2Yaml(targetFileName, backUpAclConfigMap);
     }

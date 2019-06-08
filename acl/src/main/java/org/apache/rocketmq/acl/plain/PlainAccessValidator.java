@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.acl.plain;
 
+import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -148,6 +149,10 @@ public class PlainAccessValidator implements AccessValidator {
 
     @Override public String getAclConfigVersion() {
         return aclPlugEngine.getAclConfigDataVersion();
+    }
+
+    @Override public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList) {
+        return aclPlugEngine.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList);
     }
 
 }

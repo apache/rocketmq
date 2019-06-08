@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.acl;
 
+import java.util.List;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -58,4 +59,10 @@ public interface AccessValidator {
      * @return
      */
     String getAclConfigVersion();
+
+    /**
+     * update globalWhiteRemoteAddresses in acl yaml config file
+     * @return
+     */
+    boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList);
 }

@@ -40,7 +40,7 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Update Acl Config Yaml File in broker";
+        return "Update acl config yaml file in broker";
     }
 
     @Override
@@ -156,7 +156,7 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
                 defaultMQAdminExt.start();
                 defaultMQAdminExt.createAndUpdatePlainAccessConfig(addr, accessConfig);
 
-                System.out.printf("create plain access config to %s success.%n", addr);
+                System.out.printf("create or update plain access config to %s success.%n", addr);
                 System.out.printf("%s", accessConfig);
                 return;
 
@@ -168,7 +168,7 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
                     CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
                 for (String addr : masterSet) {
                     defaultMQAdminExt.createAndUpdatePlainAccessConfig(addr, accessConfig);
-                    System.out.printf("create plain access config to %s success.%n", addr);
+                    System.out.printf("create or update plain access config to %s success.%n", addr);
                 }
 
                 System.out.printf("%s", accessConfig);

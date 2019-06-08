@@ -18,6 +18,8 @@ package org.apache.rocketmq.acl.common;
 
 public class AclConstants {
 
+    public static final String CONFIG_GLOBAL_WHITE_ADDRS = "globalWhiteRemoteAddresses";
+
     public static final String CONFIG_ACCOUNTS = "accounts";
 
     public static final String CONFIG_ACCESS_KEY = "accessKey";

@@ -78,4 +78,6 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int DELETE_ACL_CONFIG_FAILED = 210;
 
+    public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG_FAILED = 211;
+
 }
