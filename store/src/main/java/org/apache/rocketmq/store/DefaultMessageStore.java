@@ -1759,7 +1759,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         private boolean isCommitLogAvailable() {
-             System.out.println(DefaultMessageStore.this.commitLog.getMaxOffset());
+             //System.out.println(DefaultMessageStore.this.commitLog.getMaxOffset());
             return this.reputFromOffset < DefaultMessageStore.this.commitLog.getMaxOffset();
         }
 
