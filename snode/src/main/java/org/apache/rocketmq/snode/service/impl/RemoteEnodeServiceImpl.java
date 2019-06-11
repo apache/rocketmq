@@ -295,4 +295,10 @@ public class RemoteEnodeServiceImpl implements EnodeService {
         return this.snodeController.getRemotingClient().invokeSync(address,
             request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
     }
+
+    @Override
+    public RemotingCommand transferMQTTInfo2Enode(final RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        return this.transferToEnode(request);
+    }
+
 }

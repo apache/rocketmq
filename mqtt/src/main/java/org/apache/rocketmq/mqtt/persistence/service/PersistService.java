@@ -15,25 +15,19 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.util;
+package org.apache.rocketmq.mqtt.persistence.service;
 
-import com.google.gson.Gson;
-import java.nio.charset.Charset;
+import java.util.List;
+import java.util.Map;
+import org.apache.rocketmq.common.client.Client;
+import org.apache.rocketmq.common.client.Subscription;
+import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
 
-public class MqttEncodeDecodeUtil {
-    private static final Gson GSON = new Gson();
-
-    public static byte[] encode(Object object) {
-        final String json = GSON.toJson(object);
-        if (json != null) {
-            return json.getBytes(Charset.forName("UTF-8"));
-        }
-        return null;
-    }
-
-    public static <T> Object decode(byte[] body, Class<T> classOfT) {
-        final String json = new String(body, Charset.forName("UTF-8"));
-        return GSON.fromJson(json, classOfT);
-    }
-
+public interface PersistService {
+    void init(DefaultMqttMessageProcessor processor);
+    boolean isClient2SubsriptionPersisted(Client client, Subscription subscription);
+    boolean addOrUpdateClient2Susbscription(Client client, Subscription subscription);
+    boolean deleteClient2Subscription(Client client);
+    Map<String,Map<String, Integer>> getSnodeAddress2Clients(String topic);
+    boolean clientUnsubscribe(Client client, List<String> topics);
 }

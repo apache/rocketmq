@@ -1,0 +1,1 @@
+persistService=org.apache.rocketmq.mqtt.persistence.service.DefaultPersistService

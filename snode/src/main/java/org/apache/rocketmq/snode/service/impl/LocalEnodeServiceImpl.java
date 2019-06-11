@@ -24,6 +24,9 @@ import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.netty.CodecHelper;
 import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -146,5 +149,10 @@ public class LocalEnodeServiceImpl implements EnodeService {
         ChannelHandlerContext ctx = nettyChannelHandlerContext.getChannelHandlerContext();
         log.info("un");
         return this.brokerController.getAdminProcessor().lockBatchMQ(ctx, request);
+    }
+
+    @Override public RemotingCommand transferMQTTInfo2Enode(
+        RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        return null;
     }
 }

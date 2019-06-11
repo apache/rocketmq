@@ -55,6 +55,8 @@ import org.apache.rocketmq.mqtt.mqtthandler.impl.MqttPubrecMessageHandler;
 import org.apache.rocketmq.mqtt.mqtthandler.impl.MqttPubrelMessageHandler;
 import org.apache.rocketmq.mqtt.mqtthandler.impl.MqttSubscribeMessageHandler;
 import org.apache.rocketmq.mqtt.mqtthandler.impl.MqttUnsubscribeMessagHandler;
+import org.apache.rocketmq.mqtt.persistence.PersistServiceFactory;
+import org.apache.rocketmq.mqtt.persistence.service.PersistService;
 import org.apache.rocketmq.mqtt.service.WillMessageService;
 import org.apache.rocketmq.mqtt.service.impl.MqttScheduledServiceImpl;
 import org.apache.rocketmq.mqtt.service.impl.WillMessageServiceImpl;
@@ -84,6 +86,7 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
     private EnodeService enodeService;
     private NnodeService nnodeService;
     private ScheduledService mqttScheduledService;
+    private PersistService persistService;
 
     private final OrderedExecutor orderedExecutor;
 
@@ -97,6 +100,8 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
         this.mqttRemotingServer = mqttRemotingServer;
         this.enodeService = enodeService;
         this.nnodeService = nnodeService;
+        this.persistService = PersistServiceFactory.getInstance().createPersistService();
+        this.persistService.init(this);
         this.mqttClientHousekeepingService = new MqttClientHousekeepingService(iotClientManager);
         this.mqttClientHousekeepingService.start(mqttConfig.getHouseKeepingInterval());
 
@@ -214,4 +219,6 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
     public OrderedExecutor getOrderedExecutor() {
         return orderedExecutor;
     }
+
+    public PersistService getPersistService() { return persistService; }
 }

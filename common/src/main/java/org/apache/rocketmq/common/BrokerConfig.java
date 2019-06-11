@@ -25,8 +25,6 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 
-import static org.apache.rocketmq.common.SnodeConfig.localHostName;
-
 public class BrokerConfig {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
@@ -71,6 +69,11 @@ public class BrokerConfig {
     private int heartbeatThreadPoolNums = Math.min(32, Runtime.getRuntime().availableProcessors());
 
     /**
+     * thread numbers for mqtt message thread pool.
+     */
+    private int mqttMessageThreadPoolNums = 1;
+
+    /**
      * Thread numbers for EndTransactionProcessor
      */
     private int endTransactionThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors() * 2;
@@ -90,6 +93,7 @@ public class BrokerConfig {
     private int consumerManagerThreadPoolQueueCapacity = 1000000;
     private int heartbeatThreadPoolQueueCapacity = 50000;
     private int endTransactionPoolQueueCapacity = 100000;
+    private int mqttThreadPoolQueueCapacity = 10000;
 
     private int filterServerNums = 0;
 
@@ -776,5 +780,21 @@ public class BrokerConfig {
 
     public void setAclEnable(boolean aclEnable) {
         this.aclEnable = aclEnable;
+    }
+
+    public int getMqttMessageThreadPoolNums() {
+        return mqttMessageThreadPoolNums;
+    }
+
+    public void setMqttMessageThreadPoolNums(int mqttMessageThreadPoolNums) {
+        this.mqttMessageThreadPoolNums = mqttMessageThreadPoolNums;
+    }
+
+    public int getMqttThreadPoolQueueCapacity() {
+        return mqttThreadPoolQueueCapacity;
+    }
+
+    public void setMqttThreadPoolQueueCapacity(int mqttThreadPoolQueueCapacity) {
+        this.mqttThreadPoolQueueCapacity = mqttThreadPoolQueueCapacity;
     }
 }

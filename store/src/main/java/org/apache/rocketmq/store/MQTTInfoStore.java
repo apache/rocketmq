@@ -15,25 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.util;
+package org.apache.rocketmq.store;
 
-import com.google.gson.Gson;
-import java.nio.charset.Charset;
+public interface MQTTInfoStore {
 
-public class MqttEncodeDecodeUtil {
-    private static final Gson GSON = new Gson();
+    void load();
 
-    public static byte[] encode(Object object) {
-        final String json = GSON.toJson(object);
-        if (json != null) {
-            return json.getBytes(Charset.forName("UTF-8"));
-        }
-        return null;
-    }
+    void start() throws Exception;
 
-    public static <T> Object decode(byte[] body, Class<T> classOfT) {
-        final String json = new String(body, Charset.forName("UTF-8"));
-        return GSON.fromJson(json, classOfT);
-    }
+    boolean putData(String key,String value);
 
+    String getValue(String key);
+
+    boolean deleteData(String key);
 }

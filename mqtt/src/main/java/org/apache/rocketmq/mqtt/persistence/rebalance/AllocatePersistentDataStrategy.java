@@ -15,25 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.util;
+package org.apache.rocketmq.mqtt.persistence.rebalance;
 
-import com.google.gson.Gson;
-import java.nio.charset.Charset;
+import java.util.Set;
 
-public class MqttEncodeDecodeUtil {
-    private static final Gson GSON = new Gson();
-
-    public static byte[] encode(Object object) {
-        final String json = GSON.toJson(object);
-        if (json != null) {
-            return json.getBytes(Charset.forName("UTF-8"));
-        }
-        return null;
-    }
-
-    public static <T> Object decode(byte[] body, Class<T> classOfT) {
-        final String json = new String(body, Charset.forName("UTF-8"));
-        return GSON.fromJson(json, classOfT);
-    }
+public interface AllocatePersistentDataStrategy {
+    String allocate(final String dataKey,final Set<String> enodeNames);
+    String getName();
 
 }
