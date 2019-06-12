@@ -21,6 +21,7 @@ import com.alibaba.fastjson.JSONObject;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.srvutil.FileWatchService;
 
-public class PlainPermissionLoader {
+public class PlainPermissionManager {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
@@ -58,7 +59,7 @@ public class PlainPermissionLoader {
 
     private final DataVersion dataVersion = new DataVersion();
 
-    public PlainPermissionLoader() {
+    public PlainPermissionManager() {
         load();
         watch();
     }
@@ -92,9 +93,9 @@ public class PlainPermissionLoader {
         }
 
         //for loading dataversion part just
-        JSONArray dataVersion4Yaml = plainAclConfData.getJSONArray(AclConstants.CONFIG_DATA_VERSION);
-        if (dataVersion4Yaml != null && !dataVersion4Yaml.isEmpty()) {
-            List<DataVersion> dataVersion = dataVersion4Yaml.toJavaList(DataVersion.class);
+        JSONArray tempDataVersion = plainAclConfData.getJSONArray(AclConstants.CONFIG_DATA_VERSION);
+        if (tempDataVersion != null && !tempDataVersion.isEmpty()) {
+            List<DataVersion> dataVersion = tempDataVersion.toJavaList(DataVersion.class);
             DataVersion firstElement = dataVersion.get(0);
             this.dataVersion.assignNewOne(firstElement);
         }
@@ -125,7 +126,7 @@ public class PlainPermissionLoader {
     public boolean updateAccessConfig(PlainAccessConfig plainAccessConfig) {
 
         if (plainAccessConfig == null) {
-            log.error("parameter value plainAccessConfig is null,please check your parameter");
+            log.error("Parameter value plainAccessConfig is null,Please check your parameter");
             return false;
         }
 
@@ -143,7 +144,7 @@ public class PlainPermissionLoader {
                     accounts.add(updateAccountMap);
                     aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
 
-                    if (AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap))) {
+                    if (AclUtils.writeDataObject(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap))) {
                         return true;
                     }
                     return false;
@@ -152,13 +153,13 @@ public class PlainPermissionLoader {
             //create acl access config elements
             accounts.add(createAclAccessConfigMap(null, plainAccessConfig));
             aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
-            if (AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap))) {
+            if (AclUtils.writeDataObject(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap))) {
                 return true;
             }
             return false;
         }
 
-        log.error("users must ensure the acl yaml config file has accounts node element");
+        log.error("Users must ensure that the acl yaml config file has accounts node element");
         return false;
     }
 
@@ -173,7 +174,7 @@ public class PlainPermissionLoader {
         }
 
         if (StringUtils.isEmpty(plainAccessConfig.getAccessKey()) ||
-            plainAccessConfig.getAccessKey().length() <= 6) {
+            plainAccessConfig.getAccessKey().length() <= AclConstants.ACCESS_KEY_MIN_LENGTH) {
             throw new AclException(String.format(
                     "The accessKey=%s cannot be null and length should longer than 6",
                     plainAccessConfig.getAccessKey()));
@@ -181,7 +182,7 @@ public class PlainPermissionLoader {
         newAccountsMap.put(AclConstants.CONFIG_ACCESS_KEY, plainAccessConfig.getAccessKey());
 
         if (!StringUtils.isEmpty(plainAccessConfig.getSecretKey())) {
-            if (plainAccessConfig.getSecretKey().length() <= 6) {
+            if (plainAccessConfig.getSecretKey().length() <= AclConstants.SECRET_KEY_MIN_LENGTH) {
                 throw new AclException(String.format(
                     "The secretKey=%s value length should longer than 6",
                     plainAccessConfig.getSecretKey()));
@@ -212,7 +213,7 @@ public class PlainPermissionLoader {
 
     public boolean deleteAccessConfig(String accesskey) {
         if (StringUtils.isEmpty(accesskey)) {
-            log.error("parameter value accesskey is null or empty String,please check your parameter");
+            log.error("Parameter value accesskey is null or empty String,Please check your parameter");
             return false;
         }
 
@@ -221,20 +222,22 @@ public class PlainPermissionLoader {
 
         List<Map<String, Object>> accounts = (List<Map<String, Object>>) aclAccessConfigMap.get("accounts");
         if (accounts != null) {
-            for (Map<String, Object> account : accounts) {
-                if (account.get(AclConstants.CONFIG_ACCESS_KEY).equals(accesskey)) {
+            Iterator<Map<String, Object>> itemIterator = accounts.iterator();
+            while (itemIterator.hasNext()) {
+
+                if (itemIterator.next().get(AclConstants.CONFIG_ACCESS_KEY).equals(accesskey)) {
                     //delete the related acl config element
-                    accounts.remove(account);
+                    itemIterator.remove();
                     aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
 
-                    if (AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap))) {
+                    if (AclUtils.writeDataObject(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap))) {
                         return true;
                     }
                     return false;
                 }
             }
         }
-        log.error("users must ensure the acl yaml config file has related acl config elements");
+        log.error("Users must ensure that the acl yaml config file has related acl config elements");
 
         return false;
     }
@@ -242,7 +245,7 @@ public class PlainPermissionLoader {
     public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList) {
 
         if (globalWhiteAddrsList == null) {
-            log.error("parameter value globalWhiteAddrsList is null,please check your parameter");
+            log.error("Parameter value globalWhiteAddrsList is null,Please check your parameter");
             return false;
         }
 
@@ -257,13 +260,13 @@ public class PlainPermissionLoader {
 
             //update globalWhiteRemoteAddr element in memeory map firstly
             aclAccessConfigMap.put(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS,globalWhiteRemoteAddrList);
-            if (AclUtils.writeDataObject2Yaml(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap))) {
+            if (AclUtils.writeDataObject(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap))) {
                 return true;
             }
             return false;
         }
 
-        log.error("users must ensure the acl yaml config file has globalWhiteRemoteAddresses flag firstly");
+        log.error("Users must ensure that the acl yaml config file has globalWhiteRemoteAddresses flag firstly");
         return false;
     }
 
@@ -330,8 +333,8 @@ public class PlainPermissionLoader {
     public PlainAccessResource buildPlainAccessResource(PlainAccessConfig plainAccessConfig) throws AclException {
         if (plainAccessConfig.getAccessKey() == null
             || plainAccessConfig.getSecretKey() == null
-            || plainAccessConfig.getAccessKey().length() <= 6
-            || plainAccessConfig.getSecretKey().length() <= 6) {
+            || plainAccessConfig.getAccessKey().length() <= AclConstants.ACCESS_KEY_MIN_LENGTH
+            || plainAccessConfig.getSecretKey().length() <= AclConstants.SECRET_KEY_MIN_LENGTH) {
             throw new AclException(String.format(
                 "The accessKey=%s and secretKey=%s cannot be null and length should longer than 6",
                     plainAccessConfig.getAccessKey(), plainAccessConfig.getSecretKey()));

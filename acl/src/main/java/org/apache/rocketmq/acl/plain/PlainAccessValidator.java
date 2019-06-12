@@ -40,10 +40,10 @@ import static org.apache.rocketmq.acl.plain.PlainAccessResource.getRetryTopic;
 
 public class PlainAccessValidator implements AccessValidator {
 
-    private PlainPermissionLoader aclPlugEngine;
+    private PlainPermissionManager aclPlugEngine;
 
     public PlainAccessValidator() {
-        aclPlugEngine = new PlainPermissionLoader();
+        aclPlugEngine = new PlainPermissionManager();
     }
 
     @Override

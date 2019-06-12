@@ -167,7 +167,7 @@ public class AclUtilsTest {
         };
         accounts.add(accountsMap);
         aclYamlMap.put("accounts",accounts);
-        Assert.assertTrue(AclUtils.writeDataObject2Yaml(targetFileName, aclYamlMap));
+        Assert.assertTrue(AclUtils.writeDataObject(targetFileName, aclYamlMap));
 
         transport.delete();
     }
@@ -189,7 +189,7 @@ public class AclUtilsTest {
         aclYamlMap.put("globalWhiteRemoteAddrs",globalWhiteRemoteAddrs);
 
         //write file to yaml file
-        AclUtils.writeDataObject2Yaml(targetFileName, aclYamlMap);
+        AclUtils.writeDataObject(targetFileName, aclYamlMap);
 
         Map<String, Object> updatedMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
         List<String> globalWhiteRemoteAddrList = (List<String>) updatedMap.get("globalWhiteRemoteAddrs");
@@ -197,7 +197,7 @@ public class AclUtilsTest {
         globalWhiteRemoteAddrList.add("192.168.1.2");
 
         //update file and flush to yaml file
-        AclUtils.writeDataObject2Yaml(targetFileName, updatedMap);
+        AclUtils.writeDataObject(targetFileName, updatedMap);
 
         Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
         List<String> updatedGlobalWhiteRemoteAddrs = (List<String>) readableMap.get("globalWhiteRemoteAddrs");

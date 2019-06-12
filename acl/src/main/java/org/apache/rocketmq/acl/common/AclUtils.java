@@ -148,7 +148,7 @@ public class AclUtils {
         }
     }
 
-    public static boolean writeDataObject2Yaml(String path, Map<String,Object> dataMap) {
+    public static boolean writeDataObject(String path, Map<String,Object> dataMap) {
         Yaml yaml = new Yaml();
         PrintWriter pw = null;
         try {
@@ -172,7 +172,7 @@ public class AclUtils {
             yamlDataObject = AclUtils.getYamlDataObject(fileName,
                 JSONObject.class);
         } catch (Exception e) {
-            log.error("convert yaml file to data object error, ",e);
+            log.error("Convert yaml file to data object error, ",e);
             return null;
         }
 

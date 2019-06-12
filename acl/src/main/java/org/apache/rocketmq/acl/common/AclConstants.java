@@ -43,4 +43,8 @@ public class AclConstants {
     public static final String CONFIG_COUNTER = "counter";
 
     public static final String CONFIG_TIME_STAMP = "timestamp";
+
+    public static final int ACCESS_KEY_MIN_LENGTH = 6;
+
+    public static final int SECRET_KEY_MIN_LENGTH = 6;
 }

@@ -353,7 +353,7 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(1,dataVersions.get(0).get("counter"));
 
         //restore the backup file and flush to yaml file
-        AclUtils.writeDataObject2Yaml(targetFileName, backUpAclConfigMap);
+        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
 
     @Test
@@ -384,7 +384,7 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_SECRET_KEY),"123456789111");
 
         //restore the backup file and flush to yaml file
-        AclUtils.writeDataObject2Yaml(targetFileName, backUpAclConfigMap);
+        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
 
 
@@ -462,7 +462,7 @@ public class PlainAccessValidatorTest {
 
 
         //restore the backup file and flush to yaml file
-        AclUtils.writeDataObject2Yaml(targetFileName, backUpAclConfigMap);
+        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
 
     @Test(expected = AclException.class)
@@ -509,7 +509,7 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(1,dataVersions.get(0).get(AclConstants.CONFIG_COUNTER));
         
         //restore the backup file and flush to yaml file
-        AclUtils.writeDataObject2Yaml(targetFileName, backUpAclConfigMap);
+        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
 
     @Test
@@ -558,7 +558,7 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(1,dataVersions.get(0).get(AclConstants.CONFIG_COUNTER));
 
         //restore the backup file and flush to yaml file
-        AclUtils.writeDataObject2Yaml(targetFileName, backUpAclConfigMap);
+        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
 
 }
