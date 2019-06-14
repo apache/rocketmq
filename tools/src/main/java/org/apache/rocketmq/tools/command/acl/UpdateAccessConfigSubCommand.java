@@ -101,32 +101,32 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
         try {
             PlainAccessConfig accessConfig = new PlainAccessConfig();
             accessConfig.setAccessKey(commandLine.getOptionValue('a').trim());
-            //secretkey
+            // Secretkey
             if (commandLine.hasOption('s')) {
                 accessConfig.setSecretKey(commandLine.getOptionValue('s').trim());
             }
 
-            // admin
+            // Admin
             if (commandLine.hasOption('m')) {
                 accessConfig.setAdmin(Boolean.parseBoolean(commandLine.getOptionValue('m').trim()));
             }
 
-            // defaultTopicPerm
+            // DefaultTopicPerm
             if (commandLine.hasOption('i')) {
                 accessConfig.setDefaultTopicPerm(commandLine.getOptionValue('i').trim());
             }
 
-            // defaultGroupPerm
+            // DefaultGroupPerm
             if (commandLine.hasOption('u')) {
                 accessConfig.setDefaultGroupPerm(commandLine.getOptionValue('u').trim());
             }
 
-            // whiteRemoteAddress
+            // WhiteRemoteAddress
             if (commandLine.hasOption('w')) {
                 accessConfig.setWhiteRemoteAddress(commandLine.getOptionValue('w').trim());
             }
 
-            // topicPerms list value
+            // TopicPerms list value
             if (commandLine.hasOption('t')) {
                 String[] topicPerms = commandLine.getOptionValue('t').trim().split(",");
                 List<String> topicPermList = new ArrayList<String>();
@@ -138,7 +138,7 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
                 accessConfig.setTopicPerms(topicPermList);
             }
 
-            // groupPerms list value
+            // GroupPerms list value
             if (commandLine.hasOption('g')) {
                 String[] groupPerms = commandLine.getOptionValue('g').trim().split(",");
                 List<String> groupPermList = new ArrayList<String>();

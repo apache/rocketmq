@@ -58,8 +58,8 @@ public class PlainAccessValidator implements AccessValidator {
         accessResource.setRequestCode(request.getCode());
 
         if (request.getExtFields() == null) {
-            //If request's extFields is null,then return accessResource directly(users can use whiteAddress pattern)
-            //The following logic codes depend on the request's extFields not to be null.
+            // If request's extFields is null,then return accessResource directly(users can use whiteAddress pattern)
+            // The following logic codes depend on the request's extFields not to be null.
             return accessResource;
         }
         accessResource.setAccessKey(request.getExtFields().get(SessionCredentials.ACCESS_KEY));

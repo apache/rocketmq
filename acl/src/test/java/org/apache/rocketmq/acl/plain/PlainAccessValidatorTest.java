@@ -327,7 +327,7 @@ public class PlainAccessValidatorTest {
         plainAccessConfig.setGroupPerms(groupPerms);
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
-        //update acl access yaml config file
+        // Update acl access yaml config file
         plainAccessValidator.updateAccessConfig(plainAccessConfig);
 
         Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
@@ -348,11 +348,11 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(((List)verifyMap.get(AclConstants.CONFIG_TOPIC_PERMS)).size(),2);
         Assert.assertEquals(((List)verifyMap.get(AclConstants.CONFIG_GROUP_PERMS)).size(),2);
 
-        //verify the dateversion element is correct or not
+        // Verify the dateversion element is correct or not
         List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get("dataVersion");
         Assert.assertEquals(1,dataVersions.get(0).get("counter"));
 
-        //restore the backup file and flush to yaml file
+        // Restore the backup file and flush to yaml file
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
 
@@ -369,7 +369,7 @@ public class PlainAccessValidatorTest {
         plainAccessConfig.setSecretKey("123456789111");
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
-        //update element in the acl access yaml config file
+        // Update element in the acl access yaml config file
         plainAccessValidator.updateAccessConfig(plainAccessConfig);
 
         Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
@@ -383,7 +383,7 @@ public class PlainAccessValidatorTest {
         }
         Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_SECRET_KEY),"123456789111");
 
-        //restore the backup file and flush to yaml file
+        // Restore the backup file and flush to yaml file
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
 
@@ -411,7 +411,7 @@ public class PlainAccessValidatorTest {
         plainAccessConfig.setGroupPerms(groupPerms);
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
-        //create element in the acl access yaml config file
+        // Create element in the acl access yaml config file
         plainAccessValidator.updateAccessConfig(plainAccessConfig);
 
         Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
@@ -433,16 +433,16 @@ public class PlainAccessValidatorTest {
         Assert.assertTrue(((List)verifyMap.get(AclConstants.CONFIG_GROUP_PERMS)).contains("groupB=PUB|SUB"));
         Assert.assertTrue(((List)verifyMap.get(AclConstants.CONFIG_GROUP_PERMS)).contains("groupC=DENY"));
 
-        //verify the dateversion element is correct or not
+        // Verify the dateversion element is correct or not
         List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get(AclConstants.CONFIG_DATA_VERSION);
         Assert.assertEquals(1,dataVersions.get(0).get(AclConstants.CONFIG_COUNTER));
 
-        //update element in the acl config yaml file
+        // Update element in the acl config yaml file
         PlainAccessConfig plainAccessConfig2 = new PlainAccessConfig();
         plainAccessConfig2.setAccessKey("rocketmq2");
         plainAccessConfig2.setSecretKey("1234567890123");
 
-        //update acl access yaml config file secondly
+        // Update acl access yaml config file secondly
         plainAccessValidator.updateAccessConfig(plainAccessConfig2);
 
         Map<String, Object> readableMap2 = AclUtils.getYamlDataObject(targetFileName, Map.class);
@@ -455,13 +455,13 @@ public class PlainAccessValidatorTest {
             }
         }
 
-        //verify the dateversion element after updating is correct or not
+        // Verify the dateversion element after updating is correct or not
         List<Map<String, Object>> dataVersions2 = (List<Map<String, Object>>) readableMap2.get(AclConstants.CONFIG_DATA_VERSION);
         Assert.assertEquals(2,dataVersions2.get(0).get(AclConstants.CONFIG_COUNTER));
         Assert.assertEquals(verifyMap2.get(AclConstants.CONFIG_SECRET_KEY),"1234567890123");
 
 
-        //restore the backup file and flush to yaml file
+        // Restore the backup file and flush to yaml file
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
 
@@ -475,7 +475,7 @@ public class PlainAccessValidatorTest {
         plainAccessConfig.setSecretKey("12345");
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
-        //update acl access yaml config file
+        // Update acl access yaml config file
         plainAccessValidator.updateAccessConfig(plainAccessConfig);
     }
 
@@ -502,13 +502,13 @@ public class PlainAccessValidatorTest {
             }
         }
 
-        //verify the specified element is removed or not
+        // Verify the specified element is removed or not
         Assert.assertEquals(verifyMap,null);
-        //verify the dateversion element is correct or not
+        // Verify the dateversion element is correct or not
         List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get(AclConstants.CONFIG_DATA_VERSION);
         Assert.assertEquals(1,dataVersions.get(0).get(AclConstants.CONFIG_COUNTER));
         
-        //restore the backup file and flush to yaml file
+        // Restore the backup file and flush to yaml file
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
 
@@ -525,7 +525,7 @@ public class PlainAccessValidatorTest {
         plainAccessConfig.setSecretKey("1234567890");
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
-        //update acl access yaml config file and verify the return value is true
+        // Update acl access yaml config file and verify the return value is true
         Assert.assertEquals(plainAccessValidator.updateAccessConfig(plainAccessConfig), false);
     }
 
@@ -538,7 +538,7 @@ public class PlainAccessValidatorTest {
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
-        //update global white remote addr value list in the acl access yaml config file
+        // Update global white remote addr value list in the acl access yaml config file
 
         List<String> globalWhiteAddrsList = new ArrayList<String>();
         globalWhiteAddrsList.add("10.10.154.1");
@@ -553,11 +553,11 @@ public class PlainAccessValidatorTest {
         Assert.assertTrue(globalWhiteAddrList.contains("10.10.154.2"));
         Assert.assertTrue(globalWhiteAddrList.contains("10.10.154.3"));
 
-        //verify the dateversion element is correct or not
+        // Verify the dateversion element is correct or not
         List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get(AclConstants.CONFIG_DATA_VERSION);
         Assert.assertEquals(1,dataVersions.get(0).get(AclConstants.CONFIG_COUNTER));
 
-        //restore the backup file and flush to yaml file
+        // Restore the backup file and flush to yaml file
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
 

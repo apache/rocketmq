@@ -65,7 +65,7 @@ public class UpdateGlobalWhiteAddrSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            // globalWhiteRemoteAddresses list value
+            // GlobalWhiteRemoteAddresses list value
             String globalWhiteRemoteAddresses = commandLine.getOptionValue('g').trim();
 
 

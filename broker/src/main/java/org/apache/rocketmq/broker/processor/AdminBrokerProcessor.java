@@ -310,7 +310,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 response.setRemark(null);
                 ctx.writeAndFlush(response);
             } else {
-                String errorMsg = "the accesskey[" + requestHeader.getAccessKey() + "] corresponding to accessConfig has been updated failed.";
+                String errorMsg = "The accesskey[" + requestHeader.getAccessKey() + "] corresponding to accessConfig has been updated failed.";
                 log.warn(errorMsg);
                 response.setCode(ResponseCode.UPDATE_AND_CREATE_ACL_CONFIG_FAILED);
                 response.setRemark(errorMsg);
@@ -332,7 +332,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         final DeleteAccessConfigRequestHeader requestHeader =
             (DeleteAccessConfigRequestHeader) request.decodeCommandCustomHeader(DeleteAccessConfigRequestHeader.class);
-        log.info("deleteAccessConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+        log.info("DeleteAccessConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         try {
             String accessKey = requestHeader.getAccessKey();
@@ -344,7 +344,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 response.setRemark(null);
                 ctx.writeAndFlush(response);
             } else {
-                String errorMsg = "the accesskey[" + requestHeader.getAccessKey() + "] corresponding to accessConfig has been deleted failed.";
+                String errorMsg = "The accesskey[" + requestHeader.getAccessKey() + "] corresponding to accessConfig has been deleted failed.";
                 log.warn(errorMsg);
                 response.setCode(ResponseCode.DELETE_ACL_CONFIG_FAILED);
                 response.setRemark(errorMsg);
@@ -378,7 +378,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 response.setRemark(null);
                 ctx.writeAndFlush(response);
             } else {
-                String errorMsg = "the globalWhiteAddresses[" + requestHeader.getGlobalWhiteAddrs() + "] has been updated failed.";
+                String errorMsg = "The globalWhiteAddresses[" + requestHeader.getGlobalWhiteAddrs() + "] has been updated failed.";
                 log.warn(errorMsg);
                 response.setCode(ResponseCode.UPDATE_GLOBAL_WHITE_ADDRS_CONFIG_FAILED);
                 response.setRemark(errorMsg);

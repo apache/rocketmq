@@ -149,13 +149,13 @@ public class AclUtilsTest {
 
         Map<String, Object> aclYamlMap = new HashMap<String, Object>();
 
-        //for globalWhiteRemoteAddrs element in acl yaml config file
+        // For globalWhiteRemoteAddrs element in acl yaml config file
         List<String> globalWhiteRemoteAddrs = new ArrayList<String>();
         globalWhiteRemoteAddrs.add("10.10.103.*");
         globalWhiteRemoteAddrs.add("192.168.0.*");
         aclYamlMap.put("globalWhiteRemoteAddrs",globalWhiteRemoteAddrs);
 
-        //for accounts element in acl yaml config file
+        // For accounts element in acl yaml config file
         List<Map<String, Object>> accounts = new ArrayList<Map<String, Object>>();
         Map<String, Object> accountsMap = new LinkedHashMap<String, Object>() {
             {
@@ -182,13 +182,13 @@ public class AclUtilsTest {
 
         Map<String, Object> aclYamlMap = new HashMap<String, Object>();
 
-        //for globalWhiteRemoteAddrs element in acl yaml config file
+        // For globalWhiteRemoteAddrs element in acl yaml config file
         List<String> globalWhiteRemoteAddrs = new ArrayList<String>();
         globalWhiteRemoteAddrs.add("10.10.103.*");
         globalWhiteRemoteAddrs.add("192.168.0.*");
         aclYamlMap.put("globalWhiteRemoteAddrs",globalWhiteRemoteAddrs);
 
-        //write file to yaml file
+        // Write file to yaml file
         AclUtils.writeDataObject(targetFileName, aclYamlMap);
 
         Map<String, Object> updatedMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
@@ -196,7 +196,7 @@ public class AclUtilsTest {
         globalWhiteRemoteAddrList.clear();
         globalWhiteRemoteAddrList.add("192.168.1.2");
 
-        //update file and flush to yaml file
+        // Update file and flush to yaml file
         AclUtils.writeDataObject(targetFileName, updatedMap);
 
         Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);

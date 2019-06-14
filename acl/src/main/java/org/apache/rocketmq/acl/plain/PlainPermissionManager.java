@@ -92,7 +92,7 @@ public class PlainPermissionManager {
             }
         }
 
-        //for loading dataversion part just
+        // For loading dataversion part just
         JSONArray tempDataVersion = plainAclConfData.getJSONArray(AclConstants.CONFIG_DATA_VERSION);
         if (tempDataVersion != null && !tempDataVersion.isEmpty()) {
             List<DataVersion> dataVersion = tempDataVersion.toJavaList(DataVersion.class);
@@ -138,7 +138,7 @@ public class PlainPermissionManager {
         if (accounts != null) {
             for (Map<String, Object> account : accounts) {
                 if (account.get(AclConstants.CONFIG_ACCESS_KEY).equals(plainAccessConfig.getAccessKey())) {
-                    //update acl access config elements
+                    // Update acl access config elements
                     accounts.remove(account);
                     updateAccountMap = createAclAccessConfigMap(account, plainAccessConfig);
                     accounts.add(updateAccountMap);
@@ -150,7 +150,7 @@ public class PlainPermissionManager {
                     return false;
                 }
             }
-            //create acl access config elements
+            // Create acl access config elements
             accounts.add(createAclAccessConfigMap(null, plainAccessConfig));
             aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
             if (AclUtils.writeDataObject(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap))) {
@@ -226,7 +226,7 @@ public class PlainPermissionManager {
             while (itemIterator.hasNext()) {
 
                 if (itemIterator.next().get(AclConstants.CONFIG_ACCESS_KEY).equals(accesskey)) {
-                    //delete the related acl config element
+                    // Delete the related acl config element
                     itemIterator.remove();
                     aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
 
@@ -258,7 +258,7 @@ public class PlainPermissionManager {
             globalWhiteRemoteAddrList.clear();
             globalWhiteRemoteAddrList.addAll(globalWhiteAddrsList);
 
-            //update globalWhiteRemoteAddr element in memeory map firstly
+            // Update globalWhiteRemoteAddr element in memeory map firstly
             aclAccessConfigMap.put(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS,globalWhiteRemoteAddrList);
             if (AclUtils.writeDataObject(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap))) {
                 return true;

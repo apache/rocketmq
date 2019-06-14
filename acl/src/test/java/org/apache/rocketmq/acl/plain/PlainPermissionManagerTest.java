@@ -46,11 +46,11 @@ public class PlainPermissionManagerTest {
 
     @Before
     public void init() throws NoSuchFieldException, SecurityException, IOException {
-        //  UPDATE_AND_CREATE_TOPIC
+        // UPDATE_AND_CREATE_TOPIC
         adminCode.add(17);
-        //  UPDATE_BROKER_CONFIG
+        // UPDATE_BROKER_CONFIG
         adminCode.add(25);
-        //  DELETE_TOPIC_IN_BROKER
+        // DELETE_TOPIC_IN_BROKER
         adminCode.add(215);
         // UPDATE_AND_CREATE_SUBSCRIPTIONGROUP
         adminCode.add(200);
@@ -197,14 +197,14 @@ public class PlainPermissionManagerTest {
     @SuppressWarnings("unchecked")
     @Test
     public void cleanAuthenticationInfoTest() throws IllegalAccessException {
-        //plainPermissionManager.addPlainAccessResource(plainAccessResource);
+        // PlainPermissionManager.addPlainAccessResource(plainAccessResource);
         Map<String, List<PlainAccessResource>> plainAccessResourceMap = (Map<String, List<PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionManager, "plainAccessResourceMap", true);
         Assert.assertFalse(plainAccessResourceMap.isEmpty());
 
         plainPermissionManager.clearPermissionInfo();
         plainAccessResourceMap = (Map<String, List<PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionManager, "plainAccessResourceMap", true);
         Assert.assertTrue(plainAccessResourceMap.isEmpty());
-        //removeDataVersionFromYamlFile("src/test/resources/conf/plain_acl.yml");
+        // RemoveDataVersionFromYamlFile("src/test/resources/conf/plain_acl.yml");
     }
 
     @Test
@@ -212,7 +212,7 @@ public class PlainPermissionManagerTest {
 
         PlainPermissionManager plainPermissionManager = new PlainPermissionManager();
         Assert.assertTrue(plainPermissionManager.isWatchStart());
-        //removeDataVersionFromYamlFile("src/test/resources/conf/plain_acl.yml");
+        // RemoveDataVersionFromYamlFile("src/test/resources/conf/plain_acl.yml");
 
     }
 
@@ -254,7 +254,7 @@ public class PlainPermissionManagerTest {
         accounts.get(0).put("accessKey", "watchrocketmq1");
         accounts.get(0).put("secretKey", "88888888");
         accounts.get(0).put("admin", "false");
-        //update file and flush to yaml file
+        // Update file and flush to yaml file
         AclUtils.writeDataObject(fileName, updatedMap);
 
         Thread.sleep(1000);

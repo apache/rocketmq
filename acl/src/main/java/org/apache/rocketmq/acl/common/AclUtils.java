@@ -50,7 +50,7 @@ public class AclUtils {
 
             return AclUtils.combineBytes(sb.toString().getBytes(CHARSET), request.getBody());
         } catch (Exception e) {
-            throw new RuntimeException("incompatible exception.", e);
+            throw new RuntimeException("Incompatible exception.", e);
         }
     }
 
@@ -71,7 +71,7 @@ public class AclUtils {
 
     public static void verify(String netaddress, int index) {
         if (!AclUtils.isScope(netaddress, index)) {
-            throw new AclException(String.format("netaddress examine scope Exception netaddress is %s", netaddress));
+            throw new AclException(String.format("Netaddress examine scope Exception netaddress is %s", netaddress));
         }
     }
 
@@ -181,8 +181,8 @@ public class AclUtils {
             return null;
         }
         
-        String accessKey = yamlDataObject.getString("accessKey");
-        String secretKey = yamlDataObject.getString("secretKey");
+        String accessKey = yamlDataObject.getString(AclConstants.CONFIG_ACCESS_KEY);
+        String secretKey = yamlDataObject.getString(AclConstants.CONFIG_SECRET_KEY);
 
         if (StringUtils.isBlank(accessKey) || StringUtils.isBlank(secretKey)) {
             log.warn("AccessKey or secretKey is blank, the acl is not enabled.");
