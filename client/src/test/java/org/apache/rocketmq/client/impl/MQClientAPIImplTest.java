@@ -19,17 +19,24 @@ package org.apache.rocketmq.client.impl;
 import java.lang.reflect.Field;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.hook.SendMessageContext;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.DataVersion;
+import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
+import org.apache.rocketmq.common.protocol.header.CreateAccessConfigRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetBrokerAclConfigResponseHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
+import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -210,6 +217,79 @@ public class MQClientAPIImplTest {
         }
     }
 
+    @Test
+    public void testCreatePlainAccessConfig_Success() throws InterruptedException, RemotingException, MQBrokerException {
+
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
+                RemotingCommand request = mock.getArgument(1);
+                return createSuccessResponse4UpdateAclConfig(request);
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        PlainAccessConfig config = createUpdateAclConfig();
+
+        try {
+            mqClientAPI.createPlainAccessConfig(brokerAddr, config, 3 * 1000);
+        } catch (MQClientException ex) {
+
+        }
+    }
+
+    @Test
+    public void testCreatePlainAccessConfig_Exception() throws InterruptedException, RemotingException, MQBrokerException {
+
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
+                RemotingCommand request = mock.getArgument(1);
+                return createErrorResponse4UpdateAclConfig(request);
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        PlainAccessConfig config = createUpdateAclConfig();
+        try {
+            mqClientAPI.createPlainAccessConfig(brokerAddr, config, 3 * 1000);
+        } catch (MQClientException ex) {
+            assertThat(ex.getResponseCode()).isEqualTo(209);
+            assertThat(ex.getErrorMessage()).isEqualTo("corresponding to accessConfig has been updated failed");
+        }
+    }
+
+    @Test
+    public void testDeleteAccessConfig_Success() throws InterruptedException, RemotingException, MQBrokerException {
+
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
+                RemotingCommand request = mock.getArgument(1);
+                return createSuccessResponse4DeleteAclConfig(request);
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+
+    }
+
+    @Test
+    public void testDeleteAccessConfig_Exception() throws InterruptedException, RemotingException, MQBrokerException {
+
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
+                RemotingCommand request = mock.getArgument(1);
+                return createErrorResponse4DeleteAclConfig(request);
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        try {
+            mqClientAPI.deleteAccessConfig(brokerAddr, "11111", 3 * 1000);
+        } catch (MQClientException ex) {
+            assertThat(ex.getResponseCode()).isEqualTo(210);
+            assertThat(ex.getErrorMessage()).isEqualTo("corresponding to accessConfig has been deleted failed");
+        }
+    }
+
     private RemotingCommand createSuccessResponse(RemotingCommand request) {
         RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
         response.setCode(ResponseCode.SUCCESS);
@@ -226,6 +306,58 @@ public class MQClientAPIImplTest {
         response.addExtField("msgId", responseHeader.getMsgId());
         response.addExtField("queueOffset", String.valueOf(responseHeader.getQueueOffset()));
         return response;
+    }
+
+    private RemotingCommand createSuccessResponse4UpdateAclConfig(RemotingCommand request) {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setOpaque(request.getOpaque());
+        response.markResponseType();
+        response.setRemark(null);
+
+        return response;
+    }
+
+    private RemotingCommand createSuccessResponse4DeleteAclConfig(RemotingCommand request) {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setOpaque(request.getOpaque());
+        response.markResponseType();
+        response.setRemark(null);
+        
+        return response;
+    }
+
+    private RemotingCommand createErrorResponse4UpdateAclConfig(RemotingCommand request) {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(ResponseCode.UPDATE_AND_CREATE_ACL_CONFIG_FAILED);
+        response.setOpaque(request.getOpaque());
+        response.markResponseType();
+        response.setRemark("corresponding to accessConfig has been updated failed");
+
+        return response;
+    }
+
+    private RemotingCommand createErrorResponse4DeleteAclConfig(RemotingCommand request) {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(ResponseCode.DELETE_ACL_CONFIG_FAILED);
+        response.setOpaque(request.getOpaque());
+        response.markResponseType();
+        response.setRemark("corresponding to accessConfig has been deleted failed");
+
+        return response;
+    }
+
+    private PlainAccessConfig createUpdateAclConfig() {
+
+        PlainAccessConfig config = new PlainAccessConfig();
+        config.setAccessKey("Rocketmq111");
+        config.setSecretKey("123456789");
+        config.setAdmin(true);
+        config.setWhiteRemoteAddress("127.0.0.1");
+        config.setDefaultTopicPerm("DENY");
+        config.setDefaultGroupPerm("SUB");
+        return config;
     }
 
     private SendMessageRequestHeader createSendMessageRequestHeader() {
