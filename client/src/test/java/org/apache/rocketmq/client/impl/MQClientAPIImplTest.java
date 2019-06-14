@@ -268,7 +268,12 @@ public class MQClientAPIImplTest {
             }
         }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
 
+        String accessKey = "1234567";
+        try {
+            mqClientAPI.deleteAccessConfig(brokerAddr, accessKey, 3 * 1000);
+        } catch (MQClientException ex) {
 
+        }
     }
 
     @Test
