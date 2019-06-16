@@ -32,7 +32,7 @@ import io.openmessaging.producer.TransactionalResult;
 import io.openmessaging.rocketmq.domain.BytesMessageImpl;
 import io.openmessaging.rocketmq.domain.MessageExtension;
 import io.openmessaging.rocketmq.promise.DefaultPromise;
-import io.openmessaging.rocketmq.utils.OMSUtil;
+import io.openmessaging.rocketmq.utils.OMSClientUtil;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -41,7 +41,7 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.MessageQueue;
 
-import static io.openmessaging.rocketmq.utils.OMSUtil.msgConvert;
+import static io.openmessaging.rocketmq.utils.OMSClientUtil.msgConvert;
 
 public class ProducerImpl extends AbstractOMSProducer implements Producer {
 
@@ -67,7 +67,7 @@ public class ProducerImpl extends AbstractOMSProducer implements Producer {
                 throw new OMSRuntimeException(-1, "Send message to RocketMQ broker failed.");
             }
             message.header().setMessageId(rmqResult.getMsgId());
-            return OMSUtil.sendResultConvert(rmqResult);
+            return OMSClientUtil.sendResultConvert(rmqResult);
         } catch (Exception e) {
             log.error(String.format("Send message to RocketMQ failed, %s", message), e);
             throw checkProducerException(rmqMessage.getTopic(), message.header().getMessageId(), e);
@@ -88,7 +88,7 @@ public class ProducerImpl extends AbstractOMSProducer implements Producer {
                 @Override
                 public void onSuccess(final org.apache.rocketmq.client.producer.SendResult rmqResult) {
                     message.header().setMessageId(rmqResult.getMsgId());
-                    promise.set(OMSUtil.sendResultConvert(rmqResult));
+                    promise.set(OMSClientUtil.sendResultConvert(rmqResult));
                 }
 
                 @Override
@@ -171,7 +171,7 @@ public class ProducerImpl extends AbstractOMSProducer implements Producer {
             log.error("A error occurred when get queue metadata.", e);
             return null;
         }
-        return OMSUtil.queueMetaDataConvert(messageQueues);
+        return OMSClientUtil.queueMetaDataConvert(messageQueues);
     }
 
     @Override

@@ -23,7 +23,7 @@ import io.openmessaging.extension.QueueMetaData;
 import io.openmessaging.rocketmq.config.ClientConfig;
 import io.openmessaging.rocketmq.domain.ConsumeRequest;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
-import io.openmessaging.rocketmq.utils.OMSUtil;
+import io.openmessaging.rocketmq.utils.OMSClientUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -264,6 +264,6 @@ class LocalMessageCache implements ServiceLifecycle {
             log.error("A error occurred when get queue metadata.", e);
             return null;
         }
-        return OMSUtil.queueMetaDataConvert(messageQueues);
+        return OMSClientUtil.queueMetaDataConvert(messageQueues);
     }
 }

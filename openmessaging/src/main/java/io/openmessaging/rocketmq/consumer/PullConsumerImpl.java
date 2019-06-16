@@ -33,7 +33,7 @@ import io.openmessaging.rocketmq.domain.DefaultMessageReceipt;
 import io.openmessaging.rocketmq.domain.MessageExtension;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import io.openmessaging.rocketmq.utils.BeanUtils;
-import io.openmessaging.rocketmq.utils.OMSUtil;
+import io.openmessaging.rocketmq.utils.OMSClientUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -95,7 +95,7 @@ public class PullConsumerImpl implements PullConsumer {
         int maxReDeliveryTimes = clientConfig.getRmqMaxRedeliveryTimes();
         this.rocketmqPullConsumer.setMaxReconsumeTimes(maxReDeliveryTimes);
 
-        String consumerId = OMSUtil.buildInstanceName();
+        String consumerId = OMSClientUtil.buildInstanceName();
         this.rocketmqPullConsumer.setInstanceName(consumerId);
         properties.put(NonStandardKeys.CONSUMER_ID, consumerId);
 
@@ -167,7 +167,7 @@ public class PullConsumerImpl implements PullConsumer {
     @Override public Message receive() {
         KeyValue properties = new DefaultKeyValue();
         MessageExt rmqMsg = localMessageCache.poll(properties);
-        return rmqMsg == null ? null : OMSUtil.msgConvert(rmqMsg);
+        return rmqMsg == null ? null : OMSClientUtil.msgConvert(rmqMsg);
     }
 
     @Override
@@ -175,7 +175,7 @@ public class PullConsumerImpl implements PullConsumer {
         KeyValue properties = new DefaultKeyValue();
         properties.put(NonStandardKeys.TIMEOUT, timeout);
         MessageExt rmqMsg = localMessageCache.poll(properties);
-        return rmqMsg == null ? null : OMSUtil.msgConvert(rmqMsg);
+        return rmqMsg == null ? null : OMSClientUtil.msgConvert(rmqMsg);
     }
 
     @Override
@@ -192,7 +192,7 @@ public class PullConsumerImpl implements PullConsumer {
             List<MessageExt> rmqMsgs = pullResult.getMsgFoundList();
             if (null != rmqMsgs && !rmqMsgs.isEmpty()) {
                 for (MessageExt messageExt : rmqMsgs) {
-                    BytesMessageImpl bytesMessage = OMSUtil.msgConvert(messageExt);
+                    BytesMessageImpl bytesMessage = OMSClientUtil.msgConvert(messageExt);
                     messages.add(bytesMessage);
                 }
                 return messages.get(0);
@@ -244,7 +244,7 @@ public class PullConsumerImpl implements PullConsumer {
         if (null != rmqMsgs && !rmqMsgs.isEmpty()) {
             List<Message> messages = new ArrayList<>(rmqMsgs.size());
             for (MessageExt messageExt : rmqMsgs) {
-                BytesMessageImpl bytesMessage = OMSUtil.msgConvert(messageExt);
+                BytesMessageImpl bytesMessage = OMSClientUtil.msgConvert(messageExt);
                 messages.add(bytesMessage);
             }
             return messages;
@@ -267,7 +267,7 @@ public class PullConsumerImpl implements PullConsumer {
             List<MessageExt> rmqMsgs = pullResult.getMsgFoundList();
             if (null != rmqMsgs && !rmqMsgs.isEmpty()) {
                 for (MessageExt messageExt : rmqMsgs) {
-                    BytesMessageImpl bytesMessage = OMSUtil.msgConvert(messageExt);
+                    BytesMessageImpl bytesMessage = OMSClientUtil.msgConvert(messageExt);
                     messages.add(bytesMessage);
                 }
                 return messages;

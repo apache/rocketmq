@@ -35,7 +35,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageQueue;
 
-public class OMSUtil {
+public class OMSClientUtil {
 
     /**
      * Builds a OMS client instance name.

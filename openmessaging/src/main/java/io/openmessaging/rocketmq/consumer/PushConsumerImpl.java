@@ -33,7 +33,7 @@ import io.openmessaging.rocketmq.domain.BytesMessageImpl;
 import io.openmessaging.rocketmq.domain.MessageExtension;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import io.openmessaging.rocketmq.utils.BeanUtils;
-import io.openmessaging.rocketmq.utils.OMSUtil;
+import io.openmessaging.rocketmq.utils.OMSClientUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -95,7 +95,7 @@ public class PushConsumerImpl implements PushConsumer {
         this.rocketmqPushConsumer.setConsumeThreadMax(clientConfig.getRmqMaxConsumeThreadNums());
         this.rocketmqPushConsumer.setConsumeThreadMin(clientConfig.getRmqMinConsumeThreadNums());
 
-        String consumerId = OMSUtil.buildInstanceName();
+        String consumerId = OMSClientUtil.buildInstanceName();
         this.rocketmqPushConsumer.setInstanceName(consumerId);
         properties.put(NonStandardKeys.CONSUMER_ID, consumerId);
         this.rocketmqPushConsumer.setLanguage(LanguageCode.OMS);
@@ -239,7 +239,7 @@ public class PushConsumerImpl implements PushConsumer {
             log.error("A error occurred when get queue metadata.", e);
             return null;
         }
-        return OMSUtil.queueMetaDataConvert(messageQueues);
+        return OMSClientUtil.queueMetaDataConvert(messageQueues);
     }
 
     class MessageListenerImpl implements MessageListenerConcurrently {
@@ -263,7 +263,7 @@ public class PushConsumerImpl implements PushConsumer {
             if (batchFlag) {
                 List<Message> messages = new ArrayList<>(32);
                 for (MessageExt messageExt : rmqMsgList) {
-                    BytesMessageImpl omsMsg = OMSUtil.msgConvert(messageExt);
+                    BytesMessageImpl omsMsg = OMSClientUtil.msgConvert(messageExt);
                     messages.add(omsMsg);
                 }
                 final CountDownLatch sync = new CountDownLatch(1);
@@ -293,7 +293,7 @@ public class PushConsumerImpl implements PushConsumer {
                 } catch (InterruptedException ignore) {
                 }
             } else {
-                BytesMessageImpl omsMsg = OMSUtil.msgConvert(rmqMsg);
+                BytesMessageImpl omsMsg = OMSClientUtil.msgConvert(rmqMsg);
 
                 final CountDownLatch sync = new CountDownLatch(1);
 
