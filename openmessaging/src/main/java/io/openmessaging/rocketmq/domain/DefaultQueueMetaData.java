@@ -62,4 +62,11 @@ public class DefaultQueueMetaData implements QueueMetaData {
     @Override public int hashCode() {
         return Objects.hash(queueName, partitionId);
     }
+
+    @Override public String toString() {
+        return "DefaultQueueMetaData{" +
+            "queueName='" + queueName + '\'' +
+            ", partitionId=" + partitionId +
+            '}';
+    }
 }

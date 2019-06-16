@@ -247,7 +247,7 @@ class LocalMessageCache implements ServiceLifecycle {
     public void stop() {
         this.currentState = ServiceLifeState.STOPPING;
         ThreadUtils.shutdownGracefully(cleanExpireMsgExecutors, 5000, TimeUnit.MILLISECONDS);
-        this.currentState = ServiceLifeState.STARTED;
+        this.currentState = ServiceLifeState.STOPPED;
     }
 
     @Override
