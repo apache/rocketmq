@@ -30,6 +30,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
@@ -37,6 +39,7 @@ import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
@@ -44,6 +47,10 @@ import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.protocol.header.CreateAccessConfigRequestHeader;
+import org.apache.rocketmq.common.protocol.header.DeleteAccessConfigRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetBrokerAclConfigResponseHeader;
+import org.apache.rocketmq.common.protocol.header.UpdateGlobalWhiteAddrsConfigRequestHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -201,6 +208,14 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return fetchAllConsumeStatsInBroker(ctx, request);
             case RequestCode.QUERY_CONSUME_QUEUE:
                 return queryConsumeQueue(ctx, request);
+            case RequestCode.UPDATE_AND_CREATE_ACL_CONFIG:
+                return updateAndCreateAccessConfig(ctx, request);
+            case RequestCode.DELETE_ACL_CONFIG:
+                return deleteAccessConfig(ctx, request);
+            case RequestCode.GET_BROKER_CLUSTER_ACL_INFO:
+                return getBrokerAclConfigVersion(ctx, request);
+            case RequestCode.UPDATE_GLOBAL_WHITE_ADDRS_CONFIG:
+                return updateGlobalWhiteAddrsConfig(ctx, request);
             default:
                 break;
         }
@@ -267,6 +282,140 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
+    }
+
+    private synchronized RemotingCommand updateAndCreateAccessConfig(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        final CreateAccessConfigRequestHeader requestHeader =
+            (CreateAccessConfigRequestHeader) request.decodeCommandCustomHeader(CreateAccessConfigRequestHeader.class);
+
+        PlainAccessConfig accessConfig = new PlainAccessConfig();
+        accessConfig.setAccessKey(requestHeader.getAccessKey());
+        accessConfig.setSecretKey(requestHeader.getSecretKey());
+        accessConfig.setWhiteRemoteAddress(requestHeader.getWhiteRemoteAddress());
+        accessConfig.setDefaultTopicPerm(requestHeader.getDefaultTopicPerm());
+        accessConfig.setDefaultGroupPerm(requestHeader.getDefaultGroupPerm());
+        accessConfig.setTopicPerms(UtilAll.String2List(requestHeader.getTopicPerms(),","));
+        accessConfig.setGroupPerms(UtilAll.String2List(requestHeader.getGroupPerms(),","));
+        accessConfig.setAdmin(requestHeader.isAdmin());
+        try {
+
+            AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
+            if (accessValidator.updateAccessConfig(accessConfig)) {
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                response.markResponseType();
+                response.setRemark(null);
+                ctx.writeAndFlush(response);
+            } else {
+                String errorMsg = "The accesskey[" + requestHeader.getAccessKey() + "] corresponding to accessConfig has been updated failed.";
+                log.warn(errorMsg);
+                response.setCode(ResponseCode.UPDATE_AND_CREATE_ACL_CONFIG_FAILED);
+                response.setRemark(errorMsg);
+                return response;
+            }
+        } catch (Exception e) {
+            log.error("Failed to generate a proper update accessvalidator response", e);
+            response.setCode(ResponseCode.UPDATE_AND_CREATE_ACL_CONFIG_FAILED);
+            response.setRemark(e.getMessage());
+            return response;
+        }
+
+        return null;
+    }
+
+    private synchronized RemotingCommand deleteAccessConfig(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        final DeleteAccessConfigRequestHeader requestHeader =
+            (DeleteAccessConfigRequestHeader) request.decodeCommandCustomHeader(DeleteAccessConfigRequestHeader.class);
+        log.info("DeleteAccessConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
+        try {
+            String accessKey = requestHeader.getAccessKey();
+            AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
+            if (accessValidator.deleteAccessConfig(accessKey)) {
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                response.markResponseType();
+                response.setRemark(null);
+                ctx.writeAndFlush(response);
+            } else {
+                String errorMsg = "The accesskey[" + requestHeader.getAccessKey() + "] corresponding to accessConfig has been deleted failed.";
+                log.warn(errorMsg);
+                response.setCode(ResponseCode.DELETE_ACL_CONFIG_FAILED);
+                response.setRemark(errorMsg);
+                return response;
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to generate a proper delete accessvalidator response", e);
+            response.setCode(ResponseCode.DELETE_ACL_CONFIG_FAILED);
+            response.setRemark(e.getMessage());
+            return response;
+        }
+
+        return null;
+    }
+
+    private synchronized RemotingCommand updateGlobalWhiteAddrsConfig(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        final UpdateGlobalWhiteAddrsConfigRequestHeader requestHeader =
+            (UpdateGlobalWhiteAddrsConfigRequestHeader) request.decodeCommandCustomHeader(UpdateGlobalWhiteAddrsConfigRequestHeader.class);
+
+        try {
+            AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
+            if (accessValidator.updateGlobalWhiteAddrsConfig(UtilAll.String2List(requestHeader.getGlobalWhiteAddrs(),","))) {
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+                response.markResponseType();
+                response.setRemark(null);
+                ctx.writeAndFlush(response);
+            } else {
+                String errorMsg = "The globalWhiteAddresses[" + requestHeader.getGlobalWhiteAddrs() + "] has been updated failed.";
+                log.warn(errorMsg);
+                response.setCode(ResponseCode.UPDATE_GLOBAL_WHITE_ADDRS_CONFIG_FAILED);
+                response.setRemark(errorMsg);
+                return response;
+            }
+        } catch (Exception e) {
+            log.error("Failed to generate a proper update globalWhiteAddresses response", e);
+            response.setCode(ResponseCode.UPDATE_GLOBAL_WHITE_ADDRS_CONFIG_FAILED);
+            response.setRemark(e.getMessage());
+            return response;
+        }
+
+        return null;
+    }
+
+    private RemotingCommand getBrokerAclConfigVersion(ChannelHandlerContext ctx, RemotingCommand request) {
+
+        final RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerAclConfigResponseHeader.class);
+
+        final GetBrokerAclConfigResponseHeader responseHeader = (GetBrokerAclConfigResponseHeader)response.readCustomHeader();
+
+        try {
+            AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
+
+            responseHeader.setVersion(accessValidator.getAclConfigVersion());
+            responseHeader.setBrokerAddr(this.brokerController.getBrokerAddr());
+            responseHeader.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
+            responseHeader.setClusterName(this.brokerController.getBrokerConfig().getBrokerClusterName());
+            
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+            return response;
+        } catch (Exception e) {
+            log.error("Failed to generate a proper getBrokerAclConfigVersion response", e);
+        }
+
+        return null;
     }
 
     private RemotingCommand getAllTopicConfig(ChannelHandlerContext ctx, RemotingCommand request) {
