@@ -135,7 +135,14 @@ public class PushConsumerImplTest {
                     }
                 }
                 assertThat(message1).isNotNull();
+                assertThat(message1.getData()).isEqualTo(testBody);
+                assertThat(message1.header().getDestination()).isEqualTo("HELLO_QUEUE");
+                assertThat(message1.extensionHeader().getPartiton()).isEqualTo(0);
                 assertThat(message2).isNotNull();
+                assertThat(message2.getData()).isEqualTo(testBody1);
+                assertThat(message2.header().getDestination()).isEqualTo("HELLO_QUEUE");
+                assertThat(message2.extensionHeader().getPartiton()).isEqualTo(0);
+
                 context.ack();
             }
         });

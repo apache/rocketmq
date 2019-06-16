@@ -131,7 +131,12 @@ public class LocalMessageCacheTest {
             }
         }
         assertThat(messageExt1).isNotNull();
+        assertThat(messageExt1.getBody()).isEqualTo(body);
+        assertThat(messageExt1.getTopic()).isEqualTo("HELLO_QUEUE");
         assertThat(messageExt2).isNotNull();
+        assertThat(messageExt2.getBody()).isEqualTo(body1);
+        assertThat(messageExt2.getTopic()).isEqualTo("HELLO_QUEUE1");
+
     }
 
     @Test
@@ -165,7 +170,10 @@ public class LocalMessageCacheTest {
             }
         }
         assertThat(queueMetaData1).isNotNull();
+        assertThat(queueMetaData1.queueName()).isEqualTo("topic1");
         assertThat(queueMetaData2).isNotNull();
+        assertThat(queueMetaData2.queueName()).isEqualTo("topic1");
         assertThat(queueMetaData3).isNotNull();
+        assertThat(queueMetaData3.queueName()).isEqualTo("topic1");
     }
 }

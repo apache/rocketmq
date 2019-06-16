@@ -124,6 +124,8 @@ public class PullConsumerImplTest {
         Message message1 = pullConsumer.receive(queueName, queueMetaData, messageReceipt, timeout);
         assertThat(message1.header().getMessageId()).isEqualTo("NewMsgId");
         assertThat(message1.getData()).isEqualTo(testBody);
+        assertThat(message1.header().getDestination()).isEqualTo(queueName);
+        assertThat(message1.extensionHeader().getPartiton()).isEqualTo(0);
     }
 
     @Test
@@ -165,7 +167,13 @@ public class PullConsumerImplTest {
             }
         }
         assertThat(message1).isNotNull();
+        assertThat(message1.getData()).isEqualTo(testBody);
+        assertThat(message1.header().getDestination()).isEqualTo(queueName);
+        assertThat(message1.extensionHeader().getPartiton()).isEqualTo(0);
         assertThat(message2).isNotNull();
+        assertThat(message2.getData()).isEqualTo(testBody1);
+        assertThat(message2.header().getDestination()).isEqualTo(queueName);
+        assertThat(message2.extensionHeader().getPartiton()).isEqualTo(0);
 
         PullResult pullResult = new PullResult(PullStatus.FOUND, 11, 1, 100, messageExts);
         doReturn(pullResult).when(rocketmqPullConsumer).pull(any(MessageQueue.class), anyString(), anyLong(), anyInt(), anyLong());
@@ -191,6 +199,14 @@ public class PullConsumerImplTest {
                 message4 = message;
             }
         }
+        assertThat(message3).isNotNull();
+        assertThat(message3.getData()).isEqualTo(testBody);
+        assertThat(message3.header().getDestination()).isEqualTo(queueName);
+        assertThat(message3.extensionHeader().getPartiton()).isEqualTo(0);
+        assertThat(message4).isNotNull();
+        assertThat(message4.getData()).isEqualTo(testBody1);
+        assertThat(message4.header().getDestination()).isEqualTo(queueName);
+        assertThat(message4.extensionHeader().getPartiton()).isEqualTo(0);
     }
 
     @Test
