@@ -20,7 +20,9 @@ import com.alibaba.fastjson.JSONObject;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Map;
 import java.util.SortedMap;
 import org.apache.commons.lang3.StringUtils;
@@ -48,7 +50,7 @@ public class AclUtils {
 
             return AclUtils.combineBytes(sb.toString().getBytes(CHARSET), request.getBody());
         } catch (Exception e) {
-            throw new RuntimeException("incompatible exception.", e);
+            throw new RuntimeException("Incompatible exception.", e);
         }
     }
 
@@ -69,7 +71,7 @@ public class AclUtils {
 
     public static void verify(String netaddress, int index) {
         if (!AclUtils.isScope(netaddress, index)) {
-            throw new AclException(String.format("netaddress examine scope Exception netaddress is %s", netaddress));
+            throw new AclException(String.format("Netaddress examine scope Exception netaddress is %s", netaddress));
         }
     }
 
@@ -127,11 +129,11 @@ public class AclUtils {
     }
 
     public static <T> T getYamlDataObject(String path, Class<T> clazz) {
-        Yaml ymal = new Yaml();
+        Yaml yaml = new Yaml();
         FileInputStream fis = null;
         try {
             fis = new FileInputStream(new File(path));
-            return ymal.loadAs(fis, clazz);
+            return yaml.loadAs(fis, clazz);
         } catch (FileNotFoundException ignore) {
             return null;
         } catch (Exception e) {
@@ -146,13 +148,31 @@ public class AclUtils {
         }
     }
 
+    public static boolean writeDataObject(String path, Map<String,Object> dataMap) {
+        Yaml yaml = new Yaml();
+        PrintWriter pw = null;
+        try {
+            pw = new PrintWriter(new FileWriter(path));
+            String dumpAsMap = yaml.dumpAsMap(dataMap);
+            pw.print(dumpAsMap);
+            pw.flush();
+        } catch (Exception e) {
+            throw new AclException(e.getMessage());
+        } finally {
+            if (pw != null) {
+                pw.close();
+            }
+        }
+        return true;
+    }
+
     public static RPCHook getAclRPCHook(String fileName) {
         JSONObject yamlDataObject = null;
         try {
             yamlDataObject = AclUtils.getYamlDataObject(fileName,
                 JSONObject.class);
         } catch (Exception e) {
-            log.error("convert yaml file to data object error, ",e);
+            log.error("Convert yaml file to data object error, ",e);
             return null;
         }
 
@@ -161,8 +181,8 @@ public class AclUtils {
             return null;
         }
         
-        String accessKey = yamlDataObject.getString("accessKey");
-        String secretKey = yamlDataObject.getString("secretKey");
+        String accessKey = yamlDataObject.getString(AclConstants.CONFIG_ACCESS_KEY);
+        String secretKey = yamlDataObject.getString(AclConstants.CONFIG_SECRET_KEY);
 
         if (StringUtils.isBlank(accessKey) || StringUtils.isBlank(secretKey)) {
             log.warn("AccessKey or secretKey is blank, the acl is not enabled.");
