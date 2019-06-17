@@ -22,11 +22,6 @@ import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 
-/**
- * @author wangbing
- * @date 2019年1月3日
- * @version 1.0
- */
 public class SelectMessageQueueByHash implements MessageQueueSelector {
 
 	@Override
