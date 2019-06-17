@@ -24,14 +24,14 @@ import org.apache.rocketmq.common.message.MessageQueue;
 
 public class SelectMessageQueueByHash implements MessageQueueSelector {
 
-	@Override
-	public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
-		return mqs.get(indexForQueue(mqs.size(), arg));
-	}
+    @Override
+    public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
+        return mqs.get(indexForQueue(mqs.size(), arg));
+    }
 
-	private int indexForQueue(int length, Object key) {
-		int h = (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
-		return h & (length - 1);
-	}
+    private int indexForQueue(int length, Object key) {
+        int h = (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
+        return h & (length - 1);
+    }
 
 }
