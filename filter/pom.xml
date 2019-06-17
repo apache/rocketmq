@@ -37,5 +37,9 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-srvutil</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
     </dependencies>
 </project>
