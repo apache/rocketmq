@@ -17,20 +17,26 @@
 package org.apache.rocketmq.client.producer.selector;
 
 import java.util.List;
+
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 
+/**
+ * @author wangbing
+ * @date 2019年1月3日
+ * @version 1.0
+ */
 public class SelectMessageQueueByHash implements MessageQueueSelector {
 
-    @Override
-    public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
-        int value = arg.hashCode();
-        if (value < 0) {
-            value = Math.abs(value);
-        }
+	@Override
+	public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
+		return mqs.get(indexForQueue(mqs.size(), arg));
+	}
 
-        value = value % mqs.size();
-        return mqs.get(value);
-    }
+	private int indexForQueue(int length, Object key) {
+		int h = (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
+		return h & (length - 1);
+	}
+
 }
