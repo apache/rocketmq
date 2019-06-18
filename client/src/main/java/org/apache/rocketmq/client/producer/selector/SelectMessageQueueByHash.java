@@ -29,7 +29,7 @@ public class SelectMessageQueueByHash implements MessageQueueSelector {
         return mqs.get(indexForQueue(mqs.size(), arg));
     }
 
-    public int indexForQueue(int length, Object key) {
+    private int indexForQueue(int length, Object key) {
         int h = key.hashCode();
         if ((length & (length - 1)) == 0) {
             return (h ^ (h >>> 16)) & (length - 1);
