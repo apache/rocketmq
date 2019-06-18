@@ -31,19 +31,25 @@ public class SelectMessageQueueByHashTest {
     @Test
     public void testSelect() throws Exception {
         SelectMessageQueueByHash selector = new SelectMessageQueueByHash();
-
         Message message = new Message(topic, new byte[] {});
-
         List<MessageQueue> messageQueues = new ArrayList<MessageQueue>();
+        String orderId = "123";
+        String anotherOrderId = "234";
+        for (int i = 0; i < 8; i++) {
+            MessageQueue messageQueue = new MessageQueue(topic, "DefaultBroker", i);
+            messageQueues.add(messageQueue);
+        }
+        MessageQueue selected = selector.select(messageQueues, message, orderId);
+        assertThat(selector.select(messageQueues, message, anotherOrderId)).isNotEqualTo(selected);
+        messageQueues.clear();
         for (int i = 0; i < 10; i++) {
             MessageQueue messageQueue = new MessageQueue(topic, "DefaultBroker", i);
             messageQueues.add(messageQueue);
         }
-
-        String orderId = "123";
-        String anotherOrderId = "234";
-        MessageQueue selected = selector.select(messageQueues, message, orderId);
+        selected = selector.select(messageQueues, message, orderId);
         assertThat(selector.select(messageQueues, message, anotherOrderId)).isNotEqualTo(selected);
     }
+    
+   
 
 }
