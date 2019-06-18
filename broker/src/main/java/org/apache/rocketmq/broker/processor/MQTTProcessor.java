@@ -30,10 +30,30 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.common.client.Subscription;
 import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.heartbeat.MqttSubscriptionData;
+import org.apache.rocketmq.common.protocol.header.mqtt.AddOrUpdateClient2SubscriptionRequestHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.AddOrUpdateClient2SubscriptionResponseHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.AddOrUpdateRootTopic2ClientsRequestHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.AddOrUpdateRootTopic2ClientsResponseHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.ClientUnsubscribeRequestHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.ClientUnsubscribeResponseHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.DeleteClient2SubscriptionRequestHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.DeleteClient2SubscriptionResponseHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.DeleteRootTopic2ClientRequestHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.DeleteRootTopic2ClientResponseHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.GetRootTopic2ClientsRequestHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.GetRootTopic2ClientsResponseHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.GetSnodeAddress2ClientsRequestHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.GetSnodeAddress2ClientsResponseHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.GetSubscriptionByClientIdRequestHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.GetSubscriptionByClientIdResponseHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.IsClient2SubscriptionPersistedRequestHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.IsClient2SubscriptionPersistedResponseHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.mqtt.client.MQTTSession;
+import org.apache.rocketmq.mqtt.constant.MqttConstant;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.RequestProcessor;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.MQTTInfoStore;
 
@@ -51,7 +71,7 @@ public class MQTTProcessor implements RequestProcessor {
     }
 
     @Override
-    public RemotingCommand processRequest(RemotingChannel remotingChannel, RemotingCommand request)  {
+    public RemotingCommand processRequest(RemotingChannel remotingChannel, RemotingCommand request) throws RemotingCommandException {
 
 
         switch (request.getCode()) {
@@ -71,154 +91,187 @@ public class MQTTProcessor implements RequestProcessor {
                 return this.getRootTopic2Clients(request);
             case RequestCode.MQTT_DELETE_ROOTTOPIC2CLIENT:
                 return this.deleteRootTopic2Client(request);
+            case RequestCode.MQTT_GET_SUBSCRIPTION_BY_CLIENT:
+                return this.getSubscriptionByClientId(request);
             default:
                 return null;
         }
     }
 
-    private RemotingCommand isClient2SubscriptionPersistedHandler(final RemotingChannel remotingChannel,final RemotingCommand request) {
-        RemotingCommand response = RemotingCommand.createResponseCommand(request.getCode(),null);
-        String clientId = request.getExtFields().get("clientId");
-        boolean cleanSession = Boolean.parseBoolean(request.getExtFields().get("cleanSession"));
+    private RemotingCommand getSubscriptionByClientId(RemotingCommand request) throws RemotingCommandException {
+        GetSubscriptionByClientIdRequestHeader requestHeader = (GetSubscriptionByClientIdRequestHeader) request.decodeCommandCustomHeader(GetSubscriptionByClientIdRequestHeader.class);
+        String clientId = requestHeader.getClientId();
+        Subscription subscription = GSON.fromJson(this.mqttInfoStore.getValue(clientId + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX),Subscription.class);
+        RemotingCommand response = RemotingCommand.createResponseCommand(GetSubscriptionByClientIdResponseHeader.class);
+        GetSubscriptionByClientIdResponseHeader responseHeader = (GetSubscriptionByClientIdResponseHeader) response.readCustomHeader();
+        responseHeader.setSubscription(subscription);
+        return response;
+    }
 
-        String subscriptionJson = mqttInfoStore.getValue(clientId + "-sub");
+    private RemotingCommand isClient2SubscriptionPersistedHandler(final RemotingChannel remotingChannel,final RemotingCommand request) throws RemotingCommandException {
+        RemotingCommand response = RemotingCommand.createResponseCommand(IsClient2SubscriptionPersistedResponseHeader.class);
+        IsClient2SubscriptionPersistedResponseHeader responseHeader = (IsClient2SubscriptionPersistedResponseHeader) response.readCustomHeader();
+        IsClient2SubscriptionPersistedRequestHeader requestHeader = (IsClient2SubscriptionPersistedRequestHeader) request.decodeCommandCustomHeader(IsClient2SubscriptionPersistedRequestHeader.class);
+
+
+        String clientId = requestHeader.getClientId();
+        boolean cleanSession = requestHeader.isCleanSession();
+
+        String subscriptionJson = mqttInfoStore.getValue(clientId + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX);
         if (subscriptionJson != null) {
             Subscription subscription = GSON.fromJson(subscriptionJson, Subscription.class);
             if (subscription.isCleanSession() != cleanSession) {
                 subscription.setCleanSession(cleanSession);
-                mqttInfoStore.putData(clientId + "-sub", GSON.toJson(subscription));
+                mqttInfoStore.putData(clientId + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX, GSON.toJson(subscription));
             }
-            response.addExtField("isPersisted", "true");
+            responseHeader.setPersisted(true);
         } else {
-            response.addExtField("isPersisted", "false");
+            responseHeader.setPersisted(false);
         }
 
-        mqttInfoStore.putData(clientId + "-sno", remotingChannel.remoteAddress().toString());
+        mqttInfoStore.putData(clientId + MqttConstant.PERSIST_SNODEADDRESS_SUFFIX, remotingChannel.remoteAddress().toString());
 
         return response;
     }
 
-    private RemotingCommand addOrUpdateClient2Subscription(final RemotingChannel remotingChannel,final RemotingCommand request) {
-        String clientId = request.getExtFields().get("clientId");
-        String subscription = request.getExtFields().get("subscription");
-        boolean client2SubResult = this.mqttInfoStore.putData(clientId + "-sub",subscription);
-        boolean client2SnoResult = this.mqttInfoStore.putData(clientId + "-sno",remotingChannel.remoteAddress().toString());
-        RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        response.addExtField("result", String.valueOf(client2SnoResult && client2SubResult));
+    private RemotingCommand addOrUpdateClient2Subscription(final RemotingChannel remotingChannel,final RemotingCommand request) throws RemotingCommandException {
+        AddOrUpdateClient2SubscriptionRequestHeader requestHeader = (AddOrUpdateClient2SubscriptionRequestHeader) request.decodeCommandCustomHeader(AddOrUpdateClient2SubscriptionRequestHeader.class);
+        Client client = requestHeader.getClient();
+        Subscription subscription = requestHeader.getSubscription();
+
+        boolean client2SubResult = this.mqttInfoStore.putData(client.getClientId() + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX,GSON.toJson(subscription));
+        boolean client2SnoResult = this.mqttInfoStore.putData(client.getClientId() + MqttConstant.PERSIST_SNODEADDRESS_SUFFIX,remotingChannel.remoteAddress().toString());
+        boolean client2EntityResult = this.mqttInfoStore.putData(client.getClientId() + MqttConstant.PERSIST_CLIENT_SUFFIX, GSON.toJson(client));
+
+        RemotingCommand response = RemotingCommand.createResponseCommand(AddOrUpdateClient2SubscriptionResponseHeader.class);
+        AddOrUpdateClient2SubscriptionResponseHeader responseHeader = (AddOrUpdateClient2SubscriptionResponseHeader) response.readCustomHeader();
+        responseHeader.setResult(client2SubResult && client2SnoResult && client2EntityResult);
         return response;
     }
 
-    private RemotingCommand deleteClient2Subscription(final RemotingCommand request) {
-        String clientId = request.getExtFields().get("clientId");
-        String subscriptionString = this.mqttInfoStore.getValue(clientId + "-sub");
-        String result = String.valueOf(this.mqttInfoStore.deleteData(clientId + "-sub") && this.mqttInfoStore.deleteData(clientId + "-sno"));
-        RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        response.addExtField("subscription",subscriptionString);
-        response.addExtField("result", result);
+    private RemotingCommand deleteClient2Subscription(final RemotingCommand request) throws RemotingCommandException {
+        DeleteClient2SubscriptionRequestHeader requestHeader = (DeleteClient2SubscriptionRequestHeader) request.decodeCommandCustomHeader(DeleteClient2SubscriptionRequestHeader.class);
+        String clientId = requestHeader.getClientId();
+        String subscriptionJson = this.mqttInfoStore.getValue(clientId + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX);
+        Subscription subscription = GSON.fromJson(subscriptionJson,Subscription.class);
+        boolean operationSuccess = this.mqttInfoStore.deleteData(clientId + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX) && this.mqttInfoStore.deleteData(clientId + MqttConstant.PERSIST_SNODEADDRESS_SUFFIX) && this.mqttInfoStore.deleteData(clientId + MqttConstant.PERSIST_CLIENT_SUFFIX);
+        RemotingCommand response = RemotingCommand.createResponseCommand(DeleteClient2SubscriptionResponseHeader.class);
+        DeleteClient2SubscriptionResponseHeader responseHeader = (DeleteClient2SubscriptionResponseHeader) response.readCustomHeader();
+        responseHeader.setOperationSuccess(operationSuccess);
+        responseHeader.setSubscription(subscription);
         return response;
     }
 
-    private RemotingCommand getSnodeAddress2Clients(final RemotingCommand request) {
-        Map<String, Map<String,Integer>> snodeAddress2ClientsId = new ConcurrentHashMap<>();
-        Map<String,Integer> clientsIdAndQos = new ConcurrentHashMap<>();
-        String topic = request.getExtFields().get("topic");
-        Set<String> clientsId = GSON.fromJson(request.getExtFields().get("clientsId"),new TypeToken<Set<String>>() {
-        }.getType());
+    private RemotingCommand getSnodeAddress2Clients(final RemotingCommand request) throws RemotingCommandException {
+        Map<String, Set<Client>> snodeAddress2Clients = new ConcurrentHashMap<>();
+        Set<Client> clients = new HashSet<>();
+        GetSnodeAddress2ClientsRequestHeader requestHeader = (GetSnodeAddress2ClientsRequestHeader) request.decodeCommandCustomHeader(GetSnodeAddress2ClientsRequestHeader.class);
+        String topic = requestHeader.getTopic();
+        Set<String> clientsId = requestHeader.getClientsId();
         for (String clientId:clientsId) {
-            Integer qos = 0;
-            ConcurrentHashMap<String/*Topic*/, SubscriptionData> subscriptionTable = GSON.fromJson(this.mqttInfoStore.getValue(clientId + "-sub"), Subscription.class).getSubscriptionTable();
+            ConcurrentHashMap<String/*Topic*/, SubscriptionData> subscriptionTable = GSON.fromJson(this.mqttInfoStore.getValue(clientId + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX), Subscription.class).getSubscriptionTable();
             for (String topicFilter:subscriptionTable.keySet()) {
                 if (isMatch(topicFilter,topic)) {
-                    MqttSubscriptionData mqttSubscriptionData = (MqttSubscriptionData) subscriptionTable.get(topicFilter);
-                    if (qos <= mqttSubscriptionData.getQos()) {
-                        qos = mqttSubscriptionData.getQos();
-                        clientsIdAndQos.putIfAbsent(clientId, qos);
-                    }
+                    clients.add(GSON.fromJson(this.mqttInfoStore.getValue(clientId + MqttConstant.PERSIST_CLIENT_SUFFIX), MQTTSession.class));
                 }
             }
         }
-        for (String clientId:clientsIdAndQos.keySet()) {
-            String snodeAddress = this.mqttInfoStore.getValue(clientId + "-sno");
-            Map<String,Integer> map = snodeAddress2ClientsId.getOrDefault(snodeAddress, new ConcurrentHashMap<>());
-            map.putIfAbsent(clientId,clientsIdAndQos.get(clientId));
+        for (Client client:clients) {
+            String snodeAddress = this.mqttInfoStore.getValue(client.getClientId() + MqttConstant.PERSIST_SNODEADDRESS_SUFFIX);
+            Set<Client> clientsTmp = snodeAddress2Clients.getOrDefault(snodeAddress,new HashSet<>());
+            clientsTmp.add(client);
         }
-        RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        if (snodeAddress2ClientsId.size() == 0) {
-            response.addExtField("result", "false");
-        } else {
-            response.addExtField("result","true");
-            response.addExtField("snodeAddress2Clients", GSON.toJson(snodeAddress2ClientsId));
-        }
+
+        RemotingCommand response = RemotingCommand.createResponseCommand(GetSnodeAddress2ClientsResponseHeader.class);
+        GetSnodeAddress2ClientsResponseHeader responseHeader = (GetSnodeAddress2ClientsResponseHeader) response.readCustomHeader();
+        responseHeader.setSnodeAddress2Clients(snodeAddress2Clients);
+
         return response;
     }
 
-    private RemotingCommand clientUnsubscribe(final RemotingCommand request) {
-        String clientId = request.getExtFields().get("clientId");
-        List<String> topics = GSON.fromJson(request.getExtFields().get("topics"),new TypeToken<List<String>>() {
-        }.getType());
-        Subscription  subscription = GSON.fromJson(this.mqttInfoStore.getValue(clientId + "-sub"),Subscription.class);
+    private RemotingCommand clientUnsubscribe(final RemotingCommand request) throws RemotingCommandException {
+        ClientUnsubscribeRequestHeader requestHeader = (ClientUnsubscribeRequestHeader) request.decodeCommandCustomHeader(ClientUnsubscribeRequestHeader.class);
+        String clientId = requestHeader.getClientId();
+        List<String> topics = requestHeader.getTopics();
+        Subscription  subscription = GSON.fromJson(this.mqttInfoStore.getValue(clientId + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX),Subscription.class);
         ConcurrentHashMap<String,SubscriptionData> subscriptionTable = subscription.getSubscriptionTable();
-        Set<String> rootTopicsBefore = subscriptionTable.keySet().stream().map(t -> t.split("/")[0]).collect(Collectors.toSet());
+        Set<String> rootTopicsBefore = subscriptionTable.keySet().stream().map(t -> t.split(MqttConstant.SUBSCRIPTION_SEPARATOR)[0]).collect(Collectors.toSet());
         for (String topic:topics) {
             subscriptionTable.remove(topic);
         }
-        Set<String> rootTopicAfter = subscriptionTable.keySet().stream().map(t -> t.split("/")[0]).collect(Collectors.toSet());
+        Set<String> rootTopicAfter = subscriptionTable.keySet().stream().map(t -> t.split(MqttConstant.SUBSCRIPTION_SEPARATOR)[0]).collect(Collectors.toSet());
         Set<String> rootTopicsDiff = new HashSet<>();
         rootTopicsDiff.addAll(rootTopicsBefore);
         rootTopicsDiff.removeAll(rootTopicAfter);
 
         subscription.setSubscriptionTable(subscriptionTable);
-        boolean result = this.mqttInfoStore.putData(clientId + "-sub", GSON.toJson(subscription));
-        RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        response.addExtField("result", String.valueOf(result));
+        boolean result = this.mqttInfoStore.putData(clientId + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX, GSON.toJson(subscription));
+        RemotingCommand response = RemotingCommand.createResponseCommand(ClientUnsubscribeResponseHeader.class);
+        ClientUnsubscribeResponseHeader responseHeader = (ClientUnsubscribeResponseHeader) response.readCustomHeader();
+        responseHeader.setOperationSuccess(result);
         if (rootTopicsDiff.size() != 0) {
-            response.addExtField("rootTopicsDiffExists", "true");
-            response.addExtField("rootTopicsDiff", GSON.toJson(rootTopicsDiff));
+            responseHeader.setRootTopicDiffExists(true);
+            responseHeader.setRootTopicsDiff(rootTopicsDiff);
         }
         return response;
     }
-    private RemotingCommand addorUpdateRootTopic2Clients(final RemotingCommand request) {
-        String rootTopic = request.getExtFields().get("rootTopic");
-        Client client = GSON.fromJson(request.getExtFields().get("client"),Client.class);
+    private RemotingCommand addorUpdateRootTopic2Clients(final RemotingCommand request) throws RemotingCommandException {
+        AddOrUpdateRootTopic2ClientsRequestHeader requestHeader = (AddOrUpdateRootTopic2ClientsRequestHeader) request.decodeCommandCustomHeader(AddOrUpdateRootTopic2ClientsRequestHeader.class);
+
+        String rootTopic = requestHeader.getRootTopic();
+        String clientId = requestHeader.getClientId();
         String value = this.mqttInfoStore.getValue(rootTopic);
-        Set<Client> clients;
+        Set<String> clientsId;
+
         if (value != null) {
-            clients = this.clientsStringToClientsSet(value);
+            clientsId = GSON.fromJson(value,new TypeToken<Set<String>>() {
+            }.getType());
         } else {
-            clients = new HashSet<>();
+            clientsId = new HashSet<>();
         }
-        clients.add(client);
-        RemotingCommand response = RemotingCommand.createResponseCommand(RequestCode.MQTT_ADD_OR_UPDATE_ROOTTOPIC2CLIENTS,null);
-        response.addExtField("result",String.valueOf(this.mqttInfoStore.putData(rootTopic,GSON.toJson(clients))));
+        clientsId.add(clientId);
+
+        RemotingCommand response = RemotingCommand.createResponseCommand(AddOrUpdateRootTopic2ClientsResponseHeader.class);
+        AddOrUpdateRootTopic2ClientsResponseHeader responseHeader = (AddOrUpdateRootTopic2ClientsResponseHeader) response.readCustomHeader();
+        responseHeader.setOperationSuccess(this.mqttInfoStore.putData(rootTopic,GSON.toJson(clientsId)));
+
         return response;
     }
 
-    private RemotingCommand getRootTopic2Clients(final RemotingCommand request) {
-        String rootTopic = request.getExtFields().get("rootTopic");
-        Set<String> clientsId = this.clientsStringToClientsSet(this.mqttInfoStore.getValue(rootTopic)).stream().map(c -> c.getClientId()).collect(Collectors.toSet());
-        RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        if (clientsId.size() == 0) {
-            response.addExtField("result", "false");
+    private RemotingCommand getRootTopic2Clients(final RemotingCommand request) throws RemotingCommandException {
+        GetRootTopic2ClientsRequestHeader requestHeader = (GetRootTopic2ClientsRequestHeader) request.decodeCommandCustomHeader(GetRootTopic2ClientsRequestHeader.class);
+        String rootTopic = requestHeader.getRootTopic();
+        String json = this.mqttInfoStore.getValue(rootTopic);
+        RemotingCommand response = RemotingCommand.createResponseCommand(GetRootTopic2ClientsResponseHeader.class);
+        GetRootTopic2ClientsResponseHeader responseHeader = (GetRootTopic2ClientsResponseHeader) response.readCustomHeader();
+        if (json != null) {
+            Set<String> clientsId = GSON.fromJson(json, new TypeToken<Set<String>>() {
+            }.getType());
+            responseHeader.setOperationSuccess(true);
+            responseHeader.setClientsId(clientsId);
         } else {
-            response.addExtField("result", "true");
-            response.addExtField("clientsId", GSON.toJson(clientsId));
+            responseHeader.setOperationSuccess(false);
         }
+
         return response;
     }
 
-    private RemotingCommand deleteRootTopic2Client(final RemotingCommand request) {
-        String rootTopic = request.getExtFields().get("rootTopic");
-        String clientId = request.getExtFields().get("clientId");
-        Set<Client> clients = this.clientsStringToClientsSet(this.mqttInfoStore.getValue(rootTopic));
-        Set<Client> clientsAfterDelete = clients.stream().filter(c -> c.getClientId() != clientId).collect(Collectors.toSet());
+    private RemotingCommand deleteRootTopic2Client(final RemotingCommand request) throws RemotingCommandException {
+        DeleteRootTopic2ClientRequestHeader requestHeader = (DeleteRootTopic2ClientRequestHeader) request.decodeCommandCustomHeader(DeleteRootTopic2ClientRequestHeader.class);
+        String rootTopic = requestHeader.getRootTopic();
+        String clientId = requestHeader.getClientId();
+        Set<String> clientsId = GSON.fromJson(this.mqttInfoStore.getValue(rootTopic),new TypeToken<Set<String>>() {
+        }.getType());
+        Set<String> clientsIdAfterDelete = clientsId.stream().filter(c -> c != clientId).collect(Collectors.toSet());
         boolean result;
-        if (clientsAfterDelete.size() == 0) {
+        if (clientsIdAfterDelete.size() == 0) {
             result = this.mqttInfoStore.deleteData(rootTopic);
         } else {
-            result = this.mqttInfoStore.putData(rootTopic,GSON.toJson(clientsAfterDelete));
+            result = this.mqttInfoStore.putData(rootTopic,GSON.toJson(clientsIdAfterDelete));
         }
-        RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        response.addExtField("result", String.valueOf(result));
+        RemotingCommand response = RemotingCommand.createResponseCommand(DeleteRootTopic2ClientResponseHeader.class);
+        DeleteRootTopic2ClientResponseHeader responseHeader = (DeleteRootTopic2ClientResponseHeader) response.readCustomHeader();
+        responseHeader.setOperationSuccess(result);
         return response;
     }
 

@@ -15,21 +15,26 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.mqtt.persistence.service;
+package org.apache.rocketmq.common.protocol.header.mqtt;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.common.client.Client;
-import org.apache.rocketmq.common.client.Subscription;
-import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public interface PersistService {
-    void init(DefaultMqttMessageProcessor processor);
-    boolean isClient2SubsriptionPersisted(Client client, Subscription subscription);
-    boolean addOrUpdateClient2Susbscription(Client client, Subscription subscription);
-    boolean deleteClient2Subscription(Client client);
-    Map<String, Set<Client>> getSnodeAddress2Clients(String topic);
-    boolean clientUnsubscribe(Client client, List<String> topics);
-    Subscription getSubscriptionByClientId(String clientId);
+public class GetSnodeAddress2ClientsResponseHeader implements CommandCustomHeader {
+    private Map<String, Set<Client>> snodeAddress2Clients;
+
+    public Map<String, Set<Client>> getSnodeAddress2Clients() {
+        return snodeAddress2Clients;
+    }
+
+    public void setSnodeAddress2Clients(
+        Map<String, Set<Client>> snodeAddress2Clients) {
+        this.snodeAddress2Clients = snodeAddress2Clients;
+    }
+
+    @Override public void checkFields() throws RemotingCommandException {
+    }
 }

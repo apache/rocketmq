@@ -38,6 +38,7 @@ import org.apache.rocketmq.common.service.EnodeService;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.mqtt.constant.MqttConstant;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -297,8 +298,26 @@ public class RemoteEnodeServiceImpl implements EnodeService {
     }
 
     @Override
-    public RemotingCommand transferMQTTInfo2Enode(final RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+    public RemotingCommand requestMQTTInfoSync(final RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         return this.transferToEnode(request);
     }
+
+    @Override public CompletableFuture<RemotingCommand> requestMQTTInfoAsync(
+        RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        return this.sendMessage(null,request.getExtFields().get(MqttConstant.ENODE_NAME),request);
+    }
+//    private CompletableFuture<RemotingCommand> transferToEnodeAsync(final RemotingCommand request, String enodeName)  {
+//        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+//        try {
+//            String enodeAddress = this.snodeController.getNnodeService().getAddressByEnodeName(enodeName, false);
+//            this.snodeController.getRemotingClient().invokeAsync(enodeAddress, request, SnodeConstant.DEFAULT_TIMEOUT_MILLS, (responseFuture) -> {
+//                future.complete(responseFuture.getResponseCommand());
+//            });
+//        } catch (Exception ex) {
+//            log.error("Send message async error:{}", ex);
+//            future.completeExceptionally(ex);
+//        }
+//        return future;
+//    }
 
 }

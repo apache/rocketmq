@@ -15,31 +15,24 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.mqtt.persistence;
+package org.apache.rocketmq.common.protocol.header.mqtt;
 
-import java.util.Map;
-import org.apache.rocketmq.mqtt.persistence.service.PersistService;
-import org.apache.rocketmq.remoting.util.ServiceProvider;
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.annotation.CFNotNull;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class PersistServiceFactory {
-    private static PersistServiceFactory instance = new PersistServiceFactory();
+public class GetSubscriptionByClientIdRequestHeader implements CommandCustomHeader {
+    @CFNotNull
+    private String clientId;
 
-    public static PersistServiceFactory getInstance() {
-        return instance;
+    public String getClientId() {
+        return clientId;
     }
 
-    private PersistServiceFactory() {
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
     }
 
-    private static Map<String, String> paths;
-
-    private static final String SERVICE_LOCATION = "META-INF/service/org.apache.rocketmq.mqtt.PersistService";
-
-    static {
-        paths = ServiceProvider.loadPath(SERVICE_LOCATION);
-    }
-
-    public PersistService createPersistService() {
-        return ServiceProvider.createInstance(paths.get("persistService"), PersistService.class);
+    @Override public void checkFields() throws RemotingCommandException {
     }
 }

@@ -127,9 +127,7 @@ public class MqttPublishMessageHandlerTest {
         TopicRouteData topicRouteData = buildTopicRouteData();
         Mockito.when(nnodeService.getTopicRouteDataByTopic(anyString(), anyBoolean())).thenReturn(topicRouteData);
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
-//        RemotingCommand response = Mockito.mock(RemotingCommand.class);
-        Mockito.when(this.defaultMqttMessageProcessor.getEnodeService().sendMessage(any(RemotingChannel.class), anyString(), any(RemotingCommand.class))).thenReturn(future);
-//        doAnswer(mock -> future.complete(response)).when(this.defaultMqttMessageProcessor.getEnodeService().sendMessage(any(RemotingChannel.class), anyString(), any(RemotingCommand.class)));
+        Mockito.when(this.defaultMqttMessageProcessor.getEnodeService().sendMessage(any(), anyString(), any(RemotingCommand.class))).thenReturn(future);
         RemotingCommand remotingCommand = mqttPublishMessageHandler.handleMessage(mqttPublishMessage, remotingChannel);
         assert remotingCommand != null;
         MqttHeader mqttHeader = (MqttHeader) remotingCommand.readCustomHeader();

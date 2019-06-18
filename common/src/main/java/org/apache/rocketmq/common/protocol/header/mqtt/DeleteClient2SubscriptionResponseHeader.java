@@ -15,21 +15,33 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.mqtt.persistence.service;
+package org.apache.rocketmq.common.protocol.header.mqtt;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.common.client.Subscription;
-import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public interface PersistService {
-    void init(DefaultMqttMessageProcessor processor);
-    boolean isClient2SubsriptionPersisted(Client client, Subscription subscription);
-    boolean addOrUpdateClient2Susbscription(Client client, Subscription subscription);
-    boolean deleteClient2Subscription(Client client);
-    Map<String, Set<Client>> getSnodeAddress2Clients(String topic);
-    boolean clientUnsubscribe(Client client, List<String> topics);
-    Subscription getSubscriptionByClientId(String clientId);
+public class DeleteClient2SubscriptionResponseHeader implements CommandCustomHeader {
+    private Subscription subscription;
+    private boolean operationSuccess;
+
+    public Subscription getSubscription() {
+        return subscription;
+    }
+
+    public void setSubscription(Subscription subscription) {
+        this.subscription = subscription;
+    }
+
+    public boolean isOperationSuccess() {
+        return operationSuccess;
+    }
+
+    public void setOperationSuccess(boolean operationSuccess) {
+        this.operationSuccess = operationSuccess;
+    }
+
+    @Override public void checkFields() throws RemotingCommandException {
+
+    }
 }

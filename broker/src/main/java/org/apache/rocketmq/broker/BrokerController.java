@@ -148,6 +148,7 @@ public class BrokerController {
     private final List<SendMessageHook> sendMessageHookList = new ArrayList<SendMessageHook>();
     private final List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
     private MessageStore messageStore;
+    private MQTTProcessor mqttProcessor;
     private MQTTInfoStore mqttInfoStore;
     private RemotingServer remotingServer;
     private RemotingServer fastRemotingServer;
@@ -491,8 +492,13 @@ public class BrokerController {
             }
             initialTransaction();
         }
-        this.mqttInfoStore = new DefaultMQTTInfoStore();
-        mqttInfoStore.load();
+        try {
+            this.mqttInfoStore = new DefaultMQTTInfoStore();
+            mqttInfoStore.load();
+            mqttInfoStore.start();
+        } catch (Exception e) {
+            log.error("Open MQTT Database failed, error: {}", e);
+        }
 
         return result;
     }
@@ -630,7 +636,7 @@ public class BrokerController {
         /**
          *  MQTTProcessor
          */
-        MQTTProcessor mqttProcessor = new MQTTProcessor(this);
+        mqttProcessor = new MQTTProcessor(this);
         this.remotingServer.registerProcessor(RequestCode.MQTT_ADD_OR_UPDATE_CLIENT2SUBSCRIPTION, mqttProcessor,this.mqttMessageExecutor);
         this.fastRemotingServer.registerProcessor(RequestCode.MQTT_ADD_OR_UPDATE_CLIENT2SUBSCRIPTION, mqttProcessor,this.mqttMessageExecutor);
         this.remotingServer.registerProcessor(RequestCode.MQTT_IS_CLIENT2SUBSCRIPTION_PERSISTED, mqttProcessor,this.mqttMessageExecutor);
@@ -647,6 +653,8 @@ public class BrokerController {
         this.fastRemotingServer.registerProcessor(RequestCode.MQTT_DELETE_ROOTTOPIC2CLIENT, mqttProcessor,this.mqttMessageExecutor);
         this.remotingServer.registerProcessor(RequestCode.MQTT_GET_ROOTTOPIC2CLIENTS, mqttProcessor,this.mqttMessageExecutor);
         this.fastRemotingServer.registerProcessor(RequestCode.MQTT_GET_ROOTTOPIC2CLIENTS, mqttProcessor,this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_GET_SUBSCRIPTION_BY_CLIENT,mqttProcessor,this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_GET_SUBSCRIPTION_BY_CLIENT,mqttProcessor,this.mqttMessageExecutor);
         /**
          * Default
          */
@@ -1286,4 +1294,9 @@ public class BrokerController {
     public MQTTInfoStore getMqttInfoStore() {
         return mqttInfoStore;
     }
+
+    public MQTTProcessor getMqttProcessor() {
+        return mqttProcessor;
+    }
+
 }

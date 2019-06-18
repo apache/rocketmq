@@ -68,7 +68,7 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
             cleanSessionState(client.getClientId());
         } else {
             client.setConnected(false);
-            //TODO update persistence store
+            //TODO update persistent store
         }
         //step2. Publish will message associated with current connection(Question: Does will message need to be deleted after publishing.)
 
@@ -102,9 +102,9 @@ public class IOTClientManagerImpl extends ClientManagerImpl {
                 }
             }
         }
-        //TODO update persistence store base on toBeRemoveFromPersistentStore
+        //TODO update persistent store base on toBeRemoveFromPersistentStore
 
-        //TODO update persistence store
+        //TODO update persistent store
         //TODO remove offline messages
     }
 
