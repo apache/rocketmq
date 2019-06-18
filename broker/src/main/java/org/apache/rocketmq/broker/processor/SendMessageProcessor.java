@@ -178,8 +178,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
         }
 
-        // send DLQ msg back
-        if (requestHeader.getOriginTopic().startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
+        String originTopic = requestHeader.getOriginTopic();
+        if (originTopic != null && originTopic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
             msgExt.setReconsumeTimes(0);
             delayLevel = (delayLevel <= 0) ? 1 : delayLevel;
         }
