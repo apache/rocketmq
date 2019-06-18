@@ -401,11 +401,28 @@ public class TopicConfigManager extends ConfigManager {
     public void decode(String jsonString) {
         if (jsonString != null) {
             TopicConfigSerializeWrapper topicConfigSerializeWrapper =
-                TopicConfigSerializeWrapper.fromJson(jsonString, TopicConfigSerializeWrapper.class);
+                    TopicConfigSerializeWrapper.fromJson(jsonString, TopicConfigSerializeWrapper.class);
+            boolean permChanged = false;
             if (topicConfigSerializeWrapper != null) {
-                this.topicConfigTable.putAll(topicConfigSerializeWrapper.getTopicConfigTable());
+                ConcurrentMap<String, TopicConfig> topicConfigTable = topicConfigSerializeWrapper.getTopicConfigTable();
+                if (topicConfigTable != null && !topicConfigTable.isEmpty()) {
+                    for (Entry<String, TopicConfig> entry : topicConfigTable.entrySet()) {
+                        String topic = entry.getKey();
+                        // DLQ topic
+                        if (topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
+                            TopicConfig topicConfig = entry.getValue();
+                            topicConfig.setPerm(topicConfig.getPerm() | PermName.PERM_READ | PermName.PERM_WRITE);
+                            permChanged = true;
+                        }
+                    }
+                }
+                this.topicConfigTable.putAll(topicConfigTable);
                 this.dataVersion.assignNewOne(topicConfigSerializeWrapper.getDataVersion());
                 this.printLoadDataWhenFirstBoot(topicConfigSerializeWrapper);
+
+                if (permChanged) {
+                    this.persist();
+                }
             }
         }
     }

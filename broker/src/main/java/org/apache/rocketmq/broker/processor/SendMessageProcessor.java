@@ -178,6 +178,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
         }
 
+        // send DLQ msg back
+        if (requestHeader.getOriginTopic().startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
+            msgExt.setReconsumeTimes(0);
+            delayLevel = (delayLevel <= 0) ? 1 : delayLevel;
+        }
+
         if (msgExt.getReconsumeTimes() >= maxReconsumeTimes
             || delayLevel < 0) {
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
@@ -185,7 +191,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
                 DLQ_NUMS_PER_GROUP,
-                PermName.PERM_WRITE, 0
+                PermName.PERM_WRITE | PermName.PERM_READ, 0
             );
             if (null == topicConfig) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
