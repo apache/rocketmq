@@ -73,16 +73,16 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private String traceTopicName;
     private AtomicBoolean isStarted = new AtomicBoolean(false);
     private AccessChannel accessChannel = AccessChannel.LOCAL;
-    private String producerOrConsumerGroup;
+    private String group;
 
-    public AsyncTraceDispatcher(String producerOrConsumerGroup, String traceTopicName, RPCHook rpcHook) {
+    public AsyncTraceDispatcher(String group, String traceTopicName, RPCHook rpcHook) {
         // queueSize is greater than or equal to the n power of 2 of value
         this.queueSize = 2048;
         this.batchSize = 100;
         this.maxMsgSize = 128000;
         this.discardCount = new AtomicLong(0L);
         this.traceContextQueue = new ArrayBlockingQueue<TraceContext>(1024);
-        this.producerOrConsumerGroup = producerOrConsumerGroup;
+        this.group = group;
         this.appenderQueue = new ArrayBlockingQueue<Runnable>(queueSize);
         if (!UtilAll.isBlank(traceTopicName)) {
             this.traceTopicName = traceTopicName;
@@ -152,7 +152,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         DefaultMQProducer traceProducerInstance = this.traceProducer;
         if (traceProducerInstance == null) {
             traceProducerInstance = new DefaultMQProducer(rpcHook);
-            traceProducerInstance.setProducerGroup(makeGroupNameForTrace());
+            traceProducerInstance.setProducerGroup(genGroupNameForTrace());
             traceProducerInstance.setSendMsgTimeout(5000);
             traceProducerInstance.setVipChannelEnabled(false);
             // The max size of message is 128K
@@ -161,8 +161,8 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         return traceProducerInstance;
     }
 
-    private String makeGroupNameForTrace() {
-        return TraceConstants.GROUP_NAME_PREFIX + "-" + this.producerOrConsumerGroup;
+    private String genGroupNameForTrace() {
+        return TraceConstants.GROUP_NAME_PREFIX + "-" + this.group;
     }
 
     @Override
