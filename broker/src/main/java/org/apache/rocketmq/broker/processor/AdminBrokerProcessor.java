@@ -37,6 +37,7 @@ import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
+import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
@@ -53,7 +54,10 @@ import org.apache.rocketmq.common.protocol.header.GetBrokerAclConfigResponseHead
 import org.apache.rocketmq.common.protocol.header.UpdateGlobalWhiteAddrsConfigRequestHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageId;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.RequestCode;
@@ -100,6 +104,7 @@ import org.apache.rocketmq.common.protocol.header.QueryConsumeTimeSpanRequestHea
 import org.apache.rocketmq.common.protocol.header.QueryCorrectionOffsetHeader;
 import org.apache.rocketmq.common.protocol.header.QueryTopicConsumeByWhoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.ResumeCheckHalfMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.ViewBrokerStatsDataRequestHeader;
@@ -120,8 +125,11 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 
 public class AdminBrokerProcessor implements NettyRequestProcessor {
@@ -216,6 +224,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return getBrokerAclConfigVersion(ctx, request);
             case RequestCode.UPDATE_GLOBAL_WHITE_ADDRS_CONFIG:
                 return updateGlobalWhiteAddrsConfig(ctx, request);
+            case RequestCode.RESUME_CHECK_HALF_MESSAGE:
+                return resumeCheckHalfMessage(ctx, request);
             default:
                 break;
         }
@@ -262,7 +272,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
 
-        this.brokerController.registerIncrementBrokerData(topicConfig,this.brokerController.getTopicConfigManager().getDataVersion());
+        this.brokerController.registerIncrementBrokerData(topicConfig, this.brokerController.getTopicConfigManager().getDataVersion());
 
         return null;
     }
@@ -1517,5 +1527,63 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         return response;
+    }
+
+    private RemotingCommand resumeCheckHalfMessage(ChannelHandlerContext ctx,
+        RemotingCommand request)
+        throws RemotingCommandException {
+        final ResumeCheckHalfMessageRequestHeader requestHeader = (ResumeCheckHalfMessageRequestHeader) request
+            .decodeCommandCustomHeader(ResumeCheckHalfMessageRequestHeader.class);
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        SelectMappedBufferResult selectMappedBufferResult = null;
+        try {
+            MessageId messageId = MessageDecoder.decodeMessageId(requestHeader.getMsgId());
+            selectMappedBufferResult = this.brokerController.getMessageStore()
+                .selectOneMessageByOffset(messageId.getOffset());
+            MessageExt msg = MessageDecoder.decode(selectMappedBufferResult.getByteBuffer());
+            msg.putUserProperty(MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES, String.valueOf(0));
+            PutMessageResult putMessageResult = this.brokerController.getMessageStore()
+                .putMessage(toMessageExtBrokerInner(msg));
+            if (putMessageResult != null
+                && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
+                log.info(
+                    "Put message back to RMQ_SYS_TRANS_HALF_TOPIC. real topic={}",
+                    msg.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC));
+                response.setCode(ResponseCode.SUCCESS);
+                response.setRemark(null);
+            } else {
+                log.error("Put message back to RMQ_SYS_TRANS_HALF_TOPIC failed.");
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("Put message back to RMQ_SYS_TRANS_HALF_TOPIC failed.");
+            }
+        } catch (Exception e) {
+            log.error("Exception was thrown when putting message back to RMQ_SYS_TRANS_HALF_TOPIC.");
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Exception was thrown when putting message back to RMQ_SYS_TRANS_HALF_TOPIC.");
+        } finally {
+            if (selectMappedBufferResult != null) {
+                selectMappedBufferResult.release();
+            }
+        }
+        return response;
+    }
+
+    private MessageExtBrokerInner toMessageExtBrokerInner(MessageExt msgExt) {
+        MessageExtBrokerInner inner = new MessageExtBrokerInner();
+        inner.setTopic(TransactionalMessageUtil.buildHalfTopic());
+        inner.setBody(msgExt.getBody());
+        inner.setFlag(msgExt.getFlag());
+        MessageAccessor.setProperties(inner, msgExt.getProperties());
+        inner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
+        inner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(msgExt.getTags()));
+        inner.setQueueId(0);
+        inner.setSysFlag(msgExt.getSysFlag());
+        inner.setBornHost(msgExt.getBornHost());
+        inner.setBornTimestamp(msgExt.getBornTimestamp());
+        inner.setStoreHost(msgExt.getStoreHost());
+        inner.setReconsumeTimes(msgExt.getReconsumeTimes());
+        inner.setMsgId(msgExt.getMsgId());
+        inner.setWaitStoreMsgOK(false);
+        return inner;
     }
 }

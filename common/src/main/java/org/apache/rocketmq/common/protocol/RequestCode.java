@@ -175,4 +175,9 @@ public class RequestCode {
     public static final int QUERY_CONSUME_QUEUE = 321;
 
     public static final int QUERY_DATA_VERSION = 322;
+
+    /**
+     * resume logic of checking half messages that have been put in TRANS_CHECK_MAXTIME_TOPIC before
+     */
+    public static final int RESUME_CHECK_HALF_MESSAGE = 323;
 }

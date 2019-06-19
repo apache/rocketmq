@@ -537,4 +537,17 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
             brokerAddr, topic, queueId, index, count, consumerGroup
         );
     }
+
+    @Override
+    public boolean resumeCheckHalfMessage(String msgId)
+            throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        return this.defaultMQAdminExtImpl.resumeCheckHalfMessage(msgId);
+    }
+
+    @Override
+    public boolean resumeCheckHalfMessage(String topic,
+            String msgId)
+            throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        return this.defaultMQAdminExtImpl.resumeCheckHalfMessage(topic, msgId);
+    }
 }
