@@ -115,6 +115,8 @@ public class MQAdminImpl {
                             orderTopicString.append(":");
                             orderTopicString.append(queueNum);
                             orderTopicString.append(";");
+                        } else {
+                            log.info("create topic success: " + orderTopicString.toString());
                         }
                     }
                 }
