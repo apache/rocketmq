@@ -110,4 +110,17 @@ public class MessageHeader implements Header {
     @Override public short getCompression() {
         return this.compression;
     }
+
+    @Override public String toString() {
+        return "MessageHeader{" +
+            "destination='" + destination + '\'' +
+            ", messageId='" + messageId + '\'' +
+            ", bornTimestamp=" + bornTimestamp +
+            ", bornHost='" + bornHost + '\'' +
+            ", priority=" + priority +
+            ", deliveryCount=" + deliveryCount +
+            ", compression=" + compression +
+            ", durability=" + durability +
+            '}';
+    }
 }

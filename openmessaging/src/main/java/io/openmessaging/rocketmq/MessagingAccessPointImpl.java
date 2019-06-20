@@ -18,24 +18,26 @@ package io.openmessaging.rocketmq;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.MessagingAccessPoint;
-import io.openmessaging.consumer.Consumer;
+import io.openmessaging.consumer.PullConsumer;
+import io.openmessaging.consumer.PushConsumer;
 import io.openmessaging.manager.ResourceManager;
 import io.openmessaging.message.MessageFactory;
 import io.openmessaging.producer.Producer;
 import io.openmessaging.producer.TransactionStateCheckListener;
 import io.openmessaging.rocketmq.consumer.PullConsumerImpl;
 import io.openmessaging.rocketmq.consumer.PushConsumerImpl;
-import io.openmessaging.rocketmq.domain.NonStandardKeys;
+import io.openmessaging.rocketmq.domain.DefaultMessageFactory;
 import io.openmessaging.rocketmq.producer.ProducerImpl;
-import java.util.HashSet;
-import java.util.Set;
 
 public class MessagingAccessPointImpl implements MessagingAccessPoint {
 
     private final KeyValue accessPointProperties;
 
+    private final MessageFactory messageFactory;
+
     public MessagingAccessPointImpl(final KeyValue accessPointProperties) {
         this.accessPointProperties = accessPointProperties;
+        this.messageFactory = new DefaultMessageFactory();
     }
 
     @Override
@@ -57,77 +59,34 @@ public class MessagingAccessPointImpl implements MessagingAccessPoint {
         return null;
     }
 
-    @Override public Consumer createConsumer() {
-        String consumerId = accessPointProperties.getString(NonStandardKeys.CONSUMER_ID);
-        String[] nsStrArr = consumerId.split("_");
-        if (nsStrArr.length < 2) {
-            return new PushConsumerImpl(accessPointProperties);
-        }
-        if (NonStandardKeys.PULL_CONSUMER.equals(nsStrArr[0])) {
-            return new PullConsumerImpl(accessPointProperties);
+    @Override public PushConsumer createPushConsumer() {
+        return new PushConsumerImpl(accessPointProperties);
+    }
+
+    @Override public PullConsumer createPullConsumer() {
+        return new PullConsumerImpl(accessPointProperties);
+    }
+
+    @Override public PushConsumer createPushConsumer(KeyValue attributes) {
+        for (String key : attributes.keySet()) {
+            accessPointProperties.put(key, attributes.getString(key));
         }
         return new PushConsumerImpl(accessPointProperties);
     }
 
-    @Override
-    public ResourceManager resourceManager() {
-        DefaultResourceManager resourceManager = new DefaultResourceManager();
-        return resourceManager;
+    @Override public PullConsumer createPullConsumer(KeyValue attributes) {
+        for (String key : attributes.keySet()) {
+            accessPointProperties.put(key, attributes.getString(key));
+        }
+        return new PullConsumerImpl(accessPointProperties);
     }
 
-    @Override public MessageFactory messageFactory() {
+    @Override
+    public ResourceManager resourceManager() {
         return null;
     }
 
-    class DefaultResourceManager implements ResourceManager {
-
-        @Override
-        public void createNamespace(String nsName) {
-            accessPointProperties.put(NonStandardKeys.CONSUMER_ID, nsName);
-        }
-
-        @Override
-        public void deleteNamespace(String nsName) {
-            accessPointProperties.put(NonStandardKeys.CONSUMER_ID, null);
-        }
-
-        @Override
-        public void switchNamespace(String targetNamespace) {
-            accessPointProperties.put(NonStandardKeys.CONSUMER_ID, targetNamespace);
-        }
-
-        @Override
-        public Set<String> listNamespaces() {
-            return new HashSet<String>() {
-                {
-                    add(accessPointProperties.getString(NonStandardKeys.CONSUMER_ID));
-                }
-            };
-        }
-
-        @Override
-        public void createQueue(String queueName) {
-
-        }
-
-        @Override
-        public void deleteQueue(String queueName) {
-
-        }
-
-        @Override
-        public Set<String> listQueues(String nsName) {
-            return null;
-        }
-
-        @Override
-        public void filter(String queueName, String filterString) {
-
-        }
-
-        @Override
-        public void routing(String sourceQueue, String targetQueue) {
-
-        }
-    };
+    @Override public MessageFactory messageFactory() {
+        return messageFactory;
+    }
 }

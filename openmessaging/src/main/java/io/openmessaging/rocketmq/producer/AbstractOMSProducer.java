@@ -38,7 +38,7 @@ import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
-import static io.openmessaging.rocketmq.utils.OMSUtil.buildInstanceName;
+import static io.openmessaging.rocketmq.utils.OMSClientUtil.buildInstanceName;
 
 abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
     final static InternalLogger log = ClientLogger.getLog();

@@ -16,12 +16,14 @@
  */
 package org.apache.rocketmq.example.openmessaging;
 
-import io.openmessaging.Message;
 import io.openmessaging.MessagingAccessPoint;
 import io.openmessaging.OMS;
-import io.openmessaging.OMSBuiltinKeys;
 import io.openmessaging.consumer.MessageListener;
 import io.openmessaging.consumer.PushConsumer;
+import io.openmessaging.message.Message;
+import io.openmessaging.rocketmq.domain.NonStandardKeys;
+import java.util.HashSet;
+import java.util.Set;
 
 public class SimplePushConsumer {
     public static void main(String[] args) {
@@ -29,28 +31,29 @@ public class SimplePushConsumer {
             .getMessagingAccessPoint("oms:rocketmq://localhost:9876/default:default");
 
         final PushConsumer consumer = messagingAccessPoint.
-            createPushConsumer(OMS.newKeyValue().put(OMSBuiltinKeys.CONSUMER_ID, "OMS_CONSUMER"));
-
-        messagingAccessPoint.startup();
-        System.out.printf("MessagingAccessPoint startup OK%n");
+            createPushConsumer(OMS.newKeyValue().put(NonStandardKeys.CONSUMER_ID, "OMS_CONSUMER"));
 
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override
             public void run() {
-                consumer.shutdown();
-                messagingAccessPoint.shutdown();
+                consumer.stop();
             }
         }));
 
-        consumer.attachQueue("OMS_HELLO_TOPIC", new MessageListener() {
+        Set<String> queueNames = new HashSet<String>(8) {
+            {
+                add("OMS_HELLO_TOPIC");
+            }
+        };
+        consumer.bindQueue(queueNames, new MessageListener() {
             @Override
             public void onReceived(Message message, Context context) {
-                System.out.printf("Received one message: %s%n", message.sysHeaders().getString(Message.BuiltinKeys.MESSAGE_ID));
+                System.out.printf("Received one message: %s%n", message.header().getMessageId());
                 context.ack();
             }
         });
 
-        consumer.startup();
+        consumer.start();
         System.out.printf("Consumer startup OK%n");
     }
 }

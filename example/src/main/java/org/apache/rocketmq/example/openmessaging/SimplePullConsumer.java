@@ -16,40 +16,44 @@
  */
 package org.apache.rocketmq.example.openmessaging;
 
-import io.openmessaging.Message;
 import io.openmessaging.MessagingAccessPoint;
 import io.openmessaging.OMS;
-import io.openmessaging.OMSBuiltinKeys;
 import io.openmessaging.consumer.PullConsumer;
+import io.openmessaging.message.Message;
 import io.openmessaging.producer.Producer;
 import io.openmessaging.producer.SendResult;
+import io.openmessaging.rocketmq.domain.DefaultMessageReceipt;
+import io.openmessaging.rocketmq.domain.NonStandardKeys;
+import java.util.HashSet;
+import java.util.Set;
 
 public class SimplePullConsumer {
     public static void main(String[] args) {
         final MessagingAccessPoint messagingAccessPoint =
             OMS.getMessagingAccessPoint("oms:rocketmq://localhost:9876/default:default");
 
-        messagingAccessPoint.startup();
-
         final Producer producer = messagingAccessPoint.createProducer();
 
         final PullConsumer consumer = messagingAccessPoint.createPullConsumer(
-            OMS.newKeyValue().put(OMSBuiltinKeys.CONSUMER_ID, "OMS_CONSUMER"));
+            OMS.newKeyValue().put(NonStandardKeys.CONSUMER_ID, "OMS_CONSUMER"));
 
-        messagingAccessPoint.startup();
         System.out.printf("MessagingAccessPoint startup OK%n");
 
-        final String queueName = "TopicTest";
-
-        producer.startup();
-        Message msg = producer.createBytesMessage(queueName, "Hello Open Messaging".getBytes());
+        final String queueName = "OMS_HELLO_TOPIC";
+        producer.start();
+        Message msg = producer.createMessage(queueName, "Hello Open Messaging".getBytes());
         SendResult sendResult = producer.send(msg);
         System.out.printf("Send Message OK. MsgId: %s%n", sendResult.messageId());
-        producer.shutdown();
+        producer.stop();
 
-        consumer.attachQueue(queueName);
+        Set<String> queueNames = new HashSet<String>(8) {
+            {
+                add(queueName);
+            }
+        };
+        consumer.bindQueue(queueNames);
 
-        consumer.startup();
+        consumer.start();
         System.out.printf("Consumer startup OK%n");
 
         // Keep running until we find the one that has just been sent
@@ -57,9 +61,11 @@ public class SimplePullConsumer {
         while (!stop) {
             Message message = consumer.receive();
             if (message != null) {
-                String msgId = message.sysHeaders().getString(Message.BuiltinKeys.MESSAGE_ID);
+                String msgId = message.header().getMessageId();
                 System.out.printf("Received one message: %s%n", msgId);
-                consumer.ack(msgId);
+                DefaultMessageReceipt defaultMessageReceipt = new DefaultMessageReceipt();
+                defaultMessageReceipt.setMessageId(msgId);
+                consumer.ack(defaultMessageReceipt);
 
                 if (!stop) {
                     stop = msgId.equalsIgnoreCase(sendResult.messageId());
@@ -70,7 +76,6 @@ public class SimplePullConsumer {
             }
         }
 
-        consumer.shutdown();
-        messagingAccessPoint.shutdown();
+        consumer.stop();
     }
 }

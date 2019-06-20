@@ -16,19 +16,19 @@
  */
 package io.openmessaging.rocketmq.domain;
 
-public interface NonStandardKeys {
-    String CONSUMER_GROUP = "rmq.consumer.group";
-    String PRODUCER_GROUP = "rmq.producer.group";
-    String MAX_REDELIVERY_TIMES = "rmq.max.redelivery.times";
-    String MESSAGE_CONSUME_TIMEOUT = "rmq.message.consume.timeout";
-    String MAX_CONSUME_THREAD_NUMS = "rmq.max.consume.thread.nums";
-    String MIN_CONSUME_THREAD_NUMS = "rmq.min.consume.thread.nums";
-    String MESSAGE_CONSUME_STATUS = "rmq.message.consume.status";
-    String MESSAGE_DESTINATION = "rmq.message.destination";
-    String PULL_MESSAGE_BATCH_NUMS = "rmq.pull.message.batch.nums";
-    String PULL_MESSAGE_CACHE_CAPACITY = "rmq.pull.message.cache.capacity";
-    String PRODUCER_ID = "PRODUCER_ID";
-    String CONSUMER_ID = "CONSUMER_ID";
-    String TIMEOUT = "TIMEOUT";
-    int PULL_MIN_NUMS = 1;
+import io.openmessaging.extension.Extension;
+import io.openmessaging.extension.QueueMetaData;
+import java.util.Set;
+
+public class MessageExtension implements Extension {
+
+    private Extension extension;
+
+    public MessageExtension(Extension extension) {
+        this.extension = extension;
+    }
+
+    @Override public Set<QueueMetaData> getQueueMetaData(String queueName) {
+        return extension.getQueueMetaData(queueName);
+    }
 }

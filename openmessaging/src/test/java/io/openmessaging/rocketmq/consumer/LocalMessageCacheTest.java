@@ -16,10 +16,17 @@
  */
 package io.openmessaging.rocketmq.consumer;
 
+import io.openmessaging.KeyValue;
+import io.openmessaging.extension.QueueMetaData;
+import io.openmessaging.internal.DefaultKeyValue;
 import io.openmessaging.rocketmq.config.ClientConfig;
 import io.openmessaging.rocketmq.domain.ConsumeRequest;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.junit.Before;
@@ -40,6 +47,8 @@ public class LocalMessageCacheTest {
     private DefaultMQPullConsumer rocketmqPullConsume;
     @Mock
     private ConsumeRequest consumeRequest;
+    @Mock
+    private ConsumeRequest consumeRequest1;
 
     @Before
     public void init() {
@@ -85,5 +94,86 @@ public class LocalMessageCacheTest {
         when(consumeRequest.getMessageExt()).thenReturn(consumedMsg);
         localMessageCache.submitConsumeRequest(consumeRequest);
         assertThat(localMessageCache.poll()).isEqualTo(consumedMsg);
+    }
+
+    @Test
+    public void testBatchPollMessage() throws Exception {
+        byte[] body = new byte[] {'1', '2', '3'};
+        MessageExt consumedMsg = new MessageExt();
+        consumedMsg.setMsgId("NewMsgId");
+        consumedMsg.setBody(body);
+        consumedMsg.putUserProperty(NonStandardKeys.MESSAGE_DESTINATION, "TOPIC");
+        consumedMsg.setTopic("HELLO_QUEUE");
+
+        byte[] body1 = new byte[] {'4', '5', '6'};
+        MessageExt consumedMsg1 = new MessageExt();
+        consumedMsg1.setMsgId("NewMsgId1");
+        consumedMsg1.setBody(body1);
+        consumedMsg1.putUserProperty(NonStandardKeys.MESSAGE_DESTINATION, "TOPIC");
+        consumedMsg1.setTopic("HELLO_QUEUE1");
+
+        when(consumeRequest.getMessageExt()).thenReturn(consumedMsg);
+        when(consumeRequest1.getMessageExt()).thenReturn(consumedMsg1);
+        localMessageCache.submitConsumeRequest(consumeRequest);
+        localMessageCache.submitConsumeRequest(consumeRequest1);
+        KeyValue properties = new DefaultKeyValue();
+        properties.put(NonStandardKeys.TIMEOUT, 3000);
+        List<MessageExt> messageExts = localMessageCache.batchPoll(properties);
+        assertThat(messageExts.size()).isEqualTo(2);
+        MessageExt messageExt1 = null;
+        MessageExt messageExt2 = null;
+        for (MessageExt messageExt : messageExts) {
+            if (messageExt.getMsgId().equals("NewMsgId")) {
+                messageExt1 = messageExt;
+            }
+            if (messageExt.getMsgId().equals("NewMsgId1")) {
+                messageExt2 = messageExt;
+            }
+        }
+        assertThat(messageExt1).isNotNull();
+        assertThat(messageExt1.getBody()).isEqualTo(body);
+        assertThat(messageExt1.getTopic()).isEqualTo("HELLO_QUEUE");
+        assertThat(messageExt2).isNotNull();
+        assertThat(messageExt2.getBody()).isEqualTo(body1);
+        assertThat(messageExt2.getTopic()).isEqualTo("HELLO_QUEUE1");
+
+    }
+
+    @Test
+    public void getQueueMetaData() throws MQClientException {
+        MessageQueue messageQueue1 = new MessageQueue("topic1", "brockerName1", 0);
+        MessageQueue messageQueue2 = new MessageQueue("topic1", "brockerName2", 1);
+        MessageQueue messageQueue3 = new MessageQueue("topic1", "brockerName3", 2);
+        Set<MessageQueue> messageQueues = new HashSet<MessageQueue>() {
+            {
+                add(messageQueue1);
+                add(messageQueue2);
+                add(messageQueue3);
+            }
+        };
+
+        when(rocketmqPullConsume.fetchSubscribeMessageQueues("topic1")).thenReturn(messageQueues);
+        Set<QueueMetaData> queueMetaDatas = localMessageCache.getQueueMetaData("topic1");
+        assertThat(queueMetaDatas.size()).isEqualTo(3);
+        QueueMetaData queueMetaData1 = null;
+        QueueMetaData queueMetaData2 = null;
+        QueueMetaData queueMetaData3 = null;
+        for (QueueMetaData queueMetaData : queueMetaDatas) {
+            if (queueMetaData.partitionId() == 0) {
+                queueMetaData1 = queueMetaData;
+            }
+            if (queueMetaData.partitionId() == 1) {
+                queueMetaData2 = queueMetaData;
+            }
+            if (queueMetaData.partitionId() == 2) {
+                queueMetaData3 = queueMetaData;
+            }
+        }
+        assertThat(queueMetaData1).isNotNull();
+        assertThat(queueMetaData1.queueName()).isEqualTo("topic1");
+        assertThat(queueMetaData2).isNotNull();
+        assertThat(queueMetaData2.queueName()).isEqualTo("topic1");
+        assertThat(queueMetaData3).isNotNull();
+        assertThat(queueMetaData3.queueName()).isEqualTo("topic1");
     }
 }
