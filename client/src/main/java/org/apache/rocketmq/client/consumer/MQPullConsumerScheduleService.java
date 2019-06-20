@@ -151,7 +151,7 @@ public class MQPullConsumerScheduleService {
         }
     }
 
-    class PullTaskImpl implements Runnable {
+    public class PullTaskImpl implements Runnable {
         private final MessageQueue messageQueue;
         private volatile boolean cancelled = false;
 
