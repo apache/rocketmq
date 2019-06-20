@@ -74,8 +74,9 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private AtomicBoolean isStarted = new AtomicBoolean(false);
     private AccessChannel accessChannel = AccessChannel.LOCAL;
     private String group;
+    private Type type;
 
-    public AsyncTraceDispatcher(String group, String traceTopicName, RPCHook rpcHook) {
+    public AsyncTraceDispatcher(String group, Type type,String traceTopicName, RPCHook rpcHook) {
         // queueSize is greater than or equal to the n power of 2 of value
         this.queueSize = 2048;
         this.batchSize = 100;
@@ -83,6 +84,8 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         this.discardCount = new AtomicLong(0L);
         this.traceContextQueue = new ArrayBlockingQueue<TraceContext>(1024);
         this.group = group;
+        this.type = type;
+
         this.appenderQueue = new ArrayBlockingQueue<Runnable>(queueSize);
         if (!UtilAll.isBlank(traceTopicName)) {
             this.traceTopicName = traceTopicName;
@@ -162,7 +165,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     }
 
     private String genGroupNameForTrace() {
-        return TraceConstants.GROUP_NAME_PREFIX + "-" + this.group;
+        return TraceConstants.GROUP_NAME_PREFIX + "-" + this.group + "-" + this.type ;
     }
 
     @Override
