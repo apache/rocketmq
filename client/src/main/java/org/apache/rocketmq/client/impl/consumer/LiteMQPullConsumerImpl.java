@@ -17,16 +17,21 @@
 package org.apache.rocketmq.client.impl.consumer;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReadWriteLock;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.consumer.PullResult;
@@ -34,6 +39,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.filter.FilterAPI;
+import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
@@ -118,6 +124,81 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
         this.defaultMQPullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
     }
 
+    public List<MessageExt> poll(long timeout) {
+        try {
+            ConsumeRequest consumeRequest = consumeRequestCache.poll(timeout, TimeUnit.MILLISECONDS);
+            if (consumeRequest != null) {
+                List<MessageExt> messages = consumeRequest.getMessageExts();
+                for (MessageExt messageExt : messages) {
+                    MessageAccessor.setConsumeStartTimeStamp(messageExt, String.valueOf(consumeRequest.getStartConsumeTimeMillis()));
+                }
+                consumeRequest.setStartConsumeTimeMillis(System.currentTimeMillis());
+                return messages;
+            }
+        } catch (InterruptedException ignore) {
+        }
+        return null;
+    }
+
+    public void pause(Collection<MessageQueue> messageQueues) {
+        assignedMessageQueue.pause(messageQueues);
+    }
+
+    public void resume(Collection<MessageQueue> messageQueues) {
+        assignedMessageQueue.resume(messageQueues);
+    }
+
+    public void unsubscribe(final String topic) {
+        unsubscribe(topic);
+        removePullTaskCallback(topic);
+        assignedMessageQueue.removeAssignedMessageQueue(topic);
+    }
+
+    public void removePullTaskCallback(final String topic) {
+        removePullTask(topic);
+    }
+
+    public void removePullTask(final String topic) {
+        synchronized (this.taskTable) {
+            Iterator<Map.Entry<MessageQueue, PullTaskImpl>> it = this.taskTable.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<MessageQueue, PullTaskImpl> next = it.next();
+                if (next.getKey().getTopic().equals(topic)) {
+                    it.remove();
+                }
+            }
+        }
+    }
+
+    public void commit() {
+        List<ConsumeRequest> consumeRequests;
+        synchronized (this.allConsumed) {
+            consumeRequests = this.allConsumed;
+            this.allConsumed = new ArrayList<ConsumeRequest>();
+        }
+        for (ConsumeRequest consumeRequest : consumeRequests) {
+            consumeRequest.getProcessQueue().removeMessage(consumeRequest.messageExts);
+        }
+        Set<Map.Entry<MessageQueue, Long>> entrySet = assignedMessageQueue.getNeedCommitOffsets().entrySet();
+        for (Map.Entry<MessageQueue, Long> entry : entrySet) {
+            try {
+                updateConsumeOffset(entry.getKey(), entry.getValue());
+            } catch (MQClientException e) {
+                log.error("A error occurred in update consume offset process.", e);
+            }
+        }
+        this.getOffsetStore().persistAll(assignedMessageQueue.getNeedCommitOffsets().keySet());
+    }
+
+    private void commit(final MessageQueue messageQueue, final ProcessQueue processQueue, final MessageExt messageExt) {
+        long offset = processQueue.removeMessage(Collections.singletonList(messageExt));
+        try {
+            updateConsumeOffset(messageQueue, offset);
+        } catch (MQClientException e) {
+            log.error("An error occurred in update consume offset process.", e);
+        }
+    }
+
     public void subscribe(String topic, String subExpression) throws MQClientException {
         try {
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(defaultMQPullConsumer.getConsumerGroup(),
@@ -159,13 +240,70 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
         try {
             offset = assignedMessageQueue.getNextOffset(remoteQueue);
             if (offset == -1) {
-                offset = this.defaultMQPullConsumer.fetchConsumeOffset(remoteQueue, false);
+                offset = fetchConsumeOffset(remoteQueue, false);
                 assignedMessageQueue.updateNextOffset(remoteQueue, offset);
             }
         } catch (MQClientException e) {
             log.error("An error occurred in fetch consume offset process.", e);
         }
         return offset;
+    }
+
+    private void cleanExpireMsg() {
+        for (final Map.Entry<MessageQueue, ProcessQueue> next : rebalanceImpl.getProcessQueueTable().entrySet()) {
+            ProcessQueue pq = next.getValue();
+            MessageQueue mq = next.getKey();
+            ReadWriteLock lockTreeMap = getLockInProcessQueue(pq);
+            if (lockTreeMap == null) {
+                log.error("Gets tree map lock in process queue error of message queue:", mq);
+                return;
+            }
+
+            TreeMap<Long, MessageExt> msgTreeMap = pq.getMsgTreeMap();
+
+            int loop = msgTreeMap.size();
+            for (int i = 0; i < loop; i++) {
+                MessageExt msg = null;
+                try {
+                    lockTreeMap.readLock().lockInterruptibly();
+                    try {
+                        if (!msgTreeMap.isEmpty()) {
+                            msg = msgTreeMap.firstEntry().getValue();
+                            if (System.currentTimeMillis() - Long.parseLong(MessageAccessor.getConsumeStartTimeStamp(msg))
+                                > 10 * 60 * 1000) {
+                                //Expired, ack and remove it.
+                            } else {
+                                break;
+                            }
+                        } else {
+                            break;
+                        }
+                    } finally {
+                        lockTreeMap.readLock().unlock();
+                    }
+                } catch (InterruptedException e) {
+                    log.error("Gets expired message exception", e);
+                }
+
+                try {
+                    this.defaultMQPullConsumer.sendMessageBack(msg, 3);
+                    log.info("Send expired msg back. topic={}, msgId={}, storeHost={}, queueId={}, queueOffset={}",
+                        msg.getTopic(), msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(), msg.getQueueOffset());
+                    System.out.println("Send expired msg back.");
+                    commit(mq, pq, msg);
+                } catch (Exception e) {
+                    log.error("Send back expired msg exception", e);
+                }
+            }
+        }
+    }
+
+    private ReadWriteLock getLockInProcessQueue(ProcessQueue pq) {
+        try {
+            return (ReadWriteLock) FieldUtils.readDeclaredField(pq, "lockTreeMap", true);
+        } catch (IllegalAccessException e) {
+            return null;
+        }
     }
 
     public class PullTaskImpl implements Runnable {
