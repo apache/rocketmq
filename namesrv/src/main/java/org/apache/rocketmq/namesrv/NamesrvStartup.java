@@ -160,7 +160,7 @@ public class NamesrvStartup {
         controller.shutdown();
     }
 
-    public static Options buildCommandlineOptions(final Options options) {
+    private static Options buildCommandlineOptions(final Options options) {
         Option opt = new Option("c", "configFile", true, "Name server config properties file");
         opt.setRequired(false);
         options.addOption(opt);
