@@ -23,6 +23,7 @@ import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.MQWait;
+import org.apache.rocketmq.test.util.TestUtils;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -54,6 +55,7 @@ public class NormalMsgDynamicBalanceIT extends BaseConf {
         RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
         RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
             "*", new RMQNormalListener());
+        TestUtils.waitForSeconds(waitTime);
 
         producer.send(msgSize);
 
@@ -84,6 +86,7 @@ public class NormalMsgDynamicBalanceIT extends BaseConf {
             "*", new RMQNormalListener());
         RMQNormalConsumer consumer3 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
             "*", new RMQNormalListener());
+        TestUtils.waitForSeconds(waitTime);
 
         producer.send(msgSize);
 

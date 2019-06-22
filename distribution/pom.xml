@@ -20,38 +20,28 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>4.2.0</version>
+        <version>4.5.1</version>
     </parent>
     <artifactId>rocketmq-distribution</artifactId>
     <name>rocketmq-distribution ${project.version}</name>
     <packaging>pom</packaging>
 
     <profiles>
-
         <profile>
             <id>release-all</id>
-
             <dependencies>
                 <dependency>
                     <groupId>org.apache.rocketmq</groupId>
                     <artifactId>rocketmq-broker</artifactId>
                 </dependency>
-
                 <dependency>
                     <groupId>org.apache.rocketmq</groupId>
                     <artifactId>rocketmq-client</artifactId>
                 </dependency>
-
-                <dependency>
-                    <groupId>org.apache.rocketmq</groupId>
-                    <artifactId>rocketmq-filtersrv</artifactId>
-                </dependency>
-
                 <dependency>
                     <groupId>org.apache.rocketmq</groupId>
                     <artifactId>rocketmq-tools</artifactId>
                 </dependency>
-
                 <dependency>
                     <groupId>org.apache.rocketmq</groupId>
                     <artifactId>rocketmq-example</artifactId>
@@ -79,13 +69,12 @@
                         </executions>
                     </plugin>
                 </plugins>
-                <finalName>apache-rocketmq</finalName>
+                <finalName>rocketmq-${project.version}</finalName>
             </build>
         </profile>
 
         <profile>
             <id>release-client</id>
-
             <dependencies>
                 <dependency>
                     <groupId>org.apache.rocketmq</groupId>
@@ -115,7 +104,7 @@
                         </executions>
                     </plugin>
                 </plugins>
-                <finalName>apache-rocketmq</finalName>
+                <finalName>rocketmq-client-${project.version}</finalName>
             </build>
         </profile>
     </profiles>
