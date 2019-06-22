@@ -544,9 +544,6 @@ public class CommitLog {
 
         StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
 
-        String topic = msg.getTopic();
-        int queueId = msg.getQueueId();
-
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
@@ -556,8 +553,8 @@ public class CommitLog {
                     msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
                 }
 
-                topic = ScheduleMessageService.SCHEDULE_TOPIC;
-                queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
+                String topic = ScheduleMessageService.SCHEDULE_TOPIC;
+                int queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
 
                 // Backup real topic, queueId
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
