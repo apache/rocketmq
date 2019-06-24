@@ -38,9 +38,6 @@ import static org.junit.Assert.assertTrue;
 
 public class IndexServiceTest {
 
-    private final int HASH_SLOT_NUM = 100;
-    private final int INDEX_NUM = 400;
-
     private MessageStore messageStore;
 
     private IndexService indexService;
