@@ -77,7 +77,7 @@ public class IndexServiceTest {
     }
 
     @Test
-    public void query() throws Exception {
+    public void testQueryOffset() throws Exception {
 
         DispatchRequest dispatchRequest = buildDispatchRequest(offset);
 
