@@ -56,9 +56,15 @@ public class IndexServiceTest {
         indexService = new IndexService((DefaultMessageStore) messageStore);
     }
 
+
     @After
-    public void finish() {
-        UtilAll.deleteFile(new File("test"));
+    public void destroy() {
+        messageStore.shutdown();
+        messageStore.destroy();
+
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        File file = new File(messageStoreConfig.getStorePathRootDir());
+        UtilAll.deleteFile(file);
     }
 
     private MessageStore buildMessageStore() throws Exception {
