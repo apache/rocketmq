@@ -33,6 +33,7 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -563,6 +564,34 @@ public class DefaultMessageStoreTest {
             messageExtBrokerInner.setQueueId(0);
             messageStore.putMessage(messageExtBrokerInner);
         }
+    }
+
+
+
+    @Test
+    public void testMessageQuery() throws Exception {
+        MessageExtBrokerInner msg = new MessageExtBrokerInner();
+        msg.setTopic("FooBar");
+        msg.setTags("TAG1");
+        msg.setKeys("Hello");
+        msg.setBody("hell this is test".getBytes());
+        msg.setKeys(String.valueOf(System.currentTimeMillis()));
+        msg.setQueueId(0);
+        msg.setSysFlag(0);
+        msg.setBornTimestamp(System.currentTimeMillis());
+        msg.setStoreHost(StoreHost);
+        msg.setBornHost(BornHost);
+        for (int i = 0; i < 1; i++) {
+            msg.putUserProperty(String.valueOf(i), "imagoodperson" + i);
+        }
+        msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+        messageStore.putMessage(msg);
+        StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
+        StoreTestUtil.flushConsumeQueue((DefaultMessageStore) messageStore);
+        StoreTestUtil.flushConsumeIndex((DefaultMessageStore) messageStore);
+        QueryMessageResult queryMessageResult = messageStore.queryMessage("FooBar", msg.getKeys(), 100, msg.getBornTimestamp() - 2 * 1000, msg.getBornTimestamp() + 2 * 1000);
+        assertThat(queryMessageResult).isNotNull();
+        assertThat(queryMessageResult.getBufferTotalSize()).isGreaterThan(0);
     }
 
     private void damageCommitlog(long offset) throws Exception {
