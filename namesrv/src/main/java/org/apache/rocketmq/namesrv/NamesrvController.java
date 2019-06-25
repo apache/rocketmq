@@ -46,9 +46,11 @@ public class NamesrvController {
 
     private final NettyServerConfig nettyServerConfig;
 
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-        "NSScheduledThread"));
+    private final ScheduledExecutorService scheduledExecutorService =
+            Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("NSScheduledThread"));
+
     private final KVConfigManager kvConfigManager;
+
     private final RouteInfoManager routeInfoManager;
 
     private RemotingServer remotingServer;
@@ -68,15 +70,18 @@ public class NamesrvController {
         this.brokerHousekeepingService = new BrokerHousekeepingService(this);
         this.configuration = new Configuration(
             log,
-            this.namesrvConfig, this.nettyServerConfig
+            this.namesrvConfig,
+                this.nettyServerConfig
         );
         this.configuration.setStorePathFromConfig(this.namesrvConfig, "configStorePath");
     }
 
     public boolean initialize() {
 
+        //加载 KV 配置
         this.kvConfigManager.load();
 
+        // 创建 NettyServer 网络处理对象，
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
         this.remotingExecutor =
@@ -84,6 +89,8 @@ public class NamesrvController {
 
         this.registerProcessor();
 
+        //然后 开启两个定时任务，在 RocketMQ 中此类定时任务统称为心跳检测 。
+        // NameServer每隔 1Os扫描一次 Broker， 移除处于不激活状态的 Broker
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -92,6 +99,7 @@ public class NamesrvController {
             }
         }, 5, 10, TimeUnit.SECONDS);
 
+        // nameServer每隔10分钟打印一次KV配置。
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override

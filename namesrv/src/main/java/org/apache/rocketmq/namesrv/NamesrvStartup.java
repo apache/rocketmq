@@ -72,6 +72,9 @@ public class NamesrvStartup {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
         //PackageConflictDetect.detectFastjson();
 
+        // 参数来源：
+        // -c configFile通过，c命令指定配置文件的路径;
+        // 使用“一属性名 属性值”，例如一listenPort9876。
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
         if (null == commandLine) {
@@ -79,9 +82,14 @@ public class NamesrvStartup {
             return null;
         }
 
+        // 首先 来解析配置文件，需要填充NameServerConfig、 NettyServerConfig 属性值;
+        // NameServer业务参数
         final NamesrvConfig namesrvConfig = new NamesrvConfig();
+        // NameServer网络参数
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(9876);
+        // 在解析启动时把指定的配置文件或启动命令中的选项 值，填充到 nameServerConfig,nettyServerConfig对象；
+        // -c configFile通过，c命令指定配置文件的路径。
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
@@ -98,6 +106,7 @@ public class NamesrvStartup {
             }
         }
 
+        // 使用“一属性名 属性值”，例如一listenPort9876
         if (commandLine.hasOption('p')) {
             InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_CONSOLE_NAME);
             MixAll.printObjectProperties(console, namesrvConfig);
@@ -123,6 +132,8 @@ public class NamesrvStartup {
         MixAll.printObjectProperties(log, namesrvConfig);
         MixAll.printObjectProperties(log, nettyServerConfig);
 
+        //根据启动属性创建 NamesrvController实例，并初始化该实例 ，
+        //实例为 NameSer飞明核心控制器
         final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
 
         // remember all configs to prevent discard
@@ -143,6 +154,8 @@ public class NamesrvStartup {
             System.exit(-3);
         }
 
+        // 注册 JVM 钩子函 数
+        // 如果代码中使用了线程池，一种优雅停机的方式就是注册一个 JVM 钩子函数， 在 JVM 进程关闭之前，先将线程池关闭 ，及时释 放资源 。
         Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, new Callable<Void>() {
             @Override
             public Void call() throws Exception {
@@ -151,6 +164,7 @@ public class NamesrvStartup {
             }
         }));
 
+        //并启动服务器， 以便监昕 Broker、消息生产者 的网络请求
         controller.start();
 
         return controller;

@@ -59,6 +59,8 @@ public class ClientConfig {
 
     private LanguageCode language = LanguageCode.JAVA;
 
+
+    // 创建Client的方法：客户端IP+instance
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
         sb.append(this.getClientIP());
@@ -89,6 +91,7 @@ public class ClientConfig {
         this.instanceName = instanceName;
     }
 
+    // 将实例Instance设置为进程ID
     public void changeInstanceNameToPID() {
         if (this.instanceName.equals("DEFAULT")) {
             this.instanceName = String.valueOf(UtilAll.getPid());

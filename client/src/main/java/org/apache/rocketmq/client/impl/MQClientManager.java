@@ -43,9 +43,9 @@ public class MQClientManager {
     public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig) {
         return getAndCreateMQClientInstance(clientConfig, null);
     }
-
+    // 创建MQClientInstance实例；整个 JVM 进程只存在一个 MQClientManager 实例，维护一个 MQClientInstance缓存表;
     public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
-        String clientId = clientConfig.buildMQClientId();
+        String clientId = clientConfig.buildMQClientId(); // clientId = IP@进程
         MQClientInstance instance = this.factoryTable.get(clientId);
         if (null == instance) {
             instance =
