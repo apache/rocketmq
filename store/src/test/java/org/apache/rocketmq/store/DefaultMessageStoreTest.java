@@ -33,6 +33,7 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -40,7 +41,6 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -58,6 +58,9 @@ public class DefaultMessageStoreTest {
     private SocketAddress StoreHost;
     private byte[] MessageBody;
     private MessageStore messageStore;
+
+    private static final String msg = "Once, there was a chance for me!";
+    private static final byte[] msgBody = msg.getBytes();
 
     @Before
     public void init() throws Exception {
@@ -112,6 +115,7 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMaxIndexNum(100 * 100);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
         messageStoreConfig.setFlushIntervalConsumeQueue(1);
+        messageStoreConfig.setMessageIndexEnable(true);
         return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MyMessageArrivingListener(), new BrokerConfig());
     }
 
@@ -294,7 +298,6 @@ public class DefaultMessageStoreTest {
         assertThat(messageStoreTimeStamp).isEqualTo(-1);
     }
 
-
     @Test
     public void should_get_message_store_timestamp_successfully_when_incomming_by_topic_queueId_and_consumeQueueOffset() throws InterruptedException {
         final int totalCount = 10;
@@ -305,7 +308,7 @@ public class DefaultMessageStoreTest {
         StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
 
         ConsumeQueue consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
-        int minOffsetInQueue = (int)consumeQueue.getMinOffsetInQueue();
+        int minOffsetInQueue = (int) consumeQueue.getMinOffsetInQueue();
         for (int i = minOffsetInQueue; i < consumeQueue.getMaxOffsetInQueue(); i++) {
             long messageStoreTimeStamp = messageStore.getMessageStoreTimeStamp(topic, queueId, i);
             assertThat(messageStoreTimeStamp).isEqualTo(appendMessageResults[i].getStoreTimestamp());
@@ -355,7 +358,7 @@ public class DefaultMessageStoreTest {
     }
 
     private DefaultMessageStore getDefaultMessageStore() {
-        return (DefaultMessageStore)this.messageStore;
+        return (DefaultMessageStore) this.messageStore;
     }
 
     private AppendMessageResult[] putMessages(int totalCount, String topic, int queueId) {
@@ -375,7 +378,7 @@ public class DefaultMessageStoreTest {
                 try {
                     Thread.sleep(10);
                 } catch (InterruptedException e) {
-                    throw  new RuntimeException("Thread sleep ERROR");
+                    throw new RuntimeException("Thread sleep ERROR");
                 }
             }
         }
@@ -398,7 +401,7 @@ public class DefaultMessageStoreTest {
         try {
             Method getStoreTime = getDefaultMessageStore().getClass().getDeclaredMethod("getStoreTime", SelectMappedBufferResult.class);
             getStoreTime.setAccessible(true);
-            return (long)getStoreTime.invoke(getDefaultMessageStore(), result);
+            return (long) getStoreTime.invoke(getDefaultMessageStore(), result);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
@@ -478,7 +481,7 @@ public class DefaultMessageStoreTest {
             messageStore.putMessage(messageExtBrokerInner);
         }
 
-       // Thread.sleep(100);//wait for build consumer queue
+        // Thread.sleep(100);//wait for build consumer queue
         StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
 
         long maxPhyOffset = messageStore.getMaxPhyOffset();
@@ -565,6 +568,32 @@ public class DefaultMessageStoreTest {
         }
     }
 
+    @Test
+    public void testMessageQuery() throws Exception {
+        MessageExtBrokerInner msg = new MessageExtBrokerInner();
+        msg.setTopic("FooBar");
+        msg.setTags("TAG1");
+        msg.setKeys("Hello");
+        msg.setBody(msgBody);
+        msg.setKeys(String.valueOf(System.currentTimeMillis()));
+        msg.setQueueId(0);
+        msg.setSysFlag(0);
+        msg.setBornTimestamp(System.currentTimeMillis());
+        msg.setStoreHost(StoreHost);
+        msg.setBornHost(BornHost);
+        for (int i = 0; i < 1; i++) {
+            msg.putUserProperty(String.valueOf(i), "imagoodperson" + i);
+        }
+        msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+        messageStore.putMessage(msg);
+        StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
+        StoreTestUtil.flushConsumeQueue((DefaultMessageStore) messageStore);
+        StoreTestUtil.flushConsumeIndex((DefaultMessageStore) messageStore);
+        QueryMessageResult queryMessageResult = messageStore.queryMessage("FooBar", msg.getKeys(), 100, msg.getBornTimestamp() - 2 * 1000, msg.getBornTimestamp() + 2 * 1000);
+        assertThat(queryMessageResult).isNotNull();
+        assertThat(queryMessageResult.getBufferTotalSize()).isGreaterThan(0);
+    }
+
     private void damageCommitlog(long offset) throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         File file = new File(messageStoreConfig.getStorePathCommitLog() + File.separator + "00000000000000000000");
@@ -588,7 +617,7 @@ public class DefaultMessageStoreTest {
     private class MyMessageArrivingListener implements MessageArrivingListener {
         @Override
         public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
-                             byte[] filterBitMap, Map<String, String> properties) {
+            byte[] filterBitMap, Map<String, String> properties) {
         }
     }
 }
