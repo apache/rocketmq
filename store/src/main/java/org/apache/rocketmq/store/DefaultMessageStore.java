@@ -1023,6 +1023,7 @@ public class DefaultMessageStore implements MessageStore {
         Map<String, Long> messageIds = new HashMap<String, Long>();
         if (this.shutdown) {
             return messageIds;
+
         }
 
         ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
