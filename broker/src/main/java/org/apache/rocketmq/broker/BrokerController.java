@@ -637,24 +637,26 @@ public class BrokerController {
          *  MQTTProcessor
          */
         mqttProcessor = new MQTTProcessor(this);
-        this.remotingServer.registerProcessor(RequestCode.MQTT_ADD_OR_UPDATE_CLIENT2SUBSCRIPTION, mqttProcessor,this.mqttMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_ADD_OR_UPDATE_CLIENT2SUBSCRIPTION, mqttProcessor,this.mqttMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.MQTT_IS_CLIENT2SUBSCRIPTION_PERSISTED, mqttProcessor,this.mqttMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_IS_CLIENT2SUBSCRIPTION_PERSISTED, mqttProcessor,this.mqttMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.MQTT_DELETE_CLIENT2SUBSCRIPTION, mqttProcessor,this.mqttMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_DELETE_CLIENT2SUBSCRIPTION, mqttProcessor,this.mqttMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.MQTT_GET_SNODEADDRESS2CLIENT, mqttProcessor,this.mqttMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_GET_SNODEADDRESS2CLIENT, mqttProcessor,this.mqttMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.MQTT_CLIENT_UNSUBSRIBE, mqttProcessor,this.mqttMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_CLIENT_UNSUBSRIBE, mqttProcessor,this.mqttMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.MQTT_ADD_OR_UPDATE_ROOTTOPIC2CLIENTS, mqttProcessor,this.mqttMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_ADD_OR_UPDATE_ROOTTOPIC2CLIENTS, mqttProcessor,this.mqttMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.MQTT_DELETE_ROOTTOPIC2CLIENT, mqttProcessor,this.mqttMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_DELETE_ROOTTOPIC2CLIENT, mqttProcessor,this.mqttMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.MQTT_GET_ROOTTOPIC2CLIENTS, mqttProcessor,this.mqttMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_GET_ROOTTOPIC2CLIENTS, mqttProcessor,this.mqttMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.MQTT_GET_SUBSCRIPTION_BY_CLIENT,mqttProcessor,this.mqttMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_GET_SUBSCRIPTION_BY_CLIENT,mqttProcessor,this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_ADD_OR_UPDATE_CLIENT2SUBSCRIPTION, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_ADD_OR_UPDATE_CLIENT2SUBSCRIPTION, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_IS_CLIENT2SUBSCRIPTION_PERSISTED, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_IS_CLIENT2SUBSCRIPTION_PERSISTED, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_DELETE_CLIENT2SUBSCRIPTION, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_DELETE_CLIENT2SUBSCRIPTION, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_GET_SNODEADDRESS2CLIENT, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_GET_SNODEADDRESS2CLIENT, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_CLIENT_UNSUBSRIBE, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_CLIENT_UNSUBSRIBE, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_ADD_OR_UPDATE_ROOTTOPIC2CLIENTS, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_ADD_OR_UPDATE_ROOTTOPIC2CLIENTS, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_DELETE_ROOTTOPIC2CLIENT, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_DELETE_ROOTTOPIC2CLIENT, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_GET_ROOTTOPIC2CLIENTS, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_GET_ROOTTOPIC2CLIENTS, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_GET_SUBSCRIPTION_BY_CLIENT_ID, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_GET_SUBSCRIPTION_BY_CLIENT_ID, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_GET_CLIENT_BY_CLIENTID_ID, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_GET_CLIENT_BY_CLIENTID_ID, mqttProcessor, this.mqttMessageExecutor);
         /**
          * Default
          */

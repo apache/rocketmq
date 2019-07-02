@@ -21,7 +21,7 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class DeleteClient2SubscriptionRequestHeader implements CommandCustomHeader {
+public class DeleteClientRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String clientId;
 

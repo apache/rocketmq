@@ -15,17 +15,25 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.store;
+package org.apache.rocketmq.common.protocol.header.mqtt;
 
-public interface MQTTInfoStore {
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.annotation.CFNotNull;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-    void load();
+public class GetClientByClientIdRequestHeader implements CommandCustomHeader {
+    @CFNotNull
+    private String clientId;
 
-    void start() throws Exception;
+    public String getClientId() {
+        return clientId;
+    }
 
-    boolean putData(String key, String value);
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
+    }
 
-    String getValue(String key);
+    @Override public void checkFields() throws RemotingCommandException {
 
-    boolean deleteData(String key);
+    }
 }

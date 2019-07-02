@@ -30,10 +30,11 @@ import org.rocksdb.RocksDBException;
 
 public class DefaultMQTTInfoStore implements MQTTInfoStore {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-    RocksDB db;
+    private RocksDB db;
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
     private String storePathRocksDB = storePathRootDir
         + File.separator + "RocksDB";
+
     @Override public void load() {
         RocksDB.loadLibrary();
     }
@@ -44,14 +45,13 @@ public class DefaultMQTTInfoStore implements MQTTInfoStore {
             if (!Files.isSymbolicLink(Paths.get(storePathRocksDB))) {
                 Files.createDirectories(Paths.get(storePathRocksDB));
             }
-            db = RocksDB.open(options,storePathRocksDB);
+            db = RocksDB.open(options, storePathRocksDB);
         } catch (RocksDBException e) {
             log.error("Open RocksDb failed. Error:{}", e);
-            throw  e;
+            throw e;
         }
 
     }
-
 
     @Override public boolean putData(String key, String value) {
         try {
@@ -67,7 +67,7 @@ public class DefaultMQTTInfoStore implements MQTTInfoStore {
         try {
             byte[] value = db.get(key.getBytes());
             if (value != null) {
-                return new String(value,Charset.forName("UTF-8"));
+                return new String(value, Charset.forName("UTF-8"));
             } else {
                 return null;
             }

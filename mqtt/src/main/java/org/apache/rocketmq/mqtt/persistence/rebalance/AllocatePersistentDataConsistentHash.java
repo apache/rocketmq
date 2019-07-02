@@ -31,20 +31,23 @@ public class AllocatePersistentDataConsistentHash implements AllocatePersistentD
     public AllocatePersistentDataConsistentHash() {
         this(10);
     }
+
     public AllocatePersistentDataConsistentHash(int virtualNodeCnt) {
-        this(virtualNodeCnt,null);
+        this(virtualNodeCnt, null);
     }
-    public AllocatePersistentDataConsistentHash(int virtualNodeCnt,HashFunction customHashFunction) {
+
+    public AllocatePersistentDataConsistentHash(int virtualNodeCnt, HashFunction customHashFunction) {
         if (virtualNodeCnt < 0) {
             throw new IllegalArgumentException("illegal virtualNodeCnt :" + virtualNodeCnt);
         }
         this.virtualNodeCnt = virtualNodeCnt;
         this.customHashFunction = customHashFunction;
     }
+
     @Override
     public String allocate(String dataKey, Set<String> enodeNames) {
         Collection<ClientNode> cidNodes = new ArrayList<ClientNode>();
-        for (String enodeName:enodeNames) {
+        for (String enodeName : enodeNames) {
             cidNodes.add(new ClientNode(enodeName));
         }
         final ConsistentHashRouter<ClientNode> router; //for building hash ring
@@ -60,10 +63,12 @@ public class AllocatePersistentDataConsistentHash implements AllocatePersistentD
         }
         return null;
     }
+
     @Override
     public String getName() {
         return "CONSISTENT_HASH";
     }
+
     private static class ClientNode implements Node {
         private final String clientID;
 

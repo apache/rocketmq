@@ -198,6 +198,8 @@ public class RequestCode {
 
     public static final int MQTT_DELETE_ROOTTOPIC2CLIENT = 1008;
 
-    public static final int MQTT_GET_SUBSCRIPTION_BY_CLIENT = 1009;
+    public static final int MQTT_GET_SUBSCRIPTION_BY_CLIENT_ID = 1009;
+
+    public static final int MQTT_GET_CLIENT_BY_CLIENTID_ID = 1010;
 
 }

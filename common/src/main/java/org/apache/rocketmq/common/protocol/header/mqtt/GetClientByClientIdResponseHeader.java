@@ -17,28 +17,19 @@
 
 package org.apache.rocketmq.common.protocol.header.mqtt;
 
-import org.apache.rocketmq.common.client.Subscription;
+import org.apache.rocketmq.common.client.Client;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class DeleteClient2SubscriptionResponseHeader implements CommandCustomHeader {
-    private Subscription subscription;
-    private boolean operationSuccess;
+public class GetClientByClientIdResponseHeader implements CommandCustomHeader {
+    private Client client;
 
-    public Subscription getSubscription() {
-        return subscription;
+    public Client getClient() {
+        return client;
     }
 
-    public void setSubscription(Subscription subscription) {
-        this.subscription = subscription;
-    }
-
-    public boolean isOperationSuccess() {
-        return operationSuccess;
-    }
-
-    public void setOperationSuccess(boolean operationSuccess) {
-        this.operationSuccess = operationSuccess;
+    public void setClient(Client client) {
+        this.client = client;
     }
 
     @Override public void checkFields() throws RemotingCommandException {

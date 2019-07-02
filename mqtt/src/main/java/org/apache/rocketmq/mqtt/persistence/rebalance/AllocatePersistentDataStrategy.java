@@ -20,7 +20,8 @@ package org.apache.rocketmq.mqtt.persistence.rebalance;
 import java.util.Set;
 
 public interface AllocatePersistentDataStrategy {
-    String allocate(final String dataKey,final Set<String> enodeNames);
+    String allocate(final String dataKey, final Set<String> enodeNames);
+
     String getName();
 
 }

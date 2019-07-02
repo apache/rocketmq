@@ -36,10 +36,12 @@ import org.apache.rocketmq.common.protocol.header.mqtt.AddOrUpdateRootTopic2Clie
 import org.apache.rocketmq.common.protocol.header.mqtt.AddOrUpdateRootTopic2ClientsResponseHeader;
 import org.apache.rocketmq.common.protocol.header.mqtt.ClientUnsubscribeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.mqtt.ClientUnsubscribeResponseHeader;
-import org.apache.rocketmq.common.protocol.header.mqtt.DeleteClient2SubscriptionRequestHeader;
-import org.apache.rocketmq.common.protocol.header.mqtt.DeleteClient2SubscriptionResponseHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.DeleteClientRequestHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.DeleteClientResponseHeader;
 import org.apache.rocketmq.common.protocol.header.mqtt.DeleteRootTopic2ClientRequestHeader;
 import org.apache.rocketmq.common.protocol.header.mqtt.DeleteRootTopic2ClientResponseHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.GetClientByClientIdRequestHeader;
+import org.apache.rocketmq.common.protocol.header.mqtt.GetClientByClientIdResponseHeader;
 import org.apache.rocketmq.common.protocol.header.mqtt.GetRootTopic2ClientsRequestHeader;
 import org.apache.rocketmq.common.protocol.header.mqtt.GetRootTopic2ClientsResponseHeader;
 import org.apache.rocketmq.common.protocol.header.mqtt.GetSnodeAddress2ClientsRequestHeader;
@@ -61,6 +63,7 @@ public class MQTTProcessor implements RequestProcessor {
     private final BrokerController brokerController;
     private static final Gson GSON = new Gson();
     private final MQTTInfoStore mqttInfoStore;
+
     public MQTTProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
         this.mqttInfoStore = this.brokerController.getMqttInfoStore();
@@ -71,14 +74,14 @@ public class MQTTProcessor implements RequestProcessor {
     }
 
     @Override
-    public RemotingCommand processRequest(RemotingChannel remotingChannel, RemotingCommand request) throws RemotingCommandException {
-
+    public RemotingCommand processRequest(RemotingChannel remotingChannel,
+        RemotingCommand request) throws RemotingCommandException {
 
         switch (request.getCode()) {
             case RequestCode.MQTT_IS_CLIENT2SUBSCRIPTION_PERSISTED:
                 return this.isClient2SubscriptionPersistedHandler(remotingChannel, request);
             case RequestCode.MQTT_ADD_OR_UPDATE_CLIENT2SUBSCRIPTION:
-                return this.addOrUpdateClient2Subscription(remotingChannel,request);
+                return this.addOrUpdateClient2Subscription(remotingChannel, request);
             case RequestCode.MQTT_DELETE_CLIENT2SUBSCRIPTION:
                 return this.deleteClient2Subscription(request);
             case RequestCode.MQTT_GET_SNODEADDRESS2CLIENT:
@@ -91,38 +94,50 @@ public class MQTTProcessor implements RequestProcessor {
                 return this.getRootTopic2Clients(request);
             case RequestCode.MQTT_DELETE_ROOTTOPIC2CLIENT:
                 return this.deleteRootTopic2Client(request);
-            case RequestCode.MQTT_GET_SUBSCRIPTION_BY_CLIENT:
+            case RequestCode.MQTT_GET_SUBSCRIPTION_BY_CLIENT_ID:
                 return this.getSubscriptionByClientId(request);
+            case RequestCode.MQTT_GET_CLIENT_BY_CLIENTID_ID:
+                return this.getClientByClientId(request);
             default:
                 return null;
         }
     }
 
+    private RemotingCommand getClientByClientId(RemotingCommand request) throws RemotingCommandException {
+        GetClientByClientIdRequestHeader requestHeader = (GetClientByClientIdRequestHeader) request.decodeCommandCustomHeader(GetClientByClientIdRequestHeader.class);
+        String clientId = requestHeader.getClientId();
+        Client client = GSON.fromJson(this.mqttInfoStore.getValue(clientId + MqttConstant.PERSIST_CLIENT_SUFFIX), MQTTSession.class);
+        RemotingCommand response = RemotingCommand.createResponseCommand(GetClientByClientIdResponseHeader.class);
+        GetClientByClientIdResponseHeader responseHeader = (GetClientByClientIdResponseHeader) response.readCustomHeader();
+        responseHeader.setClient(client);
+        return response;
+    }
+
     private RemotingCommand getSubscriptionByClientId(RemotingCommand request) throws RemotingCommandException {
         GetSubscriptionByClientIdRequestHeader requestHeader = (GetSubscriptionByClientIdRequestHeader) request.decodeCommandCustomHeader(GetSubscriptionByClientIdRequestHeader.class);
         String clientId = requestHeader.getClientId();
-        Subscription subscription = GSON.fromJson(this.mqttInfoStore.getValue(clientId + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX),Subscription.class);
+        Subscription subscription = GSON.fromJson(this.mqttInfoStore.getValue(clientId + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX), Subscription.class);
         RemotingCommand response = RemotingCommand.createResponseCommand(GetSubscriptionByClientIdResponseHeader.class);
         GetSubscriptionByClientIdResponseHeader responseHeader = (GetSubscriptionByClientIdResponseHeader) response.readCustomHeader();
         responseHeader.setSubscription(subscription);
         return response;
     }
 
-    private RemotingCommand isClient2SubscriptionPersistedHandler(final RemotingChannel remotingChannel,final RemotingCommand request) throws RemotingCommandException {
+    private RemotingCommand isClient2SubscriptionPersistedHandler(final RemotingChannel remotingChannel,
+        final RemotingCommand request) throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(IsClient2SubscriptionPersistedResponseHeader.class);
         IsClient2SubscriptionPersistedResponseHeader responseHeader = (IsClient2SubscriptionPersistedResponseHeader) response.readCustomHeader();
         IsClient2SubscriptionPersistedRequestHeader requestHeader = (IsClient2SubscriptionPersistedRequestHeader) request.decodeCommandCustomHeader(IsClient2SubscriptionPersistedRequestHeader.class);
 
-
         String clientId = requestHeader.getClientId();
         boolean cleanSession = requestHeader.isCleanSession();
 
-        String subscriptionJson = mqttInfoStore.getValue(clientId + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX);
-        if (subscriptionJson != null) {
-            Subscription subscription = GSON.fromJson(subscriptionJson, Subscription.class);
-            if (subscription.isCleanSession() != cleanSession) {
-                subscription.setCleanSession(cleanSession);
-                mqttInfoStore.putData(clientId + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX, GSON.toJson(subscription));
+        String clientJson = mqttInfoStore.getValue(clientId + MqttConstant.PERSIST_CLIENT_SUFFIX);
+        if (clientJson != null) {
+            MQTTSession client = GSON.fromJson(clientJson, MQTTSession.class);
+            if (client.isCleanSession() != cleanSession) {
+                client.setCleanSession(cleanSession);
+                mqttInfoStore.putData(clientId + MqttConstant.PERSIST_CLIENT_SUFFIX, GSON.toJson(client));
             }
             responseHeader.setPersisted(true);
         } else {
@@ -134,13 +149,14 @@ public class MQTTProcessor implements RequestProcessor {
         return response;
     }
 
-    private RemotingCommand addOrUpdateClient2Subscription(final RemotingChannel remotingChannel,final RemotingCommand request) throws RemotingCommandException {
+    private RemotingCommand addOrUpdateClient2Subscription(final RemotingChannel remotingChannel,
+        final RemotingCommand request) throws RemotingCommandException {
         AddOrUpdateClient2SubscriptionRequestHeader requestHeader = (AddOrUpdateClient2SubscriptionRequestHeader) request.decodeCommandCustomHeader(AddOrUpdateClient2SubscriptionRequestHeader.class);
         Client client = requestHeader.getClient();
         Subscription subscription = requestHeader.getSubscription();
 
-        boolean client2SubResult = this.mqttInfoStore.putData(client.getClientId() + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX,GSON.toJson(subscription));
-        boolean client2SnoResult = this.mqttInfoStore.putData(client.getClientId() + MqttConstant.PERSIST_SNODEADDRESS_SUFFIX,remotingChannel.remoteAddress().toString());
+        boolean client2SubResult = this.mqttInfoStore.putData(client.getClientId() + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX, GSON.toJson(subscription));
+        boolean client2SnoResult = this.mqttInfoStore.putData(client.getClientId() + MqttConstant.PERSIST_SNODEADDRESS_SUFFIX, remotingChannel.remoteAddress().toString());
         boolean client2EntityResult = this.mqttInfoStore.putData(client.getClientId() + MqttConstant.PERSIST_CLIENT_SUFFIX, GSON.toJson(client));
 
         RemotingCommand response = RemotingCommand.createResponseCommand(AddOrUpdateClient2SubscriptionResponseHeader.class);
@@ -150,13 +166,13 @@ public class MQTTProcessor implements RequestProcessor {
     }
 
     private RemotingCommand deleteClient2Subscription(final RemotingCommand request) throws RemotingCommandException {
-        DeleteClient2SubscriptionRequestHeader requestHeader = (DeleteClient2SubscriptionRequestHeader) request.decodeCommandCustomHeader(DeleteClient2SubscriptionRequestHeader.class);
+        DeleteClientRequestHeader requestHeader = (DeleteClientRequestHeader) request.decodeCommandCustomHeader(DeleteClientRequestHeader.class);
         String clientId = requestHeader.getClientId();
         String subscriptionJson = this.mqttInfoStore.getValue(clientId + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX);
-        Subscription subscription = GSON.fromJson(subscriptionJson,Subscription.class);
+        Subscription subscription = GSON.fromJson(subscriptionJson, Subscription.class);
         boolean operationSuccess = this.mqttInfoStore.deleteData(clientId + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX) && this.mqttInfoStore.deleteData(clientId + MqttConstant.PERSIST_SNODEADDRESS_SUFFIX) && this.mqttInfoStore.deleteData(clientId + MqttConstant.PERSIST_CLIENT_SUFFIX);
-        RemotingCommand response = RemotingCommand.createResponseCommand(DeleteClient2SubscriptionResponseHeader.class);
-        DeleteClient2SubscriptionResponseHeader responseHeader = (DeleteClient2SubscriptionResponseHeader) response.readCustomHeader();
+        RemotingCommand response = RemotingCommand.createResponseCommand(DeleteClientResponseHeader.class);
+        DeleteClientResponseHeader responseHeader = (DeleteClientResponseHeader) response.readCustomHeader();
         responseHeader.setOperationSuccess(operationSuccess);
         responseHeader.setSubscription(subscription);
         return response;
@@ -168,17 +184,17 @@ public class MQTTProcessor implements RequestProcessor {
         GetSnodeAddress2ClientsRequestHeader requestHeader = (GetSnodeAddress2ClientsRequestHeader) request.decodeCommandCustomHeader(GetSnodeAddress2ClientsRequestHeader.class);
         String topic = requestHeader.getTopic();
         Set<String> clientsId = requestHeader.getClientsId();
-        for (String clientId:clientsId) {
+        for (String clientId : clientsId) {
             ConcurrentHashMap<String/*Topic*/, SubscriptionData> subscriptionTable = GSON.fromJson(this.mqttInfoStore.getValue(clientId + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX), Subscription.class).getSubscriptionTable();
-            for (String topicFilter:subscriptionTable.keySet()) {
-                if (isMatch(topicFilter,topic)) {
+            for (String topicFilter : subscriptionTable.keySet()) {
+                if (isMatch(topicFilter, topic)) {
                     clients.add(GSON.fromJson(this.mqttInfoStore.getValue(clientId + MqttConstant.PERSIST_CLIENT_SUFFIX), MQTTSession.class));
                 }
             }
         }
-        for (Client client:clients) {
+        for (Client client : clients) {
             String snodeAddress = this.mqttInfoStore.getValue(client.getClientId() + MqttConstant.PERSIST_SNODEADDRESS_SUFFIX);
-            Set<Client> clientsTmp = snodeAddress2Clients.getOrDefault(snodeAddress,new HashSet<>());
+            Set<Client> clientsTmp = snodeAddress2Clients.getOrDefault(snodeAddress, new HashSet<>());
             clientsTmp.add(client);
         }
 
@@ -193,10 +209,10 @@ public class MQTTProcessor implements RequestProcessor {
         ClientUnsubscribeRequestHeader requestHeader = (ClientUnsubscribeRequestHeader) request.decodeCommandCustomHeader(ClientUnsubscribeRequestHeader.class);
         String clientId = requestHeader.getClientId();
         List<String> topics = requestHeader.getTopics();
-        Subscription  subscription = GSON.fromJson(this.mqttInfoStore.getValue(clientId + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX),Subscription.class);
-        ConcurrentHashMap<String,SubscriptionData> subscriptionTable = subscription.getSubscriptionTable();
+        Subscription subscription = GSON.fromJson(this.mqttInfoStore.getValue(clientId + MqttConstant.PERSIST_SUBSCRIPTION_SUFFIX), Subscription.class);
+        ConcurrentHashMap<String, SubscriptionData> subscriptionTable = subscription.getSubscriptionTable();
         Set<String> rootTopicsBefore = subscriptionTable.keySet().stream().map(t -> t.split(MqttConstant.SUBSCRIPTION_SEPARATOR)[0]).collect(Collectors.toSet());
-        for (String topic:topics) {
+        for (String topic : topics) {
             subscriptionTable.remove(topic);
         }
         Set<String> rootTopicAfter = subscriptionTable.keySet().stream().map(t -> t.split(MqttConstant.SUBSCRIPTION_SEPARATOR)[0]).collect(Collectors.toSet());
@@ -215,7 +231,9 @@ public class MQTTProcessor implements RequestProcessor {
         }
         return response;
     }
-    private RemotingCommand addorUpdateRootTopic2Clients(final RemotingCommand request) throws RemotingCommandException {
+
+    private RemotingCommand addorUpdateRootTopic2Clients(
+        final RemotingCommand request) throws RemotingCommandException {
         AddOrUpdateRootTopic2ClientsRequestHeader requestHeader = (AddOrUpdateRootTopic2ClientsRequestHeader) request.decodeCommandCustomHeader(AddOrUpdateRootTopic2ClientsRequestHeader.class);
 
         String rootTopic = requestHeader.getRootTopic();
@@ -224,7 +242,7 @@ public class MQTTProcessor implements RequestProcessor {
         Set<String> clientsId;
 
         if (value != null) {
-            clientsId = GSON.fromJson(value,new TypeToken<Set<String>>() {
+            clientsId = GSON.fromJson(value, new TypeToken<Set<String>>() {
             }.getType());
         } else {
             clientsId = new HashSet<>();
@@ -233,7 +251,7 @@ public class MQTTProcessor implements RequestProcessor {
 
         RemotingCommand response = RemotingCommand.createResponseCommand(AddOrUpdateRootTopic2ClientsResponseHeader.class);
         AddOrUpdateRootTopic2ClientsResponseHeader responseHeader = (AddOrUpdateRootTopic2ClientsResponseHeader) response.readCustomHeader();
-        responseHeader.setOperationSuccess(this.mqttInfoStore.putData(rootTopic,GSON.toJson(clientsId)));
+        responseHeader.setOperationSuccess(this.mqttInfoStore.putData(rootTopic, GSON.toJson(clientsId)));
 
         return response;
     }
@@ -260,14 +278,14 @@ public class MQTTProcessor implements RequestProcessor {
         DeleteRootTopic2ClientRequestHeader requestHeader = (DeleteRootTopic2ClientRequestHeader) request.decodeCommandCustomHeader(DeleteRootTopic2ClientRequestHeader.class);
         String rootTopic = requestHeader.getRootTopic();
         String clientId = requestHeader.getClientId();
-        Set<String> clientsId = GSON.fromJson(this.mqttInfoStore.getValue(rootTopic),new TypeToken<Set<String>>() {
+        Set<String> clientsId = GSON.fromJson(this.mqttInfoStore.getValue(rootTopic), new TypeToken<Set<String>>() {
         }.getType());
         Set<String> clientsIdAfterDelete = clientsId.stream().filter(c -> c != clientId).collect(Collectors.toSet());
         boolean result;
         if (clientsIdAfterDelete.size() == 0) {
             result = this.mqttInfoStore.deleteData(rootTopic);
         } else {
-            result = this.mqttInfoStore.putData(rootTopic,GSON.toJson(clientsIdAfterDelete));
+            result = this.mqttInfoStore.putData(rootTopic, GSON.toJson(clientsIdAfterDelete));
         }
         RemotingCommand response = RemotingCommand.createResponseCommand(DeleteRootTopic2ClientResponseHeader.class);
         DeleteRootTopic2ClientResponseHeader responseHeader = (DeleteRootTopic2ClientResponseHeader) response.readCustomHeader();
@@ -275,15 +293,15 @@ public class MQTTProcessor implements RequestProcessor {
         return response;
     }
 
-
     private Set<Client> clientsStringToClientsSet(String clientsString) {
         Set<Client> clients = new HashSet<>();
         Type type = new TypeToken<Set<Client>>() {
         }.getType();
-        clients = GSON.fromJson(clientsString,type);
+        clients = GSON.fromJson(clientsString, type);
         return clients;
     }
-    private  boolean isMatch(String topicFiter, String topic) {
+
+    private boolean isMatch(String topicFiter, String topic) {
         if (!topicFiter.contains("+") && !topicFiter.contains("#")) {
             return topicFiter.equals(topic);
         }

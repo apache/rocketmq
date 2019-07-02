@@ -25,11 +25,23 @@ import org.apache.rocketmq.common.client.Subscription;
 import org.apache.rocketmq.mqtt.processor.DefaultMqttMessageProcessor;
 
 public interface PersistService {
+    /**
+     * Init Persist Service
+     * @param processor MQTT messages processor
+     */
     void init(DefaultMqttMessageProcessor processor);
-    boolean isClient2SubsriptionPersisted(Client client, Subscription subscription);
+
+    boolean isClient2SubsriptionPersisted(Client client);
+
     boolean addOrUpdateClient2Susbscription(Client client, Subscription subscription);
-    boolean deleteClient2Subscription(Client client);
+
+    boolean deleteClient(Client client);
+
     Map<String, Set<Client>> getSnodeAddress2Clients(String topic);
+
     boolean clientUnsubscribe(Client client, List<String> topics);
+
     Subscription getSubscriptionByClientId(String clientId);
+
+    Client getClientByClientId(String clientId);
 }

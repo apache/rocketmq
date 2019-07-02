@@ -154,9 +154,9 @@ public class LocalEnodeServiceImpl implements EnodeService {
     @Override public RemotingCommand requestMQTTInfoSync(
         RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         try {
-            return this.brokerController.getMqttProcessor().processRequest(null,request);
+            return this.brokerController.getMqttProcessor().processRequest(null, request);
         } catch (Exception e) {
-            log.error("[Local] requestMQTTInfo failed, error: {}", e);
+            log.error("[Local]RequestMQTTInfo failed, error: {}", e);
         }
         return null;
     }
@@ -169,7 +169,7 @@ public class LocalEnodeServiceImpl implements EnodeService {
             CodecHelper.encodeHeader(remotingCommand);
             completableFuture.complete(remotingCommand);
         } catch (Exception ex) {
-            log.error("[Local] requestMQTTInfo failed, error: {}", ex);
+            log.error("[Local]RequestMQTTInfo failed, error: {}", ex);
             completableFuture.completeExceptionally(ex);
         }
         return completableFuture;

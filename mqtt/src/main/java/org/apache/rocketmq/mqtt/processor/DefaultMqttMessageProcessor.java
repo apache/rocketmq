@@ -220,5 +220,7 @@ public class DefaultMqttMessageProcessor implements RequestProcessor {
         return orderedExecutor;
     }
 
-    public PersistService getPersistService() { return persistService; }
+    public PersistService getPersistService() {
+        return persistService;
+    }
 }
