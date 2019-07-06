@@ -112,8 +112,9 @@ public class BrokerFastFailure {
 
                     final long behind = System.currentTimeMillis() - rt.getCreateTimestamp();
                     if (behind >= maxWaitTimeMillsInQueue) {
-                        //Just try to cancel the task with CAS here. When finding the task is cancelled, executor will skip it.
+                        //When fails, the remove option does Full traversal when it fails. The judgment here will reduce the probability of remove occurrence.
                         if (rt.cancel()) {
+                            blockingQueue.remove(rt);
                             rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, String.format("[TIMEOUT_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms, size of queue: %d", behind, blockingQueue.size()));
                         }
                     } else {
