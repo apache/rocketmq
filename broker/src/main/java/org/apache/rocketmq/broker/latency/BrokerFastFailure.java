@@ -114,7 +114,7 @@ public class BrokerFastFailure {
                     if (behind >= maxWaitTimeMillsInQueue) {
                         //When fails, the remove option does full traversal when it fails. The judgment here will reduce the probability of remove occurrence.
                         if (rt.cancel()) {
-                            blockingQueue.remove(rt);
+                            blockingQueue.remove(runnable);
                             rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, String.format("[TIMEOUT_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms, size of queue: %d", behind, blockingQueue.size()));
                         }
                     } else {
