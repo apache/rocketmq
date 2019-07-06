@@ -58,7 +58,7 @@ public class BrokerFastFailureTest {
 
         assertThat(queue.size()).isEqualTo(2);
         brokerFastFailure.cleanExpiredRequestInQueue(queue, 100);
-        assertThat(queue.size()).isEqualTo(1);
+        assertThat(((FutureTaskExt)queue.take()).isCancelled()).isEqualTo(true);
         assertThat(((FutureTaskExt) queue.peek()).getRunnable()).isEqualTo(requestTask);
     }
 
