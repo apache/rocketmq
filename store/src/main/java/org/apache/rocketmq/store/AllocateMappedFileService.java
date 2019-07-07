@@ -176,7 +176,7 @@ public class AllocateMappedFileService extends ServiceThread {
                     mappedFile = new MappedFile(req.getFilePath(), req.getFileSize());
                 }
 
-                long eclipseTime = UtilAll.computeEclipseTimeMilliseconds(beginTime);
+                long eclipseTime = UtilAll.computeElapsedTimeMilliseconds(beginTime);
                 if (eclipseTime > 10) {
                     int queueSize = this.requestQueue.size();
                     log.warn("create mappedFile spent time(ms) " + eclipseTime + " queue size " + queueSize
