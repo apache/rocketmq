@@ -93,7 +93,7 @@ public class UtilAll {
         return nf.format(offset);
     }
 
-    public static long computeEclipseTimeMilliseconds(final long beginTime) {
+    public static long computeElapsedTimeMilliseconds(final long beginTime) {
         return System.currentTimeMillis() - beginTime;
     }
 
