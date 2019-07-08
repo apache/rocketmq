@@ -30,4 +30,8 @@ public class MqttConstant {
     public static final int FLIGHT_BEFORE_RESEND_MS = 5_000;
     public static final String PROPERTY_MQTT_QOS = "PROPERTY_MQTT_QOS";
     public static final AttributeKey<Client> MQTT_CLIENT_ATTRIBUTE_KEY = AttributeKey.valueOf("mqtt.client");
+    public static final String ENODE_NAME = "enodeName";
+    public static final String PERSIST_SUBSCRIPTION_SUFFIX = "-sub";
+    public static final String PERSIST_SNODEADDRESS_SUFFIX = "-sno";
+    public static final String PERSIST_CLIENT_SUFFIX = "-cli";
 }

@@ -137,4 +137,10 @@ public interface EnodeService {
 
     RemotingCommand unlockBatchMQ(final RemotingChannel remotingChannel,
         final RemotingCommand remotingCommand) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
+
+    RemotingCommand requestMQTTInfoSync(final RemotingCommand request)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
+
+    CompletableFuture<RemotingCommand> requestMQTTInfoAsync(final RemotingCommand request)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
 }

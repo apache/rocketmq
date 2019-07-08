@@ -15,25 +15,23 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.util;
+package org.apache.rocketmq.common.protocol.header.mqtt;
 
-import com.google.gson.Gson;
-import java.nio.charset.Charset;
+import org.apache.rocketmq.common.client.Subscription;
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class MqttEncodeDecodeUtil {
-    private static final Gson GSON = new Gson();
+public class GetSubscriptionByClientIdResponseHeader implements CommandCustomHeader {
+    private Subscription subscription;
 
-    public static byte[] encode(Object object) {
-        final String json = GSON.toJson(object);
-        if (json != null) {
-            return json.getBytes(Charset.forName("UTF-8"));
-        }
-        return null;
+    public Subscription getSubscription() {
+        return subscription;
     }
 
-    public static <T> Object decode(byte[] body, Class<T> classOfT) {
-        final String json = new String(body, Charset.forName("UTF-8"));
-        return GSON.fromJson(json, classOfT);
+    public void setSubscription(Subscription subscription) {
+        this.subscription = subscription;
     }
 
+    @Override public void checkFields() throws RemotingCommandException {
+    }
 }

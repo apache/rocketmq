@@ -20,14 +20,17 @@ import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.service.EnodeService;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingChannel;
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.netty.CodecHelper;
 import org.apache.rocketmq.remoting.netty.NettyChannelHandlerContextImpl;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.common.service.EnodeService;
 
 public class LocalEnodeServiceImpl implements EnodeService {
 
@@ -146,5 +149,29 @@ public class LocalEnodeServiceImpl implements EnodeService {
         ChannelHandlerContext ctx = nettyChannelHandlerContext.getChannelHandlerContext();
         log.info("un");
         return this.brokerController.getAdminProcessor().lockBatchMQ(ctx, request);
+    }
+
+    @Override public RemotingCommand requestMQTTInfoSync(
+        RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        try {
+            return this.brokerController.getMqttProcessor().processRequest(null, request);
+        } catch (Exception e) {
+            log.error("[Local]RequestMQTTInfo failed, error: {}", e);
+        }
+        return null;
+    }
+
+    @Override public CompletableFuture<RemotingCommand> requestMQTTInfoAsync(
+        RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        CompletableFuture<RemotingCommand> completableFuture = new CompletableFuture<>();
+        try {
+            RemotingCommand remotingCommand = this.brokerController.getMqttProcessor().processRequest(null, request);
+            CodecHelper.encodeHeader(remotingCommand);
+            completableFuture.complete(remotingCommand);
+        } catch (Exception ex) {
+            log.error("[Local]RequestMQTTInfo failed, error: {}", ex);
+            completableFuture.completeExceptionally(ex);
+        }
+        return completableFuture;
     }
 }

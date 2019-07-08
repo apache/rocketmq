@@ -150,6 +150,8 @@ public class MqttSubscribeMessageHandler implements MessageHandler {
             }
         }
         //TODO update persistent store of topic2Clients and clientId2Subscription
+        this.defaultMqttMessageProcessor.getPersistService().addOrUpdateClient2Susbscription(client, subscription);
+
         return grantQoss;
     }
 

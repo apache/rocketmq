@@ -181,4 +181,25 @@ public class RequestCode {
     public static final int CREATE_RETRY_TOPIC = 355;
 
     public static final int MQTT_MESSAGE = 1000;
+
+    public static final int MQTT_IS_CLIENT2SUBSCRIPTION_PERSISTED = 1001;
+
+    public static final int MQTT_ADD_OR_UPDATE_CLIENT2SUBSCRIPTION = 1002;
+
+    public static final int MQTT_DELETE_CLIENT2SUBSCRIPTION = 1003;
+
+    public static final int MQTT_GET_SNODEADDRESS2CLIENT = 1004;
+
+    public static final int MQTT_CLIENT_UNSUBSRIBE = 1005;
+
+    public static final int MQTT_ADD_OR_UPDATE_ROOTTOPIC2CLIENTS = 1006;
+
+    public static final int MQTT_GET_ROOTTOPIC2CLIENTS = 1007;
+
+    public static final int MQTT_DELETE_ROOTTOPIC2CLIENT = 1008;
+
+    public static final int MQTT_GET_SUBSCRIPTION_BY_CLIENT_ID = 1009;
+
+    public static final int MQTT_GET_CLIENT_BY_CLIENTID_ID = 1010;
+
 }

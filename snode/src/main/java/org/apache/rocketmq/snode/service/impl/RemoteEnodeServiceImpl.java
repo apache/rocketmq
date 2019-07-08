@@ -38,6 +38,7 @@ import org.apache.rocketmq.common.service.EnodeService;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.mqtt.constant.MqttConstant;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RemotingChannel;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -295,4 +296,16 @@ public class RemoteEnodeServiceImpl implements EnodeService {
         return this.snodeController.getRemotingClient().invokeSync(address,
             request, SnodeConstant.DEFAULT_TIMEOUT_MILLS);
     }
+
+    @Override
+    public RemotingCommand requestMQTTInfoSync(
+        final RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        return this.transferToEnode(request);
+    }
+
+    @Override public CompletableFuture<RemotingCommand> requestMQTTInfoAsync(
+        RemotingCommand request) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        return this.sendMessage(null, request.getExtFields().get(MqttConstant.ENODE_NAME), request);
+    }
+
 }

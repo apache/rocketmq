@@ -15,25 +15,35 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.util;
+package org.apache.rocketmq.common.protocol.header.mqtt;
 
-import com.google.gson.Gson;
-import java.nio.charset.Charset;
+import java.util.Set;
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.annotation.CFNotNull;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class MqttEncodeDecodeUtil {
-    private static final Gson GSON = new Gson();
+public class GetSnodeAddress2ClientsRequestHeader implements CommandCustomHeader {
+    @CFNotNull
+    private Set<String> clientsId;
+    @CFNotNull
+    private String topic;
 
-    public static byte[] encode(Object object) {
-        final String json = GSON.toJson(object);
-        if (json != null) {
-            return json.getBytes(Charset.forName("UTF-8"));
-        }
-        return null;
+    public Set<String> getClientsId() {
+        return clientsId;
     }
 
-    public static <T> Object decode(byte[] body, Class<T> classOfT) {
-        final String json = new String(body, Charset.forName("UTF-8"));
-        return GSON.fromJson(json, classOfT);
+    public void setClientsId(Set<String> clientsId) {
+        this.clientsId = clientsId;
     }
 
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
+
+    @Override public void checkFields() throws RemotingCommandException {
+    }
 }

@@ -58,6 +58,7 @@ import org.apache.rocketmq.broker.processor.AdminBrokerProcessor;
 import org.apache.rocketmq.broker.processor.ClientManageProcessor;
 import org.apache.rocketmq.broker.processor.ConsumerManageProcessor;
 import org.apache.rocketmq.broker.processor.EndTransactionProcessor;
+import org.apache.rocketmq.broker.processor.MQTTProcessor;
 import org.apache.rocketmq.broker.processor.PullMessageProcessor;
 import org.apache.rocketmq.broker.processor.QueryMessageProcessor;
 import org.apache.rocketmq.broker.processor.SendMessageProcessor;
@@ -97,7 +98,9 @@ import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.remoting.transport.rocketmq.NettyRemotingServer;
 import org.apache.rocketmq.remoting.util.ServiceProvider;
 import org.apache.rocketmq.srvutil.FileWatchService;
+import org.apache.rocketmq.store.DefaultMQTTInfoStore;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.MQTTInfoStore;
 import org.apache.rocketmq.store.MessageArrivingListener;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -139,11 +142,14 @@ public class BrokerController {
     private final BlockingQueue<Runnable> heartbeatThreadPoolQueue;
     private final BlockingQueue<Runnable> consumerManagerThreadPoolQueue;
     private final BlockingQueue<Runnable> endTransactionThreadPoolQueue;
+    private final BlockingQueue<Runnable> mqttThreadPoolQueue;
     private final FilterServerManager filterServerManager;
     private final BrokerStatsManager brokerStatsManager;
     private final List<SendMessageHook> sendMessageHookList = new ArrayList<SendMessageHook>();
     private final List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
     private MessageStore messageStore;
+    private MQTTProcessor mqttProcessor;
+    private MQTTInfoStore mqttInfoStore;
     private RemotingServer remotingServer;
     private RemotingServer fastRemotingServer;
     private TopicConfigManager topicConfigManager;
@@ -155,6 +161,7 @@ public class BrokerController {
     private ExecutorService heartbeatExecutor;
     private ExecutorService consumerManageExecutor;
     private ExecutorService endTransactionExecutor;
+    private ExecutorService mqttMessageExecutor;
     private boolean updateMasterHAServerAddrPeriodically = false;
     private BrokerStats brokerStats;
     private InetSocketAddress storeHost;
@@ -204,6 +211,7 @@ public class BrokerController {
         this.consumerManagerThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getConsumerManagerThreadPoolQueueCapacity());
         this.heartbeatThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getHeartbeatThreadPoolQueueCapacity());
         this.endTransactionThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getEndTransactionPoolQueueCapacity());
+        this.mqttThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getMqttThreadPoolQueueCapacity());
 
         this.brokerStatsManager = new BrokerStatsManager(this.brokerConfig.getBrokerClusterName());
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort()));
@@ -318,6 +326,15 @@ public class BrokerController {
                 TimeUnit.MILLISECONDS,
                 this.endTransactionThreadPoolQueue,
                 new ThreadFactoryImpl("EndTransactionThread_"));
+
+            this.mqttMessageExecutor = new BrokerFixedThreadPoolExecutor(
+                this.brokerConfig.getMqttMessageThreadPoolNums(),
+                this.brokerConfig.getMqttMessageThreadPoolNums(),
+                1000 * 60,
+                TimeUnit.MILLISECONDS,
+                this.mqttThreadPoolQueue,
+                new ThreadFactoryImpl("MQTTThread_")
+            );
 
             this.consumerManageExecutor =
                 Executors.newFixedThreadPool(this.brokerConfig.getConsumerManageThreadPoolNums(), new ThreadFactoryImpl(
@@ -475,6 +492,14 @@ public class BrokerController {
             }
             initialTransaction();
         }
+        try {
+            this.mqttInfoStore = new DefaultMQTTInfoStore();
+            mqttInfoStore.load();
+            mqttInfoStore.start();
+        } catch (Exception e) {
+            log.error("Open MQTT Database failed, error: {}", e);
+        }
+
         return result;
     }
 
@@ -608,6 +633,30 @@ public class BrokerController {
         this.remotingServer.registerProcessor(RequestCode.END_TRANSACTION, new EndTransactionProcessor(this), this.endTransactionExecutor);
         this.fastRemotingServer.registerProcessor(RequestCode.END_TRANSACTION, new EndTransactionProcessor(this), this.endTransactionExecutor);
 
+        /**
+         *  MQTTProcessor
+         */
+        mqttProcessor = new MQTTProcessor(this);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_ADD_OR_UPDATE_CLIENT2SUBSCRIPTION, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_ADD_OR_UPDATE_CLIENT2SUBSCRIPTION, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_IS_CLIENT2SUBSCRIPTION_PERSISTED, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_IS_CLIENT2SUBSCRIPTION_PERSISTED, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_DELETE_CLIENT2SUBSCRIPTION, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_DELETE_CLIENT2SUBSCRIPTION, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_GET_SNODEADDRESS2CLIENT, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_GET_SNODEADDRESS2CLIENT, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_CLIENT_UNSUBSRIBE, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_CLIENT_UNSUBSRIBE, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_ADD_OR_UPDATE_ROOTTOPIC2CLIENTS, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_ADD_OR_UPDATE_ROOTTOPIC2CLIENTS, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_DELETE_ROOTTOPIC2CLIENT, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_DELETE_ROOTTOPIC2CLIENT, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_GET_ROOTTOPIC2CLIENTS, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_GET_ROOTTOPIC2CLIENTS, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_GET_SUBSCRIPTION_BY_CLIENT_ID, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_GET_SUBSCRIPTION_BY_CLIENT_ID, mqttProcessor, this.mqttMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.MQTT_GET_CLIENT_BY_CLIENTID_ID, mqttProcessor, this.mqttMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.MQTT_GET_CLIENT_BY_CLIENTID_ID, mqttProcessor, this.mqttMessageExecutor);
         /**
          * Default
          */
@@ -1243,4 +1292,13 @@ public class BrokerController {
     public ConsumerManageProcessor getConsumerManageProcessor() {
         return consumerManageProcessor;
     }
+
+    public MQTTInfoStore getMqttInfoStore() {
+        return mqttInfoStore;
+    }
+
+    public MQTTProcessor getMqttProcessor() {
+        return mqttProcessor;
+    }
+
 }
