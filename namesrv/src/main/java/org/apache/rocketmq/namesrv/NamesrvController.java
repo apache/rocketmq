@@ -152,7 +152,7 @@ public class NamesrvController {
         }
     }
 
-    public void start() throws Exception {
+    public void start() {
         this.remotingServer.start();
 
         if (this.fileWatchService != null) {

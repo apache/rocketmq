@@ -56,12 +56,10 @@ public class NamesrvStartup {
         try {
             NamesrvController controller = createNamesrvController(args);
             start(controller);
-            String tip = "The Name Server boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
-            log.info(tip);
-            System.out.printf("%s%n", tip);
+            log.info("The Name Server boot success. serializeType={}", RemotingCommand.getSerializeTypeConfigInThisServer());
             return controller;
         } catch (Throwable e) {
-            e.printStackTrace();
+            log.error("The Name Server fail to boot.", e);
             System.exit(-1);
         }
 
@@ -145,7 +143,7 @@ public class NamesrvStartup {
 
         Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, new Callable<Void>() {
             @Override
-            public Void call() throws Exception {
+            public Void call() {
                 controller.shutdown();
                 return null;
             }

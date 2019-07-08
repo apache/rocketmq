@@ -66,7 +66,7 @@ public class ClusterTestRequestProcessor extends DefaultRequestProcessor {
             try {
                 topicRouteData = adminExt.examineTopicRouteInfo(requestHeader.getTopic());
             } catch (Exception e) {
-                log.info("get route info by topic from product environment failed. envName={},", productEnvName);
+                log.error("get route info by topic from product environment failed. envName=" + productEnvName, e);
             }
         }
 
