@@ -63,18 +63,16 @@ public class BrokerStartup {
 
             controller.start();
 
-            String tip = "The broker[" + controller.getBrokerConfig().getBrokerName() + ", "
-                + controller.getBrokerAddr() + "] boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
+            String tip = String.format("The broker[%s, %s] boot success. serializeType=%s", controller.getBrokerConfig().getBrokerName(), controller.getBrokerAddr(), RemotingCommand.getSerializeTypeConfigInThisServer());
 
             if (null != controller.getBrokerConfig().getNamesrvAddr()) {
-                tip += " and name server is " + controller.getBrokerConfig().getNamesrvAddr();
+                tip += String.format(" and name server is %s", controller.getBrokerConfig().getNamesrvAddr());
             }
 
             log.info(tip);
-            System.out.printf("%s%n", tip);
             return controller;
         } catch (Throwable e) {
-            e.printStackTrace();
+            log.error("BrokerStartup fail to boot.", e);
             System.exit(-1);
         }
 
@@ -155,7 +153,7 @@ public class BrokerStartup {
                         RemotingUtil.string2SocketAddress(addr);
                     }
                 } catch (Exception e) {
-                    log.error("The Name Server Address[{}] illegal, please set it as follows, \"127.0.0.1:9876;192.168.0.1:9876\"%n", namesrvAddr);
+                    log.error(String.format("The Name Server Address[%s] illegal, please set it as follows, \"127.0.0.1:9876;192.168.0.1:9876\"%%n", namesrvAddr), e);
                     System.exit(-3);
                 }
             }
@@ -240,7 +238,7 @@ public class BrokerStartup {
 
             return controller;
         } catch (Throwable e) {
-            e.printStackTrace();
+            log.error("createBrokerController occur an exception.", e);
             System.exit(-1);
         }
 
