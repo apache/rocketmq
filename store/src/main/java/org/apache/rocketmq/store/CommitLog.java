@@ -367,6 +367,7 @@ public class CommitLog {
                 propertiesMap
             );
         } catch (Exception e) {
+            log.error("an exception occur in method of checkMessageAndReturnSize", e);
         }
 
         return new DispatchRequest(-1, false /* success */);

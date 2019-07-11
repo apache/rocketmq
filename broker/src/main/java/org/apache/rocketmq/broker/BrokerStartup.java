@@ -71,10 +71,9 @@ public class BrokerStartup {
             }
 
             log.info(tip);
-            System.out.printf("%s%n", tip);
             return controller;
         } catch (Throwable e) {
-            e.printStackTrace();
+            log.error("BrokerStartup fail to boot.", e);
             System.exit(-1);
         }
 
@@ -143,7 +142,7 @@ public class BrokerStartup {
             MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
 
             if (null == brokerConfig.getRocketmqHome()) {
-                System.out.printf("Please set the %s variable in your environment to match the location of the RocketMQ installation", MixAll.ROCKETMQ_HOME_ENV);
+                log.error("Please set the {} variable in your environment to match the location of the RocketMQ installation", MixAll.ROCKETMQ_HOME_ENV);
                 System.exit(-2);
             }
 
@@ -155,9 +154,7 @@ public class BrokerStartup {
                         RemotingUtil.string2SocketAddress(addr);
                     }
                 } catch (Exception e) {
-                    System.out.printf(
-                        "The Name Server Address[%s] illegal, please set it as follows, \"127.0.0.1:9876;192.168.0.1:9876\"%n",
-                        namesrvAddr);
+                    log.error(String.format("The Name Server Address[%s] illegal, please set it as follows, \"127.0.0.1:9876;192.168.0.1:9876\"%%n", namesrvAddr), e);
                     System.exit(-3);
                 }
             }
@@ -169,7 +166,7 @@ public class BrokerStartup {
                     break;
                 case SLAVE:
                     if (brokerConfig.getBrokerId() <= 0) {
-                        System.out.printf("Slave's brokerId must be > 0");
+                        log.error("Slave's brokerId must be > 0");
                         System.exit(-3);
                     }
 
@@ -242,7 +239,7 @@ public class BrokerStartup {
 
             return controller;
         } catch (Throwable e) {
-            e.printStackTrace();
+            log.error("createBrokerController occur an exception.", e);
             System.exit(-1);
         }
 

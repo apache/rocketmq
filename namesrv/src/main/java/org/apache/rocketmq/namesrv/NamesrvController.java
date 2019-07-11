@@ -134,7 +134,7 @@ public class NamesrvController {
                         }
                     });
             } catch (Exception e) {
-                log.warn("FileWatchService created error, can't load the certificate dynamically");
+                log.warn("FileWatchService created error, can't load the certificate dynamically", e);
             }
         }
 

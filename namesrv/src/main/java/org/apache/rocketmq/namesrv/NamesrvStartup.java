@@ -58,10 +58,9 @@ public class NamesrvStartup {
             start(controller);
             String tip = "The Name Server boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
             log.info(tip);
-            System.out.printf("%s%n", tip);
             return controller;
         } catch (Throwable e) {
-            e.printStackTrace();
+            log.error("The Name Server fail to boot.", e);
             System.exit(-1);
         }
 
