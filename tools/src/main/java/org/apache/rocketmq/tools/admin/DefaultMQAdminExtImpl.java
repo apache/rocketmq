@@ -31,6 +31,7 @@ import java.util.Random;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
+import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -924,11 +925,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     @Override
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
+        Validators.checkTopic(newTopic);
         createTopic(key, newTopic, queueNum, 0);
     }
 
     @Override
     public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
+        Validators.checkTopic(newTopic);
         this.mqClientInstance.getMQAdminImpl().createTopic(key, newTopic, queueNum, topicSysFlag);
     }
 
