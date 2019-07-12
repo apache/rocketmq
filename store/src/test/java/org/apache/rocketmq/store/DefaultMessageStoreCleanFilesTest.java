@@ -281,7 +281,7 @@ public class DefaultMessageStoreCleanFilesTest {
     }
 
     private int getMsgCountPerConsumeQueueMappedFile() {
-        int size = messageStore.getMessageStoreConfig().getMapedFileSizeConsumeQueue();
+        int size = messageStore.getMessageStoreConfig().getMappedFileSizeConsumeQueue();
         return size / CQ_STORE_UNIT_SIZE;// 7 in this case
     }
 
@@ -322,8 +322,8 @@ public class DefaultMessageStoreCleanFilesTest {
 
     private void initMessageStore(String deleteWhen, int diskMaxUsedSpaceRatio, double diskSpaceCleanForciblyRatio) throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfigForTest();
-        messageStoreConfig.setMapedFileSizeCommitLog(mappedFileSize);
-        messageStoreConfig.setMapedFileSizeConsumeQueue(mappedFileSize);
+        messageStoreConfig.setMappedFileSizeCommitLog(mappedFileSize);
+        messageStoreConfig.setMappedFileSizeConsumeQueue(mappedFileSize);
         messageStoreConfig.setMaxHashSlotNum(10000);
         messageStoreConfig.setMaxIndexNum(100 * 100);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);

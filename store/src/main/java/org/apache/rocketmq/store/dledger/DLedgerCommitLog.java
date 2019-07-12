@@ -80,7 +80,7 @@ public class DLedgerCommitLog extends CommitLog {
         dLedgerConfig.setGroup(defaultMessageStore.getMessageStoreConfig().getdLegerGroup());
         dLedgerConfig.setPeers(defaultMessageStore.getMessageStoreConfig().getdLegerPeers());
         dLedgerConfig.setStoreBaseDir(defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
-        dLedgerConfig.setMappedFileSizeForEntryData(defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog());
+        dLedgerConfig.setMappedFileSizeForEntryData(defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog());
         dLedgerConfig.setDeleteWhen(defaultMessageStore.getMessageStoreConfig().getDeleteWhen());
         dLedgerConfig.setFileReservedHours(defaultMessageStore.getMessageStoreConfig().getFileReservedTime() + 1);
         id = Integer.valueOf(dLedgerConfig.getSelfId().substring(1)) + 1;
@@ -514,7 +514,7 @@ public class DLedgerCommitLog extends CommitLog {
 
     @Override
     public long rollNextFile(final long offset) {
-        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
+        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
         return offset + mappedFileSize - offset % mappedFileSize;
     }
 
