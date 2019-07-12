@@ -80,7 +80,7 @@ public class TransientStorePool {
         return buffer;
     }
 
-    public int remainBufferNumbs() {
+    public int availableBufferNums() {
         if (storeConfig.isTransientStorePoolEnable()) {
             return availableBuffers.size();
         }
