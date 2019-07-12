@@ -227,7 +227,7 @@ public class HAConnection {
                             masterOffset =
                                 masterOffset
                                     - (masterOffset % HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig()
-                                    .getMapedFileSizeCommitLog());
+                                    .getMappedFileSizeCommitLog());
 
                             if (masterOffset < 0) {
                                 masterOffset = 0;

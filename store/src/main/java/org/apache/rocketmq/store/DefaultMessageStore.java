@@ -1144,7 +1144,7 @@ public class DefaultMessageStore implements MessageStore {
                 topic,
                 queueId,
                 StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
-                this.getMessageStoreConfig().getMapedFileSizeConsumeQueue(),
+                this.getMessageStoreConfig().getMappedFileSizeConsumeQueue(),
                 this);
             ConsumeQueue oldLogic = map.putIfAbsent(queueId, newLogic);
             if (oldLogic != null) {
@@ -1309,7 +1309,7 @@ public class DefaultMessageStore implements MessageStore {
                             topic,
                             queueId,
                             StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
-                            this.getMessageStoreConfig().getMapedFileSizeConsumeQueue(),
+                            this.getMessageStoreConfig().getMappedFileSizeConsumeQueue(),
                             this);
                         this.putConsumeQueue(topic, queueId, logic);
                         if (!logic.load()) {

@@ -188,7 +188,7 @@ msgId一定是全局唯一标识符，但是实际使用中，可能会存在相
 | brokerId             | 0                              | broker id, 0 表示 master, 其他的正整数表示 slave                                                 |
 | storePathCommitLog                      | $HOME/store/commitlog/                              | 存储 commit log 的路径                                                |
 | storePathConsumerQueue                   | $HOME/store/consumequeue/                              | 存储 consume queue 的路径                                              |
-| mapedFileSizeCommitLog     | 1024 * 1024 * 1024(1G) | commit log 的映射文件大小                                       |​ 
+| mappedFileSizeCommitLog     | 1024 * 1024 * 1024(1G) | commit log 的映射文件大小                                       |​ 
 | deleteWhen     | 04 | 在每天的什么时间删除已经超过文件保留时间的 commit log                                        |​ 
 | fileReservedTime     | 72 | 以小时计算的文件保留时间                                        |​ 
 | brokerRole     | ASYNC_MASTER | SYNC_MASTER/ASYNC_MASTER/SLAVE                                        |​ 
