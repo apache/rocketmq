@@ -411,7 +411,7 @@ public class DLedgerCommitLog extends CommitLog {
         EncodeResult encodeResult;
 
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
-        long eclipseTimeInLock;
+        long elapsedTimeInLock;
         long queueOffset;
         try {
             beginTimeInDledgerLock =  this.defaultMessageStore.getSystemClock().now();
@@ -431,8 +431,8 @@ public class DLedgerCommitLog extends CommitLog {
             long wroteOffset =  dledgerFuture.getPos() + DLedgerEntry.BODY_OFFSET;
             ByteBuffer buffer = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);
             String msgId = MessageDecoder.createMessageId(buffer, msg.getStoreHostBytes(), wroteOffset);
-            eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
-            appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.data.length, msgId, System.currentTimeMillis(), queueOffset, eclipseTimeInLock);
+            elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
+            appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.data.length, msgId, System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
             switch (tranType) {
                 case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
                 case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
@@ -453,8 +453,8 @@ public class DLedgerCommitLog extends CommitLog {
             putMessageLock.unlock();
         }
 
-        if (eclipseTimeInLock > 500) {
-            log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", eclipseTimeInLock, msg.getBody().length, appendResult);
+        if (elapsedTimeInLock > 500) {
+            log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", elapsedTimeInLock, msg.getBody().length, appendResult);
         }
 
         PutMessageStatus putMessageStatus = PutMessageStatus.UNKNOWN_ERROR;
