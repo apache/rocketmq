@@ -41,6 +41,7 @@ public class ConcurrentTreeMap<K, V> {
     }
 
     public Map.Entry<K, V> pollFirstEntry() {
+        final ReentrantLock lock = this.lock;
         lock.lock();
         try {
             return tree.pollFirstEntry();
@@ -49,20 +50,20 @@ public class ConcurrentTreeMap<K, V> {
         }
     }
 
-    public V putIfAbsentAndRetExsit(K key, V value) {
+    public V putIfAbsentAndRetExist(K key, V value) {
+        final ReentrantLock lock = this.lock;
         lock.lock();
         try {
             if (roundQueue.put(key)) {
-                V exsit = tree.get(key);
-                if (null == exsit) {
+                V exist = tree.get(key);
+                if (null == exist) {
                     tree.put(key, value);
-                    exsit = value;
+                    exist = value;
                 }
-                log.warn("putIfAbsentAndRetExsit success. " + key);
-                return exsit;
+                log.warn("putIfAbsentAndRetExist success. " + key);
+                return exist;
             } else {
-                V exsit = tree.get(key);
-                return exsit;
+                return tree.get(key);
             }
         } finally {
             lock.unlock();

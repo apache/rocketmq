@@ -21,43 +21,43 @@ public interface InternalLogger {
 
     String getName();
 
-    void debug(String var1);
+    void debug(String msg);
 
-    void debug(String var1, Object var2);
+    void debug(String format, Object arg);
 
-    void debug(String var1, Object var2, Object var3);
+    void debug(String format, Object arg1, Object arg2);
 
-    void debug(String var1, Object... var2);
+    void debug(String format, Object... arguments);
 
-    void debug(String var1, Throwable var2);
+    void debug(String msg, Throwable t);
 
-    void info(String var1);
+    void info(String msg);
 
-    void info(String var1, Object var2);
+    void info(String format, Object arg);
 
-    void info(String var1, Object var2, Object var3);
+    void info(String format, Object arg1, Object arg2);
 
-    void info(String var1, Object... var2);
+    void info(String format, Object... arguments);
 
-    void info(String var1, Throwable var2);
+    void info(String msg, Throwable t);
 
-    void warn(String var1);
+    void warn(String msg);
 
-    void warn(String var1, Object var2);
+    void warn(String format, Object arg1);
 
-    void warn(String var1, Object... var2);
+    void warn(String format, Object arg1, Object arg2);
 
-    void warn(String var1, Object var2, Object var3);
+    void warn(String format, Object... arguments);
 
-    void warn(String var1, Throwable var2);
+    void warn(String msg, Throwable t);
 
-    void error(String var1);
+    void error(String msg);
 
-    void error(String var1, Object var2);
+    void error(String format, Object arg);
 
-    void error(String var1, Object var2, Object var3);
+    void error(String format, Object arg1, Object arg2);
 
-    void error(String var1, Object... var2);
+    void error(String format, Object... arguments);
 
-    void error(String var1, Throwable var2);
+    void error(String msg, Throwable t);
 }
