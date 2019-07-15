@@ -41,7 +41,7 @@ public class RemoteAddressStrategyFactory {
         if (StringUtils.isBlank(remoteAddr)) {
             return BLANK_NET_ADDRESS_STRATEGY;
         }
-        if ("*".equals(remoteAddr)) {
+        if ("*".equals(remoteAddr) || "*.*.*.*".equals(remoteAddr)) {
             return NULL_NET_ADDRESS_STRATEGY;
         }
         if (remoteAddr.endsWith("}")) {
@@ -122,7 +122,7 @@ public class RemoteAddressStrategyFactory {
 
         public RangeRemoteAddressStrategy(String remoteAddr) {
             String[] strArray = StringUtils.split(remoteAddr, ".");
-            if (analysis(strArray, 2) || analysis(strArray, 3)) {
+            if (analysis(strArray, 1) || analysis(strArray, 2) || analysis(strArray, 3)) {
                 AclUtils.verify(remoteAddr, index - 1);
                 StringBuffer sb = new StringBuffer().append(strArray[0].trim()).append(".").append(strArray[1].trim()).append(".");
                 if (index == 3) {
