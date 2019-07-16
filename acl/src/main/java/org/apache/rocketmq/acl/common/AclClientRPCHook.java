@@ -64,6 +64,10 @@ public class AclClientRPCHook implements RPCHook {
         if (securityToken != null) {
             map.put(SECURITY_TOKEN, securityToken);
         }
+        // 修复客户端与服务端签名加密方式不一致的问题
+        if(null != request.getExtFields()){
+            map.putAll(request.getExtFields());
+        }
         try {
             // Add header properties
             if (null != header) {
