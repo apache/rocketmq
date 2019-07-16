@@ -27,7 +27,7 @@ public interface InternalLogger {
 
     void debug(String format, Object arg1, Object arg2);
 
-    void debug(String format, Object... arguments);
+    void debug(String format, Object... args);
 
     void debug(String msg, Throwable t);
 
@@ -37,7 +37,7 @@ public interface InternalLogger {
 
     void info(String format, Object arg1, Object arg2);
 
-    void info(String format, Object... arguments);
+    void info(String format, Object... args);
 
     void info(String msg, Throwable t);
 
@@ -47,7 +47,7 @@ public interface InternalLogger {
 
     void warn(String format, Object arg1, Object arg2);
 
-    void warn(String format, Object... arguments);
+    void warn(String format, Object... args);
 
     void warn(String msg, Throwable t);
 
@@ -57,7 +57,7 @@ public interface InternalLogger {
 
     void error(String format, Object arg1, Object arg2);
 
-    void error(String format, Object... arguments);
+    void error(String format, Object... args);
 
     void error(String msg, Throwable t);
 }
