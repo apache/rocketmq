@@ -50,6 +50,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 
 public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
+
     private final InternalLogger log = ClientLogger.getLog();
 
     private DefaultLiteMQPullConsumer defaultLiteMQPullConsumer;
@@ -197,7 +198,7 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
     }
 
     public void unsubscribe(final String topic) {
-        unsubscribe(topic);
+        super.unsubscribe(topic);
         removePullTaskCallback(topic);
         assignedMessageQueue.removeAssignedMessageQueue(topic);
     }
@@ -212,6 +213,7 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
             while (it.hasNext()) {
                 Map.Entry<MessageQueue, PullTaskImpl> next = it.next();
                 if (next.getKey().getTopic().equals(topic)) {
+                    next.getValue().setCancelled(true);
                     it.remove();
                 }
             }
