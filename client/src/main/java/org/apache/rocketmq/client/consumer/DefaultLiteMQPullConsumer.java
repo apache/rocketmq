@@ -27,18 +27,50 @@ import org.apache.rocketmq.remoting.RPCHook;
 public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements LiteMQPullConsumer {
     private LiteMQPullConsumerImpl liteMQPullConsumer;
 
+    /**
+     * Maximum amount of time in minutes a message may block the consuming thread.
+     */
+    private long consumeTimeout = 15;
+
+    /**
+     * Is auto commit offset
+     */
+    private boolean autoCommit = true;
+
+    private int pullThreadNumbers = 20;
+
+    /**
+     * Maximum commit offset interval time in seconds.
+     */
+    private long autoCommitInterval = 20;
+
     public DefaultLiteMQPullConsumer(String consumerGroup, RPCHook rpcHook) {
+        this.setConsumerGroup(consumerGroup);
         this.liteMQPullConsumer = new LiteMQPullConsumerImpl(this, rpcHook);
     }
 
-    @Override public void subscribe(String topic, String subExpression) throws MQClientException{
+    public DefaultLiteMQPullConsumer(String consumerGroup) {
+        this.setConsumerGroup(consumerGroup);
+        this.liteMQPullConsumer = new LiteMQPullConsumerImpl(this, null);
+    }
+
+    @Override
+    public void start() throws MQClientException{
+        this.liteMQPullConsumer.start();
+    }
+
+    @Override
+    public void subscribe(String topic, String subExpression) throws MQClientException {
         this.liteMQPullConsumer.subscribe(topic, subExpression);
     }
 
-    @Override public void unsubscribe(String topic) {
+    @Override
+    public void unsubscribe(String topic) {
+        this.liteMQPullConsumer.unsubscribe(topic);
     }
 
-    @Override public List<MessageExt> poll() {
+    @Override
+    public List<MessageExt> poll() {
         return poll(this.getConsumerPullTimeoutMillis());
     }
 
@@ -46,19 +78,55 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
         return liteMQPullConsumer.poll(timeout);
     }
 
-    @Override public void seek(MessageQueue messageQueue, long offset) throws MQClientException {
-
+    @Override
+    public void seek(MessageQueue messageQueue, long offset) throws MQClientException {
+        this.liteMQPullConsumer.seek(messageQueue, offset);
     }
 
-    @Override public void pause(Collection<MessageQueue> messageQueueCollection) {
-
+    @Override
+    public void pause(Collection<MessageQueue> messageQueues) {
+        this.liteMQPullConsumer.pause(messageQueues);
     }
 
-    @Override public void resume(Collection<MessageQueue> partitions) {
-
+    @Override
+    public void resume(Collection<MessageQueue> messageQueues) {
+        this.liteMQPullConsumer.resume(messageQueues);
     }
 
-    @Override public void commitSync() {
+    @Override
+    public void commitSync() {
+        this.liteMQPullConsumer.commit();
+    }
 
+    public long getConsumeTimeout() {
+        return consumeTimeout;
+    }
+
+    public void setConsumeTimeout(long consumeTimeout) {
+        this.consumeTimeout = consumeTimeout;
+    }
+
+    public boolean isAutoCommit() {
+        return autoCommit;
+    }
+
+    public void setAutoCommit(boolean autoCommit) {
+        this.autoCommit = autoCommit;
+    }
+
+    public int getPullThreadNumbers() {
+        return pullThreadNumbers;
+    }
+
+    public void setPullThreadNumbers(int pullThreadNumbers) {
+        this.pullThreadNumbers = pullThreadNumbers;
+    }
+
+    public long getAutoCommitInterval() {
+        return autoCommitInterval;
+    }
+
+    public void setAutoCommitInterval(long autoCommitInterval) {
+        this.autoCommitInterval = autoCommitInterval;
     }
 }

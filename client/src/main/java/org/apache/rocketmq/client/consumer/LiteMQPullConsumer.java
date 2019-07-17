@@ -38,9 +38,6 @@ public interface LiteMQPullConsumer {
      */
     void unsubscribe(final String topic);
 
-    /**
-     * @return
-     */
     List<MessageExt> poll();
 
     List<MessageExt> poll(long timeout);

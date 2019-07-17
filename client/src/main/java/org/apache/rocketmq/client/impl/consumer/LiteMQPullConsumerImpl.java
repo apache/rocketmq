@@ -27,12 +27,14 @@ import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import org.apache.commons.lang3.reflect.FieldUtils;
-import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
+import org.apache.rocketmq.client.consumer.DefaultLiteMQPullConsumer;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -50,6 +52,8 @@ import org.apache.rocketmq.remoting.RPCHook;
 public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
     private final InternalLogger log = ClientLogger.getLog();
 
+    private DefaultLiteMQPullConsumer defaultLiteMQPullConsumer;
+
     private final ConcurrentMap<MessageQueue, PullTaskImpl> taskTable =
         new ConcurrentHashMap<MessageQueue, PullTaskImpl>();
 
@@ -58,12 +62,21 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
     private List<ConsumeRequest> allConsumed = new ArrayList<ConsumeRequest>(256);
 
     private final BlockingQueue<ConsumeRequest> consumeRequestCache = new LinkedBlockingQueue<ConsumeRequest>();
-    ;
+
+    private final ScheduledExecutorService cleanExpireMsgExecutors;
 
     private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
 
-    public LiteMQPullConsumerImpl(final DefaultMQPullConsumer defaultMQPullConsumer, final RPCHook rpcHook) {
+    private ScheduledExecutorService autoCommitExecutors;
+
+    public LiteMQPullConsumerImpl(final DefaultLiteMQPullConsumer defaultMQPullConsumer, final RPCHook rpcHook) {
         super(defaultMQPullConsumer, rpcHook);
+        this.defaultLiteMQPullConsumer = defaultMQPullConsumer;
+        this.cleanExpireMsgExecutors = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
+            "Lite_CleanExpireMsgScheduledThread_"));
+        this.autoCommitExecutors = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
+            "Lite_AutoCommitScheduledThread_"));
+
     }
 
     public void updateAssignedMessageQueue(String topic, Set<MessageQueue> assignedMessageQueue) {
@@ -115,18 +128,43 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
 
     @Override
     public synchronized void start() throws MQClientException {
+        this.defaultMQPullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
         super.start();
         final String group = this.defaultMQPullConsumer.getConsumerGroup();
         this.scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(
-            10, //this.pullThreadNums,
+            this.defaultLiteMQPullConsumer.getPullThreadNumbers(),
             new ThreadFactoryImpl("PullMsgThread-" + group)
         );
-        this.defaultMQPullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
+        this.cleanExpireMsgExecutors.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                cleanExpireMsg();
+            }
+        }, this.defaultLiteMQPullConsumer.getConsumeTimeout(), this.defaultLiteMQPullConsumer.getConsumeTimeout(), TimeUnit.MINUTES);
+        this.autoCommitExecutors.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                if (defaultLiteMQPullConsumer.isAutoCommit()) {
+                    commit();
+                }
+            }
+        }, this.defaultLiteMQPullConsumer.getAutoCommitInterval(), this.defaultLiteMQPullConsumer.getAutoCommitInterval(), TimeUnit.SECONDS);
+        updateTopicSubscribeInfoWhenSubscriptionChanged();
+    }
+
+    private void updateTopicSubscribeInfoWhenSubscriptionChanged() {
+        Map<String, SubscriptionData> subTable = rebalanceImpl.getSubscriptionInner();
+        if (subTable != null) {
+            for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
+                final String topic = entry.getKey();
+                this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
+            }
+        }
     }
 
     public List<MessageExt> poll(long timeout) {
         try {
-            ConsumeRequest consumeRequest = consumeRequestCache.poll(timeout, TimeUnit.MILLISECONDS);
+            ConsumeRequest consumeRequest = consumeRequestCache.poll(timeout, TimeUnit.SECONDS);
             if (consumeRequest != null) {
                 List<MessageExt> messages = consumeRequest.getMessageExts();
                 for (MessageExt messageExt : messages) {
@@ -146,6 +184,16 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
 
     public void resume(Collection<MessageQueue> messageQueues) {
         assignedMessageQueue.resume(messageQueues);
+    }
+
+    public void seek(MessageQueue messageQueue, long offset) throws MQClientException {
+        this.updatePullOffset(messageQueue, offset);
+        try {
+            updateConsumeOffset(messageQueue, offset);
+        } catch (MQClientException ex) {
+            log.error("Seek offset to remote message queue error!", ex);
+            throw ex;
+        }
     }
 
     public void unsubscribe(final String topic) {
@@ -270,7 +318,7 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
                         if (!msgTreeMap.isEmpty()) {
                             msg = msgTreeMap.firstEntry().getValue();
                             if (System.currentTimeMillis() - Long.parseLong(MessageAccessor.getConsumeStartTimeStamp(msg))
-                                > 10 * 60 * 1000) {
+                                > this.defaultLiteMQPullConsumer.getConsumeTimeout() * 60 * 1000) {
                                 //Expired, ack and remove it.
                             } else {
                                 break;
@@ -316,16 +364,19 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
 
         @Override
         public void run() {
+            System.out.println("begin pull message");
             String topic = this.messageQueue.getTopic();
             if (!this.isCancelled()) {
                 if (assignedMessageQueue.isPaused(messageQueue)) {
+                    scheduledThreadPoolExecutor.schedule(this, 1000, TimeUnit.MILLISECONDS);
                     log.debug("Message Queue: {} has been paused!", messageQueue);
                     return;
                 }
                 SubscriptionData subscriptionData = rebalanceImpl.getSubscriptionInner().get(topic);
                 long offset = nextPullOffset(messageQueue);
+                long pullDelayTimeMills = 0;
                 try {
-                    PullResult pullResult = defaultMQPullConsumer.pull(messageQueue, subscriptionData.getSubString(), offset, nextPullBatchNums());
+                    PullResult pullResult = pull(messageQueue, subscriptionData.getSubString(), offset, nextPullBatchNums());
                     ProcessQueue processQueue = rebalanceImpl.getProcessQueueTable().get(messageQueue);
                     switch (pullResult.getPullStatus()) {
                         case FOUND:
@@ -338,8 +389,16 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
                             break;
                     }
                     updatePullOffset(messageQueue, pullResult.getNextBeginOffset());
-                } catch (Exception e) {
+                } catch (Throwable e) {
+                    pullDelayTimeMills = 1000;
+                    e.printStackTrace();
                     log.error("An error occurred in pull message process.", e);
+                }
+
+                if (!this.isCancelled()) {
+                    scheduledThreadPoolExecutor.schedule(this, pullDelayTimeMills, TimeUnit.MILLISECONDS);
+                } else {
+                    log.warn("The Pull Task is cancelled after doPullTask, {}", messageQueue);
                 }
             }
         }
