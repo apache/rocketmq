@@ -38,7 +38,7 @@ import java.util.Map;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import static org.assertj.core.api.Assertions.assertThat;
-
+import java.nio.charset.Charset;
 
 public class DLedgerCommitlogTest extends MessageStoreTestBase {
  
