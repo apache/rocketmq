@@ -150,6 +150,7 @@ public abstract class NettyRemotingAbstract {
      * @param msg incoming remoting command.
      * @throws Exception if there were any error while processing the incoming command.
      */
+    // 处理接收到的请求
     public void processMessageReceived(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
         final RemotingCommand cmd = msg;
         if (cmd != null) {
@@ -394,6 +395,7 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+    // 发送消息的实现机制，即同步发送方式的实现
     public RemotingCommand invokeSyncImpl(final Channel channel, final RemotingCommand request,
         final long timeoutMillis)
         throws InterruptedException, RemotingSendRequestException, RemotingTimeoutException {

@@ -120,12 +120,14 @@ public abstract class ServiceThread implements Runnable {
         log.info("makestop thread " + this.getServiceName());
     }
 
+    // 线程中途唤醒代码
     public void wakeup() {
         if (hasNotified.compareAndSet(false, true)) {
             waitPoint.countDown(); // notify
         }
     }
 
+    // 线程等待代码
     protected void waitForRunning(long interval) {
         if (hasNotified.compareAndSet(true, false)) {
             this.onWaitEnd();

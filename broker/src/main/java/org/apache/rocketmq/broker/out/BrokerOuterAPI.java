@@ -341,6 +341,7 @@ public class BrokerOuterAPI {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    // 基本逻辑：组装一个remotingCommand. 底层通过netty将消息发送到master角色的broker，然后获取offset信息。
     public ConsumerOffsetSerializeWrapper getAllConsumerOffset(
         final String addr) throws InterruptedException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException, MQBrokerException {

@@ -95,6 +95,8 @@ public class UtilAll {
         return System.currentTimeMillis() - beginTime;
     }
 
+
+    //
     public static boolean isItTimeToDo(final String when) {
         String[] whiles = when.split(";");
         if (whiles.length > 0) {

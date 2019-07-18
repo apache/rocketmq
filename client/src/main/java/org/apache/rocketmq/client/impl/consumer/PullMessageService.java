@@ -43,6 +43,7 @@ public class PullMessageService extends ServiceThread {
         this.mQClientFactory = mQClientFactory;
     }
 
+    //
     public void executePullRequestLater(final PullRequest pullRequest, final long timeDelay) {
         if (!isStopped()) {
             this.scheduledExecutorService.schedule(new Runnable() {
@@ -76,6 +77,8 @@ public class PullMessageService extends ServiceThread {
         return scheduledExecutorService;
     }
 
+
+    // 获取消息的逻辑, 需要拉取的queue生成一个PullRequest，放入PullRequestQueue中；其中，拉取消息的位置从nextOffset从Broker远程拉取
     private void pullMessage(final PullRequest pullRequest) {
         final MQConsumerInner consumer = this.mQClientFactory.selectConsumer(pullRequest.getConsumerGroup());
         if (consumer != null) {

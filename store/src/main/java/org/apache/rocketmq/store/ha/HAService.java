@@ -39,7 +39,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
-
+// 实现commitLog同步的主体。
 public class HAService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
@@ -325,6 +325,7 @@ public class HAService {
 
     class HAClient extends ServiceThread {
         private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024 * 4;
+        // 使用原子性对象引用，在多线程情况下进行对象的更新可以确保一致性
         private final AtomicReference<String> masterAddress = new AtomicReference<>();
         private final ByteBuffer reportOffset = ByteBuffer.allocate(8);
         private SocketChannel socketChannel;
@@ -493,6 +494,10 @@ public class HAService {
             return result;
         }
 
+
+        // 通过Java NIO函数去链接master角色的broker;
+        // commitLog的同步，不是经过NettyCommand的方式，而是直接进行TCP链接，这样效率更高，
+        // 链接成功过后，通过对比master和slave的offset。不断进行同步。
         private boolean connectMaster() throws ClosedChannelException {
             if (null == socketChannel) {
                 String addr = this.masterAddress.get();

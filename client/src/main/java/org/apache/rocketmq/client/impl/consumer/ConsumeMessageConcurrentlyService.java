@@ -53,11 +53,14 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     private final MessageListenerConcurrently messageListener;
+    //
     private final BlockingQueue<Runnable> consumeRequestQueue;
+    // 用来正常执行收到的消息；
     private final ThreadPoolExecutor consumeExecutor;
     private final String consumerGroup;
-
+    // 用来执行推迟消费的消息；
     private final ScheduledExecutorService scheduledExecutorService;
+    // 用来定期清理超时消息；
     private final ScheduledExecutorService cleanExpireMsgExecutors;
 
     public ConsumeMessageConcurrentlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
@@ -67,6 +70,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         this.defaultMQPushConsumer = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer();
         this.consumerGroup = this.defaultMQPushConsumer.getConsumerGroup();
+
+        //  无界阻塞队列；
         this.consumeRequestQueue = new LinkedBlockingQueue<Runnable>();
 
         this.consumeExecutor = new ThreadPoolExecutor(

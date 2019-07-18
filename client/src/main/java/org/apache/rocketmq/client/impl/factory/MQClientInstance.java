@@ -85,6 +85,14 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+// MQClientinstance 是客户端各种类型的 Consumer 和 Producer 的底层类 。
+// 这个类首先从 NameServer 获取并保存各种配置信息，比如Topic的Route信息。
+// 同时 MQClientlnstance还会通过 MQClientAPIImpl类实现消息的收发，也就是从Broker获取消息或者发送消息到 Broker。
+
+
+// 既然 MQClientinstance 实现的是底层通信功能和获取并保存元数据的功能，
+// 就没必要每个 Consumer或 Producer都创建一个对象，一个 MQClientlnstance 对象可以被多个 Consumer 或 Producer公用 。
+// RocketMQ 通过一个 工 厂类达 到共用 MQClientlnstance 的目的 。 MQClientlnstance 的创建如代码清单 11-12 所示 。
 public class MQClientInstance {
     private final static long LOCK_TIMEOUT_MILLIS = 3000;
     private final InternalLogger log = ClientLogger.getLog();
@@ -96,8 +104,10 @@ public class MQClientInstance {
     private final ConcurrentMap<String/* group */, MQConsumerInner> consumerTable = new ConcurrentHashMap<String, MQConsumerInner>();
     private final ConcurrentMap<String/* group */, MQAdminExtInner> adminExtTable = new ConcurrentHashMap<String, MQAdminExtInner>();
     private final NettyClientConfig nettyClientConfig;
-    private final MQClientAPIImpl mQClientAPIImpl;
+    //
+    private final MQClientAPIImpl mQClientAPIImpl;// 负责实现底层的消息通信
     private final MQAdminImpl mQAdminImpl;
+    // topicRouteTable和brokerAddrTable用来存储从NameServer中获得的集群状态信息；
     private final ConcurrentMap<String/* Topic */, TopicRouteData> topicRouteTable = new ConcurrentHashMap<String, TopicRouteData>();
     private final Lock lockNamesrv = new ReentrantLock();
     private final Lock lockHeartbeat = new ReentrantLock();
@@ -132,6 +142,7 @@ public class MQClientInstance {
         this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());
         this.nettyClientConfig.setUseTLS(clientConfig.isUseTLS());
         this.clientRemotingProcessor = new ClientRemotingProcessor(this);
+        // 用来实现底层的消息通信
         this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor, rpcHook, clientConfig);
 
         if (this.clientConfig.getNamesrvAddr() != null) {
@@ -223,6 +234,7 @@ public class MQClientInstance {
         return mqList;
     }
 
+    //
     public void start() throws MQClientException {
 
         synchronized (this) {
@@ -286,7 +298,7 @@ public class MQClientInstance {
             }
         }, 10, this.clientConfig.getPollNameServerInterval(), TimeUnit.MILLISECONDS);
 
-        // 发送心跳向所有的broker
+        // 发送心跳向所有的broker,清理离线broker
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -300,7 +312,7 @@ public class MQClientInstance {
             }
         }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
 
-        //
+        //保存消费者的offset
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -514,6 +526,7 @@ public class MQClientInstance {
         }
     }
 
+    // 从nameServer中更新topic route info;
     public boolean updateTopicRouteInfoFromNameServer(final String topic) {
         return updateTopicRouteInfoFromNameServer(topic, false, null);
     }

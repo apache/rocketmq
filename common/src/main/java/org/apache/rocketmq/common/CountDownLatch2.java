@@ -22,6 +22,7 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 
 /**
  * Add reset feature for @see java.util.concurrent.CountDownLatch
+ * 增加了reset函数，用于还原到初始值；
  */
 public class CountDownLatch2 {
     private final Sync sync;
@@ -65,6 +66,7 @@ public class CountDownLatch2 {
      *
      * @throws InterruptedException if the current thread is interrupted while waiting
      */
+    //
     public void await() throws InterruptedException {
         sync.acquireSharedInterruptibly(1);
     }

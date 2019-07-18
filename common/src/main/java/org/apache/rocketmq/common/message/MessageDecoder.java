@@ -64,6 +64,7 @@ public class MessageDecoder {
         input.put(addr);
         input.putLong(offset);
 
+        // 将字节数组转换成字符串
         return UtilAll.bytes2string(input.array());
     }
 

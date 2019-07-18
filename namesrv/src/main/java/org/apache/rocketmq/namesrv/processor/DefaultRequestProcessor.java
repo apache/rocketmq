@@ -57,6 +57,7 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+// nameServer的主要逻辑，根据上报消息里的请求码做相应的处理，更新存储的对应信息 。
 public class DefaultRequestProcessor implements NettyRequestProcessor {
     private static InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
@@ -66,6 +67,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         this.namesrvController = namesrvController;
     }
 
+    //通过 processRequest 方法来处理客户端发过来的请求。
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {

@@ -45,6 +45,7 @@ public class SlaveSynchronize {
         this.masterAddr = masterAddr;
     }
 
+    // 进行元数据同步
     public void syncAll() {
         this.syncTopicConfig();
         this.syncConsumerOffset();
@@ -76,6 +77,7 @@ public class SlaveSynchronize {
         }
     }
 
+    //
     private void syncConsumerOffset() {
         String masterAddrBak = this.masterAddr;
         if (masterAddrBak != null && !masterAddrBak.equals(brokerController.getBrokerAddr())) {

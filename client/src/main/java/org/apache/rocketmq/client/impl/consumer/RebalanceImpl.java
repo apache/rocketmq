@@ -48,8 +48,12 @@ public abstract class RebalanceImpl {
     protected final ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
     protected final ConcurrentMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
         new ConcurrentHashMap<String, Set<MessageQueue>>();
+
+    // 订阅信息
     protected final ConcurrentMap<String /* topic */, SubscriptionData> subscriptionInner =
         new ConcurrentHashMap<String, SubscriptionData>();
+
+
     protected String consumerGroup;
     protected MessageModel messageModel;
     protected AllocateMessageQueueStrategy allocateMessageQueueStrategy;
@@ -216,6 +220,7 @@ public abstract class RebalanceImpl {
         }
     }
 
+    // 开始执行负载均衡
     public void doRebalance(final boolean isOrder) {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
@@ -238,8 +243,11 @@ public abstract class RebalanceImpl {
         return subscriptionInner;
     }
 
+
+    //重新分配
     private void rebalanceByTopic(final String topic, final boolean isOrder) {
         switch (messageModel) {
+            // 广播消费模式；
             case BROADCASTING: {
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
                 if (mqSet != null) {
@@ -257,6 +265,7 @@ public abstract class RebalanceImpl {
                 }
                 break;
             }
+            // 集群消费模式
             case CLUSTERING: {
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);

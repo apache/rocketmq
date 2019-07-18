@@ -62,7 +62,7 @@ public class Producer {
                  * Create a message instance, specifying topic, tag and message body.
                  */
                 Message msg = new Message("referral-register-topic_qa_stage" /* Topic */,
-                    "*" /* Tag */,
+                    "TagA" /* Tag */,
                     ("Hello RocketMQ cc " + i).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
                 );
 

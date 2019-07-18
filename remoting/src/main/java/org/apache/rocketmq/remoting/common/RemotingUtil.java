@@ -56,6 +56,8 @@ public class RemotingUtil {
         return isWindowsPlatform;
     }
 
+
+    // 根据平台的不同，选择不同的selector
     public static Selector openSelector() throws IOException {
         Selector result = null;
 
@@ -163,6 +165,7 @@ public class RemotingUtil {
         return connect(remote, 1000 * 5);
     }
 
+    // 直接进行TCP进行通信
     public static SocketChannel connect(SocketAddress remote, final int timeoutMillis) {
         SocketChannel sc = null;
         try {

@@ -1106,6 +1106,7 @@ public class BrokerController {
 
 
 
+    // 处理slave同步
     private void handleSlaveSynchronize(BrokerRole role) {
         if (role == BrokerRole.SLAVE) {
             if (null != slaveSyncFuture) {

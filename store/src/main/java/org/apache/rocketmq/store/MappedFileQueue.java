@@ -29,21 +29,25 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
+// MappedFileQueue是MappedFile的管理容器， MapperFileQueue是对存储目录的封装，
+// 例如 CommitLog文件的存储路径${ROCKET_HOME}/store/commitlog/，该目录下会存在多个内存映射文件(MappedFile)。
 public class MappedFileQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
     private static final int DELETE_FILES_BATCH_MAX = 10;
-
+    // 存储目 录 。
     private final String storePath;
-
+    //单个文件的存储大小
     private final int mappedFileSize;
-
+    //MappedFile 文件集合
     private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
-
+    //创建 MappedFile服务类
     private final AllocateMappedFileService allocateMappedFileService;
-
+    //当前刷盘指针， 表示该指针之前的所有数据全部持久化到
     private long flushedWhere = 0;
+    //当前数据提交指针，内存中 ByteBuffer 当前的写指针，
+    //该值大于等于 flushedWhere。
     private long committedWhere = 0;
 
     private volatile long storeTimestamp = 0;
@@ -74,6 +78,8 @@ public class MappedFileQueue {
         }
     }
 
+    // 根据消息存储时间戳来查找 MappedFile。 从 MappedFile 列表中第一个文件开始查找，
+    // 找到第一个最后一次更新时间大于待查找时间戳的文件，如果不存在，则返回最后一个 MappedFile 文件 。
     public MappedFile getMappedFileByTime(final long timestamp) {
         Object[] mfs = this.copyMappedFiles(0);
 
@@ -285,6 +291,7 @@ public class MappedFileQueue {
         return true;
     }
 
+    //获取存储文件最小偏移量 ，从这里也可以看出，并不是直接返回 0，而是返回 Mapped­ File 的 getFileFormOffset()
     public long getMinOffset() {
 
         if (!this.mappedFiles.isEmpty()) {
@@ -299,6 +306,8 @@ public class MappedFileQueue {
         return -1;
     }
 
+    //获取存储文件的最大偏移量。 返回最后一个 Mapp巳dFile文件的 fileFromOffset加上 MappedFile 文件当前的 写指针 ;
+    // 返回存储文件当前的写指针。 返回最后一个文件的 fileFromOffset加上当前写指针位置。
     public long getMaxOffset() {
         MappedFile mappedFile = getLastMappedFile();
         if (mappedFile != null) {
@@ -347,6 +356,13 @@ public class MappedFileQueue {
         List<MappedFile> files = new ArrayList<MappedFile>();
         if (null != mfs) {
             for (int i = 0; i < mfsLength; i++) {
+                //  从第一个文件开始遍历,判断该文件的最大存活时间
+                // （该文件的最后一次更新时间+文件的存活时间）
+                //  小于 当前系统时间 或者 需要强制删除文件（上面有讲，哪些情况下强制删除）,
+                //  则执行MappedFile#destroy 方法清除MappedFile占用的相关资源，
+                //  如果执行成功则将该文件加入待删除文件列表中统一从磁盘中删除。
+                //  DELETE_FILES_BATCH_MAX 决定每次能够删除的文件个数上限、
+                //  deleteFilesInterval连续清除两个文件的时间间隔由该参数决定（deletePhysicFilesInterval）
                 MappedFile mappedFile = (MappedFile) mfs[i];
                 long liveMaxTimestamp = mappedFile.getLastModifiedTimestamp() + expiredTime;
                 if (System.currentTimeMillis() >= liveMaxTimestamp || cleanImmediately) {
@@ -459,6 +475,13 @@ public class MappedFileQueue {
      * @param returnFirstOnNotFound If the mapped file is not found, then return the first one.
      * @return Mapped file or null (when not found and returnFirstOnNotFound is <code>false</code>).
      */
+    // 根据消息偏移量 offset查找 MappedFile。
+    // 根据 offset查找 MappedFile直接使用 offset%­ mappedFileSize 是否可行?
+    // 答案是否定的，由于使用了内存映射，只要存在于存储目录下文件，
+    // 都需要对应创建内存映射文件，如果不定时将已消费的消息从存储文件中删除，
+    // 会造成极大的内存压力与资源浪费，所有 RocketMQ 采取定时删除存储文件的策略，
+    // 也就 是说在存储文件中， 第一个文件不一定是 00000000000000000000，因为该文件在某一时刻会被删除，
+    // 故根据 offset定位 MappedFile 的算法为 (int) ((offset I this.mappedFileSize) - (mappedFile.getFileFromOffset() /this.MappedFileSize))。
     public MappedFile findMappedFileByOffset(final long offset, final boolean returnFirstOnNotFound) {
         try {
             MappedFile firstMappedFile = this.getFirstMappedFile();

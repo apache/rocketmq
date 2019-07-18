@@ -71,10 +71,8 @@ public class NamesrvStartup {
     public static NamesrvController createNamesrvController(String[] args) throws IOException, JoranException {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
         //PackageConflictDetect.detectFastjson();
-
-        // 参数来源：
-        // -c configFile通过，c命令指定配置文件的路径;
-        // 使用“一属性名 属性值”，例如一listenPort9876。
+        // -h help
+        // -n namesrvAddr 地址
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
         if (null == commandLine) {
@@ -174,6 +172,12 @@ public class NamesrvStartup {
         controller.shutdown();
     }
 
+
+    // 判断是否传入了命令行参数。
+
+    // 命令行参数有两个，-p 和 -c
+    //   -c 可以指定 NameServer 的配置文件，如果不指定，则使用默认值。
+    //   -p 打印 NameServer 的配置参数信息。打印完参数后退出进程。
     public static Options buildCommandlineOptions(final Options options) {
         Option opt = new Option("c", "configFile", true, "Name server config properties file");
         opt.setRequired(false);

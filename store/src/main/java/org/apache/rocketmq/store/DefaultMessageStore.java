@@ -59,33 +59,44 @@ import org.apache.rocketmq.store.index.QueryOffsetResult;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
+// 消息存储实现类
 public class DefaultMessageStore implements MessageStore {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
+    // 消息存储配置属性
     private final MessageStoreConfig messageStoreConfig;
-    // CommitLog
+    // CommitLog文件的存储实现类
     private final CommitLog commitLog;
 
+    //消息队列存储缓存表，按消息主体分组
     private final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;
 
+    // 消息队列文件consumeQueue的刷盘线程
     private final FlushConsumeQueueService flushConsumeQueueService;
 
+    //清除commitLog文件服务
     private final CleanCommitLogService cleanCommitLogService;
 
+    // 清除commitQueue文件服务
     private final CleanConsumeQueueService cleanConsumeQueueService;
 
+    // 索引文件实现类
     private final IndexService indexService;
 
+    // MappedFile分配服务
     private final AllocateMappedFileService allocateMappedFileService;
 
+    // commitLog消息发送，根据commitLog文件构成consumeQueue、IndexFile文件。
     private final ReputMessageService reputMessageService;
 
+    //存储HA机制
     private final HAService haService;
 
     private final ScheduleMessageService scheduleMessageService;
 
     private final StoreStatsService storeStatsService;
 
+    //消息堆内存存储
     private final TransientStorePool transientStorePool;
 
     private final RunningFlags runningFlags = new RunningFlags();
@@ -94,15 +105,21 @@ public class DefaultMessageStore implements MessageStore {
     private final ScheduledExecutorService scheduledExecutorService =
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread"));
     private final BrokerStatsManager brokerStatsManager;
+
+    // 消息拉取长轮询模式消息达 到监听器 。
     private final MessageArrivingListener messageArrivingListener;
+
+    //Broker 配置属性
     private final BrokerConfig brokerConfig;
 
     private volatile boolean shutdown = true;
 
+    //文件刷盘检测点 。
     private StoreCheckpoint storeCheckpoint;
 
     private AtomicLong printTimes = new AtomicLong(0);
 
+    //CommitLog 文件转发请求
     private final LinkedList<CommitLogDispatcher> dispatcherList;
 
     private RandomAccessFile lockFile;
@@ -352,10 +369,14 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public PutMessageResult putMessage(MessageExtBrokerInner msg) {
+
+        // 如果当前 Broker停止工作或 Broker为 SLAVE 角色或 当前 Rocket不支持写入 则拒绝消息写入;
+        // 如果消息 主题长度超 过 256 个字符 、消息属 性长度超过 65536 个字符将 拒绝该消息写人。
         if (this.shutdown) {
             log.warn("message store has shutdown, so putMessage is forbidden");
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         }
+
 
         if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
             long value = this.printTimes.getAndIncrement();
@@ -1540,6 +1561,7 @@ public class DefaultMessageStore implements MessageStore {
 
             boolean timeup = this.isTimeToDelete();
             boolean spacefull = this.isSpaceToDelete();
+            // 预留，手工触发
             boolean manualDelete = this.manualDeleteFileSeveralTimes > 0;
 
             if (timeup || spacefull || manualDelete) {
@@ -1583,6 +1605,9 @@ public class DefaultMessageStore implements MessageStore {
             return CleanCommitLogService.class.getSimpleName();
         }
 
+
+        // 是否到了指定的时间点，RocketMQ可通过deleteWhen设置每天固定的时间删除过期文件，
+        // 默认是凌晨4点，由于这个参数设定是小时，因此在这1个小时内每次定时任务都能进来删除过期的文件
         private boolean isTimeToDelete() {
             String when = DefaultMessageStore.this.getMessageStoreConfig().getDeleteWhen();
             if (UtilAll.isItTimeToDo(when)) {
@@ -1593,13 +1618,15 @@ public class DefaultMessageStore implements MessageStore {
             return false;
         }
 
+        // pacefull:磁盘空间是否充足，磁盘不足返回true，执行过期文件删除策略
         private boolean isSpaceToDelete() {
             double ratio = DefaultMessageStore.this.getMessageStoreConfig().getDiskMaxUsedSpaceRatio() / 100.0;
-
+            //是否立即清除
             cleanImmediately = false;
 
             {
                 String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
+                // 物理使用率大于diskSpaceWarningLevelRatio（默认90%,可通过参数设置）,则会阻止新消息的插入
                 double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
                 if (physicRatio > diskSpaceWarningLevelRatio) {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
@@ -1608,15 +1635,16 @@ public class DefaultMessageStore implements MessageStore {
                     }
 
                     cleanImmediately = true;
+                    // 物理使用率大于diskSpaceCleanForciblyRatio（默认85%，可设置），则过进行过期物理文件的删除
                 } else if (physicRatio > diskSpaceCleanForciblyRatio) {
                     cleanImmediately = true;
-                } else {
+                } else {// 恢复磁盘可写 配合 #1使用
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskOK();
                     if (!diskok) {
                         DefaultMessageStore.log.info("physic disk space OK " + physicRatio + ", so mark disk ok");
                     }
                 }
-
+                //物理磁盘使用率小于diskMaxUsedSpaceRatio 表示磁盘使用正常
                 if (physicRatio < 0 || physicRatio > ratio) {
                     DefaultMessageStore.log.info("physic disk maybe full soon, so reclaim space, " + physicRatio);
                     return true;

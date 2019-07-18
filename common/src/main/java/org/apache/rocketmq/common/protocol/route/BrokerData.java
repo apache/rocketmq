@@ -23,9 +23,16 @@ import java.util.List;
 import java.util.Random;
 import org.apache.rocketmq.common.MixAll;
 
+//Broker 的相关信息
 public class BrokerData implements Comparable<BrokerData> {
-    private String cluster;
-    private String brokerName;
+    private String cluster;// 集群名称
+    private String brokerName;// Broker Name
+    // 存储的是该 Broker Name 对应的多个 Broker 地址信息。
+
+    // 因为相同的名称的 BrokerName 可以多有个。一个 Master 和多个 Slave。
+    // 所有使用 brokerAddrs 来存储相同 BrokerName 下所有的 Broker 信息
+    // （判断Master 和 Slave 的关系是通过 Master 和 Slave 名称是否相同，brokerId 为 0 的是Master， 大于0 的是 Slave）。
+
     private HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs;
 
     private final Random random = new Random();

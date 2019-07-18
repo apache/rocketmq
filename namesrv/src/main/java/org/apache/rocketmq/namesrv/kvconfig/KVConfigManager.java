@@ -43,6 +43,8 @@ public class KVConfigManager {
 
     public void load() {
         String content = null;
+        log.info("begin log..");
+
         try {
             content = MixAll.file2String(this.namesrvController.getNamesrvConfig().getKvConfigPath());
         } catch (IOException e) {

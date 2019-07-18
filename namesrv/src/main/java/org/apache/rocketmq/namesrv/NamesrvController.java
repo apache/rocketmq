@@ -51,6 +51,7 @@ public class NamesrvController {
 
     private final KVConfigManager kvConfigManager;
 
+    // 发现接收到的所有请求操作的数据都保存在 RouteInfoManager 类中，所有的操作都是对RouteInfoManager 类的操作
     private final RouteInfoManager routeInfoManager;
 
     private RemotingServer remotingServer;
@@ -83,10 +84,10 @@ public class NamesrvController {
 
         // 创建 NettyServer 网络处理对象，
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
-
+        // 创建 Netty Server 执行的线程池
         this.remotingExecutor =
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
-
+        // 注册 NameServer 服务接受请求的处理类
         this.registerProcessor();
 
         //然后 开启两个定时任务，在 RocketMQ 中此类定时任务统称为心跳检测 。
@@ -108,6 +109,7 @@ public class NamesrvController {
             }
         }, 1, 10, TimeUnit.MINUTES);
 
+        // 注册一个监听器以重新加载SslContext
         if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
             // Register a listener to reload SslContext
             try {
@@ -149,6 +151,7 @@ public class NamesrvController {
         return true;
     }
 
+    ////注册 NameServer 服务接受请求的处理类
     private void registerProcessor() {
         if (namesrvConfig.isClusterTest()) {
 
@@ -164,6 +167,7 @@ public class NamesrvController {
         this.remotingServer.start();
 
         if (this.fileWatchService != null) {
+            // 启动重新加载SslContext监听器线程
             this.fileWatchService.start();
         }
     }
@@ -173,6 +177,7 @@ public class NamesrvController {
         this.remotingExecutor.shutdown();
         this.scheduledExecutorService.shutdown();
 
+        // 停止SslContext监听器
         if (this.fileWatchService != null) {
             this.fileWatchService.shutdown();
         }

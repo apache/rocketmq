@@ -141,6 +141,8 @@ public class RemotingCommand {
         return decode(byteBuffer);
     }
 
+
+    // 消息的解码过程
     public static RemotingCommand decode(final ByteBuffer byteBuffer) {
         int length = byteBuffer.limit();
         int oriHeaderLen = byteBuffer.getInt();

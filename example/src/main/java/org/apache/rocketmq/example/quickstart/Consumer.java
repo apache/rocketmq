@@ -63,7 +63,7 @@ public class Consumer {
         /*
          * Subscribe one more more topics to consume.
          */
-        consumer.subscribe("TopicTest", "*");
+        consumer.subscribe("referral-register-topic_qa_stage", "*");
 
         /*
          *  Register callback to execute on arrival of messages fetched from brokers.
