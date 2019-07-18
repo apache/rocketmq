@@ -34,8 +34,8 @@ import org.apache.rocketmq.store.PutMessageStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
-
 public class DLedgerCommitlogTest extends MessageStoreTestBase {
+
 
     @Test
     public void testTruncateCQ() throws Exception {
@@ -208,5 +208,6 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         leaderStore.shutdown();
         followerStore.shutdown();
     }
+
 
 }
