@@ -218,7 +218,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         followerStore.shutdown();
     }
 
-        @Test
+    @Test
     public void testPutBatchMessageBatch() throws Exception{
         String base=createBaseDir();
         String peers = String.format("n0-localhost:%d", nextPort());
