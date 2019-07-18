@@ -41,7 +41,10 @@ mport static org.assertj.core.api.Assertions.assertThat;
 
 
 public class DLedgerCommitlogTest extends MessageStoreTestBase {
-
+ 
+    public static final char NAME_VALUE_SEPARATOR = 1;
+    public static final char PROPERTY_SEPARATOR = 2;
+    public final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
 
     @Test
     public void testTruncateCQ() throws Exception {
