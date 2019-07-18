@@ -33,18 +33,9 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.junit.Assert;
 import org.junit.Test;
-import java.net.InetSocketAddress;
-import java.util.Map;
-import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageExtBatch;
-import static org.assertj.core.api.Assertions.assertThat;
 
 
 public class DLedgerCommitlogTest extends MessageStoreTestBase {
-    public static final char NAME_VALUE_SEPARATOR = 1;
-    public static final char PROPERTY_SEPARATOR = 2;
-
-    public final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
 
     @Test
     public void testTruncateCQ() throws Exception {
@@ -216,86 +207,6 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
         leaderStore.shutdown();
         followerStore.shutdown();
-    }
-
-        @Test
-    public void testPutBatchMessageBatch() throws Exception{
-        String base=createBaseDir();
-        String peers = String.format("n0-localhost:%d", nextPort());
-        String group = UUID.randomUUID().toString();
-        DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
-        Thread.sleep(1000);
-        String topic = UUID.randomUUID().toString();
-        List<Message> messages = new ArrayList<>();
-        //String topic = "batch-write-topic";
-        int queue = 0;
-        int[] msgLengthArr = new int[11];
-        msgLengthArr[0] = 0;
-        int j = 1;
-        for (int i = 0; i < 10; i++) {
-            Message msg = new Message();
-            msg.setBody(("body" + i).getBytes());
-            msg.setTopic(topic);
-            msg.setTags("TAG1");
-            msg.setKeys(String.valueOf(System.currentTimeMillis()));
-            messages.add(msg);
-            String properties = messageProperties2String(msg.getProperties());
-            byte[] propertiesBytes = properties.getBytes(CHARSET_UTF8);
-            short propertiesLength = (short) propertiesBytes.length;
-            final byte[] topicData = msg.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
-            final int topicLength = topicData.length;
-            msgLengthArr[j] = calMsgLength(msg.getBody().length, topicLength, propertiesLength) + msgLengthArr[j - 1];
-            j++;
-        }
-        byte[] batchMessageBody = MessageDecoder.encodeMessages(messages);
-        MessageExtBatch messageExtBatch = new MessageExtBatch();
-        messageExtBatch.setTopic(topic);
-        messageExtBatch.setQueueId(queue);
-        messageExtBatch.setBody(batchMessageBody);
-        messageExtBatch.setBornTimestamp(System.currentTimeMillis());
-        messageExtBatch.setStoreHost(new InetSocketAddress("127.0.0.1", 125));
-        messageExtBatch.setBornHost(new InetSocketAddress("127.0.0.1", 126));
-        PutMessageResult putMessageResult = messageStore.putMessages(messageExtBatch);
-        assertThat(putMessageResult.isOk()).isTrue();
-        Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
-    }
-
-    public String messageProperties2String(Map<String, String> properties) {
-        StringBuilder sb = new StringBuilder();
-        if (properties != null) {
-            for (final Map.Entry<String, String> entry : properties.entrySet()) {
-                final String name = entry.getKey();
-                final String value = entry.getValue();
-
-                sb.append(name);
-                sb.append(NAME_VALUE_SEPARATOR);
-                sb.append(value);
-                sb.append(PROPERTY_SEPARATOR);
-            }
-        }
-        return sb.toString();
-    }
-
-    private int calMsgLength(int bodyLength, int topicLength, int propertiesLength) {
-        final int msgLen = 4 //TOTALSIZE
-                + 4 //MAGICCODE
-                + 4 //BODYCRC
-                + 4 //QUEUEID
-                + 4 //FLAG
-                + 8 //QUEUEOFFSET
-                + 8 //PHYSICALOFFSET
-                + 4 //SYSFLAG
-                + 8 //BORNTIMESTAMP
-                + 8 //BORNHOST
-                + 8 //STORETIMESTAMP
-                + 8 //STOREHOSTADDRESS
-                + 4 //RECONSUMETIMES
-                + 8 //Prepared Transaction Offset
-                + 4 + (bodyLength > 0 ? bodyLength : 0) //BODY
-                + 1 + topicLength //TOPIC
-                + 2 + (propertiesLength > 0 ? propertiesLength : 0) //propertiesLength
-                + 0;
-        return msgLen;
     }
 
 }
