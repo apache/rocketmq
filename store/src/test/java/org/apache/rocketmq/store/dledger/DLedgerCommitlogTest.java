@@ -37,7 +37,7 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExtBatch;
-mport static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 
 public class DLedgerCommitlogTest extends MessageStoreTestBase {
