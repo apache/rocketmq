@@ -49,6 +49,8 @@ import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.StoreStatsService;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
@@ -70,6 +72,8 @@ public class DLedgerCommitLog extends CommitLog {
 
 
     private boolean isInrecoveringOldCommitlog = false;
+
+    private final StringBuilder msgIdBuilder = new StringBuilder();
 
     public DLedgerCommitLog(final DefaultMessageStore defaultMessageStore) {
         super(defaultMessageStore);
@@ -493,7 +497,99 @@ public class DLedgerCommitLog extends CommitLog {
 
     @Override
     public PutMessageResult putMessages(final MessageExtBatch messageExtBatch) {
-        return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
+        //return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
+        // Set the storage time
+        messageExtBatch.setStoreTimestamp(System.currentTimeMillis());
+        // Set the message body BODY CRC (consider the most appropriate setting
+        // on the client)
+        messageExtBatch.setBodyCRC(UtilAll.crc32(messageExtBatch.getBody()));
+
+        StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
+
+        String topic = messageExtBatch.getTopic();
+        int queueId = messageExtBatch.getQueueId();
+
+        //should be consistent with the old version
+        final int tranType = MessageSysFlag.getTransactionValue(messageExtBatch.getSysFlag());
+        if (tranType != MessageSysFlag.TRANSACTION_NOT_TYPE) {
+            return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
+        }
+        if (messageExtBatch.getDelayTimeLevel() > 0) {
+            return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
+        }
+
+        // Back to Results
+        AppendMessageResult appendResult;
+        AppendFuture<AppendEntryResponse> dledgerFuture;
+        List<EncodeResult> encodeResult;
+
+        putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
+        long eclipseTimeInLock;
+        long queueOffset = 0;
+        String key ="";
+        try {
+            beginTimeInDledgerLock =  this.defaultMessageStore.getSystemClock().now();
+            encodeResult = this.messageSerializer.serialize(messageExtBatch);
+            if(encodeResult.size()>0){
+                key=encodeResult.get(0).queueOffsetKey;
+                queueOffset = topicQueueTable.get(key);
+            }else{
+                return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
+            }
+
+            int totalMsgLen = 0;
+            int msgNum = 0;
+            msgIdBuilder.setLength(0);
+            long beginQueueOffset = queueOffset;
+            long wroteOffset=0;
+
+            for (int i = 0; i <encodeResult.size() ; i++) {
+                long msgLen= encodeResult.get(i).data.length;
+                if (encodeResult.get(i).status  != AppendMessageStatus.PUT_OK) {
+                    log.warn("Put messages the message is illegal");
+                    return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.get(i).status));
+                }
+                AppendEntryRequest request = new AppendEntryRequest();
+                request.setGroup(dLedgerConfig.getGroup());
+                request.setRemoteId(dLedgerServer.getMemberState().getSelfId());
+                request.setBody(encodeResult.get(i).data);
+                dledgerFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
+                if (dledgerFuture.getPos() == -1) {
+                    log.warn("Put messages the os page cache is busy!");
+                    return new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR));
+                }
+                wroteOffset =  dledgerFuture.getPos() + DLedgerEntry.BODY_OFFSET;
+                ByteBuffer buffer = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);
+                String msgId = MessageDecoder.createMessageId(buffer, messageExtBatch.getStoreHostBytes(), wroteOffset);
+                if (msgIdBuilder.length() > 0) {
+                    msgIdBuilder.append(',').append(msgId);
+                } else {
+                    msgIdBuilder.append(msgId);
+                }
+                msgNum++;
+                queueOffset++;
+                totalMsgLen +=msgLen;
+				DLedgerCommitLog.this.topicQueueTable.put(key, queueOffset);
+            }
+            eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
+            appendResult=new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, totalMsgLen, msgIdBuilder.toString(),
+                    messageExtBatch.getStoreTimestamp(), beginQueueOffset, DLedgerCommitLog.this.defaultMessageStore.now() - beginTimeInDledgerLock);
+            appendResult.setMsgNum(msgNum);
+        } catch (Exception e) {
+            log.error("Put message error", e);
+            return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR));
+        } finally {
+            beginTimeInDledgerLock = 0;
+            putMessageLock.unlock();
+        }
+
+        PutMessageStatus putMessageStatus =  PutMessageStatus.PUT_OK;
+
+        PutMessageResult putMessageResult = new PutMessageResult(putMessageStatus, appendResult);
+        // Statistics
+        storeStatsService.getSinglePutMessageTopicTimesTotal(messageExtBatch.getTopic()).incrementAndGet();
+        storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(appendResult.getWroteBytes());
+        return putMessageResult;
     }
 
 
@@ -709,6 +805,127 @@ public class DLedgerCommitLog extends CommitLog {
             return new EncodeResult(AppendMessageStatus.PUT_OK, data, key);
         }
 
+        public List<EncodeResult> serialize(final MessageExtBatch messageExtBatch) {
+            // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
+            List<EncodeResult> list= new ArrayList<EncodeResult>();
+            // PHY OFFSET
+            long wroteOffset = 0;
+
+            this.resetByteBuffer(hostHolder, 8);
+            // Record ConsumeQueue information
+            keyBuilder.setLength(0);
+            keyBuilder.append(messageExtBatch.getTopic());
+            keyBuilder.append('-');
+            keyBuilder.append(messageExtBatch.getQueueId());
+            String key = keyBuilder.toString();
+
+            Long queueOffset = DLedgerCommitLog.this.topicQueueTable.get(key);
+            if (null == queueOffset) {
+                queueOffset = 0L;
+                DLedgerCommitLog.this.topicQueueTable.put(key, queueOffset);
+            }
+
+            /**
+             * Serialize message
+             */
+            int totalMsgLen = 0;
+            ByteBuffer messagesByteBuff = messageExtBatch.wrap();
+            while (messagesByteBuff.hasRemaining()) {
+                // 1 TOTALSIZE
+                messagesByteBuff.getInt();
+                // 2 MAGICCODE
+                messagesByteBuff.getInt();
+                // 3 BODYCRC
+                messagesByteBuff.getInt();
+                // 4 FLAG
+                int flag = messagesByteBuff.getInt();
+                // 5 BODY
+                int bodyLen = messagesByteBuff.getInt();
+                int bodyPos = messagesByteBuff.position();
+                int bodyCrc = UtilAll.crc32(messagesByteBuff.array(), bodyPos, bodyLen);
+                messagesByteBuff.position(bodyPos + bodyLen);
+                // 6 properties
+                short propertiesLen = messagesByteBuff.getShort();
+                int propertiesPos = messagesByteBuff.position();
+                messagesByteBuff.position(propertiesPos + propertiesLen);
+                if (propertiesLen > Short.MAX_VALUE) {
+                    log.warn("putMessage message properties length too long. length={}", propertiesLen);
+                    list.add(new EncodeResult(AppendMessageStatus.PROPERTIES_SIZE_EXCEEDED, null, key));
+                    return list;
+                }
+                //topicLength
+                final byte[] topicData = messageExtBatch.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
+                final int topicLength = topicData.length;
+
+                final int msgLen = calMsgLength(bodyLen, topicLength, propertiesLen);
+
+                // Exceeds the maximum message
+                if (msgLen > this.maxMessageSize) {
+                    DLedgerCommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLen
+                            + ", maxMessageSize: " + this.maxMessageSize);
+                    list.add(new EncodeResult(AppendMessageStatus.MESSAGE_SIZE_EXCEEDED, null, key));
+                    return list;
+                }
+                totalMsgLen += msgLen;
+                // Determines whether there is sufficient free space
+                if (totalMsgLen > maxMessageSize) {
+                    throw new RuntimeException("message size exceeded");
+                }
+                // Initialization of storage space
+                this.resetByteBuffer(msgStoreItemMemory, msgLen);
+                // 1 TOTALSIZE
+                this.msgStoreItemMemory.putInt(msgLen);
+                // 2 MAGICCODE
+                this.msgStoreItemMemory.putInt(DLedgerCommitLog.MESSAGE_MAGIC_CODE);
+                // 3 BODYCRC
+                this.msgStoreItemMemory.putInt(bodyCrc);
+                // 4 QUEUEID
+                this.msgStoreItemMemory.putInt(messageExtBatch.getQueueId());
+                // 5 FLAG
+                this.msgStoreItemMemory.putInt(flag);
+                // 6 QUEUEOFFSET
+                this.msgStoreItemMemory.putLong(queueOffset);//queueOffset
+                queueOffset++;
+                // 7 PHYSICALOFFSET
+                this.msgStoreItemMemory.putLong(wroteOffset);//wroteOffset
+                // 8 SYSFLAG
+                this.msgStoreItemMemory.putInt(messageExtBatch.getSysFlag());
+                // 9 BORNTIMESTAMP
+                this.msgStoreItemMemory.putLong(messageExtBatch.getBornTimestamp());
+                // 10 BORNHOST
+                this.resetByteBuffer(hostHolder, 8);
+                this.msgStoreItemMemory.put(messageExtBatch.getBornHostBytes(hostHolder));
+                // 11 STORETIMESTAMP
+                this.msgStoreItemMemory.putLong(messageExtBatch.getStoreTimestamp());
+                // 12 STOREHOSTADDRESS
+                this.resetByteBuffer(hostHolder, 8);
+                this.msgStoreItemMemory.put(messageExtBatch.getStoreHostBytes(hostHolder));
+                //this.msgBatchMemory.put(msgInner.getStoreHostBytes());
+                // 13 RECONSUMETIMES
+                this.msgStoreItemMemory.putInt(messageExtBatch.getReconsumeTimes());
+                // 14 Prepared Transaction Offset
+                this.msgStoreItemMemory.putLong(messageExtBatch.getPreparedTransactionOffset());
+                // 15 BODY
+                this.msgStoreItemMemory.putInt(bodyLen);
+                if (bodyLen > 0) {
+                    this.msgStoreItemMemory.put(messagesByteBuff.array(), bodyPos, bodyLen);
+                }
+                // 16 TOPIC
+                this.msgStoreItemMemory.put((byte) topicLength);
+                this.msgStoreItemMemory.put(topicData);
+                // 17 PROPERTIES
+                this.msgStoreItemMemory.putShort((short) propertiesLen);
+                if (propertiesLen > 0) {
+                    this.msgStoreItemMemory.put(messagesByteBuff.array(), propertiesPos, propertiesLen);
+                }
+                byte[] data = new byte[msgLen];
+                this.msgStoreItemMemory.clear();
+                this.msgStoreItemMemory.get(data);
+                list.add(new EncodeResult(AppendMessageStatus.PUT_OK, data, key));
+            }
+            return list;    
+      }
+        
         private void resetByteBuffer(final ByteBuffer byteBuffer, final int limit) {
             byteBuffer.flip();
             byteBuffer.limit(limit);
