@@ -107,15 +107,6 @@ public class AssignedMessageQueue {
         }
     }
 
-    public Map<MessageQueue, Long> getNeedCommitOffsets() {
-        Map<MessageQueue, Long> map = new HashMap<MessageQueue, Long>();
-        Set<Map.Entry<MessageQueue, MessageQueueStat>> entries = this.assignedMessageQueueState.entrySet();
-        for (Map.Entry<MessageQueue, MessageQueueStat> entry : entries) {
-            map.put(entry.getKey(), entry.getValue().getNextOffset());
-        }
-        return map;
-    }
-
     public class MessageQueueStat {
         private MessageQueue messageQueue;
         private boolean paused = false;
