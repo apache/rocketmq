@@ -433,7 +433,14 @@ public class ProcessQueue {
         this.lastConsumeTimestamp = lastConsumeTimestamp;
     }
 
-    public long getFisrtOffset() {
-        return msgTreeMap.firstKey();
+    public long getConsumeOffset() {
+
+        if (msgTreeMap.isEmpty() && queueOffsetMax == 0L)
+            return -1;
+
+        if (!msgTreeMap.isEmpty())
+            return msgTreeMap.firstKey();
+        else
+            return queueOffsetMax + 1;
     }
 }

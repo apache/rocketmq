@@ -42,7 +42,7 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
     /**
      * Maximum commit offset interval time in seconds.
      */
-    private long autoCommitInterval = 20;
+    private long autoCommitInterval = 5;
 
     public DefaultLiteMQPullConsumer(String consumerGroup, RPCHook rpcHook) {
         this.setConsumerGroup(consumerGroup);
@@ -55,7 +55,7 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
     }
 
     @Override
-    public void start() throws MQClientException{
+    public void start() throws MQClientException {
         this.liteMQPullConsumer.start();
     }
 

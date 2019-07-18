@@ -158,7 +158,7 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
         try {
             addToConsumed(preConsumeRequestLocal.get());
             preConsumeRequestLocal.set(curConsumeRequestLocal.get());
-            curConsumeRequestLocal.set(consumeRequestCache.poll(timeout, TimeUnit.SECONDS));
+            curConsumeRequestLocal.set(consumeRequestCache.poll(timeout, TimeUnit.MILLISECONDS));
             if (curConsumeRequestLocal.get() != null) {
                 List<MessageExt> messages = curConsumeRequestLocal.get().getMessageExts();
                 for (MessageExt messageExt : messages) {
@@ -231,7 +231,9 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
         Set<Map.Entry<MessageQueue, ProcessQueue>> entrySet = this.rebalanceImpl.getProcessQueueTable().entrySet();
         for (Map.Entry<MessageQueue, ProcessQueue> entry : entrySet) {
             try {
-                updateConsumeOffset(entry.getKey(), entry.getValue().getFisrtOffset());
+                long consumeOffset = entry.getValue().getConsumeOffset();
+                if (consumeOffset != -1)
+                    updateConsumeOffset(entry.getKey(), consumeOffset);
             } catch (MQClientException e) {
                 log.error("A error occurred in update consume offset process.", e);
             }
@@ -367,7 +369,6 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
 
         @Override
         public void run() {
-            System.out.println("queue" + messageQueue.getQueueId() + " begin pull message");
             String topic = this.messageQueue.getTopic();
             if (!this.isCancelled()) {
                 if (assignedMessageQueue.isPaused(messageQueue)) {
