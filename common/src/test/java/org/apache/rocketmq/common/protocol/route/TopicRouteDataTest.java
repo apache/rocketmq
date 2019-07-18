@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.common.protocol;
+package org.apache.rocketmq.common.protocol.route;
 
 
 import org.apache.rocketmq.common.protocol.route.BrokerData;
