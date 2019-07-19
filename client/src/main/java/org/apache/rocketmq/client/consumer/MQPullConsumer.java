@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.client.consumer;
 
-import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;

@@ -25,24 +25,24 @@ import org.apache.rocketmq.common.message.MessageQueue;
 public class LitePullConsumerTest {
     public static void main(String[] args) throws Exception {
         DefaultLiteMQPullConsumer litePullConsumer = new DefaultLiteMQPullConsumer("test", null);
-        litePullConsumer.subscribe("test", null);
+        litePullConsumer.setNamesrvAddr("localhost:9876");
+        litePullConsumer.subscribe("litepullconsumertest9", null);
         litePullConsumer.start();
-        MessageQueue messageQueue = new MessageQueue("test", "duhengdeMacBook-Pro.local", 1);
+        MessageQueue messageQueue = new MessageQueue("test", "IT-C02YW28FLVDL.local", 1);
         int i = 0;
         while (true) {
             List<MessageExt> messageExts = litePullConsumer.poll();
-            System.out.println("-----------");
-            System.out.println(messageExts);
-            System.out.println("-----------");
+            System.out.printf("%s%n", messageExts);
             i++;
             if (i == 3) {
-                System.out.println("pause");
+                System.out.printf("pause%n");
                 litePullConsumer.pause(Arrays.asList(messageQueue));
             }
             if (i == 10) {
-                System.out.println("resume");
+                System.out.printf("resume%n");
                 litePullConsumer.resume(Arrays.asList(messageQueue));
             }
+//
             litePullConsumer.commitSync();
         }
     }
