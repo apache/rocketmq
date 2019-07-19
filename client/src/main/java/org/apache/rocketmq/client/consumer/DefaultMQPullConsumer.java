@@ -16,9 +16,7 @@
  */
 package org.apache.rocketmq.client.consumer;
 
-import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
@@ -40,6 +38,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
  * Default pulling consumer
  */
 public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsumer {
+
     protected final transient DefaultMQPullConsumerImpl defaultMQPullConsumerImpl;
 
     /**
