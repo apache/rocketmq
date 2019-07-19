@@ -127,7 +127,7 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
     }
 
     int nextPullBatchNums() {
-        return Math.min(10, consumeRequestCache.remainingCapacity());
+        return Math.min(this.defaultLiteMQPullConsumer.getPullBatchNums(), consumeRequestCache.remainingCapacity());
     }
 
     @Override
@@ -355,7 +355,6 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
                     this.defaultMQPullConsumer.sendMessageBack(msg, 3);
                     log.info("Send expired msg back. topic={}, msgId={}, storeHost={}, queueId={}, queueOffset={}",
                         msg.getTopic(), msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(), msg.getQueueOffset());
-                    log.info("Send expired msg back.");
                     commit(mq, pq, msg);
                 } catch (Exception e) {
                     log.error("Send back expired msg exception", e);

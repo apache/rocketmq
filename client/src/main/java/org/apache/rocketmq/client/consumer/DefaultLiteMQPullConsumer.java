@@ -44,6 +44,11 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
      */
     private long autoCommitInterval = 5;
 
+    /**
+     * Maximum number of messages pulled each time.
+     */
+    private int pullBatchNums = 10;
+
     public DefaultLiteMQPullConsumer(String consumerGroup, RPCHook rpcHook) {
         this.setConsumerGroup(consumerGroup);
         this.liteMQPullConsumer = new LiteMQPullConsumerImpl(this, rpcHook);
@@ -129,4 +134,13 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
     public void setAutoCommitInterval(long autoCommitInterval) {
         this.autoCommitInterval = autoCommitInterval;
     }
+
+    public int getPullBatchNums() {
+        return pullBatchNums;
+    }
+
+    public void setPullBatchNums(int pullBatchNums) {
+        this.pullBatchNums = pullBatchNums;
+    }
+
 }

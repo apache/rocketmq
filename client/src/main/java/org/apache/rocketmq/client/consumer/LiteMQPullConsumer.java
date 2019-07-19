@@ -44,9 +44,9 @@ public interface LiteMQPullConsumer {
 
     void seek(MessageQueue messageQueue, long offset) throws MQClientException;
 
-    void pause(Collection<MessageQueue> messageQueueCollection);
+    void pause(Collection<MessageQueue> messageQueues);
 
-    void resume(Collection<MessageQueue> partitions);
+    void resume(Collection<MessageQueue> messageQueues);
 
     void commitSync();
 }
