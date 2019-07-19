@@ -95,7 +95,7 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
 
     @Override
     public void commitSync() {
-        this.liteMQPullConsumer.commit();
+        this.liteMQPullConsumer.commitSync();
     }
 
     public long getConsumeTimeout() {

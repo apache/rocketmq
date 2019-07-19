@@ -59,8 +59,6 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
 
     private final ThreadLocal<ConsumeRequest> preConsumeRequestLocal = new ThreadLocal<ConsumeRequest>();
 
-    private final ThreadLocal<ConsumeRequest> curConsumeRequestLocal = new ThreadLocal<ConsumeRequest>();
-
     public LiteMQPullConsumerImpl(final DefaultLiteMQPullConsumer defaultMQPullConsumer, final RPCHook rpcHook) {
         super(defaultMQPullConsumer, rpcHook);
         this.defaultLiteMQPullConsumer = defaultMQPullConsumer;
@@ -157,14 +155,14 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
     public List<MessageExt> poll(long timeout) {
         try {
             addToConsumed(preConsumeRequestLocal.get());
-            preConsumeRequestLocal.set(curConsumeRequestLocal.get());
-            curConsumeRequestLocal.set(consumeRequestCache.poll(timeout, TimeUnit.MILLISECONDS));
-            if (curConsumeRequestLocal.get() != null) {
-                List<MessageExt> messages = curConsumeRequestLocal.get().getMessageExts();
+            ConsumeRequest consumeRequest = consumeRequestCache.poll(timeout, TimeUnit.MILLISECONDS);
+            preConsumeRequestLocal.set(consumeRequest);
+            if (consumeRequest != null) {
+                List<MessageExt> messages = consumeRequest.getMessageExts();
                 for (MessageExt messageExt : messages) {
-                    MessageAccessor.setConsumeStartTimeStamp(messageExt, String.valueOf(curConsumeRequestLocal.get().getStartConsumeTimeMillis()));
+                    MessageAccessor.setConsumeStartTimeStamp(messageExt, String.valueOf(consumeRequest.getStartConsumeTimeMillis()));
                 }
-                curConsumeRequestLocal.get().setStartConsumeTimeMillis(System.currentTimeMillis());
+                consumeRequest.setStartConsumeTimeMillis(System.currentTimeMillis());
                 return messages;
             }
         } catch (InterruptedException e) {
@@ -214,8 +212,9 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
         }
     }
 
-    public void commit() {
-        addToConsumed(curConsumeRequestLocal.get());
+    public void commitSync() {
+        addToConsumed(preConsumeRequestLocal.get());
+        preConsumeRequestLocal.set(null);
         commitAll();
     }
 
@@ -263,7 +262,7 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
         }
     }
 
-    void updatePullOffset(MessageQueue remoteQueue, long nextPullOffset) {
+    private void updatePullOffset(MessageQueue remoteQueue, long nextPullOffset) {
         try {
             assignedMessageQueue.updateNextOffset(remoteQueue, nextPullOffset);
         } catch (MQClientException e) {
@@ -280,7 +279,7 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
         }
     }
 
-    void submitConsumeRequest(ConsumeRequest consumeRequest) {
+    private void submitConsumeRequest(ConsumeRequest consumeRequest) {
         try {
             consumeRequestCache.put(consumeRequest);
         } catch (InterruptedException ex) {
@@ -288,7 +287,7 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
         }
     }
 
-    long nextPullOffset(MessageQueue remoteQueue) {
+    private long nextPullOffset(MessageQueue remoteQueue) {
         long offset = -1;
         try {
             offset = assignedMessageQueue.getNextOffset(remoteQueue);
