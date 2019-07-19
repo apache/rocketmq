@@ -17,7 +17,6 @@
 package org.apache.rocketmq.client.impl.consumer;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;

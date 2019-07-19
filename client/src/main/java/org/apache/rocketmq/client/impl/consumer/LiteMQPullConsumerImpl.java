@@ -16,8 +16,22 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 
 import org.apache.commons.lang3.reflect.FieldUtils;
@@ -341,7 +355,7 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
                     this.defaultMQPullConsumer.sendMessageBack(msg, 3);
                     log.info("Send expired msg back. topic={}, msgId={}, storeHost={}, queueId={}, queueOffset={}",
                         msg.getTopic(), msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(), msg.getQueueOffset());
-                    System.out.println("Send expired msg back.");
+                    log.info("Send expired msg back.");
                     commit(mq, pq, msg);
                 } catch (Exception e) {
                     log.error("Send back expired msg exception", e);
