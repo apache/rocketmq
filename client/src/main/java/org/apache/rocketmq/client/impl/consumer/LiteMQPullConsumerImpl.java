@@ -186,7 +186,7 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
         try {
             ConsumeRequest preConsumeRequest = preConsumeRequestLocal.get();
             if (preConsumeRequest != null && !preConsumeRequest.getProcessQueue().isDropped()) {
-                preConsumeRequest.getProcessQueue().removeMessage(preConsumeRequest.messageExts);
+                preConsumeRequest.getProcessQueue().removeMessage(preConsumeRequest.getMessageExts());
             }
             long timeoutTime = System.currentTimeMillis() + timeout;
             ConsumeRequest consumeRequest = consumeRequestCache.poll(timeoutTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
@@ -252,7 +252,7 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
     public void commitSync() {
         ConsumeRequest consumeRequest = preConsumeRequestLocal.get();
         if (consumeRequest != null && !consumeRequest.getProcessQueue().isDropped()) {
-            consumeRequest.getProcessQueue().removeMessage(consumeRequest.messageExts);
+            consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMessageExts());
             preConsumeRequestLocal.set(null);
         }
         commitAll();
