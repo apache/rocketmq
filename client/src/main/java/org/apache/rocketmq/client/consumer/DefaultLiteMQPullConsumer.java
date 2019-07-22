@@ -49,6 +49,33 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
      */
     private int pullBatchNums = 10;
 
+    /**
+     * Flow control threshold for consume request, each consumer will cache at most 10000 consume requests by default.
+     * Consider the {@code pullBatchSize}, the instantaneous value may exceed the limit
+     */
+    private long pullThresholdForConsumeRequest = 10000;
+
+    /**
+     * Consume max span offset.
+     */
+    private int consumeMaxSpan = 2000;
+
+    /**
+     * Flow control threshold on queue level, each message queue will cache at most 1000 messages by default,
+     * Consider the {@code pullBatchSize}, the instantaneous value may exceed the limit
+     */
+    private int pullThresholdForQueue = 1000;
+
+    /**
+     * Limit the cached message size on queue level, each message queue will cache at most 100 MiB messages by default,
+     * Consider the {@code pullBatchSize}, the instantaneous value may exceed the limit
+     *
+     * <p>
+     * The size of a message only measured by message body, so it's not accurate
+     */
+    private int pullThresholdSizeForQueue = 100;
+
+
     public DefaultLiteMQPullConsumer(String consumerGroup, RPCHook rpcHook) {
         this.setConsumerGroup(consumerGroup);
         this.liteMQPullConsumer = new LiteMQPullConsumerImpl(this, rpcHook);
@@ -141,6 +168,38 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
 
     public void setPullBatchNums(int pullBatchNums) {
         this.pullBatchNums = pullBatchNums;
+    }
+
+    public long getPullThresholdForConsumeRequest() {
+        return pullThresholdForConsumeRequest;
+    }
+
+    public void setPullThresholdForConsumeRequest(long pullThresholdForConsumeRequest) {
+        this.pullThresholdForConsumeRequest = pullThresholdForConsumeRequest;
+    }
+
+    public int getConsumeMaxSpan() {
+        return consumeMaxSpan;
+    }
+
+    public void setConsumeMaxSpan(int consumeMaxSpan) {
+        this.consumeMaxSpan = consumeMaxSpan;
+    }
+
+    public int getPullThresholdForQueue() {
+        return pullThresholdForQueue;
+    }
+
+    public void setPullThresholdForQueue(int pullThresholdForQueue) {
+        this.pullThresholdForQueue = pullThresholdForQueue;
+    }
+
+    public int getPullThresholdSizeForQueue() {
+        return pullThresholdSizeForQueue;
+    }
+
+    public void setPullThresholdSizeForQueue(int pullThresholdSizeForQueue) {
+        this.pullThresholdSizeForQueue = pullThresholdSizeForQueue;
     }
 
 }
