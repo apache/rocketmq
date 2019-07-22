@@ -115,8 +115,6 @@ public class MQAdminImpl {
                             orderTopicString.append(":");
                             orderTopicString.append(queueNum);
                             orderTopicString.append(";");
-                        } else {
-                            log.info("create topic success: " + orderTopicString.toString());
                         }
                     }
                 }
@@ -124,6 +122,7 @@ public class MQAdminImpl {
                 if (exception != null && !createOKAtLeastOnce) {
                     throw exception;
                 }
+                log.info("create topic success==> " + orderTopicString.toString());
             } else {
                 throw new MQClientException("Not found broker, maybe key is wrong", null);
             }
