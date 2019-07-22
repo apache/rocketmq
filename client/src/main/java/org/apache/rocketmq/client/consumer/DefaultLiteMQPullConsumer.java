@@ -53,7 +53,7 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
      * Flow control threshold for consume request, each consumer will cache at most 10000 consume requests by default.
      * Consider the {@code pullBatchSize}, the instantaneous value may exceed the limit
      */
-    private long pullThresholdForConsumeRequest = 10000;
+    private long pullThresholdForAll = 10000;
 
     /**
      * Consume max span offset.
@@ -89,6 +89,11 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
     @Override
     public void start() throws MQClientException {
         this.liteMQPullConsumer.start();
+    }
+
+    @Override
+    public void shutdown() {
+        this.liteMQPullConsumer.shutdown();
     }
 
     @Override
@@ -170,12 +175,12 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
         this.pullBatchNums = pullBatchNums;
     }
 
-    public long getPullThresholdForConsumeRequest() {
-        return pullThresholdForConsumeRequest;
+    public long getPullThresholdForAll() {
+        return pullThresholdForAll;
     }
 
-    public void setPullThresholdForConsumeRequest(long pullThresholdForConsumeRequest) {
-        this.pullThresholdForConsumeRequest = pullThresholdForConsumeRequest;
+    public void setPullThresholdForAll(long pullThresholdForAll) {
+        this.pullThresholdForAll = pullThresholdForAll;
     }
 
     public int getConsumeMaxSpan() {

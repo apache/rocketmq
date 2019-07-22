@@ -259,9 +259,7 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
     }
 
     public void commitAll() {
-
         Set<Map.Entry<MessageQueue, ProcessQueue>> entrySet = this.rebalanceImpl.getProcessQueueTable().entrySet();
-
         for (Map.Entry<MessageQueue, ProcessQueue> entry : entrySet) {
             try {
                 if (!entry.getValue().isDropped()) {
@@ -275,7 +273,6 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
                 log.error("A error occurred in update consume offset process.", e);
             }
         }
-
     }
 
     private void commit(final MessageQueue messageQueue, final ProcessQueue processQueue, final MessageExt messageExt) {
@@ -378,6 +375,14 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
         }
     }
 
+    @Override
+    public void shutdown() {
+        scheduledThreadPoolExecutor.shutdown();
+        cleanExpireMsgExecutors.shutdown();
+        autoCommitExecutors.shutdown();
+        super.shutdown();
+    }
+
     private ReadWriteLock getLockInProcessQueue(ProcessQueue pq) {
         try {
             return (ReadWriteLock) FieldUtils.readDeclaredField(pq, "lockTreeMap", true);
@@ -402,11 +407,11 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
             ProcessQueue processQueue = rebalanceImpl.getProcessQueueTable().get(messageQueue);
 
             if (processQueue == null && processQueue.isDropped()) {
-                log.info("the message queue not be able to poll, because it's dropped. group={} {}", defaultLiteMQPullConsumer.getConsumerGroup(), this.messageQueue);
+                log.info("the message queue not be able to poll, because it's dropped. group={}, messageQueue={}", defaultLiteMQPullConsumer.getConsumerGroup(), this.messageQueue);
                 return;
             }
 
-            if (consumeRequestCache.size() > defaultLiteMQPullConsumer.getPullThresholdForConsumeRequest()) {
+            if (consumeRequestCache.size() * defaultLiteMQPullConsumer.getPullBatchNums() > defaultLiteMQPullConsumer.getPullThresholdForAll()) {
                 scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_FLOW_CONTROL, TimeUnit.MILLISECONDS);
                 if ((consumeRequestFlowControlTimes++ % 1000) == 0)
                     log.warn("the consume request count exceeds threshold {}, so do flow control, consume request count={}, flowControlTimes={}", consumeRequestCache.size(), consumeRequestFlowControlTimes);
@@ -466,7 +471,7 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
                             }
                             break;
                         case OFFSET_ILLEGAL:
-                            //ToDo
+                            //TODO
                             break;
                         default:
                             break;
