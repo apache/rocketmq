@@ -18,6 +18,7 @@ package org.apache.rocketmq.client.impl.consumer;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +73,8 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
         new ConcurrentHashMap<MessageQueue, PullTaskImpl>();
 
     private AssignedMessageQueue assignedMessageQueue = new AssignedMessageQueue();
+
+    private volatile Set<ConsumeRequest> consumedSet = new HashSet<ConsumeRequest>();
 
     private final BlockingQueue<ConsumeRequest> consumeRequestCache = new LinkedBlockingQueue<ConsumeRequest>();
 
@@ -184,14 +187,19 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
 
     public List<MessageExt> poll(long timeout) {
         try {
+
             ConsumeRequest preConsumeRequest = preConsumeRequestLocal.get();
             if (preConsumeRequest != null && !preConsumeRequest.getProcessQueue().isDropped()) {
-                preConsumeRequest.getProcessQueue().removeMessage(preConsumeRequest.getMessageExts());
+                addToConsumed(preConsumeRequestLocal.get());
             }
-            long timeoutTime = System.currentTimeMillis() + timeout;
-            ConsumeRequest consumeRequest = consumeRequestCache.poll(timeoutTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+            long endTime = System.currentTimeMillis() + timeout;
+            ConsumeRequest consumeRequest = consumeRequestCache.poll(endTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
             while (consumeRequest != null && consumeRequest.getProcessQueue().isDropped()) {
-                consumeRequest = consumeRequestCache.poll(timeoutTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+                consumeRequest = consumeRequestCache.poll(endTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+                if (endTime - System.currentTimeMillis() <= 0 && consumeRequest.getProcessQueue().isDropped()){
+                    consumeRequest=null;
+                    break;
+                }
             }
             preConsumeRequestLocal.set(consumeRequest);
             if (consumeRequest != null) {
@@ -252,13 +260,21 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
     public void commitSync() {
         ConsumeRequest consumeRequest = preConsumeRequestLocal.get();
         if (consumeRequest != null && !consumeRequest.getProcessQueue().isDropped()) {
-            consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMessageExts());
+            addToConsumed(preConsumeRequestLocal.get());
             preConsumeRequestLocal.set(null);
         }
         commitAll();
     }
 
     public void commitAll() {
+        Set<ConsumeRequest> consumedRequests;
+        synchronized (this.consumedSet) {
+            consumedRequests = this.consumedSet;
+            this.consumedSet = new HashSet<ConsumeRequest>();
+        }
+        for (ConsumeRequest consumeRequest : consumedRequests) {
+            consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMessageExts());
+        }
         Set<Map.Entry<MessageQueue, ProcessQueue>> entrySet = this.rebalanceImpl.getProcessQueueTable().entrySet();
         for (Map.Entry<MessageQueue, ProcessQueue> entry : entrySet) {
             try {
@@ -281,6 +297,15 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
             updateConsumeOffset(messageQueue, offset);
         } catch (MQClientException e) {
             log.error("An error occurred in update consume offset process.", e);
+        }
+    }
+
+    private void addToConsumed(ConsumeRequest consumeRequest) {
+        if (consumeRequest != null) {
+            synchronized (this.consumedSet) {
+                if (!consumedSet.contains(consumeRequest))
+                    consumedSet.add(consumeRequest);
+            }
         }
     }
 
