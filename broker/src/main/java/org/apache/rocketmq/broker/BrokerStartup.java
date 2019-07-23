@@ -239,6 +239,7 @@ public class BrokerStartup {
 
             return controller;
         } catch (Throwable e) {
+            e.printStackTrace();
             log.error("createBrokerController occur an exception.", e);
             System.exit(-1);
         }

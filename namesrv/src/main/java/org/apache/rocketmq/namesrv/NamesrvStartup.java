@@ -60,6 +60,7 @@ public class NamesrvStartup {
             log.info(tip);
             return controller;
         } catch (Throwable e) {
+            e.printStackTrace();
             log.error("The Name Server fail to boot.", e);
             System.exit(-1);
         }
