@@ -319,7 +319,7 @@ public class BrokerController {
 
             this.registerProcessor();
 
-            final long initialDelay = UtilAll.computNextMorningTimeMillis() - System.currentTimeMillis();
+            final long initialDelay = UtilAll.computeNextMorningTimeMillis() - System.currentTimeMillis();
             final long period = 1000 * 60 * 60 * 24;
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override

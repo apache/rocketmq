@@ -93,7 +93,7 @@ public class UtilAll {
         return nf.format(offset);
     }
 
-    public static long computeEclipseTimeMilliseconds(final long beginTime) {
+    public static long computeElapsedTimeMilliseconds(final long beginTime) {
         return System.currentTimeMillis() - beginTime;
     }
 
@@ -124,7 +124,7 @@ public class UtilAll {
             cal.get(Calendar.MILLISECOND));
     }
 
-    public static long computNextMorningTimeMillis() {
+    public static long computeNextMorningTimeMillis() {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(System.currentTimeMillis());
         cal.add(Calendar.DAY_OF_MONTH, 1);
@@ -136,7 +136,7 @@ public class UtilAll {
         return cal.getTimeInMillis();
     }
 
-    public static long computNextMinutesTimeMillis() {
+    public static long computeNextMinutesTimeMillis() {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(System.currentTimeMillis());
         cal.add(Calendar.DAY_OF_MONTH, 0);
@@ -148,7 +148,7 @@ public class UtilAll {
         return cal.getTimeInMillis();
     }
 
-    public static long computNextHourTimeMillis() {
+    public static long computeNextHourTimeMillis() {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(System.currentTimeMillis());
         cal.add(Calendar.DAY_OF_MONTH, 0);
@@ -160,7 +160,7 @@ public class UtilAll {
         return cal.getTimeInMillis();
     }
 
-    public static long computNextHalfHourTimeMillis() {
+    public static long computeNextHalfHourTimeMillis() {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(System.currentTimeMillis());
         cal.add(Calendar.DAY_OF_MONTH, 0);
