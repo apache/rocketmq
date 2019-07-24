@@ -28,6 +28,9 @@ import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.OverlappingFileLockException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -562,6 +565,29 @@ public class DefaultMessageStoreTest {
             messageExtBrokerInner.setQueueId(0);
             messageStore.putMessage(messageExtBrokerInner);
         }
+    }
+
+    @Test
+    public void testGetMessageIds() throws InterruptedException {
+        String topic = "FooBar";
+        int queueId = 0;
+        AppendMessageResult[] appendMessageResultArray = this.putMessages(10, topic, queueId);
+        List<String> messageIdList = new ArrayList<>();
+        List<Long> offsetList = new ArrayList<>();
+        for (int i = 0; i < appendMessageResultArray.length; i++) {
+            messageIdList.add(appendMessageResultArray[i].getMsgId());
+            offsetList.add(appendMessageResultArray[i].getLogicsOffset());
+        }
+        Collections.sort(offsetList);
+        // wait for consumeQueue Ok
+        Thread.sleep(3000);
+        Map<String, Long> messageIds = ((DefaultMessageStore) messageStore).getMessageIds(topic, queueId,
+            offsetList.get(0), offsetList.get(offsetList.size() - 1), StoreHost);
+        assertTrue(messageIdList.size() == messageIds.size());
+        messageIds.forEach((key, value) -> {
+            assertTrue(messageIdList.contains(key));
+        });
+
     }
 
     private void damageCommitlog(long offset) throws Exception {

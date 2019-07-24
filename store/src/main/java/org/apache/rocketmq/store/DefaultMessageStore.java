@@ -1042,6 +1042,7 @@ public class DefaultMessageStore implements MessageStore {
                         int i = 0;
                         for (; i < bufferConsumeQueue.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
                             long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
+                            bufferConsumeQueue.getByteBuffer().position(i + ConsumeQueue.CQ_STORE_UNIT_SIZE);
                             final ByteBuffer msgIdMemory = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);
                             String msgId =
                                 MessageDecoder.createMessageId(msgIdMemory, MessageExt.socketAddress2ByteBuffer(storeHost), offsetPy);
