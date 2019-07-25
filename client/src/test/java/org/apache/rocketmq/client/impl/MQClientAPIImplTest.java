@@ -19,12 +19,14 @@ package org.apache.rocketmq.client.impl;
 import java.lang.reflect.Field;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.hook.SendMessageContext;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -55,7 +57,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 
 @RunWith(MockitoJUnitRunner.class)
-public class MQClientAPIImplTest {
+public class MQClientAPIImplTest extends TopicConfig {
     private MQClientAPIImpl mqClientAPI = new MQClientAPIImpl(new NettyClientConfig(), null, null, new ClientConfig());
     @Mock
     private RemotingClient remotingClient;
@@ -67,6 +69,7 @@ public class MQClientAPIImplTest {
     private static String group = "FooBarGroup";
     private static String topic = "FooBar";
     private Message msg = new Message("FooBar", new byte[] {});
+    private Object topicConfig;
 
     @Before
     public void init() throws Exception {
@@ -130,6 +133,7 @@ public class MQClientAPIImplTest {
         doAnswer(new Answer() {
             @Override
             public Object answer(InvocationOnMock mock) throws Throwable {
+
                 RemotingCommand request = mock.getArgument(1);
                 RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
                 response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -209,6 +213,40 @@ public class MQClientAPIImplTest {
             assertThat(e).hasMessage("Interrupted Exception in Test");
         }
     }
+
+    @Test
+    public void testCreateTopic_Success() throws RemotingException, InterruptedException, MQBrokerException {
+        TopicConfig topicConfig = new TopicConfig("test");
+        topicConfig.setReadQueueNums(123);
+        topicConfig.setWriteQueueNums(123);
+        topicConfig.setTopicSysFlag(0);
+        SendResult sendResult = null;
+        try {
+            sendResult = mqClientAPI.createTopic(brokerAddr, "test", topicConfig,
+                    3 * 1000);
+        } catch (MQClientException e) {
+            e.printStackTrace();
+             assertThat(e).isNull();
+        }
+        assertThat(sendResult).isNull();
+    }
+
+    @Test
+    public void testCreateTopic_WithException() throws RemotingException, InterruptedException, MQBrokerException {
+        String TopicIllegal = "Test%^%%^&%^est";
+        String TopicRule="^[%|a-zA-Z0-9_-]+$";
+        TopicConfig topicConfig = new TopicConfig(TopicIllegal);
+        topicConfig.setReadQueueNums(123);
+        topicConfig.setWriteQueueNums(123);
+        topicConfig.setTopicSysFlag(0);
+        try {
+             mqClientAPI.createTopic(brokerAddr, TopicIllegal, topicConfig,
+                    3 * 1000);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageContaining(String.format("The specified topic[%s] contains illegal characters, allowing only %s",TopicIllegal,TopicRule));
+        }
+    }
+
 
     private RemotingCommand createSuccessResponse(RemotingCommand request) {
         RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);

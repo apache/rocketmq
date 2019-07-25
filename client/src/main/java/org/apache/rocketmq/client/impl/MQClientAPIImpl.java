@@ -256,9 +256,9 @@ public class MQClientAPIImpl {
 
     }
 
-    public void createTopic(final String addr, final String defaultTopic, final TopicConfig topicConfig,
-        final long timeoutMillis)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+    public SendResult createTopic(final String addr, final String defaultTopic, final TopicConfig topicConfig,
+                                  final long timeoutMillis)
+        throws RemotingException, InterruptedException, MQClientException {
 
         Validators.checkTopic(topicConfig.getTopicName());
 
@@ -279,7 +279,7 @@ public class MQClientAPIImpl {
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
-                return;
+                return null;
             }
             default:
                 break;
