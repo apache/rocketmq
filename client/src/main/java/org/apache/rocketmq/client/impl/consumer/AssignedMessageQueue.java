@@ -58,7 +58,7 @@ public class AssignedMessageQueue {
         }
     }
 
-    public long getNextOffset(MessageQueue messageQueue) throws MQClientException {
+    public long getNextOffset(MessageQueue messageQueue)  {
         MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
         if (assignedMessageQueueState.get(messageQueue) != null) {
             return messageQueueStat.getNextOffset();
@@ -66,7 +66,7 @@ public class AssignedMessageQueue {
         return -1;
     }
 
-    public void updateNextOffset(MessageQueue messageQueue, long offset) throws MQClientException {
+    public void updateNextOffset(MessageQueue messageQueue, long offset)  {
         MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
         if (messageQueue == null) {
             messageQueueStat = new MessageQueueStat(messageQueue, offset);

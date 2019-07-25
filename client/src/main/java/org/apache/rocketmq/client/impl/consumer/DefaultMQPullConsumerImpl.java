@@ -603,7 +603,9 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             case CREATE_JUST:
                 break;
             case RUNNING:
-                this.persistConsumerOffset();
+                if(!(this instanceof LiteMQPullConsumerImpl)){
+                    this.persistConsumerOffset();
+                }
                 this.mQClientFactory.unregisterConsumer(this.defaultMQPullConsumer.getConsumerGroup());
                 this.mQClientFactory.shutdown();
                 log.info("the consumer [{}] shutdown OK", this.defaultMQPullConsumer.getConsumerGroup());
