@@ -32,7 +32,7 @@ import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
-
+// 负责读写IndexFile的服务
 public class IndexService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     /**
@@ -43,6 +43,10 @@ public class IndexService {
     private final int hashSlotNum;
     private final int indexNum;
     private final String storePath;
+    //CommitLog的另外一种形式的索引文件，只是索引的是messageKey，
+    // 每个MsgKey经过hash后计算存储的slot，
+    // 然后将offset存到IndexFile的相应slot上。根据msgKey来查询消息时，可以先到IndexFile中查询offset，然后根据offset去commitLog中查询消息详情。
+
     private final ArrayList<IndexFile> indexFileList = new ArrayList<IndexFile>();
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 

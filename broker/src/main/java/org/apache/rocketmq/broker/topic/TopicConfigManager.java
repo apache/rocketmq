@@ -45,6 +45,8 @@ public class TopicConfigManager extends ConfigManager {
     private static final long LOCK_TIMEOUT_MILLIS = 3000;
     private transient final Lock lockTopicConfigTable = new ReentrantLock();
 
+
+    //
     private final ConcurrentMap<String, TopicConfig> topicConfigTable =
         new ConcurrentHashMap<String, TopicConfig>(1024);
     private final DataVersion dataVersion = new DataVersion();
@@ -65,6 +67,14 @@ public class TopicConfigManager extends ConfigManager {
             topicConfig.setWriteQueueNums(1);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
+
+        /**
+         * 初始化TopicConfigManager对象时，
+         * 默认初始化了"SELF_TEST_TOPIC"、"TBW102"（自动创建Topic功能是否开启BrokerConfig.autoCreateTopicEnable=false，线上建议关闭）、
+         * "BenchmarkTest"、BrokerClusterName（集群名称）、
+         * BrokerName（Broker的名称）、
+         * "OFFSET_MOVED_EVENT"这5个topic的信息并存入了topicConfigTable变量中，在向NameServer注册时发给NameServer进行登记；
+         * */
         {
             // MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC
             if (this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {

@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Spin lock Implementation to put message, suggest using this with low race conditions
  */
+// 自旋锁
 public class PutMessageSpinLock implements PutMessageLock {
     //true: Can lock, false : in lock.
     private AtomicBoolean putMessageSpinLock = new AtomicBoolean(true);

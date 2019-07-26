@@ -21,6 +21,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
+//关于Config的关系管理，核心的Config都有共性的加载，编码，解析，保存到指定文件的操作，内部采用的了共享的超级父类设计，Config的类关系如下图：
 public abstract class ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 

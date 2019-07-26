@@ -59,25 +59,42 @@ import org.apache.rocketmq.store.index.QueryOffsetResult;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
-// 消息存储实现类
+// 消息存储-实现类
 public class DefaultMessageStore implements MessageStore {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    // 消息存储配置属性
+    // 消息存储-配置属性
     private final MessageStoreConfig messageStoreConfig;
+
+    // CommitLog，存储消息的详细内容，按照消息收到的顺序，所有消息都存储在一起。
+    // 每个消息存储后都会有一个offset，代表在 commitLog中的偏移量。
+    // 举个例子，当前commitLog文件的大小是12413435字节，
+    // 那下一条消息到来后它的offset就是12413436。
+    // 这个说法不是非常准确，但是offset大概是这么计算来的。
+    // commitLog并不是一个文件，而是一系列文件（上图中的MappedFile）。
+    // 每个文件的大小都是固定的（默认1G），写满一个会生成一个新的文件，新文件的文件名就是它存储的第一条消息的offset。
     // CommitLog文件的存储实现类
     private final CommitLog commitLog;
 
-    //消息队列存储缓存表，按消息主体分组
+    // 消息队列存储缓存表，按消息主题分组
+    // ConsumeQueue，既然所有消息都是存储在一个commitLog中，
+    // 但是 consumer 是按照 topic + queue 的维度来消费消息的，没有办法直接从commitLog中读取，
+    // 所以针对每个topic的每个queue都会生成consumeQueue文件。
+    // ConsumeQueue文件中存储的是消息在commitLog中的offset，
+    // 可以理解成一个按queue建的索引，每条消息占用20字节（上图中的一个cq）。
+    // 跟commitLog一样，每个Queue文件也是一系列连续的文件组成，每个文件默认放 30w 个offset。
     private final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;
 
     // 消息队列文件consumeQueue的刷盘线程
+    // 逻辑队列刷盘服务，每隔1秒钟就将ConsumeQueue逻辑队列、TransactionStateService.TranRedoLog变量的数据持久化到磁盘物理文件中
     private final FlushConsumeQueueService flushConsumeQueueService;
 
     //清除commitLog文件服务
+    //清理物理文件服务，定期清理72小时之前的物理文件。
     private final CleanCommitLogService cleanCommitLogService;
 
     // 清除commitQueue文件服务
+    // 清理逻辑文件服务，定期清理在逻辑队列中的物理偏移量小于commitlog中的最小物理偏移量的数据，同时也清理Index中物理偏移量小于commitlog中的最小物理偏移量的数据。
     private final CleanConsumeQueueService cleanConsumeQueueService;
 
     // 索引文件实现类
@@ -87,13 +104,18 @@ public class DefaultMessageStore implements MessageStore {
     private final AllocateMappedFileService allocateMappedFileService;
 
     // commitLog消息发送，根据commitLog文件构成consumeQueue、IndexFile文件。
+    //ReputMessageService，消息存储到commitLog后，MessageStore的接口调用就直接返回了，后续由ReputMessageService负责将消息分发到ConsumeQueue和IndexService
+    //HAService，负责将master-slave之间的消息数据同步
     private final ReputMessageService reputMessageService;
 
     //存储HA机制
+    //用于commitlog数据的主备同步
     private final HAService haService;
 
+    //用于监控延迟消息，并到期后执行
     private final ScheduleMessageService scheduleMessageService;
 
+    //存储层内部统计服务
     private final StoreStatsService storeStatsService;
 
     //消息堆内存存储
@@ -102,11 +124,12 @@ public class DefaultMessageStore implements MessageStore {
     private final RunningFlags runningFlags = new RunningFlags();
     private final SystemClock systemClock = new SystemClock();
 
+    //每一个延迟级别对应一个消息消费队列，存储延迟队列的消息拉取进度。
     private final ScheduledExecutorService scheduledExecutorService =
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread"));
     private final BrokerStatsManager brokerStatsManager;
 
-    // 消息拉取长轮询模式消息达 到监听器 。
+    // 消息拉取长轮询模式消息达到监听器 。
     private final MessageArrivingListener messageArrivingListener;
 
     //Broker 配置属性
@@ -128,37 +151,58 @@ public class DefaultMessageStore implements MessageStore {
 
     boolean shutDownNormal = false;
 
+    //该对象是应用层访问存储层的访问类
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig) throws IOException {
         this.messageArrivingListener = messageArrivingListener;
+        //内容的存储服务
         this.brokerConfig = brokerConfig;
         this.messageStoreConfig = messageStoreConfig;
         this.brokerStatsManager = brokerStatsManager;
+        // AllocateMappedFileService 服务线程，
+        // 当需要创建 MappedFile时（在MappedFileQueue.getLastMappedFile方法中），
+        // 向该线程的 requestQueue 队列中放入 AllocateRequest请求对象，该线程会在后台监听该队列，并在后台创建MappedFile对象，即同时创建了物理文件。
         this.allocateMappedFileService = new AllocateMappedFileService(this);
+        // 根据配置构造消息的实际物理存储 commitLog，该对象是实际的物理文件存储设计
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
             this.commitLog = new DLedgerCommitLog(this);
         } else {
             this.commitLog = new CommitLog(this);
         }
+        //消费者信息定位
         this.consumeQueueTable = new ConcurrentHashMap<>(32);
 
+        //逻辑队列刷盘服务，每隔1秒钟就将ConsumeQueue逻辑队列、TransactionStateService.TranRedoLog变量的数据持久化到磁盘物理文件中
+        //刷新
         this.flushConsumeQueueService = new FlushConsumeQueueService();
+        //清除消息的操作，定期清理过期数据，提前创建文件
         this.cleanCommitLogService = new CleanCommitLogService();
+        //清除消费
         this.cleanConsumeQueueService = new CleanConsumeQueueService();
+        //存储状态
         this.storeStatsService = new StoreStatsService();
+        // 创建IndexService服务线程，该服务线程负责创建Index索引；
+        // 索引
         this.indexService = new IndexService(this);
+
+
+        //高可用的服务配置
         if (!messageStoreConfig.isEnableDLegerCommitLog()) {
             this.haService = new HAService(this);
         } else {
             this.haService = null;
         }
+        //重放，后面跟踪分析
         this.reputMessageService = new ReputMessageService();
 
+        //调度
         this.scheduleMessageService = new ScheduleMessageService(this);
 
+        //持久存储池化,内存
         this.transientStorePool = new TransientStorePool(messageStoreConfig);
 
         if (messageStoreConfig.isTransientStorePoolEnable()) {
+            //主要提升性能的池化初始化
             this.transientStorePool.init();
         }
 
@@ -192,17 +236,26 @@ public class DefaultMessageStore implements MessageStore {
         boolean result = true;
 
         try {
+            //判断标准文件体系是否存在
             boolean lastExitOK = !this.isTempFileExist();
             log.info("last shutdown {}", lastExitOK ? "normally" : "abnormally");
 
+            // 调用 ScheduleMessageService.load方法，
+            // 初始化延迟级别列表。
+            // 将这些级别（"1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h"）
+            // 的延时存入延迟级别delayLevelTable：ConcurrentHashMap<Integer /* level */, Long/* delay timeMillis */>变量中，
+            // 例如1s的kv值为1:1000,5s的kv值为2:5000，key值依次类推；每个延迟级别即为一个队列。
+            // 加载任务调度
             if (null != scheduleMessageService) {
                 result = result && this.scheduleMessageService.load();
             }
 
             // load Commit Log
+            // 调用 CommitLog.load 方法，在此方法中调用 MappedFileQueue.load 方法，将$HOME /store/commitLog目录下的所有文件加载到MappedFileQueue的List<MappedFile>变量中；
             result = result && this.commitLog.load();
 
             // load Consume Queue
+            // 调用 DefaultMessageStore.loadConsumeQueue 方法加载consumeQueue文件数据到DefaultMessageStore.consumeQueueTable集合中。
             result = result && this.loadConsumeQueue();
 
             if (result) {
@@ -219,7 +272,7 @@ public class DefaultMessageStore implements MessageStore {
             log.error("load exception", e);
             result = false;
         }
-
+        //成功的标识验证
         if (!result) {
             this.allocateMappedFileService.shutdown();
         }
@@ -231,7 +284,7 @@ public class DefaultMessageStore implements MessageStore {
      * @throws Exception
      */
     public void start() throws Exception {
-
+        //1、写lock 文件,尝试获取lock文件锁，保证磁盘上的文件只会被一个messageStore读写
         lock = lockFile.getChannel().tryLock(0, 1, false);
         if (lock == null || lock.isShared() || !lock.isValid()) {
             throw new RuntimeException("Lock failed,MQ already started");
@@ -272,6 +325,7 @@ public class DefaultMessageStore implements MessageStore {
             log.info("[SetReputOffset] maxPhysicalPosInLogicQueue={} clMinOffset={} clMaxOffset={} clConfirmedOffset={}",
                 maxPhysicalPosInLogicQueue, this.commitLog.getMinOffset(), this.commitLog.getMaxOffset(), this.commitLog.getConfirmOffset());
             this.reputMessageService.setReputFromOffset(maxPhysicalPosInLogicQueue);
+            //6、启动reputMessageService，该服务负责将CommitLog中的消息offset记录到cosumeQueue文件中
             this.reputMessageService.start();
 
             /**
@@ -289,15 +343,28 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         if (!messageStoreConfig.isEnableDLegerCommitLog()) {
+            //7、启动haService，数据主从同步的服务
+            //如果是Master，HAService默认监听10912端口，接收slave的连接请求，然后将消息推送给slave；如果是Slave，则通过该服务连接Master接收数据
+
             this.haService.start();
+            //5、针对master，启动延时消息调度服务
+            // 在consumer的时候讲过，如果消息失败，broker会延时重发。对于延时重发消息（topic=SCHEDULE_TOPIC_XXXX），这个服务负责检查是否有消息到了发送时间，到了时间则从延时队列中取出后重新发送
             this.handleScheduleMessageService(messageStoreConfig.getBrokerRole());
         }
 
+        //2、启动FlushConsumeQueueService，是一个单线程的服务，定时将consumeQueue文件的数据刷新到磁盘，周期由参数flushIntervalConsumeQueue设置，默认1sec
+        // 数据写入文件后，因为多级缓存的原因不会马上写到磁盘上，所以会有一个单独的线程定时调用flush，这里是flush consumeQueue文件的。CommitLog和IndexFile的也有类似的逻辑，只是不是在这里启动的
         this.flushConsumeQueueService.start();
+        //3、启动CommitLog
         this.commitLog.start();
+        //4、消息存储指标统计服务，RT，TPS...'
         this.storeStatsService.start();
-
+        //8、对于新的broker，初始化文件存储的目录
         this.createTempFile();
+        //9、启动定时任务
+        //1.定时清理过期的commitLog、cosumeQueue和Index数据文件, 默认文件写满后会保存72小时
+        //2.定时自检commitLog和consumerQueue文件，校验文件是否完整。主要用于监控，不会做修复文件的动作。
+        //3.定时检查commitLog的Lock时长(因为在write或者flush时侯会lock)，如果lock的时间过长，则打印jvm堆栈，用于监控。
         this.addScheduleTask();
         this.shutdown = false;
     }
@@ -368,6 +435,17 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+
+    /**
+     * 调用 putMessage(MessageExtBrokerInner msg)方法完成消息的写入工作。具体步骤如下：
+     * 1）检查是否shutdown，若是则直接返回服务不可用的错误；
+     * 2）检查是否为备用Broker，若是则直接返回服务不可用的错误；
+     * 3）检查是否有写的权限，若是则直接返回服务不可用的错误；
+     * 4）检查topic的长度是否大于最大值127，若是则返回消息不合法；
+     * 5）检查peroperties的长度是否大于32767，若是则返回消息不合法；
+     * 6）上述检查全部通过之后，调用CommitLog对象的putMessage方法进行消息的写入；
+     * 7）完成消息写入之后，调用StoreStatsService对象进行相关统计工作；
+     * */
     public PutMessageResult putMessage(MessageExtBrokerInner msg) {
 
         // 如果当前 Broker停止工作或 Broker为 SLAVE 角色或 当前 Rocket不支持写入 则拒绝消息写入;
@@ -506,6 +584,10 @@ public class DefaultMessageStore implements MessageStore {
         return commitLog;
     }
 
+
+    /**
+     *读取消息
+     * */
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
         final int maxMsgNums,
         final MessageFilter messageFilter) {
@@ -528,25 +610,40 @@ public class DefaultMessageStore implements MessageStore {
 
         GetMessageResult getResult = new GetMessageResult();
 
+        //获取commitlog文件目前写入的最大位置maxOffsetPy；
         final long maxOffsetPy = this.commitLog.getMaxOffset();
 
+        // 调用findConsumeQueue(String topic, int queueId)方法获得，从ConsumeQueue集合consumeQueueTable: ConcurrentHashMap
+        // 以topic和queueId为参数调用findConsumeQueue方法，
+        // 从DefaultMessageStore.consumeQueueTable中获取ConsumeQueue对象，
+        // 若没有获取到该ConsumeQueue对象（一般不会出现此情况）表示该topic和queuId下面的队列不存在，
+        // 则返回GetMessageResult对象信息，该对象中STATUS=NO_MATCHED_LOGIC_QUEUE,
+        // NextBeginOffset=0的消息，若取到了ConsumeQueue对象，即该topic和queueId下面有队列存在，则继续下面的逻辑；
         ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
+            // 获取该ConsumeQueue对象的最小逻辑offset（命名：minOffset=minLogicOffset/20）和最大逻辑 offset（命名：maxOffset=MapedFileQueue.getMaxOffset()/20）；
             minOffset = consumeQueue.getMinOffsetInQueue();
             maxOffset = consumeQueue.getMaxOffsetInQueue();
 
+
+            // 对请求参数中的queueoffset进行有效性检验：
             if (maxOffset == 0) {
+                // 若maxOffset等于0，则status= NO_MESSAGE_IN_QUEUE，nextBeginOffset=0；
                 status = GetMessageStatus.NO_MESSAGE_IN_QUEUE;
                 nextBeginOffset = nextOffsetCorrection(offset, 0);
             } else if (offset < minOffset) {
+                //若请求消息中的queueoffset小于minOffset，则status= OFFSET_TOO_SMALL，nextBeginOffset=minOffset；
                 status = GetMessageStatus.OFFSET_TOO_SMALL;
                 nextBeginOffset = nextOffsetCorrection(offset, minOffset);
             } else if (offset == maxOffset) {
+                //若请求消息中的queueoffset等于maxOffset，则status=OFFSET_OVERFLOW_ONE，nextBeginOffset=offset；
                 status = GetMessageStatus.OFFSET_OVERFLOW_ONE;
                 nextBeginOffset = nextOffsetCorrection(offset, offset);
             } else if (offset > maxOffset) {
+                //若请求消息中的queueoffset大于maxOffset，则status=OFFSET_OVERFLOW_BADLY；此时若minOffset=0，则nextBeginOffset=0，否则nextBeginOffset=maxOffset；
                 status = GetMessageStatus.OFFSET_OVERFLOW_BADLY;
                 if (0 == minOffset) {
+                    // 若请求消息中的queueoffset在minOffset与maxOffset之间，则继续执行后续操作步骤读取消息。
                     nextBeginOffset = nextOffsetCorrection(offset, minOffset);
                 } else {
                     nextBeginOffset = nextOffsetCorrection(offset, maxOffset);
@@ -719,6 +816,12 @@ public class DefaultMessageStore implements MessageStore {
         return 0;
     }
 
+    // 调用lookMessageByOffset(long commitLogOffset,
+    // int size)方法获取从指定开始位置读取size大小的消息内容。
+    // 在该方法中，调用commitlog的getMessage方法从commitlog中获取消息，
+    // 并调用MessageDecoder.decode方法对commitlog消息进行解码，
+    // 最后返回MessageExt对象。其中MessageExt对象对象的MsgId长度为16字节，
+    // 有8字节的消息存储本机的IP:PORT和8个字节的该消息的物理偏移offset值构成；
     public MessageExt lookMessageByOffset(long commitLogOffset) {
         SelectMappedBufferResult sbr = this.commitLog.getMessage(commitLogOffset, 4);
         if (null != sbr) {
@@ -789,6 +892,7 @@ public class DefaultMessageStore implements MessageStore {
         return result;
     }
 
+    //最大物理偏移量就是在commitlog中当前写入消息的位置，调用DefaultMessageStore.getMaxPhyOffset() 方法获取最大物理偏移量，在该方法中调用CommitLog.getMaxOffset()方法获取。
     @Override
     public long getMaxPhyOffset() {
         return this.commitLog.getMaxOffset();
@@ -855,6 +959,7 @@ public class DefaultMessageStore implements MessageStore {
         return -1;
     }
 
+    // 调用getCommitLogData(final long offset)方法从指定偏移量开始读取之后的所有commitlog数据，在该方法中调用CommitLog对象的getData方法获取。
     @Override
     public SelectMappedBufferResult getCommitLogData(final long offset) {
         if (this.shutdown) {
@@ -865,6 +970,8 @@ public class DefaultMessageStore implements MessageStore {
         return this.commitLog.getData(offset);
     }
 
+
+    //调用DefaultMessageStore.appendToCommitLog(long startOffset, byte[] data)方法将数据从指定位置追加到commitlog文件中
     @Override
     public boolean appendToCommitLog(long startOffset, byte[] data) {
         if (this.shutdown) {
@@ -872,8 +979,12 @@ public class DefaultMessageStore implements MessageStore {
             return false;
         }
 
+        //1、调用CommitLog对象的appendData方法进行数据的追加
         boolean result = this.commitLog.appendData(startOffset, data);
         if (result) {
+            //2、若追加数据成功之后，要完成该数据对应的consumequeue和index索引的创建，
+            // 唤醒DefaultMessageStore.ReputMessageService服务线程，
+            // 由该线程来执行。在备用Broker启动时首先用本地的commitlog最大偏移量（最后写入消息位置）来初始化该线程的reputFromOffset变量；然后启动该线程。
             this.reputMessageService.wakeup();
         } else {
             log.error("appendToPhyQueue failed " + startOffset + " " + data.length);
@@ -1134,6 +1245,10 @@ public class DefaultMessageStore implements MessageStore {
         this.commitLog.setConfirmOffset(phyOffset);
     }
 
+    // 调用lookMessageByOffset(long commitLogOffset, int size)方法
+    // 获取从指定开始位置读取size大小的消息内容。在该方法中，调用commitlog的getMessage方法从commitlog中获取消息，
+    // 并调用MessageDecoder.decode方法对commitlog消息进行解码，
+    // 最后返回MessageExt对象。其中MessageExt对象对象的MsgId长度为16字节，有8字节的消息存储本机的IP:PORT和8个字节的该消息的物理偏移offset值构成；
     public MessageExt lookMessageByOffset(long commitLogOffset, int size) {
         SelectMappedBufferResult sbr = this.commitLog.getMessage(commitLogOffset, size);
         if (null != sbr) {
@@ -1147,6 +1262,7 @@ public class DefaultMessageStore implements MessageStore {
         return null;
     }
 
+    //调用findConsumeQueue(String topic, int queueId)方法获得，从ConsumeQueue集合consumeQueueTable: ConcurrentHashMap
     public ConsumeQueue findConsumeQueue(String topic, int queueId) {
         ConcurrentMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
         if (null == map) {
@@ -1459,6 +1575,7 @@ public class DefaultMessageStore implements MessageStore {
             if (brokerRole == BrokerRole.SLAVE) {
                 this.scheduleMessageService.shutdown();
             } else {
+                //5、针对master，启动延时消息调度服务
                 this.scheduleMessageService.start();
             }
         }
@@ -1800,8 +1917,12 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+
+    // 该服务线程会一直不间断的监听reputFromOffset偏移量之后的commitlog数据，
+    // 若commitlog数据有增加，即reputFromOffset偏移量之后新增了数据，则获取出来并创建consumequeue和index，同时更新reputFromOffset偏移量。
     class ReputMessageService extends ServiceThread {
 
+        //1、以reputFromOffset值作为开始读取偏移量从commitlog中获取该值之后的所有数据，调用CommitLog对象的getData方法；
         private volatile long reputFromOffset = 0;
 
         public long getReputFromOffset() {

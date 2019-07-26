@@ -20,10 +20,11 @@ package org.apache.rocketmq.store;
  * When write a message to the commit log, returns results
  */
 public class AppendMessageResult {
-    // Return code 消息追加结果
+    // Return code 消息追加结果.取值 PUT_OK ,追加成功；END_OF_FILE,超过文件大小。MESSAGE SIZE EXCEEDED :消息长度超过最大允许长度；
+    // PROPERTIES_SIZE_EXCEEDED :消息、属性超过最大允许长度; UNKNOWN ERROR :未 知异常 。
     private AppendMessageStatus status;
     // Where to start writing 消息的物理偏移量
-    private long wroteOffset;
+    private long wroteOffset; // 消息的物理偏移量 。
     // Write Bytes
     private int wroteBytes;
     // Message ID 消息 ID

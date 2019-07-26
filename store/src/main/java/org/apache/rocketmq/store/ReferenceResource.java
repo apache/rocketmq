@@ -40,6 +40,12 @@ public abstract class ReferenceResource {
         return this.available;
     }
 
+    // Step1 : 关闭 MappedFile。 初次调用时 this.available 为 true，设置 available 为 false，
+    // 并设置 初次关闭的时间戳( firstShutdownTimestamp)为当前时间戳，
+    // 然后调用 release()方法尝试释放资源，
+    // release 只有在引用次数小于1的情况下才会释放资源;
+    // 如果引用次数大于 0，对比当前时间与 firstShutdownTimestamp，
+    // 如果已经超过了其最大拒绝存活期，每执行一次，将引用数减少 1000，直到引用数小于 0 时通过执行 release 方法释放资源 。
     public void shutdown(final long intervalForcibly) {
         if (this.available) {
             this.available = false;
@@ -53,7 +59,11 @@ public abstract class ReferenceResource {
         }
     }
 
+    //在整个 MappedFile 销毁过程，
+    // 首先需要释放资源，
+    // 释放资源的前提条件是该 MappedFile 的引用小于等于 0，接下来重点看一下 release方法的实现原理
     public void release() {
+        // 将引用次数减 l ，如果引用数小于等于 0，则执行 cleanup 方法
         long value = this.refCount.decrementAndGet();
         if (value > 0)
             return;
@@ -70,6 +80,8 @@ public abstract class ReferenceResource {
 
     public abstract boolean cleanup(final long currentRef);
 
+    // Step2 : 判断是否清理完成，判断标准是引用次数小于等于0并且cleanupOver为true,
+    // cleanupOver为true的触发条件是release成功将MappedByteBuffer源释放。 稍后详细分 析 release方法。
     public boolean isCleanupOver() {
         return this.refCount.get() <= 0 && this.cleanupOver;
     }
