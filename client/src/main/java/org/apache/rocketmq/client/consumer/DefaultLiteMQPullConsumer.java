@@ -110,6 +110,20 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
         return poll(this.getConsumerPullTimeoutMillis());
     }
 
+    @Override
+    public List<MessageExt> poll(long timeout) {
+        return liteMQPullConsumer.poll(timeout);
+    }
+
+    @Override
+    public void assign(Collection<MessageQueue> messageQueues) {
+        liteMQPullConsumer.assign(messageQueues);
+    }
+
+    @Override
+    public Collection<MessageQueue> assigned() {
+        return null;
+    }
 
     @Override
     public void seek(MessageQueue messageQueue, long offset) throws MQClientException {
@@ -127,25 +141,9 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
     }
 
     @Override
-    public List<MessageExt> poll(long timeout) {
-        return liteMQPullConsumer.poll(timeout);
-    }
-
-    @Override
-    public void assign(Collection<MessageQueue> messageQueues) {
-        liteMQPullConsumer.assign(messageQueues);
-    }
-
-    @Override
-    public Collection<MessageQueue> assigned() {
-        return null;
-    }
-
-    @Override
     public void commitSync() {
         this.liteMQPullConsumer.commitSync();
     }
-
 
     public long getConsumeTimeout() {
         return consumeTimeout;

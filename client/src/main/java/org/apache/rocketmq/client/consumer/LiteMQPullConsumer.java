@@ -23,6 +23,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public interface LiteMQPullConsumer {
+    
     /**
      * Subscribe some topic
      *
@@ -37,6 +38,7 @@ public interface LiteMQPullConsumer {
      * @param topic message topic
      */
     void unsubscribe(final String topic);
+
 
     List<MessageExt> poll();
 
@@ -53,5 +55,4 @@ public interface LiteMQPullConsumer {
     Collection<MessageQueue> assigned();
 
     void commitSync();
-
 }
