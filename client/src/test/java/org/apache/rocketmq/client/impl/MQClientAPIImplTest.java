@@ -69,7 +69,6 @@ public class MQClientAPIImplTest extends TopicConfig {
     private static String group = "FooBarGroup";
     private static String topic = "FooBar";
     private Message msg = new Message("FooBar", new byte[] {});
-    private Object topicConfig;
 
     @Before
     public void init() throws Exception {
@@ -215,19 +214,29 @@ public class MQClientAPIImplTest extends TopicConfig {
     }
 
     @Test
-    public void testCreateTopic_Success() throws RemotingException, InterruptedException, MQBrokerException {
+    public void testCreateTopic_Success() throws RemotingException, InterruptedException, MQClientException {
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
+                RemotingCommand request = mock.getArgument(1);
+                return createSuccessResponse(request);
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
+                RemotingCommand request = mock.getArgument(1);
+                return createSuccessResponse(request);
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
         TopicConfig topicConfig = new TopicConfig("test");
         topicConfig.setReadQueueNums(123);
         topicConfig.setWriteQueueNums(123);
         topicConfig.setTopicSysFlag(0);
-        SendResult sendResult = null;
-        try {
-            sendResult = mqClientAPI.createTopic(brokerAddr, "test", topicConfig,
-                    3 * 1000);
-        } catch (MQClientException e) {
-            e.printStackTrace();
-             assertThat(e).isNull();
-        }
+        SendResult sendResult = mqClientAPI.createTopic(brokerAddr, "test", topicConfig,
+                3 * 1000);
+       // assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
         assertThat(sendResult).isNull();
     }
 
@@ -243,6 +252,7 @@ public class MQClientAPIImplTest extends TopicConfig {
              mqClientAPI.createTopic(brokerAddr, TopicIllegal, topicConfig,
                     3 * 1000);
         } catch (MQClientException e) {
+            e.printStackTrace();
             assertThat(e).hasMessageContaining(String.format("The specified topic[%s] contains illegal characters, allowing only %s",TopicIllegal,TopicRule));
         }
     }
