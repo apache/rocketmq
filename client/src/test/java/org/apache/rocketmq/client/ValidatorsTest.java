@@ -28,22 +28,22 @@ import static org.assertj.core.api.Fail.failBecauseExceptionWasNotThrown;
 public class ValidatorsTest {
 
     @Test
-    public void testCheckTopic_Success() throws MQClientException {
-        Validators.checkTopic("Hello");
-        Validators.checkTopic("%RETRY%Hello");
-        Validators.checkTopic("_%RETRY%Hello");
-        Validators.checkTopic("-%RETRY%Hello");
-        Validators.checkTopic("223-%RETRY%Hello");
+    public void testCheckName_Success() throws MQClientException {
+        Validators.checkName("Hello");
+        Validators.checkName("%RETRY%Hello");
+        Validators.checkName("_%RETRY%Hello");
+        Validators.checkName("-%RETRY%Hello");
+        Validators.checkName("223-%RETRY%Hello");
     }
 
     @Test
-    public void testCheckTopic_HasIllegalCharacters() {
-        String illegalTopic = "TOPIC&*^";
+    public void testCheckName_HasIllegalCharacters() {
+        String illegalName = "Name&*^";
         try {
-            Validators.checkTopic(illegalTopic);
+            Validators.checkName(illegalName);
             failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
-            assertThat(e).hasMessageStartingWith(String.format("The specified topic[%s] contains illegal characters, allowing only %s", illegalTopic, Validators.VALID_PATTERN_STR));
+            assertThat(e).hasMessageStartingWith(String.format("The specified [%s] contains illegal characters, allowing only %s", illegalName, Validators.VALID_PATTERN_STR));
         }
     }
 
@@ -51,33 +51,33 @@ public class ValidatorsTest {
     public void testCheckTopic_UseDefaultTopic() {
         String defaultTopic = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
         try {
-            Validators.checkTopic(defaultTopic);
+            Validators.checkName(defaultTopic);
             failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
-            assertThat(e).hasMessageStartingWith(String.format("The topic[%s] is conflict with AUTO_CREATE_TOPIC_KEY_TOPIC.", defaultTopic));
+            assertThat(e).hasMessageStartingWith(String.format("The [%s] is conflict with default.", defaultTopic));
         }
     }
 
     @Test
-    public void testCheckTopic_BlankTopic() {
-        String blankTopic = "";
+    public void testCheckName_BlankName() {
+        String blankName = "";
         try {
-            Validators.checkTopic(blankTopic);
+            Validators.checkName(blankName);
             failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
-            assertThat(e).hasMessageStartingWith("The specified topic is blank");
+            assertThat(e).hasMessageStartingWith("The specified name is blank");
         }
     }
 
     @Test
-    public void testCheckTopic_TooLongTopic() {
-        String tooLongTopic = StringUtils.rightPad("TooLongTopic", Validators.CHARACTER_MAX_LENGTH + 1, "_");
-        assertThat(tooLongTopic.length()).isGreaterThan(Validators.CHARACTER_MAX_LENGTH);
+    public void testCheckName_TooLongTopic() {
+        String tooLongName = StringUtils.rightPad("TooLongName", Validators.CHARACTER_MAX_LENGTH + 1, "_");
+        assertThat(tooLongName.length()).isGreaterThan(Validators.CHARACTER_MAX_LENGTH);
         try {
-            Validators.checkTopic(tooLongTopic);
+            Validators.checkName(tooLongName);
             failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
-            assertThat(e).hasMessageStartingWith(String.format("The specified topic is longer than topic max length %s.", Validators.CHARACTER_MAX_LENGTH));
+            assertThat(e).hasMessageStartingWith(String.format("The specified %s is longer than topic max length %s.",tooLongName,Validators.CHARACTER_MAX_LENGTH));
         }
     }
 }

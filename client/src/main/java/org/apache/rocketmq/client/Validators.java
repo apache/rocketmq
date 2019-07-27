@@ -83,7 +83,7 @@ public class Validators {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message is null");
         }
         // topic
-        Validators.checkTopic(msg.getTopic());
+        Validators.checkName(msg.getTopic());
 
         // body
         if (null == msg.getBody()) {
@@ -101,27 +101,29 @@ public class Validators {
     }
 
     /**
-     * Validate topic
+     * Validate checkName (topic and GroupName)
      */
-    public static void checkTopic(String topic) throws MQClientException {
-        if (UtilAll.isBlank(topic)) {
-            throw new MQClientException("The specified topic is blank", null);
+    public static void checkName(String name) throws MQClientException {
+        if (UtilAll.isBlank(name)) {
+            throw new MQClientException("The specified name is blank", null);
         }
 
-        if (!regularExpressionMatcher(topic, PATTERN)) {
+        if (!regularExpressionMatcher(name, PATTERN)) {
             throw new MQClientException(String.format(
-                "The specified topic[%s] contains illegal characters, allowing only %s", topic,
+                "The specified [%s] contains illegal characters, allowing only %s", name,
                 VALID_PATTERN_STR), null);
         }
 
-        if (topic.length() > CHARACTER_MAX_LENGTH) {
-            throw new MQClientException("The specified topic is longer than topic max length 255.", null);
+        if (name.length() > CHARACTER_MAX_LENGTH) {
+            throw new MQClientException(
+                    String.format("The specified %s is longer than topic max length %s.",name,CHARACTER_MAX_LENGTH), null);
         }
 
-        //whether the same with system reserved keyword
-        if (topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
+        //whether the same with system reserved keyword only Topic
+        if (name.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
             throw new MQClientException(
-                String.format("The topic[%s] is conflict with AUTO_CREATE_TOPIC_KEY_TOPIC.", topic), null);
+                String.format("The [%s] is conflict with default.", name), null);
         }
     }
+
 }

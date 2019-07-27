@@ -17,6 +17,8 @@
 package org.apache.rocketmq.client.impl;
 
 import java.lang.reflect.Field;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -33,6 +35,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
+import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -215,13 +218,6 @@ public class MQClientAPIImplTest {
 
     @Test
     public void testCreateTopic_Success() throws RemotingException, InterruptedException, MQClientException {
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock mock) {
-                RemotingCommand request = mock.getArgument(1);
-                return createSuccessResponse(request);
-            }
-        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
 
         doAnswer(new Answer() {
             @Override
@@ -257,22 +253,69 @@ public class MQClientAPIImplTest {
             mqClientAPI.createTopic(brokerAddr, illegalTopic, topicConfig,
                     3 * 1000);
         } catch (MQClientException e) {
-            assertThat(e).hasMessageContaining(String.format("The specified topic[%s] contains illegal characters, allowing only %s", illegalTopic, Validators.VALID_PATTERN_STR));
+            assertThat(e).hasMessageContaining(String.format("The specified [%s] contains illegal characters, allowing only %s", illegalTopic, Validators.VALID_PATTERN_STR));
         }
     }
 
     @Test
     public void testCreateTopicLength_WithException() throws RemotingException, InterruptedException, MQBrokerException {
-        String illegalTopic = "TestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTest";
-        TopicConfig topicConfig = new TopicConfig(illegalTopic);
+        String tooLongName = StringUtils.rightPad("TooLongName", Validators.CHARACTER_MAX_LENGTH + 1, "_");
+        TopicConfig topicConfig = new TopicConfig(tooLongName);
         topicConfig.setReadQueueNums(123);
         topicConfig.setWriteQueueNums(123);
         topicConfig.setTopicSysFlag(0);
         try {
-            mqClientAPI.createTopic(brokerAddr, illegalTopic, topicConfig,
+            mqClientAPI.createTopic(brokerAddr, tooLongName, topicConfig,
                     3 * 1000);
         } catch (MQClientException e) {
-            assertThat(e).hasMessageContaining(String.format("The specified topic is longer than topic max length %s.", Validators.CHARACTER_MAX_LENGTH));
+            assertThat(e).hasMessageContaining(String.format("The specified %s is longer than topic max length %s.", tooLongName,Validators.CHARACTER_MAX_LENGTH));
+        }
+    }
+
+    @Test
+    public void testCreateSubscriptionGroup_Success() throws RemotingException, InterruptedException, MQClientException {
+
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock mock) {
+                RemotingCommand request = mock.getArgument(1);
+                return createSuccessResponse(request);
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+        SubscriptionGroupConfig config = new SubscriptionGroupConfig();
+        config.setGroupName("testGroupName");
+        SendResult sendResult = null;
+        try {
+            mqClientAPI.createSubscriptionGroup(brokerAddr,  config, 3 * 1000);
+        } catch (MQBrokerException e) {
+            e.printStackTrace();
+        } catch (MQClientException e) {
+            e.printStackTrace();
+        }
+        assertThat(sendResult).isNull();
+    }
+
+    @Test
+    public void testCreateSubscriptionGroup_WithException() throws RemotingException, InterruptedException, MQBrokerException {
+        String illegalGroupName = "Test%^%%^&%^est";
+        SubscriptionGroupConfig config = new SubscriptionGroupConfig();
+        config.setGroupName(illegalGroupName);
+        try {
+            mqClientAPI.createSubscriptionGroup(brokerAddr,  config, 3 * 1000);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageContaining(String.format("The specified [%s] contains illegal characters, allowing only %s", illegalGroupName, Validators.VALID_PATTERN_STR));
+        }
+    }
+
+    @Test
+    public void testCreateSubscriptionGroupLength_WithException() throws RemotingException, InterruptedException, MQBrokerException {
+        String tooLongName = StringUtils.rightPad("TooLongName", Validators.CHARACTER_MAX_LENGTH + 1, "_");
+        SubscriptionGroupConfig config = new SubscriptionGroupConfig();
+        config.setGroupName(tooLongName);
+        try {
+            mqClientAPI.createSubscriptionGroup(brokerAddr,  config, 3 * 1000);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageContaining(String.format("The specified %s is longer than topic max length %s.", tooLongName,Validators.CHARACTER_MAX_LENGTH));
         }
     }
 

@@ -236,6 +236,9 @@ public class MQClientAPIImpl {
     public void createSubscriptionGroup(final String addr, final SubscriptionGroupConfig config,
         final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+
+        Validators.checkName(config.getGroupName());
+
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP, null);
 
         byte[] body = RemotingSerializable.encode(config);
@@ -260,7 +263,7 @@ public class MQClientAPIImpl {
         final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
 
-        Validators.checkTopic(topicConfig.getTopicName());
+        Validators.checkName(topicConfig.getTopicName());
 
         CreateTopicRequestHeader requestHeader = new CreateTopicRequestHeader();
         requestHeader.setTopic(topicConfig.getTopicName());
