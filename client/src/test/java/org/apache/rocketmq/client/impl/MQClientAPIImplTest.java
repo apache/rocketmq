@@ -236,7 +236,6 @@ public class MQClientAPIImplTest extends TopicConfig {
         topicConfig.setTopicSysFlag(0);
         SendResult sendResult = mqClientAPI.createTopic(brokerAddr, "test", topicConfig,
                 3 * 1000);
-       // assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
         assertThat(sendResult).isNull();
     }
 
