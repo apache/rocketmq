@@ -51,6 +51,9 @@ import java.util.HashSet;
 
 import static org.apache.rocketmq.client.trace.TraceConstants.TRACE_INSTANCE_NAME;
 
+/**
+ * 消息异步跟踪调度程序
+ */
 public class AsyncTraceDispatcher implements TraceDispatcher {
 
     private final static InternalLogger log = ClientLogger.getLog();
@@ -283,6 +286,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
 
         /**
          * Batch sending data actually
+         * 批量发送数据
          */
         private void flushData(List<TraceTransferBean> transBeanList) {
             if (transBeanList.size() == 0) {
@@ -315,7 +319,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
 
         /**
          * Send message trace data
-         *
+         * 发送消息跟踪数据
          * @param keySet the keyset in this batch(including msgId in original message not offsetMsgId)
          * @param data   the message trace data in this batch
          */

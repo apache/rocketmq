@@ -19,8 +19,13 @@ package org.apache.rocketmq.client;
 import java.util.List;
 import org.apache.rocketmq.common.message.MessageExt;
 
+/**
+ * 消息查询结果
+ */
 public class QueryResult {
+    // 索引上次更新时间戳
     private final long indexLastUpdateTimestamp;
+    // 消息结果集合
     private final List<MessageExt> messageList;
 
     public QueryResult(long indexLastUpdateTimestamp, List<MessageExt> messageList) {

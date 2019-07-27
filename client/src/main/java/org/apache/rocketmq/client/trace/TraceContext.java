@@ -22,6 +22,7 @@ import java.util.List;
 
 /**
  * The context of Trace
+ * 消息跟踪上下文
  */
 public class TraceContext implements Comparable<TraceContext> {
 

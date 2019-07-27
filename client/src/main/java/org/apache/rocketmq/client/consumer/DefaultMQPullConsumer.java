@@ -35,6 +35,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
  * Default pulling consumer
+ * 默认拉动消费
  */
 public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsumer {
     protected final transient DefaultMQPullConsumerImpl defaultMQPullConsumerImpl;
@@ -42,44 +43,54 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     /**
      * Do the same thing for the same Group, the application must be set,and
      * guarantee Globally unique
+     * 对同一个组执行相同的操作，必须设置应用程序，并保证全局唯一性
      */
     private String consumerGroup;
     /**
      * Long polling mode, the Consumer connection max suspend time, it is not
      * recommended to modify
+     * 长轮询模式，用户连接最长挂起时间，建议不要修改
      */
     private long brokerSuspendMaxTimeMillis = 1000 * 20;
     /**
      * Long polling mode, the Consumer connection timeout(must greater than
      * brokerSuspendMaxTimeMillis), it is not recommended to modify
+     * 长轮询模式，使用者连接超时（必须大于brokersuspendMaxTimeMillis），不建议修改
      */
     private long consumerTimeoutMillisWhenSuspend = 1000 * 30;
     /**
      * The socket timeout in milliseconds
+     * 套接字超时（毫秒）
      */
     private long consumerPullTimeoutMillis = 1000 * 10;
     /**
      * Consumption pattern,default is clustering
+     * 消费模式，默认为集群
      */
     private MessageModel messageModel = MessageModel.CLUSTERING;
     /**
      * Message queue listener
+     * 消息队列监听
      */
     private MessageQueueListener messageQueueListener;
     /**
      * Offset Storage
+     * 偏移量存储
      */
     private OffsetStore offsetStore;
     /**
      * Topic set you want to register
+     * 要注册的主题集
      */
     private Set<String> registerTopics = new HashSet<String>();
     /**
      * Queue allocation algorithm
+     * 队列分配算法
      */
     private AllocateMessageQueueStrategy allocateMessageQueueStrategy = new AllocateMessageQueueAveragely();
     /**
      * Whether the unit of subscription group
+     * 订阅组的单位
      */
     private boolean unitMode = false;
 

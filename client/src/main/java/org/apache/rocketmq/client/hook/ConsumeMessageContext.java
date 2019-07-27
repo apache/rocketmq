@@ -21,6 +21,9 @@ import java.util.Map;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 
+/**
+ * 消费消息上下文
+ */
 public class ConsumeMessageContext {
     private String consumerGroup;
     private List<MessageExt> msgList;

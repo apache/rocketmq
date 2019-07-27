@@ -20,6 +20,7 @@ import org.apache.rocketmq.common.message.Message;
 
 /**
  * This interface will be removed in the version 5.0.0, interface {@link TransactionListener} is recommended.
+ * 将在5.0.0版本删除，建议使用TransactionListener接口
  */
 @Deprecated
 public interface LocalTransactionExecuter {

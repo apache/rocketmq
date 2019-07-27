@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.client.trace;
 
+/**
+ * 消息跟踪常量
+ */
 public class TraceConstants {
 
     public static final String GROUP_NAME = "_INNER_TRACE_PRODUCER";

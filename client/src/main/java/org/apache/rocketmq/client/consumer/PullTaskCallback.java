@@ -18,6 +18,9 @@ package org.apache.rocketmq.client.consumer;
 
 import org.apache.rocketmq.common.message.MessageQueue;
 
+/**
+ * 拉取任务回调
+ */
 public interface PullTaskCallback {
     void doPullTask(final MessageQueue mq, final PullTaskContext context);
 }

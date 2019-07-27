@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.client.trace;
 
+/**
+ * 跟踪类型
+ */
 public enum TraceType {
     Pub,
     SubBefore,

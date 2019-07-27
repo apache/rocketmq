@@ -28,6 +28,7 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 
 /**
  * Common Validator
+ * 通用验证器
  */
 public class Validators {
     public static final String VALID_PATTERN_STR = "^[%|a-zA-Z0-9_-]+$";
@@ -48,6 +49,7 @@ public class Validators {
 
     /**
      * Validate group
+     * 验证组
      */
     public static void checkGroup(String group) throws MQClientException {
         if (UtilAll.isBlank(group)) {
@@ -76,6 +78,7 @@ public class Validators {
 
     /**
      * Validate message
+     * 验证消息
      */
     public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer)
         throws MQClientException {
@@ -102,6 +105,7 @@ public class Validators {
 
     /**
      * Validate topic
+     * 验证主题
      */
     public static void checkTopic(String topic) throws MQClientException {
         if (UtilAll.isBlank(topic)) {

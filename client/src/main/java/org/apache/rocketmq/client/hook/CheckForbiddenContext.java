@@ -21,6 +21,9 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 
+/**
+ * 检查禁止的上下文
+ */
 public class CheckForbiddenContext {
     private String nameSrvAddr;
     private String group;

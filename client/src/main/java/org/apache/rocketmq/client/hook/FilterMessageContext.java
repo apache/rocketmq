@@ -20,6 +20,9 @@ import java.util.List;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 
+/**
+ * 过滤消息上下文
+ */
 public class FilterMessageContext {
     private String consumerGroup;
     private List<MessageExt> msgList;

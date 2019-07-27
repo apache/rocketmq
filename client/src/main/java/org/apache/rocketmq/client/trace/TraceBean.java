@@ -19,6 +19,9 @@ package org.apache.rocketmq.client.trace;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageType;
 
+/**
+ * 消息跟踪Bean
+ */
 public class TraceBean {
     private static final String LOCAL_ADDRESS = UtilAll.ipToIPv4Str(UtilAll.getIP());
     private String topic = "";

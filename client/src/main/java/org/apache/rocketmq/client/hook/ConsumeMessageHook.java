@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.client.hook;
 
+/**
+ * 消费消息钩子
+ */
 public interface ConsumeMessageHook {
     String hookName();
 

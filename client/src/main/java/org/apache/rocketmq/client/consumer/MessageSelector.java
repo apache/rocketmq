@@ -21,6 +21,7 @@ import org.apache.rocketmq.common.filter.ExpressionType;
 
 /**
  * Message selector: select message at server.
+ * 消息选择器：选择服务器上的消息。
  * <p>
  * Now, support:
  * <li>Tag: {@link org.apache.rocketmq.common.filter.ExpressionType#TAG}

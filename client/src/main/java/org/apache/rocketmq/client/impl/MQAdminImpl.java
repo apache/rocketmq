@@ -54,6 +54,9 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+/**
+ * MQAdmin实现
+ */
 public class MQAdminImpl {
 
     private final InternalLogger log = ClientLogger.getLog();

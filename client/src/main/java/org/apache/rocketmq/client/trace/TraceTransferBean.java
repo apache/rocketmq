@@ -21,6 +21,7 @@ import java.util.Set;
 
 /**
  * Trace transfering bean
+ * 跟踪转移Bean
  */
 public class TraceTransferBean {
     private String transData;

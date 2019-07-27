@@ -24,7 +24,8 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 /**
- * Cycle average Hashing queue algorithm
+ * Cycle average Hashing queue
+ * 循环平均哈希队列算法
  */
 public class AllocateMessageQueueAveragelyByCircle implements AllocateMessageQueueStrategy {
     private final InternalLogger log = ClientLogger.getLog();

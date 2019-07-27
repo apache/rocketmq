@@ -21,16 +21,19 @@ import java.io.IOException;
 
 /**
  * Interface of asynchronous transfer data
+ * 异步传输数据接口 （消息跟踪）
  */
 public interface TraceDispatcher {
 
     /**
      * Initialize asynchronous transfer data module
+     * 初始化异步传输数据模块
      */
     void start(String nameSrvAddr) throws MQClientException;
 
     /**
      * Append the transfering data
+     * 追加传输数据
      * @param ctx data infomation
      * @return
      */
@@ -38,6 +41,7 @@ public interface TraceDispatcher {
 
     /**
      * Write flush action
+     * 写入刷新
      *
      * @throws IOException
      */
@@ -45,6 +49,7 @@ public interface TraceDispatcher {
 
     /**
      * Close the trace Hook
+     * 关闭跟踪钩子
      */
     void shutdown();
 }

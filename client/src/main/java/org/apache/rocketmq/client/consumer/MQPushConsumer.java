@@ -23,20 +23,24 @@ import org.apache.rocketmq.client.exception.MQClientException;
 
 /**
  * Push consumer
+ * 推消费者接口
  */
 public interface MQPushConsumer extends MQConsumer {
     /**
      * Start the consumer
+     * 启动消费者
      */
     void start() throws MQClientException;
 
     /**
      * Shutdown the consumer
+     * 停止消费者
      */
     void shutdown();
 
     /**
      * Register the message listener
+     * 注册消息监听
      */
     @Deprecated
     void registerMessageListener(MessageListener messageListener);
@@ -47,7 +51,7 @@ public interface MQPushConsumer extends MQConsumer {
 
     /**
      * Subscribe some topic
-     *
+     * 订阅主题
      * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
      * null or * expression,meaning subscribe
      * all
@@ -57,7 +61,7 @@ public interface MQPushConsumer extends MQConsumer {
     /**
      * This method will be removed in the version 5.0.0,because filterServer was removed,and method <code>subscribe(final String topic, final MessageSelector messageSelector)</code>
      * is recommended.
-     *
+     * 方法将在5.0.0版本删除，因为filterServer已被删除，和方法订阅（最终字符串主题、最终消息选择器和消息选择器）
      * Subscribe some topic
      *
      * @param fullClassName full class name,must extend org.apache.rocketmq.common.filter. MessageFilter
@@ -69,6 +73,7 @@ public interface MQPushConsumer extends MQConsumer {
 
     /**
      * Subscribe some topic with selector.
+     * 用选择器订阅一些主题
      * <p>
      * This interface also has the ability of {@link #subscribe(String, String)},
      * and, support other message selection, such as {@link org.apache.rocketmq.common.filter.ExpressionType#SQL92}.
@@ -88,23 +93,26 @@ public interface MQPushConsumer extends MQConsumer {
 
     /**
      * Unsubscribe consumption some topic
-     *
+     * 取消订阅消费的一些主题
      * @param topic message topic
      */
     void unsubscribe(final String topic);
 
     /**
      * Update the consumer thread pool size Dynamically
+     * 动态更新使用者线程池大小
      */
     void updateCorePoolSize(int corePoolSize);
 
     /**
      * Suspend the consumption
+     * 暂停消费
      */
     void suspend();
 
     /**
      * Resume the consumption
+     * 重新消费
      */
     void resume();
 }

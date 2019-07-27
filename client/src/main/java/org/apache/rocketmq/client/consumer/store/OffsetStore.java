@@ -25,6 +25,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
  * Offset store interface
+ * 偏移量存储接口
  */
 public interface OffsetStore {
     /**
@@ -34,28 +35,32 @@ public interface OffsetStore {
 
     /**
      * Update the offset,store it in memory
+     * 更新偏移量，存储到内存
      */
     void updateOffset(final MessageQueue mq, final long offset, final boolean increaseOnly);
 
     /**
      * Get offset from local storage
-     *
+     * 从本地存储获取偏移量
      * @return The fetched offset
      */
     long readOffset(final MessageQueue mq, final ReadOffsetType type);
 
     /**
      * Persist all offsets,may be in local storage or remote name server
+     * 保存所有偏移量，可能在本地存储或远程名称服务器中
      */
     void persistAll(final Set<MessageQueue> mqs);
 
     /**
      * Persist the offset,may be in local storage or remote name server
+     * 保留偏移量，可能在本地存储或远程名称服务器中
      */
     void persist(final MessageQueue mq);
 
     /**
      * Remove offset
+     * 移除偏移量
      */
     void removeOffset(MessageQueue mq);
 
@@ -65,6 +70,7 @@ public interface OffsetStore {
     Map<MessageQueue, Long> cloneOffsetTable(String topic);
 
     /**
+     * 同步更新用户偏移量，一旦主设备关闭，更新为从设备，这里需要优化。
      * @param mq
      * @param offset
      * @param isOneway

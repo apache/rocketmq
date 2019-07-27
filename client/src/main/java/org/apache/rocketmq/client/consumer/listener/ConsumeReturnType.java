@@ -17,6 +17,9 @@
 
 package org.apache.rocketmq.client.consumer.listener;
 
+/**
+ * 消费返回状态类型
+ */
 public enum ConsumeReturnType {
     /**
      * consume return success

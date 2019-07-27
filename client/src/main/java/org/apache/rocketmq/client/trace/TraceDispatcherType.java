@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.client.trace;
 
+/**
+ * 跟踪调度程序类型
+ */
 public enum TraceDispatcherType {
     PRODUCER,
     CONSUMER

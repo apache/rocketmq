@@ -26,6 +26,9 @@ import org.apache.rocketmq.client.trace.TraceBean;
 import org.apache.rocketmq.client.trace.TraceType;
 import java.util.ArrayList;
 
+/**
+ * 发送消息跟踪钩子实现
+ */
 public class SendMessageTraceHookImpl implements SendMessageHook {
 
     private TraceDispatcher localDispatcher;

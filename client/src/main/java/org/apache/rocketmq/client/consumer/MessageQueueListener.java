@@ -21,6 +21,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 
 /**
  * A MessageQueueListener is implemented by the application and may be specified when a message queue changed
+ * MessageQueueListener由应用程序实现，并且可以在消息队列更改时指定
  */
 public interface MessageQueueListener {
     /**

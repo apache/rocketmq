@@ -33,6 +33,14 @@ import org.apache.rocketmq.logging.InternalLogger;
  * If any consumer is alive in a machine room, the message queue of the broker which is deployed in the same machine
  * should only be allocated to those. Otherwise, those message queues can be shared along all consumers since there are
  * no alive consumer to monopolize them.
+ *
+ *
+ * 中文：
+ * 基于机房近端优先级的分配策略代理。可以指定实际的分配策略。
+ *
+ * 如果任何使用者在机房中活动，那么部署在同一台机器中的代理的消息队列应该只分配给那些消息队列。
+ * 否则，这些消息队列可以共享给所有的消费者，因为没有活着的消费者来垄断它们。
+ *
  */
 public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
     private final InternalLogger log = ClientLogger.getLog();

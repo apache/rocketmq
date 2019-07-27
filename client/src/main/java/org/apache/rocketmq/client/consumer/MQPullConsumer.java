@@ -25,26 +25,30 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
  * Pulling consumer interface
+ * 消费者拉取接口
  */
 public interface MQPullConsumer extends MQConsumer {
     /**
      * Start the consumer
+     * 启动消费者
      */
     void start() throws MQClientException;
 
     /**
      * Shutdown the consumer
+     * 停止消费者
      */
     void shutdown();
 
     /**
      * Register the message queue listener
+     * 注册消息队列监听器
      */
     void registerMessageQueueListener(final String topic, final MessageQueueListener listener);
 
     /**
      * Pulling the messages,not blocking
-     *
+     * 拉取消息，不阻塞
      * @param mq from which message queue
      * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
      * null or * expression,meaning subscribe
@@ -59,7 +63,7 @@ public interface MQPullConsumer extends MQConsumer {
 
     /**
      * Pulling the messages in the specified timeout
-     *
+     * 在指定的超时时间内提取消息
      * @return The resulting {@code PullRequest}
      */
     PullResult pull(final MessageQueue mq, final String subExpression, final long offset,
@@ -68,10 +72,11 @@ public interface MQPullConsumer extends MQConsumer {
 
     /**
      * Pulling the messages, not blocking
+     * 拉取消息，不阻塞
      * <p>
      * support other message selection, such as {@link org.apache.rocketmq.common.filter.ExpressionType#SQL92}
      * </p>
-     *
+     * 支持其他消息选择，如SQL92
      * @param mq from which message queue
      * @param selector message selector({@link MessageSelector}), can be null.
      * @param offset from where to pull
@@ -84,10 +89,11 @@ public interface MQPullConsumer extends MQConsumer {
 
     /**
      * Pulling the messages in the specified timeout
+     * 在指定的超时时间内提取消息
      * <p>
      * support other message selection, such as {@link org.apache.rocketmq.common.filter.ExpressionType#SQL92}
      * </p>
-     *
+     * 支持其他消息选择，如SQL92
      * @param mq from which message queue
      * @param selector message selector({@link MessageSelector}), can be null.
      * @param offset from where to pull
@@ -101,6 +107,7 @@ public interface MQPullConsumer extends MQConsumer {
 
     /**
      * Pulling the messages in a async. way
+     * 异步拉取消息方式
      */
     void pull(final MessageQueue mq, final String subExpression, final long offset, final int maxNums,
         final PullCallback pullCallback) throws MQClientException, RemotingException,
@@ -108,6 +115,7 @@ public interface MQPullConsumer extends MQConsumer {
 
     /**
      * Pulling the messages in a async. way
+     * 异步拉取消息方式，并指定超时时间
      */
     void pull(final MessageQueue mq, final String subExpression, final long offset, final int maxNums,
         final PullCallback pullCallback, long timeout) throws MQClientException, RemotingException,
@@ -115,6 +123,7 @@ public interface MQPullConsumer extends MQConsumer {
 
     /**
      * Pulling the messages in a async. way. Support message selection
+     * 同步拉取消息姿势，支持消息选择
      */
     void pull(final MessageQueue mq, final MessageSelector selector, final long offset, final int maxNums,
         final PullCallback pullCallback) throws MQClientException, RemotingException,
@@ -122,6 +131,7 @@ public interface MQPullConsumer extends MQConsumer {
 
     /**
      * Pulling the messages in a async. way. Support message selection
+     * 同步拉取消息姿势，支持消息选择，并指定超时时间
      */
     void pull(final MessageQueue mq, final MessageSelector selector, final long offset, final int maxNums,
         final PullCallback pullCallback, long timeout) throws MQClientException, RemotingException,
@@ -129,7 +139,7 @@ public interface MQPullConsumer extends MQConsumer {
 
     /**
      * Pulling the messages,if no message arrival,blocking some time
-     *
+     * 拉取消息，如果消息没到达，阻塞一段时间
      * @return The resulting {@code PullRequest}
      */
     PullResult pullBlockIfNotFound(final MessageQueue mq, final String subExpression,
@@ -138,6 +148,7 @@ public interface MQPullConsumer extends MQConsumer {
 
     /**
      * Pulling the messages through callback function,if no message arrival,blocking.
+     * 通过回调函数拉取消息，如果消息没到达，则阻塞
      */
     void pullBlockIfNotFound(final MessageQueue mq, final String subExpression, final long offset,
         final int maxNums, final PullCallback pullCallback) throws MQClientException, RemotingException,
@@ -145,19 +156,20 @@ public interface MQPullConsumer extends MQConsumer {
 
     /**
      * Update the offset
+     * 更新偏移量
      */
     void updateConsumeOffset(final MessageQueue mq, final long offset) throws MQClientException;
 
     /**
      * Fetch the offset
-     *
+     * 获取偏移量
      * @return The fetched offset of given queue
      */
     long fetchConsumeOffset(final MessageQueue mq, final boolean fromStore) throws MQClientException;
 
     /**
      * Fetch the message queues according to the topic
-     *
+     * 根据主题获取消息队列
      * @param topic message topic
      * @return message queue set
      */
@@ -166,6 +178,7 @@ public interface MQPullConsumer extends MQConsumer {
     /**
      * If consuming failure,message will be send back to the broker,and delay consuming in some time later.<br>
      * Mind! message can only be consumed in the same group.
+     * 如果消费失败，消息将被发送回代理，并在一段时间后延迟消费。注意！消息只能在同一组中使用。
      */
     void sendMessageBack(MessageExt msg, int delayLevel, String brokerName, String consumerGroup)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException;

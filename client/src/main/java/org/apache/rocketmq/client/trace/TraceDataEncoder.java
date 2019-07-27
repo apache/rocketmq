@@ -23,12 +23,13 @@ import java.util.List;
 
 /**
  * Encode/decode for Trace Data
+ * 消息跟踪数据编码解码
  */
 public class TraceDataEncoder {
 
     /**
      * Resolving traceContext list From trace data String
-     *
+     * 从跟踪数据字符串解析消息跟踪上下文列表
      * @param traceData
      * @return
      */

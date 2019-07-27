@@ -21,12 +21,13 @@ import org.apache.rocketmq.common.message.MessageQueue;
 
 /**
  * Strategy Algorithm for message allocating between consumers
+ * 用于在消费者之间分配消息的策略算法
  */
 public interface AllocateMessageQueueStrategy {
 
     /**
      * Allocating by consumer id
-     *
+     * 按使用者ID分配
      * @param consumerGroup current consumer group
      * @param currentCID current consumer id
      * @param mqAll message queue set in current topic
@@ -42,7 +43,7 @@ public interface AllocateMessageQueueStrategy {
 
     /**
      * Algorithm name
-     *
+     * 算法名称
      * @return The strategy name
      */
     String getName();

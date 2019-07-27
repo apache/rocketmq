@@ -24,11 +24,12 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
  * Base interface for MQ management
+ * 用于MQ管理的基本接口
  */
 public interface MQAdmin {
     /**
      * Creates an topic
-     *
+     * 创建一个主题
      * @param key accesskey
      * @param newTopic topic name
      * @param queueNum topic's queue number
@@ -38,7 +39,7 @@ public interface MQAdmin {
 
     /**
      * Creates an topic
-     *
+     * 创建一个主题
      * @param key accesskey
      * @param newTopic topic name
      * @param queueNum topic's queue number
@@ -50,6 +51,7 @@ public interface MQAdmin {
     /**
      * Gets the message queue offset according to some time in milliseconds<br>
      * be cautious to call because of more IO overhead
+     * 根据以毫秒为单位的某个时间获取消息队列偏移量。由于IO开销较大，因此请注意调用。
      *
      * @param mq Instance of MessageQueue
      * @param timestamp from when in milliseconds.
@@ -59,7 +61,7 @@ public interface MQAdmin {
 
     /**
      * Gets the max offset
-     *
+     * 获取最大偏移量
      * @param mq Instance of MessageQueue
      * @return the max offset
      */
@@ -67,7 +69,7 @@ public interface MQAdmin {
 
     /**
      * Gets the minimum offset
-     *
+     * 获取最小偏移量
      * @param mq Instance of MessageQueue
      * @return the minimum offset
      */
@@ -75,7 +77,7 @@ public interface MQAdmin {
 
     /**
      * Gets the earliest stored message time
-     *
+     * 获取最早存储消息的时间
      * @param mq Instance of MessageQueue
      * @return the time in microseconds
      */
@@ -83,7 +85,7 @@ public interface MQAdmin {
 
     /**
      * Query message according tto message id
-     *
+     * 根据ID查询消息（消息偏移量ID）
      * @param offsetMsgId message id
      * @return message
      */
@@ -92,7 +94,7 @@ public interface MQAdmin {
 
     /**
      * Query messages
-     *
+     * 根据KEY查询消息
      * @param topic message topic
      * @param key message key index word
      * @param maxNum max message number
@@ -105,6 +107,7 @@ public interface MQAdmin {
 
     /**
      * @return The {@code MessageExt} of given msgId
+     * 根据id查询指定主题消息
      */
     MessageExt viewMessage(String topic,
         String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException;

@@ -24,6 +24,9 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 
+/**
+ * MQ帮助
+ */
 public class MQHelper {
     public static void resetOffsetByTimestamp(
         final MessageModel messageModel,
@@ -35,7 +38,7 @@ public class MQHelper {
 
     /**
      * Reset consumer topic offset according to time
-     *
+     * 根据时间重置消费者主题偏移量
      * @param messageModel which model
      * @param instanceName which instance
      * @param consumerGroup consumer group

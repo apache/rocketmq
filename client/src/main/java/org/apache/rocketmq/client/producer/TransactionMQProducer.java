@@ -21,6 +21,9 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.RPCHook;
 
+/**
+ * 用于发送事物消息
+ */
 public class TransactionMQProducer extends DefaultMQProducer {
     private TransactionCheckListener transactionCheckListener;
     private int checkThreadPoolMinSize = 1;
@@ -57,6 +60,7 @@ public class TransactionMQProducer extends DefaultMQProducer {
     /**
      * This method will be removed in the version 5.0.0, method <code>sendMessageInTransaction(Message,Object)</code>}
      * is recommended.
+     * 此方法将在5.0.0版本删除，建议使用sendMessageInTransaction
      */
     @Override
     @Deprecated
@@ -85,6 +89,7 @@ public class TransactionMQProducer extends DefaultMQProducer {
 
     /**
      * This method will be removed in the version 5.0.0 and set a custom thread pool is recommended.
+     * 此方法将在5.0.0版本中删除，建议设置自定义线程池。
      */
     @Deprecated
     public void setTransactionCheckListener(TransactionCheckListener transactionCheckListener) {
@@ -97,6 +102,7 @@ public class TransactionMQProducer extends DefaultMQProducer {
 
     /**
      * This method will be removed in the version 5.0.0 and set a custom thread pool is recommended.
+     * 此方法将在5.0.0版本中删除，建议设置自定义线程池。
      */
     @Deprecated
     public void setCheckThreadPoolMinSize(int checkThreadPoolMinSize) {
@@ -109,6 +115,7 @@ public class TransactionMQProducer extends DefaultMQProducer {
 
     /**
      * This method will be removed in the version 5.0.0 and set a custom thread pool is recommended.
+     * 此方法将在5.0.0版本中删除，建议设置自定义线程池。
      */
     @Deprecated
     public void setCheckThreadPoolMaxSize(int checkThreadPoolMaxSize) {
@@ -121,6 +128,7 @@ public class TransactionMQProducer extends DefaultMQProducer {
 
     /**
      * This method will be removed in the version 5.0.0 and set a custom thread pool is recommended.
+     * 此方法将在5.0.0版本中删除，建议设置自定义线程池。
      */
     @Deprecated
     public void setCheckRequestHoldMax(int checkRequestHoldMax) {
