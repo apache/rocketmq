@@ -40,6 +40,7 @@ import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -54,6 +55,19 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
 
     private final InternalLogger log = ClientLogger.getLog();
 
+    private enum SubscriptionType {
+        NONE, SUBSCRIBE, ASSIGN
+    }
+
+    private static final String NOT_RUNNING_EXCEPTION_MESSAGE = "Consumer not running.";
+
+    private static final String NO_SUBSCRIPTION_EXCEPTION_MESSAGE = "No subscription type specified.";
+
+    private static final String SUBSCRIPTION_CONFILCT_EXCEPTION_MESSAGE = "Cannot select two subscription types at the same time.";
+    /**
+     * the type of subscription
+     */
+    private SubscriptionType subscriptionType = SubscriptionType.NONE;
     /**
      * Delay some time when exception occur
      */
@@ -93,6 +107,24 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
         this.defaultLiteMQPullConsumer = defaultMQPullConsumer;
         this.cleanExpireMsgExecutors = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
             "Lite_CleanExpireMsgScheduledThread_"));
+        assignedMessageQueue.setRebalanceImpl(this.rebalanceImpl);
+    }
+
+    void checkServiceState() {
+        if (!(this.serviceState == ServiceState.RUNNING))
+            throw new IllegalStateException(NOT_RUNNING_EXCEPTION_MESSAGE);
+    }
+
+    void checkSubscriptionType() {
+        if (this.subscriptionType == SubscriptionType.NONE)
+            throw new IllegalStateException(NO_SUBSCRIPTION_EXCEPTION_MESSAGE);
+    }
+
+    private synchronized void setSubscriptionType(SubscriptionType type) {
+        if (this.subscriptionType == SubscriptionType.NONE)
+            this.subscriptionType = type;
+        else if (this.subscriptionType != type)
+            throw new IllegalStateException(SUBSCRIPTION_CONFILCT_EXCEPTION_MESSAGE);
     }
 
     public void updateAssignedMessageQueue(String topic, Set<MessageQueue> assignedMessageQueue) {
@@ -144,7 +176,10 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
 
     @Override
     public synchronized void start() throws MQClientException {
-        this.defaultMQPullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
+        checkSubscriptionType();
+        if (subscriptionType == SubscriptionType.SUBSCRIBE) {
+            this.defaultMQPullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
+        }
         super.start();
         final String group = this.defaultMQPullConsumer.getConsumerGroup();
         this.scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(
@@ -157,7 +192,22 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
                 cleanExpireMsg();
             }
         }, this.defaultLiteMQPullConsumer.getConsumeTimeout(), this.defaultLiteMQPullConsumer.getConsumeTimeout(), TimeUnit.MINUTES);
-        updateTopicSubscribeInfoWhenSubscriptionChanged();
+        if (subscriptionType == SubscriptionType.SUBSCRIBE) {
+            updateTopicSubscribeInfoWhenSubscriptionChanged();
+        }
+        if (subscriptionType == SubscriptionType.ASSIGN) {
+            startAssignPullTask();
+        }
+    }
+
+    private void startAssignPullTask() {
+        for (MessageQueue messageQueue : assignedMessageQueue.messageQueues()) {
+            if (!this.taskTable.containsKey(messageQueue)) {
+                PullTaskImpl pullTask = new PullTaskImpl(messageQueue);
+                this.taskTable.put(messageQueue, pullTask);
+                this.scheduledThreadPoolExecutor.schedule(pullTask, 0, TimeUnit.MILLISECONDS);
+            }
+        }
     }
 
     private void updateTopicSubscribeInfoWhenSubscriptionChanged() {
@@ -170,6 +220,31 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
         }
     }
 
+    public void subscribe(String topic, String subExpression) throws MQClientException {
+        try {
+            setSubscriptionType(SubscriptionType.SUBSCRIBE);
+            SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(defaultMQPullConsumer.getConsumerGroup(),
+                topic, subExpression);
+            this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
+            if (this.mQClientFactory != null) {
+                this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+            }
+        } catch (Exception e) {
+            throw new MQClientException("subscription exception", e);
+        }
+    }
+
+    public void unsubscribe(final String topic) {
+        super.unsubscribe(topic);
+        removePullTaskCallback(topic);
+        assignedMessageQueue.removeAssignedMessageQueue(topic);
+    }
+
+    public void assign(Collection<MessageQueue> messageQueues) {
+        setSubscriptionType(SubscriptionType.ASSIGN);
+        assignedMessageQueue.updateAssignedMessageQueue(messageQueues);
+    }
+
     private void maybeAutoCommit() {
         long now = System.currentTimeMillis();
         if (now >= nextAutoCommitDeadline) {
@@ -180,6 +255,8 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
 
     public List<MessageExt> poll(long timeout) {
         try {
+            checkSubscriptionType();
+            checkServiceState();
             if (defaultLiteMQPullConsumer.isAutoCommit()) {
                 maybeAutoCommit();
             }
@@ -228,12 +305,6 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
         }
     }
 
-    public void unsubscribe(final String topic) {
-        super.unsubscribe(topic);
-        removePullTaskCallback(topic);
-        assignedMessageQueue.removeAssignedMessageQueue(topic);
-    }
-
     public void removePullTaskCallback(final String topic) {
         removePullTask(topic);
     }
@@ -252,23 +323,23 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
     }
 
     public void commitSync() {
-        Set<Map.Entry<MessageQueue, ProcessQueue>> entrySet = this.rebalanceImpl.getProcessQueueTable().entrySet();
         try {
-            for (Map.Entry<MessageQueue, ProcessQueue> entry : entrySet) {
-                if (!entry.getValue().isDropped())
-                    updateConsumeOffsetToBroker(entry.getKey(), this.getOffsetStore().readOffset(entry.getKey(), ReadOffsetType.READ_FROM_MEMORY), false);
+            for (MessageQueue messageQueue : assignedMessageQueue.messageQueues()) {
+                ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
+                if (processQueue != null && !processQueue.isDropped())
+                    this.getOffsetStore().persist(messageQueue);
+
             }
         } catch (Exception e) {
             log.error("An error occurred when update consume offset synchronously.", e);
         }
-
     }
 
     public void commitAll() {
-        Set<Map.Entry<MessageQueue, ProcessQueue>> entrySet = this.rebalanceImpl.getProcessQueueTable().entrySet();
-        for (Map.Entry<MessageQueue, ProcessQueue> entry : entrySet) {
-            if (!entry.getValue().isDropped())
-                this.getOffsetStore().persist(entry.getKey());
+        for (MessageQueue messageQueue : assignedMessageQueue.messageQueues()) {
+            ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
+            if (processQueue != null && !processQueue.isDropped())
+                this.getOffsetStore().persist(messageQueue);
 
         }
     }
@@ -279,19 +350,6 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
             updateConsumeOffset(messageQueue, offset);
         } catch (MQClientException e) {
             log.error("An error occurred when update consume offset in one way.", e);
-        }
-    }
-
-    public void subscribe(String topic, String subExpression) throws MQClientException {
-        try {
-            SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(defaultMQPullConsumer.getConsumerGroup(),
-                topic, subExpression);
-            this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
-            if (this.mQClientFactory != null) {
-                this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
-            }
-        } catch (Exception e) {
-            throw new MQClientException("subscription exception", e);
         }
     }
 
@@ -370,7 +428,7 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
     }
 
     @Override
-    public void shutdown() {
+    public synchronized void shutdown() {
         scheduledThreadPoolExecutor.shutdown();
         cleanExpireMsgExecutors.shutdown();
         super.shutdown();
@@ -397,7 +455,7 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
 
             String topic = this.messageQueue.getTopic();
 
-            ProcessQueue processQueue = rebalanceImpl.getProcessQueueTable().get(messageQueue);
+            ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
 
             if (processQueue == null && processQueue.isDropped()) {
                 log.info("the message queue not be able to poll, because it's dropped. group={}, messageQueue={}", defaultLiteMQPullConsumer.getConsumerGroup(), this.messageQueue);
@@ -530,4 +588,5 @@ public class LiteMQPullConsumerImpl extends DefaultMQPullConsumerImpl {
             this.startConsumeTimeMillis = startConsumeTimeMillis;
         }
     }
+
 }

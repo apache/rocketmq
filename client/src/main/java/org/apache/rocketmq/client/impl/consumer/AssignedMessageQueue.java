@@ -21,15 +21,24 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class AssignedMessageQueue {
 
     private ConcurrentHashMap<MessageQueue, MessageQueueStat> assignedMessageQueueState;
 
+    private RebalanceImpl rebalanceImpl;
+
     public AssignedMessageQueue() {
         assignedMessageQueueState = new ConcurrentHashMap<MessageQueue, MessageQueueStat>();
+    }
+
+    public void setRebalanceImpl(RebalanceImpl rebalanceImpl) {
+        this.rebalanceImpl = rebalanceImpl;
+    }
+
+    public Collection<MessageQueue> messageQueues(){
+        return assignedMessageQueueState.keySet();
     }
 
     public boolean isPaused(MessageQueue messageQueue) {
@@ -58,24 +67,45 @@ public class AssignedMessageQueue {
         }
     }
 
-    public long getNextOffset(MessageQueue messageQueue)  {
+    public ProcessQueue getProcessQueue(MessageQueue messageQueue) {
         MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
-        if (assignedMessageQueueState.get(messageQueue) != null) {
+        if (messageQueueStat != null) {
+            return messageQueueStat.getProcessQueue();
+        }
+        return null;
+    }
+
+    public long getNextOffset(MessageQueue messageQueue) {
+        MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
+        if (messageQueueStat != null) {
             return messageQueueStat.getNextOffset();
         }
         return -1;
     }
 
-    public void updateNextOffset(MessageQueue messageQueue, long offset)  {
+    public void updateNextOffset(MessageQueue messageQueue, long offset) {
         MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
-        if (messageQueue == null) {
-            messageQueueStat = new MessageQueueStat(messageQueue, offset);
-            assignedMessageQueueState.putIfAbsent(messageQueue, messageQueueStat);
+        if (messageQueueStat != null) {
+            messageQueueStat.setNextOffset(offset);
         }
-        assignedMessageQueueState.get(messageQueue).setNextOffset(offset);
     }
 
-    public void updateAssignedMessageQueue(Set<MessageQueue> assigned) {
+    public long getConusmerOffset(MessageQueue messageQueue) {
+        MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
+        if (messageQueueStat != null) {
+            return messageQueueStat.getConsumeOffset();
+        }
+        return -1;
+    }
+
+    public void updateConsumerOffset(MessageQueue messageQueue, long offset) {
+        MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
+        if (messageQueueStat != null) {
+            messageQueueStat.setConsumeOffset(offset);
+        }
+    }
+
+    public void updateAssignedMessageQueue(Collection<MessageQueue> assigned) {
         synchronized (this.assignedMessageQueueState) {
             Iterator<Map.Entry<MessageQueue, MessageQueueStat>> it = this.assignedMessageQueueState.entrySet().iterator();
             while (it.hasNext()) {
@@ -87,7 +117,13 @@ public class AssignedMessageQueue {
 
             for (MessageQueue messageQueue : assigned) {
                 if (!this.assignedMessageQueueState.containsKey(messageQueue)) {
-                    MessageQueueStat messageQueueStat = new MessageQueueStat(messageQueue);
+                    MessageQueueStat messageQueueStat;
+                    if (rebalanceImpl != null && rebalanceImpl.processQueueTable.get(messageQueue) != null) {
+                        messageQueueStat = new MessageQueueStat(messageQueue, rebalanceImpl.processQueueTable.get(messageQueue));
+                    } else {
+                        ProcessQueue processQueue = new ProcessQueue();
+                        messageQueueStat = new MessageQueueStat(messageQueue, processQueue);
+                    }
                     this.assignedMessageQueueState.put(messageQueue, messageQueueStat);
                 }
             }
@@ -108,16 +144,14 @@ public class AssignedMessageQueue {
 
     public class MessageQueueStat {
         private MessageQueue messageQueue;
+        private ProcessQueue processQueue;
         private boolean paused = false;
         private long nextOffset = -1;
+        private long consumeOffset = -1;
 
-        public MessageQueueStat(MessageQueue messageQueue) {
+        public MessageQueueStat(MessageQueue messageQueue, ProcessQueue processQueue) {
             this.messageQueue = messageQueue;
-        }
-
-        public MessageQueueStat(MessageQueue messageQueue, long nextOffset) {
-            this.messageQueue = messageQueue;
-            this.nextOffset = nextOffset;
+            this.processQueue = processQueue;
         }
 
         public MessageQueue getMessageQueue() {
@@ -142,6 +176,22 @@ public class AssignedMessageQueue {
 
         public void setNextOffset(long nextOffset) {
             this.nextOffset = nextOffset;
+        }
+
+        public ProcessQueue getProcessQueue() {
+            return processQueue;
+        }
+
+        public void setProcessQueue(ProcessQueue processQueue) {
+            this.processQueue = processQueue;
+        }
+
+        public long getConsumeOffset() {
+            return consumeOffset;
+        }
+
+        public void setConsumeOffset(long consumeOffset) {
+            this.consumeOffset = consumeOffset;
         }
     }
 }

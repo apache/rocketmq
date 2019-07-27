@@ -73,7 +73,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     private final RPCHook rpcHook;
     private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
     private final ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
-    private volatile ServiceState serviceState = ServiceState.CREATE_JUST;
+    protected volatile ServiceState serviceState = ServiceState.CREATE_JUST;
     protected MQClientInstance mQClientFactory;
     private PullAPIWrapper pullAPIWrapper;
     private OffsetStore offsetStore;
@@ -603,9 +603,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             case CREATE_JUST:
                 break;
             case RUNNING:
-                if(!(this instanceof LiteMQPullConsumerImpl)){
-                    this.persistConsumerOffset();
-                }
+                this.persistConsumerOffset();
                 this.mQClientFactory.unregisterConsumer(this.defaultMQPullConsumer.getConsumerGroup());
                 this.mQClientFactory.shutdown();
                 log.info("the consumer [{}] shutdown OK", this.defaultMQPullConsumer.getConsumerGroup());

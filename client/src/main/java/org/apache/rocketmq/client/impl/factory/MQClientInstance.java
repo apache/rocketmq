@@ -491,9 +491,7 @@ public class MQClientInstance {
         while (it.hasNext()) {
             Entry<String, MQConsumerInner> entry = it.next();
             MQConsumerInner impl = entry.getValue();
-            if(!(impl instanceof LiteMQPullConsumerImpl)){
-                impl.persistConsumerOffset();
-            }
+            impl.persistConsumerOffset();
         }
     }
 

@@ -48,5 +48,10 @@ public interface LiteMQPullConsumer {
 
     void resume(Collection<MessageQueue> messageQueues);
 
+    void assign(Collection<MessageQueue> messageQueues);
+
+    Collection<MessageQueue> assigned();
+
     void commitSync();
+
 }

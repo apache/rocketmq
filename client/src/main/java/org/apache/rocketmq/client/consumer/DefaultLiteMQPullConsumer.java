@@ -61,8 +61,8 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
     private int consumeMaxSpan = 2000;
 
     /**
-     * Flow control threshold on queue level, each message queue will cache at most 1000 messages by default,
-     * Consider the {@code pullBatchSize}, the instantaneous value may exceed the limit
+     * Flow control threshold on queue level, each message queue will cache at most 1000 messages by default, Consider
+     * the {@code pullBatchSize}, the instantaneous value may exceed the limit
      */
     private int pullThresholdForQueue = 1000;
 
@@ -74,7 +74,6 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
      * The size of a message only measured by message body, so it's not accurate
      */
     private int pullThresholdSizeForQueue = 100;
-
 
     public DefaultLiteMQPullConsumer(String consumerGroup, RPCHook rpcHook) {
         this.setConsumerGroup(consumerGroup);
@@ -111,9 +110,6 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
         return poll(this.getConsumerPullTimeoutMillis());
     }
 
-    @Override public List<MessageExt> poll(long timeout) {
-        return liteMQPullConsumer.poll(timeout);
-    }
 
     @Override
     public void seek(MessageQueue messageQueue, long offset) throws MQClientException {
@@ -131,9 +127,25 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
     }
 
     @Override
+    public List<MessageExt> poll(long timeout) {
+        return liteMQPullConsumer.poll(timeout);
+    }
+
+    @Override
+    public void assign(Collection<MessageQueue> messageQueues) {
+        liteMQPullConsumer.assign(messageQueues);
+    }
+
+    @Override
+    public Collection<MessageQueue> assigned() {
+        return null;
+    }
+
+    @Override
     public void commitSync() {
         this.liteMQPullConsumer.commitSync();
     }
+
 
     public long getConsumeTimeout() {
         return consumeTimeout;
@@ -206,5 +218,4 @@ public class DefaultLiteMQPullConsumer extends DefaultMQPullConsumer implements 
     public void setPullThresholdSizeForQueue(int pullThresholdSizeForQueue) {
         this.pullThresholdSizeForQueue = pullThresholdSizeForQueue;
     }
-
 }
