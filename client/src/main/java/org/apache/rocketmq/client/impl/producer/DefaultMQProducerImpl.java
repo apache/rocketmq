@@ -215,7 +215,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     private void checkConfig() throws MQClientException {
-        Validators.checkGroup(this.defaultMQProducer.getProducerGroup());
+        Validators.checkName(this.defaultMQProducer.getProducerGroup());
 
         if (null == this.defaultMQProducer.getProducerGroup()) {
             throw new MQClientException("producerGroup is null", null);

@@ -687,7 +687,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     private void checkConfig() throws MQClientException {
         // check consumerGroup
-        Validators.checkGroup(this.defaultMQPullConsumer.getConsumerGroup());
+        Validators.checkName(this.defaultMQPullConsumer.getConsumerGroup());
 
         // consumerGroup
         if (null == this.defaultMQPullConsumer.getConsumerGroup()) {
