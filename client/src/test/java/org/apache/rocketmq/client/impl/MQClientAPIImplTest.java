@@ -18,13 +18,16 @@ package org.apache.rocketmq.client.impl;
 
 import java.lang.reflect.Field;
 import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.hook.SendMessageContext;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -207,6 +210,69 @@ public class MQClientAPIImplTest {
             failBecauseExceptionWasNotThrown(InterruptedException.class);
         } catch (InterruptedException e) {
             assertThat(e).hasMessage("Interrupted Exception in Test");
+        }
+    }
+
+    @Test
+    public void testCreateTopic_Success() throws RemotingException, InterruptedException, MQClientException {
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock mock) {
+                RemotingCommand request = mock.getArgument(1);
+                return createSuccessResponse(request);
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock mock) {
+                RemotingCommand request = mock.getArgument(1);
+                return createSuccessResponse(request);
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+        TopicConfig topicConfig = new TopicConfig("test");
+        topicConfig.setReadQueueNums(123);
+        topicConfig.setWriteQueueNums(123);
+        topicConfig.setTopicSysFlag(0);
+        SendResult sendResult = null;
+        try {
+            mqClientAPI.createTopic(brokerAddr, "test", topicConfig,
+                    3 * 1000);
+        } catch (MQBrokerException e) {
+            e.printStackTrace();
+        } catch (MQClientException e) {
+            e.printStackTrace();
+        }
+        assertThat(sendResult).isNull();
+    }
+
+    @Test
+    public void testCreateTopic_WithException() throws RemotingException, InterruptedException, MQBrokerException {
+        String illegalTopic = "Test%^%%^&%^est";
+        TopicConfig topicConfig = new TopicConfig(illegalTopic);
+        topicConfig.setReadQueueNums(123);
+        topicConfig.setWriteQueueNums(123);
+        topicConfig.setTopicSysFlag(0);
+        try {
+            mqClientAPI.createTopic(brokerAddr, illegalTopic, topicConfig,
+                    3 * 1000);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageContaining(String.format("The specified topic[%s] contains illegal characters, allowing only %s", illegalTopic, Validators.VALID_PATTERN_STR));
+        }
+    }
+
+    @Test
+    public void testCreateTopicLength_WithException() throws RemotingException, InterruptedException, MQBrokerException {
+        String illegalTopic = "TestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTest";
+        TopicConfig topicConfig = new TopicConfig(illegalTopic);
+        topicConfig.setReadQueueNums(123);
+        topicConfig.setWriteQueueNums(123);
+        topicConfig.setTopicSysFlag(0);
+        try {
+            mqClientAPI.createTopic(brokerAddr, illegalTopic, topicConfig,
+                    3 * 1000);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageContaining(String.format("The specified topic is longer than topic max length %s.", Validators.CHARACTER_MAX_LENGTH));
         }
     }
 

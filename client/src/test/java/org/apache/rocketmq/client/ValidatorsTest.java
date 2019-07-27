@@ -77,7 +77,7 @@ public class ValidatorsTest {
             Validators.checkTopic(tooLongTopic);
             failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
-            assertThat(e).hasMessageStartingWith("The specified topic is longer than topic max length 255.");
+            assertThat(e).hasMessageStartingWith(String.format("The specified topic is longer than topic max length %s.", Validators.CHARACTER_MAX_LENGTH));
         }
     }
 }
