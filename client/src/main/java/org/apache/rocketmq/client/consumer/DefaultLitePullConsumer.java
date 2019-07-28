@@ -25,7 +25,7 @@ import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.impl.consumer.DefautLitePullConsumerImpl;
+import org.apache.rocketmq.client.impl.consumer.DefaultLitePullConsumerImpl;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -35,7 +35,7 @@ import org.apache.rocketmq.remoting.RPCHook;
 
 public class DefaultLitePullConsumer extends ClientConfig implements LitePullConsumer {
 
-    private DefautLitePullConsumerImpl defaultLitePullConsumerImpl;
+    private DefaultLitePullConsumerImpl defaultLitePullConsumerImpl;
 
     /**
      * Do the same thing for the same Group, the application must be set,and guarantee Globally unique
@@ -163,7 +163,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     public DefaultLitePullConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook) {
         this.namespace = namespace;
         this.consumerGroup = consumerGroup;
-        defaultLitePullConsumerImpl = new DefautLitePullConsumerImpl(this,rpcHook);
+        defaultLitePullConsumerImpl = new DefaultLitePullConsumerImpl(this,rpcHook);
     }
 
     @Override

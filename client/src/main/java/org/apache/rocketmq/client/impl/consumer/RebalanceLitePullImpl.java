@@ -12,15 +12,15 @@ import java.util.Set;
 
 public class RebalanceLitePullImpl extends RebalanceImpl  {
 
-    private final DefautLitePullConsumerImpl litePullConsumerImpl;
+    private final DefaultLitePullConsumerImpl litePullConsumerImpl;
 
-    public RebalanceLitePullImpl(DefautLitePullConsumerImpl litePullConsumerImpl) {
+    public RebalanceLitePullImpl(DefaultLitePullConsumerImpl litePullConsumerImpl) {
         this(null, null, null, null, litePullConsumerImpl);
     }
 
     public RebalanceLitePullImpl(String consumerGroup, MessageModel messageModel,
                                  AllocateMessageQueueStrategy allocateMessageQueueStrategy,
-                                 MQClientInstance mQClientFactory, DefautLitePullConsumerImpl litePullConsumerImpl) {
+                                 MQClientInstance mQClientFactory, DefaultLitePullConsumerImpl litePullConsumerImpl) {
         super(consumerGroup, messageModel, allocateMessageQueueStrategy, mQClientFactory);
         this.litePullConsumerImpl = litePullConsumerImpl;
     }

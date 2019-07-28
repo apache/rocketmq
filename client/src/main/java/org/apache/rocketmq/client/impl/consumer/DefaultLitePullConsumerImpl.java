@@ -78,7 +78,7 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
-public class DefautLitePullConsumerImpl implements MQConsumerInner {
+public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private final InternalLogger log = ClientLogger.getLog();
 
@@ -90,7 +90,7 @@ public class DefautLitePullConsumerImpl implements MQConsumerInner {
 
     private final ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
 
-    protected volatile ServiceState serviceState = ServiceState.CREATE_JUST;
+    private volatile ServiceState serviceState = ServiceState.CREATE_JUST;
 
     protected MQClientInstance mQClientFactory;
 
@@ -98,7 +98,7 @@ public class DefautLitePullConsumerImpl implements MQConsumerInner {
 
     private OffsetStore offsetStore;
 
-    protected RebalanceImpl rebalanceImpl = new RebalanceLitePullImpl(this);
+    private RebalanceImpl rebalanceImpl = new RebalanceLitePullImpl(this);
 
     private enum SubscriptionType {
         NONE, SUBSCRIBE, ASSIGN
@@ -124,7 +124,6 @@ public class DefautLitePullConsumerImpl implements MQConsumerInner {
      */
     private static final long PULL_TIME_DELAY_MILLS_WHEN_PAUSE = 1000;
 
-
     private DefaultLitePullConsumer defaultLitePullConsumer;
 
     private final ConcurrentMap<MessageQueue, PullTaskImpl> taskTable =
@@ -146,7 +145,7 @@ public class DefautLitePullConsumerImpl implements MQConsumerInner {
 
     private long nextAutoCommitDeadline = -1L;
 
-    public DefautLitePullConsumerImpl(final DefaultLitePullConsumer defaultLitePullConsumer, final RPCHook rpcHook) {
+    public DefaultLitePullConsumerImpl(final DefaultLitePullConsumer defaultLitePullConsumer, final RPCHook rpcHook) {
 
         this.defaultLitePullConsumer = defaultLitePullConsumer;
         this.rpcHook = rpcHook;
@@ -284,6 +283,7 @@ public class DefautLitePullConsumerImpl implements MQConsumerInner {
                 mQClientFactory.start();
 
                 final String group = this.defaultLitePullConsumer.getConsumerGroup();
+
                 this.scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(
                         this.defaultLitePullConsumer.getPullThreadNumbers(),
                         new ThreadFactoryImpl("PullMsgThread-" + group)
@@ -476,9 +476,26 @@ public class DefautLitePullConsumerImpl implements MQConsumerInner {
         assignedMessageQueue.resume(messageQueues);
     }
 
-    public void seek(MessageQueue messageQueue, long offset) {
-        this.updatePullOffset(messageQueue, offset);
-        updateConsumeOffset(messageQueue, offset);
+    public synchronized void seek(MessageQueue messageQueue, long offset) throws MQClientException {
+        if (offset < minOffset(messageQueue) || offset > maxOffset(messageQueue))
+            throw new MQClientException("Seek offset illegal", null);
+        try {
+            this.updatePullOffset(messageQueue, offset);
+            updateConsumeOffset(messageQueue, offset);
+            updateConsumeOffsetToBroker(messageQueue, offset, false);
+        } catch (Exception e) {
+            log.error("Seek offset failed.", e);
+        }
+    }
+
+    public long maxOffset(MessageQueue mq) throws MQClientException {
+        checkServiceState();
+        return this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
+    }
+
+    public long minOffset(MessageQueue mq) throws MQClientException {
+        checkServiceState();
+        return this.mQClientFactory.getMQAdminImpl().minOffset(mq);
     }
 
     public void removePullTaskCallback(final String topic) {
