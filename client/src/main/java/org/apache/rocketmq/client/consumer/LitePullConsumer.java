@@ -18,17 +18,28 @@ package org.apache.rocketmq.client.consumer;
 
 import java.util.Collection;
 import java.util.List;
+
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 
-public interface LiteMQPullConsumer {
-    
+public interface LitePullConsumer {
+
+    /**
+     * Start the consumer
+     */
+    void start() throws MQClientException;
+
+    /**
+     * Shutdown the consumer
+     */
+    void shutdown();
+
     /**
      * Subscribe some topic
      *
      * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
-     * null or * expression,meaning subscribe all
+     *                      null or * expression,meaning subscribe all
      */
     void subscribe(final String topic, final String subExpression) throws MQClientException;
 
@@ -39,6 +50,7 @@ public interface LiteMQPullConsumer {
      */
     void unsubscribe(final String topic);
 
+    void assign(Collection<MessageQueue> messageQueues);
 
     List<MessageExt> poll();
 
@@ -48,11 +60,17 @@ public interface LiteMQPullConsumer {
 
     void pause(Collection<MessageQueue> messageQueues);
 
+    boolean isAutoCommit();
+
+    void setAutoCommit(boolean autoCommit);
+
     void resume(Collection<MessageQueue> messageQueues);
 
-    void assign(Collection<MessageQueue> messageQueues);
+    Collection<MessageQueue> fetchMessageQueues(String topic) throws MQClientException;
 
-    Collection<MessageQueue> assigned();
+    Long offsetForTimestamp(MessageQueue messageQueue, Long timestamp) throws MQClientException;
 
     void commitSync();
+
+
 }
