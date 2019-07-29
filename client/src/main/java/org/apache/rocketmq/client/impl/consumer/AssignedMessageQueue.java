@@ -19,7 +19,6 @@ package org.apache.rocketmq.client.impl.consumer;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.message.MessageQueue;
 
@@ -46,7 +45,7 @@ public class AssignedMessageQueue {
         if (messageQueueStat != null) {
             return messageQueueStat.isPaused();
         }
-        return false;
+        return true;
     }
 
     public void pause(Collection<MessageQueue> messageQueues) {
@@ -98,7 +97,7 @@ public class AssignedMessageQueue {
         return -1;
     }
 
-    public void updateConsumerOffset(MessageQueue messageQueue, long offset) {
+    public void updateConsumeOffset(MessageQueue messageQueue, long offset) {
         MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
         if (messageQueueStat != null) {
             messageQueueStat.setConsumeOffset(offset);
