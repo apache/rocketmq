@@ -104,6 +104,21 @@ public class AssignedMessageQueue {
         }
     }
 
+    public void setSeekOffset(MessageQueue messageQueue, long offset) {
+        MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
+        if (messageQueueStat != null) {
+            messageQueueStat.setSeekOffset(offset);
+        }
+    }
+
+    public long getSeekOffset(MessageQueue messageQueue) {
+        MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
+        if (messageQueueStat != null) {
+            return messageQueueStat.getSeekOffset();
+        }
+        return -1;
+    }
+
     public void updateAssignedMessageQueue(Collection<MessageQueue> assigned) {
         synchronized (this.assignedMessageQueueState) {
             Iterator<Map.Entry<MessageQueue, MessageQueueStat>> it = this.assignedMessageQueueState.entrySet().iterator();
@@ -147,6 +162,7 @@ public class AssignedMessageQueue {
         private boolean paused = false;
         private long nextOffset = -1;
         private long consumeOffset = -1;
+        private volatile long seekOffset = -1;
 
         public MessageQueueStat(MessageQueue messageQueue, ProcessQueue processQueue) {
             this.messageQueue = messageQueue;
@@ -191,6 +207,14 @@ public class AssignedMessageQueue {
 
         public void setConsumeOffset(long consumeOffset) {
             this.consumeOffset = consumeOffset;
+        }
+
+        public long getSeekOffset() {
+            return seekOffset;
+        }
+
+        public void setSeekOffset(long seekOffset) {
+            this.seekOffset = seekOffset;
         }
     }
 }

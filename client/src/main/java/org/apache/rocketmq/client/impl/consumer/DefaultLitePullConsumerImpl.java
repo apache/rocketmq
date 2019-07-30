@@ -474,7 +474,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         if (offset < minOffset(messageQueue) || offset > maxOffset(messageQueue))
             throw new MQClientException("Seek offset illegal", null);
         try {
-            updatePullOffset(messageQueue, offset);
+            assignedMessageQueue.setSeekOffset(messageQueue, offset);
             updateConsumeOffset(messageQueue, offset);
             updateConsumeOffsetToBroker(messageQueue, offset, false);
         } catch (Exception e) {
@@ -544,7 +544,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     private void updatePullOffset(MessageQueue remoteQueue, long nextPullOffset) {
-        assignedMessageQueue.updateNextOffset(remoteQueue, nextPullOffset);
+        if (assignedMessageQueue.getSeekOffset(remoteQueue) == -1) {
+            assignedMessageQueue.updateNextOffset(remoteQueue, nextPullOffset);
+        }
     }
 
     private void submitConsumeRequest(ConsumeRequest consumeRequest) {
@@ -562,12 +564,20 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private long nextPullOffset(MessageQueue remoteQueue) {
         long offset = -1;
-        offset = assignedMessageQueue.getNextOffset(remoteQueue);
-        if (offset == -1) {
-            offset = fetchConsumeOffset(remoteQueue, false);
-            assignedMessageQueue.updateNextOffset(remoteQueue, offset);
-            assignedMessageQueue.updateConsumeOffset(remoteQueue, offset);
+        long seekOffset = assignedMessageQueue.getSeekOffset(remoteQueue);
+        if (seekOffset != -1) {
+            offset = seekOffset;
+            assignedMessageQueue.setSeekOffset(remoteQueue, -1);
+            assignedMessageQueue.updateNextOffset(remoteQueue,offset);
+        } else {
+            offset = assignedMessageQueue.getNextOffset(remoteQueue);
+            if (offset == -1) {
+                offset = fetchConsumeOffset(remoteQueue, false);
+                assignedMessageQueue.updateNextOffset(remoteQueue, offset);
+                assignedMessageQueue.updateConsumeOffset(remoteQueue, offset);
+            }
         }
+
         return offset;
     }
 
