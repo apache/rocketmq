@@ -1,4 +1,4 @@
-Apache RocketMQ开发者指南
+﻿Apache RocketMQ开发者指南
 --------
 
 ##### 这个开发者指南是帮忙您快速了解,并使用 Apache RocketMQ
@@ -14,7 +14,7 @@ Apache RocketMQ开发者指南
 
 - [架构(Architecture)](architecture.md)：介绍RocketMQ部署架构和技术架构。
 
-- [设计(Design)](design.md)：介绍RocketMQ关键机制的设计原理，主要包括消息存储、通信机制、消息过滤、负载均衡、事物消息等。
+- [设计(Design)](design.md)：介绍RocketMQ关键机制的设计原理，主要包括消息存储、通信机制、消息过滤、负载均衡、事务消息等。
 
 
 ### 3. 样例
