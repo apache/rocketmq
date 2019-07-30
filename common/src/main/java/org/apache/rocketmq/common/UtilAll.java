@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.text.NumberFormat;
@@ -39,6 +40,7 @@ import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -438,6 +440,18 @@ public class UtilAll {
         return false;
     }
 
+    public static boolean isInternalV6IP(byte[] ip) {
+        if (ip.length != 16) {
+            throw new RuntimeException("illegal ipv6 bytes");
+        }
+
+        //FEC0:0000:0000:0000:0000:0000:0000:0000/10
+        if (ip[0] == (byte) 254 && ip[1] >= (byte) 192) {
+            return true;
+        }
+        return false;
+    }
+
     private static boolean ipCheck(byte[] ip) {
         if (ip.length != 4) {
             throw new RuntimeException("illegal ipv4 bytes");
@@ -474,6 +488,15 @@ public class UtilAll {
         return false;
     }
 
+    private static boolean ipV6Check(byte[] ip) {
+        if (ip.length != 16) {
+            throw new RuntimeException("illegal ipv6 bytes");
+        }
+
+        InetAddressValidator validator = InetAddressValidator.getInstance();
+        return validator.isValidInet6Address(new String(ip));
+    }
+
     public static String ipToIPv4Str(byte[] ip) {
         if (ip.length != 4) {
             return null;
@@ -481,6 +504,19 @@ public class UtilAll {
         return new StringBuilder().append(ip[0] & 0xFF).append(".").append(
             ip[1] & 0xFF).append(".").append(ip[2] & 0xFF)
             .append(".").append(ip[3] & 0xFF).toString();
+    }
+
+    public static String ipToIPv6Str(byte[] ip) {
+        if (ip.length != 16) {
+            return null;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 6; i += 2) {
+            sb.append(ip[i] & 0xFF).append(ip[i + 1] & 0xFF).append(":");
+        }
+        sb.append(ip[6] & 0xFF).append(ip[7] & 0xFF);
+        return sb.toString();
     }
 
     public static byte[] getIP() {
@@ -498,6 +534,17 @@ public class UtilAll {
                         if (ipByte.length == 4) {
                             if (ipCheck(ipByte)) {
                                 if (!isInternalIP(ipByte)) {
+                                    return ipByte;
+                                } else if (internalIP == null) {
+                                    internalIP = ipByte;
+                                }
+                            }
+                        }
+                    } else if (ip != null && ip instanceof Inet6Address) {
+                        byte[] ipByte = ip.getAddress();
+                        if (ipByte.length == 16) {
+                            if (ipV6Check(ipByte)) {
+                                if (!isInternalV6IP(ipByte)) {
                                     return ipByte;
                                 } else if (internalIP == null) {
                                     internalIP = ipByte;

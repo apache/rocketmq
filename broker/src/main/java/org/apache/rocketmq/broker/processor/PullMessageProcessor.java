@@ -41,6 +41,7 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -494,7 +495,10 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             for (ByteBuffer bb : messageBufferList) {
 
                 byteBuffer.put(bb);
-                storeTimestamp = bb.getLong(MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSTION);
+                int sysFlag = bb.getInt(MessageDecoder.SYSFLAG_POSITION);
+                int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
+                int msgStoreTimePos = 4 + 4 + 4 + 4 + 4 + 8 + 8 + 4 + 8 + bornhostLength;
+                storeTimestamp = bb.getLong(msgStoreTimePos);
             }
         } finally {
             getMessageResult.release();
