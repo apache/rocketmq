@@ -16,34 +16,24 @@
  */
 package org.apache.rocketmq.example.simple;
 
-import java.util.Arrays;
 import java.util.List;
-import org.apache.rocketmq.client.consumer.DefaultLiteMQPullConsumer;
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageQueue;
+
 
 public class LitePullConsumerTest {
     public static void main(String[] args) throws Exception {
-        DefaultLiteMQPullConsumer litePullConsumer = new DefaultLiteMQPullConsumer("test", null);
+        DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer("test");
         litePullConsumer.setNamesrvAddr("localhost:9876");
-        litePullConsumer.subscribe("litepullconsumertest9", null);
+        litePullConsumer.setAutoCommit(true);
+        litePullConsumer.subscribe("test41","TagA" );
         litePullConsumer.start();
-        MessageQueue messageQueue = new MessageQueue("test", "IT-C02YW28FLVDL.local", 1);
+
         int i = 0;
         while (true) {
             List<MessageExt> messageExts = litePullConsumer.poll();
             System.out.printf("%s%n", messageExts);
-            i++;
-            if (i == 3) {
-                System.out.printf("pause%n");
-                litePullConsumer.pause(Arrays.asList(messageQueue));
-            }
-            if (i == 10) {
-                System.out.printf("resume%n");
-                litePullConsumer.resume(Arrays.asList(messageQueue));
-            }
-//
-            litePullConsumer.commitSync();
         }
+
     }
 }
