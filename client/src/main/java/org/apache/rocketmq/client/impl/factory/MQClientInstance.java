@@ -118,6 +118,7 @@ public class MQClientInstance {
     private final ConsumerStatsManager consumerStatsManager;
     private final AtomicLong sendHeartbeatTimesTotal = new AtomicLong(0);
     private ServiceState serviceState = ServiceState.CREATE_JUST;
+    private DatagramSocket datagramSocket = null;
     private Random random = new Random();
 
     public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId) {
@@ -537,7 +538,7 @@ public class MQClientInstance {
         final boolean producerEmpty = heartbeatData.getProducerDataSet().isEmpty();
         final boolean consumerEmpty = heartbeatData.getConsumerDataSet().isEmpty();
         if (producerEmpty && consumerEmpty) {
-            log.warn("sending heartbeat, but no consumer and no producer");
+            log.warn("sending heartbeat, but no consumer or no producer");
             return;
         }
 
