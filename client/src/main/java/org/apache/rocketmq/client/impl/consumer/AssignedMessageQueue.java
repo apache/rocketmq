@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.common.CountDownLatch2;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class AssignedMessageQueue {
@@ -36,7 +37,7 @@ public class AssignedMessageQueue {
         this.rebalanceImpl = rebalanceImpl;
     }
 
-    public Collection<MessageQueue> messageQueues(){
+    public Collection<MessageQueue> messageQueues() {
         return assignedMessageQueueState.keySet();
     }
 
@@ -62,6 +63,7 @@ public class AssignedMessageQueue {
             MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
             if (assignedMessageQueueState.get(messageQueue) != null) {
                 messageQueueStat.setPaused(false);
+                messageQueueStat.getPausedLatch().reset();
             }
         }
     }
@@ -77,7 +79,7 @@ public class AssignedMessageQueue {
     public long getNextOffset(MessageQueue messageQueue) {
         MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
         if (messageQueueStat != null) {
-            return messageQueueStat.getNextOffset();
+            return messageQueueStat.getPullOffset();
         }
         return -1;
     }
@@ -85,7 +87,7 @@ public class AssignedMessageQueue {
     public void updateNextOffset(MessageQueue messageQueue, long offset) {
         MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
         if (messageQueueStat != null) {
-            messageQueueStat.setNextOffset(offset);
+            messageQueueStat.setPullOffset(offset);
         }
     }
 
@@ -119,12 +121,21 @@ public class AssignedMessageQueue {
         return -1;
     }
 
+    public CountDownLatch2 getPausedLatch(MessageQueue messageQueue) {
+        MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
+        if (messageQueueStat != null) {
+            return messageQueueStat.getPausedLatch();
+        }
+        return null;
+    }
+
     public void updateAssignedMessageQueue(Collection<MessageQueue> assigned) {
         synchronized (this.assignedMessageQueueState) {
             Iterator<Map.Entry<MessageQueue, MessageQueueStat>> it = this.assignedMessageQueueState.entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry<MessageQueue, MessageQueueStat> next = it.next();
                 if (!assigned.contains(next.getKey())) {
+                    next.getValue().getProcessQueue().setDropped(true);
                     it.remove();
                 }
             }
@@ -159,10 +170,11 @@ public class AssignedMessageQueue {
     public class MessageQueueStat {
         private MessageQueue messageQueue;
         private ProcessQueue processQueue;
-        private boolean paused = false;
-        private long nextOffset = -1;
-        private long consumeOffset = -1;
+        private volatile boolean paused = false;
+        private volatile long pullOffset = -1;
+        private volatile long consumeOffset = -1;
         private volatile long seekOffset = -1;
+        private CountDownLatch2 pausedLatch = new CountDownLatch2(1);
 
         public MessageQueueStat(MessageQueue messageQueue, ProcessQueue processQueue) {
             this.messageQueue = messageQueue;
@@ -185,12 +197,12 @@ public class AssignedMessageQueue {
             this.paused = paused;
         }
 
-        public long getNextOffset() {
-            return nextOffset;
+        public long getPullOffset() {
+            return pullOffset;
         }
 
-        public void setNextOffset(long nextOffset) {
-            this.nextOffset = nextOffset;
+        public void setPullOffset(long pullOffset) {
+            this.pullOffset = pullOffset;
         }
 
         public ProcessQueue getProcessQueue() {
@@ -215,6 +227,10 @@ public class AssignedMessageQueue {
 
         public void setSeekOffset(long seekOffset) {
             this.seekOffset = seekOffset;
+        }
+
+        public CountDownLatch2 getPausedLatch() {
+            return pausedLatch;
         }
     }
 }

@@ -10,7 +10,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import java.util.List;
 import java.util.Set;
 
-public class RebalanceLitePullImpl extends RebalanceImpl  {
+public class RebalanceLitePullImpl extends RebalanceImpl {
 
     private final DefaultLitePullConsumerImpl litePullConsumerImpl;
 
@@ -19,8 +19,8 @@ public class RebalanceLitePullImpl extends RebalanceImpl  {
     }
 
     public RebalanceLitePullImpl(String consumerGroup, MessageModel messageModel,
-                                 AllocateMessageQueueStrategy allocateMessageQueueStrategy,
-                                 MQClientInstance mQClientFactory, DefaultLitePullConsumerImpl litePullConsumerImpl) {
+        AllocateMessageQueueStrategy allocateMessageQueueStrategy,
+        MQClientInstance mQClientFactory, DefaultLitePullConsumerImpl litePullConsumerImpl) {
         super(consumerGroup, messageModel, allocateMessageQueueStrategy, mQClientFactory);
         this.litePullConsumerImpl = litePullConsumerImpl;
     }
@@ -36,7 +36,6 @@ public class RebalanceLitePullImpl extends RebalanceImpl  {
             }
         }
     }
-
 
     @Override
     public boolean removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
@@ -63,6 +62,5 @@ public class RebalanceLitePullImpl extends RebalanceImpl  {
     @Override
     public void dispatchPullRequest(List<PullRequest> pullRequestList) {
     }
-
 
 }

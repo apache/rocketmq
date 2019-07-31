@@ -32,7 +32,6 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
 
-
 public class DefaultLitePullConsumer extends ClientConfig implements LitePullConsumer {
 
     private DefaultLitePullConsumerImpl defaultLitePullConsumerImpl;
@@ -46,7 +45,6 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * Long polling mode, the Consumer connection max suspend time, it is not recommended to modify
      */
     private long brokerSuspendMaxTimeMillis = 1000 * 20;
-
 
     /**
      * Long polling mode, the Consumer connection timeout(must greater than brokerSuspendMaxTimeMillis), it is not
@@ -163,7 +161,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     public DefaultLitePullConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook) {
         this.namespace = namespace;
         this.consumerGroup = consumerGroup;
-        defaultLitePullConsumerImpl = new DefaultLitePullConsumerImpl(this,rpcHook);
+        defaultLitePullConsumerImpl = new DefaultLitePullConsumerImpl(this, rpcHook);
     }
 
     @Override
@@ -217,13 +215,13 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     @Override
-    public Collection<MessageQueue> fetchMessageQueues(String topic) throws MQClientException{
+    public Collection<MessageQueue> fetchMessageQueues(String topic) throws MQClientException {
         return this.defaultLitePullConsumerImpl.fetchMessageQueues(withNamespace(topic));
     }
 
     @Override
-    public Long offsetForTimestamp(MessageQueue messageQueue, Long timestamp) throws MQClientException{
-        return this.defaultLitePullConsumerImpl.searchOffset(messageQueue,timestamp);
+    public Long offsetForTimestamp(MessageQueue messageQueue, Long timestamp) throws MQClientException {
+        return this.defaultLitePullConsumerImpl.searchOffset(messageQueue, timestamp);
     }
 
     @Override
