@@ -123,7 +123,7 @@ public class BrokerOuterAPI {
         final int timeoutMills,
         final boolean compressed) {
 
-        final List<RegisterBrokerResult> registerBrokerResultList = Collections.synchronizedLis(Lists.newArrayList());
+        final List<RegisterBrokerResult> registerBrokerResultList = Collections.synchronizedList(Lists.newArrayList());
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
         if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
 
