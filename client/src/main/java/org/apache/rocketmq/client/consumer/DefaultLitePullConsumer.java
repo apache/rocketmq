@@ -34,7 +34,7 @@ import org.apache.rocketmq.remoting.RPCHook;
 
 public class DefaultLitePullConsumer extends ClientConfig implements LitePullConsumer {
 
-    private DefaultLitePullConsumerImpl defaultLitePullConsumerImpl;
+    private final DefaultLitePullConsumerImpl defaultLitePullConsumerImpl;
 
     /**
      * Do the same thing for the same Group, the application must be set,and guarantee Globally unique
@@ -132,9 +132,14 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     private int pullThresholdSizeForQueue = 100;
 
     /**
-     * The socket timeout in milliseconds
+     * The poll timeout in milliseconds
      */
     private long pollTimeoutMillis = 1000 * 5;
+
+    /**
+     * Message pull delay in milliseconds
+     */
+    private long pullDelayTimeMills = 0;
 
     public DefaultLitePullConsumer() {
         this(null, MixAll.DEFAULT_CONSUMER_GROUP, null);
@@ -389,6 +394,14 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setConsumerTimeoutMillisWhenSuspend(long consumerTimeoutMillisWhenSuspend) {
         this.consumerTimeoutMillisWhenSuspend = consumerTimeoutMillisWhenSuspend;
+    }
+
+    public long getPullDelayTimeMills() {
+        return pullDelayTimeMills;
+    }
+
+    public void setPullDelayTimeMills(long pullDelayTimeMills) {
+        this.pullDelayTimeMills = pullDelayTimeMills;
     }
 
 }

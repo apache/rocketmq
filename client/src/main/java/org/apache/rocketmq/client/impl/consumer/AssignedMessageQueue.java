@@ -53,6 +53,7 @@ public class AssignedMessageQueue {
         for (MessageQueue messageQueue : messageQueues) {
             MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
             if (assignedMessageQueueState.get(messageQueue) != null) {
+                messageQueueStat.getPausedLatch().reset();
                 messageQueueStat.setPaused(true);
             }
         }
@@ -76,7 +77,7 @@ public class AssignedMessageQueue {
         return null;
     }
 
-    public long getNextOffset(MessageQueue messageQueue) {
+    public long getPullOffset(MessageQueue messageQueue) {
         MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
         if (messageQueueStat != null) {
             return messageQueueStat.getPullOffset();
@@ -84,7 +85,7 @@ public class AssignedMessageQueue {
         return -1;
     }
 
-    public void updateNextOffset(MessageQueue messageQueue, long offset) {
+    public void updatePullOffset(MessageQueue messageQueue, long offset) {
         MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
         if (messageQueueStat != null) {
             messageQueueStat.setPullOffset(offset);

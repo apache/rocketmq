@@ -347,6 +347,11 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL),
                 null);
         }
+
+    }
+
+    public PullAPIWrapper getPullAPIWrapper() {
+        return pullAPIWrapper;
     }
 
     private void copySubscription() throws MQClientException {
@@ -480,7 +485,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     public synchronized void seek(MessageQueue messageQueue, long offset) throws MQClientException {
         if (!assignedMessageQueue.messageQueues().contains(messageQueue))
-            throw new MQClientException("The message queue is not in assigned list, message queue:" + messageQueue, null);
+            throw new MQClientException("The message queue is not in assigned list, message queue: " + messageQueue, null);
         long minOffset = minOffset(messageQueue);
         long maxOffset = maxOffset(messageQueue);
         if (offset < minOffset || offset > maxOffset)
@@ -489,7 +494,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             assignedMessageQueue.pause(Collections.singletonList(messageQueue));
             CountDownLatch2 pausedLatch = assignedMessageQueue.getPausedLatch(messageQueue);
             if (pausedLatch != null) {
-                pausedLatch.await(5, TimeUnit.SECONDS);
+                pausedLatch.await(2, TimeUnit.SECONDS);
             }
             ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
             if (processQueue != null) {
@@ -572,7 +577,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private void updatePullOffset(MessageQueue remoteQueue, long nextPullOffset) {
         if (assignedMessageQueue.getSeekOffset(remoteQueue) == -1) {
-            assignedMessageQueue.updateNextOffset(remoteQueue, nextPullOffset);
+            assignedMessageQueue.updatePullOffset(remoteQueue, nextPullOffset);
         }
     }
 
@@ -595,12 +600,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         if (seekOffset != -1) {
             offset = seekOffset;
             assignedMessageQueue.setSeekOffset(remoteQueue, -1);
-            assignedMessageQueue.updateNextOffset(remoteQueue, offset);
+            assignedMessageQueue.updatePullOffset(remoteQueue, offset);
         } else {
-            offset = assignedMessageQueue.getNextOffset(remoteQueue);
+            offset = assignedMessageQueue.getPullOffset(remoteQueue);
             if (offset == -1) {
                 offset = fetchConsumeOffset(remoteQueue, false);
-                assignedMessageQueue.updateNextOffset(remoteQueue, offset);
+                assignedMessageQueue.updatePullOffset(remoteQueue, offset);
                 assignedMessageQueue.updateConsumeOffset(remoteQueue, offset);
             }
         }
@@ -688,7 +693,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     subExpression = rebalanceImpl.getSubscriptionInner().get(topic).getSubString();
                 }
                 long offset = nextPullOffset(messageQueue);
-                long pullDelayTimeMills = 0;
+                long pullDelayTimeMills = defaultLitePullConsumer.getPullDelayTimeMills();
                 try {
                     PullResult pullResult = pull(messageQueue, subExpression, offset, nextPullBatchNums());
                     switch (pullResult.getPullStatus()) {
@@ -697,10 +702,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                                 processQueue.putMessage(pullResult.getMsgFoundList());
                                 submitConsumeRequest(new ConsumeRequest(pullResult.getMsgFoundList(), messageQueue, processQueue));
                             }
-                            pullDelayTimeMills = 0;
                             break;
-                        case NO_NEW_MSG:
-                            pullDelayTimeMills = 100;
                         case OFFSET_ILLEGAL:
                             log.warn("the pull request offset illegal, {}", pullResult.toString());
                             break;
@@ -1071,7 +1073,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         private final List<MessageExt> messageExts;
         private final MessageQueue messageQueue;
         private final ProcessQueue processQueue;
-        private long startConsumeTimeMillis;
 
         public ConsumeRequest(final List<MessageExt> messageExts, final MessageQueue messageQueue,
             final ProcessQueue processQueue) {
@@ -1092,12 +1093,5 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             return processQueue;
         }
 
-        public long getStartConsumeTimeMillis() {
-            return startConsumeTimeMillis;
-        }
-
-        public void setStartConsumeTimeMillis(final long startConsumeTimeMillis) {
-            this.startConsumeTimeMillis = startConsumeTimeMillis;
-        }
     }
 }
