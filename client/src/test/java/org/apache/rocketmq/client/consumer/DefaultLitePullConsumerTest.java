@@ -85,7 +85,6 @@ public class DefaultLitePullConsumerTest {
 
     @Before
     public void init() throws Exception {
-
         String groupName = consumerGroup + System.currentTimeMillis();
         litePullConsumer = new DefaultLitePullConsumer(groupName);
         litePullConsumer.setNamesrvAddr("127.0.0.1:9876");
@@ -179,6 +178,7 @@ public class DefaultLitePullConsumerTest {
         Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
         messageQueueSet.add(createMessageQueue());
         litePullConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
+        litePullConsumer.setPollTimeoutMillis(20 * 1000);
         List<MessageExt> result = litePullConsumer.poll();
         assertThat(result.get(0).getTopic()).isEqualTo(topic);
         assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
