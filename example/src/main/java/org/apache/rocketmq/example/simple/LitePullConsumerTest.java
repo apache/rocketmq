@@ -16,23 +16,33 @@
  */
 package org.apache.rocketmq.example.simple;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.common.message.MessageExt;
-
+import org.apache.rocketmq.common.message.MessageQueue;
 
 public class LitePullConsumerTest {
     public static void main(String[] args) throws Exception {
         DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer("test");
-        litePullConsumer.setNamesrvAddr("localhost:9876");
-        litePullConsumer.setAutoCommit(true);
-        litePullConsumer.subscribe("test41","TagA" );
+        litePullConsumer.setAutoCommit(false);
         litePullConsumer.start();
+        Collection<MessageQueue> mqSet = litePullConsumer.fetchMessageQueues("test400");
+        List<MessageQueue> list = new ArrayList<>(mqSet);
+        Collection<MessageQueue> assginMq = Collections.singletonList(list.get(0));
+        litePullConsumer.assign(assginMq);
+        int size = 0;
+        litePullConsumer.seek(list.get(0), 26);
 
-        int i = 0;
         while (true) {
             List<MessageExt> messageExts = litePullConsumer.poll();
-            System.out.printf("%s%n", messageExts);
+            if (messageExts != null) {
+                size += messageExts.size();
+            }
+            litePullConsumer.commitSync();
+            System.out.printf("%s %d %n", messageExts, size);
         }
 
     }
