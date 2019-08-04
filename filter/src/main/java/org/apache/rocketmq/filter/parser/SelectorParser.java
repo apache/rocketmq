@@ -461,7 +461,7 @@ public class SelectorParser implements SelectorParserConstants {
 
     final public String stringLitteral() throws ParseException {
         Token t;
-        StringBuilder rc = new StringBuilder();
+        StringBuffer rc = new StringBuffer();
         boolean first = true;
         t = jj_consume_token(STRING_LITERAL);
         // Decode the sting value.
