@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class LoggingBuilder {
 
@@ -557,7 +558,7 @@ public class LoggingBuilder {
         protected void subAppend(LoggingEvent event) {
             this.qw.write(this.layout.format(event));
 
-            if (layout.ignoresThrowable()) {
+            if (!layout.ignoresThrowable()) {
                 String[] s = event.getThrowableStr();
                 if (s != null) {
                     for (String s1 : s) {
@@ -726,9 +727,9 @@ public class LoggingBuilder {
         }
 
         protected void reset() {
-            closeFile();
-            this.fileName = null;
+            //closeFile();
             super.reset();
+            this.fileName = null;
         }
     }
 
@@ -848,27 +849,28 @@ public class LoggingBuilder {
 
         protected class CountingQuietWriter extends QuietWriter {
 
-            protected long count;
+            protected final AtomicLong count;
 
             public CountingQuietWriter(Writer writer, Appender appender) {
                 super(writer, appender);
+                count = new AtomicLong();
             }
 
             public void write(String string) {
                 try {
                     out.write(string);
-                    count += string.length();
+                    count.addAndGet(string.length());
                 } catch (IOException e) {
                     appender.handleError("Write failure.", e, Appender.CODE_WRITE_FAILURE);
                 }
             }
 
             public long getCount() {
-                return count;
+                return count.get();
             }
 
             public void setCount(long count) {
-                this.count = count;
+                this.count.set(count);
             }
 
         }

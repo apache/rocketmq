@@ -88,8 +88,8 @@ public class Logger implements Appender.AppenderPipeline {
         Enumeration enumeration = this.getAllAppenders();
         if (enumeration != null) {
             while (enumeration.hasMoreElements()) {
-                Appender a = (Appender) enumeration.nextElement();
-                if (a instanceof Appender.AppenderPipeline) {
+                if (enumeration instanceof Appender) {
+                    Appender a = (Appender) enumeration.nextElement();
                     a.close();
                 }
             }
