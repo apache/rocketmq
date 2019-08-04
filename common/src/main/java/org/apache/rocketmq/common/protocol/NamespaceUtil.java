@@ -38,19 +38,19 @@ public class NamespaceUtil {
             return resourceWithNamespace;
         }
 
-        StringBuffer strBuffer = new StringBuffer();
+        StringBuilder strBuilder = new StringBuilder();
         if (isRetryTopic(resourceWithNamespace)) {
-            strBuffer.append(MixAll.RETRY_GROUP_TOPIC_PREFIX);
+            strBuilder.append(MixAll.RETRY_GROUP_TOPIC_PREFIX);
         }
         if (isDLQTopic(resourceWithNamespace)) {
-            strBuffer.append(MixAll.DLQ_GROUP_TOPIC_PREFIX);
+            strBuilder.append(MixAll.DLQ_GROUP_TOPIC_PREFIX);
         }
 
         String resourceWithoutRetryAndDLQ = withOutRetryAndDLQ(resourceWithNamespace);
         int index = resourceWithoutRetryAndDLQ.indexOf(NAMESPACE_SEPARATOR);
         if (index > 0) {
             String resourceWithoutNamespace = resourceWithoutRetryAndDLQ.substring(index + 1);
-            return strBuffer.append(resourceWithoutNamespace).toString();
+            return strBuilder.append(resourceWithoutNamespace).toString();
         }
 
         return resourceWithNamespace;
@@ -90,17 +90,17 @@ public class NamespaceUtil {
         }
 
         String resourceWithoutRetryAndDLQ = withOutRetryAndDLQ(resourceWithOutNamespace);
-        StringBuffer strBuffer = new StringBuffer();
+        StringBuilder strBuilder = new StringBuilder();
 
         if (isRetryTopic(resourceWithOutNamespace)) {
-            strBuffer.append(MixAll.RETRY_GROUP_TOPIC_PREFIX);
+            strBuilder.append(MixAll.RETRY_GROUP_TOPIC_PREFIX);
         }
 
         if (isDLQTopic(resourceWithOutNamespace)) {
-            strBuffer.append(MixAll.DLQ_GROUP_TOPIC_PREFIX);
+            strBuilder.append(MixAll.DLQ_GROUP_TOPIC_PREFIX);
         }
 
-        return strBuffer.append(namespace).append(NAMESPACE_SEPARATOR).append(resourceWithoutRetryAndDLQ).toString();
+        return strBuilder.append(namespace).append(NAMESPACE_SEPARATOR).append(resourceWithoutRetryAndDLQ).toString();
 
     }
 
@@ -119,7 +119,7 @@ public class NamespaceUtil {
             return null;
         }
 
-        return new StringBuffer()
+        return new StringBuilder()
             .append(MixAll.RETRY_GROUP_TOPIC_PREFIX)
             .append(wrapNamespace(namespace, consumerGroup))
             .toString();

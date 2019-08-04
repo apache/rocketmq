@@ -127,7 +127,7 @@ public class Message implements Serializable {
     }
 
     public void setKeys(Collection<String> keys) {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (String k : keys) {
             sb.append(k);
             sb.append(MessageConst.KEY_SEPARATOR);

@@ -138,7 +138,7 @@ public class ConstantExpression implements Expression {
      * it was provided in a selector.
      */
     public static String encodeString(String s) {
-        StringBuffer b = new StringBuffer();
+        StringBuilder b = new StringBuilder();
         b.append('\'');
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
