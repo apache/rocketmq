@@ -69,10 +69,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * Offset Storage
      */
     private OffsetStore offsetStore;
-    /**
-     * Topic set you want to register
-     */
-    private Set<String> registerTopics = new HashSet<String>();
+
     /**
      * Queue allocation algorithm
      */
@@ -370,14 +367,6 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setMessageQueueListener(MessageQueueListener messageQueueListener) {
         this.messageQueueListener = messageQueueListener;
-    }
-
-    public Set<String> getRegisterTopics() {
-        return registerTopics;
-    }
-
-    public void setRegisterTopics(Set<String> registerTopics) {
-        this.registerTopics = withNamespace(registerTopics);
     }
 
     public long getConsumerPullTimeoutMillis() {

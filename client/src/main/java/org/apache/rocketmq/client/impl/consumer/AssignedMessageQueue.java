@@ -19,6 +19,7 @@ package org.apache.rocketmq.client.impl.consumer;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.CountDownLatch2;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -37,7 +38,7 @@ public class AssignedMessageQueue {
         this.rebalanceImpl = rebalanceImpl;
     }
 
-    public Collection<MessageQueue> messageQueues() {
+    public Set<MessageQueue> messageQueues() {
         return assignedMessageQueueState.keySet();
     }
 

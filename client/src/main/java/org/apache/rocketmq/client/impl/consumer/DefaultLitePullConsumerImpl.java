@@ -55,15 +55,10 @@ import org.apache.rocketmq.common.CountDownLatch2;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
-import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.help.FAQUrl;
-
-import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageAccessor;
-import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
@@ -74,7 +69,6 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class DefaultLitePullConsumerImpl implements MQConsumerInner {
@@ -356,13 +350,17 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private void copySubscription() throws MQClientException {
         try {
-            Set<String> registerTopics = this.defaultLitePullConsumer.getRegisterTopics();
-            if (registerTopics != null) {
-                for (final String topic : registerTopics) {
+            switch (this.defaultLitePullConsumer.getMessageModel()) {
+                case BROADCASTING:
+                    break;
+                case CLUSTERING:
+                    final String retryTopic = MixAll.getRetryTopic(this.defaultLitePullConsumer.getConsumerGroup());
                     SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultLitePullConsumer.getConsumerGroup(),
-                        topic, SubscriptionData.SUB_ALL);
-                    this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
-                }
+                        retryTopic, SubscriptionData.SUB_ALL);
+                    this.rebalanceImpl.getSubscriptionInner().put(retryTopic, subscriptionData);
+                    break;
+                default:
+                    break;
             }
         } catch (Exception e) {
             throw new MQClientException("subscription exception", e);
@@ -484,8 +482,13 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     public synchronized void seek(MessageQueue messageQueue, long offset) throws MQClientException {
-        if (!assignedMessageQueue.messageQueues().contains(messageQueue))
-            throw new MQClientException("The message queue is not in assigned list, message queue: " + messageQueue, null);
+        if (!assignedMessageQueue.messageQueues().contains(messageQueue)) {
+            if (subscriptionType == SubscriptionType.SUBSCRIBE) {
+                throw new MQClientException("The message queue is not in assigned list, may be rebalancing, message queue: " + messageQueue, null);
+            } else {
+                throw new MQClientException("The message queue is not in assigned list, message queue: " + messageQueue, null);
+            }
+        }
         long minOffset = minOffset(messageQueue);
         long maxOffset = maxOffset(messageQueue);
         if (offset < minOffset || offset > maxOffset)
@@ -552,6 +555,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     }
                 }
             }
+            if (defaultLitePullConsumer.getMessageModel() == MessageModel.BROADCASTING)
+                offsetStore.persistAll(assignedMessageQueue.messageQueues());
         } catch (Exception e) {
             log.error("An error occurred when update consume offset synchronously.", e);
         }
@@ -570,6 +575,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     }
                 }
             }
+            if (defaultLitePullConsumer.getMessageModel() == MessageModel.BROADCASTING)
+                offsetStore.persistAll(assignedMessageQueue.messageQueues());
         } catch (Exception e) {
             log.error("An error occurred when update consume offset Automatically.");
         }
@@ -605,6 +612,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             offset = assignedMessageQueue.getPullOffset(remoteQueue);
             if (offset == -1) {
                 offset = fetchConsumeOffset(remoteQueue, false);
+                if (defaultLitePullConsumer.getMessageModel() == MessageModel.BROADCASTING && offset == -1) {
+                    offset = 0;
+                }
                 assignedMessageQueue.updatePullOffset(remoteQueue, offset);
                 assignedMessageQueue.updateConsumeOffset(remoteQueue, offset);
             }
@@ -920,25 +930,11 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     @Override
     public Set<SubscriptionData> subscriptions() {
-        Set<SubscriptionData> result = new HashSet<SubscriptionData>();
+        Set<SubscriptionData> subSet = new HashSet<SubscriptionData>();
 
-        Set<String> topics = this.defaultLitePullConsumer.getRegisterTopics();
-        if (topics != null) {
-            synchronized (topics) {
-                for (String t : topics) {
-                    SubscriptionData ms = null;
-                    try {
-                        ms = FilterAPI.buildSubscriptionData(this.groupName(), t, SubscriptionData.SUB_ALL);
-                    } catch (Exception e) {
-                        log.error("parse subscription error", e);
-                    }
-                    ms.setSubVersion(0L);
-                    result.add(ms);
-                }
-            }
-        }
+        subSet.addAll(this.rebalanceImpl.getSubscriptionInner().values());
 
-        return result;
+        return subSet;
     }
 
     @Override
@@ -998,41 +994,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
         info.getSubscriptionSet().addAll(this.subscriptions());
         return info;
-    }
-
-    private void sendMessageBack(MessageExt msg, int delayLevel, final String brokerName)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        sendMessageBack(msg, delayLevel, brokerName, this.defaultLitePullConsumer.getConsumerGroup());
-    }
-
-    private void sendMessageBack(MessageExt msg, int delayLevel, final String brokerName, String consumerGroup)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        try {
-            String brokerAddr = (null != brokerName) ? this.mQClientFactory.findBrokerAddressInPublish(brokerName)
-                : RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
-
-            if (UtilAll.isBlank(consumerGroup)) {
-                consumerGroup = this.defaultLitePullConsumer.getConsumerGroup();
-            }
-
-            this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(brokerAddr, msg, consumerGroup, delayLevel, 3000,
-                this.defaultLitePullConsumer.getMaxReconsumeTimes());
-        } catch (Exception e) {
-            log.error("sendMessageBack Exception, " + this.defaultLitePullConsumer.getConsumerGroup(), e);
-
-            Message newMsg = new Message(MixAll.getRetryTopic(this.defaultLitePullConsumer.getConsumerGroup()), msg.getBody());
-            String originMsgId = MessageAccessor.getOriginMessageId(msg);
-            MessageAccessor.setOriginMessageId(newMsg, UtilAll.isBlank(originMsgId) ? msg.getMsgId() : originMsgId);
-            newMsg.setFlag(msg.getFlag());
-            MessageAccessor.setProperties(newMsg, msg.getProperties());
-            MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
-            MessageAccessor.setReconsumeTime(newMsg, String.valueOf(msg.getReconsumeTimes() + 1));
-            MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(this.defaultLitePullConsumer.getMaxReconsumeTimes()));
-            newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
-            this.mQClientFactory.getDefaultMQProducer().send(newMsg);
-        } finally {
-            msg.setTopic(NamespaceUtil.withoutNamespace(msg.getTopic(), this.defaultLitePullConsumer.getNamespace()));
-        }
     }
 
     private void updateConsumeOffsetToBroker(MessageQueue mq, long offset, boolean isOneway) throws RemotingException,
