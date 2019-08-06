@@ -51,7 +51,7 @@ public class BaseConf {
     private static Logger log = Logger.getLogger(BaseConf.class);
 
     static {
-    	System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
+    	System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.currentVersion));
         namesrvController = IntegrationTestBase.createAndStartNamesrv();
         nsAddr = "127.0.0.1:" + namesrvController.getNettyServerConfig().getListenPort();
         brokerController1 = IntegrationTestBase.createAndStartBroker(nsAddr);

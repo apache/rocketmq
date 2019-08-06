@@ -1351,8 +1351,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     private HashMap<String, String> prepareRuntimeInfo() {
         HashMap<String, String> runtimeInfo = this.brokerController.getMessageStore().getRuntimeInfo();
-        runtimeInfo.put("brokerVersionDesc", MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
-        runtimeInfo.put("brokerVersion", String.valueOf(MQVersion.CURRENT_VERSION));
+        runtimeInfo.put("brokerVersionDesc", MQVersion.getVersionDesc(MQVersion.currentVersion));
+        runtimeInfo.put("brokerVersion", String.valueOf(MQVersion.currentVersion));
 
         runtimeInfo.put("msgPutTotalYesterdayMorning",
             String.valueOf(this.brokerController.getBrokerStats().getMsgPutTotalYesterdayMorning()));

@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
+import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.common.MixAll;
@@ -167,10 +168,18 @@ public class ClientManageProcessor implements NettyRequestProcessor {
     public RemotingCommand checkClientConfig(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        log.warn("checkClientConfig request");
 
         CheckClientRequestBody requestBody = CheckClientRequestBody.decode(request.getBody(),
             CheckClientRequestBody.class);
+        try {
+            String source = request.getExtFields().get(SessionCredentials.SOURCE);
+            String version = request.getExtFields().get(SessionCredentials.VERSION);
+            String accessKey = request.getExtFields().get(SessionCredentials.ACCESS_KEY);
+            log.warn("Source: {} Version: {} AccessKey: {} ", source, accessKey, version);
+        } catch (Throwable ignore) {
 
+        }
         if (requestBody != null && requestBody.getSubscriptionData() != null) {
             SubscriptionData subscriptionData = requestBody.getSubscriptionData();
 

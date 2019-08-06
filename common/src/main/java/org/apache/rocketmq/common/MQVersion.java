@@ -16,9 +16,33 @@
  */
 package org.apache.rocketmq.common;
 
-public class MQVersion {
+import java.io.InputStream;
+import java.util.Properties;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
-    public static final int CURRENT_VERSION = Version.V4_5_2.ordinal();
+public class MQVersion {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+
+    public static int currentVersion = Version.V4_5_2.ordinal();
+
+    public static String currentSource = "org.apache.rocketmq";
+
+    static {
+        try {
+            InputStream stream = MQVersion.class.getClassLoader().getResourceAsStream("project.properties");
+            Properties properties = new Properties();
+            properties.load(stream);
+            String pkgVersion = String.valueOf(properties.get("version"));
+            String current = pkgVersion.replaceAll("[\\.-]", "_");
+            currentSource = String.valueOf(properties.get("groupId"));
+            currentVersion = Version.valueOf("V" + current).ordinal();
+            log.warn("RocketMQ currentVersion: {}, currentSource: {}", currentVersion, currentSource);
+        } catch (Exception ignore) {
+            ignore.printStackTrace();
+        }
+    }
 
     public static String getVersionDesc(int value) {
         int length = Version.values().length;

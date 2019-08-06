@@ -20,6 +20,7 @@ import java.lang.reflect.Field;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -27,6 +28,8 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import static org.apache.rocketmq.acl.common.SessionCredentials.ACCESS_KEY;
 import static org.apache.rocketmq.acl.common.SessionCredentials.SECURITY_TOKEN;
 import static org.apache.rocketmq.acl.common.SessionCredentials.SIGNATURE;
+import static org.apache.rocketmq.acl.common.SessionCredentials.SOURCE;
+import static org.apache.rocketmq.acl.common.SessionCredentials.VERSION;
 
 public class AclClientRPCHook implements RPCHook {
     private final SessionCredentials sessionCredentials;
@@ -44,8 +47,9 @@ public class AclClientRPCHook implements RPCHook {
         String signature = AclUtils.calSignature(total, sessionCredentials.getSecretKey());
         request.addExtField(SIGNATURE, signature);
         request.addExtField(ACCESS_KEY, sessionCredentials.getAccessKey());
-        
-        // The SecurityToken value is unneccessary,user can choose this one.
+        request.addExtField(SOURCE, MQVersion.currentSource);
+
+        // The SecurityToken value is unnecessary,user can choose this one.
         if (sessionCredentials.getSecurityToken() != null) {
             request.addExtField(SECURITY_TOKEN, sessionCredentials.getSecurityToken());
         }

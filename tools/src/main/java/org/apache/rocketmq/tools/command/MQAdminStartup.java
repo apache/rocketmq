@@ -90,7 +90,7 @@ public class MQAdminStartup {
     }
 
     public static void main0(String[] args, RPCHook rpcHook) {
-        System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
+        System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.currentVersion));
 
         //PackageConflictDetect.detectFastjson();
 

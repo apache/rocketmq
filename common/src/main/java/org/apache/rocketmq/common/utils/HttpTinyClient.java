@@ -82,7 +82,7 @@ public class HttpTinyClient {
                 conn.addRequestProperty(iter.next(), iter.next());
             }
         }
-        conn.addRequestProperty("Client-Version", MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
+        conn.addRequestProperty("Client-Version", MQVersion.getVersionDesc(MQVersion.currentVersion));
         conn.addRequestProperty("Content-Type", "application/x-www-form-urlencoded;charset=" + encoding);
 
         String ts = String.valueOf(System.currentTimeMillis());
