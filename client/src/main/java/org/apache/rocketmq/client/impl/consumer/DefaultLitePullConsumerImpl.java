@@ -116,6 +116,10 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
      * Delay some time when suspend pull service
      */
     private static final long PULL_TIME_DELAY_MILLS_WHEN_PAUSE = 1000;
+    /**
+     * Delay some time when no new message
+     */
+    private static final long PULL_TIME_DELAY_MILLS_WHEN_NO_NEW_MSG = 500;
 
     private DefaultLitePullConsumer defaultLitePullConsumer;
 
@@ -612,7 +616,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             offset = assignedMessageQueue.getPullOffset(remoteQueue);
             if (offset == -1) {
                 offset = fetchConsumeOffset(remoteQueue, false);
-                if (defaultLitePullConsumer.getMessageModel() == MessageModel.BROADCASTING && offset == -1) {
+                if (offset == -1 && defaultLitePullConsumer.getMessageModel() == MessageModel.BROADCASTING) {
                     offset = 0;
                 }
                 assignedMessageQueue.updatePullOffset(remoteQueue, offset);
@@ -715,6 +719,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                             break;
                         case OFFSET_ILLEGAL:
                             log.warn("the pull request offset illegal, {}", pullResult.toString());
+                            break;
+                        case NO_NEW_MSG:
+                            pullDelayTimeMills = PULL_TIME_DELAY_MILLS_WHEN_NO_NEW_MSG;
                             break;
                         default:
                             break;
