@@ -69,4 +69,8 @@ public class MQClientManager {
     public void removeClientFactory(final String clientId) {
         this.factoryTable.remove(clientId);
     }
+
+    public ConcurrentMap<String, MQClientInstance> getFactoryTable() {
+        return factoryTable;
+    }
 }

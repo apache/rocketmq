@@ -44,6 +44,7 @@ import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.protocol.body.*;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -51,23 +52,6 @@ import org.apache.rocketmq.common.message.MessageId;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
-import org.apache.rocketmq.common.protocol.body.BrokerStatsItem;
-import org.apache.rocketmq.common.protocol.body.Connection;
-import org.apache.rocketmq.common.protocol.body.ConsumeQueueData;
-import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
-import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
-import org.apache.rocketmq.common.protocol.body.GroupList;
-import org.apache.rocketmq.common.protocol.body.KVTable;
-import org.apache.rocketmq.common.protocol.body.LockBatchRequestBody;
-import org.apache.rocketmq.common.protocol.body.LockBatchResponseBody;
-import org.apache.rocketmq.common.protocol.body.ProducerConnection;
-import org.apache.rocketmq.common.protocol.body.QueryConsumeQueueResponseBody;
-import org.apache.rocketmq.common.protocol.body.QueryConsumeTimeSpanBody;
-import org.apache.rocketmq.common.protocol.body.QueryCorrectionOffsetBody;
-import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
-import org.apache.rocketmq.common.protocol.body.TopicList;
-import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.common.protocol.header.CloneGroupOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.common.protocol.header.CreateTopicRequestHeader;
@@ -165,6 +149,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.getConsumerConnectionList(ctx, request);
             case RequestCode.GET_PRODUCER_CONNECTION_LIST:
                 return this.getProducerConnectionList(ctx, request);
+            case RequestCode.GET_PRODUCER_CONNECTION_ALL:
+                return this.getProducerConnectionListAll(ctx, request);
             case RequestCode.GET_CONSUME_STATS:
                 return this.getConsumeStats(ctx, request);
             case RequestCode.GET_ALL_CONSUMER_OFFSET:
@@ -627,6 +613,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         ProducerConnection bodydata = new ProducerConnection();
         HashMap<Channel, ClientChannelInfo> channelInfoHashMap =
             this.brokerController.getProducerManager().getGroupChannelTable().get(requestHeader.getProducerGroup());
+
         if (channelInfoHashMap != null) {
             Iterator<Map.Entry<Channel, ClientChannelInfo>> it = channelInfoHashMap.entrySet().iterator();
             while (it.hasNext()) {
@@ -636,10 +623,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 connection.setLanguage(info.getLanguage());
                 connection.setVersion(info.getVersion());
                 connection.setClientAddr(RemotingHelper.parseChannelRemoteAddr(info.getChannel()));
-
                 bodydata.getConnectionSet().add(connection);
             }
-
             byte[] body = bodydata.encode();
             response.setBody(body);
             response.setCode(ResponseCode.SUCCESS);
@@ -649,6 +634,51 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         response.setCode(ResponseCode.SYSTEM_ERROR);
         response.setRemark("the producer group[" + requestHeader.getProducerGroup() + "] not exist");
+        return response;
+    }
+
+    /**
+     * get all producer connection
+     * @param ctx
+     * @param request
+     * @return
+     * @throws RemotingCommandException
+     */
+    private RemotingCommand getProducerConnectionListAll(ChannelHandlerContext ctx,
+                                                      RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        log.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>getProducerConnectionListAll");
+
+        HashMap<String, HashMap<Channel, ClientChannelInfo>> groupChannelTable =
+                this.brokerController.getProducerManager().getGroupChannelTable();
+
+        ProducerConnectionAll bodydata = new ProducerConnectionAll();
+        HashMap<String, ProducerConnection> ProducerConnectionMap = new HashMap<>();
+
+        for (String producerGroup : groupChannelTable.keySet()) {
+            HashMap<Channel, ClientChannelInfo> channelInfoHashMap = groupChannelTable.get(producerGroup);
+            if (channelInfoHashMap != null) {
+                ProducerConnection producerConnection = new ProducerConnection();
+                Iterator<Map.Entry<Channel, ClientChannelInfo>> it = channelInfoHashMap.entrySet().iterator();
+                while (it.hasNext()) {
+                    ClientChannelInfo info = it.next().getValue();
+                    Connection connection = new Connection();
+                    connection.setClientId(info.getClientId());
+                    connection.setLanguage(info.getLanguage());
+                    connection.setVersion(info.getVersion());
+                    connection.setVersion(info.getVersion());
+                    connection.setClientAddr(RemotingHelper.parseChannelRemoteAddr(info.getChannel()));
+                    producerConnection.getConnectionSet().add(connection);
+                }
+                ProducerConnectionMap.put(producerGroup, producerConnection);
+            }
+        }
+        bodydata.setProducerConnectionAll(ProducerConnectionMap);
+        byte[] body = bodydata.encode();
+        response.setBody(body);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
         return response;
     }
 
