@@ -24,7 +24,7 @@ public enum ConsumeFromWhere {
     // 从最后一个偏移量消耗
     CONSUME_FROM_LAST_OFFSET,
 
-    // 你第一次启动的时候，消耗\从最后一个\偏移\和\从\最小\的\u
+    // 你第一次启动的时候，消耗 从最后一个偏移和从最小的
     @Deprecated
     CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST,
 

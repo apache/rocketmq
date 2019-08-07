@@ -72,6 +72,7 @@ public class ProcessQueue {
     }
 
     /**
+     * 清楚过期消息
      * @param pushConsumer
      */
     public void cleanExpiredMsg(DefaultMQPushConsumer pushConsumer) {
