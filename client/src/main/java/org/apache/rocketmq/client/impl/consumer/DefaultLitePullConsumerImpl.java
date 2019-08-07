@@ -762,7 +762,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     private PullResult pull(MessageQueue mq, String subExpression, long offset, int maxNums, long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         SubscriptionData subscriptionData = getSubscriptionData(mq, subExpression);
-        return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, false, timeout);
+        return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, true, timeout);
     }
 
     private PullResult pull(MessageQueue mq, MessageSelector messageSelector, long offset, int maxNums)
@@ -773,7 +773,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     private PullResult pull(MessageQueue mq, MessageSelector messageSelector, long offset, int maxNums, long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         SubscriptionData subscriptionData = getSubscriptionData(mq, messageSelector);
-        return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, false, timeout);
+        return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, true, timeout);
     }
 
     private SubscriptionData getSubscriptionData(MessageQueue mq, String subExpression)
