@@ -29,7 +29,6 @@ import static org.apache.rocketmq.acl.common.SessionCredentials.ACCESS_KEY;
 import static org.apache.rocketmq.acl.common.SessionCredentials.SECURITY_TOKEN;
 import static org.apache.rocketmq.acl.common.SessionCredentials.SIGNATURE;
 import static org.apache.rocketmq.acl.common.SessionCredentials.SOURCE;
-import static org.apache.rocketmq.acl.common.SessionCredentials.VERSION;
 
 public class AclClientRPCHook implements RPCHook {
     private final SessionCredentials sessionCredentials;

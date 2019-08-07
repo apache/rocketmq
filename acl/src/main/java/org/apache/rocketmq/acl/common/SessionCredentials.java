@@ -28,7 +28,6 @@ public class SessionCredentials {
     public static final String SECRET_KEY = "SecretKey";
     public static final String SIGNATURE = "Signature";
     public static final String SECURITY_TOKEN = "SecurityToken";
-    public static final String VERSION = "version";
     public static final String SOURCE = "source";
 
     public static final String KEY_FILE = System.getProperty("rocketmq.client.keyFile",
