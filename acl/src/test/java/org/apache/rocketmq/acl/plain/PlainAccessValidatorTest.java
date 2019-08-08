@@ -62,10 +62,14 @@ public class PlainAccessValidatorTest {
     public void contentTest() {
         SendMessageRequestHeader messageRequestHeader = new SendMessageRequestHeader();
         messageRequestHeader.setTopic("topicA");
+
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, messageRequestHeader);
+
         aclClient.doBeforeRequest("", remotingCommand);
 
+
         ByteBuffer buf = remotingCommand.encodeHeader();
+
         buf.getInt();
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
         buf.position(0);

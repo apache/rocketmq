@@ -41,7 +41,7 @@ public class AclUtils {
 
     public static byte[] combineRequestContent(RemotingCommand request, SortedMap<String, String> fieldsMap) {
         try {
-            StringBuilder sb = new StringBuilder("");
+            StringBuilder sb = new StringBuilder();
             for (Map.Entry<String, String> entry : fieldsMap.entrySet()) {
                 if (!SessionCredentials.SIGNATURE.equals(entry.getKey())) {
                     sb.append(entry.getValue());

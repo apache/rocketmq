@@ -20,6 +20,7 @@ import java.lang.reflect.Field;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -41,16 +42,20 @@ public class AclClientRPCHook implements RPCHook {
 
     @Override
     public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+
         byte[] total = AclUtils.combineRequestContent(request,
-            parseRequestContent(request, sessionCredentials.getAccessKey(), sessionCredentials.getSecurityToken()));
+            parseRequestContent(request, sessionCredentials.getAccessKey(), MQVersion.currentSource, sessionCredentials.getSecurityToken()));
         String signature = AclUtils.calSignature(total, sessionCredentials.getSecretKey());
         request.addExtField(SIGNATURE, signature);
         request.addExtField(ACCESS_KEY, sessionCredentials.getAccessKey());
-        request.addExtField(SOURCE, MQVersion.currentSource);
 
         // The SecurityToken value is unnecessary,user can choose this one.
         if (sessionCredentials.getSecurityToken() != null) {
             request.addExtField(SECURITY_TOKEN, sessionCredentials.getSecurityToken());
+        }
+
+        if (StringUtils.isNotEmpty(MQVersion.currentSource)) {
+            request.addExtField(SOURCE, MQVersion.currentSource);
         }
     }
 
@@ -59,13 +64,16 @@ public class AclClientRPCHook implements RPCHook {
 
     }
 
-    protected SortedMap<String, String> parseRequestContent(RemotingCommand request, String ak, String securityToken) {
+    protected SortedMap<String, String> parseRequestContent(RemotingCommand request, String ak, String source, String securityToken) {
         CommandCustomHeader header = request.readCustomHeader();
         // Sort property
         SortedMap<String, String> map = new TreeMap<String, String>();
         map.put(ACCESS_KEY, ak);
         if (securityToken != null) {
             map.put(SECURITY_TOKEN, securityToken);
+        }
+        if (StringUtils.isNotEmpty(source)) {
+            map.put(SOURCE, MQVersion.currentSource);
         }
         try {
             // Add header properties

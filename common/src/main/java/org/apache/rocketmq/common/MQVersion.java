@@ -25,9 +25,9 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 public class MQVersion {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
-    public static int currentVersion = Version.V4_5_2.ordinal();
+    public static int currentVersion;
 
-    public static String currentSource = "org.apache.rocketmq";
+    public static String currentSource;
 
     static {
         try {
@@ -38,7 +38,7 @@ public class MQVersion {
             String current = pkgVersion.replaceAll("[\\.-]", "_");
             currentSource = String.valueOf(properties.get("groupId"));
             currentVersion = Version.valueOf("V" + current).ordinal();
-            log.warn("RocketMQ currentVersion: {}, currentSource: {}", currentVersion, currentSource);
+            log.warn("RocketMQ version desc: {} currentVersion: {}, currentSource: {} ", pkgVersion, currentVersion, currentSource);
         } catch (Exception ignore) {
             ignore.printStackTrace();
         }
