@@ -141,10 +141,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     private long nextAutoCommitDeadline = -1L;
 
     public DefaultLitePullConsumerImpl(final DefaultLitePullConsumer defaultLitePullConsumer, final RPCHook rpcHook) {
-
         this.defaultLitePullConsumer = defaultLitePullConsumer;
         this.rpcHook = rpcHook;
-
     }
 
     private void checkServiceState() {
@@ -160,8 +158,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     private void updateAssignedMessageQueue(String topic, Set<MessageQueue> assignedMessageQueue) {
-        this.assignedMessageQueue.updateAssignedMessageQueue(assignedMessageQueue);
-        updatePullTask(topic, assignedMessageQueue);
+        this.assignedMessageQueue.updateAssignedMessageQueue(topic, assignedMessageQueue);
     }
 
     private void updatePullTask(String topic, Set<MessageQueue> mqNewSet) {
@@ -185,9 +182,11 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             switch (messageModel) {
                 case BROADCASTING:
                     updateAssignedMessageQueue(topic, mqAll);
+                    updatePullTask(topic, mqAll);
                     break;
                 case CLUSTERING:
                     updateAssignedMessageQueue(topic, mqDivided);
+                    updatePullTask(topic, mqDivided);
                     break;
                 default:
                     break;
@@ -358,10 +357,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 case BROADCASTING:
                     break;
                 case CLUSTERING:
-                    final String retryTopic = MixAll.getRetryTopic(this.defaultLitePullConsumer.getConsumerGroup());
-                    SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultLitePullConsumer.getConsumerGroup(),
-                        retryTopic, SubscriptionData.SUB_ALL);
-                    this.rebalanceImpl.getSubscriptionInner().put(retryTopic, subscriptionData);
+                    /*
+                     * Retry topic support in the future.
+                     */
                     break;
                 default:
                     break;
@@ -423,7 +421,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     public synchronized void unsubscribe(final String topic) {
         this.rebalanceImpl.getSubscriptionInner().remove(topic);
-        //can be delete
         removePullTaskCallback(topic);
         assignedMessageQueue.removeAssignedMessageQueue(topic);
     }
