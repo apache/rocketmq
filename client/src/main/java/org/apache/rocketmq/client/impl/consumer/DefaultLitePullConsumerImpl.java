@@ -37,15 +37,12 @@ import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.consumer.PullResult;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.store.LocalFileOffsetStore;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.hook.ConsumeMessageContext;
-import org.apache.rocketmq.client.hook.ConsumeMessageHook;
 import org.apache.rocketmq.client.hook.FilterMessageHook;
 import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.MQClientManager;
@@ -78,8 +75,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     private final long consumerStartTimestamp = System.currentTimeMillis();
 
     private final RPCHook rpcHook;
-
-    private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
 
     private final ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
 
@@ -119,7 +114,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     /**
      * Delay some time when no new message
      */
-    private static final long PULL_TIME_DELAY_MILLS_WHEN_NO_NEW_MSG = 500;
+    private static final long PULL_TIME_DELAY_MILLS_WHEN_NO_NEW_MSG = 0;
 
     private DefaultLitePullConsumer defaultLitePullConsumer;
 
@@ -844,43 +839,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
         //If namespace not null , reset Topic without namespace.
         this.resetTopic(pullResult.getMsgFoundList());
-        if (!this.consumeMessageHookList.isEmpty()) {
-            ConsumeMessageContext consumeMessageContext = null;
-            consumeMessageContext = new ConsumeMessageContext();
-            consumeMessageContext.setNamespace(defaultLitePullConsumer.getNamespace());
-            consumeMessageContext.setConsumerGroup(this.groupName());
-            consumeMessageContext.setMq(mq);
-            consumeMessageContext.setMsgList(pullResult.getMsgFoundList());
-            consumeMessageContext.setSuccess(false);
-            this.executeHookBefore(consumeMessageContext);
-            consumeMessageContext.setStatus(ConsumeConcurrentlyStatus.CONSUME_SUCCESS.toString());
-            consumeMessageContext.setSuccess(true);
-            this.executeHookAfter(consumeMessageContext);
-        }
         return pullResult;
     }
 
-    private void executeHookBefore(final ConsumeMessageContext context) {
-        if (!this.consumeMessageHookList.isEmpty()) {
-            for (ConsumeMessageHook hook : this.consumeMessageHookList) {
-                try {
-                    hook.consumeMessageBefore(context);
-                } catch (Throwable ignored) {
-                }
-            }
-        }
-    }
-
-    private void executeHookAfter(final ConsumeMessageContext context) {
-        if (!this.consumeMessageHookList.isEmpty()) {
-            for (ConsumeMessageHook hook : this.consumeMessageHookList) {
-                try {
-                    hook.consumeMessageAfter(context);
-                } catch (Throwable ignored) {
-                }
-            }
-        }
-    }
 
     public void resetTopic(List<MessageExt> msgList) {
         if (null == msgList || msgList.size() == 0) {
@@ -1007,6 +968,11 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     public OffsetStore getOffsetStore() {
         return offsetStore;
+    }
+
+    public void registerFilterMessageHook(final FilterMessageHook hook) {
+        this.filterMessageHookList.add(hook);
+        log.info("register FilterMessageHook Hook, {}", hook.hookName());
     }
 
     public DefaultLitePullConsumer getDefaultLitePullConsumer() {
