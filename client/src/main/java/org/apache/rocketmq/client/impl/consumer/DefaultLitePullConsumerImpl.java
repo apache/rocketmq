@@ -17,6 +17,7 @@
 package org.apache.rocketmq.client.impl.consumer;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -28,12 +29,16 @@ import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
+import org.apache.rocketmq.client.consumer.TopicMessageQueueChangeListener;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.consumer.PullResult;
@@ -127,6 +132,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
 
+    private final ScheduledExecutorService scheduledExecutorService;
+
+    private Map<String, TopicMessageQueueChangeListener> topicMessageQueueChangeListenerMap = new HashMap<String, TopicMessageQueueChangeListener>();
+
+    private Map<String, Set<MessageQueue>> messageQueuesForTopic = new HashMap<String, Set<MessageQueue>>();
+
     private long consumeRequestFlowControlTimes = 0L;
 
     private long queueFlowControlTimes = 0L;
@@ -138,6 +149,16 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     public DefaultLitePullConsumerImpl(final DefaultLitePullConsumer defaultLitePullConsumer, final RPCHook rpcHook) {
         this.defaultLitePullConsumer = defaultLitePullConsumer;
         this.rpcHook = rpcHook;
+        this.scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(
+            this.defaultLitePullConsumer.getPullThreadNumbers(),
+            new ThreadFactoryImpl("PullMsgThread-" + this.defaultLitePullConsumer.getConsumerGroup())
+        );
+        this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "MonitorMessageQueueChangeThread");
+            }
+        });
     }
 
     private void checkServiceState() {
@@ -266,12 +287,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
                 mQClientFactory.start();
 
-                final String group = this.defaultLitePullConsumer.getConsumerGroup();
-
-                this.scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(
-                    this.defaultLitePullConsumer.getPullThreadNumbers(),
-                    new ThreadFactoryImpl("PullMsgThread-" + group)
-                );
                 if (subscriptionType == SubscriptionType.SUBSCRIBE) {
                     updateTopicSubscribeInfoWhenSubscriptionChanged();
                 }
@@ -279,8 +294,24 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     updateAssignPullTask(assignedMessageQueue.messageQueues());
                 }
 
+                scheduledExecutorService.scheduleAtFixedRate(
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                fetchTopicMessageQueuesAndCompare();
+                            } catch (Exception e) {
+                                log.error("ScheduledTask fetchMessageQueuesAndCompare exception", e);
+                            }
+                        }
+                    }, 1000 * 20, 1000 * 30, TimeUnit.MILLISECONDS);
+
                 log.info("the consumer [{}] start OK", this.defaultLitePullConsumer.getConsumerGroup());
                 this.serviceState = ServiceState.RUNNING;
+                for (String topic : topicMessageQueueChangeListenerMap.keySet()) {
+                    Set<MessageQueue> messageQueues = fetchMessageQueues(topic);
+                    messageQueuesForTopic.put(topic, messageQueues);
+                }
                 break;
             case RUNNING:
             case START_FAILED:
@@ -339,7 +370,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL),
                 null);
         }
-
     }
 
     public PullAPIWrapper getPullAPIWrapper() {
@@ -353,7 +383,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     break;
                 case CLUSTERING:
                     /*
-                     * Retry topic support in the future.
+                     * Retry topic will be support in the future.
                      */
                     break;
                 default:
@@ -410,7 +440,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 updateTopicSubscribeInfoWhenSubscriptionChanged();
             }
         } catch (Exception e) {
-            throw new MQClientException("subscription exception", e);
+            throw new MQClientException("subscribe exception", e);
         }
     }
 
@@ -815,8 +845,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             throw new MQClientException("maxNums <= 0", null);
         }
 
-        this.subscriptionAutomatically(mq.getTopic());
-
         int sysFlag = PullSysFlag.buildSysFlag(false, block, true, false);
 
         long timeoutMillis = block ? this.defaultLitePullConsumer.getConsumerTimeoutMillisWhenSuspend() : timeout;
@@ -842,7 +870,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         return pullResult;
     }
 
-
     public void resetTopic(List<MessageExt> msgList) {
         if (null == msgList || msgList.size() == 0) {
             return;
@@ -855,17 +882,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             }
         }
 
-    }
-
-    public void subscriptionAutomatically(final String topic) {
-        if (!this.rebalanceImpl.getSubscriptionInner().containsKey(topic)) {
-            try {
-                SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(this.defaultLitePullConsumer.getConsumerGroup(),
-                    topic, SubscriptionData.SUB_ALL);
-                this.rebalanceImpl.subscriptionInner.putIfAbsent(topic, subscriptionData);
-            } catch (Exception ignore) {
-            }
-        }
     }
 
     public void updateConsumeOffset(MessageQueue mq, long offset) {
@@ -981,13 +997,59 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     public Set<MessageQueue> fetchMessageQueues(String topic) throws MQClientException {
         checkServiceState();
-        // check if has info in memory, otherwise invoke api.
-        Set<MessageQueue> result = this.rebalanceImpl.getTopicSubscribeInfoTable().get(topic);
-        if (null == result) {
-            result = this.mQClientFactory.getMQAdminImpl().fetchSubscribeMessageQueues(topic);
+        Set<MessageQueue> result = this.mQClientFactory.getMQAdminImpl().fetchSubscribeMessageQueues(topic);
+        return parseMessageQueues(result);
+    }
+
+    private synchronized void fetchTopicMessageQueuesAndCompare() throws MQClientException {
+        for (Map.Entry<String, TopicMessageQueueChangeListener> entry : topicMessageQueueChangeListenerMap.entrySet()) {
+            String topic = entry.getKey();
+            TopicMessageQueueChangeListener topicMessageQueueChangeListener = entry.getValue();
+            Set<MessageQueue> oldMessageQueues = messageQueuesForTopic.get(topic);
+            Set<MessageQueue> newMessageQueues = fetchMessageQueues(topic);
+            boolean isChanged = !isSetEqual(newMessageQueues, oldMessageQueues);
+            if (isChanged) {
+                messageQueuesForTopic.put(topic, newMessageQueues);
+                if (topicMessageQueueChangeListener != null) {
+                    topicMessageQueueChangeListener.onChanged(topic, newMessageQueues);
+                }
+            }
+        }
+    }
+
+    private boolean isSetEqual(Set<MessageQueue> set1, Set<MessageQueue> set2) {
+        if (set1 == null && set2 == null) {
+            return true;
         }
 
-        return parseMessageQueues(result);
+        if (set1 == null || set2 == null || set1.size() != set2.size()
+            || set1.size() == 0 || set2.size() == 0) {
+            return false;
+        }
+
+        Iterator iter = set2.iterator();
+        boolean isEqual = true;
+        while (iter.hasNext()) {
+            if (!set1.contains(iter.next())) {
+                isEqual = false;
+            }
+        }
+        return isEqual;
+    }
+
+    public synchronized void registerTopicMessageQueueChangeListener(String topic,
+        TopicMessageQueueChangeListener listener) throws MQClientException {
+        if (topic == null || listener == null) {
+            throw new MQClientException("Topic or listener is null", null);
+        }
+        if (topicMessageQueueChangeListenerMap.containsKey(topic)) {
+            log.warn("Topic {} had been registered, new listener will overwrite the old one", topic);
+        }
+        topicMessageQueueChangeListenerMap.put(topic, listener);
+        if (this.serviceState == ServiceState.RUNNING) {
+            Set<MessageQueue> messageQueues = fetchMessageQueues(topic);
+            messageQueuesForTopic.put(topic, messageQueues);
+        }
     }
 
     private Set<MessageQueue> parseMessageQueues(Set<MessageQueue> queueSet) {

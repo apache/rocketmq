@@ -391,4 +391,8 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         this.pullDelayTimeMills = pullDelayTimeMills;
     }
 
+    public void registerTopicMessageQueueChangeListener(String topic,
+        TopicMessageQueueChangeListener topicMessageQueueChangeListener) throws MQClientException {
+        this.defaultLitePullConsumerImpl.registerTopicMessageQueueChangeListener(topic, topicMessageQueueChangeListener);
+    }
 }

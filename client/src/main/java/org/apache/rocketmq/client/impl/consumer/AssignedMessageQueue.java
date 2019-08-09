@@ -138,7 +138,6 @@ public class AssignedMessageQueue {
                 Map.Entry<MessageQueue, MessageQueueStat> next = it.next();
                 if (next.getKey().getTopic().equals(topic)) {
                     if (!assigned.contains(next.getKey())) {
-                        System.out.printf("MessageQueue-%s is removed %n", next.getKey());
                         next.getValue().getProcessQueue().setDropped(true);
                         it.remove();
                     }
@@ -167,7 +166,6 @@ public class AssignedMessageQueue {
             if (!this.assignedMessageQueueState.containsKey(messageQueue)) {
                 MessageQueueStat messageQueueStat;
                 if (rebalanceImpl != null && rebalanceImpl.getProcessQueueTable().get(messageQueue) != null) {
-                    System.out.printf("MessageQueue-%s is added %n", messageQueue);
                     messageQueueStat = new MessageQueueStat(messageQueue, rebalanceImpl.getProcessQueueTable().get(messageQueue));
                 } else {
                     ProcessQueue processQueue = new ProcessQueue();
