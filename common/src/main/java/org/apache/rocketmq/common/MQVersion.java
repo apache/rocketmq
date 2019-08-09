@@ -29,6 +29,21 @@ public class MQVersion {
 
     public static String currentSource;
 
+    public static final String ROCKETMQ_SOURCE = "rocketmq";
+
+    public static final String ROCKETMQ_VERSION_PREFIX = "V";
+
+    private static String buildCurrentSource(String groupId, String artifactId) {
+        StringBuilder stringBuilder = new StringBuilder();
+        if (groupId != null) {
+            stringBuilder.append(groupId).append("@");
+        }
+        if (artifactId != null) {
+            stringBuilder.append(artifactId);
+        }
+        return stringBuilder.toString();
+    }
+
     static {
         try {
             InputStream stream = MQVersion.class.getClassLoader().getResourceAsStream("project.properties");
@@ -36,11 +51,11 @@ public class MQVersion {
             properties.load(stream);
             String pkgVersion = String.valueOf(properties.get("version"));
             String current = pkgVersion.replaceAll("[\\.-]", "_");
-            currentSource = String.valueOf(properties.get("groupId"));
-            currentVersion = Version.valueOf("V" + current).ordinal();
+            currentSource = buildCurrentSource(String.valueOf(properties.get("groupId")), ROCKETMQ_SOURCE);
+            currentVersion = Version.valueOf(ROCKETMQ_VERSION_PREFIX + current).ordinal();
             log.warn("RocketMQ version desc: {} currentVersion: {}, currentSource: {} ", pkgVersion, currentVersion, currentSource);
-        } catch (Exception ignore) {
-            ignore.printStackTrace();
+        } catch (Exception ex) {
+            log.error("RocketMQ version init error", ex);
         }
     }
 
