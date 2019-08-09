@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.trace;
 
+import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.client.exception.MQClientException;
 import java.io.IOException;
 
@@ -27,7 +28,7 @@ public interface TraceDispatcher {
     /**
      * Initialize asynchronous transfer data module
      */
-    void start(String nameSrvAddr) throws MQClientException;
+    void start(String nameSrvAddr, AccessChannel accessChannel) throws MQClientException;
 
     /**
      * Append the transfering data
