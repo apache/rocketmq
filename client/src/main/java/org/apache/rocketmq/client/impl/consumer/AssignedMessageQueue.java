@@ -19,6 +19,7 @@ package org.apache.rocketmq.client.impl.consumer;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.CountDownLatch2;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -37,7 +38,7 @@ public class AssignedMessageQueue {
         this.rebalanceImpl = rebalanceImpl;
     }
 
-    public Collection<MessageQueue> messageQueues() {
+    public Set<MessageQueue> messageQueues() {
         return assignedMessageQueueState.keySet();
     }
 
@@ -130,6 +131,23 @@ public class AssignedMessageQueue {
         return null;
     }
 
+    public void updateAssignedMessageQueue(String topic, Collection<MessageQueue> assigned) {
+        synchronized (this.assignedMessageQueueState) {
+            Iterator<Map.Entry<MessageQueue, MessageQueueStat>> it = this.assignedMessageQueueState.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<MessageQueue, MessageQueueStat> next = it.next();
+                if (next.getKey().getTopic().equals(topic)) {
+                    if (!assigned.contains(next.getKey())) {
+                        System.out.printf("MessageQueue-%s is removed %n", next.getKey());
+                        next.getValue().getProcessQueue().setDropped(true);
+                        it.remove();
+                    }
+                }
+            }
+            addAssignedMessageQueue(assigned);
+        }
+    }
+
     public void updateAssignedMessageQueue(Collection<MessageQueue> assigned) {
         synchronized (this.assignedMessageQueueState) {
             Iterator<Map.Entry<MessageQueue, MessageQueueStat>> it = this.assignedMessageQueueState.entrySet().iterator();
@@ -140,18 +158,22 @@ public class AssignedMessageQueue {
                     it.remove();
                 }
             }
+            addAssignedMessageQueue(assigned);
+        }
+    }
 
-            for (MessageQueue messageQueue : assigned) {
-                if (!this.assignedMessageQueueState.containsKey(messageQueue)) {
-                    MessageQueueStat messageQueueStat;
-                    if (rebalanceImpl != null && rebalanceImpl.processQueueTable.get(messageQueue) != null) {
-                        messageQueueStat = new MessageQueueStat(messageQueue, rebalanceImpl.processQueueTable.get(messageQueue));
-                    } else {
-                        ProcessQueue processQueue = new ProcessQueue();
-                        messageQueueStat = new MessageQueueStat(messageQueue, processQueue);
-                    }
-                    this.assignedMessageQueueState.put(messageQueue, messageQueueStat);
+    private void addAssignedMessageQueue(Collection<MessageQueue> assigned) {
+        for (MessageQueue messageQueue : assigned) {
+            if (!this.assignedMessageQueueState.containsKey(messageQueue)) {
+                MessageQueueStat messageQueueStat;
+                if (rebalanceImpl != null && rebalanceImpl.getProcessQueueTable().get(messageQueue) != null) {
+                    System.out.printf("MessageQueue-%s is added %n", messageQueue);
+                    messageQueueStat = new MessageQueueStat(messageQueue, rebalanceImpl.getProcessQueueTable().get(messageQueue));
+                } else {
+                    ProcessQueue processQueue = new ProcessQueue();
+                    messageQueueStat = new MessageQueueStat(messageQueue, processQueue);
                 }
+                this.assignedMessageQueueState.put(messageQueue, messageQueueStat);
             }
         }
     }
