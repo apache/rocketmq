@@ -44,8 +44,10 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
@@ -63,6 +65,7 @@ import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.common.protocol.body.CheckClientRequestBody;
+import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
@@ -86,10 +89,13 @@ import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.common.protocol.header.CloneGroupOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
+import org.apache.rocketmq.common.protocol.header.CreateAccessConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.CreateTopicRequestHeader;
+import org.apache.rocketmq.common.protocol.header.DeleteAccessConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.DeleteSubscriptionGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.header.DeleteTopicRequestHeader;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetBrokerAclConfigResponseHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumeStatsInBrokerHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumeStatsRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerConnectionListRequestHeader;
@@ -116,6 +122,7 @@ import org.apache.rocketmq.common.protocol.header.QueryCorrectionOffsetHeader;
 import org.apache.rocketmq.common.protocol.header.QueryMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryTopicConsumeByWhoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.ResumeCheckHalfMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
@@ -123,6 +130,7 @@ import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.UpdateGlobalWhiteAddrsConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ViewBrokerStatsDataRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ViewMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.filtersrv.RegisterMessageFilterClassRequestHeader;
@@ -282,6 +290,104 @@ public class MQClientAPIImpl {
         }
 
         throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+    public void createPlainAccessConfig(final String addr, final PlainAccessConfig plainAccessConfig,
+        final long timeoutMillis)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        CreateAccessConfigRequestHeader requestHeader = new CreateAccessConfigRequestHeader();
+        requestHeader.setAccessKey(plainAccessConfig.getAccessKey());
+        requestHeader.setSecretKey(plainAccessConfig.getSecretKey());
+        requestHeader.setAdmin(plainAccessConfig.isAdmin());
+        requestHeader.setDefaultGroupPerm(plainAccessConfig.getDefaultGroupPerm());
+        requestHeader.setDefaultTopicPerm(plainAccessConfig.getDefaultTopicPerm());
+        requestHeader.setWhiteRemoteAddress(plainAccessConfig.getWhiteRemoteAddress());
+        requestHeader.setTopicPerms(UtilAll.List2String(plainAccessConfig.getTopicPerms(),","));
+        requestHeader.setGroupPerms(UtilAll.List2String(plainAccessConfig.getGroupPerms(),","));
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_ACL_CONFIG, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
+            request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+    public void deleteAccessConfig(final String addr, final String accessKey, final long timeoutMillis)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        DeleteAccessConfigRequestHeader requestHeader = new DeleteAccessConfigRequestHeader();
+        requestHeader.setAccessKey(accessKey);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_ACL_CONFIG, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
+            request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+    public void updateGlobalWhiteAddrsConfig(final String addr, final String globalWhiteAddrs,final long timeoutMillis)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+
+        UpdateGlobalWhiteAddrsConfigRequestHeader requestHeader = new UpdateGlobalWhiteAddrsConfigRequestHeader();
+        requestHeader.setGlobalWhiteAddrs(globalWhiteAddrs);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_GLOBAL_WHITE_ADDRS_CONFIG, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
+            request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+    public ClusterAclVersionInfo getBrokerClusterAclInfo(final String addr,final long timeoutMillis) throws RemotingCommandException, InterruptedException, RemotingTimeoutException,
+        RemotingSendRequestException, RemotingConnectException, MQBrokerException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_CLUSTER_ACL_INFO, null);
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr), request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                GetBrokerAclConfigResponseHeader responseHeader =
+                    (GetBrokerAclConfigResponseHeader) response.decodeCommandCustomHeader(GetBrokerAclConfigResponseHeader.class);
+
+                ClusterAclVersionInfo clusterAclVersionInfo = new ClusterAclVersionInfo();
+                clusterAclVersionInfo.setClusterName(responseHeader.getClusterName());
+                clusterAclVersionInfo.setBrokerName(responseHeader.getBrokerName());
+                clusterAclVersionInfo.setBrokerAddr(responseHeader.getBrokerAddr());
+                clusterAclVersionInfo.setAclConfigDataVersion(DataVersion.fromJson(responseHeader.getVersion(), DataVersion.class));
+                return clusterAclVersionInfo;
+            }
+            default:
+                break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+        
     }
 
     public SendResult sendMessage(
@@ -2100,6 +2206,26 @@ public class MQClientAPIImpl {
 
         if (ResponseCode.SUCCESS != response.getCode()) {
             throw new MQClientException(response.getCode(), response.getRemark());
+        }
+    }
+
+    public boolean resumeCheckHalfMessage(final String addr, String msgId,
+        final long timeoutMillis) throws RemotingException, MQClientException, InterruptedException {
+        ResumeCheckHalfMessageRequestHeader requestHeader = new ResumeCheckHalfMessageRequestHeader();
+        requestHeader.setMsgId(msgId);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.RESUME_CHECK_HALF_MESSAGE, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
+            request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return true;
+            }
+            default:
+                log.error("Failed to resume half message check logic. Remark={}", response.getRemark());
+                return false;
         }
     }
 }
