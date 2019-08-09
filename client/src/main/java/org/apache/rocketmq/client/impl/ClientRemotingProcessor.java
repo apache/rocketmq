@@ -16,19 +16,21 @@
  */
 package org.apache.rocketmq.client.impl;
 
-import io.netty.channel.ChannelHandlerContext;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+
+import io.netty.channel.ChannelHandlerContext;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.MQProducerInner;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
@@ -41,6 +43,7 @@ import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestH
 import org.apache.rocketmq.common.protocol.header.GetConsumerStatusRequestHeader;
 import org.apache.rocketmq.common.protocol.header.NotifyConsumerIdsChangedRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -91,6 +94,10 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         final ByteBuffer byteBuffer = ByteBuffer.wrap(request.getBody());
         final MessageExt messageExt = MessageDecoder.decode(byteBuffer);
         if (messageExt != null) {
+            if (StringUtils.isNotEmpty(this.mqClientFactory.getClientConfig().getNamespace())) {
+                messageExt.setTopic(NamespaceUtil
+                    .withoutNamespace(messageExt.getTopic(), this.mqClientFactory.getClientConfig().getNamespace()));
+            }
             String transactionId = messageExt.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
             if (null != transactionId && !"".equals(transactionId)) {
                 messageExt.setTransactionId(transactionId);
