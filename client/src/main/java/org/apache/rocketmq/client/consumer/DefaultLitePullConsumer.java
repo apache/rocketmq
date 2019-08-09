@@ -17,9 +17,7 @@
 package org.apache.rocketmq.client.consumer;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
@@ -69,10 +67,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * Offset Storage
      */
     private OffsetStore offsetStore;
-    /**
-     * Topic set you want to register
-     */
-    private Set<String> registerTopics = new HashSet<String>();
+
     /**
      * Queue allocation algorithm
      */
@@ -370,14 +365,6 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setMessageQueueListener(MessageQueueListener messageQueueListener) {
         this.messageQueueListener = messageQueueListener;
-    }
-
-    public Set<String> getRegisterTopics() {
-        return registerTopics;
-    }
-
-    public void setRegisterTopics(Set<String> registerTopics) {
-        this.registerTopics = withNamespace(registerTopics);
     }
 
     public long getConsumerPullTimeoutMillis() {
