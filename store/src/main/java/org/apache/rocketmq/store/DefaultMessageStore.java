@@ -394,11 +394,11 @@ public class DefaultMessageStore implements MessageStore {
         long beginTime = this.getSystemClock().now();
         PutMessageResult result = this.commitLog.putMessage(msg);
 
-        long eclipseTime = this.getSystemClock().now() - beginTime;
-        if (eclipseTime > 500) {
-            log.warn("putMessage not in lock eclipse time(ms)={}, bodyLength={}", eclipseTime, msg.getBody().length);
+        long elapsedTime = this.getSystemClock().now() - beginTime;
+        if (elapsedTime > 500) {
+            log.warn("putMessage not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, msg.getBody().length);
         }
-        this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
+        this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
 
         if (null == result || !result.isOk()) {
             this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();
@@ -450,11 +450,11 @@ public class DefaultMessageStore implements MessageStore {
         long beginTime = this.getSystemClock().now();
         PutMessageResult result = this.commitLog.putMessages(messageExtBatch);
 
-        long eclipseTime = this.getSystemClock().now() - beginTime;
-        if (eclipseTime > 500) {
-            log.warn("not in lock eclipse time(ms)={}, bodyLength={}", eclipseTime, messageExtBatch.getBody().length);
+        long elapsedTime = this.getSystemClock().now() - beginTime;
+        if (elapsedTime > 500) {
+            log.warn("not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, messageExtBatch.getBody().length);
         }
-        this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
+        this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
 
         if (null == result || !result.isOk()) {
             this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();
@@ -642,8 +642,8 @@ public class DefaultMessageStore implements MessageStore {
         } else {
             this.storeStatsService.getGetMessageTimesTotalMiss().incrementAndGet();
         }
-        long eclipseTime = this.getSystemClock().now() - beginTime;
-        this.storeStatsService.setGetMessageEntireTimeMax(eclipseTime);
+        long elapsedTime = this.getSystemClock().now() - beginTime;
+        this.storeStatsService.setGetMessageEntireTimeMax(elapsedTime);
 
         getResult.setStatus(status);
         getResult.setNextBeginOffset(nextBeginOffset);
@@ -1144,7 +1144,7 @@ public class DefaultMessageStore implements MessageStore {
                 topic,
                 queueId,
                 StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
-                this.getMessageStoreConfig().getMapedFileSizeConsumeQueue(),
+                this.getMessageStoreConfig().getMappedFileSizeConsumeQueue(),
                 this);
             ConsumeQueue oldLogic = map.putIfAbsent(queueId, newLogic);
             if (oldLogic != null) {
@@ -1309,7 +1309,7 @@ public class DefaultMessageStore implements MessageStore {
                             topic,
                             queueId,
                             StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
-                            this.getMessageStoreConfig().getMapedFileSizeConsumeQueue(),
+                            this.getMessageStoreConfig().getMappedFileSizeConsumeQueue(),
                             this);
                         this.putConsumeQueue(topic, queueId, logic);
                         if (!logic.load()) {
@@ -1445,7 +1445,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public int remainTransientStoreBufferNumbs() {
-        return this.transientStorePool.remainBufferNumbs();
+        return this.transientStorePool.availableBufferNums();
     }
 
     @Override

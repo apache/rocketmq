@@ -43,8 +43,8 @@ public class MessageStoreTestBase extends StoreTestBase {
         System.setProperty("dledger.disk.ratio.clean", "0.95");
         baseDirs.add(base);
         MessageStoreConfig storeConfig = new MessageStoreConfig();
-        storeConfig.setMapedFileSizeCommitLog(1024 * 100);
-        storeConfig.setMapedFileSizeConsumeQueue(1024);
+        storeConfig.setMappedFileSizeCommitLog(1024 * 100);
+        storeConfig.setMappedFileSizeConsumeQueue(1024);
         storeConfig.setMaxHashSlotNum(100);
         storeConfig.setMaxIndexNum(100 * 10);
         storeConfig.setStorePathRootDir(base);
@@ -98,8 +98,8 @@ public class MessageStoreTestBase extends StoreTestBase {
     protected DefaultMessageStore createMessageStore(String base, boolean createAbort) throws Exception {
         baseDirs.add(base);
         MessageStoreConfig storeConfig = new MessageStoreConfig();
-        storeConfig.setMapedFileSizeCommitLog(1024 * 100);
-        storeConfig.setMapedFileSizeConsumeQueue(1024);
+        storeConfig.setMappedFileSizeCommitLog(1024 * 100);
+        storeConfig.setMappedFileSizeConsumeQueue(1024);
         storeConfig.setMaxHashSlotNum(100);
         storeConfig.setMaxIndexNum(100 * 10);
         storeConfig.setStorePathRootDir(base);
