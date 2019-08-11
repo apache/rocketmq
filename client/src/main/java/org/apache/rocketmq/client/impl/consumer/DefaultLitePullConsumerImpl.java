@@ -451,6 +451,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     public synchronized void assign(Collection<MessageQueue> messageQueues) {
+        if (messageQueues == null || messageQueues.isEmpty()) {
+            throw new IllegalArgumentException("Message queues can not be null or empty.");
+        }
         setSubscriptionType(SubscriptionType.ASSIGN);
         assignedMessageQueue.updateAssignedMessageQueue(messageQueues);
         if (serviceState == ServiceState.RUNNING) {
@@ -491,6 +494,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 List<MessageExt> messages = consumeRequest.getMessageExts();
                 long offset = consumeRequest.getProcessQueue().removeMessage(messages);
                 assignedMessageQueue.updateConsumeOffset(consumeRequest.getMessageQueue(), offset);
+                //If namespace not null , reset Topic without namespace.
+                this.resetTopic(messages);
                 return messages;
             }
         } catch (InterruptedException ignore) {
@@ -617,8 +622,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     private void submitConsumeRequest(ConsumeRequest consumeRequest) {
         try {
             consumeRequestCache.put(consumeRequest);
-        } catch (InterruptedException ex) {
-            log.error("Submit consumeRequest error", ex);
+        } catch (InterruptedException e) {
+            log.error("Submit consumeRequest error", e);
         }
     }
 
@@ -679,14 +684,14 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
 
                 if (processQueue == null && processQueue.isDropped()) {
-                    log.info("the message queue not be able to poll, because it's dropped. group={}, messageQueue={}", defaultLitePullConsumer.getConsumerGroup(), this.messageQueue);
+                    log.info("The message queue not be able to poll, because it's dropped. group={}, messageQueue={}", defaultLitePullConsumer.getConsumerGroup(), this.messageQueue);
                     return;
                 }
 
                 if (consumeRequestCache.size() * defaultLitePullConsumer.getPullBatchNums() > defaultLitePullConsumer.getPullThresholdForAll()) {
                     scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_FLOW_CONTROL, TimeUnit.MILLISECONDS);
                     if ((consumeRequestFlowControlTimes++ % 1000) == 0)
-                        log.warn("the consume request count exceeds threshold {}, so do flow control, consume request count={}, flowControlTimes={}", consumeRequestCache.size(), consumeRequestFlowControlTimes);
+                        log.warn("The consume request count exceeds threshold {}, so do flow control, consume request count={}, flowControlTimes={}", consumeRequestCache.size(), consumeRequestFlowControlTimes);
                     return;
                 }
 
@@ -697,7 +702,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_FLOW_CONTROL, TimeUnit.MILLISECONDS);
                     if ((queueFlowControlTimes++ % 1000) == 0) {
                         log.warn(
-                            "the cached message count exceeds the threshold {}, so do flow control, minOffset={}, maxOffset={}, count={}, size={} MiB, flowControlTimes={}",
+                            "The cached message count exceeds the threshold {}, so do flow control, minOffset={}, maxOffset={}, count={}, size={} MiB, flowControlTimes={}",
                             defaultLitePullConsumer.getPullThresholdForQueue(), processQueue.getMsgTreeMap().firstKey(), processQueue.getMsgTreeMap().lastKey(), cachedMessageCount, cachedMessageSizeInMiB, queueFlowControlTimes);
                     }
                     return;
@@ -707,7 +712,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_FLOW_CONTROL, TimeUnit.MILLISECONDS);
                     if ((queueFlowControlTimes++ % 1000) == 0) {
                         log.warn(
-                            "the cached message size exceeds the threshold {} MiB, so do flow control, minOffset={}, maxOffset={}, count={}, size={} MiB, flowControlTimes={}",
+                            "The cached message size exceeds the threshold {} MiB, so do flow control, minOffset={}, maxOffset={}, count={}, size={} MiB, flowControlTimes={}",
                             defaultLitePullConsumer.getPullThresholdSizeForQueue(), processQueue.getMsgTreeMap().firstKey(), processQueue.getMsgTreeMap().lastKey(), cachedMessageCount, cachedMessageSizeInMiB, queueFlowControlTimes);
                     }
                     return;
@@ -717,7 +722,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_FLOW_CONTROL, TimeUnit.MILLISECONDS);
                     if ((queueMaxSpanFlowControlTimes++ % 1000) == 0) {
                         log.warn(
-                            "the queue's messages, span too long, so do flow control, minOffset={}, maxOffset={}, maxSpan={}, flowControlTimes={}",
+                            "The queue's messages, span too long, so do flow control, minOffset={}, maxOffset={}, maxSpan={}, flowControlTimes={}",
                             processQueue.getMsgTreeMap().firstKey(), processQueue.getMsgTreeMap().lastKey(), processQueue.getMaxSpan(), queueMaxSpanFlowControlTimes);
                     }
                     return;
@@ -740,7 +745,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                             }
                             break;
                         case OFFSET_ILLEGAL:
-                            log.warn("the pull request offset illegal, {}", pullResult.toString());
+                            log.warn("The pull request offset illegal, {}", pullResult.toString());
                             break;
                         case NO_NEW_MSG:
                             pullDelayTimeMills = PULL_TIME_DELAY_MILLS_WHEN_NO_NEW_MSG;
@@ -865,12 +870,10 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             null
         );
         this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
-        //If namespace not null , reset Topic without namespace.
-        this.resetTopic(pullResult.getMsgFoundList());
         return pullResult;
     }
 
-    public void resetTopic(List<MessageExt> msgList) {
+    private void resetTopic(List<MessageExt> msgList) {
         if (null == msgList || msgList.size() == 0) {
             return;
         }

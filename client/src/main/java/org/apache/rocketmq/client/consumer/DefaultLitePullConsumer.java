@@ -176,17 +176,17 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void subscribe(String topic, String subExpression) throws MQClientException {
-        this.defaultLitePullConsumerImpl.subscribe(topic, subExpression);
+        this.defaultLitePullConsumerImpl.subscribe(withNamespace(topic), subExpression);
     }
 
     @Override
     public void unsubscribe(String topic) {
-        this.defaultLitePullConsumerImpl.unsubscribe(topic);
+        this.defaultLitePullConsumerImpl.unsubscribe(withNamespace(topic));
     }
 
     @Override
     public void assign(Collection<MessageQueue> messageQueues) {
-        defaultLitePullConsumerImpl.assign(messageQueues);
+        defaultLitePullConsumerImpl.assign(queuesWithNamespace(messageQueues));
     }
 
     @Override
@@ -201,17 +201,17 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void seek(MessageQueue messageQueue, long offset) throws MQClientException {
-        this.defaultLitePullConsumerImpl.seek(messageQueue, offset);
+        this.defaultLitePullConsumerImpl.seek(queueWithNamespace(messageQueue), offset);
     }
 
     @Override
     public void pause(Collection<MessageQueue> messageQueues) {
-        this.defaultLitePullConsumerImpl.pause(messageQueues);
+        this.defaultLitePullConsumerImpl.pause(queuesWithNamespace(messageQueues));
     }
 
     @Override
     public void resume(Collection<MessageQueue> messageQueues) {
-        this.defaultLitePullConsumerImpl.resume(messageQueues);
+        this.defaultLitePullConsumerImpl.resume(queuesWithNamespace(messageQueues));
     }
 
     @Override
@@ -221,7 +221,12 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public Long offsetForTimestamp(MessageQueue messageQueue, Long timestamp) throws MQClientException {
-        return this.defaultLitePullConsumerImpl.searchOffset(messageQueue, timestamp);
+        return this.defaultLitePullConsumerImpl.searchOffset(queueWithNamespace(messageQueue), timestamp);
+    }
+
+    public void registerTopicMessageQueueChangeListener(String topic,
+        TopicMessageQueueChangeListener topicMessageQueueChangeListener) throws MQClientException {
+        this.defaultLitePullConsumerImpl.registerTopicMessageQueueChangeListener(withNamespace(topic), topicMessageQueueChangeListener);
     }
 
     @Override
@@ -389,10 +394,5 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setPullDelayTimeMills(long pullDelayTimeMills) {
         this.pullDelayTimeMills = pullDelayTimeMills;
-    }
-
-    public void registerTopicMessageQueueChangeListener(String topic,
-        TopicMessageQueueChangeListener topicMessageQueueChangeListener) throws MQClientException {
-        this.defaultLitePullConsumerImpl.registerTopicMessageQueueChangeListener(topic, topicMessageQueueChangeListener);
     }
 }
