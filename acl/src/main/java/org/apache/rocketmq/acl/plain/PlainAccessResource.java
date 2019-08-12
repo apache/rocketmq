@@ -22,6 +22,9 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.rocketmq.acl.AccessResource;
 import org.apache.rocketmq.common.MixAll;
 
+/**
+ * 普通访问资源
+ */
 public class PlainAccessResource implements AccessResource {
 
     // Identify the user

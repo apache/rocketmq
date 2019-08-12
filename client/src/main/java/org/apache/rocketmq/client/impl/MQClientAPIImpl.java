@@ -545,22 +545,22 @@ public class MQClientAPIImpl {
         final CommunicationMode communicationMode,
         final PullCallback pullCallback
     ) throws RemotingException, MQBrokerException, InterruptedException {
+        // 请求服务端标识
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
-
+        // 通信模式
         switch (communicationMode) {
             case ONEWAY:
                 assert false;
                 return null;
-            case ASYNC:
+            case ASYNC: // 异步拉取
                 this.pullMessageAsync(addr, request, timeoutMillis, pullCallback);
                 return null;
-            case SYNC:
+            case SYNC:  // 同步拉取
                 return this.pullMessageSync(addr, request, timeoutMillis);
             default:
                 assert false;
                 break;
         }
-
         return null;
     }
 
@@ -576,13 +576,17 @@ public class MQClientAPIImpl {
                 RemotingCommand response = responseFuture.getResponseCommand();
                 if (response != null) {
                     try {
+                        // 设置拉取状态
                         PullResult pullResult = MQClientAPIImpl.this.processPullResponse(response);
+                        // 断言不为空
                         assert pullResult != null;
+                        // 执行回调
                         pullCallback.onSuccess(pullResult);
                     } catch (Exception e) {
                         pullCallback.onException(e);
                     }
                 } else {
+                    // 异常回调
                     if (!responseFuture.isSendRequestOK()) {
                         pullCallback.onException(new MQClientException("send request failed to " + addr + ". Request: " + request, responseFuture.getCause()));
                     } else if (responseFuture.isTimeout()) {

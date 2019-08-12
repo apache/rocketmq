@@ -27,6 +27,9 @@ import org.yaml.snakeyaml.Yaml;
 
 import static org.apache.rocketmq.acl.common.SessionCredentials.CHARSET;
 
+/**
+ * acl 工具类
+ */
 public class AclUtils {
 
     public static byte[] combineRequestContent(RemotingCommand request, SortedMap<String, String> fieldsMap) {

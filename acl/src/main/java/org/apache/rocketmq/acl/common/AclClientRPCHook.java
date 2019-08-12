@@ -28,6 +28,9 @@ import static org.apache.rocketmq.acl.common.SessionCredentials.ACCESS_KEY;
 import static org.apache.rocketmq.acl.common.SessionCredentials.SECURITY_TOKEN;
 import static org.apache.rocketmq.acl.common.SessionCredentials.SIGNATURE;
 
+/**
+ * acl 客户端 rpc 钩子
+ */
 public class AclClientRPCHook implements RPCHook {
     private final SessionCredentials sessionCredentials;
     protected ConcurrentHashMap<Class<? extends CommandCustomHeader>, Field[]> fieldCache =
@@ -39,13 +42,15 @@ public class AclClientRPCHook implements RPCHook {
 
     @Override
     public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+        // 分析请求头内容，将请求头内容合并 得到请求头字节
         byte[] total = AclUtils.combineRequestContent(request,
             parseRequestContent(request, sessionCredentials.getAccessKey(), sessionCredentials.getSecurityToken()));
+        // 将请求头字节和秘钥进行加密，得到签名
         String signature = AclUtils.calSignature(total, sessionCredentials.getSecretKey());
+        // 将签名放入请求头扩展字段
         request.addExtField(SIGNATURE, signature);
         request.addExtField(ACCESS_KEY, sessionCredentials.getAccessKey());
-        
-        // The SecurityToken value is unneccessary,user can choose this one.
+        // SecurityToken值是不必要的，用户可以选择这个。
         if (sessionCredentials.getSecurityToken() != null) {
             request.addExtField(SECURITY_TOKEN, sessionCredentials.getSecurityToken());
         }

@@ -17,5 +17,8 @@
 
 package org.apache.rocketmq.acl;
 
+/**
+ * 访问资源
+ */
 public interface AccessResource {
 }

@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.acl.common;
 
+/**
+ * 签名算法
+ */
 public enum SigningAlgorithm {
     HmacSHA1,
     HmacSHA256,

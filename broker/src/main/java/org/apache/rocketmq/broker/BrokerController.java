@@ -489,11 +489,12 @@ public class BrokerController {
     }
 
     private void initialAcl() {
+        // 代理是否开启ACL
         if (!this.brokerConfig.isAclEnable()) {
             log.info("The broker dose not enable acl");
             return;
         }
-
+        // 从服务供应商获取访问验证器
         List<AccessValidator> accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
         if (accessValidators == null || accessValidators.isEmpty()) {
             log.info("The broker dose not load the AccessValidator");
@@ -502,11 +503,11 @@ public class BrokerController {
 
         for (AccessValidator accessValidator: accessValidators) {
             final AccessValidator validator = accessValidator;
+            // 注册服务端RPCHook
             this.registerServerRPCHook(new RPCHook() {
-
                 @Override
                 public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
-                    //Do not catch the exception
+                    // Do not catch the exception
                     validator.validate(validator.parse(request, remoteAddr));
                 }
 
@@ -517,13 +518,13 @@ public class BrokerController {
         }
     }
 
-
     private void initialRpcHooks() {
-
+        // 从服务供应商获取RPCHook
         List<RPCHook> rpcHooks = ServiceProvider.load(ServiceProvider.RPC_HOOK_ID, RPCHook.class);
         if (rpcHooks == null || rpcHooks.isEmpty()) {
             return;
         }
+        // 注册服务端RPCHook
         for (RPCHook rpcHook: rpcHooks) {
             this.registerServerRPCHook(rpcHook);
         }

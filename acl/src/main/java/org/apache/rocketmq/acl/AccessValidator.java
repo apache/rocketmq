@@ -19,10 +19,13 @@ package org.apache.rocketmq.acl;
 
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+/**
+ * 访问验证
+ */
 public interface AccessValidator {
     /**
      * Parse to get the AccessResource(user, resource, needed permission)
-     *
+     *  解析以获取访问资源（用户、资源、所需权限）
      * @param request
      * @param remoteAddr
      * @return Plain access resource result,include access key,signature and some other access attributes.
@@ -31,7 +34,7 @@ public interface AccessValidator {
 
     /**
      * Validate the access resource.
-     *
+     *  验证访问资源。
      * @param accessResource
      */
     void validate(AccessResource accessResource);

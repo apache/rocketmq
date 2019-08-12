@@ -36,6 +36,9 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 import static org.apache.rocketmq.acl.plain.PlainAccessResource.getRetryTopic;
 
+/**
+ * 普通访问验证
+ */
 public class PlainAccessValidator implements AccessValidator {
 
     private PlainPermissionLoader aclPlugEngine;

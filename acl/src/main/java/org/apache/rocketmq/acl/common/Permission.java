@@ -23,6 +23,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.plain.PlainAccessResource;
 import org.apache.rocketmq.common.protocol.RequestCode;
 
+/**
+ * 具体权限控制
+ */
 public class Permission {
 
     public static final byte DENY = 1;

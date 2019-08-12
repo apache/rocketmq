@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.acl.plain;
 
+/**
+ * 远程地址策略接口
+ */
 public interface RemoteAddressStrategy {
 
     boolean match(PlainAccessResource plainAccessResource);

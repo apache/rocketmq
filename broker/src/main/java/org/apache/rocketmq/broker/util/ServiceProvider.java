@@ -18,6 +18,9 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 服务供应商
+ */
 public class ServiceProvider {
 
     private final static Logger LOG = LoggerFactory

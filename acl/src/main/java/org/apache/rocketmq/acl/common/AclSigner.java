@@ -24,6 +24,9 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
+/**
+ * acl 签名
+ */
 public class AclSigner {
     public static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
     public static final SigningAlgorithm DEFAULT_ALGORITHM = SigningAlgorithm.HmacSHA1;
