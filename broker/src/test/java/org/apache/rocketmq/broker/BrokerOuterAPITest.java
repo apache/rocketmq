@@ -124,7 +124,7 @@ public class BrokerOuterAPITest {
         boolean success = Iterables.any(booleanList,
             new Predicate<Boolean>() {
                 public boolean apply(Boolean input) {
-                    return input ? true : false;
+                    return input;
                 }
             });
 

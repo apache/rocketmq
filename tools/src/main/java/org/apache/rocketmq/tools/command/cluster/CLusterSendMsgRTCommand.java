@@ -38,7 +38,7 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class CLusterSendMsgRTCommand implements SubCommand {
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
     }
 
     @Override

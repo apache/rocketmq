@@ -33,7 +33,7 @@ public class FileUtil {
         this.fileName = fileName;
     }
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
         String filePath = FileUtil.class.getResource("/").getPath();
         String fileName = "test.txt";
         FileUtil fileUtil = new FileUtil(filePath, fileName);
