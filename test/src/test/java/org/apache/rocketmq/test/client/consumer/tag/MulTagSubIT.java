@@ -92,7 +92,7 @@ public class MulTagSubIT extends BaseConf {
 
     @Test
     public void testSubTwoTabAndMatchTwo() {
-        String tags[] = {"jueyin1", "jueyin2"};
+        String[] tags = {"jueyin1", "jueyin2"};
         String subExpress = String.format("%s||%s", tags[0], tags[1]);
         int msgSize = 10;
 
@@ -113,7 +113,7 @@ public class MulTagSubIT extends BaseConf {
 
     @Test
     public void testSubThreeTabAndMatchTwo() {
-        String tags[] = {"jueyin1", "jueyin2", "jueyin3"};
+        String[] tags = {"jueyin1", "jueyin2", "jueyin3"};
         String subExpress = String.format("%s||%s", tags[0], tags[1]);
         int msgSize = 10;
 
@@ -135,7 +135,7 @@ public class MulTagSubIT extends BaseConf {
 
     @Test
     public void testNoMatch() {
-        String tags[] = {"jueyin1", "jueyin2", "jueyin3"};
+        String[] tags = {"jueyin1", "jueyin2", "jueyin3"};
         String subExpress = "no_match";
         int msgSize = 10;
 
