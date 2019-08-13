@@ -36,12 +36,19 @@ public interface LitePullConsumer {
     void shutdown();
 
     /**
-     * Subscribe some topic
+     * Subscribe some topic with subExpression
      *
      * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
      *                      null or * expression,meaning subscribe all
      */
     void subscribe(final String topic, final String subExpression) throws MQClientException;
+
+    /**
+     * Subscribe some topic with selector.
+     *
+     * @param selector message selector({@link MessageSelector}), can be null.
+     */
+    void subscribe(final String topic, final MessageSelector selector) throws MQClientException;
 
     /**
      * Unsubscribe consumption some topic

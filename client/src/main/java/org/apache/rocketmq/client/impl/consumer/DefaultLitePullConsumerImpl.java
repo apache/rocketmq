@@ -312,6 +312,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     Set<MessageQueue> messageQueues = fetchMessageQueues(topic);
                     messageQueuesForTopic.put(topic, messageQueues);
                 }
+                this.mQClientFactory.checkClientInBroker();
                 break;
             case RUNNING:
             case START_FAILED:
@@ -432,6 +433,27 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             setSubscriptionType(SubscriptionType.SUBSCRIBE);
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(defaultLitePullConsumer.getConsumerGroup(),
                 topic, subExpression);
+            this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
+            this.defaultLitePullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
+            assignedMessageQueue.setRebalanceImpl(this.rebalanceImpl);
+            if (serviceState == ServiceState.RUNNING) {
+                this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+                updateTopicSubscribeInfoWhenSubscriptionChanged();
+            }
+        } catch (Exception e) {
+            throw new MQClientException("subscribe exception", e);
+        }
+    }
+
+    public synchronized void subscribe(String topic, MessageSelector messageSelector) throws MQClientException {
+        try {
+            setSubscriptionType(SubscriptionType.SUBSCRIBE);
+            if (messageSelector == null) {
+                subscribe(topic, SubscriptionData.SUB_ALL);
+                return;
+            }
+            SubscriptionData subscriptionData = FilterAPI.build(topic,
+                messageSelector.getExpression(), messageSelector.getExpressionType());
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
             this.defaultLitePullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
             assignedMessageQueue.setRebalanceImpl(this.rebalanceImpl);
@@ -728,15 +750,21 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     return;
                 }
 
-                String subExpression = null;
-                if (subscriptionType == SubscriptionType.SUBSCRIBE) {
-                    String topic = this.messageQueue.getTopic();
-                    subExpression = rebalanceImpl.getSubscriptionInner().get(topic).getSubString();
-                }
                 long offset = nextPullOffset(messageQueue);
                 long pullDelayTimeMills = defaultLitePullConsumer.getPullDelayTimeMills();
                 try {
-                    PullResult pullResult = pull(messageQueue, subExpression, offset, nextPullBatchNums());
+
+                    SubscriptionData subscriptionData;
+                    if (subscriptionType == SubscriptionType.SUBSCRIBE) {
+                        String topic = this.messageQueue.getTopic();
+                        subscriptionData = rebalanceImpl.getSubscriptionInner().get(topic);
+                    } else{
+                        String topic = this.messageQueue.getTopic();
+                        subscriptionData = FilterAPI.buildSubscriptionData(defaultLitePullConsumer.getConsumerGroup(),
+                            topic, SubscriptionData.SUB_ALL);
+                    }
+
+                    PullResult pullResult = pull(messageQueue, subscriptionData, offset, nextPullBatchNums());
                     switch (pullResult.getPullStatus()) {
                         case FOUND:
                             if (pullResult.getMsgFoundList() != null && !pullResult.getMsgFoundList().isEmpty()) {
@@ -756,7 +784,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     updatePullOffset(messageQueue, pullResult.getNextBeginOffset());
                 } catch (Throwable e) {
                     pullDelayTimeMills = PULL_TIME_DELAY_MILLS_WHEN_EXCEPTION;
-                    e.printStackTrace();
                     log.error("An error occurred in pull message process.", e);
                 }
 
@@ -781,56 +808,14 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
-    private PullResult pull(MessageQueue mq, String subExpression, long offset, int maxNums)
+    private PullResult pull(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        return pull(mq, subExpression, offset, maxNums, this.defaultLitePullConsumer.getConsumerPullTimeoutMillis());
+        return pull(mq, subscriptionData, offset, maxNums, this.defaultLitePullConsumer.getConsumerPullTimeoutMillis());
     }
 
-    private PullResult pull(MessageQueue mq, String subExpression, long offset, int maxNums, long timeout)
+    private PullResult pull(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums, long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        SubscriptionData subscriptionData = getSubscriptionData(mq, subExpression);
         return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, true, timeout);
-    }
-
-    private PullResult pull(MessageQueue mq, MessageSelector messageSelector, long offset, int maxNums)
-        throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        return pull(mq, messageSelector, offset, maxNums, this.defaultLitePullConsumer.getConsumerPullTimeoutMillis());
-    }
-
-    private PullResult pull(MessageQueue mq, MessageSelector messageSelector, long offset, int maxNums, long timeout)
-        throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        SubscriptionData subscriptionData = getSubscriptionData(mq, messageSelector);
-        return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, true, timeout);
-    }
-
-    private SubscriptionData getSubscriptionData(MessageQueue mq, String subExpression)
-        throws MQClientException {
-
-        if (null == mq) {
-            throw new MQClientException("mq is null", null);
-        }
-
-        try {
-            return FilterAPI.buildSubscriptionData(this.defaultLitePullConsumer.getConsumerGroup(),
-                mq.getTopic(), subExpression);
-        } catch (Exception e) {
-            throw new MQClientException("parse subscription error", e);
-        }
-    }
-
-    private SubscriptionData getSubscriptionData(MessageQueue mq, MessageSelector messageSelector)
-        throws MQClientException {
-
-        if (null == mq) {
-            throw new MQClientException("mq is null", null);
-        }
-
-        try {
-            return FilterAPI.build(mq.getTopic(),
-                messageSelector.getExpression(), messageSelector.getExpressionType());
-        } catch (Exception e) {
-            throw new MQClientException("parse subscription error", e);
-        }
     }
 
     private PullResult pullSyncImpl(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums,

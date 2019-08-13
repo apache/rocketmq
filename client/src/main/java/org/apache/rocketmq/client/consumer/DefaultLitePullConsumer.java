@@ -180,6 +180,11 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     @Override
+    public void subscribe(String topic, MessageSelector messageSelector) throws MQClientException {
+        this.defaultLitePullConsumerImpl.subscribe(withNamespace(topic), messageSelector);
+    }
+
+    @Override
     public void unsubscribe(String topic) {
         this.defaultLitePullConsumerImpl.unsubscribe(withNamespace(topic));
     }
