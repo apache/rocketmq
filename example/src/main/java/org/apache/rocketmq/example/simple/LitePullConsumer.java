@@ -24,12 +24,12 @@ import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 
-public class LitePullConsumerTest {
+public class LitePullConsumer {
     public static void main(String[] args) throws Exception {
-        DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer("test");
+        DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer("please_rename_unique_group_name");
         litePullConsumer.setAutoCommit(false);
         litePullConsumer.start();
-        Collection<MessageQueue> mqSet = litePullConsumer.fetchMessageQueues("test400");
+        Collection<MessageQueue> mqSet = litePullConsumer.fetchMessageQueues("TopicTest");
         List<MessageQueue> list = new ArrayList<>(mqSet);
         Collection<MessageQueue> assginMq = Collections.singletonList(list.get(0));
         litePullConsumer.assign(assginMq);
