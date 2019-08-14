@@ -31,7 +31,9 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 
 /**
- * Schedule service for pull consumer
+ * Schedule service for pull consumer.
+ * This Consumer will be removed in 2022, and a better implementation {@link
+ * DefaultLitePullConsumer} is recommend to use in the scenario of actively pulling messages.
  */
 public class MQPullConsumerScheduleService {
     private final InternalLogger log = ClientLogger.getLog();
