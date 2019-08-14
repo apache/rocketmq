@@ -758,7 +758,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     if (subscriptionType == SubscriptionType.SUBSCRIBE) {
                         String topic = this.messageQueue.getTopic();
                         subscriptionData = rebalanceImpl.getSubscriptionInner().get(topic);
-                    } else{
+                    } else {
                         String topic = this.messageQueue.getTopic();
                         subscriptionData = FilterAPI.buildSubscriptionData(defaultLitePullConsumer.getConsumerGroup(),
                             topic, SubscriptionData.SUB_ALL);
