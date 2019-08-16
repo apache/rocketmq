@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -162,7 +163,7 @@ public class BrokerController {
     private TransactionalMessageService transactionalMessageService;
     private AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
     private Future<?> slaveSyncFuture;
-
+    private Map<Class,AccessValidator> accessValidatorMap = new HashMap<Class, AccessValidator>();
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -318,7 +319,7 @@ public class BrokerController {
 
             this.registerProcessor();
 
-            final long initialDelay = UtilAll.computNextMorningTimeMillis() - System.currentTimeMillis();
+            final long initialDelay = UtilAll.computeNextMorningTimeMillis() - System.currentTimeMillis();
             final long period = 1000 * 60 * 60 * 24;
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
@@ -502,6 +503,7 @@ public class BrokerController {
 
         for (AccessValidator accessValidator: accessValidators) {
             final AccessValidator validator = accessValidator;
+            accessValidatorMap.put(validator.getClass(),validator);
             this.registerServerRPCHook(new RPCHook() {
 
                 @Override
@@ -1101,7 +1103,9 @@ public class BrokerController {
 
     }
 
-
+    public Map<Class, AccessValidator> getAccessValidatorMap() {
+        return accessValidatorMap;
+    }
 
     private void handleSlaveSynchronize(BrokerRole role) {
         if (role == BrokerRole.SLAVE) {

@@ -26,9 +26,10 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.remoting.RPCHook;
 
 /**
  * Schedule service for pull consumer
@@ -46,6 +47,11 @@ public class MQPullConsumerScheduleService {
 
     public MQPullConsumerScheduleService(final String consumerGroup) {
         this.defaultMQPullConsumer = new DefaultMQPullConsumer(consumerGroup);
+        this.defaultMQPullConsumer.setMessageModel(MessageModel.CLUSTERING);
+    }
+
+    public MQPullConsumerScheduleService(final String consumerGroup, final RPCHook rpcHook) {
+        this.defaultMQPullConsumer = new DefaultMQPullConsumer(consumerGroup, rpcHook);
         this.defaultMQPullConsumer.setMessageModel(MessageModel.CLUSTERING);
     }
 
