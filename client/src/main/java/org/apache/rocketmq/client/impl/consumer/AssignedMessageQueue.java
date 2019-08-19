@@ -26,12 +26,12 @@ import org.apache.rocketmq.common.message.MessageQueue;
 
 public class AssignedMessageQueue {
 
-    private ConcurrentHashMap<MessageQueue, MessageQueueStat> assignedMessageQueueState;
+    private ConcurrentHashMap<MessageQueue, MessageQueueState> assignedMessageQueueState;
 
     private RebalanceImpl rebalanceImpl;
 
     public AssignedMessageQueue() {
-        assignedMessageQueueState = new ConcurrentHashMap<MessageQueue, MessageQueueStat>();
+        assignedMessageQueueState = new ConcurrentHashMap<MessageQueue, MessageQueueState>();
     }
 
     public void setRebalanceImpl(RebalanceImpl rebalanceImpl) {
@@ -43,99 +43,99 @@ public class AssignedMessageQueue {
     }
 
     public boolean isPaused(MessageQueue messageQueue) {
-        MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
-        if (messageQueueStat != null) {
-            return messageQueueStat.isPaused();
+        MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
+        if (messageQueueState != null) {
+            return messageQueueState.isPaused();
         }
         return true;
     }
 
     public void pause(Collection<MessageQueue> messageQueues) {
         for (MessageQueue messageQueue : messageQueues) {
-            MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
+            MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
             if (assignedMessageQueueState.get(messageQueue) != null) {
-                messageQueueStat.getPausedLatch().reset();
-                messageQueueStat.setPaused(true);
+                messageQueueState.getPausedLatch().reset();
+                messageQueueState.setPaused(true);
             }
         }
     }
 
     public void resume(Collection<MessageQueue> messageQueueCollection) {
         for (MessageQueue messageQueue : messageQueueCollection) {
-            MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
+            MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
             if (assignedMessageQueueState.get(messageQueue) != null) {
-                messageQueueStat.setPaused(false);
-                messageQueueStat.getPausedLatch().reset();
+                messageQueueState.setPaused(false);
+                messageQueueState.getPausedLatch().reset();
             }
         }
     }
 
     public ProcessQueue getProcessQueue(MessageQueue messageQueue) {
-        MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
-        if (messageQueueStat != null) {
-            return messageQueueStat.getProcessQueue();
+        MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
+        if (messageQueueState != null) {
+            return messageQueueState.getProcessQueue();
         }
         return null;
     }
 
     public long getPullOffset(MessageQueue messageQueue) {
-        MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
-        if (messageQueueStat != null) {
-            return messageQueueStat.getPullOffset();
+        MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
+        if (messageQueueState != null) {
+            return messageQueueState.getPullOffset();
         }
         return -1;
     }
 
     public void updatePullOffset(MessageQueue messageQueue, long offset) {
-        MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
-        if (messageQueueStat != null) {
-            messageQueueStat.setPullOffset(offset);
+        MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
+        if (messageQueueState != null) {
+            messageQueueState.setPullOffset(offset);
         }
     }
 
     public long getConusmerOffset(MessageQueue messageQueue) {
-        MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
-        if (messageQueueStat != null) {
-            return messageQueueStat.getConsumeOffset();
+        MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
+        if (messageQueueState != null) {
+            return messageQueueState.getConsumeOffset();
         }
         return -1;
     }
 
     public void updateConsumeOffset(MessageQueue messageQueue, long offset) {
-        MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
-        if (messageQueueStat != null) {
-            messageQueueStat.setConsumeOffset(offset);
+        MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
+        if (messageQueueState != null) {
+            messageQueueState.setConsumeOffset(offset);
         }
     }
 
     public void setSeekOffset(MessageQueue messageQueue, long offset) {
-        MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
-        if (messageQueueStat != null) {
-            messageQueueStat.setSeekOffset(offset);
+        MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
+        if (messageQueueState != null) {
+            messageQueueState.setSeekOffset(offset);
         }
     }
 
     public long getSeekOffset(MessageQueue messageQueue) {
-        MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
-        if (messageQueueStat != null) {
-            return messageQueueStat.getSeekOffset();
+        MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
+        if (messageQueueState != null) {
+            return messageQueueState.getSeekOffset();
         }
         return -1;
     }
 
     public CountDownLatch2 getPausedLatch(MessageQueue messageQueue) {
-        MessageQueueStat messageQueueStat = assignedMessageQueueState.get(messageQueue);
-        if (messageQueueStat != null) {
-            return messageQueueStat.getPausedLatch();
+        MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
+        if (messageQueueState != null) {
+            return messageQueueState.getPausedLatch();
         }
         return null;
     }
 
     public void updateAssignedMessageQueue(String topic, Collection<MessageQueue> assigned) {
         synchronized (this.assignedMessageQueueState) {
-            Iterator<Map.Entry<MessageQueue, MessageQueueStat>> it = this.assignedMessageQueueState.entrySet().iterator();
+            Iterator<Map.Entry<MessageQueue, MessageQueueState>> it = this.assignedMessageQueueState.entrySet().iterator();
             while (it.hasNext()) {
-                Map.Entry<MessageQueue, MessageQueueStat> next = it.next();
+                Map.Entry<MessageQueue, MessageQueueState> next = it.next();
                 if (next.getKey().getTopic().equals(topic)) {
                     if (!assigned.contains(next.getKey())) {
                         next.getValue().getProcessQueue().setDropped(true);
@@ -149,9 +149,9 @@ public class AssignedMessageQueue {
 
     public void updateAssignedMessageQueue(Collection<MessageQueue> assigned) {
         synchronized (this.assignedMessageQueueState) {
-            Iterator<Map.Entry<MessageQueue, MessageQueueStat>> it = this.assignedMessageQueueState.entrySet().iterator();
+            Iterator<Map.Entry<MessageQueue, MessageQueueState>> it = this.assignedMessageQueueState.entrySet().iterator();
             while (it.hasNext()) {
-                Map.Entry<MessageQueue, MessageQueueStat> next = it.next();
+                Map.Entry<MessageQueue, MessageQueueState> next = it.next();
                 if (!assigned.contains(next.getKey())) {
                     next.getValue().getProcessQueue().setDropped(true);
                     it.remove();
@@ -164,23 +164,23 @@ public class AssignedMessageQueue {
     private void addAssignedMessageQueue(Collection<MessageQueue> assigned) {
         for (MessageQueue messageQueue : assigned) {
             if (!this.assignedMessageQueueState.containsKey(messageQueue)) {
-                MessageQueueStat messageQueueStat;
+                MessageQueueState messageQueueState;
                 if (rebalanceImpl != null && rebalanceImpl.getProcessQueueTable().get(messageQueue) != null) {
-                    messageQueueStat = new MessageQueueStat(messageQueue, rebalanceImpl.getProcessQueueTable().get(messageQueue));
+                    messageQueueState = new MessageQueueState(messageQueue, rebalanceImpl.getProcessQueueTable().get(messageQueue));
                 } else {
                     ProcessQueue processQueue = new ProcessQueue();
-                    messageQueueStat = new MessageQueueStat(messageQueue, processQueue);
+                    messageQueueState = new MessageQueueState(messageQueue, processQueue);
                 }
-                this.assignedMessageQueueState.put(messageQueue, messageQueueStat);
+                this.assignedMessageQueueState.put(messageQueue, messageQueueState);
             }
         }
     }
 
     public void removeAssignedMessageQueue(String topic) {
         synchronized (this.assignedMessageQueueState) {
-            Iterator<Map.Entry<MessageQueue, MessageQueueStat>> it = this.assignedMessageQueueState.entrySet().iterator();
+            Iterator<Map.Entry<MessageQueue, MessageQueueState>> it = this.assignedMessageQueueState.entrySet().iterator();
             while (it.hasNext()) {
-                Map.Entry<MessageQueue, MessageQueueStat> next = it.next();
+                Map.Entry<MessageQueue, MessageQueueState> next = it.next();
                 if (next.getKey().getTopic().equals(topic)) {
                     it.remove();
                 }
@@ -188,7 +188,7 @@ public class AssignedMessageQueue {
         }
     }
 
-    public class MessageQueueStat {
+    private class MessageQueueState {
         private MessageQueue messageQueue;
         private ProcessQueue processQueue;
         private volatile boolean paused = false;
@@ -197,7 +197,7 @@ public class AssignedMessageQueue {
         private volatile long seekOffset = -1;
         private CountDownLatch2 pausedLatch = new CountDownLatch2(1);
 
-        public MessageQueueStat(MessageQueue messageQueue, ProcessQueue processQueue) {
+        public MessageQueueState(MessageQueue messageQueue, ProcessQueue processQueue) {
             this.messageQueue = messageQueue;
             this.processQueue = processQueue;
         }
