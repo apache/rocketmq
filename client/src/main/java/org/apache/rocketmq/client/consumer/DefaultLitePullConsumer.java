@@ -217,7 +217,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     /**
      * Unsubscribe consumption some topic
      *
-     * @param topic Message topic that needs to be subscribe.
+     * @param topic Message topic that needs to be unsubscribe.
      */
     @Override
     public void unsubscribe(String topic) {

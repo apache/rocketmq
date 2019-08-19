@@ -55,7 +55,7 @@ public interface LitePullConsumer {
     /**
      * Unsubscribe consumption some topic
      *
-     * @param topic Message topic that needs to be subscribe.
+     * @param topic Message topic that needs to be unsubscribe.
      */
     void unsubscribe(final String topic);
 
