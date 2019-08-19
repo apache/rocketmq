@@ -164,7 +164,6 @@ public class DefaultLitePullConsumerTest {
     @Test
     public void testAssign_PollMessageSuccess() {
         MessageQueue messageQueue = createMessageQueue();
-        litePullConsumer.setPullDelayTimeMills(60 * 1000);
         litePullConsumer.assign(Collections.singletonList(messageQueue));
         List<MessageExt> result = litePullConsumer.poll();
         assertThat(result.get(0).getTopic()).isEqualTo(topic);
@@ -173,7 +172,6 @@ public class DefaultLitePullConsumerTest {
 
     @Test
     public void testSubscribe_PollMessageSuccess() throws MQClientException {
-        litePullConsumer.setPullDelayTimeMills(60 * 1000);
         litePullConsumer.subscribe(topic, "*");
         Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
         messageQueueSet.add(createMessageQueue());
@@ -191,7 +189,7 @@ public class DefaultLitePullConsumerTest {
             litePullConsumer.assign(Collections.singletonList(createMessageQueue()));
             failBecauseExceptionWasNotThrown(IllegalStateException.class);
         } catch (IllegalStateException e) {
-            assertThat(e).hasMessageContaining("Cannot select two subscription types at the same time.");
+            assertThat(e).hasMessageContaining("Subscribe and assign are mutually exclusive.");
         }
     }
 
@@ -202,7 +200,7 @@ public class DefaultLitePullConsumerTest {
             litePullConsumer.fetchMessageQueues(topic);
             failBecauseExceptionWasNotThrown(IllegalStateException.class);
         } catch (IllegalStateException e) {
-            assertThat(e).hasMessageContaining("The consumer not running.");
+            assertThat(e).hasMessageContaining("The consumer not running, please start it first.");
         }
     }
 
