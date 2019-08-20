@@ -202,7 +202,6 @@ public class DefaultLitePullConsumerTest {
         field.setAccessible(true);
         AssignedMessageQueue assignedMessageQueue = (AssignedMessageQueue) field.get(litePullConsumerImpl);
         assertEquals(assignedMessageQueue.getSeekOffset(messageQueue), 50);
-        assertEquals(assignedMessageQueue.getConusmerOffset(messageQueue), 50);
         litePullConsumer.shutdown();
     }
 
@@ -214,6 +213,26 @@ public class DefaultLitePullConsumerTest {
             failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
             assertThat(e).hasMessageContaining("The message queue is not in assigned list");
+        } finally {
+            litePullConsumer.shutdown();
+        }
+    }
+
+    @Test
+    public void testPauseAndResume_Success() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createNotStartLitePullConsumer();
+        try {
+            MessageQueue messageQueue = createMessageQueue();
+            litePullConsumer.assign(Collections.singletonList(messageQueue));
+            litePullConsumer.pause(Collections.singletonList(messageQueue));
+            litePullConsumer.start();
+            initDefaultLitePullConsumer(litePullConsumer);
+            List<MessageExt> result = litePullConsumer.poll();
+            assertThat(result.isEmpty()).isTrue();
+            litePullConsumer.resume(Collections.singletonList(messageQueue));
+            result = litePullConsumer.poll();
+            assertThat(result.get(0).getTopic()).isEqualTo(topic);
+            assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
         } finally {
             litePullConsumer.shutdown();
         }
@@ -328,5 +347,4 @@ public class DefaultLitePullConsumerTest {
         }
         return new PullResultExt(pullStatus, requestHeader.getQueueOffset() + messageExtList.size(), 123, 2048, messageExtList, 0, outputStream.toByteArray());
     }
-
 }

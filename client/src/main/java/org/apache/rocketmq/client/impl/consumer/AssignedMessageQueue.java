@@ -21,12 +21,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.rocketmq.common.CountDownLatch2;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class AssignedMessageQueue {
 
-    private ConcurrentHashMap<MessageQueue, MessageQueueState> assignedMessageQueueState;
+    private final ConcurrentHashMap<MessageQueue, MessageQueueState> assignedMessageQueueState;
 
     private RebalanceImpl rebalanceImpl;
 
@@ -54,7 +53,6 @@ public class AssignedMessageQueue {
         for (MessageQueue messageQueue : messageQueues) {
             MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
             if (assignedMessageQueueState.get(messageQueue) != null) {
-                messageQueueState.getPausedLatch().reset();
                 messageQueueState.setPaused(true);
             }
         }
@@ -65,7 +63,6 @@ public class AssignedMessageQueue {
             MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
             if (assignedMessageQueueState.get(messageQueue) != null) {
                 messageQueueState.setPaused(false);
-                messageQueueState.getPausedLatch().reset();
             }
         }
     }
@@ -121,14 +118,6 @@ public class AssignedMessageQueue {
             return messageQueueState.getSeekOffset();
         }
         return -1;
-    }
-
-    public CountDownLatch2 getPausedLatch(MessageQueue messageQueue) {
-        MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
-        if (messageQueueState != null) {
-            return messageQueueState.getPausedLatch();
-        }
-        return null;
     }
 
     public void updateAssignedMessageQueue(String topic, Collection<MessageQueue> assigned) {
@@ -195,9 +184,8 @@ public class AssignedMessageQueue {
         private volatile long pullOffset = -1;
         private volatile long consumeOffset = -1;
         private volatile long seekOffset = -1;
-        private CountDownLatch2 pausedLatch = new CountDownLatch2(1);
 
-        public MessageQueueState(MessageQueue messageQueue, ProcessQueue processQueue) {
+        private MessageQueueState(MessageQueue messageQueue, ProcessQueue processQueue) {
             this.messageQueue = messageQueue;
             this.processQueue = processQueue;
         }
@@ -248,10 +236,6 @@ public class AssignedMessageQueue {
 
         public void setSeekOffset(long seekOffset) {
             this.seekOffset = seekOffset;
-        }
-
-        public CountDownLatch2 getPausedLatch() {
-            return pausedLatch;
         }
     }
 }
