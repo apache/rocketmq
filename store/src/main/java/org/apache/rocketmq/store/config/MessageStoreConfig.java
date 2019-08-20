@@ -69,7 +69,7 @@ public class MessageStoreConfig {
     private int deleteCommitLogFilesInterval = 100;
     // ConsumeQueue removal interval
     private int deleteConsumeQueueFilesInterval = 100;
-    private int destroyMapedFileIntervalForcibly = 1000 * 120;
+    private int destroyMappedFileIntervalForcibly = 1000 * 120;
     private int redeleteHangedFileInterval = 1000 * 120;
     // When to delete,default is at 4 am
     @ImportantField
@@ -130,7 +130,7 @@ public class MessageStoreConfig {
     private long flushDelayOffsetInterval = 1000 * 10;
     @ImportantField
     private boolean cleanFileForciblyEnable = true;
-    private boolean warmMapedFileEnable = false;
+    private boolean warmMappedFileEnable = false;
     private boolean offsetCheckInSlave = false;
     private boolean debugLockEnable = false;
     private boolean duplicationEnable = false;
@@ -180,12 +180,12 @@ public class MessageStoreConfig {
         this.diskFallRecorded = diskFallRecorded;
     }
 
-    public boolean isWarmMapedFileEnable() {
-        return warmMapedFileEnable;
+    public boolean isWarmMappedFileEnable() {
+        return warmMappedFileEnable;
     }
 
-    public void setWarmMapedFileEnable(boolean warmMapedFileEnable) {
-        this.warmMapedFileEnable = warmMapedFileEnable;
+    public void setWarmMappedFileEnable(boolean warmMappedFileEnable) {
+        this.warmMappedFileEnable = warmMappedFileEnable;
     }
 
     public int getMappedFileSizeCommitLog() {
@@ -392,12 +392,12 @@ public class MessageStoreConfig {
         this.flushConsumeQueueThoroughInterval = flushConsumeQueueThoroughInterval;
     }
 
-    public int getDestroyMapedFileIntervalForcibly() {
-        return destroyMapedFileIntervalForcibly;
+    public int getDestroyMappedFileIntervalForcibly() {
+        return destroyMappedFileIntervalForcibly;
     }
 
-    public void setDestroyMapedFileIntervalForcibly(int destroyMapedFileIntervalForcibly) {
-        this.destroyMapedFileIntervalForcibly = destroyMapedFileIntervalForcibly;
+    public void setDestroyMappedFileIntervalForcibly(int destroyMappedFileIntervalForcibly) {
+        this.destroyMappedFileIntervalForcibly = destroyMappedFileIntervalForcibly;
     }
 
     public int getFileReservedTime() {
