@@ -667,6 +667,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         if (seekOffset != -1) {
             offset = seekOffset;
             assignedMessageQueue.updateConsumeOffset(messageQueue, offset);
+            assignedMessageQueue.setSeekOffset(messageQueue, -1);
         } else {
             offset = assignedMessageQueue.getPullOffset(messageQueue);
             if (offset == -1) {
@@ -972,11 +973,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     public OffsetStore getOffsetStore() {
         return offsetStore;
-    }
-
-    public void registerFilterMessageHook(final FilterMessageHook hook) {
-        this.filterMessageHookList.add(hook);
-        log.info("register FilterMessageHook Hook, {}", hook.hookName());
     }
 
     public DefaultLitePullConsumer getDefaultLitePullConsumer() {
