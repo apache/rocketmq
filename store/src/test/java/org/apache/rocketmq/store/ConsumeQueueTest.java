@@ -86,8 +86,8 @@ public class ConsumeQueueTest {
     public MessageStoreConfig buildStoreConfig(int commitLogFileSize, int cqFileSize,
         boolean enableCqExt, int cqExtFileSize) {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        messageStoreConfig.setMapedFileSizeCommitLog(commitLogFileSize);
-        messageStoreConfig.setMapedFileSizeConsumeQueue(cqFileSize);
+        messageStoreConfig.setMappedFileSizeCommitLog(commitLogFileSize);
+        messageStoreConfig.setMappedFileSizeConsumeQueue(cqFileSize);
         messageStoreConfig.setMappedFileSizeConsumeQueueExt(cqExtFileSize);
         messageStoreConfig.setMessageIndexEnable(false);
         messageStoreConfig.setEnableConsumeQueueExt(enableCqExt);

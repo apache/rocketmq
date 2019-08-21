@@ -30,6 +30,7 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -245,30 +246,86 @@ public class MQClientAPIImplTest {
     @Test
     public void testCreateTopic_WithException() throws RemotingException, InterruptedException, MQBrokerException {
         String illegalTopic = "Test%^%%^&%^est";
-        TopicConfig topicConfig = new TopicConfig(illegalTopic);
-        topicConfig.setReadQueueNums(123);
-        topicConfig.setWriteQueueNums(123);
-        topicConfig.setTopicSysFlag(0);
+        TopicConfig topicConfig = new TopicConfig( illegalTopic );
+        topicConfig.setReadQueueNums( 123 );
+        topicConfig.setWriteQueueNums( 123 );
+        topicConfig.setTopicSysFlag( 0 );
         try {
-            mqClientAPI.createTopic(brokerAddr, illegalTopic, topicConfig,
-                    3 * 1000);
+            mqClientAPI.createTopic( brokerAddr, illegalTopic, topicConfig,
+                    3 * 1000 );
         } catch (MQClientException e) {
-            assertThat(e).hasMessageContaining(String.format("The specified [%s] contains illegal characters, allowing only %s", illegalTopic, Validators.VALID_PATTERN_STR));
+            assertThat( e ).hasMessageContaining( String.format( "The specified [%s] contains illegal characters, allowing only %s", illegalTopic, Validators.VALID_PATTERN_STR ) );
+        }
+    }
+    @Test
+    public void testCreatePlainAccessConfig_Success() throws InterruptedException, RemotingException, MQBrokerException {
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
+                RemotingCommand request = mock.getArgument(1);
+                return createSuccessResponse4UpdateAclConfig(request);
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        PlainAccessConfig config = createUpdateAclConfig();
+
+        try {
+            mqClientAPI.createPlainAccessConfig(brokerAddr, config, 3 * 1000);
+        } catch (MQClientException ex) {
+
+        }
+    }
+
+    @Test
+    public void testCreatePlainAccessConfig_Exception() throws InterruptedException, RemotingException, MQBrokerException {
+
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
+                RemotingCommand request = mock.getArgument(1);
+                return createErrorResponse4UpdateAclConfig(request);
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        PlainAccessConfig config = createUpdateAclConfig();
+        try {
+            mqClientAPI.createPlainAccessConfig(brokerAddr, config, 3 * 1000);
+        } catch (MQClientException ex) {
+            assertThat(ex.getResponseCode()).isEqualTo(209);
+            assertThat(ex.getErrorMessage()).isEqualTo("corresponding to accessConfig has been updated failed");
         }
     }
 
     @Test
     public void testCreateTopicLength_WithException() throws RemotingException, InterruptedException, MQBrokerException {
-        String tooLongName = StringUtils.rightPad("TooLongName", Validators.CHARACTER_MAX_LENGTH + 1, "_");
-        TopicConfig topicConfig = new TopicConfig(tooLongName);
-        topicConfig.setReadQueueNums(123);
-        topicConfig.setWriteQueueNums(123);
-        topicConfig.setTopicSysFlag(0);
+        String tooLongName = StringUtils.rightPad( "TooLongName", Validators.CHARACTER_MAX_LENGTH + 1, "_" );
+        TopicConfig topicConfig = new TopicConfig( tooLongName );
+        topicConfig.setReadQueueNums( 123 );
+        topicConfig.setWriteQueueNums( 123 );
+        topicConfig.setTopicSysFlag( 0 );
         try {
-            mqClientAPI.createTopic(brokerAddr, tooLongName, topicConfig,
-                    3 * 1000);
+            mqClientAPI.createTopic( brokerAddr, tooLongName, topicConfig,
+                    3 * 1000 );
         } catch (MQClientException e) {
-            assertThat(e).hasMessageContaining(String.format("The specified %s is longer than topic max length %s.", tooLongName,Validators.CHARACTER_MAX_LENGTH));
+            assertThat( e ).hasMessageContaining( String.format( "The specified %s is longer than topic max length %s.", tooLongName, Validators.CHARACTER_MAX_LENGTH ) );
+        }
+    }
+     @Test
+    public void testDeleteAccessConfig_Success() throws InterruptedException, RemotingException, MQBrokerException {
+
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
+                RemotingCommand request = mock.getArgument(1);
+                return createSuccessResponse4DeleteAclConfig(request);
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        String accessKey = "1234567";
+        try {
+            mqClientAPI.deleteAccessConfig(brokerAddr, accessKey, 3 * 1000);
+        } catch (MQClientException ex) {
+
         }
     }
 
@@ -309,14 +366,71 @@ public class MQClientAPIImplTest {
 
     @Test
     public void testCreateSubscriptionGroupLength_WithException() throws RemotingException, InterruptedException, MQBrokerException {
-        String tooLongName = StringUtils.rightPad("TooLongName", Validators.CHARACTER_MAX_LENGTH + 1, "_");
+        String tooLongName = StringUtils.rightPad( "TooLongName", Validators.CHARACTER_MAX_LENGTH + 1, "_" );
         SubscriptionGroupConfig config = new SubscriptionGroupConfig();
-        config.setGroupName(tooLongName);
+        config.setGroupName( tooLongName );
         try {
-            mqClientAPI.createSubscriptionGroup(brokerAddr,  config, 3 * 1000);
+            mqClientAPI.createSubscriptionGroup( brokerAddr, config, 3 * 1000 );
         } catch (MQClientException e) {
-            assertThat(e).hasMessageContaining(String.format("The specified %s is longer than topic max length %s.", tooLongName,Validators.CHARACTER_MAX_LENGTH));
+            assertThat( e ).hasMessageContaining( String.format( "The specified %s is longer than topic max length %s.", tooLongName, Validators.CHARACTER_MAX_LENGTH ) );
         }
+    }
+    @Test
+    public void testDeleteAccessConfig_Exception() throws InterruptedException, RemotingException, MQBrokerException {
+
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
+                RemotingCommand request = mock.getArgument(1);
+                return createErrorResponse4DeleteAclConfig(request);
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        try {
+            mqClientAPI.deleteAccessConfig(brokerAddr, "11111", 3 * 1000);
+        } catch (MQClientException ex) {
+            assertThat(ex.getResponseCode()).isEqualTo(210);
+            assertThat(ex.getErrorMessage()).isEqualTo("corresponding to accessConfig has been deleted failed");
+        }
+    }
+    @Test
+    public void testResumeCheckHalfMessage_WithException() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
+                RemotingCommand request = mock.getArgument(1);
+                RemotingCommand response = RemotingCommand.createResponseCommand(SendMessageResponseHeader.class);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setOpaque(request.getOpaque());
+                response.setRemark("Put message back to RMQ_SYS_TRANS_HALF_TOPIC failed.");
+                return response;
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        boolean result = mqClientAPI.resumeCheckHalfMessage(brokerAddr, "test", 3000);
+        assertThat(result).isEqualTo(false);
+    }
+
+    @Test
+    public void testResumeCheckHalfMessage_Success() throws InterruptedException, RemotingException, MQBrokerException, MQClientException {
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
+                RemotingCommand request = mock.getArgument(1);
+                return createResumeSuccessResponse(request);
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        boolean result = mqClientAPI.resumeCheckHalfMessage(brokerAddr, "test", 3000);
+
+        assertThat(result).isEqualTo(true);
+    }
+
+    private RemotingCommand createResumeSuccessResponse(RemotingCommand request) {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setOpaque(request.getOpaque());
+        return response;
     }
 
     private RemotingCommand createSuccessResponse(RemotingCommand request) {
@@ -335,6 +449,58 @@ public class MQClientAPIImplTest {
         response.addExtField("msgId", responseHeader.getMsgId());
         response.addExtField("queueOffset", String.valueOf(responseHeader.getQueueOffset()));
         return response;
+    }
+
+    private RemotingCommand createSuccessResponse4UpdateAclConfig(RemotingCommand request) {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setOpaque(request.getOpaque());
+        response.markResponseType();
+        response.setRemark(null);
+
+        return response;
+    }
+
+    private RemotingCommand createSuccessResponse4DeleteAclConfig(RemotingCommand request) {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setOpaque(request.getOpaque());
+        response.markResponseType();
+        response.setRemark(null);
+
+        return response;
+    }
+
+    private RemotingCommand createErrorResponse4UpdateAclConfig(RemotingCommand request) {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(ResponseCode.UPDATE_AND_CREATE_ACL_CONFIG_FAILED);
+        response.setOpaque(request.getOpaque());
+        response.markResponseType();
+        response.setRemark("corresponding to accessConfig has been updated failed");
+
+        return response;
+    }
+
+    private RemotingCommand createErrorResponse4DeleteAclConfig(RemotingCommand request) {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(ResponseCode.DELETE_ACL_CONFIG_FAILED);
+        response.setOpaque(request.getOpaque());
+        response.markResponseType();
+        response.setRemark("corresponding to accessConfig has been deleted failed");
+
+        return response;
+    }
+
+    private PlainAccessConfig createUpdateAclConfig() {
+
+        PlainAccessConfig config = new PlainAccessConfig();
+        config.setAccessKey("Rocketmq111");
+        config.setSecretKey("123456789");
+        config.setAdmin(true);
+        config.setWhiteRemoteAddress("127.0.0.1");
+        config.setDefaultTopicPerm("DENY");
+        config.setDefaultGroupPerm("SUB");
+        return config;
     }
 
     private SendMessageRequestHeader createSendMessageRequestHeader() {
