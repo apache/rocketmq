@@ -31,9 +31,7 @@ public class LitePullConsumerSubscribe {
         try {
             while (running) {
                 List<MessageExt> messageExts = litePullConsumer.poll();
-                if (messageExts != null) {
-                    System.out.printf("%s%n", messageExts);
-                }
+                System.out.printf("%s%n", messageExts);
             }
         } finally {
             litePullConsumer.shutdown();

@@ -129,6 +129,11 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     private long pollTimeoutMillis = 1000 * 5;
 
     /**
+     * Interval time in in milliseconds for checking changes in topic metadata.
+     */
+    private long topicMetadataCheckIntervalMillis = 30 * 1000;
+
+    /**
      * Default constructor.
      */
     public DefaultLitePullConsumer() {
@@ -175,202 +180,92 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         defaultLitePullConsumerImpl = new DefaultLitePullConsumerImpl(this, rpcHook);
     }
 
-    /**
-     * Start the consumer
-     */
     @Override
     public void start() throws MQClientException {
         this.defaultLitePullConsumerImpl.start();
     }
 
-    /**
-     * Shutdown the consumer
-     */
     @Override
     public void shutdown() {
         this.defaultLitePullConsumerImpl.shutdown();
     }
 
-    /**
-     * Subscribe some topic with subExpression
-     *
-     * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
-     * null or * expression,meaning subscribe all
-     * @throws MQClientException if there is any client error.
-     */
     @Override
     public void subscribe(String topic, String subExpression) throws MQClientException {
         this.defaultLitePullConsumerImpl.subscribe(withNamespace(topic), subExpression);
     }
 
-    /**
-     * Subscribe some topic with selector.
-     *
-     * @param messageSelector message selector({@link MessageSelector}), can be null.
-     * @throws MQClientException if there is any client error.
-     */
     @Override
     public void subscribe(String topic, MessageSelector messageSelector) throws MQClientException {
         this.defaultLitePullConsumerImpl.subscribe(withNamespace(topic), messageSelector);
     }
 
-    /**
-     * Unsubscribe consumption some topic
-     *
-     * @param topic Message topic that needs to be unsubscribe.
-     */
     @Override
     public void unsubscribe(String topic) {
         this.defaultLitePullConsumerImpl.unsubscribe(withNamespace(topic));
     }
 
-    /**
-     * Manually assign a list of message queues to this consumer. This interface does not allow for incremental
-     * assignment and will replace the previous assignment (if there is one).
-     *
-     * @param messageQueues Message queues that needs to be assigned.
-     */
     @Override
     public void assign(Collection<MessageQueue> messageQueues) {
         defaultLitePullConsumerImpl.assign(queuesWithNamespace(messageQueues));
     }
 
-    /**
-     * Fetch data for the topics or partitions specified using assign API
-     *
-     * @return list of message, can be null.
-     */
     @Override
     public List<MessageExt> poll() {
         return defaultLitePullConsumerImpl.poll(this.getPollTimeoutMillis());
     }
 
-    /**
-     * Fetch data for the topics or partitions specified using assign API
-     *
-     * @param timeout The amount time, in milliseconds, spent waiting in poll if data is not available. Must not be
-     * negative
-     * @return list of message, can be null.
-     */
     @Override
     public List<MessageExt> poll(long timeout) {
         return defaultLitePullConsumerImpl.poll(timeout);
     }
 
-    /**
-     * Overrides the fetch offsets that the consumer will use on the next poll. If this API is invoked for the same
-     * message queue more than once, the latest offset will be used on the next poll(). Note that you may lose data if
-     * this API is arbitrarily used in the middle of consumption.
-     *
-     * @param messageQueue
-     * @param offset
-     */
     @Override
     public void seek(MessageQueue messageQueue, long offset) throws MQClientException {
         this.defaultLitePullConsumerImpl.seek(queueWithNamespace(messageQueue), offset);
     }
 
-    /**
-     * Suspend pulling from the requested message queues.
-     *
-     * Because of the implementation of pre-pull, fetch data in {@link #poll()} will not stop immediately until the
-     * messages of the requested message queues drain.
-     *
-     * Note that this method does not affect message queue subscription. In particular, it does not cause a group
-     * rebalance.
-     *
-     * @param messageQueues Message queues that needs to be paused.
-     */
     @Override
     public void pause(Collection<MessageQueue> messageQueues) {
         this.defaultLitePullConsumerImpl.pause(queuesWithNamespace(messageQueues));
     }
 
-    /**
-     * Resume specified message queues which have been paused with {@link #pause(Collection)}.
-     *
-     * @param messageQueues Message queues that needs to be resumed.
-     */
     @Override
     public void resume(Collection<MessageQueue> messageQueues) {
         this.defaultLitePullConsumerImpl.resume(queuesWithNamespace(messageQueues));
     }
 
-    /**
-     * Get metadata about the message queues for a given topic.
-     *
-     * @param topic The topic that need to get metadata.
-     * @return collection of message queues
-     * @throws MQClientException if there is any client error.
-     */
     @Override
     public Collection<MessageQueue> fetchMessageQueues(String topic) throws MQClientException {
         return this.defaultLitePullConsumerImpl.fetchMessageQueues(withNamespace(topic));
     }
 
-    /**
-     * Look up the offsets for the given message queue by timestamp. The returned offset for each message queue is the
-     * earliest offset whose timestamp is greater than or equal to the given timestamp in the corresponding message
-     * queue.
-     *
-     * @param messageQueue Message queues that needs to get offset by timestamp.
-     * @param timestamp
-     * @return offset
-     * @throws MQClientException if there is any client error.
-     */
     @Override
     public Long offsetForTimestamp(MessageQueue messageQueue, Long timestamp) throws MQClientException {
         return this.defaultLitePullConsumerImpl.searchOffset(queueWithNamespace(messageQueue), timestamp);
     }
 
-    /**
-     * Register a callback for sensing topic metadata changes.
-     *
-     * @param topic The topic that need to monitor.
-     * @param topicMessageQueueChangeListener Callback when topic metadata changes.
-     * @throws MQClientException if there is any client error.
-     */
     @Override
     public void registerTopicMessageQueueChangeListener(String topic,
         TopicMessageQueueChangeListener topicMessageQueueChangeListener) throws MQClientException {
         this.defaultLitePullConsumerImpl.registerTopicMessageQueueChangeListener(withNamespace(topic), topicMessageQueueChangeListener);
     }
 
-    /**
-     * Manually commit consume offset.
-     */
     @Override
     public void commitSync() {
         this.defaultLitePullConsumerImpl.commitSync();
     }
 
-    /**
-     * Get the last committed offset for the given message queue.
-     *
-     * @param messageQueue
-     * @return offset, if offset equals -1 means no offset in broker.
-     * @throws MQClientException if there is any client error.
-     */
     @Override
     public Long committed(MessageQueue messageQueue) throws MQClientException {
         return this.defaultLitePullConsumerImpl.committed(messageQueue);
     }
 
-    /**
-     * Whether to enable auto-commit consume offset.
-     *
-     * @return true if enable auto-commit, false if disable auto-commit.
-     */
     @Override
     public boolean isAutoCommit() {
         return autoCommit;
     }
 
-    /**
-     * Set whether to enable auto-commit consume offset.
-     *
-     * @param autoCommit Whether to enable auto-commit.
-     */
     @Override
     public void setAutoCommit(boolean autoCommit) {
         this.autoCommit = autoCommit;
@@ -392,12 +287,12 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         this.autoCommitIntervalMillis = autoCommitIntervalMillis;
     }
 
-    public int getPullBatchNums() {
+    public int getPullBatchSize() {
         return pullBatchSize;
     }
 
-    public void setPullBatchNums(int pullBatchNums) {
-        this.pullBatchSize = pullBatchNums;
+    public void setPullBatchSize(int pullBatchSize) {
+        this.pullBatchSize = pullBatchSize;
     }
 
     public long getPullThresholdForAll() {
@@ -502,5 +397,13 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setConsumerTimeoutMillisWhenSuspend(long consumerTimeoutMillisWhenSuspend) {
         this.consumerTimeoutMillisWhenSuspend = consumerTimeoutMillisWhenSuspend;
+    }
+
+    public long getTopicMetadataCheckIntervalMillis() {
+        return topicMetadataCheckIntervalMillis;
+    }
+
+    public void setTopicMetadataCheckIntervalMillis(long topicMetadataCheckIntervalMillis) {
+        this.topicMetadataCheckIntervalMillis = topicMetadataCheckIntervalMillis;
     }
 }
