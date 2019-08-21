@@ -402,7 +402,6 @@ public class CommitLog {
         this.confirmOffset = phyOffset;
     }
 
-    @Deprecated
     public void recoverAbnormally(long maxPhyOffsetOfConsumeQueue) {
         // recover by the minimum time stamp
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
@@ -488,19 +487,7 @@ public class CommitLog {
         }
     }
 
-    private boolean isMappedFileMatchedRecover(final MappedFile mappedFile) {
-        ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
-
-        int magicCode = byteBuffer.getInt(MessageDecoder.MESSAGE_MAGIC_CODE_POSTION);
-        if (magicCode != MESSAGE_MAGIC_CODE) {
-            return false;
-        }
-
-        long storeTimestamp = byteBuffer.getLong(MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSTION);
-        if (0 == storeTimestamp) {
-            return false;
-        }
-
+    protected boolean checkStoreCheckPoint(long storeTimestamp){
         if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()
             && this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
             if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestampIndex()) {
@@ -519,6 +506,22 @@ public class CommitLog {
         }
 
         return false;
+    }
+
+    protected boolean isMappedFileMatchedRecover(final MappedFile mappedFile) {
+        ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
+
+        int magicCode = byteBuffer.getInt(MessageDecoder.MESSAGE_MAGIC_CODE_POSTION);
+        if (magicCode != MESSAGE_MAGIC_CODE) {
+            return false;
+        }
+
+        long storeTimestamp = byteBuffer.getLong(MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSTION);
+        if (0 == storeTimestamp) {
+            return false;
+        }
+
+        return checkStoreCheckPoint(storeTimestamp);
     }
 
     private void notifyMessageArriving() {
