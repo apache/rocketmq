@@ -323,7 +323,7 @@ public class DLedgerCommitLog extends CommitLog {
         //No need the abnormal recover
         super.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
         isInrecoveringOldCommitlog = false;
-
+        fillUpOldCommitlog();
     }
 
     private boolean isMappedFileMatchedRecover(final MmapFile mappedFile) {
@@ -342,7 +342,7 @@ public class DLedgerCommitLog extends CommitLog {
         return super.checkStoreCheckPoint(storeTimestamp);
     }
 
-    private void fillupOldCommitlog() {
+    private void fillUpOldCommitlog() {
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
         if (mappedFile == null) {
             return;
@@ -396,7 +396,7 @@ public class DLedgerCommitLog extends CommitLog {
         //No need the abnormal recover
         super.recoverNormally(maxPhyOffsetOfConsumeQueue);
         isInrecoveringOldCommitlog = false;
-        fillupOldCommitlog();
+        fillUpOldCommitlog();
     }
 
     @Override
