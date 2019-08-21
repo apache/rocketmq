@@ -251,7 +251,7 @@ public class TransactionalMessageBridge {
         msgInner.setBody(msgExt.getBody());
         msgInner.setQueueId(msgExt.getQueueId());
         msgInner.setMsgId(msgExt.getMsgId());
-        msgInner.setSysFlag(msgExt.getSysFlag());
+        msgInner.setSysFlag(MessageSysFlag.clearCompressedFlag(msgExt.getSysFlag()));
         msgInner.setTags(msgExt.getTags());
         msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(msgInner.getTags()));
         MessageAccessor.setProperties(msgInner, msgExt.getProperties());

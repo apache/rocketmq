@@ -24,6 +24,7 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
@@ -67,7 +68,7 @@ public class DefaultTransactionalMessageCheckListener extends AbstractTransactio
         inner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
         inner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(msgExt.getTags()));
         inner.setQueueId(queueId);
-        inner.setSysFlag(msgExt.getSysFlag());
+        inner.setSysFlag(MessageSysFlag.clearCompressedFlag(msgExt.getSysFlag()));
         inner.setBornHost(msgExt.getBornHost());
         inner.setBornTimestamp(msgExt.getBornTimestamp());
         inner.setStoreHost(msgExt.getStoreHost());
