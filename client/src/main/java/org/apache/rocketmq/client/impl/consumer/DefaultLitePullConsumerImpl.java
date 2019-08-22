@@ -327,7 +327,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                         log.error("ScheduledTask fetchMessageQueuesAndCompare exception", e);
                     }
                 }
-            }, 1000 * 20, this.getDefaultLitePullConsumer().getTopicMetadataCheckIntervalMillis(), TimeUnit.MILLISECONDS);
+            }, 1000 * 10, this.getDefaultLitePullConsumer().getTopicMetadataCheckIntervalMillis(), TimeUnit.MILLISECONDS);
     }
 
     private void operateAfterRunning() throws MQClientException {
@@ -491,7 +491,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
-    public List<MessageExt> poll(long timeout) {
+    public synchronized List<MessageExt> poll(long timeout) {
         try {
             checkServiceState();
             if (timeout < 0)
