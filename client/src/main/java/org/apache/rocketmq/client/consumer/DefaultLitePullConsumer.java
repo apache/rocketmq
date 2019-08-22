@@ -35,7 +35,12 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     private final DefaultLitePullConsumerImpl defaultLitePullConsumerImpl;
 
     /**
-     * Do the same thing for the same Group, the application must be set,and guarantee Globally unique
+     * Consumers belonging to the same consumer group share a group id. The consumers in a group then
+     * divides the topic as fairly amongst themselves as possible by establishing that each queue is only
+     * consumed by a single consumer from the group. If all consumers are from the same group, it functions
+     * as a traditional message queue. Each message would be consumed by one consumer of the group only.
+     * When multiple consumer groups exist, the flow of the data consumption model aligns with the traditional
+     * publish-subscribe model. The messages are broadcast to all consumer groups.
      */
     private String consumerGroup;
 
