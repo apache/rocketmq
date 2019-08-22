@@ -169,7 +169,8 @@ public class ProcessQueue {
             this.lockTreeMap.readLock().lockInterruptibly();
             try {
                 if (!this.msgTreeMap.isEmpty()) {
-                    return this.msgTreeMap.lastKey() - this.msgTreeMap.firstKey();
+                    //return this.msgTreeMap.lastKey() - this.msgTreeMap.firstKey();
+                    return this.queueOffsetMax - this.msgTreeMap.firstKey();
                 }
             } finally {
                 this.lockTreeMap.readLock().unlock();
