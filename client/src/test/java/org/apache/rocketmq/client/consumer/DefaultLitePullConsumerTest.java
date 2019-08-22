@@ -40,6 +40,7 @@ import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.impl.consumer.RebalanceImpl;
 import org.apache.rocketmq.client.impl.consumer.RebalanceService;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -83,6 +84,7 @@ public class DefaultLitePullConsumerTest {
     private String consumerGroup = "LitePullConsumerGroup";
     private String topic = "LitePullConsumerTest";
     private String brokerName = "BrokerA";
+    private boolean flag = false;
 
     @Before
     public void init() throws Exception {
@@ -155,7 +157,7 @@ public class DefaultLitePullConsumerTest {
     }
 
     @Test
-    public void testFetchMesseageQueues_FetchMessageQueuesBeforeStart() throws Exception {
+    public void testFetchMessageQueues_FetchMessageQueuesBeforeStart() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createNotStartLitePullConsumer();
         try {
             litePullConsumer.fetchMessageQueues(topic);
@@ -165,6 +167,22 @@ public class DefaultLitePullConsumerTest {
         } finally {
             litePullConsumer.shutdown();
         }
+    }
+
+    @Test
+    public void testSeek_SeekOffsetSuccess() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
+        when(mQAdminImpl.minOffset(any(MessageQueue.class))).thenReturn(0L);
+        when(mQAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(500L);
+        MessageQueue messageQueue = createMessageQueue();
+        litePullConsumer.assign(Collections.singletonList(messageQueue));
+        long offset = litePullConsumer.committed(messageQueue);
+        litePullConsumer.seek(messageQueue, offset);
+        Field field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
+        field.setAccessible(true);
+        AssignedMessageQueue assignedMessageQueue = (AssignedMessageQueue) field.get(litePullConsumerImpl);
+        assertEquals(assignedMessageQueue.getSeekOffset(messageQueue), offset);
+        litePullConsumer.shutdown();
     }
 
     @Test
@@ -191,21 +209,6 @@ public class DefaultLitePullConsumerTest {
     }
 
     @Test
-    public void testSeek_SeekOffsetSuccess() throws Exception {
-        DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
-        when(mQAdminImpl.minOffset(any(MessageQueue.class))).thenReturn(0L);
-        when(mQAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(100L);
-        MessageQueue messageQueue = createMessageQueue();
-        litePullConsumer.assign(Collections.singletonList(messageQueue));
-        litePullConsumer.seek(messageQueue, 50);
-        Field field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
-        field.setAccessible(true);
-        AssignedMessageQueue assignedMessageQueue = (AssignedMessageQueue) field.get(litePullConsumerImpl);
-        assertEquals(assignedMessageQueue.getSeekOffset(messageQueue), 50);
-        litePullConsumer.shutdown();
-    }
-
-    @Test
     public void testSeek_MessageQueueNotInAssignList() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
         try {
@@ -216,6 +219,34 @@ public class DefaultLitePullConsumerTest {
         } finally {
             litePullConsumer.shutdown();
         }
+
+        litePullConsumer = createSubscribeLitePullConsumer();
+        try {
+            litePullConsumer.seek(createMessageQueue(), 0);
+            failBecauseExceptionWasNotThrown(MQClientException.class);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageContaining("The message queue is not in assigned list, may be rebalancing");
+        } finally {
+            litePullConsumer.shutdown();
+        }
+    }
+
+    @Test
+    public void testOffsetForTimestamp_FailedAndSuccess() throws Exception {
+        MessageQueue messageQueue = createMessageQueue();
+        DefaultLitePullConsumer litePullConsumer = createNotStartLitePullConsumer();
+        try {
+            litePullConsumer.offsetForTimestamp(messageQueue, 123456L);
+            failBecauseExceptionWasNotThrown(IllegalStateException.class);
+        } catch (IllegalStateException e) {
+            assertThat(e).hasMessageContaining("The consumer not running, please start it first.");
+        } finally {
+            litePullConsumer.shutdown();
+        }
+        doReturn(123L).when(mQAdminImpl).searchOffset(any(MessageQueue.class), anyLong());
+        litePullConsumer = createStartLitePullConsumer();
+        long offset = litePullConsumer.offsetForTimestamp(messageQueue, 123456L);
+        assertThat(offset).isEqualTo(123L);
     }
 
     @Test
@@ -238,12 +269,120 @@ public class DefaultLitePullConsumerTest {
         }
     }
 
-    private MessageQueue createMessageQueue() {
-        MessageQueue messageQueue = new MessageQueue();
-        messageQueue.setBrokerName(brokerName);
-        messageQueue.setQueueId(0);
-        messageQueue.setTopic(topic);
-        return messageQueue;
+    @Test
+    public void testRegisterTopicMessageQueueChangeListener_Success() throws Exception {
+        flag = false;
+        DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
+        doReturn(Collections.emptySet()).when(mQAdminImpl).fetchSubscribeMessageQueues(anyString());
+        litePullConsumer.setTopicMetadataCheckIntervalMillis(10);
+        litePullConsumer.registerTopicMessageQueueChangeListener(topic, new TopicMessageQueueChangeListener() {
+            @Override public void onChanged(String topic, Set<MessageQueue> messageQueues) {
+                flag = true;
+            }
+        });
+        Set<MessageQueue> set = new HashSet<MessageQueue>();
+        set.add(createMessageQueue());
+        doReturn(set).when(mQAdminImpl).fetchSubscribeMessageQueues(anyString());
+        Thread.sleep(11 * 1000);
+        assertThat(flag).isTrue();
+    }
+
+    @Test
+    public void testFlowControl_Success() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
+        try {
+            MessageQueue messageQueue = createMessageQueue();
+            litePullConsumer.setPullThresholdForAll(-1);
+            litePullConsumer.assign(Collections.singletonList(messageQueue));
+            litePullConsumer.setPollTimeoutMillis(500);
+            List<MessageExt> result = litePullConsumer.poll();
+            assertThat(result).isEmpty();
+        } finally {
+            litePullConsumer.shutdown();
+        }
+
+        litePullConsumer = createStartLitePullConsumer();
+        try {
+            MessageQueue messageQueue = createMessageQueue();
+            litePullConsumer.setPullThresholdForQueue(-1);
+            litePullConsumer.assign(Collections.singletonList(messageQueue));
+            litePullConsumer.setPollTimeoutMillis(500);
+            List<MessageExt> result = litePullConsumer.poll();
+            assertThat(result).isEmpty();
+        } finally {
+            litePullConsumer.shutdown();
+        }
+
+        litePullConsumer = createStartLitePullConsumer();
+        try {
+            MessageQueue messageQueue = createMessageQueue();
+            litePullConsumer.setPullThresholdSizeForQueue(-1);
+            litePullConsumer.assign(Collections.singletonList(messageQueue));
+            litePullConsumer.setPollTimeoutMillis(500);
+            List<MessageExt> result = litePullConsumer.poll();
+            assertThat(result).isEmpty();
+        } finally {
+            litePullConsumer.shutdown();
+        }
+
+        litePullConsumer = createStartLitePullConsumer();
+        try {
+            MessageQueue messageQueue = createMessageQueue();
+            litePullConsumer.setConsumeMaxSpan(-1);
+            litePullConsumer.assign(Collections.singletonList(messageQueue));
+            litePullConsumer.setPollTimeoutMillis(500);
+            List<MessageExt> result = litePullConsumer.poll();
+            assertThat(result).isEmpty();
+        } finally {
+            litePullConsumer.shutdown();
+        }
+    }
+
+    @Test
+    public void testCheckConfig_Exception() {
+        DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(MixAll.DEFAULT_CONSUMER_GROUP);
+        try {
+            litePullConsumer.start();
+            failBecauseExceptionWasNotThrown(MQClientException.class);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageContaining("consumerGroup can not equal");
+        } finally {
+            litePullConsumer.shutdown();
+        }
+
+        litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
+        litePullConsumer.setMessageModel(null);
+        try {
+            litePullConsumer.start();
+            failBecauseExceptionWasNotThrown(MQClientException.class);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageContaining("messageModel is null");
+        } finally {
+            litePullConsumer.shutdown();
+        }
+
+        litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
+        litePullConsumer.setAllocateMessageQueueStrategy(null);
+        try {
+            litePullConsumer.start();
+            failBecauseExceptionWasNotThrown(MQClientException.class);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageContaining("allocateMessageQueueStrategy is null");
+        } finally {
+            litePullConsumer.shutdown();
+        }
+
+        litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
+        litePullConsumer.setConsumerTimeoutMillisWhenSuspend(1);
+        try {
+            litePullConsumer.start();
+            failBecauseExceptionWasNotThrown(MQClientException.class);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageContaining("Long polling mode, the consumer consumerTimeoutMillisWhenSuspend must greater than brokerSuspendMaxTimeMillis");
+        } finally {
+            litePullConsumer.shutdown();
+        }
+
     }
 
     private void initDefaultLitePullConsumer(DefaultLitePullConsumer litePullConsumer) throws Exception {
@@ -310,17 +449,6 @@ public class DefaultLitePullConsumerTest {
         DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
         litePullConsumer.setNamesrvAddr("127.0.0.1:9876");
         litePullConsumer.subscribe(topic, "*");
-
-        litePullConsumer.start();
-        initDefaultLitePullConsumer(litePullConsumer);
-        return litePullConsumer;
-    }
-
-    private DefaultLitePullConsumer createBroadcastLitePullConsumer() throws Exception {
-        DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
-        litePullConsumer.setNamesrvAddr("127.0.0.1:9876");
-        litePullConsumer.setMessageModel(MessageModel.BROADCASTING);
-        litePullConsumer.subscribe(topic, "*");
         litePullConsumer.start();
         initDefaultLitePullConsumer(litePullConsumer);
         return litePullConsumer;
@@ -337,6 +465,24 @@ public class DefaultLitePullConsumerTest {
     private DefaultLitePullConsumer createNotStartLitePullConsumer() {
         DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
         return litePullConsumer;
+    }
+
+    private DefaultLitePullConsumer createBroadcastLitePullConsumer() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
+        litePullConsumer.setNamesrvAddr("127.0.0.1:9876");
+        litePullConsumer.setMessageModel(MessageModel.BROADCASTING);
+        litePullConsumer.subscribe(topic, "*");
+        litePullConsumer.start();
+        initDefaultLitePullConsumer(litePullConsumer);
+        return litePullConsumer;
+    }
+
+    private MessageQueue createMessageQueue() {
+        MessageQueue messageQueue = new MessageQueue();
+        messageQueue.setBrokerName(brokerName);
+        messageQueue.setQueueId(0);
+        messageQueue.setTopic(topic);
+        return messageQueue;
     }
 
     private PullResultExt createPullResult(PullMessageRequestHeader requestHeader, PullStatus pullStatus,
