@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.common.message;
 
-import java.net.Inet4Address;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -68,26 +66,14 @@ public class MessageExt extends Message {
 
     public static ByteBuffer socketAddress2ByteBuffer(final SocketAddress socketAddress, final ByteBuffer byteBuffer) {
         InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
-        InetAddress address = inetSocketAddress.getAddress();
-        if (address instanceof Inet4Address) {
-            byteBuffer.put(inetSocketAddress.getAddress().getAddress(), 0, 4);
-        } else {
-            byteBuffer.put(inetSocketAddress.getAddress().getAddress(), 0, 16);
-        }
+        byteBuffer.put(inetSocketAddress.getAddress().getAddress(), 0, 4);
         byteBuffer.putInt(inetSocketAddress.getPort());
         byteBuffer.flip();
         return byteBuffer;
     }
 
     public static ByteBuffer socketAddress2ByteBuffer(SocketAddress socketAddress) {
-        InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
-        InetAddress address = inetSocketAddress.getAddress();
-        ByteBuffer byteBuffer;
-        if (address instanceof Inet4Address) {
-            byteBuffer = ByteBuffer.allocate(4 + 4);
-        } else {
-            byteBuffer = ByteBuffer.allocate(16 + 4);
-        }
+        ByteBuffer byteBuffer = ByteBuffer.allocate(8);
         return socketAddress2ByteBuffer(socketAddress, byteBuffer);
     }
 
@@ -180,10 +166,6 @@ public class MessageExt extends Message {
     public void setSysFlag(int sysFlag) {
         this.sysFlag = sysFlag;
     }
-
-    public void setStoreHostAddressV6Flag() { this.sysFlag = this.sysFlag | MessageSysFlag.STOREHOSTADDRESS_V6_FLAG; }
-
-    public void setBornHostV6Flag() { this.sysFlag = this.sysFlag | MessageSysFlag.BORNHOST_V6_FLAG; }
 
     public int getBodyCRC() {
         return bodyCRC;
