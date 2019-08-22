@@ -66,6 +66,11 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
+/**
+ * This class will be removed in 2022, and a better implementation {@link DefaultLitePullConsumerImpl} is recommend to use
+ * in the scenario of actively pulling messages.
+ */
+@Deprecated
 public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     private final InternalLogger log = ClientLogger.getLog();
     private final DefaultMQPullConsumer defaultMQPullConsumer;
