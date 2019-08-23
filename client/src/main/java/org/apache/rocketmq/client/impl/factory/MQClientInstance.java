@@ -682,7 +682,7 @@ public class MQClientInstance {
                         log.warn("updateTopicRouteInfoFromNameServer Exception", e);
                     }
                 } catch (RemotingException e) {
-                    log.warn("updateTopicRouteInfoFromNameServer Exception");
+                    log.warn("updateTopicRouteInfoFromNameServer Exception", e);
                     throw new MQClientRuntimeException(e);
                 } finally {
                     this.lockNamesrv.unlock();
