@@ -44,10 +44,7 @@ if [[ "$JAVA_MAJOR_VERSION" -eq "1" && "$JAVA_MINOR_VERSION" -lt "8" ]]; then
 else
     JAVA_OPT="${JAVA_OPT} -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=128m"
 fi
-# JDK9 don't support -Djava.ext.dirs, and use -classpath instead.
-if [[ "$JAVA_MAJOR_VERSION" -lt "9" ]] ; then
-    JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${BASE_DIR}/lib:${JAVA_HOME}/jre/lib/ext"
-fi
+
 JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
 
 $JAVA ${JAVA_OPT} $@

@@ -17,9 +17,12 @@
 
 package org.apache.rocketmq.acl;
 
+import java.util.List;
+import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface AccessValidator {
+
     /**
      * Parse to get the AccessResource(user, resource, needed permission)
      *
@@ -35,4 +38,32 @@ public interface AccessValidator {
      * @param accessResource
      */
     void validate(AccessResource accessResource);
+
+    /**
+     * Update the access resource config
+     *
+     * @param plainAccessConfig
+     * @return
+     */
+    boolean updateAccessConfig(PlainAccessConfig plainAccessConfig);
+
+    /**
+     * Delete the access resource config
+     *
+     * @return
+     */
+    boolean deleteAccessConfig(String accesskey);
+
+    /**
+     * Get the access resource config version information
+     *
+     * @return
+     */
+    String getAclConfigVersion();
+
+    /**
+     * Update globalWhiteRemoteAddresses in acl yaml config file
+     * @return
+     */
+    boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList);
 }

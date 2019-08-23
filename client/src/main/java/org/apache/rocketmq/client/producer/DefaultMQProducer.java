@@ -40,7 +40,6 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 
 /**
  * This class is the entry point for applications intending to send messages.
@@ -135,7 +134,62 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Default constructor.
      */
     public DefaultMQProducer() {
-        this(MixAll.DEFAULT_PRODUCER_GROUP, null);
+        this(null, MixAll.DEFAULT_PRODUCER_GROUP, null);
+    }
+
+    /**
+     * Constructor specifying the RPC hook.
+     *
+     * @param rpcHook RPC hook to execute per each remoting command execution.
+     */
+    public DefaultMQProducer(RPCHook rpcHook) {
+        this(null, MixAll.DEFAULT_PRODUCER_GROUP, rpcHook);
+    }
+
+    /**
+     * Constructor specifying producer group.
+     *
+     * @param producerGroup Producer group, see the name-sake field.
+     */
+    public DefaultMQProducer(final String producerGroup) {
+        this(null, producerGroup, null);
+    }
+
+    /**
+     * Constructor specifying producer group.
+     *
+     * @param producerGroup Producer group, see the name-sake field.
+     * @param rpcHook RPC hook to execute per each remoting command execution.
+     * @param enableMsgTrace Switch flag instance for message trace.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
+     * trace topic name.
+     */
+    public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,
+        final String customizedTraceTopic) {
+        this.producerGroup = producerGroup;
+        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
+        //if client open the message trace feature
+        if (enableMsgTrace) {
+            try {
+                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(customizedTraceTopic, rpcHook);
+                dispatcher.setHostProducer(this.defaultMQProducerImpl);
+                traceDispatcher = dispatcher;
+                this.defaultMQProducerImpl.registerSendMessageHook(
+                    new SendMessageTraceHookImpl(traceDispatcher));
+            } catch (Throwable e) {
+                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+            }
+        }
+    }
+
+    /**
+     * Constructor specifying producer group.
+     *
+     * @param namespace Namespace for this MQ Producer instance.
+     * @param producerGroup Producer group, see the name-sake field.
+     */
+    public DefaultMQProducer(final String namespace, final String producerGroup) {
+        this(namespace, producerGroup, null);
     }
 
     /**
@@ -145,19 +199,58 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @param rpcHook RPC hook to execute per each remoting command execution.
      */
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook) {
+        this(null, producerGroup, rpcHook);
+    }
+
+    /**
+     * Constructor specifying namespace, producer group and RPC hook.
+     *
+     * @param namespace Namespace for this MQ Producer instance.
+     * @param producerGroup Producer group, see the name-sake field.
+     * @param rpcHook RPC hook to execute per each remoting command execution.
+     */
+    public DefaultMQProducer(final String namespace, final String producerGroup, RPCHook rpcHook) {
+        this.namespace = namespace;
         this.producerGroup = producerGroup;
         defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
     }
 
     /**
-     * Constructor specifying producer group, RPC hook, enabled msgTrace flag and customized trace topic name.
+     * Constructor specifying producer group and enabled msg trace flag.
      *
+     * @param producerGroup Producer group, see the name-sake field.
+     * @param enableMsgTrace Switch flag instance for message trace.
+     */
+    public DefaultMQProducer(final String producerGroup, boolean enableMsgTrace) {
+        this(null, producerGroup, null, enableMsgTrace, null);
+    }
+
+    /**
+     * Constructor specifying producer group, enabled msgTrace flag and customized trace topic name.
+     *
+     * @param producerGroup Producer group, see the name-sake field.
+     * @param enableMsgTrace Switch flag instance for message trace.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
+     * trace topic name.
+     */
+    public DefaultMQProducer(final String producerGroup, boolean enableMsgTrace, final String customizedTraceTopic) {
+        this(null, producerGroup, null, enableMsgTrace, customizedTraceTopic);
+    }
+
+    /**
+     * Constructor specifying namespace, producer group, RPC hook, enabled msgTrace flag and customized trace topic
+     * name.
+     *
+     * @param namespace Namespace for this MQ Producer instance.
      * @param producerGroup Producer group, see the name-sake field.
      * @param rpcHook RPC hook to execute per each remoting command execution.
      * @param enableMsgTrace Switch flag instance for message trace.
-     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
+     * trace topic name.
      */
-    public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,final String customizedTraceTopic) {
+    public DefaultMQProducer(final String namespace, final String producerGroup, RPCHook rpcHook,
+        boolean enableMsgTrace, final String customizedTraceTopic) {
+        this.namespace = namespace;
         this.producerGroup = producerGroup;
         defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
         //if client open the message trace feature
@@ -175,46 +268,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Constructor specifying producer group.
-     *
-     * @param producerGroup Producer group, see the name-sake field.
-     */
-    public DefaultMQProducer(final String producerGroup) {
-        this(producerGroup, null);
-    }
-
-    /**
-     * Constructor specifying producer group and enabled msg trace flag.
-     *
-     * @param producerGroup Producer group, see the name-sake field.
-     * @param enableMsgTrace Switch flag instance for message trace.
-     */
-    public DefaultMQProducer(final String producerGroup, boolean enableMsgTrace) {
-        this(producerGroup, null, enableMsgTrace, null);
-    }
-
-
-    /**
-     * Constructor specifying producer group, enabled msgTrace flag and customized trace topic name.
-     *
-     * @param producerGroup Producer group, see the name-sake field.
-     * @param enableMsgTrace Switch flag instance for message trace.
-     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
-     */
-    public DefaultMQProducer(final String producerGroup, boolean enableMsgTrace, final String customizedTraceTopic) {
-        this(producerGroup, null, enableMsgTrace, customizedTraceTopic);
-    }
-
-    /**
-     * Constructor specifying the RPC hook.
-     * 
-     * @param rpcHook RPC hook to execute per each remoting command execution.
-     */
-    public DefaultMQProducer(RPCHook rpcHook) {
-        this(MixAll.DEFAULT_PRODUCER_GROUP, rpcHook);
-    }
-
-    /**
      * Start this producer instance.
      * </p>
      *
@@ -228,10 +281,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     @Override
     public void start() throws MQClientException {
+        this.setProducerGroup(withNamespace(this.producerGroup));
         this.defaultMQProducerImpl.start();
         if (null != traceDispatcher) {
             try {
-                traceDispatcher.start(this.getNamesrvAddr());
+                traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
             } catch (MQClientException e) {
                 log.warn("trace dispatcher start failed ", e);
             }
@@ -258,7 +312,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     @Override
     public List<MessageQueue> fetchPublishMessageQueues(String topic) throws MQClientException {
-        return this.defaultMQProducerImpl.fetchPublishMessageQueues(topic);
+        return this.defaultMQProducerImpl.fetchPublishMessageQueues(withNamespace(topic));
     }
 
     /**
@@ -280,6 +334,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public SendResult send(
         Message msg) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        Validators.checkMessage(msg, this);
+        msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.send(msg);
     }
 
@@ -298,6 +354,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public SendResult send(Message msg,
         long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.send(msg, timeout);
     }
 
@@ -308,9 +365,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * This method returns immediately. On sending completion, <code>sendCallback</code> will be executed.
      * </p>
      *
-     * Similar to {@link #send(Message)}, internal implementation would potentially retry up to
-     * {@link #retryTimesWhenSendAsyncFailed} times before claiming sending failure, which may yield message duplication
-     * and application developers are the one to resolve this potential issue.
+     * Similar to {@link #send(Message)}, internal implementation would potentially retry up to {@link
+     * #retryTimesWhenSendAsyncFailed} times before claiming sending failure, which may yield message duplication and
+     * application developers are the one to resolve this potential issue.
      *
      * @param msg Message to send.
      * @param sendCallback Callback to execute on sending completed, either successful or unsuccessful.
@@ -321,6 +378,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void send(Message msg,
         SendCallback sendCallback) throws MQClientException, RemotingException, InterruptedException {
+        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.send(msg, sendCallback);
     }
 
@@ -337,6 +395,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void send(Message msg, SendCallback sendCallback, long timeout)
         throws MQClientException, RemotingException, InterruptedException {
+        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.send(msg, sendCallback, timeout);
     }
 
@@ -351,6 +410,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     @Override
     public void sendOneway(Message msg) throws MQClientException, RemotingException, InterruptedException {
+        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.sendOneway(msg);
     }
 
@@ -369,7 +429,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public SendResult send(Message msg, MessageQueue mq)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        return this.defaultMQProducerImpl.send(msg, mq);
+        msg.setTopic(withNamespace(msg.getTopic()));
+        return this.defaultMQProducerImpl.send(msg, queueWithNamespace(mq));
     }
 
     /**
@@ -388,7 +449,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public SendResult send(Message msg, MessageQueue mq, long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        return this.defaultMQProducerImpl.send(msg, mq, timeout);
+        msg.setTopic(withNamespace(msg.getTopic()));
+        return this.defaultMQProducerImpl.send(msg, queueWithNamespace(mq), timeout);
     }
 
     /**
@@ -404,7 +466,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void send(Message msg, MessageQueue mq, SendCallback sendCallback)
         throws MQClientException, RemotingException, InterruptedException {
-        this.defaultMQProducerImpl.send(msg, mq, sendCallback);
+        msg.setTopic(withNamespace(msg.getTopic()));
+        this.defaultMQProducerImpl.send(msg, queueWithNamespace(mq), sendCallback);
     }
 
     /**
@@ -421,7 +484,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void send(Message msg, MessageQueue mq, SendCallback sendCallback, long timeout)
         throws MQClientException, RemotingException, InterruptedException {
-        this.defaultMQProducerImpl.send(msg, mq, sendCallback, timeout);
+        msg.setTopic(withNamespace(msg.getTopic()));
+        this.defaultMQProducerImpl.send(msg, queueWithNamespace(mq), sendCallback, timeout);
     }
 
     /**
@@ -436,7 +500,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void sendOneway(Message msg,
         MessageQueue mq) throws MQClientException, RemotingException, InterruptedException {
-        this.defaultMQProducerImpl.sendOneway(msg, mq);
+        msg.setTopic(withNamespace(msg.getTopic()));
+        this.defaultMQProducerImpl.sendOneway(msg, queueWithNamespace(mq));
     }
 
     /**
@@ -455,6 +520,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public SendResult send(Message msg, MessageQueueSelector selector, Object arg)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.send(msg, selector, arg);
     }
 
@@ -475,6 +541,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public SendResult send(Message msg, MessageQueueSelector selector, Object arg, long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.send(msg, selector, arg, timeout);
     }
 
@@ -492,6 +559,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback)
         throws MQClientException, RemotingException, InterruptedException {
+        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.send(msg, selector, arg, sendCallback);
     }
 
@@ -510,6 +578,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback, long timeout)
         throws MQClientException, RemotingException, InterruptedException {
+        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.send(msg, selector, arg, sendCallback, timeout);
     }
 
@@ -526,6 +595,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void sendOneway(Message msg, MessageQueueSelector selector, Object arg)
         throws MQClientException, RemotingException, InterruptedException {
+        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.sendOneway(msg, selector, arg);
     }
 
@@ -547,6 +617,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * This method is used to send transactional messages.
+     *
      * @param msg Transactional message to send.
      * @param arg Argument used along with local transaction executor.
      * @return Transaction result.
@@ -559,20 +630,22 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Create a topic on broker.
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
      *
      * @param key accesskey
      * @param newTopic topic name
      * @param queueNum topic's queue number
      * @throws MQClientException if there is any client error.
      */
+    @Deprecated
     @Override
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
-        createTopic(key, newTopic, queueNum, 0);
+        createTopic(key, withNamespace(newTopic), queueNum, 0);
     }
 
     /**
-     * Create a topic on broker.
+     * Create a topic on broker. This method will be removed in a certain version after April 5, 2020, so please do not
+     * use this method.
      *
      * @param key accesskey
      * @param newTopic topic name
@@ -580,9 +653,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @param topicSysFlag topic system flag
      * @throws MQClientException if there is any client error.
      */
+    @Deprecated
     @Override
     public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
-        this.defaultMQProducerImpl.createTopic(key, newTopic, queueNum, topicSysFlag);
+        this.defaultMQProducerImpl.createTopic(key, withNamespace(newTopic), queueNum, topicSysFlag);
     }
 
     /**
@@ -595,47 +669,58 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     @Override
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
-        return this.defaultMQProducerImpl.searchOffset(mq, timestamp);
+        return this.defaultMQProducerImpl.searchOffset(queueWithNamespace(mq), timestamp);
     }
 
     /**
      * Query maximum offset of the given message queue.
      *
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     *
      * @param mq Instance of MessageQueue
      * @return maximum offset of the given consume queue.
      * @throws MQClientException if there is any client error.
      */
+    @Deprecated
     @Override
     public long maxOffset(MessageQueue mq) throws MQClientException {
-        return this.defaultMQProducerImpl.maxOffset(mq);
+        return this.defaultMQProducerImpl.maxOffset(queueWithNamespace(mq));
     }
 
     /**
      * Query minimum offset of the given message queue.
      *
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     *
      * @param mq Instance of MessageQueue
      * @return minimum offset of the given message queue.
      * @throws MQClientException if there is any client error.
      */
+    @Deprecated
     @Override
     public long minOffset(MessageQueue mq) throws MQClientException {
-        return this.defaultMQProducerImpl.minOffset(mq);
+        return this.defaultMQProducerImpl.minOffset(queueWithNamespace(mq));
     }
 
     /**
      * Query earliest message store time.
      *
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
+     *
      * @param mq Instance of MessageQueue
      * @return earliest message store time.
      * @throws MQClientException if there is any client error.
      */
+    @Deprecated
     @Override
     public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
-        return this.defaultMQProducerImpl.earliestMsgStoreTime(mq);
+        return this.defaultMQProducerImpl.earliestMsgStoreTime(queueWithNamespace(mq));
     }
 
     /**
      * Query message of the given offset message ID.
+     *
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
      *
      * @param offsetMsgId message id
      * @return Message specified.
@@ -644,6 +729,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @throws RemotingException if there is any network-tier error.
      * @throws InterruptedException if the sending thread is interrupted.
      */
+    @Deprecated
     @Override
     public MessageExt viewMessage(
         String offsetMsgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
@@ -652,6 +738,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * Query message by key.
+     *
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
      *
      * @param topic message topic
      * @param key message key index word
@@ -662,14 +750,17 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @throws MQClientException if there is any client error.
      * @throws InterruptedException if the thread is interrupted.
      */
+    @Deprecated
     @Override
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
         throws MQClientException, InterruptedException {
-        return this.defaultMQProducerImpl.queryMessage(topic, key, maxNum, begin, end);
+        return this.defaultMQProducerImpl.queryMessage(withNamespace(topic), key, maxNum, begin, end);
     }
 
     /**
      * Query message of the given message ID.
+     *
+     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
      *
      * @param topic Topic
      * @param msgId Message ID
@@ -679,6 +770,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @throws RemotingException if there is any network-tier error.
      * @throws InterruptedException if the sending thread is interrupted.
      */
+    @Deprecated
     @Override
     public MessageExt viewMessage(String topic,
         String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
@@ -687,7 +779,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
             return this.viewMessage(msgId);
         } catch (Exception e) {
         }
-        return this.defaultMQProducerImpl.queryMessageByUniqKey(topic, msgId);
+        return this.defaultMQProducerImpl.queryMessageByUniqKey(withNamespace(topic), msgId);
     }
 
     @Override
@@ -715,8 +807,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Sets an Executor to be used for executing callback methods.
-     * If the Executor is not set, {@link NettyRemotingClient#publicExecutor} will be used.
+     * Sets an Executor to be used for executing callback methods. If the Executor is not set, {@link
+     * NettyRemotingClient#publicExecutor} will be used.
      *
      * @param callbackExecutor the instance of Executor
      */
@@ -741,11 +833,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
             for (Message message : msgBatch) {
                 Validators.checkMessage(message, this);
                 MessageClientIDSetter.setUniqID(message);
+                message.setTopic(withNamespace(message.getTopic()));
             }
             msgBatch.setBody(msgBatch.encode());
         } catch (Exception e) {
             throw new MQClientException("Failed to initiate the MessageBatch", e);
         }
+        msgBatch.setTopic(withNamespace(msgBatch.getTopic()));
         return msgBatch;
     }
 
@@ -781,6 +875,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.compressMsgBodyOverHowmuch = compressMsgBodyOverHowmuch;
     }
 
+    @Deprecated
     public DefaultMQProducerImpl getDefaultMQProducerImpl() {
         return defaultMQProducerImpl;
     }
