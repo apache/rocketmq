@@ -358,8 +358,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
-
-
     @Override
     public RemotingCommand invokeSync(String addr, final RemotingCommand request, long timeoutMillis)
         throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
@@ -393,7 +391,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
-    private Channel getAndCreateChannel(final String addr) throws InterruptedException {
+    private Channel getAndCreateChannel(final String addr) throws RemotingConnectException, InterruptedException {
         if (null == addr) {
             return getAndCreateNameserverChannel();
         }
@@ -406,7 +404,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         return this.createChannel(addr);
     }
 
-    private Channel getAndCreateNameserverChannel() throws InterruptedException {
+    private Channel getAndCreateNameserverChannel() throws RemotingConnectException, InterruptedException {
         String addr = this.namesrvAddrChoosed.get();
         if (addr != null) {
             ChannelWrapper cw = this.channelTables.get(addr);
@@ -441,8 +439,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         }
                     }
                 }
-            } catch (Exception e) {
-                log.error("getAndCreateNameserverChannel: create name server channel exception", e);
             } finally {
                 this.lockNamesrvChannel.unlock();
             }
@@ -453,7 +449,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         return null;
     }
 
-    private Channel createChannel(final String addr) throws InterruptedException {
+    private Channel createChannel(final String addr) throws RemotingConnectException, InterruptedException {
         ChannelWrapper cw = this.channelTables.get(addr);
         if (cw != null && cw.isOK()) {
             cw.getChannel().close();
@@ -488,6 +484,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             } catch (Exception e) {
                 log.error("createChannel: create channel exception", e);
+                throw new RemotingConnectException(addr, e);
             } finally {
                 this.lockChannelTables.unlock();
             }
@@ -499,14 +496,16 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             ChannelFuture channelFuture = cw.getChannelFuture();
             if (channelFuture.awaitUninterruptibly(this.nettyClientConfig.getConnectTimeoutMillis())) {
                 if (cw.isOK()) {
-                    log.info("createChannel: connect remote host[{}] success, {}", addr, channelFuture.toString());
+                    log.info("createChannel: connect remote host[{}] success, {}", addr);
                     return cw.getChannel();
                 } else {
-                    log.warn("createChannel: connect remote host[" + addr + "] failed, " + channelFuture.toString(), channelFuture.cause());
+                    log.warn("createChannel: connect remote host[" + addr + "] failed, " + channelFuture.toString());
+                    throw new RemotingConnectException(addr, channelFuture.cause());
                 }
             } else {
                 log.warn("createChannel: connect remote host[{}] timeout {}ms, {}", addr, this.nettyClientConfig.getConnectTimeoutMillis(),
                     channelFuture.toString());
+                throw new RemotingConnectException(addr);
             }
         }
 
@@ -586,7 +585,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     public ChannelEventListener getChannelEventListener() {
         return channelEventListener;
     }
-
 
     @Override
     public ExecutorService getCallbackExecutor() {

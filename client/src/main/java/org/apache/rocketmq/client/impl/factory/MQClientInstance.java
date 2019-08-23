@@ -42,6 +42,7 @@ import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.exception.MQClientRuntimeException;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.MQAdminImpl;
@@ -366,7 +367,6 @@ public class MQClientInstance {
     }
 
     /**
-     *
      * @param offsetTable
      * @param namespace
      * @return newOffsetTable
@@ -385,6 +385,7 @@ public class MQClientInstance {
 
         return newOffsetTable;
     }
+
     /**
      * Remove offline broker
      */
@@ -676,10 +677,13 @@ public class MQClientInstance {
                     } else {
                         log.warn("updateTopicRouteInfoFromNameServer, getTopicRouteInfoFromNameServer return null, Topic: {}", topic);
                     }
-                } catch (Exception e) {
+                } catch (MQClientException e) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) && !topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
                         log.warn("updateTopicRouteInfoFromNameServer Exception", e);
                     }
+                } catch (RemotingException e) {
+                    log.warn("updateTopicRouteInfoFromNameServer Exception");
+                    throw new MQClientRuntimeException(e);
                 } finally {
                     this.lockNamesrv.unlock();
                 }
@@ -743,9 +747,10 @@ public class MQClientInstance {
 
         return false;
     }
+
     /**
-     * This method will be removed in the version 5.0.0,because filterServer was removed,and method <code>subscribe(final String topic, final MessageSelector messageSelector)</code>
-     * is recommended.
+     * This method will be removed in the version 5.0.0,because filterServer was removed,and method
+     * <code>subscribe(final String topic, final MessageSelector messageSelector)</code> is recommended.
      */
     @Deprecated
     private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String fullClassName,

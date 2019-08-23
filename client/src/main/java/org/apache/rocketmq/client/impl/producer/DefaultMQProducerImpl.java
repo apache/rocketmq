@@ -271,6 +271,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     /**
      * This method will be removed in the version 5.0.0 and <code>getCheckListener</code> is recommended.
+     *
      * @return
      */
     @Override
@@ -464,13 +465,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
      * DEFAULT ASYNC -------------------------------------------------------
      */
     public void send(Message msg,
-                     SendCallback sendCallback) throws MQClientException, RemotingException, InterruptedException {
+        SendCallback sendCallback) throws MQClientException, RemotingException, InterruptedException {
         send(msg, sendCallback, this.defaultMQProducer.getSendMsgTimeout());
     }
 
     /**
-     * It will be removed at 4.4.0 cause for exception handling and the wrong Semantics of timeout.
-     * A new one will be provided in next version
+     * It will be removed at 4.4.0 cause for exception handling and the wrong Semantics of timeout. A new one will be
+     * provided in next version
+     *
      * @param msg
      * @param sendCallback
      * @param timeout the <code>sendCallback</code> will be invoked at most time
@@ -505,13 +507,21 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     }
 
-
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
         return this.mqFaultStrategy.selectOneMessageQueue(tpInfo, lastBrokerName);
     }
 
     public void updateFaultItem(final String brokerName, final long currentLatency, boolean isolation) {
         this.mqFaultStrategy.updateFaultItem(brokerName, currentLatency, isolation);
+    }
+
+    public void checkNameServerSetting() throws MQClientException {
+        List<String> nsList = this.getmQClientFactory().getMQClientAPIImpl().getNameServerAddressList();
+        if (null == nsList || nsList.isEmpty()) {
+            throw new MQClientException(
+                "No name server address, please set it." + FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL), null).setResponseCode(ClientErrorCode.NO_NAME_SERVER_EXCEPTION);
+        }
+
     }
 
     private SendResult sendDefaultImpl(
@@ -522,7 +532,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         this.makeSureStateOK();
         Validators.checkMessage(msg, this.defaultMQProducer);
-
+        checkNameServerSetting();
         final long invokeID = random.nextLong();
         long beginTimestampFirst = System.currentTimeMillis();
         long beginTimestampPrev = beginTimestampFirst;
@@ -653,13 +663,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             throw mqClientException;
         }
 
-        List<String> nsList = this.getmQClientFactory().getMQClientAPIImpl().getNameServerAddressList();
-        if (null == nsList || nsList.isEmpty()) {
-            throw new MQClientException(
-                "No name server address, please set it." + FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL), null).setResponseCode(ClientErrorCode.NO_NAME_SERVER_EXCEPTION);
-        }
-
-        throw new MQClientException("No route info of this topic, " + msg.getTopic() + FAQUrl.suggestTodo(FAQUrl.NO_TOPIC_ROUTE_INFO),
+        throw new MQClientException("No route info of this topic: " + msg.getTopic() + FAQUrl.suggestTodo(FAQUrl.NO_TOPIC_ROUTE_INFO),
             null).setResponseCode(ClientErrorCode.NOT_FOUND_TOPIC_EXCEPTION);
     }
 
@@ -681,11 +685,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     private SendResult sendKernelImpl(final Message msg,
-                                      final MessageQueue mq,
-                                      final CommunicationMode communicationMode,
-                                      final SendCallback sendCallback,
-                                      final TopicPublishInfo topicPublishInfo,
-                                      final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        final MessageQueue mq,
+        final CommunicationMode communicationMode,
+        final SendCallback sendCallback,
+        final TopicPublishInfo topicPublishInfo,
+        final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         long beginStartTime = System.currentTimeMillis();
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         if (null == brokerAddr) {
@@ -990,8 +994,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     /**
-     * It will be removed at 4.4.0 cause for exception handling and the wrong Semantics of timeout.
-     * A new one will be provided in next version
+     * It will be removed at 4.4.0 cause for exception handling and the wrong Semantics of timeout. A new one will be
+     * provided in next version
+     *
      * @param msg
      * @param mq
      * @param sendCallback
@@ -1117,8 +1122,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     /**
-     * It will be removed at 4.4.0 cause for exception handling and the wrong Semantics of timeout.
-     * A new one will be provided in next version
+     * It will be removed at 4.4.0 cause for exception handling and the wrong Semantics of timeout. A new one will be
+     * provided in next version
+     *
      * @param msg
      * @param selector
      * @param arg
@@ -1129,7 +1135,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
      * @throws InterruptedException
      */
     @Deprecated
-    public void send(final Message msg, final MessageQueueSelector selector, final Object arg, final SendCallback sendCallback, final long timeout)
+    public void send(final Message msg, final MessageQueueSelector selector, final Object arg,
+        final SendCallback sendCallback, final long timeout)
         throws MQClientException, RemotingException, InterruptedException {
         final long beginStartTime = System.currentTimeMillis();
         ExecutorService executor = this.getAsyncSenderExecutor();
@@ -1173,7 +1180,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public TransactionSendResult sendMessageInTransaction(final Message msg,
-                                                          final LocalTransactionExecuter localTransactionExecuter, final Object arg)
+        final LocalTransactionExecuter localTransactionExecuter, final Object arg)
         throws MQClientException {
         TransactionListener transactionListener = getCheckListener();
         if (null == localTransactionExecuter && null == transactionListener) {
