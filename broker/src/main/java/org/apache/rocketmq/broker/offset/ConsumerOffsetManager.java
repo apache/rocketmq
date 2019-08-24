@@ -16,8 +16,12 @@
  */
 package org.apache.rocketmq.broker.offset;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
@@ -228,15 +232,15 @@ public class ConsumerOffsetManager extends ConfigManager {
         }
     }
 
-    public void cleanOffset (final String Group) {
+    public void cleanOffset(final String groupName) {
         for (Entry<String, ConcurrentMap<Integer, Long>> map : this.offsetTable.entrySet()) {
-            for (String cleanTopicAtGroup : map.getKey().split( TOPIC_GROUP_SEPARATOR+Group)){
+            for (String cleanTopicAtGroup : map.getKey().split(TOPIC_GROUP_SEPARATOR + groupName)) {
                 ConcurrentMap<Integer, Long> result = this.offsetTable.remove(cleanTopicAtGroup);
                 if (result != null) {
                     log.info("cleanOffset OK in offsetTable  Topic@subscription: {} ", cleanTopicAtGroup);
                     this.persist();
                 } else {
-                    log.warn("cleanOffset failed in offsetTable Topic@subscription: {} not exist",cleanTopicAtGroup);
+                    log.warn("cleanOffset failed in offsetTable Topic@subscription: {} not exist", cleanTopicAtGroup);
                 }
             }
         }
