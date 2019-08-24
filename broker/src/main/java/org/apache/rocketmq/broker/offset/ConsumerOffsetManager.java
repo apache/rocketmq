@@ -229,13 +229,16 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
     public void cleanOffset (final String Group) {
-        // topic@group
-        for (Entry<String, ConcurrentMap<Integer, Long>> next : this.offsetTable.entrySet()) {
-            String topicAtGroup = next.getKey();
-            String[] arrays = topicAtGroup.split( TOPIC_GROUP_SEPARATOR+Group);
-            Arrays.stream( arrays ).forEach(
-                    cleanTopicAtGroup -> this.offsetTable.remove( cleanTopicAtGroup)
-            );
+        for (Entry<String, ConcurrentMap<Integer, Long>> map : this.offsetTable.entrySet()) {
+            for (String cleanTopicAtGroup : map.getKey().split( TOPIC_GROUP_SEPARATOR+Group)){
+                ConcurrentMap<Integer, Long> result = this.offsetTable.remove(cleanTopicAtGroup);
+                if (result != null) {
+                    log.info("cleanOffset OK in offsetTable  Topic@subscription: {} ", cleanTopicAtGroup);
+                    this.persist();
+                } else {
+                    log.warn("cleanOffset failed in offsetTable Topic@subscription: {} not exist",cleanTopicAtGroup);
+                }
+            }
         }
     }
 }
