@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
+import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -181,6 +182,8 @@ public class SubscriptionGroupManager extends ConfigManager {
     public void deleteSubscriptionGroupConfig(final String groupName) {
         SubscriptionGroupConfig old = this.subscriptionGroupTable.remove(groupName);
         if (old != null) {
+            ConsumerOffsetManager clean = new ConsumerOffsetManager();
+            clean.cleanOffset(groupName);
             log.info("delete subscription group OK, subscription group:{}", old);
             this.dataVersion.nextVersion();
             this.persist();

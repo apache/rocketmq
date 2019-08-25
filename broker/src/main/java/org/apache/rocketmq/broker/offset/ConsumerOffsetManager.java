@@ -234,7 +234,11 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     public void cleanOffset(final String groupName) {
         for (Entry<String, ConcurrentMap<Integer, Long>> map : this.offsetTable.entrySet()) {
-            for (String cleanTopicAtGroup : map.getKey().split(TOPIC_GROUP_SEPARATOR + groupName)) {
+            int indexAtGroup = map.getKey().lastIndexOf(TOPIC_GROUP_SEPARATOR + groupName);
+            if (indexAtGroup != -1) {
+                // this topicName Contain system auto create example:%RETRY%+Topic+Group
+                String topic = map.getKey().substring(0,indexAtGroup);
+                String cleanTopicAtGroup = topic + TOPIC_GROUP_SEPARATOR + groupName;
                 ConcurrentMap<Integer, Long> result = this.offsetTable.remove(cleanTopicAtGroup);
                 if (result != null) {
                     log.info("cleanOffset OK in offsetTable  Topic@subscription: {} ", cleanTopicAtGroup);
