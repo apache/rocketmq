@@ -246,10 +246,6 @@ public class MQClientInstance {
                     log.info("the client factory [{}] start OK", this.clientId);
                     this.serviceState = ServiceState.RUNNING;
                     break;
-                case RUNNING:
-                    break;
-                case SHUTDOWN_ALREADY:
-                    break;
                 case START_FAILED:
                     throw new MQClientException("The Factory object[" + this.getClientId() + "] has been created before, and failed.", null);
                 default:
