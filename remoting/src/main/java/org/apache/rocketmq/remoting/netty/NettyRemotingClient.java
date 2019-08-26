@@ -438,6 +438,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                             return channelNew;
                         }
                     }
+                    throw new RemotingConnectException(addrList.toString());
                 }
             } finally {
                 this.lockNamesrvChannel.unlock();
@@ -449,7 +450,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         return null;
     }
 
-    private Channel createChannel(final String addr) throws RemotingConnectException, InterruptedException {
+    private Channel createChannel(final String addr) throws InterruptedException {
         ChannelWrapper cw = this.channelTables.get(addr);
         if (cw != null && cw.isOK()) {
             cw.getChannel().close();
@@ -484,7 +485,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             } catch (Exception e) {
                 log.error("createChannel: create channel exception", e);
-                throw new RemotingConnectException(addr, e);
             } finally {
                 this.lockChannelTables.unlock();
             }
@@ -500,12 +500,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     return cw.getChannel();
                 } else {
                     log.warn("createChannel: connect remote host[" + addr + "] failed, " + channelFuture.toString(), channelFuture.cause());
-                    throw new RemotingConnectException(addr, channelFuture.cause());
                 }
             } else {
                 log.warn("createChannel: connect remote host[{}] timeout {}ms, {}", addr, this.nettyClientConfig.getConnectTimeoutMillis(),
                     channelFuture.toString());
-                throw new RemotingConnectException(addr);
             }
         }
 

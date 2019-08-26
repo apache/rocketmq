@@ -42,7 +42,6 @@ import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.exception.MQClientRuntimeException;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.MQAdminImpl;
@@ -682,8 +681,8 @@ public class MQClientInstance {
                         log.warn("updateTopicRouteInfoFromNameServer Exception", e);
                     }
                 } catch (RemotingException e) {
-                    log.warn("updateTopicRouteInfoFromNameServer Exception", e);
-                    throw new MQClientRuntimeException(e);
+                    log.error("updateTopicRouteInfoFromNameServer Exception", e);
+                    throw new IllegalStateException(e);
                 } finally {
                     this.lockNamesrv.unlock();
                 }
