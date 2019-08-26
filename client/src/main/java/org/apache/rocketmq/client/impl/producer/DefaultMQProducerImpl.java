@@ -515,7 +515,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.mqFaultStrategy.updateFaultItem(brokerName, currentLatency, isolation);
     }
 
-    public void checkNameServerSetting() throws MQClientException {
+    private void validateNameServerSetting() throws MQClientException {
         List<String> nsList = this.getmQClientFactory().getMQClientAPIImpl().getNameServerAddressList();
         if (null == nsList || nsList.isEmpty()) {
             throw new MQClientException(
@@ -662,7 +662,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             throw mqClientException;
         }
 
-        checkNameServerSetting();
+        validateNameServerSetting();
 
         throw new MQClientException("No route info of this topic: " + msg.getTopic() + FAQUrl.suggestTodo(FAQUrl.NO_TOPIC_ROUTE_INFO),
             null).setResponseCode(ClientErrorCode.NOT_FOUND_TOPIC_EXCEPTION);
@@ -1111,7 +1111,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             }
         }
 
-        checkNameServerSetting();
+        validateNameServerSetting();
         throw new MQClientException("No route info for this topic, " + msg.getTopic(), null);
     }
 
