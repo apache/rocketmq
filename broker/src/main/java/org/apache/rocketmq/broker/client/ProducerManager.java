@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -43,6 +44,7 @@ public class ProducerManager {
     private final Lock groupChannelLock = new ReentrantLock();
     private final HashMap<String /* group name */, HashMap<Channel, ClientChannelInfo>> groupChannelTable =
         new HashMap<String, HashMap<Channel, ClientChannelInfo>>();
+    private final ConcurrentHashMap<String, Channel> clientChannelTable = new ConcurrentHashMap<>();
     private PositiveAtomicCounter positiveAtomicCounter = new PositiveAtomicCounter();
     public ProducerManager() {
     }
@@ -82,6 +84,7 @@ public class ProducerManager {
                             long diff = System.currentTimeMillis() - info.getLastUpdateTimestamp();
                             if (diff > CHANNEL_EXPIRED_TIMEOUT) {
                                 it.remove();
+                                clientChannelTable.remove(info.getClientId());
                                 log.warn(
                                     "SCAN: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
                                     RemotingHelper.parseChannelRemoteAddr(info.getChannel()), group);
@@ -113,6 +116,7 @@ public class ProducerManager {
                             final ClientChannelInfo clientChannelInfo =
                                 clientChannelInfoTable.remove(channel);
                             if (clientChannelInfo != null) {
+                                clientChannelTable.remove(clientChannelInfo.getClientId());
                                 log.info(
                                     "NETTY EVENT: remove channel[{}][{}] from ProducerManager groupChannelTable, producer group: {}",
                                     clientChannelInfo.toString(), remoteAddr, group);
@@ -146,6 +150,7 @@ public class ProducerManager {
                     clientChannelInfoFound = channelTable.get(clientChannelInfo.getChannel());
                     if (null == clientChannelInfoFound) {
                         channelTable.put(clientChannelInfo.getChannel(), clientChannelInfo);
+                        clientChannelTable.put(clientChannelInfo.getClientId(), clientChannelInfo.getChannel());
                         log.info("new producer connected, group: {} channel: {}", group,
                             clientChannelInfo.toString());
                     }
@@ -171,6 +176,7 @@ public class ProducerManager {
                     HashMap<Channel, ClientChannelInfo> channelTable = this.groupChannelTable.get(group);
                     if (null != channelTable && !channelTable.isEmpty()) {
                         ClientChannelInfo old = channelTable.remove(clientChannelInfo.getChannel());
+                        clientChannelTable.remove(clientChannelInfo.getClientId());
                         if (old != null) {
                             log.info("unregister a producer[{}] from groupChannelTable {}", group,
                                 clientChannelInfo.toString());
@@ -222,5 +228,9 @@ public class ProducerManager {
             return null;
         }
         return null;
+    }
+
+    public Channel findChannel(String clientId) {
+        return clientChannelTable.get(clientId);
     }
 }

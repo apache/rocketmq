@@ -24,6 +24,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -39,6 +41,7 @@ import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.common.ClientErrorCode;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.exception.RequestTimeoutException;
 import org.apache.rocketmq.client.hook.CheckForbiddenContext;
 import org.apache.rocketmq.client.hook.CheckForbiddenHook;
 import org.apache.rocketmq.client.hook.SendMessageContext;
@@ -52,6 +55,9 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.LocalTransactionExecuter;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
+import org.apache.rocketmq.client.producer.RequestCallback;
+import org.apache.rocketmq.client.producer.RequestFutureTable;
+import org.apache.rocketmq.client.producer.RequestResponseFuture;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
@@ -79,11 +85,13 @@ import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHe
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.common.utils.RequestIdUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 
@@ -107,6 +115,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private final BlockingQueue<Runnable> asyncSenderThreadPoolQueue;
     private final ExecutorService defaultAsyncSenderExecutor;
     private ExecutorService asyncSenderExecutor;
+    private final Timer timer = new Timer("RequestHouseKeepingService", true);
 
     public DefaultMQProducerImpl(final DefaultMQProducer defaultMQProducer) {
         this(defaultMQProducer, null);
@@ -212,6 +221,17 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
 
         this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+
+        this.timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    RequestFutureTable.scanExpiredRequest();
+                } catch (Throwable e) {
+                    log.error("scan RequestFutureTable exception", e);
+                }
+            }
+        }, 1000 * 3, 1000);
     }
 
     private void checkConfig() throws MQClientException {
@@ -1308,6 +1328,244 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     public SendResult send(Message msg,
         long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.sendDefaultImpl(msg, CommunicationMode.SYNC, null, timeout);
+    }
+
+    public Message request(Message msg, long timeout) throws RequestTimeoutException, MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        prepareSendRequest(msg, timeout);
+        final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
+
+        try {
+            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, null);
+            RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
+
+            this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    requestResponseFuture.setSendReqeustOk(true);
+                }
+
+                @Override
+                public void onException(Throwable e) {
+                    requestResponseFuture.setSendReqeustOk(false);
+                    requestResponseFuture.putResponseMessage(null);
+                    requestResponseFuture.setCause(e);
+                }
+            }, timeout);
+
+            Message responseMessage = requestResponseFuture.waitResponseMessage(timeout);
+            if (responseMessage == null) {
+                if (requestResponseFuture.isSendReqeustOk()) {
+                    throw new RequestTimeoutException(ClientErrorCode.REQUEST_TIMEOUT_EXCEPTION,
+                            "send request message to <" + msg.getTopic() + "> OK, but wait reply message timeout, " + timeout + " ms.");
+                } else {
+                    throw new MQClientException("send request message to <" + msg.getTopic() + "> fail", requestResponseFuture.getCause());
+                }
+            }
+            return responseMessage;
+        } finally {
+            RequestFutureTable.getRequestFutureTable().remove(requestUniqId);
+        }
+    }
+
+    public void request(Message msg, final RequestCallback requestCallback, long timeout) throws RemotingException {
+        prepareSendRequest(msg, timeout);
+        final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
+
+        try {
+            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, requestCallback);
+            RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
+
+            this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    requestResponseFuture.setSendReqeustOk(true);
+                }
+
+                @Override
+                public void onException(Throwable e) {
+                    requestResponseFuture.setCause(e);
+                    requestFail(requestUniqId);
+                }
+            }, timeout);
+        } catch (Exception ex) {
+            log.warn("send request message to <{}> failed.", msg.getTopic(), ex);
+            throw new RemotingSendRequestException(msg.getTopic(), ex);
+        }
+    }
+
+    public Message request(final Message msg, final MessageQueueSelector selector, final Object arg,
+                           final long timeout) throws MQClientException, RemotingException, MQBrokerException,
+            InterruptedException, RequestTimeoutException {
+        prepareSendRequest(msg, timeout);
+        final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
+
+        try {
+            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, null);
+            RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
+
+            this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    requestResponseFuture.setSendReqeustOk(true);
+                }
+
+                @Override
+                public void onException(Throwable e) {
+                    requestResponseFuture.setSendReqeustOk(false);
+                    requestResponseFuture.putResponseMessage(null);
+                    requestResponseFuture.setCause(e);
+                }
+            }, timeout);
+
+            Message responseMessage = requestResponseFuture.waitResponseMessage(timeout);
+            if (responseMessage == null) {
+                if (requestResponseFuture.isSendReqeustOk()) {
+                    throw new RequestTimeoutException(ClientErrorCode.REQUEST_TIMEOUT_EXCEPTION,
+                            "send request message to <" + msg.getTopic() + "> OK, but wait reply message timeout, " + timeout + " ms.");
+                } else {
+                    throw new MQClientException("send request message to <" + msg.getTopic() + "> fail", requestResponseFuture.getCause());
+                }
+            }
+            return responseMessage;
+        } finally {
+            RequestFutureTable.getRequestFutureTable().remove(requestUniqId);
+        }
+    }
+
+    public void request(final Message msg, final MessageQueueSelector selector, final Object arg,
+                        final RequestCallback requestCallback, final long timeout) throws RemotingException {
+        prepareSendRequest(msg, timeout);
+        final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
+
+        try {
+            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, requestCallback);
+            RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
+
+            this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    requestResponseFuture.setSendReqeustOk(true);
+                }
+
+                @Override
+                public void onException(Throwable e) {
+                    requestResponseFuture.setCause(e);
+                    requestFail(requestUniqId);
+                }
+            }, timeout);
+        } catch (Exception ex) {
+            log.warn("send request message to <{}> failed.", msg.getTopic(), ex);
+            throw new RemotingSendRequestException(msg.getTopic(), ex);
+        }
+    }
+
+    public Message request(final Message msg, final MessageQueue mq, final long timeout)
+            throws MQClientException, RemotingException, MQBrokerException, InterruptedException, RequestTimeoutException {
+        prepareSendRequest(msg, timeout);
+        final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
+
+        try {
+            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, null);
+            RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
+
+            this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    requestResponseFuture.setSendReqeustOk(true);
+                }
+
+                @Override
+                public void onException(Throwable e) {
+                    requestResponseFuture.setSendReqeustOk(false);
+                    requestResponseFuture.putResponseMessage(null);
+                    requestResponseFuture.setCause(e);
+                }
+            }, null, timeout);
+
+            Message responseMessage = requestResponseFuture.waitResponseMessage(timeout);
+            if (responseMessage == null) {
+                if (requestResponseFuture.isSendReqeustOk()) {
+                    throw new RequestTimeoutException(ClientErrorCode.REQUEST_TIMEOUT_EXCEPTION,
+                            "send request message to <" + msg.getTopic() + "> OK, but wait reply message timeout, " + timeout + " ms.");
+                } else {
+                    throw new MQClientException("send request message to <" + msg.getTopic() + "> fail", requestResponseFuture.getCause());
+                }
+            }
+            return responseMessage;
+        } finally {
+            RequestFutureTable.getRequestFutureTable().remove(requestUniqId);
+        }
+    }
+
+    public void request(final Message msg, final MessageQueue mq, final RequestCallback requestCallback, long timeout)
+            throws RemotingException {
+        prepareSendRequest(msg, timeout);
+        final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
+
+        try {
+            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, requestCallback);
+            RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
+
+            this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    requestResponseFuture.setSendReqeustOk(true);
+                }
+
+                @Override
+                public void onException(Throwable e) {
+                    requestResponseFuture.setCause(e);
+                    requestFail(requestUniqId);
+                }
+            }, null, timeout);
+        } catch (Exception ex) {
+            log.warn("send request message to <{}> failed.", msg.getTopic(), ex);
+            throw new RemotingSendRequestException(msg.getTopic(), ex);
+        }
+    }
+
+    private void requestFail(final String requestUniqId) {
+        RequestResponseFuture responseFuture = RequestFutureTable.getRequestFutureTable().remove(requestUniqId);
+        if (responseFuture != null) {
+            responseFuture.setSendReqeustOk(false);
+            responseFuture.putResponseMessage(null);
+            try {
+                responseFuture.executeRequestCallback();
+            } catch (Exception e) {
+                log.warn("execute requestCallback in requestFail, and callback throw", e);
+            }
+        }
+    }
+
+    private void prepareSendRequest(final Message msg, long timeout){
+        String requestUniqId = RequestIdUtil.createUniqueRequestId();
+        String requestClientId = this.getmQClientFactory().getClientId();
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REQUEST_UNIQ_ID, requestUniqId);
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MESSAGE_REPLY_TO, requestClientId);
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MESSAGE_TTL, String.valueOf(timeout));
+
+        boolean hasRouteData = this.getmQClientFactory().getTopicRouteTable().containsKey(msg.getTopic());
+        if (!hasRouteData) {
+            long beginTimestamp = System.currentTimeMillis();
+            this.tryToFindTopicPublishInfo(msg.getTopic());
+            this.getmQClientFactory().sendHeartbeatToAllBrokerWithLock();
+            long cost = System.currentTimeMillis() - beginTimestamp;
+            if (cost > 500) {
+                log.warn("prepare send request for <{}> cost {} ms", msg.getTopic(), cost);
+            }
+        }
+    }
+
+    private SendResult reply(final Message msg, long timeoutMillis) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
+        return this.sendDefaultImpl(msg, CommunicationMode.SYNC, null, timeoutMillis);
+    }
+
+    private SendResult reply(final Message msg, final SendCallback sendCallback, long timeoutMillis) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
+        return this.sendDefaultImpl(msg, CommunicationMode.ASYNC, sendCallback, timeoutMillis);
+    }
+
+    public void replyOneway(final Message msg) throws RemotingException, MQClientException, InterruptedException {
+        this.sendOneway(msg);
     }
 
     public ConcurrentMap<String, TopicPublishInfo> getTopicPublishInfoTable() {
