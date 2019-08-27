@@ -24,6 +24,7 @@ import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.exception.RequestTimeoutException;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
@@ -580,6 +581,111 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         throws MQClientException, RemotingException, InterruptedException {
         msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.send(msg, selector, arg, sendCallback, timeout);
+    }
+
+    /**
+     *
+     * @param msg
+     * @param timeout
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
+    @Override
+    public Message request(final Message msg, final long timeout) throws RequestTimeoutException, MQClientException,
+            RemotingException, MQBrokerException, InterruptedException {
+        msg.setTopic(withNamespace(msg.getTopic()));
+        return this.defaultMQProducerImpl.request(msg, timeout);
+    }
+
+    /**
+     *
+     * @param msg
+     * @param requestCallback
+     * @param timeout
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws InterruptedException
+     */
+    @Override
+    public void request(final Message msg, final RequestCallback requestCallback, final long timeout)
+            throws MQClientException, RemotingException, InterruptedException, MQBrokerException, RequestTimeoutException {
+        this.defaultMQProducerImpl.request(msg, requestCallback, timeout);
+    }
+
+    /**
+     *
+     * @param msg
+     * @param selector
+     * @param arg
+     * @param timeout
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
+    @Override
+    public Message request(final Message msg, final MessageQueueSelector selector, final Object arg,
+                           final long timeout) throws MQClientException, RemotingException, MQBrokerException,
+            InterruptedException, RequestTimeoutException {
+        return this.defaultMQProducerImpl.request(msg, selector, arg, timeout);
+    }
+
+    /**
+     *
+     * @param msg
+     * @param selector
+     * @param arg
+     * @param requestCallback
+     * @param timeout
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws InterruptedException
+     */
+    @Override
+    public void request(final Message msg, final MessageQueueSelector selector, final Object arg,
+                           final RequestCallback requestCallback, final long timeout) throws MQClientException, RemotingException,
+            InterruptedException {
+        this.defaultMQProducerImpl.request(msg, selector, arg, requestCallback, timeout);
+    }
+
+    /**
+     *
+     * @param msg
+     * @param mq
+     * @param timeout
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
+    @Override
+    public Message request(final Message msg, final MessageQueue mq, final long timeout)
+            throws MQClientException, RemotingException, MQBrokerException, InterruptedException, RequestTimeoutException {
+        return this.defaultMQProducerImpl.request(msg, mq, timeout);
+    }
+
+    /**
+     *
+     * @param msg
+     * @param mq
+     * @param requestCallback
+     * @param timeout
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws InterruptedException
+     */
+    @Override
+    public void request(final Message msg, final MessageQueue mq, final RequestCallback requestCallback, long timeout)
+            throws MQClientException, RemotingException, InterruptedException {
+        this.defaultMQProducerImpl.request(msg, mq, requestCallback, timeout);
     }
 
     /**

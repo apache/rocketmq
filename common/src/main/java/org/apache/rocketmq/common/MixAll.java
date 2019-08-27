@@ -84,6 +84,7 @@ public class MixAll {
     public static final String RETRY_GROUP_TOPIC_PREFIX = "%RETRY%";
 
     public static final String DLQ_GROUP_TOPIC_PREFIX = "%DLQ%";
+    public static final String REPLY_TOPIC_POSTFIX = "REPLY_TOPIC";
     public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
     public static final String UNIQUE_MSG_QUERY_FLAG = "_UNIQUE_KEY_QUERY";
     public static final String DEFAULT_TRACE_REGION_ID = "DefaultRegion";
@@ -95,6 +96,8 @@ public class MixAll {
     public static final String TRANS_CHECK_MAX_TIME_TOPIC = "TRANS_CHECK_MAX_TIME_TOPIC";
     public static final String CID_SYS_RMQ_TRANS = "CID_RMQ_SYS_TRANS";
     public static final String ACL_CONF_TOOLS_FILE = "/conf/tools.yml";
+
+    public static final String REPLY_MESSAGE_FLAG = "reply";
 
     public static String getWSAddr() {
         String wsDomainName = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);
@@ -108,6 +111,10 @@ public class MixAll {
 
     public static String getRetryTopic(final String consumerGroup) {
         return RETRY_GROUP_TOPIC_PREFIX + consumerGroup;
+    }
+
+    public static String getReplyTopic(final String clusterName) {
+        return clusterName + "_" + REPLY_TOPIC_POSTFIX;
     }
 
     public static boolean isSysConsumerGroup(final String consumerGroup) {
