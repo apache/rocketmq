@@ -43,38 +43,29 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
- * This class is the entry point for applications intending to send messages.
- * </p>
+ * This class is the entry point for applications intending to send messages. </p>
  *
  * It's fine to tune fields which exposes getter/setter methods, but keep in mind, all of them should work well out of
- * box for most scenarios.
- * </p>
+ * box for most scenarios. </p>
  *
  * This class aggregates various <code>send</code> methods to deliver messages to brokers. Each of them has pros and
- * cons; you'd better understand strengths and weakness of them before actually coding.
- * </p>
+ * cons; you'd better understand strengths and weakness of them before actually coding. </p>
  *
- * <p>
- * <strong>Thread Safety:</strong> After configuring and starting process, this class can be regarded as thread-safe
- * and used among multiple threads context.
- * </p>
+ * <p> <strong>Thread Safety:</strong> After configuring and starting process, this class can be regarded as thread-safe
+ * and used among multiple threads context. </p>
  */
 public class DefaultMQProducer extends ClientConfig implements MQProducer {
-
-    private final InternalLogger log = ClientLogger.getLog();
 
     /**
      * Wrapping internal implementations for virtually all methods presented in this class.
      */
     protected final transient DefaultMQProducerImpl defaultMQProducerImpl;
-
+    private final InternalLogger log = ClientLogger.getLog();
     /**
      * Producer group conceptually aggregates all producer instances of exactly same role, which is particularly
-     * important when transactional messages are involved.
-     * </p>
+     * important when transactional messages are involved. </p>
      *
-     * For non-transactional messages, it does not matter as long as it's unique per process.
-     * </p>
+     * For non-transactional messages, it does not matter as long as it's unique per process. </p>
      *
      * See {@linktourl http://rocketmq.apache.org/docs/core-concept/} for more discussion.
      */
@@ -101,16 +92,14 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private int compressMsgBodyOverHowmuch = 1024 * 4;
 
     /**
-     * Maximum number of retry to perform internally before claiming sending failure in synchronous mode.
-     * </p>
+     * Maximum number of retry to perform internally before claiming sending failure in synchronous mode. </p>
      *
      * This may potentially cause message duplication which is up to application developers to resolve.
      */
     private int retryTimesWhenSendFailed = 2;
 
     /**
-     * Maximum number of retry to perform internally before claiming sending failure in asynchronous mode.
-     * </p>
+     * Maximum number of retry to perform internally before claiming sending failure in asynchronous mode. </p>
      *
      * This may potentially cause message duplication which is up to application developers to resolve.
      */
@@ -269,14 +258,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Start this producer instance.
-     * </p>
+     * Start this producer instance. </p>
      *
-     * <strong>
-     * Much internal initializing procedures are carried out to make this instance prepared, thus, it's a must to invoke
-     * this method before sending or querying messages.
-     * </strong>
-     * </p>
+     * <strong> Much internal initializing procedures are carried out to make this instance prepared, thus, it's a must
+     * to invoke this method before sending or querying messages. </strong> </p>
      *
      * @throws MQClientException if there is any unexpected error.
      */
@@ -317,8 +302,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Send message in synchronous mode. This method returns only when the sending procedure totally completes.
-     * </p>
+     * Send message in synchronous mode. This method returns only when the sending procedure totally completes. </p>
      *
      * <strong>Warn:</strong> this method has internal retry-mechanism, that is, internal implementation will retry
      * {@link #retryTimesWhenSendFailed} times before claiming failure. As a result, multiple messages may potentially
@@ -360,11 +344,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Send message to broker asynchronously.
-     * </p>
+     * Send message to broker asynchronously. </p>
      *
-     * This method returns immediately. On sending completion, <code>sendCallback</code> will be executed.
-     * </p>
+     * This method returns immediately. On sending completion, <code>sendCallback</code> will be executed. </p>
      *
      * Similar to {@link #send(Message)}, internal implementation would potentially retry up to {@link
      * #retryTimesWhenSendAsyncFailed} times before claiming sending failure, which may yield message duplication and
@@ -584,7 +566,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     *
      * @param msg
      * @param timeout
      * @return
@@ -595,13 +576,12 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     @Override
     public Message request(final Message msg, final long timeout) throws RequestTimeoutException, MQClientException,
-            RemotingException, MQBrokerException, InterruptedException {
+        RemotingException, MQBrokerException, InterruptedException {
         msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.request(msg, timeout);
     }
 
     /**
-     *
      * @param msg
      * @param requestCallback
      * @param timeout
@@ -612,12 +592,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     @Override
     public void request(final Message msg, final RequestCallback requestCallback, final long timeout)
-            throws MQClientException, RemotingException, InterruptedException, MQBrokerException, RequestTimeoutException {
+        throws MQClientException, RemotingException, InterruptedException, MQBrokerException, RequestTimeoutException {
         this.defaultMQProducerImpl.request(msg, requestCallback, timeout);
     }
 
     /**
-     *
      * @param msg
      * @param selector
      * @param arg
@@ -630,13 +609,12 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     @Override
     public Message request(final Message msg, final MessageQueueSelector selector, final Object arg,
-                           final long timeout) throws MQClientException, RemotingException, MQBrokerException,
-            InterruptedException, RequestTimeoutException {
+        final long timeout) throws MQClientException, RemotingException, MQBrokerException,
+        InterruptedException, RequestTimeoutException {
         return this.defaultMQProducerImpl.request(msg, selector, arg, timeout);
     }
 
     /**
-     *
      * @param msg
      * @param selector
      * @param arg
@@ -649,13 +627,12 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     @Override
     public void request(final Message msg, final MessageQueueSelector selector, final Object arg,
-                           final RequestCallback requestCallback, final long timeout) throws MQClientException, RemotingException,
-            InterruptedException {
+        final RequestCallback requestCallback, final long timeout) throws MQClientException, RemotingException,
+        InterruptedException {
         this.defaultMQProducerImpl.request(msg, selector, arg, requestCallback, timeout);
     }
 
     /**
-     *
      * @param msg
      * @param mq
      * @param timeout
@@ -667,12 +644,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     @Override
     public Message request(final Message msg, final MessageQueue mq, final long timeout)
-            throws MQClientException, RemotingException, MQBrokerException, InterruptedException, RequestTimeoutException {
+        throws MQClientException, RemotingException, MQBrokerException, InterruptedException, RequestTimeoutException {
         return this.defaultMQProducerImpl.request(msg, mq, timeout);
     }
 
     /**
-     *
      * @param msg
      * @param mq
      * @param requestCallback
@@ -684,7 +660,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     @Override
     public void request(final Message msg, final MessageQueue mq, final RequestCallback requestCallback, long timeout)
-            throws MQClientException, RemotingException, InterruptedException {
+        throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQProducerImpl.request(msg, mq, requestCallback, timeout);
     }
 
