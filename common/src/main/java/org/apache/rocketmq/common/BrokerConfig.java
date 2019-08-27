@@ -769,7 +769,7 @@ public class BrokerConfig {
     public void setMsgTraceTopicName(String msgTraceTopicName) {
         this.msgTraceTopicName = msgTraceTopicName;
     }
-    
+
     public boolean isTraceTopicEnable() {
         return traceTopicEnable;
     }

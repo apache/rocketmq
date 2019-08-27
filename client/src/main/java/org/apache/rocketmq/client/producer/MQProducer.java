@@ -102,22 +102,23 @@ public interface MQProducer extends MQAdmin {
 
     //for rpc
     Message request(final Message msg, final long timeout) throws RequestTimeoutException, MQClientException,
-            RemotingException, MQBrokerException, InterruptedException;
+        RemotingException, MQBrokerException, InterruptedException;
 
     void request(final Message msg, final RequestCallback requestCallback, final long timeout)
-            throws RequestTimeoutException, MQClientException, RemotingException, InterruptedException, MQBrokerException;
+        throws RequestTimeoutException, MQClientException, RemotingException, InterruptedException, MQBrokerException;
 
     Message request(final Message msg, final MessageQueueSelector selector, final Object arg,
-                    final long timeout) throws RequestTimeoutException, MQClientException, RemotingException, MQBrokerException,
-            InterruptedException;
+        final long timeout) throws RequestTimeoutException, MQClientException, RemotingException, MQBrokerException,
+        InterruptedException;
 
     void request(final Message msg, final MessageQueueSelector selector, final Object arg,
-                    final RequestCallback requestCallback, final long timeout) throws RequestTimeoutException, MQClientException, RemotingException,
-            InterruptedException;
+        final RequestCallback requestCallback,
+        final long timeout) throws RequestTimeoutException, MQClientException, RemotingException,
+        InterruptedException;
 
     Message request(final Message msg, final MessageQueue mq, final long timeout)
-            throws RequestTimeoutException, MQClientException, RemotingException, MQBrokerException, InterruptedException;
+        throws RequestTimeoutException, MQClientException, RemotingException, MQBrokerException, InterruptedException;
 
     void request(final Message msg, final MessageQueue mq, final RequestCallback requestCallback, long timeout)
-            throws RequestTimeoutException, MQClientException, RemotingException, InterruptedException;
+        throws RequestTimeoutException, MQClientException, RemotingException, InterruptedException;
 }
