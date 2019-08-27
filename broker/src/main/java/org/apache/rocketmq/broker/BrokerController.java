@@ -244,6 +244,7 @@ public class BrokerController {
                     ((DLedgerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getdLedgerServer().getdLedgerLeaderElector().addRoleChangeHandler(roleChangeHandler);
                 }
                 this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
+                brokerStats.load();
                 //load plugin
                 MessageStorePluginContext context = new MessageStorePluginContext(messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig);
                 this.messageStore = MessageStoreFactory.build(context, this.messageStore);
@@ -807,6 +808,16 @@ public class BrokerController {
         if (this.endTransactionExecutor != null) {
             this.endTransactionExecutor.shutdown();
         }
+
+        if(brokerStats != null)
+        {
+            try {
+                brokerStats.persist();
+            }
+            catch (Exception e){
+                log.info("{}", e);
+            }
+        }
     }
 
     private void unregisterBrokerAll() {
@@ -874,6 +885,21 @@ public class BrokerController {
                 }
             }
         }, 1000 * 10, Math.max(10000, Math.min(brokerConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
+
+        long initialDelay = UtilAll.computeNextHourTimeMillis() - System.currentTimeMillis();
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                if (brokerStats != null) {
+                    try {
+                        brokerStats.persist();
+                    } catch (Exception e) {
+                        log.info("{}", e);
+                    }
+                }
+            }
+
+        }, initialDelay, 60 * 60 * 1000, TimeUnit.MILLISECONDS);
 
         if (this.brokerStatsManager != null) {
             this.brokerStatsManager.start();
