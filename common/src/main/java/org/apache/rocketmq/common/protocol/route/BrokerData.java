@@ -96,12 +96,10 @@ public class BrokerData implements Comparable<BrokerData> {
                 return false;
         } else if (!brokerAddrs.equals(other.brokerAddrs))
             return false;
-        if (brokerName == null) {
-            if (other.brokerName != null)
-                return false;
-        } else if (!brokerName.equals(other.brokerName))
-            return false;
-        return true;
+        if (brokerName == null)
+            return other.brokerName == null;
+         else
+            return brokerName.equals(other.brokerName);
     }
 
     @Override
