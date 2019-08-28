@@ -272,7 +272,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     private void initMQClientFactory() throws MQClientException {
-        this.mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultLitePullConsumer, this.rpcHook);
+        this.mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultLitePullConsumer, this.rpcHook);
         boolean registerOK = mQClientFactory.registerConsumer(this.defaultLitePullConsumer.getConsumerGroup(), this);
         if (!registerOK) {
             this.serviceState = ServiceState.CREATE_JUST;
