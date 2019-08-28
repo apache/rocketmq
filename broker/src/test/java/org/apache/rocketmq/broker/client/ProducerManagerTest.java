@@ -20,6 +20,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,7 +43,7 @@ public class ProducerManagerTest {
     @Before
     public void init() {
         producerManager = new ProducerManager();
-        clientInfo = new ClientChannelInfo(channel);
+        clientInfo = new ClientChannelInfo(channel, "clientId", LanguageCode.JAVA, 0);
     }
 
     @Test
