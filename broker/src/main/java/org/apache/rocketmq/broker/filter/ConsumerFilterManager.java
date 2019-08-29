@@ -31,11 +31,14 @@ import org.apache.rocketmq.filter.util.BloomFilter;
 import org.apache.rocketmq.filter.util.BloomFilterData;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Consumer filter data manager.Just manage the consumers use expression filter.
@@ -144,34 +147,35 @@ public class ConsumerFilterManager extends ConfigManager {
             return false;
         }
 
-        FilterDataMapByTopic filterDataMapByTopic = this.filterDataByTopic.get(topic);
+        AtomicBoolean isSuccess = new AtomicBoolean(false);
+        this.filterDataByTopic.compute(topic, (tp, filterDataMapByTopic) -> {
+            if (filterDataMapByTopic == null) {
+                filterDataMapByTopic = new FilterDataMapByTopic(topic);
+            }
 
-        if (filterDataMapByTopic == null) {
-            FilterDataMapByTopic temp = new FilterDataMapByTopic(topic);
-            FilterDataMapByTopic prev = this.filterDataByTopic.putIfAbsent(topic, temp);
-            filterDataMapByTopic = prev != null ? prev : temp;
-        }
+            BloomFilterData bloomFilterData = bloomFilter.generate(consumerGroup + "#" + topic);
 
-        BloomFilterData bloomFilterData = bloomFilter.generate(consumerGroup + "#" + topic);
+            boolean s = filterDataMapByTopic.register(consumerGroup, expression, type, bloomFilterData, clientVersion);
+            isSuccess.set(s);
+            return filterDataMapByTopic;
+        });
 
-        return filterDataMapByTopic.register(consumerGroup, expression, type, bloomFilterData, clientVersion);
+        return isSuccess.get();
     }
 
     public void unRegister(final String consumerGroup) {
-        for (String topic : filterDataByTopic.keySet()) {
-            this.filterDataByTopic.get(topic).unRegister(consumerGroup);
+        for (Map.Entry<String, FilterDataMapByTopic> entry : filterDataByTopic.entrySet()) {
+            entry.getValue().unRegister(consumerGroup);
         }
     }
 
     public ConsumerFilterData get(final String topic, final String consumerGroup) {
-        if (!this.filterDataByTopic.containsKey(topic)) {
-            return null;
-        }
-        if (this.filterDataByTopic.get(topic).getGroupFilterData().isEmpty()) {
+        FilterDataMapByTopic filterDataMapByTopic = filterDataByTopic.get(topic);
+        if (filterDataMapByTopic == null) {
             return null;
         }
 
-        return this.filterDataByTopic.get(topic).getGroupFilterData().get(consumerGroup);
+        return filterDataMapByTopic.getGroupFilterData().get(consumerGroup);
     }
 
     public Collection<ConsumerFilterData> getByGroup(final String consumerGroup) {
@@ -196,14 +200,12 @@ public class ConsumerFilterManager extends ConfigManager {
     }
 
     public final Collection<ConsumerFilterData> get(final String topic) {
-        if (!this.filterDataByTopic.containsKey(topic)) {
-            return null;
-        }
-        if (this.filterDataByTopic.get(topic).getGroupFilterData().isEmpty()) {
+        FilterDataMapByTopic filterDataMapByTopic = filterDataByTopic.get(topic);
+        if (filterDataMapByTopic == null) {
             return null;
         }
 
-        return this.filterDataByTopic.get(topic).getGroupFilterData().values();
+        return filterDataMapByTopic.getGroupFilterData().values();
     }
 
     public BloomFilter getBloomFilter() {
@@ -288,6 +290,7 @@ public class ConsumerFilterManager extends ConfigManager {
     }
 
     public void clean() {
+        List<String> topicsToRemove = new ArrayList<String>();
         Iterator<Map.Entry<String, FilterDataMapByTopic>> topicIterator = this.filterDataByTopic.entrySet().iterator();
         while (topicIterator.hasNext()) {
             Map.Entry<String, FilterDataMapByTopic> filterDataMapByTopic = topicIterator.next();
@@ -306,9 +309,19 @@ public class ConsumerFilterManager extends ConfigManager {
             }
 
             if (filterDataMapByTopic.getValue().getGroupFilterData().isEmpty()) {
-                log.info("Topic has no consumer, remove it! {}", filterDataMapByTopic.getKey());
-                topicIterator.remove();
+                topicsToRemove.add(filterDataMapByTopic.getKey());
             }
+        }
+
+        for (String topicToRemove : topicsToRemove) {
+            this.filterDataByTopic.compute(topicToRemove, (tp, filterDataMapByTopic) -> {
+               if (filterDataMapByTopic != null && filterDataMapByTopic.getGroupFilterData().isEmpty()) {
+                   log.info("Topic has no consumer, remove it! {}", topicToRemove);
+                   return null; //return null to remove this entry.
+               }
+
+               return filterDataMapByTopic;
+            });
         }
     }
 
