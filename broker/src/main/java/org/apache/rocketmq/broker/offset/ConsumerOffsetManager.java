@@ -131,11 +131,11 @@ public class ConsumerOffsetManager extends ConfigManager {
             map = new ConcurrentHashMap<Integer, Long>(32);
             this.offsetTable.putIfAbsent(key, map);
             map = this.offsetTable.get(key);
-		}
-		Long storeOffset = map.put(queueId, offset);
-		if (storeOffset != null && offset < storeOffset) {
-			log.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
-		}
+        }
+        Long storeOffset = map.put(queueId, offset);
+        if (storeOffset != null && offset < storeOffset) {
+            log.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
+        }
     }
 
     public long queryOffset(final String group, final String topic, final int queueId) {
