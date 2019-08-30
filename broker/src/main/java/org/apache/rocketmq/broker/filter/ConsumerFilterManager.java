@@ -315,12 +315,12 @@ public class ConsumerFilterManager extends ConfigManager {
 
         for (String topicToRemove : topicsToRemove) {
             this.filterDataByTopic.compute(topicToRemove, (tp, filterDataMapByTopic) -> {
-               if (filterDataMapByTopic != null && filterDataMapByTopic.getGroupFilterData().isEmpty()) {
-                   log.info("Topic has no consumer, remove it! {}", topicToRemove);
-                   return null; //return null to remove this entry.
-               }
+                if (filterDataMapByTopic != null && filterDataMapByTopic.getGroupFilterData().isEmpty()) {
+                    log.info("Topic has no consumer, remove it! {}", topicToRemove);
+                    return null; //return null to remove this entry.
+                }
 
-               return filterDataMapByTopic;
+                return filterDataMapByTopic;
             });
         }
     }
