@@ -82,6 +82,6 @@ public class BrokerControllerTest {
         brokerController.start();
         // 睡觉，就不起来
         System.out.println("你猜");
-        //Thread.sleep(DateUtils.MILLIS_PER_DAY);
+        Thread.sleep(DateUtils.MILLIS_PER_DAY);
     }
 }

@@ -25,13 +25,13 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 /**
  * This class demonstrates how to send messages to brokers using provided {@link DefaultMQProducer}.
  */
-public class Producer {
+public class ProducerCopy {
     public static void main(String[] args) throws MQClientException, InterruptedException {
 
         /*
          * Instantiate with a producer group name.
          */
-        DefaultMQProducer producer = new DefaultMQProducer("zhanglei");
+        DefaultMQProducer producer = new DefaultMQProducer("topic_zl");
 
         /*
          * Specify name server addresses.
@@ -50,29 +50,28 @@ public class Producer {
          */
         producer.setNamesrvAddr("127.0.0.1:9876");
         producer.start();
-        for (int i = 0; i <10; i++) {
+        for (int i = 0; i < 5; i++) {
             try {
 
                 /*
                  * Create a message instance, specifying topic, tag and message body.
                  */
-                Message msg = new Message("zhanglei_topic" /* Topic */,
+                Message msg = new Message("TopicTest" /* Topic */,
                         "TagA" /* Tag */,
-                        ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
+                        ("Hello RocketMQ copy" + i).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
                 );
 
-            /*    Message msg2 = new Message("zhanglei" *//* Topic *//*,
-                        "TagA" *//* Tag *//*,
-                        ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET) *//* Message body *//*
-                );*/
+                Message msg2 = new Message("zhanglei" /* Topic */,
+                        "TagA" /* Tag */,
+                        ("Hello RocketMQ  copy" + i).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
+                );
                 /*
                  * Call send message to deliver message to one of brokers.
                  */
                 SendResult sendResult = producer.send(msg);
-                //SendResult sendResult1 = producer.send(msg2);
-
+                SendResult sendResult1 = producer.send(msg2);
                 System.out.printf("%s%n", sendResult);
-                //System.out.printf("%s%n", sendResult1);
+                System.out.printf("%s%n", sendResult1);
             } catch (Exception e) {
                 e.printStackTrace();
                 Thread.sleep(1000);
