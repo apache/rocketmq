@@ -37,9 +37,9 @@ public class ConsumerFilterData {
     private String expressionType;
     private transient Expression compiledExpression;
     private long bornTime;
-    private long deadTime = 0;
+    private volatile long deadTime = 0;
     private BloomFilterData bloomFilterData;
-    private long clientVersion;
+    private volatile long clientVersion;
 
     public boolean isDead() {
         return this.deadTime >= this.bornTime;
