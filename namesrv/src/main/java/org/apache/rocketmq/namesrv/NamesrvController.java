@@ -42,7 +42,7 @@ import org.apache.rocketmq.srvutil.FileWatchService;
 public class NamesrvController {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
-    private final NamesrvConfig namesrvConfig;
+    private final NamesrvConfig namesrvConfig; // namerServer 配置信息
 
     private final NettyServerConfig nettyServerConfig;//网络编程配置信息
 
@@ -51,19 +51,19 @@ public class NamesrvController {
         "NSScheduledThread"));
 
     private final KVConfigManager kvConfigManager; // 读取或变更NameServer的属性 加载NamerServer的属性到内存
-    private final RouteInfoManager routeInfoManager; //  NameServer数据的载体，记录Broker,Topic等信息。
+    private final RouteInfoManager routeInfoManager; //记录topic 和 Broker直接的关系
 
 
-    private RemotingServer remotingServer;
+    private RemotingServer remotingServer;  //通信类
 
     private BrokerHousekeepingService brokerHousekeepingService; //ChannelEventListener 接口 监测 链接 关闭 异常 心跳事件
 
-    private ExecutorService remotingExecutor;
+    private ExecutorService remotingExecutor;  // 线程池
 
-    private Configuration configuration;
-    private FileWatchService fileWatchService;
+    private Configuration configuration;       // 全局配置类
+    private FileWatchService fileWatchService; //ssl 证书检测线程？？
 
-    public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
+    public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) { //狗仔方式
         this.namesrvConfig = namesrvConfig;
         this.nettyServerConfig = nettyServerConfig;
         this.kvConfigManager = new KVConfigManager(this);
@@ -76,11 +76,11 @@ public class NamesrvController {
         this.configuration.setStorePathFromConfig(this.namesrvConfig, "configStorePath");
     }
 
-    public boolean initialize() {
+    public boolean initialize() { //初始化 NameSrv控制器
 
-        this.kvConfigManager.load();
+        this.kvConfigManager.load();   //记载 配置
 
-        this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
+        this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService); //初始化 netty server
 
         /**
          * 业务类型线程池
@@ -89,7 +89,7 @@ public class NamesrvController {
         this.remotingExecutor =
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
-        this.registerProcessor();
+        this.registerProcessor();//租车消息处理线程
 
         /**
          * 定时扫描超过120秒则记录 则任务broker失联
@@ -164,7 +164,7 @@ public class NamesrvController {
     }
 
     public void start() throws Exception {
-        this.remotingServer.start();
+        this.remotingServer.start();  //启动nettyServer
 
         if (this.fileWatchService != null) {
             this.fileWatchService.start();

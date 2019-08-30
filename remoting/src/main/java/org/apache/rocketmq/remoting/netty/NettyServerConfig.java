@@ -32,8 +32,8 @@ public class NettyServerConfig implements Cloneable {
     private int serverAsyncSemaphoreValue = 64;      //服务端异步调用的信号量  用在broker与客户端的交互
     private int serverChannelMaxIdleTimeSeconds = 120;  //channel的空闲时间 idleHandler实现
 
-    private int serverSocketSndBufSize = NettySystemConfig.socketSndbufSize; //socket 发送缓冲区大小
-    private int serverSocketRcvBufSize = NettySystemConfig.socketRcvbufSize; //socket 接收缓冲区大小
+    private int serverSocketSndBufSize = NettySystemConfig.socketSndbufSize; //socket 发送缓冲区大小 默认 65535
+    private int serverSocketRcvBufSize = NettySystemConfig.socketRcvbufSize; //socket 接收缓冲区大小      65535
     private boolean serverPooledByteBufAllocatorEnable = true; //是否使用PooledByteBuf(可以重用 缓存ByteBuf)
 
     /**

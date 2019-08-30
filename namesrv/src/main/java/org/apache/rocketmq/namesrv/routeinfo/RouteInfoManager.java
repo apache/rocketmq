@@ -70,7 +70,7 @@ public class RouteInfoManager {
         return clusterInfoSerializeWrapper.encode();
     }
 
-    public void deleteTopic(final String topic) {
+    public void deleteTopic(final String topic) {  //删除topic
         try {
             try {
                 this.lock.writeLock().lockInterruptibly();
@@ -229,18 +229,23 @@ public class RouteInfoManager {
         }
     }
 
+    /**
+     *
+     * @param brokerName   broker name
+     * @param topicConfig  topic config
+     */
     private void createAndUpdateQueueData(final String brokerName, final TopicConfig topicConfig) {
-        QueueData queueData = new QueueData();
-        queueData.setBrokerName(brokerName);
-        queueData.setWriteQueueNums(topicConfig.getWriteQueueNums());
-        queueData.setReadQueueNums(topicConfig.getReadQueueNums());
-        queueData.setPerm(topicConfig.getPerm());
-        queueData.setTopicSynFlag(topicConfig.getTopicSysFlag());
+        QueueData queueData = new QueueData(); //队列元数据
+        queueData.setBrokerName(brokerName);   //broker name
+        queueData.setWriteQueueNums(topicConfig.getWriteQueueNums()); //写队列
+        queueData.setReadQueueNums(topicConfig.getReadQueueNums());   //读队列
+        queueData.setPerm(topicConfig.getPerm());                     //权限
+        queueData.setTopicSynFlag(topicConfig.getTopicSysFlag());     // topic 系统标志
 
 
         //
         List<QueueData> queueDataList = this.topicQueueTable.get(topicConfig.getTopicName()); //这个是topic与队列的关心
-        if (null == queueDataList) {
+        if (null == queueDataList) { //新的topic
             queueDataList = new LinkedList<QueueData>();
             queueDataList.add(queueData);
             this.topicQueueTable.put(topicConfig.getTopicName(), queueDataList);
@@ -777,10 +782,10 @@ public class RouteInfoManager {
 }
 
 class BrokerLiveInfo {
-    private long lastUpdateTimestamp;
+    private long lastUpdateTimestamp; //时间戳
     private DataVersion dataVersion;
     private Channel channel;
-    private String haServerAddr;
+    private String haServerAddr; //ha 地址
 
     public BrokerLiveInfo(long lastUpdateTimestamp, DataVersion dataVersion, Channel channel,
         String haServerAddr) {
