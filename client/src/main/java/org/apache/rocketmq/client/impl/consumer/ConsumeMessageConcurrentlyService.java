@@ -410,11 +410,12 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 }
                 status = listener.consumeMessage(Collections.unmodifiableList(msgs), context);
             } catch (Throwable e) {
-                log.warn(String.format("consumeMessage exception: %s Group: %s Msgs: %s MQ: %s",
+                log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",
                     RemotingHelper.exceptionSimpleDesc(e),
                     ConsumeMessageConcurrentlyService.this.consumerGroup,
                     msgs,
-                    messageQueue), e);
+                    messageQueue);
+                log.warn("Full stack: ", e);
                 hasException = true;
             }
             long consumeRT = System.currentTimeMillis() - beginTimestamp;
