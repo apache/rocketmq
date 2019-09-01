@@ -182,8 +182,6 @@ public class SubscriptionGroupManager extends ConfigManager {
     public void deleteSubscriptionGroupConfig(final String groupName) {
         SubscriptionGroupConfig old = this.subscriptionGroupTable.remove(groupName);
         if (old != null) {
-            ConsumerOffsetManager clean = new ConsumerOffsetManager();
-            clean.cleanOffset(groupName);
             log.info("delete subscription group OK, subscription group:{}", old);
             this.dataVersion.nextVersion();
             this.persist();
