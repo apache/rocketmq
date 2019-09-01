@@ -89,7 +89,7 @@ public class NamesrvController {
         this.remotingExecutor =
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
-        this.registerProcessor();//租车消息处理线程
+        this.registerProcessor();//注册消息处理线程
 
         /**
          * 定时扫描超过120秒则记录 则任务broker失联
