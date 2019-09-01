@@ -232,7 +232,7 @@ public class ConsumerOffsetManager extends ConfigManager {
         }
     }
 
-    public void cleanOffset(final String groupName) {
+    public void cleanConsumerOffsetList(final String groupName) {
         for (Entry<String, ConcurrentMap<Integer, Long>> map : this.offsetTable.entrySet()) {
             int indexAtGroup = map.getKey().lastIndexOf(TOPIC_GROUP_SEPARATOR + groupName);
             if (indexAtGroup != -1) {
