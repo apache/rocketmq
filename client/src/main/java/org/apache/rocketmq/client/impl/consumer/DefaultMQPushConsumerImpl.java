@@ -27,6 +27,8 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -56,6 +58,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -169,7 +172,17 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             throw new MQClientException("The topic[" + topic + "] not exist", null);
         }
 
-        return result;
+        return parseSubscribeMessageQueues(result);
+    }
+
+    public Set<MessageQueue> parseSubscribeMessageQueues(Set<MessageQueue> messageQueueList) {
+        Set<MessageQueue> resultQueues = new HashSet<MessageQueue>();
+        for (MessageQueue queue : messageQueueList) {
+            String userTopic = NamespaceUtil.withoutNamespace(queue.getTopic(), this.defaultMQPushConsumer.getNamespace());
+            resultQueues.add(new MessageQueue(userTopic, queue.getBrokerName(), queue.getQueueId()));
+        }
+
+        return resultQueues;
     }
 
     public DefaultMQPushConsumer getDefaultMQPushConsumer() {
@@ -517,6 +530,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
 
             this.mQClientFactory.getDefaultMQProducer().send(newMsg);
+        } finally {
+            msg.setTopic(NamespaceUtil.withoutNamespace(msg.getTopic(), this.defaultMQPushConsumer.getNamespace()));
         }
     }
 
@@ -1129,6 +1144,20 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
 
         return queueTimeSpan;
+    }
+
+    public void resetRetryAndNamespace(final List<MessageExt> msgs, String consumerGroup) {
+        final String groupTopic = MixAll.getRetryTopic(consumerGroup);
+        for (MessageExt msg : msgs) {
+            String retryTopic = msg.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
+            if (retryTopic != null && groupTopic.equals(msg.getTopic())) {
+                msg.setTopic(retryTopic);
+            }
+
+            if (StringUtils.isNotEmpty(this.defaultMQPushConsumer.getNamespace())) {
+                msg.setTopic(NamespaceUtil.withoutNamespace(msg.getTopic(), this.defaultMQPushConsumer.getNamespace()));
+            }
+        }
     }
 
     public ConsumeMessageService getConsumeMessageService() {
