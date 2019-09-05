@@ -126,6 +126,7 @@
         <module>openmessaging</module>
         <module>logging</module>
         <module>acl</module>
+        <module>ekfet-test</module>
     </modules>
 
     <build>
