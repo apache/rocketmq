@@ -44,7 +44,7 @@
         <dependency>
             <groupId>com.google.truth</groupId>
             <artifactId>truth</artifactId>
-            <version>0.30</version>
+            <version>0.31</version>
         </dependency>
     </dependencies>
 
