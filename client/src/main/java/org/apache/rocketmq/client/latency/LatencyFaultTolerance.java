@@ -18,11 +18,30 @@
 package org.apache.rocketmq.client.latency;
 
 public interface LatencyFaultTolerance<T> {
+    /**
+     * 更新对应的延迟和不可用时长
+     * @param name  对象
+     * @param currentLatency 延迟
+     * @param notAvailableDuration 不可用时长
+     */
     void updateFaultItem(final T name, final long currentLatency, final long notAvailableDuration);
 
+    /**
+     * 是否可用
+     * @param name
+     * @return
+     */
     boolean isAvailable(final T name);
 
+    /**
+     * 移除
+     * @param name
+     */
     void remove(final T name);
 
+    /**
+     * 获取一个对象
+     * @return
+     */
     T pickOneAtLeast();
 }

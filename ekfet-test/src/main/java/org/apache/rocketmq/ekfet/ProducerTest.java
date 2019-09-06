@@ -11,22 +11,20 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import java.io.UnsupportedEncodingException;
 
 public class ProducerTest {
-    private static final DefaultMQProducer defaultMQProducer = new DefaultMQProducer("test_group");
 
-    static {
-        defaultMQProducer.setNamesrvAddr("127.0.0.1:7986");
-
-    }
 
     public static void main(String[] args) {
+        DefaultMQProducer producer=null;
         try {
-            defaultMQProducer.start();
+             producer = new DefaultMQProducer("test_group");
+            producer.setNamesrvAddr("127.0.0.1:9876"); // <x> 哈哈哈哈
+            producer.start();
             for (int i = 0; i < 100; i++) {
                 Message msg = new Message("TopicTest",
                         "TagA",
                         "OrderID188",
                         "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
-                SendResult sendResult = defaultMQProducer.send(msg);
+                SendResult sendResult = producer.send(msg);
                 System.out.printf("%s%n", sendResult);
 
             }
@@ -41,7 +39,7 @@ public class ProducerTest {
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         } finally {
-            defaultMQProducer.shutdown();
+           // producer.shutdown();
         }
     }
 

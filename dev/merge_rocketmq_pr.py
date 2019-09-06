@@ -227,6 +227,7 @@ def fix_version_from_branch(branch, versions):
         return filter(lambda x: x.name.startswith(branch_ver), versions)[-1]
 
 
+# noinspection PyInterpreter
 def resolve_jira_issue(merge_branches, comment, default_jira_id=""):
     asf_jira = jira.client.JIRA({'server': JIRA_API_BASE},
                                 basic_auth=(JIRA_USERNAME, JIRA_PASSWORD))

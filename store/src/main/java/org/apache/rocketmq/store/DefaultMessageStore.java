@@ -357,6 +357,7 @@ public class DefaultMessageStore implements MessageStore {
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         }
 
+        //从节点不允许写入
         if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
@@ -365,7 +366,7 @@ public class DefaultMessageStore implements MessageStore {
 
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         }
-
+        //store 是否允许写入
         if (!this.runningFlags.isWriteable()) {
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
@@ -377,11 +378,13 @@ public class DefaultMessageStore implements MessageStore {
             this.printTimes.set(0);
         }
 
+        //消息太长
         if (msg.getTopic().length() > Byte.MAX_VALUE) {
             log.warn("putMessage message topic length too long " + msg.getTopic().length());
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
 
+        //消息附加信息太长
         if (msg.getPropertiesString() != null && msg.getPropertiesString().length() > Short.MAX_VALUE) {
             log.warn("putMessage message properties length too long " + msg.getPropertiesString().length());
             return new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, null);
@@ -392,6 +395,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         long beginTime = this.getSystemClock().now();
+        //添加消息的commitLog
         PutMessageResult result = this.commitLog.putMessage(msg);
 
         long elapsedTime = this.getSystemClock().now() - beginTime;

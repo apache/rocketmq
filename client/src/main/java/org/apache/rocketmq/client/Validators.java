@@ -114,6 +114,7 @@ public class Validators {
                 VALID_PATTERN_STR), null);
         }
 
+        //消息 topic长度
         if (topic.length() > CHARACTER_MAX_LENGTH) {
             throw new MQClientException("The specified topic is longer than topic max length 255.", null);
         }

@@ -14,8 +14,9 @@ public class BrokerControllerTest {
 
     static {
         brokerConfig = new BrokerConfig();
-        brokerConfig.setNamesrvAddr("127.0.0.1:7986");
+        brokerConfig.setNamesrvAddr("127.0.0.1:9876");
         brokerConfig.setBrokerName("broker-a");
+        brokerConfig.setAutoCreateTopicEnable(true);
 
         nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(10911);

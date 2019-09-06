@@ -17,7 +17,7 @@ public class NameServerInstanceTest {
 
     private synchronized void startup() {
         try {
-            nettyServerConfig.setListenPort(7986);
+            nettyServerConfig.setListenPort(9876);
             nameSrvController = new NamesrvController(namesrvConfig, nettyServerConfig);
             nameSrvController.initialize();
             nameSrvController.start();
