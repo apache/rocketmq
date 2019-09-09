@@ -158,6 +158,7 @@ public class IndexService {
         }
     }
 
+    // 先从 IndexService中读取到offset，然后到 CommitLog中读取消息详情
     public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
         List<Long> phyOffsets = new ArrayList<Long>(maxNum);
 
@@ -167,6 +168,7 @@ public class IndexService {
         try {
             this.readWriteLock.readLock().lock();
             if (!this.indexFileList.isEmpty()) {
+                // 1、从最新的index文件开始向前找
                 for (int i = this.indexFileList.size(); i > 0; i--) {
                     IndexFile f = this.indexFileList.get(i - 1);
                     boolean lastFile = i == this.indexFileList.size();
@@ -175,8 +177,10 @@ public class IndexService {
                         indexLastUpdatePhyoffset = f.getEndPhyOffset();
                     }
 
+                    //2、index文件的时间包含了begin和end的全部或者部分
                     if (f.isTimeMatched(begin, end)) {
 
+                        //3、从文件中读取index中的offset
                         f.selectPhyOffset(phyOffsets, buildKey(topic, key), maxNum, begin, end, lastFile);
                     }
 
@@ -202,13 +206,18 @@ public class IndexService {
         return topic + "#" + key;
     }
 
+    // Step1:获取或创建 IndexFile 文件并获取所有文件最大的物理偏移量 。
+    // 如果该消息的物理偏移量小于索引文件中的物理偏移，则说明是重复数据，忽略本次索引构建 。
     public void buildIndex(DispatchRequest req) {
+        // 1、获取或者新建当前可写入的index file
         IndexFile indexFile = retryGetAndCreateIndexFile();
         if (indexFile != null) {
+            //2、获取当前indexFile中记录的最大offset
             long endPhyOffset = indexFile.getEndPhyOffset();
             DispatchRequest msg = req;
             String topic = msg.getTopic();
             String keys = msg.getKeys();
+            // 3、新来消息是之前的，不应该出现
             if (msg.getCommitLogOffset() < endPhyOffset) {
                 return;
             }
@@ -222,7 +231,8 @@ public class IndexService {
                 case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
                     return;
             }
-
+            // Step2 :如果消息的唯一键不为空，则添加到 Hash索引中，以便加速根据唯一键检索 消息。
+            //4、单条消息
             if (req.getUniqKey() != null) {
                 indexFile = putKey(indexFile, msg, buildKey(topic, req.getUniqKey()));
                 if (indexFile == null) {
@@ -231,6 +241,9 @@ public class IndexService {
                 }
             }
 
+            //5、多个msg，循环逐个存入
+            // Step3:构建索引键，
+            // RocketMQ 支持为同一个消息建立多个索引，多个索引键空格分开。
             if (keys != null && keys.length() > 0) {
                 String[] keyset = keys.split(MessageConst.KEY_SEPARATOR);
                 for (int i = 0; i < keyset.length; i++) {
@@ -249,6 +262,8 @@ public class IndexService {
         }
     }
 
+
+    //调用IndexFile的putKey的方法，包含了重试逻辑，因为有可能在写index的时候，上一个文件已经写满了，需要创建一个新的文件写入。
     private IndexFile putKey(IndexFile indexFile, DispatchRequest msg, String idxKey) {
         for (boolean ok = indexFile.putKey(idxKey, msg.getCommitLogOffset(), msg.getStoreTimestamp()); !ok; ) {
             log.warn("Index file [" + indexFile.getFileName() + "] is full, trying to create another one");

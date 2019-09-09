@@ -24,8 +24,32 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
+
+
+/**
+ * note:
+ * 存储启动时所谓的文件恢复主要完成 flushedPosition,
+ * committedWhere 指针的设置 、消息消费队列最大偏移量加载到内存，
+ * 并删除 flushedPosition 之后所有的文件。
+ * 如果 Broker 异常启动，
+ * 在文件恢复过程中 ， RocketMQ 会将最后一个有效文件中的所有消息重新转发到消息消费队列与索引文件，
+ * 确保不丢失消息，但同时会带来消息重复的问题，
+ * 纵观 RocketMQ 的整体设计思想，
+ * RocketMQ 保证消息不丢失但不保证消息不会重复消费,故消息消费业务方需要实现消息消费的幕等设计 。
+ * */
+
+
 // 为了提高消息消费的效率，RocketMQ 引入了ConsumeQueue 消息队列文件，每个消息主题包含多个消息消费队列，每一个消息队列有一个消息文件.
 // 消息消费队列，消息到达 CommitLog 文件后，将异步转发到消息消费队列，供消息消费者消费。
+
+// RocketMQ 为了适应消息消费的检索需求，设计了消息消费队列文件( ConsumeQueue)，
+// 该文件可以看成是 CommitLog 关于消息消费的“索引”文件，消息主题，第二级目录为主题的消息队列；
+
+
+// 单个 ConsumeQueue文件可以看出是一个 ConsumeQueue条目的数组，
+// 其下标为 Consume­ Queue 的逻辑偏 移量，消息消费进度存储的偏移量 即逻辑偏移 量 。
+// ConsumeQueue 即为 CommitLog 文件的索引文件， 其构建机 制是 当消息到达 CommitLog 文件后 ，
+// 由专门的线程 产生消息转发任务，从而构建消息消费队列文件与下文提到的索引文件 。
 public class ConsumeQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
@@ -153,9 +177,25 @@ public class ConsumeQueue {
         }
     }
 
+
+    // 提供了根据消息存储时间来查找具体实现的算法
     public long getOffsetInQueueByTime(final long timestamp) {
+        // Step1 :首先根据时间戳定位到物理文件，其具体实现在前面有详细介绍，
+        // 就是从第一个文件开始找到第一个文件更新时间大于该时间戳的文件;
         MappedFile mappedFile = this.mappedFileQueue.getMappedFileByTime(timestamp);
         if (mappedFile != null) {
+            // Step2 : 采用二分查找来加速检索。
+            // 首先计算最低查找偏移量，取消息队列最小偏移量与该文件最小偏移量二者中的最小偏移量为low。
+            // 获取当前存储文件中有效的最小消息物理偏移量minPhysicOffset，如果查找到消息偏移量小于该物理偏移量，则结束该查找过程。
+            // 二分查找的常规退出循环为( low>high)， 首先查找中间的偏移量 midOffset，
+            // 将整个 Consume Queue 文件对应的 ByteBuffer定位到 midOffset，然后读取 4个字节获取该消息的 物理偏移量 offset。
+
+            //  1 )如果得到的物理偏移量小于当前的最小物理偏移量，说明待查找的物理偏移量肯定大于 midOffset，所以将 low设置为 midOffset，然后继续折半查找。
+            //  2 )如果 offset 大于最小物理偏移 量 ，说明该消息是有效消息，则根据消息偏移 量 和消 息长度获取消息的存储时间戳 。
+            //  3 )如果存储时间小于 0，消息为无效消息，直接返回 0。
+            //  4 )如果存储时间戳等于待查找时间戳，说明查找到匹配消息，设 置 targetOffset并跳 出循环 。
+            //  5)如果存储时间戳大于待查找时间戳，说明待查找信息小于 midOffset，则设置 high 为 midOffset， 并设置 rightlndexValue 等于 midOffset。
+            //  6 )如果存储时间小于待 查 找时间戳，说明待查找消息在大于 midOffset，则设 置 low 为 midOffset，并设置 leftlndexYalu巳等于 midOffset。
             long offset = 0;
             int low = minLogicOffset > mappedFile.getFileFromOffset() ? (int) (minLogicOffset - mappedFile.getFileFromOffset()) : 0;
             int high = 0;
@@ -196,6 +236,10 @@ public class ConsumeQueue {
                         }
                     }
 
+                    // Step3 : 如果 targetOffset不等于 -1 表示找到了存储时间戳等于待查找时间戳的消息 ;
+                    // 如果leftIndexValue 等于-1，表示返回当前时间戳大并且最接近待查找的偏移量;
+                    // 如果 rightIndexValue 等于 -1，表示返回的消息比待查找时间戳小并且最接近查找的偏移量。
+
                     if (targetOffset != -1) {
 
                         offset = targetOffset;
@@ -213,6 +257,8 @@ public class ConsumeQueue {
                         }
                     }
 
+                    // 根据当前偏移量获取下一个文件的起始偏移量。
+                    // 首先获取一个文件包含多少个消息消 费队列条目，减去 index%totalUnitslnFile的目的是选中下一个文件的起始偏移量。
                     return (mappedFile.getFileFromOffset() + offset) / CQ_STORE_UNIT_SIZE;
                 } finally {
                     sbr.release();
@@ -419,6 +465,10 @@ public class ConsumeQueue {
         this.defaultMessageStore.getRunningFlags().makeLogicsQueueError();
     }
 
+
+    // Step2 :依 次将消息偏移量、消息长度、 tag hashcode 写入到 ByteBuffer 中，
+    // 并根据consumeQueueOffset计算 ConumeQueue 中的物理地址，将内 容追加到 ConsumeQueue 的内
+    // 存映射文件中(本操作只追击并不刷盘)， ConumeQueue 的刷盘方式固定为异步刷盘模式
     private boolean putMessagePositionInfo(final long offset, final int size, final long tagsCode,
         final long cqOffset) {
 
@@ -485,6 +535,11 @@ public class ConsumeQueue {
         }
     }
 
+    // 根据 startIndex 获取消息消费队列条目。
+    // 首先 startIndex * 20 得到在 consumeQueue 中的 物理偏移量，
+    // 如果该 offset 小于 minLogicOffset，则返回 null，说明该消息已被删除;
+    // 如果 大于 minLogicOffset，则根据偏移量定位到具体的物理文件，
+    // 然后通过 offset与物理文大小 取模获取在该文件的偏移量 ，从而从偏移量开始连续读取 20 个字节即可 。
     public SelectMappedBufferResult getIndexBuffer(final long startIndex) {
         int mappedFileSize = this.mappedFileSize;
         long offset = startIndex * CQ_STORE_UNIT_SIZE;
@@ -542,6 +597,7 @@ public class ConsumeQueue {
         this.maxPhysicOffset = maxPhysicOffset;
     }
 
+    //重置ConsumeQueue的maxPhysicOffset与minLogicOffset， 然后调用Mapp巳dFileQueue 的 dest。可方法将消息消费队列目录下的所有文件全部删除 。
     public void destroy() {
         this.maxPhysicOffset = -1;
         this.minLogicOffset = 0;

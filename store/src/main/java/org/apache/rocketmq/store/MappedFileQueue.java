@@ -107,6 +107,13 @@ public class MappedFileQueue {
         return mfs;
     }
 
+    //Steps :删除 offset之后的所有文件。 遍历目录下的文件，如果文件 的尾部偏移量小 于 offset则跳过该文件，
+    // 如果尾部的偏移量大于 offset，则进一步比较 offset与文件的开 始偏移量， 如果offset大于文件的起始偏移量，
+    // 说明当前文件包含了有效偏移里，设置 MappedFile 的 flushedPosition 和 commitedPosition ;
+    // 如果 offset小于文件的起始偏移量，说 明该文件是有效文件后面创建的，
+    // 调用 MappedFile#destory释放 MappedFile 占用的内存资 源(内存映射与内存通道等)，
+    // 然后加入到待删除文件列表中，最终调用 deleteExpiredFile 将文件从物理磁盘删除 。
+    // 过期文件的删除将在下文详细介绍 。
     public void truncateDirtyFiles(long offset) {
         List<MappedFile> willRemoveFiles = new ArrayList<MappedFile>();
 
@@ -150,6 +157,11 @@ public class MappedFileQueue {
         }
     }
 
+    // Step3 :加载 CommitLog文件，
+    // 加载 ${ROCKET_HOME}/store/commitLog 目录下所有 文件并按照文件名排序。
+    // 如果文件大小与配置文件的单个文件大小不一致，将忽略该目录下所有文件，
+    // 然后创建 MappedFile对象。
+    // 注意 load方法将 wrotePosition、 flushedPosition, committedPosition三个指针都设置为文件大小 。
     public boolean load() {
         File dir = new File(this.storePath);
         File[] files = dir.listFiles();
@@ -352,6 +364,7 @@ public class MappedFileQueue {
         }
     }
 
+    // 执行文件销毁与删除
     public int deleteExpiredFileByTime(final long expiredTime,
         final int deleteFilesInterval,
         final long intervalForcibly,
@@ -376,6 +389,9 @@ public class MappedFileQueue {
                 MappedFile mappedFile = (MappedFile) mfs[i];
                 long liveMaxTimestamp = mappedFile.getLastModifiedTimestamp() + expiredTime;
                 if (System.currentTimeMillis() >= liveMaxTimestamp || cleanImmediately) {
+                    //执行MappedFile#destory 方法，
+                    // 清除MappedFile 占有的相关资源，如果执行成功，将该文件加入到待删除文件列表
+                    //中，然后统一执行File#delete 方法将文件从物理磁盘中删除。
                     if (mappedFile.destroy(intervalForcibly)) {
                         files.add(mappedFile);
                         deleteCount++;

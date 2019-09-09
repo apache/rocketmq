@@ -18,21 +18,40 @@ package org.apache.rocketmq.store;
 
 import java.util.Map;
 
+
+
+
+
+
 public class DispatchRequest {
+    // 消息-主题-名称
     private final String topic;
+    // 消息队列 ID
     private final int queueId;
+    // 消息物理偏移量
     private final long commitLogOffset;
+    // 消息长度
     private int msgSize;
+    // 消息过滤 tag hashcode
     private final long tagsCode;
+    // 消息存储时间戳
     private final long storeTimestamp;
+    // 消息队列偏移量
     private final long consumeQueueOffset;
+    // 消息索引 key。 多个索引 key用空格隔开，例如“key! key2”
     private final String keys;
+    // 是否成功解析到完 整 的消息
     private final boolean success;
+    // 消息唯一键
     private final String uniqKey;
 
+    // 消息系统标记
     private final int sysFlag;
+    // 消息预处理事务偏移量
     private final long preparedTransactionOffset;
+    // 消息属性
     private final Map<String, String> propertiesMap;
+    // 位图
     private byte[] bitMap;
 
     private int bufferSize = -1;//the buffer size maybe larger than the msg size if the message is wrapped by something
