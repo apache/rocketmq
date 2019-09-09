@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.acl.plain;
 
+import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -25,6 +26,7 @@ import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
@@ -38,10 +40,10 @@ import static org.apache.rocketmq.acl.plain.PlainAccessResource.getRetryTopic;
 
 public class PlainAccessValidator implements AccessValidator {
 
-    private PlainPermissionLoader aclPlugEngine;
+    private PlainPermissionManager aclPlugEngine;
 
     public PlainAccessValidator() {
-        aclPlugEngine = new PlainPermissionLoader();
+        aclPlugEngine = new PlainPermissionManager();
     }
 
     @Override
@@ -53,11 +55,13 @@ public class PlainAccessValidator implements AccessValidator {
             accessResource.setWhiteRemoteAddress(remoteAddr);
         }
 
-        if (request.getExtFields() == null) {
-            throw new AclException("request's extFields value is null");
-        }
-        
         accessResource.setRequestCode(request.getCode());
+
+        if (request.getExtFields() == null) {
+            // If request's extFields is null,then return accessResource directly(users can use whiteAddress pattern)
+            // The following logic codes depend on the request's extFields not to be null.
+            return accessResource;
+        }
         accessResource.setAccessKey(request.getExtFields().get(SessionCredentials.ACCESS_KEY));
         accessResource.setSignature(request.getExtFields().get(SessionCredentials.SIGNATURE));
         accessResource.setSecretToken(request.getExtFields().get(SessionCredentials.SECURITY_TOKEN));
@@ -116,6 +120,7 @@ public class PlainAccessValidator implements AccessValidator {
         } catch (Throwable t) {
             throw new AclException(t.getMessage(), t);
         }
+
         // Content
         SortedMap<String, String> map = new TreeMap<String, String>();
         for (Map.Entry<String, String> entry : request.getExtFields().entrySet()) {
@@ -130,6 +135,24 @@ public class PlainAccessValidator implements AccessValidator {
     @Override
     public void validate(AccessResource accessResource) {
         aclPlugEngine.validate((PlainAccessResource) accessResource);
+    }
+
+    @Override
+    public boolean updateAccessConfig(PlainAccessConfig plainAccessConfig) {
+        return aclPlugEngine.updateAccessConfig(plainAccessConfig);
+    }
+
+    @Override
+    public boolean deleteAccessConfig(String accesskey) {
+        return aclPlugEngine.deleteAccessConfig(accesskey);
+    }
+
+    @Override public String getAclConfigVersion() {
+        return aclPlugEngine.getAclConfigDataVersion();
+    }
+
+    @Override public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList) {
+        return aclPlugEngine.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList);
     }
 
 }
