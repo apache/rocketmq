@@ -295,7 +295,7 @@ public class DefaultMessageStore implements MessageStore {
             this.shutdown = true;
 
             this.scheduledExecutorService.shutdown();
-
+            this.diskCheckScheduledExecutorService.shutdown();
             try {
 
                 Thread.sleep(1000);
