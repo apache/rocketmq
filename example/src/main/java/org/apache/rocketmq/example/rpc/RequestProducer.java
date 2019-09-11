@@ -38,14 +38,14 @@ public class RequestProducer {
         producer.start();
 
         try {
-                Message msg = new Message(topic,
-                    "",
-                    "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
+            Message msg = new Message(topic,
+                "",
+                "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
 
-                long begin = System.currentTimeMillis();
-                Message retMsg = producer.request(msg, ttl);
-                long cost = System.currentTimeMillis() - begin;
-                System.err.printf("request to <%s> cost: %d replyMessage: %s %n", topic, cost, retMsg);
+            long begin = System.currentTimeMillis();
+            Message retMsg = producer.request(msg, ttl);
+            long cost = System.currentTimeMillis() - begin;
+            System.err.printf("request to <%s> cost: %d replyMessage: %s %n", topic, cost, retMsg);
         } catch (Exception e) {
             log.warn("", e);
         }
