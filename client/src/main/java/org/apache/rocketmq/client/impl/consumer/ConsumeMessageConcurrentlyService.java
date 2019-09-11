@@ -221,6 +221,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             try {
                 this.consumeExecutor.submit(consumeRequest);
             } catch (RejectedExecutionException e) {
+                // 出现异常则稍后重试提交
                 this.submitConsumeRequestLater(consumeRequest);
             }
         } else {  // 大于则遍历消费
@@ -241,7 +242,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                     for (; total < msgs.size(); total++) {
                         msgThis.add(msgs.get(total));
                     }
-
+                    // 出现异常则稍后重试提交
                     this.submitConsumeRequestLater(consumeRequest);
                 }
             }
@@ -310,7 +311,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 List<MessageExt> msgBackFailed = new ArrayList<MessageExt>(consumeRequest.getMsgs().size());
                 for (int i = ackIndex + 1; i < consumeRequest.getMsgs().size(); i++) {
                     MessageExt msg = consumeRequest.getMsgs().get(i);
-                    // 消费失败，重试消费消息
+                    // 消费失败，重新发送消息进行消费
                     boolean result = this.sendMessageBack(msg, context);
                     if (!result) {
                         msg.setReconsumeTimes(msg.getReconsumeTimes() + 1);
@@ -341,15 +342,15 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     }
 
     public boolean sendMessageBack(final MessageExt msg, final ConsumeConcurrentlyContext context) {
+        // 获取重试次数  -1不重试 0有代理控制 >0 客户端控制，默认0
         int delayLevel = context.getDelayLevelWhenNextConsume();
-
         try {
+            // 重新发送实现
             this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel, context.getMessageQueue().getBrokerName());
             return true;
         } catch (Exception e) {
             log.error("sendMessageBack exception, group: " + this.consumerGroup + " msg: " + msg.toString(), e);
         }
-
         return false;
     }
 
@@ -470,7 +471,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             if (ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.hasHook()) {
                 consumeMessageContext.getProps().put(MixAll.CONSUME_CONTEXT_TYPE, returnType.name());
             }
-
+            // 设置默认消费状态
             if (null == status) {
                 log.warn("consumeMessage return null, Group: {} Msgs: {} MQ: {}",
                     ConsumeMessageConcurrentlyService.this.consumerGroup,
@@ -488,7 +489,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             // 消费统计管理，记录消息消费耗时
             ConsumeMessageConcurrentlyService.this.getConsumerStatsManager()
                 .incConsumeRT(ConsumeMessageConcurrentlyService.this.consumerGroup, messageQueue.getTopic(), consumeRT);
-            // 消费队列进程是否存在？？
+            // 消费队列进程存在，处理消费结果
             if (!processQueue.isDropped()) {
                 // 处理消费结果
                 ConsumeMessageConcurrentlyService.this.processConsumeResult(status, context, this);

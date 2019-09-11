@@ -106,7 +106,7 @@ public class PullMessageService extends ServiceThread {
     @Override
     public void run() {
         log.info(this.getServiceName() + " service started");
-        // 线程是否被停止了
+        // 线程是否被停止了，线程存在一直循环拉取
         while (!this.isStopped()) {
             try {
                 // 从拉取请求队列里获取拉取请求上下文
