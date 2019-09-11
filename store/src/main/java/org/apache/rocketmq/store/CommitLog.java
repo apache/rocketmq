@@ -641,8 +641,16 @@ public class CommitLog {
         // Statistics
         storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
-         //
+        /**
+         * @TODO
+         * 刷新磁盘
+         */
         handleDiskFlush(result, putMessageResult, msg);
+
+        /**
+         * @TODO
+         * 主从同步
+         */
         handleHA(result, putMessageResult, msg);
 
         return putMessageResult;
@@ -913,6 +921,9 @@ public class CommitLog {
         protected static final int RETRY_TIMES_OVER = 10;
     }
 
+    /**
+     * 异步刷盘  开启临时存储线池
+     */
     class CommitRealTimeService extends FlushCommitLogService {
 
         private long lastCommitTimestamp = 0;
@@ -966,6 +977,9 @@ public class CommitLog {
         }
     }
 
+    /**
+     * 异步刷盘
+     */
     class FlushRealTimeService extends FlushCommitLogService {
         private long lastFlushTimestamp = 0;
         private long printTimes = 0;
@@ -1077,6 +1091,7 @@ public class CommitLog {
     }
 
     /**
+     * @TODO 同步刷新磁盘
      * GroupCommit Service
      */
     class GroupCommitService extends FlushCommitLogService {

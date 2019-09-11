@@ -174,14 +174,17 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             case CREATE_JUST:
                 this.serviceState = ServiceState.START_FAILED;
 
+                //检测参数
                 this.checkConfig();
-
+                //设置初始化客户端instanceName 获取名称
+                // // 初始化MQClientInstance,一个进程只会存在一个MQClientInstance， 设置clientId
                 if (!this.defaultMQProducer.getProducerGroup().equals(MixAll.CLIENT_INNER_PRODUCER_GROUP)) {
+                    //按照进程名称处理
                     this.defaultMQProducer.changeInstanceNameToPID();
                 }
 
                 this.mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQProducer, rpcHook);
-
+                //将当前Producer注册进MQClientInsance，保证一个producerName值对应一个Producer
                 boolean registerOK = mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);
                 if (!registerOK) {
                     this.serviceState = ServiceState.CREATE_JUST;
@@ -196,6 +199,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     mQClientFactory.start();
                 }
 
+                //启动成功 状态设置为running
                 log.info("the producer [{}] start OK. sendMessageWithVIPChannel={}", this.defaultMQProducer.getProducerGroup(),
                     this.defaultMQProducer.isSendMessageWithVIPChannel());
                 this.serviceState = ServiceState.RUNNING;

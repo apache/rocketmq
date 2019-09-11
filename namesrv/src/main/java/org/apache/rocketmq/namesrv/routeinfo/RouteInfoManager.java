@@ -397,6 +397,7 @@ public class RouteInfoManager {
                     }
 
                     for (String brokerName : brokerNameSet) {
+                        //根据brokerName获取broker主从地址信息
                         BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                         if (null != brokerData) {
                             BrokerData brokerDataClone = new BrokerData(brokerData.getCluster(), brokerData.getBrokerName(), (HashMap<Long, String>) brokerData
@@ -426,13 +427,18 @@ public class RouteInfoManager {
         return null;
     }
 
+    /**
+     * 移除没有运行的broker
+     */
     public void scanNotActiveBroker() {
         Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, BrokerLiveInfo> next = it.next();
             long last = next.getValue().getLastUpdateTimestamp();
+            //最后一次 的更新时间 +通道过期时间  2min
             if ((last + BROKER_CHANNEL_EXPIRED_TIME) < System.currentTimeMillis()) {
                 RemotingUtil.closeChannel(next.getValue().getChannel());
+                //移除
                 it.remove();
                 log.warn("The broker channel expired, {} {}ms", next.getKey(), BROKER_CHANNEL_EXPIRED_TIME);
                 this.onChannelDestroy(next.getKey(), next.getValue().getChannel());

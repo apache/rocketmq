@@ -225,6 +225,7 @@ public class MQClientInstance {
 
     public void start() throws MQClientException {
 
+        //锁当前对象
         synchronized (this) {
             switch (this.serviceState) {
                 case CREATE_JUST:
@@ -234,14 +235,15 @@ public class MQClientInstance {
                         this.mQClientAPIImpl.fetchNameServerAddr();
                     }
                     // Start request-response channel
+                    //2、启动MQClientAPIImpl，初始化NettyClient
                     this.mQClientAPIImpl.start();
-                    // Start various schedule tasks
+                    // Start various schedule tasks 开启client 定时任务
                     this.startScheduledTask();
-                    // Start pull service
+                    // Start pull service ,开始处理PullRequest
                     this.pullMessageService.start();
                     // Start rebalance service
                     this.rebalanceService.start();
-                    // Start push service
+                    // Start push service 开启内置的produce
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
                     log.info("the client factory [{}] start OK", this.clientId);
                     this.serviceState = ServiceState.RUNNING;
@@ -259,6 +261,7 @@ public class MQClientInstance {
     }
 
     private void startScheduledTask() {
+        //每两分钟获取一次namesrv的配置文件
         if (null == this.clientConfig.getNamesrvAddr()) {
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
