@@ -66,6 +66,40 @@ public class DefaultMessageStoreCleanFilesTest {
     }
 
     @Test
+    public void testIsSpaceFullFunction() throws Exception {
+        String deleteWhen = "04";
+        // the min value of diskMaxUsedSpaceRatio.
+        int diskMaxUsedSpaceRatio = 1;
+        // used to ensure set diskfull flag
+        double diskSpaceCleanForciblyRatio = 0.01D;
+        initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
+        // build and put 55 messages, exactly one message per CommitLog file.
+        buildAndPutMessagesToMessageStore(msgCount);
+        MappedFileQueue commitLogQueue = getMappedFileQueueCommitLog();
+        assertEquals(fileCountCommitLog, commitLogQueue.getMappedFiles().size());
+        int fileCountConsumeQueue = getFileCountConsumeQueue();
+        MappedFileQueue consumeQueue = getMappedFileQueueConsumeQueue();
+        assertEquals(fileCountConsumeQueue, consumeQueue.getMappedFiles().size());
+        cleanCommitLogService.isSpaceFull();
+        assertEquals(1 << 4, messageStore.getRunningFlags().getFlagBits() & (1 << 4));
+        messageStore.shutdown();
+        messageStore.destroy();
+
+        //use to reset diskfull flag
+        diskSpaceCleanForciblyRatio = 0.999D;
+        initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
+        // build and put 55 messages, exactly one message per CommitLog file.
+        buildAndPutMessagesToMessageStore(msgCount);
+        commitLogQueue = getMappedFileQueueCommitLog();
+        assertEquals(fileCountCommitLog, commitLogQueue.getMappedFiles().size());
+        fileCountConsumeQueue = getFileCountConsumeQueue();
+        consumeQueue = getMappedFileQueueConsumeQueue();
+        assertEquals(fileCountConsumeQueue, consumeQueue.getMappedFiles().size());
+        cleanCommitLogService.isSpaceFull();
+        assertEquals(0, messageStore.getRunningFlags().getFlagBits() & (1 << 4));
+    }
+
+    @Test
     public void testDeleteExpiredFilesByTimeUp() throws Exception {
         String deleteWhen = Calendar.getInstance().get(Calendar.HOUR_OF_DAY) + "";
         // the max value of diskMaxUsedSpaceRatio
