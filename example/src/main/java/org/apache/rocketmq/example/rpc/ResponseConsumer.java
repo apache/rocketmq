@@ -56,8 +56,8 @@ public class ResponseConsumer {
                         String replyTo = msg.getProperty(MessageConst.PROPERTY_MESSAGE_REPLY_TO);
 
                         //You must use MessageUtil to creage reply message, otherwise reply message maybe wrong.
-                        Message replyMessage = MessageUtil.createReplyMessage(msg);
-                        replyMessage.setBody("reply message contents.".getBytes());
+                        byte[] replyContent = "reply message contents.".getBytes();
+                        Message replyMessage = MessageUtil.createReplyMessage(msg, replyContent);
 
                         //maybe you should create a producer to send reply message.
                         SendResult sendResult = consumer.getDefaultMQPushConsumerImpl().getmQClientFactory().getDefaultMQProducer().send(replyMessage, 3000);
