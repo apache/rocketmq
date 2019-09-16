@@ -66,7 +66,7 @@ public class DefaultMessageStoreCleanFilesTest {
     }
 
     @Test
-    public void testIsSpaceFullFunction() throws Exception {
+    public void testIsSpaceFullFunctionEmpty2Full() throws Exception {
         String deleteWhen = "04";
         // the min value of diskMaxUsedSpaceRatio.
         int diskMaxUsedSpaceRatio = 1;
@@ -85,16 +85,19 @@ public class DefaultMessageStoreCleanFilesTest {
         messageStore.shutdown();
         messageStore.destroy();
 
+    }
+
+    @Test
+    public void testIsSpaceFullFunctionFull2Empty() throws Exception {
+        String deleteWhen = "04";
+        // the min value of diskMaxUsedSpaceRatio.
+        int diskMaxUsedSpaceRatio = 1;
         //use to reset diskfull flag
-        diskSpaceCleanForciblyRatio = 0.999D;
+        double diskSpaceCleanForciblyRatio = 0.999D;
         initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
-        // build and put 55 messages, exactly one message per CommitLog file.
-        buildAndPutMessagesToMessageStore(msgCount);
-        commitLogQueue = getMappedFileQueueCommitLog();
-        assertEquals(fileCountCommitLog, commitLogQueue.getMappedFiles().size());
-        fileCountConsumeQueue = getFileCountConsumeQueue();
-        consumeQueue = getMappedFileQueueConsumeQueue();
-        assertEquals(fileCountConsumeQueue, consumeQueue.getMappedFiles().size());
+        //set disk full
+        messageStore.getRunningFlags().getAndMakeDiskFull();
+
         cleanCommitLogService.isSpaceFull();
         assertEquals(0, messageStore.getRunningFlags().getFlagBits() & (1 << 4));
     }
