@@ -81,6 +81,8 @@ public class BrokerConfig {
     private boolean rejectTransactionMessage = false;
     @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;
+    @ImportantField
+    private boolean watchNamesrvAddr = false;
     private int sendThreadPoolQueueCapacity = 10000;
     private int pullThreadPoolQueueCapacity = 100000;
     private int queryThreadPoolQueueCapacity = 20000;
@@ -452,6 +454,14 @@ public class BrokerConfig {
 
     public void setFetchNamesrvAddrByAddressServer(boolean fetchNamesrvAddrByAddressServer) {
         this.fetchNamesrvAddrByAddressServer = fetchNamesrvAddrByAddressServer;
+    }
+
+    public boolean isWatchNamesrvAddr() {
+        return watchNamesrvAddr;
+    }
+
+    public void setWatchNamesrvAddr(boolean watchNamesrvAddr) {
+        this.watchNamesrvAddr = watchNamesrvAddr;
     }
 
     public int getSendThreadPoolQueueCapacity() {

@@ -388,6 +388,20 @@ public class BrokerController {
                 }
             }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
 
+            if (this.brokerConfig.isWatchNamesrvAddr()) {
+                this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        try {
+                            BrokerController.this.brokerOuterAPI.updateNameServerAddressList(brokerConfig.getNamesrvAddr());
+                        } catch (Throwable e) {
+                            log.error("ScheduledTask updateNameServerAddressList exception", e);
+                        }
+                    }
+                }, 1, 1, TimeUnit.MINUTES);
+            }
+
             if (this.brokerConfig.getNamesrvAddr() != null) {
                 this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
                 log.info("Set user specified name server address: {}", this.brokerConfig.getNamesrvAddr());
