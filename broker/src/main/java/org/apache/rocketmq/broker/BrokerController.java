@@ -399,7 +399,7 @@ public class BrokerController {
                             log.error("ScheduledTask updateNameServerAddressList exception", e);
                         }
                     }
-                }, 1, 1, TimeUnit.MINUTES);
+                }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
             }
 
             if (this.brokerConfig.getNamesrvAddr() != null) {
