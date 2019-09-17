@@ -87,4 +87,11 @@ public class ProducerManagerTest {
         assertThat(channelMap).isNull();
     }
 
+    @Test
+    public void testGetGroupChannelTable() throws Exception {
+        producerManager.registerProducer(group, clientInfo);
+        HashMap<Channel, ClientChannelInfo> oldchannelMap = producerManager.getGroupChannelTable().get(group);
+        producerManager.unregisterProducer(group, clientInfo);
+        assertThat(oldchannelMap.size()).isNotEqualTo(0);
+    }
 }
