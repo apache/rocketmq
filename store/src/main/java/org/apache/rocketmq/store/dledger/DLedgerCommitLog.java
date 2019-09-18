@@ -248,7 +248,7 @@ public class DLedgerCommitLog extends CommitLog {
         return null;
     }
 
-    private void recoverDlegerAbnormally(long maxPhyOffsetOfConsumeQueue) {
+    private void recoverDledgerAbnormally(long maxPhyOffsetOfConsumeQueue) {
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
         dLedgerFileStore.load();
         if (dLedgerFileList.getMappedFiles().size() > 0) {
@@ -278,7 +278,7 @@ public class DLedgerCommitLog extends CommitLog {
             long mappedFileOffset = 0;
             while (true) {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
-                int size = dispatchRequest.getMsgSize();
+                int size = dispatchRequest.getBufferSize();
 
                 if (dispatchRequest.isSuccess()) {
                     if (size > 0) {
@@ -374,7 +374,7 @@ public class DLedgerCommitLog extends CommitLog {
         log.info("Will set the initial commitlog offset={} for dledger", dividedCommitlogOffset);
     }
 
-    private void recoverDlegerNormally(long maxPhyOffsetOfConsumeQueue) {
+    private void recoverDledgerNormally(long maxPhyOffsetOfConsumeQueue) {
         dLedgerFileStore.load();
         if (dLedgerFileList.getMappedFiles().size() > 0) {
             dLedgerFileStore.recover();
@@ -401,12 +401,12 @@ public class DLedgerCommitLog extends CommitLog {
 
     @Override
     public void recoverNormally(long maxPhyOffsetOfConsumeQueue) {
-        recoverDlegerNormally(maxPhyOffsetOfConsumeQueue);
+        recoverDledgerNormally(maxPhyOffsetOfConsumeQueue);
     }
 
     @Override
     public void recoverAbnormally(long maxPhyOffsetOfConsumeQueue) {
-        recoverDlegerAbnormally(maxPhyOffsetOfConsumeQueue);
+        recoverDledgerAbnormally(maxPhyOffsetOfConsumeQueue);
     }
 
     @Override
