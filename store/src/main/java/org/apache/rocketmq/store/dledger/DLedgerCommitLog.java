@@ -320,7 +320,6 @@ public class DLedgerCommitLog extends CommitLog {
         }
         //Indicate that, it is the first time to load mixed commitlog, need to recover the old commitlog
         isInrecoveringOldCommitlog = true;
-        //No need the abnormal recover
         super.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
         isInrecoveringOldCommitlog = false;
         fillUpOldCommitlog();
