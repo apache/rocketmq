@@ -676,7 +676,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     offset = 0;
                 }
             }
-            assignedMessageQueue.updateConsumeOffset(messageQueue, offset);
         }
         return offset;
     }
