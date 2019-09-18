@@ -29,13 +29,11 @@ public class AsyncRequestProducer {
     private static final InternalLogger log = ClientLogger.getLog();
 
     public static void main(String[] args) throws MQClientException, InterruptedException {
-        String producerGroup = "ProducerGroup-Name";
-        String namesrvAddr = "10.255.2.37:9876;10.255.2.37:9875";
+        String producerGroup = "please_rename_unique_group_name";
         String topic = "RequestTopic";
         long ttl = 3000;
 
         DefaultMQProducer producer = new DefaultMQProducer(producerGroup);
-        producer.setNamesrvAddr(namesrvAddr);
         producer.start();
 
         try {
@@ -59,6 +57,7 @@ public class AsyncRequestProducer {
         } catch (Exception e) {
             log.warn("", e);
         }
+         /* shutdown after your request callback is finished */
 //        producer.shutdown();
     }
 }

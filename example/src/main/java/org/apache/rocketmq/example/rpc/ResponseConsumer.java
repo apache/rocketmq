@@ -38,12 +38,10 @@ public class ResponseConsumer {
     private static final InternalLogger log = ClientLogger.getLog();
 
     public static void main(String[] args) throws InterruptedException, MQClientException {
-        String consumerGroup = "ConsumeGroup-Name";
-        String namesrvAddr = "10.255.2.37:9873";
+        String consumerGroup = "please_rename_unique_group_name";
         String topic = "RequestTopic";
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(consumerGroup);
-        consumer.setNamesrvAddr(namesrvAddr);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
