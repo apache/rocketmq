@@ -266,8 +266,7 @@ public class MQClientAPIImpl {
     public void createTopic(final String addr, final String defaultTopic, final TopicConfig topicConfig,
         final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        if (topicConfig.getReadQueueNums()<topicConfig.getWriteQueueNums())
-        {
+        if (topicConfig.getReadQueueNums() < topicConfig.getWriteQueueNums()) {
             String errMsg = String.format("readQueueNum can't be less than writeQueueNum. topicConfig is %s", topicConfig);
             throw new MQClientException(-1, errMsg);
         }
