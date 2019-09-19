@@ -388,7 +388,7 @@ public class MessageDecoder {
                 final String name = entry.getKey();
                 final String value = entry.getValue();
 
-                if(value == null){
+                if (value == null) {
                     continue;
                 }
                 sb.append(name);
