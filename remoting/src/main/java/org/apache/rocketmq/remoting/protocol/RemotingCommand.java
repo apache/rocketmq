@@ -69,15 +69,16 @@ public class RemotingCommand {
         }
     }
 
-    private int code;
-    private LanguageCode language = LanguageCode.JAVA;
-    private int version = 0;
-    private int opaque = requestId.getAndIncrement();
-    private int flag = 0;
-    private String remark;
-    private HashMap<String, String> extFields;
-    private transient CommandCustomHeader customHeader;
+    private int code;//请求编码  0 成功 其余失败
+    private LanguageCode language = LanguageCode.JAVA; //语言  缺省为java
+    private int version = 0; //版本号
+    private int opaque = requestId.getAndIncrement();//ID
+    private int flag = 0;//区分Rpc标识
+    private String remark; //自定义的文本信息
+    private HashMap<String, String> extFields;//扩展字段
+    private transient CommandCustomHeader customHeader;//
 
+    //序列化方式  json rocketmq
     private SerializeType serializeTypeCurrentRPC = serializeTypeConfigInThisServer;
 
     private transient byte[] body;

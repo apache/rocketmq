@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.remoting;
 
+//TODO 通信核心接口
 public interface RemotingService {
     void start();
 
