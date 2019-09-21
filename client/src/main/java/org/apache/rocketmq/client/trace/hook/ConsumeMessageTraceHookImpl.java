@@ -19,6 +19,7 @@ package org.apache.rocketmq.client.trace.hook;
 import org.apache.rocketmq.client.consumer.listener.ConsumeReturnType;
 import org.apache.rocketmq.client.hook.ConsumeMessageContext;
 import org.apache.rocketmq.client.hook.ConsumeMessageHook;
+import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceContext;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceBean;
@@ -73,6 +74,7 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
             traceBean.setStoreTime(msg.getStoreTimestamp());//
             traceBean.setBodyLength(msg.getStoreSize());//
             traceBean.setRetryTimes(msg.getReconsumeTimes());//
+            traceBean.setClientHost(((AsyncTraceDispatcher)localDispatcher).getHostConsumer().getmQClientFactory().getClientId());
             traceContext.setRegionId(regionId);//
             beans.add(traceBean);
         }

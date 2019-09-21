@@ -62,6 +62,14 @@ public class TraceDataEncoder {
                     bean.setOffsetMsgId(line[12]);
                     pubContext.setSuccess(Boolean.parseBoolean(line[13]));
                 }
+
+                // compatible with the old version
+                if (line.length >= 15) {
+                    bean.setOffsetMsgId(line[12]);
+                    pubContext.setSuccess(Boolean.parseBoolean(line[13]));
+                    bean.setClientHost(line[14]);
+                }
+
                 pubContext.setTraceBeans(new ArrayList<TraceBean>(1));
                 pubContext.getTraceBeans().add(bean);
                 resList.add(pubContext);
@@ -76,6 +84,7 @@ public class TraceDataEncoder {
                 bean.setMsgId(line[5]);
                 bean.setRetryTimes(Integer.parseInt(line[6]));
                 bean.setKeys(line[7]);
+                bean.setClientHost(line[8]);
                 subBeforeContext.setTraceBeans(new ArrayList<TraceBean>(1));
                 subBeforeContext.getTraceBeans().add(bean);
                 resList.add(subBeforeContext);
@@ -130,7 +139,8 @@ public class TraceDataEncoder {
                     .append(ctx.getCostTime()).append(TraceConstants.CONTENT_SPLITOR)//
                     .append(bean.getMsgType().ordinal()).append(TraceConstants.CONTENT_SPLITOR)//
                     .append(bean.getOffsetMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(ctx.isSuccess()).append(TraceConstants.FIELD_SPLITOR);
+                    .append(ctx.isSuccess()).append(TraceConstants.CONTENT_SPLITOR)//
+                    .append(bean.getClientHost()).append(TraceConstants.FIELD_SPLITOR);
             }
             break;
             case SubBefore: {
@@ -142,7 +152,8 @@ public class TraceDataEncoder {
                         .append(ctx.getRequestId()).append(TraceConstants.CONTENT_SPLITOR)//
                         .append(bean.getMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
                         .append(bean.getRetryTimes()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(bean.getKeys()).append(TraceConstants.FIELD_SPLITOR);//
+                        .append(bean.getKeys()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(bean.getClientHost()).append(TraceConstants.FIELD_SPLITOR);//
                 }
             }
             break;
