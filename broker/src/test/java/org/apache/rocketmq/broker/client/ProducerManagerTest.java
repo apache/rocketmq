@@ -50,7 +50,7 @@ public class ProducerManagerTest {
     public void scanNotActiveChannel() throws Exception {
         producerManager.registerProducer(group, clientInfo);
         assertThat(producerManager.getGroupChannelTable().get(group).get(channel)).isNotNull();
-
+        assertThat(producerManager.findChannel("clientId")).isNotNull();
         Field field = ProducerManager.class.getDeclaredField("CHANNEL_EXPIRED_TIMEOUT");
         field.setAccessible(true);
         long CHANNEL_EXPIRED_TIMEOUT = field.getLong(producerManager);
@@ -58,22 +58,28 @@ public class ProducerManagerTest {
         when(channel.close()).thenReturn(mock(ChannelFuture.class));
         producerManager.scanNotActiveChannel();
         assertThat(producerManager.getGroupChannelTable().get(group).get(channel)).isNull();
+        assertThat(producerManager.findChannel("clientId")).isNull();
     }
 
     @Test
     public void doChannelCloseEvent() throws Exception {
         producerManager.registerProducer(group, clientInfo);
         assertThat(producerManager.getGroupChannelTable().get(group).get(channel)).isNotNull();
+        assertThat(producerManager.findChannel("clientId")).isNotNull();
         producerManager.doChannelCloseEvent("127.0.0.1", channel);
         assertThat(producerManager.getGroupChannelTable().get(group).get(channel)).isNull();
+        assertThat(producerManager.findChannel("clientId")).isNull();
     }
 
     @Test
     public void testRegisterProducer() throws Exception {
         producerManager.registerProducer(group, clientInfo);
         HashMap<Channel, ClientChannelInfo> channelMap = producerManager.getGroupChannelTable().get(group);
+        Channel channel1 = producerManager.findChannel("clientId");
         assertThat(channelMap).isNotNull();
+        assertThat(channel1).isNotNull();
         assertThat(channelMap.get(channel)).isEqualTo(clientInfo);
+        assertThat(channel1).isEqualTo(channel);
     }
 
     @Test
@@ -82,10 +88,15 @@ public class ProducerManagerTest {
         HashMap<Channel, ClientChannelInfo> channelMap = producerManager.getGroupChannelTable().get(group);
         assertThat(channelMap).isNotNull();
         assertThat(channelMap.get(channel)).isEqualTo(clientInfo);
-
+        Channel channel1 = producerManager.findChannel("clientId");
+        assertThat(channel1).isNotNull();
+        assertThat(channel1).isEqualTo(channel);
         producerManager.unregisterProducer(group, clientInfo);
         channelMap = producerManager.getGroupChannelTable().get(group);
+        channel1 = producerManager.findChannel("clientId");
         assertThat(channelMap).isNull();
+        assertThat(channel1).isNull();
+
     }
 
 }
