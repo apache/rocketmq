@@ -18,6 +18,7 @@ package org.apache.rocketmq.broker.slave;
 
 import java.io.IOException;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -82,6 +83,17 @@ public class SlaveSynchronize {
             try {
                 ConsumerOffsetSerializeWrapper offsetWrapper =
                     this.brokerController.getBrokerOuterAPI().getAllConsumerOffset(masterAddrBak);
+
+                if (!offsetWrapper.getOffsetTable().equals(this.brokerController.getConsumerOffsetManager().getDataVersion()))
+                {
+                    ConsumerOffsetManager consumerOffsetManager = this.brokerController.getConsumerOffsetManager();
+                    consumerOffsetManager.getDataVersion().assignNewOne(
+                            consumerOffsetManager.getDataVersion());
+                    consumerOffsetManager.getOffsetTable().clear();
+                    consumerOffsetManager.getOffsetTable().putAll(
+                            consumerOffsetManager.getOffsetTable());
+                    consumerOffsetManager.persist();
+                }
                 this.brokerController.getConsumerOffsetManager().getOffsetTable()
                     .putAll(offsetWrapper.getOffsetTable());
                 this.brokerController.getConsumerOffsetManager().persist();

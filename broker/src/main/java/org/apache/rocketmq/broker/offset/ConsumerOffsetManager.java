@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
+import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -39,6 +40,7 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
         new ConcurrentHashMap<String, ConcurrentMap<Integer, Long>>(512);
+    private final DataVersion dataVersion = new DataVersion();
 
     private transient BrokerController brokerController;
 
@@ -231,6 +233,9 @@ public class ConsumerOffsetManager extends ConfigManager {
             this.offsetTable.put(topic + TOPIC_GROUP_SEPARATOR + destGroup, new ConcurrentHashMap<Integer, Long>(offsets));
         }
     }
+    public DataVersion getDataVersion() {
+        return dataVersion;
+    }
 
     public void cleanConsumerOffsetList(final String groupName) {
         for (Entry<String, ConcurrentMap<Integer, Long>> map : this.offsetTable.entrySet()) {
@@ -242,6 +247,7 @@ public class ConsumerOffsetManager extends ConfigManager {
                 ConcurrentMap<Integer, Long> result = this.offsetTable.remove(cleanTopicAtGroup);
                 if (result != null) {
                     log.info("cleanOffset OK in offsetTable  Topic@subscription: {} ", cleanTopicAtGroup);
+                    this.dataVersion.nextVersion();
                     this.persist();
                 } else {
                     log.warn("cleanOffset failed in offsetTable Topic@subscription: {} not exist", cleanTopicAtGroup);
