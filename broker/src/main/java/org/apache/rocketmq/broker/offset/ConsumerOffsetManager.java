@@ -44,9 +44,6 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     private transient BrokerController brokerController;
 
-    public ConsumerOffsetManager() {
-    }
-
     public ConsumerOffsetManager(BrokerController brokerController) {
         this.brokerController = brokerController;
     }
@@ -238,11 +235,11 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
     public void cleanConsumerOffsetList(final String groupName) {
-        for (Entry<String, ConcurrentMap<Integer, Long>> map : this.offsetTable.entrySet()) {
-            int indexAtGroup = map.getKey().lastIndexOf(TOPIC_GROUP_SEPARATOR + groupName);
+        getOffsetTable().forEach((key, value) -> {
+            int indexAtGroup = key.lastIndexOf(TOPIC_GROUP_SEPARATOR + groupName);
             if (indexAtGroup != -1) {
                 // this topicName Contain system auto create example:%RETRY%+Topic+Group
-                String topic = map.getKey().substring(0,indexAtGroup);
+                String topic = key.substring(0, indexAtGroup);
                 String cleanTopicAtGroup = topic + TOPIC_GROUP_SEPARATOR + groupName;
                 ConcurrentMap<Integer, Long> result = this.offsetTable.remove(cleanTopicAtGroup);
                 if (result != null) {
@@ -253,6 +250,6 @@ public class ConsumerOffsetManager extends ConfigManager {
                     log.warn("cleanOffset failed in offsetTable Topic@subscription: {} not exist", cleanTopicAtGroup);
                 }
             }
-        }
+        });
     }
 }
