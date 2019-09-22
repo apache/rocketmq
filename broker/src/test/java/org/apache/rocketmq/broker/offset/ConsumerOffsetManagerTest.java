@@ -1,11 +1,13 @@
 package org.apache.rocketmq.broker.offset;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.junit.Test;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ConsumerOffsetManagerTest {
+
     private String groupName = "GroupTest";
     private static final String TOPIC_GROUP_SEPARATOR = "@";
     // GroupTest groupName in consumerOffset.json
@@ -34,20 +36,20 @@ public class ConsumerOffsetManagerTest {
     public void  testCleanConsumerOffsetList(){
         testConsumerManagerInit();
         consumerOffsetManager.cleanConsumerOffsetList(groupName);
-        consumerOffsetManager.getOffsetTable().forEach((key, value) -> {
-            int indexAtGroup = key.lastIndexOf(TOPIC_GROUP_SEPARATOR + groupName);
-            if (indexAtGroup != 0xffffffff) {
-                String topic = key.substring(0x0, indexAtGroup);
+        for (Map.Entry<String, ConcurrentMap<Integer, Long>> map : this.offsetTable.entrySet()) {
+            int indexAtGroup = map.getKey().lastIndexOf(TOPIC_GROUP_SEPARATOR + groupName);
+            if (indexAtGroup != -1) {
+                // this topicName Contain system auto create example:%RETRY%+Topic+Group
+                String topic = map.getKey().substring(0,indexAtGroup);
                 String cleanTopicAtGroup = topic + TOPIC_GROUP_SEPARATOR + groupName;
                 ConcurrentMap<Integer, Long> result = this.offsetTable.remove(cleanTopicAtGroup);
                 if (result != null) {
-                    assertThat(result).isNull();
+                    assertThat(result).isNotNull();
                     String resultString = "{TopicTest@please_rename_unique_group_name_4={0=250, 1=250, 2=250, 3=250}, %RETRY%please_rename_unique_group_name_4@please_rename_unique_group_name_4={0=0}}";
                     assertThat(result.toString()).as(resultString);
                 }
-                assertThat(result).isNotNull();
             }
-        });
+        }
     }
 
     @Test

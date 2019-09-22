@@ -82,22 +82,20 @@ public class SlaveSynchronize {
         if (masterAddrBak != null && !masterAddrBak.equals(brokerController.getBrokerAddr())) {
             try {
                 ConsumerOffsetSerializeWrapper offsetWrapper =
-                    this.brokerController.getBrokerOuterAPI().getAllConsumerOffset(masterAddrBak);
+                    this.brokerController.getBrokerOuterAPI()
+                            .getAllConsumerOffset(masterAddrBak);
 
-                if (!offsetWrapper.getOffsetTable().equals(this.brokerController.getConsumerOffsetManager().getDataVersion()))
-                {
+                if (!this.brokerController.getConsumerOffsetManager().getDataVersion()
+                        .equals(offsetWrapper.getDataVersion())) {
                     ConsumerOffsetManager consumerOffsetManager = this.brokerController.getConsumerOffsetManager();
                     consumerOffsetManager.getDataVersion().assignNewOne(
-                            consumerOffsetManager.getDataVersion());
+                            offsetWrapper.getDataVersion());
                     consumerOffsetManager.getOffsetTable().clear();
                     consumerOffsetManager.getOffsetTable().putAll(
-                            consumerOffsetManager.getOffsetTable());
+                            offsetWrapper.getOffsetTable());
                     consumerOffsetManager.persist();
+                    log.info("Update slave consumer offset from master, {}", masterAddrBak);
                 }
-                this.brokerController.getConsumerOffsetManager().getOffsetTable()
-                    .putAll(offsetWrapper.getOffsetTable());
-                this.brokerController.getConsumerOffsetManager().persist();
-                log.info("Update slave consumer offset from master, {}", masterAddrBak);
             } catch (Exception e) {
                 log.error("SyncConsumerOffset Exception, {}", masterAddrBak, e);
             }
