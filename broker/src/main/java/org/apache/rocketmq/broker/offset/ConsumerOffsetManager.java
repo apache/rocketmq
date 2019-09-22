@@ -234,7 +234,7 @@ public class ConsumerOffsetManager extends ConfigManager {
         return dataVersion;
     }
 
-    public void cleanConsumerOffsetList(final String groupName) {
+    public void cleanConsumerOffsetList(String groupName) {
         getOffsetTable().forEach((key, value) -> {
             int indexAtGroup = key.lastIndexOf(TOPIC_GROUP_SEPARATOR + groupName);
             if (indexAtGroup != -1) {
