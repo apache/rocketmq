@@ -96,6 +96,10 @@ public class MixAll {
     public static final String CID_SYS_RMQ_TRANS = "CID_RMQ_SYS_TRANS";
     public static final String ACL_CONF_TOOLS_FILE = "/conf/tools.yml";
 
+    // DUP(Dynamically Updated Parameters):
+    public static final String DUP_NAMESRV_ADDR = "namesrvAddr";
+    public static final String DUP_BROKER_PERMISSION = "brokerPermission";
+
     public static String getWSAddr() {
         String wsDomainName = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);
         String wsDomainSubgroup = System.getProperty("rocketmq.namesrv.domain.subgroup", "nsaddr");
