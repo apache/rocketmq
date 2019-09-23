@@ -41,8 +41,10 @@ public class MessageUtil {
                 MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_MESSAGE_TTL, ttl);
 
                 return replyMessage;
+            } else {
+                throw new MQClientException(-1, "create reply message fail, requestMessage error, property[" + MessageConst.PROPERTY_CLUSTER + "] is null.");
             }
         }
-        throw new MQClientException(-1, "create reply message fail.");
+        throw new MQClientException(-1, "create reply message fail, requestMessage cannot be null.");
     }
 }

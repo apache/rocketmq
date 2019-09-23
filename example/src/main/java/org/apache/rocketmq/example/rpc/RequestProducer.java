@@ -18,15 +18,11 @@
 package org.apache.rocketmq.example.rpc;
 
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class RequestProducer {
-    private static final InternalLogger log = ClientLogger.getLog();
-
     public static void main(String[] args) throws MQClientException, InterruptedException {
         String producerGroup = "please_rename_unique_group_name";
         String topic = "RequestTopic";
@@ -43,9 +39,9 @@ public class RequestProducer {
             long begin = System.currentTimeMillis();
             Message retMsg = producer.request(msg, ttl);
             long cost = System.currentTimeMillis() - begin;
-            System.err.printf("request to <%s> cost: %d replyMessage: %s %n", topic, cost, retMsg);
+            System.out.printf("request to <%s> cost: %d replyMessage: %s %n", topic, cost, retMsg);
         } catch (Exception e) {
-            log.warn("", e);
+            e.printStackTrace();
         }
         producer.shutdown();
     }

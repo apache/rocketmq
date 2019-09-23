@@ -24,19 +24,13 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.client.utils.MessageUtil;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
-import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class ResponseConsumer {
-    private static final InternalLogger log = ClientLogger.getLog();
-
     public static void main(String[] args) throws InterruptedException, MQClientException {
         String consumerGroup = "please_rename_unique_group_name";
         String topic = "RequestTopic";
@@ -50,23 +44,13 @@ public class ResponseConsumer {
                 System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
                 for (MessageExt msg : msgs) {
                     try {
-                        log.info("handle message: {} body={}", msg, new String(msg.getBody()));
+                        System.out.printf("handle message: %s", msg.toString());
                         String replyTo = msg.getProperty(MessageConst.PROPERTY_MESSAGE_REPLY_TO);
 
-                        //You must use MessageUtil to creage reply message, otherwise reply message maybe wrong.
                         byte[] replyContent = "reply message contents.".getBytes();
-                        Message replyMessage = MessageUtil.createReplyMessage(msg, replyContent);
-
-                        //maybe you should create a producer to send reply message.
-                        SendResult sendResult = consumer.getDefaultMQPushConsumerImpl().getmQClientFactory().getDefaultMQProducer().send(replyMessage, 3000);
-                        System.out.printf("reply msg %s to %s , %s %n", replyMessage.toString(), replyTo, sendResult.toString());
-                    } catch (MQClientException e) {
-                        e.printStackTrace();
-                    } catch (RemotingException e) {
-                        e.printStackTrace();
-                    } catch (MQBrokerException e) {
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
+                        SendResult replyResult = consumer.reply(msg, replyContent, 3000);
+                        System.out.printf("reply to %s , %s %n", replyTo, replyResult.toString());
+                    } catch (MQClientException | RemotingException | MQBrokerException | InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
