@@ -510,10 +510,10 @@ public class ListSplitter implements Iterator<List<Message>> {
        int totalSize = 0;
        for (; nextIndex < messages.size(); nextIndex++) {
            Message message = messages.get(nextIndex);
-           int tmpSize = message.getTopic().length() + message.getBody().length;
+           int tmpSize = message.getTopic().getBytes().length + message.getBody().length;
            Map<String, String> properties = message.getProperties();
            for (Map.Entry<String, String> entry : properties.entrySet()) {
-               tmpSize += entry.getKey().length() + entry.getValue().length();
+               tmpSize += entry.getKey().getBytes().length + entry.getValue().getBytes().length;
            }
            tmpSize = tmpSize + 20; // 增加日志的开销20字节
            if (tmpSize > SIZE_LIMIT) {

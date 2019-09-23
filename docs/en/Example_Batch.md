@@ -20,7 +20,7 @@ try {
 The complexity only grow when you send large batch and you may not sure if it exceeds the size limit (4MiB). At this time, you’d better split the lists:
 ```java
 public class ListSplitter implements Iterator<List<Message>> {
-    private final int SIZE_LIMIT = 1000 * 1000;
+    private final int SIZE_LIMIT = 1024 * 1024 * 4;
     private final List<Message> messages;
     private int currIndex;
     public ListSplitter(List<Message> messages) {
@@ -34,10 +34,10 @@ public class ListSplitter implements Iterator<List<Message>> {
         int totalSize = 0;
         for (; nextIndex < messages.size(); nextIndex++) {
             Message message = messages.get(nextIndex);
-            int tmpSize = message.getTopic().length() + message.getBody().length;
+            int tmpSize = message.getTopic().getBytes().length + message.getBody().length;
             Map<String, String> properties = message.getProperties();
             for (Map.Entry<String, String> entry : properties.entrySet()) {
-                tmpSize += entry.getKey().length() + entry.getValue().length();
+                tmpSize += entry.getKey().getBytes().length + entry.getValue().getBytes().length;
             }
             tmpSize = tmpSize + 20; //for log overhead
             if (tmpSize > SIZE_LIMIT) {
