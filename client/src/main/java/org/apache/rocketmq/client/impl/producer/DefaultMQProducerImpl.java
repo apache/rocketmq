@@ -1334,6 +1334,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public Message request(Message msg,
         long timeout) throws RequestTimeoutException, MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        long beginTimestamp = System.currentTimeMillis();
         prepareSendRequest(msg, timeout);
         final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
 
@@ -1341,6 +1342,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, null);
             RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
 
+            long cost = System.currentTimeMillis() - beginTimestamp;
             this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
@@ -1353,11 +1355,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     requestResponseFuture.putResponseMessage(null);
                     requestResponseFuture.setCause(e);
                 }
-            }, timeout);
+            }, timeout - cost);
 
-            Message responseMessage = requestResponseFuture.waitResponseMessage(timeout);
+            Message responseMessage = requestResponseFuture.waitResponseMessage(timeout - cost);
             if (responseMessage == null) {
-                if (requestResponseFuture.isSendReqeustOk()) {
+                if (requestResponseFuture.isSendRequestOk()) {
                     throw new RequestTimeoutException(ClientErrorCode.REQUEST_TIMEOUT_EXCEPTION,
                         "send request message to <" + msg.getTopic() + "> OK, but wait reply message timeout, " + timeout + " ms.");
                 } else {
@@ -1371,6 +1373,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public void request(Message msg, final RequestCallback requestCallback, long timeout) throws RemotingException {
+        long beginTimestamp = System.currentTimeMillis();
         prepareSendRequest(msg, timeout);
         final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
 
@@ -1378,6 +1381,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, requestCallback);
             RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
 
+            long cost = System.currentTimeMillis() - beginTimestamp;
             this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
@@ -1389,7 +1393,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     requestResponseFuture.setCause(e);
                     requestFail(requestUniqId);
                 }
-            }, timeout);
+            }, timeout - cost);
         } catch (Exception ex) {
             log.warn("send request message to <{}> failed.", msg.getTopic(), ex);
             throw new RemotingSendRequestException(msg.getTopic(), ex);
@@ -1399,6 +1403,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     public Message request(final Message msg, final MessageQueueSelector selector, final Object arg,
         final long timeout) throws MQClientException, RemotingException, MQBrokerException,
         InterruptedException, RequestTimeoutException {
+        long beginTimestamp = System.currentTimeMillis();
         prepareSendRequest(msg, timeout);
         final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
 
@@ -1406,6 +1411,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, null);
             RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
 
+            long cost = System.currentTimeMillis() - beginTimestamp;
             this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
@@ -1418,11 +1424,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     requestResponseFuture.putResponseMessage(null);
                     requestResponseFuture.setCause(e);
                 }
-            }, timeout);
+            }, timeout - cost);
 
-            Message responseMessage = requestResponseFuture.waitResponseMessage(timeout);
+            Message responseMessage = requestResponseFuture.waitResponseMessage(timeout - cost);
             if (responseMessage == null) {
-                if (requestResponseFuture.isSendReqeustOk()) {
+                if (requestResponseFuture.isSendRequestOk()) {
                     throw new RequestTimeoutException(ClientErrorCode.REQUEST_TIMEOUT_EXCEPTION,
                         "send request message to <" + msg.getTopic() + "> OK, but wait reply message timeout, " + timeout + " ms.");
                 } else {
@@ -1437,6 +1443,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public void request(final Message msg, final MessageQueueSelector selector, final Object arg,
         final RequestCallback requestCallback, final long timeout) throws RemotingException {
+        long beginTimestamp = System.currentTimeMillis();
         prepareSendRequest(msg, timeout);
         final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
 
@@ -1444,6 +1451,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, requestCallback);
             RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
 
+            long cost = System.currentTimeMillis() - beginTimestamp;
             this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
@@ -1455,7 +1463,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     requestResponseFuture.setCause(e);
                     requestFail(requestUniqId);
                 }
-            }, timeout);
+            }, timeout - cost);
         } catch (Exception ex) {
             log.warn("send request message to <{}> failed.", msg.getTopic(), ex);
             throw new RemotingSendRequestException(msg.getTopic(), ex);
@@ -1464,6 +1472,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public Message request(final Message msg, final MessageQueue mq, final long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException, RequestTimeoutException {
+        long beginTimestamp = System.currentTimeMillis();
         prepareSendRequest(msg, timeout);
         final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
 
@@ -1471,6 +1480,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, null);
             RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
 
+            long cost = System.currentTimeMillis() - beginTimestamp;
             this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
@@ -1483,11 +1493,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     requestResponseFuture.putResponseMessage(null);
                     requestResponseFuture.setCause(e);
                 }
-            }, null, timeout);
+            }, null, timeout - cost);
 
-            Message responseMessage = requestResponseFuture.waitResponseMessage(timeout);
+            Message responseMessage = requestResponseFuture.waitResponseMessage(timeout - cost);
             if (responseMessage == null) {
-                if (requestResponseFuture.isSendReqeustOk()) {
+                if (requestResponseFuture.isSendRequestOk()) {
                     throw new RequestTimeoutException(ClientErrorCode.REQUEST_TIMEOUT_EXCEPTION,
                         "send request message to <" + msg.getTopic() + "> OK, but wait reply message timeout, " + timeout + " ms.");
                 } else {
@@ -1502,6 +1512,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public void request(final Message msg, final MessageQueue mq, final RequestCallback requestCallback, long timeout)
         throws RemotingException {
+        long beginTimestamp = System.currentTimeMillis();
         prepareSendRequest(msg, timeout);
         final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
 
@@ -1509,6 +1520,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, requestCallback);
             RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
 
+            long cost = System.currentTimeMillis() - beginTimestamp;
             this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
@@ -1520,7 +1532,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     requestResponseFuture.setCause(e);
                     requestFail(requestUniqId);
                 }
-            }, null, timeout);
+            }, null, timeout - cost);
         } catch (Exception ex) {
             log.warn("send request message to <{}> failed.", msg.getTopic(), ex);
             throw new RemotingSendRequestException(msg.getTopic(), ex);
@@ -1557,20 +1569,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 log.warn("prepare send request for <{}> cost {} ms", msg.getTopic(), cost);
             }
         }
-    }
-
-    private SendResult reply(final Message msg,
-        long timeoutMillis) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        return this.sendDefaultImpl(msg, CommunicationMode.SYNC, null, timeoutMillis);
-    }
-
-    private SendResult reply(final Message msg, final SendCallback sendCallback,
-        long timeoutMillis) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        return this.sendDefaultImpl(msg, CommunicationMode.ASYNC, sendCallback, timeoutMillis);
-    }
-
-    public void replyOneway(final Message msg) throws RemotingException, MQClientException, InterruptedException {
-        this.sendOneway(msg);
     }
 
     public ConcurrentMap<String, TopicPublishInfo> getTopicPublishInfoTable() {

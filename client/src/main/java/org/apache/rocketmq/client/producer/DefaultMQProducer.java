@@ -566,13 +566,19 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * @param msg
-     * @param timeout
-     * @return
-     * @throws MQClientException
-     * @throws RemotingException
-     * @throws MQBrokerException
-     * @throws InterruptedException
+     * Send request message in synchronous mode. This method returns only when the consumer consume the request message and reply a message. </p>
+     *
+     * <strong>Warn:</strong> this method has internal retry-mechanism, that is, internal implementation will retry
+     * {@link #retryTimesWhenSendFailed} times before claiming failure. As a result, multiple messages may potentially
+     * delivered to broker(s). It's up to the application developers to resolve potential duplication issue.
+     *
+     * @param msg request message to send
+     * @param timeout request timeout
+     * @return reply message
+     * @throws MQClientException if there is any client error.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws MQBrokerException if there is any broker error.
+     * @throws InterruptedException if the thread is interrupted.
      */
     @Override
     public Message request(final Message msg, final long timeout) throws RequestTimeoutException, MQClientException,
@@ -582,85 +588,101 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * @param msg
-     * @param requestCallback
-     * @param timeout
-     * @return
-     * @throws MQClientException
-     * @throws RemotingException
-     * @throws InterruptedException
+     * Request asynchronously. </p>
+     * This method returns immediately. On receiving reply message, <code>requestCallback</code> will be executed. </p>
+     *
+     * Similar to {@link #request(Message, long)}, internal implementation would potentially retry up to {@link
+     * #retryTimesWhenSendAsyncFailed} times before claiming sending failure, which may yield message duplication and
+     * application developers are the one to resolve this potential issue.
+     *
+     * @param msg request message to send
+     * @param requestCallback callback to execute on request completion.
+     * @param timeout request timeout
+     * @throws MQClientException if there is any client error.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws InterruptedException if the thread is interrupted.
      */
     @Override
     public void request(final Message msg, final RequestCallback requestCallback, final long timeout)
         throws MQClientException, RemotingException, InterruptedException, MQBrokerException, RequestTimeoutException {
+        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.request(msg, requestCallback, timeout);
     }
 
     /**
-     * @param msg
-     * @param selector
-     * @param arg
-     * @param timeout
-     * @return
-     * @throws MQClientException
-     * @throws RemotingException
-     * @throws MQBrokerException
-     * @throws InterruptedException
+     * Same to {@link #request(Message, long)}  with message queue selector specified.
+     *
+     * @param msg request message to send
+     * @param selector message queue selector, through which we get target message queue to deliver message to.
+     * @param arg argument to work along with message queue selector.
+     * @param timeout timeout of request.
+     * @return reply message
+     * @throws MQClientException if there is any client error.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws MQBrokerException if there is any broker error.
+     * @throws InterruptedException if the thread is interrupted.
      */
     @Override
     public Message request(final Message msg, final MessageQueueSelector selector, final Object arg,
         final long timeout) throws MQClientException, RemotingException, MQBrokerException,
         InterruptedException, RequestTimeoutException {
+        msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.request(msg, selector, arg, timeout);
     }
 
     /**
-     * @param msg
-     * @param selector
-     * @param arg
-     * @param requestCallback
-     * @param timeout
-     * @return
-     * @throws MQClientException
-     * @throws RemotingException
-     * @throws InterruptedException
+     * Same to {@link #request(Message, RequestCallback, long)} with target message selector specified.
+     *
+     * @param msg requst message to send
+     * @param selector message queue selector, through which we get target message queue to deliver message to.
+     * @param arg argument to work along with message queue selector.
+     * @param requestCallback callback to execute on request completion.
+     * @param timeout timeout of request.
+     * @throws MQClientException if there is any client error.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws InterruptedException if the thread is interrupted.
      */
     @Override
     public void request(final Message msg, final MessageQueueSelector selector, final Object arg,
         final RequestCallback requestCallback, final long timeout) throws MQClientException, RemotingException,
         InterruptedException {
+        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.request(msg, selector, arg, requestCallback, timeout);
     }
 
     /**
-     * @param msg
-     * @param mq
-     * @param timeout
-     * @return
-     * @throws MQClientException
-     * @throws RemotingException
-     * @throws MQBrokerException
-     * @throws InterruptedException
+     * Same to {@link #request(Message, long)}  with target message queue specified in addition.
+     *
+     * @param msg request message to send
+     * @param mq target message queue.
+     * @param timeout request timeout
+     * @throws MQClientException if there is any client error.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws MQBrokerException if there is any broker error.
+     * @throws InterruptedException if the thread is interrupted.
      */
     @Override
     public Message request(final Message msg, final MessageQueue mq, final long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException, RequestTimeoutException {
+        msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.request(msg, mq, timeout);
     }
 
     /**
-     * @param msg
-     * @param mq
-     * @param requestCallback
-     * @param timeout
-     * @return
-     * @throws MQClientException
-     * @throws RemotingException
-     * @throws InterruptedException
+     * Same to {@link #request(Message, RequestCallback, long)} with target message queue specified.
+     *
+     * @param msg request message to send
+     * @param mq target message queue.
+     * @param requestCallback callback to execute on request completion.
+     * @param timeout timeout of request.
+     * @throws MQClientException if there is any client error.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws InterruptedException if the thread is interrupted.
      */
     @Override
     public void request(final Message msg, final MessageQueue mq, final RequestCallback requestCallback, long timeout)
         throws MQClientException, RemotingException, InterruptedException {
+        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.request(msg, mq, requestCallback, timeout);
     }
 

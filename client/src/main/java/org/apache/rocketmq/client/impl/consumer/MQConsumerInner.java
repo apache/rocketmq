@@ -17,12 +17,18 @@
 package org.apache.rocketmq.client.impl.consumer;
 
 import java.util.Set;
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
  * Consumer inner interface
@@ -49,4 +55,13 @@ public interface MQConsumerInner {
     boolean isUnitMode();
 
     ConsumerRunningInfo consumerRunningInfo();
+
+    SendResult reply(final Message requestMsg, final byte[] replyContent,
+        long timeoutMillis) throws InterruptedException, RemotingException, MQClientException, MQBrokerException;
+
+    void reply(final Message requestMsg, final byte[] replyContent, final SendCallback sendCallback,
+        long timeoutMillis) throws InterruptedException, RemotingException, MQClientException, MQBrokerException;
+
+    void replyOneway(final Message requestMsg,
+        final byte[] replyContent) throws RemotingException, MQClientException, InterruptedException;
 }

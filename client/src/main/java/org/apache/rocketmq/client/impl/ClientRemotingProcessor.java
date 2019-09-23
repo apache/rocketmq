@@ -268,13 +268,14 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             log.debug("receive reply message :{}", msg);
 
             processReplyMessage(msg);
+
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
         } catch (Exception e) {
-            log.warn("unknown err when receiveRRReplyMsg", e);
+            log.warn("unknown err when receiveReplyMsg", e);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("process reply message fail");
         }
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
         return response;
     }
 

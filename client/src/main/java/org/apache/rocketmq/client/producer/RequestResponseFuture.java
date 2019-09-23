@@ -19,7 +19,6 @@ package org.apache.rocketmq.client.producer;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.common.message.Message;
 
 public class RequestResponseFuture {
@@ -29,9 +28,8 @@ public class RequestResponseFuture {
     private final Message requestMsg = null;
     private long timeoutMillis;
     private CountDownLatch countDownLatch = new CountDownLatch(1);
-    private AtomicBoolean ececuteCallbackOnlyOnce = new AtomicBoolean(false);
     private volatile Message responseMsg = null;
-    private volatile boolean sendReqeustOk = true;
+    private volatile boolean sendRequestOk = true;
     private volatile Throwable cause = null;
 
     public RequestResponseFuture(String requestUniqId, long timeoutMillis, RequestCallback requestCallback) {
@@ -42,7 +40,7 @@ public class RequestResponseFuture {
 
     public void executeRequestCallback() {
         if (requestCallback != null) {
-            if (sendReqeustOk && cause == null) {
+            if (sendRequestOk && cause == null) {
                 requestCallback.onSuccess(responseMsg);
             } else {
                 requestCallback.onException(cause);
@@ -93,14 +91,6 @@ public class RequestResponseFuture {
         this.countDownLatch = countDownLatch;
     }
 
-    public AtomicBoolean getEcecuteCallbackOnlyOnce() {
-        return ececuteCallbackOnlyOnce;
-    }
-
-    public void setEcecuteCallbackOnlyOnce(AtomicBoolean ececuteCallbackOnlyOnce) {
-        this.ececuteCallbackOnlyOnce = ececuteCallbackOnlyOnce;
-    }
-
     public Message getResponseMsg() {
         return responseMsg;
     }
@@ -109,12 +99,12 @@ public class RequestResponseFuture {
         this.responseMsg = responseMsg;
     }
 
-    public boolean isSendReqeustOk() {
-        return sendReqeustOk;
+    public boolean isSendRequestOk() {
+        return sendRequestOk;
     }
 
     public void setSendReqeustOk(boolean sendReqeustOk) {
-        this.sendReqeustOk = sendReqeustOk;
+        this.sendRequestOk = sendReqeustOk;
     }
 
     public Message getRequestMsg() {
