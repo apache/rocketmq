@@ -22,13 +22,18 @@ import java.util.List;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultLitePullConsumerImpl;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class DefaultLitePullConsumer extends ClientConfig implements LitePullConsumer {
 
@@ -410,5 +415,51 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setTopicMetadataCheckIntervalMillis(long topicMetadataCheckIntervalMillis) {
         this.topicMetadataCheckIntervalMillis = topicMetadataCheckIntervalMillis;
+    }
+
+    /**
+     *  send a reply message to the producer of the original request message
+     * @param requestMsg original request message
+     * @param replyContent contents of reply message
+     * @param timeoutMillis
+     * @return {@link SendResult} instance to inform senders details of the deliverable, say Message ID of the message,
+     * @throws InterruptedException if the thread is interrupted.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws MQClientException if there is any client error.
+     * @throws MQBrokerException if there is any broker error.
+     */
+    public SendResult reply(final Message requestMsg, final byte[] replyContent,
+        long timeoutMillis) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
+        return this.defaultLitePullConsumerImpl.reply(requestMsg, replyContent, timeoutMillis);
+    }
+
+    /**
+     * send a reply message to the producer of the original request message asynchronously
+     * @param requestMsg original request message
+     * @param replyContent contents of reply message
+     * @param replyCallback  callback to execute on replying completion.
+     * @param timeoutMillis
+     * @throws InterruptedException if the thread is interrupted.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws MQClientException if there is any client error.
+     * @throws MQBrokerException if there is any broker error.
+     */
+    public void reply(final Message requestMsg, final byte[] replyContent, final SendCallback replyCallback,
+        long timeoutMillis) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
+        this.defaultLitePullConsumerImpl.reply(requestMsg, replyContent, replyCallback, timeoutMillis);
+    }
+
+    /**
+     * send a reply message to the producer of the original request message oneway
+     * @param requestMsg original request message
+     * @param replyContent contents of reply message
+     * @throws InterruptedException if the thread is interrupted.
+     * @throws RemotingException if there is any network-tier error.
+     * @throws MQClientException if there is any client error.
+     * @throws MQBrokerException if there is any broker error.
+     */
+    public void replyOneway(final Message requestMsg,
+        final byte[] replyContent) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
+        this.defaultLitePullConsumerImpl.replyOneway(requestMsg, replyContent);
     }
 }
