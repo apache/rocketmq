@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.client;
 
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.UtilAll;
@@ -95,7 +97,6 @@ public class ClientConfig {
         }
     }
 
-
     public String withNamespace(String resource) {
         return NamespaceUtil.wrapNamespace(this.getNamespace(), resource);
     }
@@ -124,9 +125,21 @@ public class ClientConfig {
         if (StringUtils.isEmpty(this.getNamespace())) {
             return queue;
         }
-
         return new MessageQueue(withNamespace(queue.getTopic()), queue.getBrokerName(), queue.getQueueId());
     }
+
+    public Collection<MessageQueue> queuesWithNamespace(Collection<MessageQueue> queues) {
+        if (StringUtils.isEmpty(this.getNamespace())) {
+            return queues;
+        }
+        Iterator<MessageQueue> iter = queues.iterator();
+        while (iter.hasNext()) {
+            MessageQueue queue = iter.next();
+            queue.setTopic(withNamespace(queue.getTopic()));
+        }
+        return queues;
+    }
+
     public void resetClientConfig(final ClientConfig cc) {
         this.namesrvAddr = cc.namesrvAddr;
         this.clientIP = cc.clientIP;
@@ -170,6 +183,7 @@ public class ClientConfig {
 
     /**
      * Domain name mode access way does not support the delimiter(;), and only one domain name can be set.
+     *
      * @param namesrvAddr name server address
      */
     public void setNamesrvAddr(String namesrvAddr) {

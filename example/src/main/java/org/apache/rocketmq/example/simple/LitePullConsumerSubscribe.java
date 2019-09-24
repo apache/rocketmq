@@ -14,16 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.exception;
+package org.apache.rocketmq.example.simple;
 
-public class RemotingConnectException extends RemotingException {
-    private static final long serialVersionUID = -5565366231695911316L;
+import java.util.List;
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
+import org.apache.rocketmq.common.message.MessageExt;
 
-    public RemotingConnectException(String addr) {
-        this(addr, null);
-    }
+public class LitePullConsumerSubscribe {
 
-    public RemotingConnectException(String addr, Throwable cause) {
-        super("connect to " + addr + " failed", cause);
+    public static volatile boolean running = true;
+
+    public static void main(String[] args) throws Exception {
+        DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer("please_rename_unique_group_name");
+        litePullConsumer.subscribe("TopicTest", "*");
+        litePullConsumer.start();
+        try {
+            while (running) {
+                List<MessageExt> messageExts = litePullConsumer.poll();
+                System.out.printf("%s%n", messageExts);
+            }
+        } finally {
+            litePullConsumer.shutdown();
+        }
     }
 }
