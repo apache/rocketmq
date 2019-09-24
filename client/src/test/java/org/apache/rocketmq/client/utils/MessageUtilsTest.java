@@ -45,7 +45,7 @@ public class MessageUtilsTest {
             Message msg = MessageUtil.createReplyMessage(createReplyMessage(null), new byte[] {'a'});
             failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
-            assertThat(e).hasMessageContaining("create reply message fail.");
+            assertThat(e).hasMessageContaining("create reply message fail, requestMessage error, property[" + MessageConst.PROPERTY_CLUSTER + "] is null.");
         }
     }
 
