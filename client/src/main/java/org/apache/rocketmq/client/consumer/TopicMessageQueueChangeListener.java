@@ -14,16 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.exception;
+package org.apache.rocketmq.client.consumer;
 
-public class RemotingConnectException extends RemotingException {
-    private static final long serialVersionUID = -5565366231695911316L;
+import java.util.Set;
+import org.apache.rocketmq.common.message.MessageQueue;
 
-    public RemotingConnectException(String addr) {
-        this(addr, null);
-    }
-
-    public RemotingConnectException(String addr, Throwable cause) {
-        super("connect to " + addr + " failed", cause);
-    }
+public interface TopicMessageQueueChangeListener {
+    /**
+     * This method will be invoked in the condition of queue numbers changed, These scenarios occur when the topic is
+     * expanded or shrunk.
+     *
+     * @param messageQueues
+     */
+    void onChanged(String topic, Set<MessageQueue> messageQueues);
 }
