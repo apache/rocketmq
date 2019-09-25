@@ -92,7 +92,6 @@ public class ReplyMessageProcessorTest {
         Channel mockChannel = mock(Channel.class);
         when(mockChannel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
         when(handlerContext.channel()).thenReturn(mockChannel);
-        when(messageStore.lookMessageByOffset(anyLong())).thenReturn(new MessageExt());
         replyMessageProcessor = new ReplyMessageProcessor(brokerController);
     }
 
