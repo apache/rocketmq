@@ -110,7 +110,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     /**
      * Delay some time when exception occur
      */
-    private static final long PULL_TIME_DELAY_MILLS_WHEN_EXCEPTION = 1000;
+    private long pullTimeDelayMillsWhenException = 1000;
     /**
      * Flow control interval
      */
@@ -160,6 +160,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 return new Thread(r, "MonitorMessageQueueChangeThread");
             }
         });
+        this.pullTimeDelayMillsWhenException = defaultLitePullConsumer.getPullTimeDelayMillsWhenException();
     }
 
     private void checkServiceState() {
@@ -787,7 +788,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     }
                     updatePullOffset(messageQueue, pullResult.getNextBeginOffset());
                 } catch (Throwable e) {
-                    pullDelayTimeMills = PULL_TIME_DELAY_MILLS_WHEN_EXCEPTION;
+                    pullDelayTimeMills = pullTimeDelayMillsWhenException;
                     log.error("An error occurred in pull message process.", e);
                 }
 
@@ -1073,6 +1074,10 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             return processQueue;
         }
 
+    }
+
+    public void setPullTimeDelayMillsWhenException(long pullTimeDelayMillsWhenException) {
+        this.pullTimeDelayMillsWhenException = pullTimeDelayMillsWhenException;
     }
 
     @Override
