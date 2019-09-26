@@ -37,6 +37,8 @@ public class ResponseConsumer {
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(consumerGroup);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        //recommend client configs
+        consumer.setPullTimeDelayMillsWhenException(0L);
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
