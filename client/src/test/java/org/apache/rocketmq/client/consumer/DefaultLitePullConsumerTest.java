@@ -88,6 +88,7 @@ public class DefaultLitePullConsumerTest {
     private String topic = "LitePullConsumerTest";
     private String brokerName = "BrokerA";
     private boolean flag = false;
+    private boolean PullTaskImplHasExecuted = false;
 
     @Before
     public void init() throws Exception {
@@ -175,6 +176,7 @@ public class DefaultLitePullConsumerTest {
 
     @Test
     public void testSeek_SeekOffsetSuccess() throws Exception {
+        PullTaskImplHasExecuted = false;
         DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
         when(mQAdminImpl.minOffset(any(MessageQueue.class))).thenReturn(0L);
         when(mQAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(500L);
@@ -438,6 +440,7 @@ public class DefaultLitePullConsumerTest {
                     messageClientExt.setBornHost(new InetSocketAddress(8080));
                     messageClientExt.setStoreHost(new InetSocketAddress(8080));
                     PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
+                    PullTaskImplHasExecuted = true;
                     return pullResult;
                 }
             });
