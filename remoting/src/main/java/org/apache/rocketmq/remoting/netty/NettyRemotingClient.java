@@ -374,15 +374,15 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(channel), request, response);
                 return response;
             } catch (RemotingSendRequestException e) {
-                log.warn("invokeSync: send request exception, so close the channel[{}]", channel);
+                log.warn("invokeSync: send request exception, so close the channel[{}]", RemotingUtil.socketAddress2String(channel.remoteAddress()));
                 this.closeChannel(addr, channel);
                 throw e;
             } catch (RemotingTimeoutException e) {
                 if (nettyClientConfig.isClientCloseSocketIfTimeout()) {
                     this.closeChannel(addr, channel);
-                    log.warn("invokeSync: close socket because of timeout, {}ms, {}", timeoutMillis, channel);
+                    log.warn("invokeSync: close socket because of timeout, {}ms, {}", timeoutMillis, RemotingUtil.socketAddress2String(channel.remoteAddress()));
                 }
-                log.warn("invokeSync: wait response timeout exception, the channel[{}]", channel);
+                log.warn("invokeSync: wait response timeout exception, the channel[{}]", RemotingUtil.socketAddress2String(channel.remoteAddress()));
                 throw e;
             }
         } else {
@@ -522,7 +522,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
                 this.invokeAsyncImpl(channel, request, timeoutMillis - costTime, invokeCallback);
             } catch (RemotingSendRequestException e) {
-                log.warn("invokeAsync: send request exception, so close the channel[{}]", channel);
+                log.warn("invokeAsync: send request exception, so close the channel[{}]", RemotingUtil.socketAddress2String(channel.remoteAddress()));
                 this.closeChannel(addr, channel);
                 throw e;
             }
@@ -541,7 +541,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 doBeforeRpcHooks(addr, request);
                 this.invokeOnewayImpl(channel, request, timeoutMillis);
             } catch (RemotingSendRequestException e) {
-                log.warn("invokeOneway: send request exception, so close the channel[{}]", channel);
+                log.warn("invokeOneway: send request exception, so close the channel[{}]", RemotingUtil.socketAddress2String(channel.remoteAddress()));
                 this.closeChannel(addr, channel);
                 throw e;
             }
