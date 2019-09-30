@@ -49,6 +49,16 @@ public class MessageUtilsTest {
         }
     }
 
+    @Test
+    public void testCreateReplyMessage_reqMsgIsNull() throws MQClientException {
+        try {
+            Message msg = MessageUtil.createReplyMessage(null, new byte[] {'a'});
+            failBecauseExceptionWasNotThrown(MQClientException.class);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageContaining("create reply message fail, requestMessage cannot be null.");
+        }
+    }
+
     private Message createReplyMessage(String clusterName) {
         Message requestMessage = new Message();
         Map map = new HashMap<String, String>();
