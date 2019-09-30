@@ -29,6 +29,7 @@ import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.*;
@@ -559,6 +560,14 @@ public class PlainAccessValidatorTest {
 
         // Restore the backup file and flush to yaml file
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
+    }
+
+    @Test
+    public void getAllAclConfigTest(){
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        AclConfig aclConfig = plainAccessValidator.getAllAclConfig();
+        Assert.assertEquals(aclConfig.getGlobalWhiteAddrs().size(), 2);
+        Assert.assertEquals(aclConfig.getPlainAccessConfigs().size(), 2);
     }
 
 }
