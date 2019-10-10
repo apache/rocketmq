@@ -19,6 +19,8 @@ package org.apache.rocketmq.store;
 
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -34,12 +36,13 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Arrays;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * HATest
@@ -119,6 +122,35 @@ public class HATest {
         }
     }
 
+    @Test
+    public void testSemiSyncReplica() throws Exception {
+        long totalMsgs = 5;
+        QUEUE_TOTAL = 1;
+        MessageBody = StoreMessage.getBytes();
+        for (long i = 0; i < totalMsgs; i++) {
+            MessageExtBrokerInner msg = buildMessage();
+            CompletableFuture<PutMessageResult> putResultFuture = messageStore.asyncPutMessage(msg);
+            PutMessageResult result = putResultFuture.get();
+            assertEquals(PutMessageStatus.PUT_OK, result.getPutMessageStatus());
+            //message has been replicated to slave's commitLog, but maybe not dispatch to ConsumeQueue yet
+            //so direct read from commitLog by physical offset
+            MessageExt slaveMsg = slaveMessageStore.lookMessageByOffset(result.getAppendMessageResult().getWroteOffset());
+            assertNotNull(slaveMsg);
+            assertTrue(Arrays.equals(msg.getBody(), slaveMsg.getBody()));
+            assertEquals(msg.getTopic(), slaveMsg.getTopic());
+            assertEquals(msg.getTags(), slaveMsg.getTags());
+            assertEquals(msg.getKeys(), slaveMsg.getKeys());
+        }
+
+        //shutdown slave, putMessage should return FLUSH_SLAVE_TIMEOUT
+        slaveMessageStore.shutdown();
+        for (long i = 0; i < totalMsgs; i++) {
+            CompletableFuture<PutMessageResult> putResultFuture = messageStore.asyncPutMessage(buildMessage());
+            PutMessageResult result = putResultFuture.get();
+            assertEquals(PutMessageStatus.FLUSH_SLAVE_TIMEOUT, result.getPutMessageStatus());
+        }
+    }
+
     @After
     public void destroy() throws Exception{
         Thread.sleep(5000L);
@@ -156,6 +188,7 @@ public class HATest {
         msg.setBornTimestamp(System.currentTimeMillis());
         msg.setStoreHost(StoreHost);
         msg.setBornHost(BornHost);
+        msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
         return msg;
     }
 

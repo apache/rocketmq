@@ -40,6 +40,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class TransactionalMessageServiceImpl implements TransactionalMessageService {
@@ -58,6 +59,11 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     }
 
     private ConcurrentHashMap<MessageQueue, MessageQueue> opQueueMap = new ConcurrentHashMap<>();
+
+    @Override
+    public CompletableFuture<PutMessageResult> asyncPrepareMessage(MessageExtBrokerInner messageInner) {
+        return transactionalMessageBridge.asyncPutHalfMessage(messageInner);
+    }
 
     @Override
     public PutMessageResult prepareMessage(MessageExtBrokerInner messageInner) {

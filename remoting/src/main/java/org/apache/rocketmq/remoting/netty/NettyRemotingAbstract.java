@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -36,6 +37,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
@@ -100,7 +102,6 @@ public abstract class NettyRemotingAbstract {
      * custom rpc hooks
      */
     protected List<RPCHook> rpcHooks = new ArrayList<RPCHook>();
-
 
 
     static {
@@ -200,24 +201,25 @@ public abstract class NettyRemotingAbstract {
                 public void run() {
                     try {
                         doBeforeRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd);
-                        final RemotingCommand response = pair.getObject1().processRequest(ctx, cmd);
-                        doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, response);
+                        CompletableFuture<RemotingCommand> responseFuture = pair.getObject1().asyncProcessRequest(ctx, cmd);
+                        responseFuture.thenAccept((r) -> {
+                            doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, r);
+                            if (!cmd.isOnewayRPC()) {
+                                if (r != null) {
+                                    r.setOpaque(opaque);
+                                    r.markResponseType();
+                                    try {
+                                        ctx.writeAndFlush(r);
+                                    } catch (Throwable e) {
+                                        log.error("process request over, but response failed", e);
+                                        log.error(cmd.toString());
+                                        log.error(r.toString());
+                                    }
+                                } else {
 
-                        if (!cmd.isOnewayRPC()) {
-                            if (response != null) {
-                                response.setOpaque(opaque);
-                                response.markResponseType();
-                                try {
-                                    ctx.writeAndFlush(response);
-                                } catch (Throwable e) {
-                                    log.error("process request over, but response failed", e);
-                                    log.error(cmd.toString());
-                                    log.error(response.toString());
                                 }
-                            } else {
-
                             }
-                        }
+                        });
                     } catch (Throwable e) {
                         log.error("process request exception", e);
                         log.error(cmd.toString());
