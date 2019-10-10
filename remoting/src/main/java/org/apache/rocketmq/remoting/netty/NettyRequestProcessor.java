@@ -19,6 +19,8 @@ package org.apache.rocketmq.remoting.netty;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+import java.util.concurrent.CompletableFuture;
+
 /**
  * Common remoting command processor
  */
@@ -27,4 +29,9 @@ public interface NettyRequestProcessor {
         throws Exception;
 
     boolean rejectRequest();
+
+    default CompletableFuture<RemotingCommand> asyncProcessRequest(ChannelHandlerContext ctx, RemotingCommand request)
+        throws Exception {
+        return CompletableFuture.completedFuture(processRequest(ctx, request));
+    }
 }

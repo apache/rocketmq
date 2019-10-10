@@ -30,6 +30,7 @@ import io.openmessaging.storage.dledger.store.file.SelectMmapBufferResult;
 import io.openmessaging.storage.dledger.utils.DLedgerUtils;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -491,7 +492,15 @@ public class DLedgerCommitLog extends CommitLog {
         return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
     }
 
+    @Override
+    public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
+        return CompletableFuture.completedFuture(this.putMessage(msg));
+    }
 
+    @Override
+    public CompletableFuture<PutMessageResult> asyncPutMessages(MessageExtBatch messageExtBatch) {
+        return CompletableFuture.completedFuture(putMessages(messageExtBatch));
+    }
 
     @Override
     public SelectMappedBufferResult getMessage(final long offset, final int size) {
