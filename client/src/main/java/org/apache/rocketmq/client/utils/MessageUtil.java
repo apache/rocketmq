@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.client.utils;
 
+import org.apache.rocketmq.client.common.ClientErrorCode;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
@@ -42,9 +43,9 @@ public class MessageUtil {
 
                 return replyMessage;
             } else {
-                throw new MQClientException(-1, "create reply message fail, requestMessage error, property[" + MessageConst.PROPERTY_CLUSTER + "] is null.");
+                throw new MQClientException(ClientErrorCode.CREATE_REPLY_MESSAGE_EXCEPTION, "create reply message fail, requestMessage error, property[" + MessageConst.PROPERTY_CLUSTER + "] is null.");
             }
         }
-        throw new MQClientException(-1, "create reply message fail, requestMessage cannot be null.");
+        throw new MQClientException(ClientErrorCode.CREATE_REPLY_MESSAGE_EXCEPTION, "create reply message fail, requestMessage cannot be null.");
     }
 }
