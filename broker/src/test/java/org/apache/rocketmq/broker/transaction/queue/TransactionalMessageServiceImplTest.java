@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.transaction.queue;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.OperationResult;
+import org.apache.rocketmq.broker.transaction.TransactionalMessageCheckService;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
@@ -81,6 +82,8 @@ public class TransactionalMessageServiceImplTest {
         listener.setBrokerController(brokerController);
         queueTransactionMsgService = new TransactionalMessageServiceImpl(bridge);
         brokerController.getMessageStoreConfig().setFileReservedTime(3);
+        when(bridge.getBrokerController()).thenReturn(this.brokerController);
+        brokerController.setTransactionalMessageCheckService(new TransactionalMessageCheckService(brokerController));
     }
 
     @Test
@@ -132,7 +135,6 @@ public class TransactionalMessageServiceImplTest {
         when(bridge.getHalfMessage(0, 0, 1)).thenReturn(createPullResult(MixAll.RMQ_SYS_TRANS_HALF_TOPIC, 5, "hello", 1));
         when(bridge.getHalfMessage(0, 1, 1)).thenReturn(createPullResult(MixAll.RMQ_SYS_TRANS_HALF_TOPIC, 6, "hellp", 0));
         when(bridge.getOpMessage(anyInt(), anyLong(), anyInt())).thenReturn(createPullResult(MixAll.RMQ_SYS_TRANS_OP_HALF_TOPIC, 1, "5", 0));
-        when(bridge.getBrokerController()).thenReturn(this.brokerController);
         when(bridge.renewHalfMessageInner(any(MessageExtBrokerInner.class))).thenReturn(createMessageBrokerInner());
         when(bridge.putMessageReturnResult(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult
             (PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));

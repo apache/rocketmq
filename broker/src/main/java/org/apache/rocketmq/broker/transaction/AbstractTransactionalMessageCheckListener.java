@@ -42,7 +42,7 @@ public abstract class AbstractTransactionalMessageCheckListener {
     protected final static int TCMT_QUEUE_NUMS = 1;
     protected final Random random = new Random(System.currentTimeMillis());
 
-    private static ExecutorService executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2000), new ThreadFactory() {
+    static ExecutorService executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2000), new ThreadFactory() {
         @Override
         public Thread newThread(Runnable r) {
             Thread thread = new Thread(r);
