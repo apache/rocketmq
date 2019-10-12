@@ -45,7 +45,7 @@ public class TraceConsumerByJaeger {
     private  void printString(Span rootSpan, String helloStr) {
         Span span = tracer.buildSpan("printStringSpan").asChildOf(rootSpan).start();
         try {
-            System.out.println(helloStr);
+            System.out.printf(helloStr);
             span.log(ImmutableMap.of("event", "print"));
         } finally {
             span.finish();
