@@ -34,21 +34,20 @@ public class TraceProducerByJaeger {
 
     private  final Tracer tracer;
 
-    public TraceProducerByJaeger(Tracer tracer){
+    public TraceProducerByJaeger(Tracer tracer) {
         this.tracer = tracer;
     }
 
     private  void printString(Span rootSpan, String helloStr) {
         Span span = tracer.buildSpan("printStringSpan").asChildOf(rootSpan).start();
         try {
-            System.out.println(helloStr);
             span.log(ImmutableMap.of("event", "print"));
         } finally {
             span.finish();
         }
     }
 
-    private  void send(Span rootSpan){
+    private  void send(Span rootSpan) {
         DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName",tracer,rootSpan);
         producer.setNamesrvAddr("127.0.0.1:9876");
         try {
@@ -85,7 +84,7 @@ public class TraceProducerByJaeger {
 
     public static void main(String[] args) throws MQClientException, InterruptedException {
         JaegerTracer tracer = init("traceProducerByJaeger");
-        Span span = tracer.buildSpan("　rootSpan").start();
+        Span span = tracer.buildSpan("rootSpan").start();
         TraceProducerByJaeger traceProducerByJaeger = new TraceProducerByJaeger(tracer);
         traceProducerByJaeger.printString(span,"hello");
         traceProducerByJaeger.send(span);

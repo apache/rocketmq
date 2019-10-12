@@ -37,7 +37,7 @@ public class TraceConsumerByJaeger {
 
     private final Tracer tracer;
 
-    public TraceConsumerByJaeger(Tracer tracer){
+    public TraceConsumerByJaeger(Tracer tracer) {
         this.tracer = tracer;
     }
 
@@ -86,7 +86,7 @@ public class TraceConsumerByJaeger {
 
     public static void main(String[] args) throws MQClientException, InterruptedException {
         JaegerTracer tracer = init("traceConsumerByJaeger");
-        Span span = tracer.buildSpan("　rootSpan").start();
+        Span span = tracer.buildSpan("rootSpan").start();
         TraceConsumerByJaeger traceConsumerByJaeger = new TraceConsumerByJaeger(tracer);
         traceConsumerByJaeger.printString(span,"hello");
         traceConsumerByJaeger.consumerMessage(span);
