@@ -28,6 +28,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -77,7 +78,7 @@ public abstract class AbstractTransactionalMessageCheckListener {
     }
 
     public void resolveHalfMsg(final MessageExt msgExt) {
-        executorService.execute(new Runnable() {
+        Runnable runnable = new Runnable() {
             @Override
             public void run() {
                 try {
@@ -86,7 +87,29 @@ public abstract class AbstractTransactionalMessageCheckListener {
                     LOGGER.error("Send check message error!", e);
                 }
             }
-        });
+        };
+
+        while (true) {
+            try {
+                if (executorService.isShutdown()) {
+                    LOGGER.warn("discard check because shutdown: msgId={}, txId={}", msgExt.getMsgId(),
+                            msgExt.getTransactionId());
+                } else {
+                    executorService.execute(runnable);
+                }
+                break;
+            } catch (RejectedExecutionException e) {
+                LOGGER.warn("submit transaction check task rejected: msgId={}, txId={}", msgExt.getMsgId(),
+                        msgExt.getTransactionId());
+
+                // retry after 10 ms, not use CallerRunsPolicy
+                // so still keep the task run in the executorService thread pool
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException ex) {
+                }
+            }
+        }
     }
 
     public BrokerController getBrokerController() {

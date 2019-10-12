@@ -153,6 +153,11 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 long newOffset = halfOffset;
                 long i = halfOffset;
                 while (true) {
+                    if (transactionalMessageBridge.getBrokerController().getTransactionalMessageCheckService().isStopped()) {
+                        log.info("exit transaction check loop because shutdown");
+                        listener.shutDown();
+                        break;
+                    }
                     if (System.currentTimeMillis() - startTime > MAX_PROCESS_TIME_LIMIT) {
                         log.info("Queue={} process time reach max={}", messageQueue, MAX_PROCESS_TIME_LIMIT);
                         break;
