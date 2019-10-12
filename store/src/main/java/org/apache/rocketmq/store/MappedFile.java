@@ -484,15 +484,17 @@ public class MappedFile extends ReferenceResource {
     public void warmMappedFile(FlushDiskType type, int pages) {
         long beginTime = System.currentTimeMillis();
         ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
-        int flush = 0;
+        int unflushedPages = 0;
         long time = System.currentTimeMillis();
         for (int i = 0, j = 0; i < this.fileSize; i += MappedFile.OS_PAGE_SIZE, j++) {
             byteBuffer.put(i, (byte) 0);
             // force flush when flush disk type is sync
             if (type == FlushDiskType.SYNC_FLUSH) {
-                if ((i / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE) >= pages) {
-                    flush = i;
+                if (unflushedPages == pages) {
+                    unflushedPages = 0;
                     mappedByteBuffer.force();
+                } else {
+                    unflushedPages++;
                 }
             }
 
