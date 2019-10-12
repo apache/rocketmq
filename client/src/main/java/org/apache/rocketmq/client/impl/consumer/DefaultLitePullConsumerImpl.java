@@ -53,9 +53,6 @@ import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.client.producer.SendCallback;
-import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.client.utils.MessageUtil;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -63,7 +60,6 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.help.FAQUrl;
-import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
@@ -1078,26 +1074,5 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     public void setPullTimeDelayMillsWhenException(long pullTimeDelayMillsWhenException) {
         this.pullTimeDelayMillsWhenException = pullTimeDelayMillsWhenException;
-    }
-
-    @Override
-    public SendResult reply(final Message requestMsg, final byte[] replyContent,
-        long timeoutMillis) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        Message replyMessage = MessageUtil.createReplyMessage(requestMsg, replyContent);
-        return this.mQClientFactory.getDefaultMQProducer().send(replyMessage, timeoutMillis);
-    }
-
-    @Override
-    public void reply(final Message requestMsg, final byte[] replyContent, final SendCallback sendCallback,
-        long timeoutMillis) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        Message replyMessage = MessageUtil.createReplyMessage(requestMsg, replyContent);
-        this.mQClientFactory.getDefaultMQProducer().send(replyMessage, sendCallback, timeoutMillis);
-    }
-
-    @Override
-    public void replyOneway(final Message requestMsg,
-        final byte[] replyContent) throws RemotingException, MQClientException, InterruptedException {
-        Message replyMessage = MessageUtil.createReplyMessage(requestMsg, replyContent);
-        this.mQClientFactory.getDefaultMQProducer().sendOneway(replyMessage);
     }
 }

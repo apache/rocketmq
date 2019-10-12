@@ -30,15 +30,12 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.client.producer.SendCallback;
-import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.hook.ConsumeMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
-import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -891,51 +888,5 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public TraceDispatcher getTraceDispatcher() {
         return traceDispatcher;
-    }
-
-    /**
-     *  send a reply message to the producer of the original request message
-     * @param requestMsg original request message
-     * @param replyContent contents of reply message
-     * @param timeoutMillis
-     * @return {@link SendResult} instance to inform senders details of the deliverable, say Message ID of the message,
-     * @throws InterruptedException if the thread is interrupted.
-     * @throws RemotingException if there is any network-tier error.
-     * @throws MQClientException if there is any client error.
-     * @throws MQBrokerException if there is any broker error.
-     */
-    public SendResult reply(final Message requestMsg, final byte[] replyContent,
-        long timeoutMillis) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        return this.defaultMQPushConsumerImpl.reply(requestMsg, replyContent, timeoutMillis);
-    }
-
-    /**
-     * send a reply message to the producer of the original request message asynchronously
-     * @param requestMsg original request message
-     * @param replyContent contents of reply message
-     * @param replyCallback  callback to execute on replying completion.
-     * @param timeoutMillis
-     * @throws InterruptedException if the thread is interrupted.
-     * @throws RemotingException if there is any network-tier error.
-     * @throws MQClientException if there is any client error.
-     * @throws MQBrokerException if there is any broker error.
-     */
-    public void reply(final Message requestMsg, final byte[] replyContent, final SendCallback replyCallback,
-        long timeoutMillis) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        this.defaultMQPushConsumerImpl.reply(requestMsg, replyContent, replyCallback, timeoutMillis);
-    }
-
-    /**
-     * send a reply message to the producer of the original request message oneway
-     * @param requestMsg original request message
-     * @param replyContent contents of reply message
-     * @throws InterruptedException if the thread is interrupted.
-     * @throws RemotingException if there is any network-tier error.
-     * @throws MQClientException if there is any client error.
-     * @throws MQBrokerException if there is any broker error.
-     */
-    public void replyOneway(final Message requestMsg,
-        final byte[] replyContent) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        this.defaultMQPushConsumerImpl.replyOneway(requestMsg, replyContent);
     }
 }
