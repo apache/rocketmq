@@ -310,13 +310,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     }
 
     /**
-     * Constructor specifying producer group，tracer and  parentSpan.
+     * Constructor specifying producer group,tracer and  parentSpan.
      *
      * @param consumerGroup Consumer group.
      * @param tracer  is a simple, thin interface for Span creation and propagation across arbitrary transports.
      * @param parentSpan is used to create children Span that record the message consumption processes.
      */
-    public DefaultMQPushConsumer(final String consumerGroup,Tracer tracer, Span parentSpan){
+    public DefaultMQPushConsumer(final String consumerGroup,Tracer tracer, Span parentSpan) {
         this.consumerGroup = consumerGroup;
         this.allocateMessageQueueStrategy = new AllocateMessageQueueAveragely();
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, null);

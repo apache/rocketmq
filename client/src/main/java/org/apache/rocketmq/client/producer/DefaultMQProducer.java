@@ -186,13 +186,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Constructor specifying producer group，tracer and  parentSpan.
+     * Constructor specifying producer group,tracer and  parentSpan.
      *
      * @param producerGroup Producer group, see the name-sake field.
      * @param tracer  is a simple, thin interface for Span creation and propagation across arbitrary transports.
      * @param parentSpan is used to create children Span that record the sending process of messages
      */
-    public DefaultMQProducer(final String producerGroup,Tracer tracer, Span parentSpan){
+    public DefaultMQProducer(final String producerGroup,Tracer tracer, Span parentSpan) {
 
         this.producerGroup = producerGroup;
         defaultMQProducerImpl = new DefaultMQProducerImpl(this, null);
