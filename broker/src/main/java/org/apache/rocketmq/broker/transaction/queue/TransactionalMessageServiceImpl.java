@@ -159,7 +159,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                     }
                     if (removeMap.containsKey(i)) {
                         log.info("Half offset {} has been committed/rolled back", i);
-                        removeMap.remove(i);
+                        Long removedOpOffset = removeMap.remove(i);
+                        doneOpOffset.add(removedOpOffset);
                     } else {
                         GetResult getResult = getHalfMsg(messageQueue, i);
                         MessageExt msgExt = getResult.getMsg();
