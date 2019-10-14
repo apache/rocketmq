@@ -29,7 +29,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -201,25 +200,28 @@ public abstract class NettyRemotingAbstract {
                 public void run() {
                     try {
                         doBeforeRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd);
-                        CompletableFuture<RemotingCommand> responseFuture = pair.getObject1().asyncProcessRequest(ctx, cmd);
-                        responseFuture.thenAccept((r) -> {
-                            doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, r);
-                            if (!cmd.isOnewayRPC()) {
-                                if (r != null) {
-                                    r.setOpaque(opaque);
-                                    r.markResponseType();
-                                    try {
-                                        ctx.writeAndFlush(r);
-                                    } catch (Throwable e) {
-                                        log.error("process request over, but response failed", e);
-                                        log.error(cmd.toString());
-                                        log.error(r.toString());
+                        AsyncNettyRequestProcessor processor = (AsyncNettyRequestProcessor)pair.getObject1();
+                        final RemotingResponseCallback callback = new RemotingResponseCallback() {
+                            @Override
+                            public void callback(RemotingCommand response) {
+                                doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, response);
+                                if (!cmd.isOnewayRPC()) {
+                                    if (response != null) {
+                                        response.setOpaque(opaque);
+                                        response.markResponseType();
+                                        try {
+                                            ctx.writeAndFlush(response);
+                                        } catch (Throwable e) {
+                                            log.error("process request over, but response failed", e);
+                                            log.error(cmd.toString());
+                                            log.error(response.toString());
+                                        }
+                                    } else {
                                     }
-                                } else {
-
                                 }
                             }
-                        });
+                        };
+                        processor.asyncProcessRequest(ctx, cmd, callback);
                     } catch (Throwable e) {
                         log.error("process request exception", e);
                         log.error(cmd.toString());
