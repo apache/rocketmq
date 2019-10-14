@@ -107,7 +107,6 @@ public class UpdateTopicPermSubCommand implements SubCommand {
             if (commandLine.hasOption('b')) {
                 String brokerAddr = commandLine.getOptionValue('b').trim();
                 List<BrokerData> brokerDatas = topicRouteData.getBrokerDatas();
-                boolean isBrokerLegal = false;
                 String brokerName = null;
                 for (BrokerData data : brokerDatas) {
                     HashMap<Long, String> brokerAddrs = data.getBrokerAddrs();
@@ -116,17 +115,16 @@ public class UpdateTopicPermSubCommand implements SubCommand {
                     }
                     for (Map.Entry<Long, String> entry : brokerAddrs.entrySet()) {
                         if (brokerAddr.equals(entry.getValue()) && MixAll.MASTER_ID == entry.getKey()) {
-                            isBrokerLegal = true;
                             brokerName = data.getBrokerName();
                             break;
                         }
                     }
-                    if (isBrokerLegal) {
+                    if (brokerName != null) {
                         break;
                     }
                 }
 
-                if (isBrokerLegal && brokerName != null) {
+                if (brokerName != null) {
                     List<QueueData> queueDataList = topicRouteData.getQueueDatas();
                     assert queueDataList != null && queueDataList.size() > 0;
                     int oldPerm = 0;
