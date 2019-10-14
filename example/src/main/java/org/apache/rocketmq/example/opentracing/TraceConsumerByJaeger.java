@@ -16,16 +16,15 @@
  */
 package org.apache.rocketmq.example.opentracing;
 
-import com.google.common.collect.ImmutableMap;
 import io.jaegertracing.Configuration;
+import io.jaegertracing.Configuration.ReporterConfiguration;
+import io.jaegertracing.Configuration.SamplerConfiguration;
 import io.jaegertracing.internal.JaegerTracer;
 import io.jaegertracing.internal.samplers.ConstSampler;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import io.jaegertracing.Configuration.ReporterConfiguration;
-import io.jaegertracing.Configuration.SamplerConfiguration;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
@@ -46,7 +45,7 @@ public class TraceConsumerByJaeger {
         Span span = tracer.buildSpan("printStringSpan").asChildOf(rootSpan).start();
         try {
             System.out.printf(helloStr);
-            span.log(ImmutableMap.of("event", "print"));
+            span.log("event:print");
         } finally {
             span.finish();
         }

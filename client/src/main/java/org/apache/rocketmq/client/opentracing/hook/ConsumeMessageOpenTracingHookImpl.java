@@ -16,9 +16,11 @@
  */
 package org.apache.rocketmq.client.opentracing.hook;
 
-import com.google.common.collect.ImmutableMap;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
+import io.opentracing.tag.Tags;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.rocketmq.client.hook.ConsumeMessageContext;
 import org.apache.rocketmq.client.hook.ConsumeMessageHook;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -40,17 +42,20 @@ public class ConsumeMessageOpenTracingHookImpl  implements ConsumeMessageHook {
 
     @Override
     public void consumeMessageBefore(ConsumeMessageContext context) {
-        span = tracer.buildSpan("ConsumeMessage").asChildOf(rootSpan).start();
-
+        span = tracer.buildSpan("RocketMQConsumer").withTag(Tags.SPAN_KIND.getKey(),Tags.SPAN_KIND_CONSUMER).asChildOf(rootSpan).start();
     }
 
 
     @Override
     public void consumeMessageAfter(ConsumeMessageContext context) {
-
         for (MessageExt ext:context.getMsgList()) {
-            span.log(ImmutableMap.of("topic:",ext.getTopic(), "msgId:", ext.getMsgId(),
-                "tag:", ext.getTags(), "key:", ext.getKeys(), "bodyLength:", ext.getBody().length));
+            Map<String, String> map = new HashMap();
+            map.put("topic:",ext.getTopic());
+            map.put("msgId:", ext.getMsgId());
+            map.put("tag:", ext.getTags());
+            map.put("key:", ext.getKeys());
+            map.put("bodyLength:", String.valueOf(ext.getBody().length));
+            span.log(map);
         }
         span.finish();
     }
