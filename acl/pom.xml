@@ -67,6 +67,10 @@
             <artifactId>logback-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>commons-validator</groupId>
+            <artifactId>commons-validator</artifactId>
+        </dependency>
 
     </dependencies>
 </project>
