@@ -26,6 +26,7 @@ import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
@@ -50,7 +51,7 @@ public class PlainAccessValidator implements AccessValidator {
     public AccessResource parse(RemotingCommand request, String remoteAddr) {
         PlainAccessResource accessResource = new PlainAccessResource();
         if (remoteAddr != null && remoteAddr.contains(":")) {
-            accessResource.setWhiteRemoteAddress(remoteAddr.split(":")[0]);
+            accessResource.setWhiteRemoteAddress(remoteAddr.substring(0, remoteAddr.lastIndexOf(':')));
         } else {
             accessResource.setWhiteRemoteAddress(remoteAddr);
         }
@@ -155,4 +156,7 @@ public class PlainAccessValidator implements AccessValidator {
         return aclPlugEngine.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList);
     }
 
+    @Override public AclConfig getAllAclConfig() {
+        return aclPlugEngine.getAllAclConfig();
+    }
 }
