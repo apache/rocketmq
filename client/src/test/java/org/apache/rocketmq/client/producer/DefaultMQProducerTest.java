@@ -52,7 +52,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Spy;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.failBecauseExceptionWasNotThrown;
@@ -103,9 +105,18 @@ public class DefaultMQProducerTest {
 
         when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
             nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class))).thenCallRealMethod();
+
         when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
-            nullable(SendCallback.class), nullable(TopicPublishInfo.class), nullable(MQClientInstance.class), anyInt(), nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class)))
-            .thenReturn(createSendResult(SendStatus.SEND_OK));
+            any(SendCallback.class), nullable(TopicPublishInfo.class), any(MQClientInstance.class), anyInt(), nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class)))
+            .thenAnswer(new Answer() {
+                @Override
+                public Object answer(InvocationOnMock invocation) throws Throwable {
+                    Object[] args = invocation.getArguments();
+                    SendCallback callback = (SendCallback) args[6];
+                    callback.onSuccess(createSendResult(SendStatus.SEND_OK));
+                    return new SendResult();
+                }
+            });
     }
 
     @After
@@ -168,6 +179,7 @@ public class DefaultMQProducerTest {
     @Test
     public void testSendMessageAsync_Success() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         producer.send(message, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
@@ -179,7 +191,6 @@ public class DefaultMQProducerTest {
 
             @Override
             public void onException(Throwable e) {
-                countDownLatch.countDown();
             }
         });
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
@@ -190,9 +201,12 @@ public class DefaultMQProducerTest {
         final AtomicInteger cc = new AtomicInteger(0);
         final CountDownLatch countDownLatch = new CountDownLatch(6);
 
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         SendCallback sendCallback = new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
+                cc.incrementAndGet();
+                countDownLatch.countDown();
             }
 
             @Override
@@ -227,6 +241,7 @@ public class DefaultMQProducerTest {
     public void testSendMessageAsync_BodyCompressed() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
 
         final CountDownLatch countDownLatch = new CountDownLatch(1);
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         producer.send(bigMessage, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
@@ -238,7 +253,6 @@ public class DefaultMQProducerTest {
 
             @Override
             public void onException(Throwable e) {
-                countDownLatch.countDown();
             }
         });
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
