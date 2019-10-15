@@ -51,7 +51,7 @@ public class PlainAccessValidator implements AccessValidator {
     public AccessResource parse(RemotingCommand request, String remoteAddr) {
         PlainAccessResource accessResource = new PlainAccessResource();
         if (remoteAddr != null && remoteAddr.contains(":")) {
-            accessResource.setWhiteRemoteAddress(remoteAddr.split(":")[0]);
+            accessResource.setWhiteRemoteAddress(remoteAddr.substring(0, remoteAddr.lastIndexOf(':')));
         } else {
             accessResource.setWhiteRemoteAddress(remoteAddr);
         }
