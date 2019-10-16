@@ -30,7 +30,6 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
@@ -58,7 +57,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -126,7 +124,7 @@ public class ReplyMessageProcessorTest {
         requestHeader.setFlag(124);
         requestHeader.setReconsumeTimes(0);
         Map<String, String> map = new HashMap<String, String>();
-        map.put(MessageConst.PROPERTY_MESSAGE_REPLY_TO, "127.0.0.1");
+        map.put(MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT, "127.0.0.1");
         requestHeader.setProperties(MessageDecoder.messageProperties2String(map));
         return requestHeader;
     }

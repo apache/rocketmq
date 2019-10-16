@@ -173,7 +173,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PUSH_REPLY_MESSAGE_TO_CLIENT, replyMessageRequestHeader);
         request.setBody(msg.getBody());
 
-        String senderId = msg.getProperties().get(MessageConst.PROPERTY_MESSAGE_REPLY_TO);
+        String senderId = msg.getProperties().get(MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT);
         PushReplyResult pushReplyResult = new PushReplyResult(false);
 
         if (senderId != null) {
@@ -207,9 +207,9 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
                 log.warn(pushReplyResult.getRemark());
             }
         } else {
-            log.warn("REPLY_TO is null, can not reply message");
+            log.warn(MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT + " is null, can not reply message");
             pushReplyResult.setPushOk(false);
-            pushReplyResult.setRemark("reply message properties[" + MessageConst.PROPERTY_MESSAGE_REPLY_TO + "] is null");
+            pushReplyResult.setRemark("reply message properties[" + MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT + "] is null");
         }
         return pushReplyResult;
     }

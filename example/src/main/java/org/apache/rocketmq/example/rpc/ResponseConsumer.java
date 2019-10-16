@@ -57,7 +57,7 @@ public class ResponseConsumer {
                 for (MessageExt msg : msgs) {
                     try {
                         System.out.printf("handle message: %s", msg.toString());
-                        String replyTo = msg.getProperty(MessageConst.PROPERTY_MESSAGE_REPLY_TO);
+                        String replyTo = MessageUtil.getReplyToClient(msg);
                         byte[] replyContent = "reply message contents.".getBytes();
                         // create reply message with given util, do not create reply message by yourself
                         Message replyMessage = MessageUtil.createReplyMessage(msg, replyContent);
