@@ -42,6 +42,7 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
@@ -52,6 +53,8 @@ import org.apache.rocketmq.common.protocol.header.CreateAccessConfigRequestHeade
 import org.apache.rocketmq.common.protocol.header.DeleteAccessConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetBrokerAclConfigResponseHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateGlobalWhiteAddrsConfigRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetBrokerClusterAclConfigResponseHeader;
+import org.apache.rocketmq.common.protocol.header.GetBrokerClusterAclConfigResponseBody;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -227,6 +230,8 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 return updateGlobalWhiteAddrsConfig(ctx, request);
             case RequestCode.RESUME_CHECK_HALF_MESSAGE:
                 return resumeCheckHalfMessage(ctx, request);
+            case RequestCode.GET_BROKER_CLUSTER_ACL_CONFIG:
+                return getBrokerClusterAclConfig(ctx, request);
             default:
                 break;
         }
@@ -424,6 +429,27 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             return response;
         } catch (Exception e) {
             log.error("Failed to generate a proper getBrokerAclConfigVersion response", e);
+        }
+
+        return null;
+    }
+
+    private RemotingCommand getBrokerClusterAclConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+
+        final RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerClusterAclConfigResponseHeader.class);
+
+        try {
+            AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
+            GetBrokerClusterAclConfigResponseBody body = new GetBrokerClusterAclConfigResponseBody();
+            AclConfig aclConfig = accessValidator.getAllAclConfig();
+            body.setGlobalWhiteAddrs(aclConfig.getGlobalWhiteAddrs());
+            body.setPlainAccessConfigs(aclConfig.getPlainAccessConfigs());
+            response.setCode(ResponseCode.SUCCESS);
+            response.setBody(body.encode());
+            response.setRemark(null);
+            return response;
+        } catch (Exception e) {
+            log.error("Failed to generate a proper getBrokerClusterAclConfig response", e);
         }
 
         return null;

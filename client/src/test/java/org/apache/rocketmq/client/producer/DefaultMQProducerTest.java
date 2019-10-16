@@ -66,7 +66,7 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultMQProducerTest {
     @Spy
-    private MQClientInstance mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(new ClientConfig());
+    private MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
     @Mock
     private MQClientAPIImpl mQClientAPIImpl;
     @Mock
@@ -184,6 +184,7 @@ public class DefaultMQProducerTest {
         });
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
     }
+
     @Test
     public void testSendMessageAsync() throws RemotingException, MQClientException, InterruptedException {
         final AtomicInteger cc = new AtomicInteger(0);
@@ -211,12 +212,12 @@ public class DefaultMQProducerTest {
         Message message = new Message();
         message.setTopic("test");
         message.setBody("hello world".getBytes());
-        producer.send(new Message(),sendCallback);
-        producer.send(message,sendCallback,1000);
-        producer.send(message,new MessageQueue(),sendCallback);
-        producer.send(new Message(),new MessageQueue(),sendCallback,1000);
-        producer.send(new Message(),messageQueueSelector,null,sendCallback);
-        producer.send(message,messageQueueSelector,null,sendCallback,1000);
+        producer.send(new Message(), sendCallback);
+        producer.send(message, sendCallback, 1000);
+        producer.send(message, new MessageQueue(), sendCallback);
+        producer.send(new Message(), new MessageQueue(), sendCallback, 1000);
+        producer.send(new Message(), messageQueueSelector, null, sendCallback);
+        producer.send(message, messageQueueSelector, null, sendCallback, 1000);
 
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(6);

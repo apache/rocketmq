@@ -1033,30 +1033,6 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td height=39 class=xl67 width=87 style='height:29.0pt;width:65pt'>-s</td>
   <td class=xl68 width=87 style='width:65pt'>是否执行jstack</td>
  </tr>
- <tr height=39 style='height:29.0pt'>
-  <td rowspan=5 height=181 class=xl69 width=87 style='border-bottom:1.0pt
-  height:135.0pt;border-top:none;width:65pt'>getConsumerStatus</td>
-  <td rowspan=5 class=xl72 width=87 style='border-bottom:1.0pt
-  border-top:none;width:65pt'>获取 Consumer 消费进度</td>
-  <td class=xl67 width=87 style='width:65pt'>-g</td>
-  <td class=xl68 width=87 style='width:65pt'>消费者所属组名</td>
- </tr>
- <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-t</td>
-  <td class=xl68 width=87 style='width:65pt'>查询主题</td>
- </tr>
- <tr height=39 style='height:29.0pt'>
-  <td height=39 class=xl67 width=87 style='height:29.0pt;width:65pt'>-i</td>
-  <td class=xl68 width=87 style='width:65pt'>Consumer 客户端 ip</td>
- </tr>
- <tr height=57 style='height:43.0pt'>
-  <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
-  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
- </tr>
- <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
-  <td class=xl68 width=87 style='width:65pt'>打印帮助</td>
- </tr>
  <tr height=57 style='height:43.0pt'>
   <td rowspan=13 height=761 class=xl69 width=87 style='border-bottom:1.0pt
   height:569.0pt;border-top:none;width:65pt'>updateSubGroup</td>

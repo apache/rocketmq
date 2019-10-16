@@ -216,7 +216,11 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
 
     public void removeShutdownHook() {
         if (shutDownHook != null) {
-            Runtime.getRuntime().removeShutdownHook(shutDownHook);
+            try {
+                Runtime.getRuntime().removeShutdownHook(shutDownHook);
+            } catch (IllegalStateException e) {
+                // ignore - VM is already shutting down
+            }
         }
     }
 
