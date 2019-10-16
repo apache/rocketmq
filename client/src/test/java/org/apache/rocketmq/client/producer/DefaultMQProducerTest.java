@@ -398,13 +398,13 @@ public class DefaultMQProducerTest {
 
         try {
             producer.request(message, requestCallback, 3 * 1000L);
-            failBecauseExceptionWasNotThrown(RemotingSendRequestException.class);
-        } catch (RemotingSendRequestException e) {
+            failBecauseExceptionWasNotThrown(Exception.class);
+        } catch (Exception e) {
             ConcurrentHashMap<String, RequestResponseFuture> responseMap = RequestFutureTable.getRequestFutureTable();
             assertThat(responseMap).isNotNull();
             for (Map.Entry<String, RequestResponseFuture> entry : responseMap.entrySet()) {
                 RequestResponseFuture future = entry.getValue();
-                future.getRequestCallback().onException(new Throwable());
+                future.getRequestCallback().onException(e);
             }
         }
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
