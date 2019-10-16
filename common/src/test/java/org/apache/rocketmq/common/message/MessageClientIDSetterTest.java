@@ -34,14 +34,4 @@ public class MessageClientIDSetterTest {
         assertThat(MessageClientIDSetter.getIPStrFromID(ipv6HostMsgId)).isEqualTo(v6Ip);
     }
 
-    @Test
-    public void testGetNearlyTimeFromID() {
-        String ipv4HostMsgId = "C0A803CA00002A9F0000000000031367";
-        String ipv6HostMsgId = "24084004018081003FAA1DDE2B3F898A00002A9F0000000000000CA0";
-        Calendar cal = Calendar.getInstance();
-        cal.set(2019, Calendar.AUGUST, 1);
-        Date date = cal.getTime();
-        assertThat(MessageClientIDSetter.getNearlyTimeFromID(ipv4HostMsgId)).isCloseTo(date, 24*60*60*1000);
-        assertThat(MessageClientIDSetter.getNearlyTimeFromID(ipv6HostMsgId)).isCloseTo(date, 24*60*60*1000);
-    }
 }
