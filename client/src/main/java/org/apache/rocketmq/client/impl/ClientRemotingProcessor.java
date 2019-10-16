@@ -280,12 +280,12 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
     }
 
     private void processReplyMessage(MessageExt replyMsg) {
-        final String uniqueId = replyMsg.getUserProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
-        final RequestResponseFuture requestResponseFuture = RequestFutureTable.getRequestFutureTable().get(uniqueId);
+        final String correlationId = replyMsg.getUserProperty(MessageConst.PROPERTY_CORRELATION_ID);
+        final RequestResponseFuture requestResponseFuture = RequestFutureTable.getRequestFutureTable().get(correlationId);
         if (requestResponseFuture != null) {
             requestResponseFuture.putResponseMessage(replyMsg);
 
-            RequestFutureTable.getRequestFutureTable().remove(uniqueId);
+            RequestFutureTable.getRequestFutureTable().remove(correlationId);
 
             if (requestResponseFuture.getRequestCallback() != null) {
                 requestResponseFuture.getRequestCallback().onSuccess(replyMsg);
@@ -293,7 +293,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
                 requestResponseFuture.putResponseMessage(replyMsg);
             }
         } else {
-            log.warn(String.format("receive reply message, but not matched any request, REQUEST_UNIQ_ID: %s", uniqueId));
+            log.warn(String.format("receive reply message, but not matched any request, CorrelationId: %s", correlationId));
         }
     }
 }
