@@ -579,6 +579,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @throws RemotingException if there is any network-tier error.
      * @throws MQBrokerException if there is any broker error.
      * @throws InterruptedException if the thread is interrupted.
+     * @throws RequestTimeoutException if request timeout.
      */
     @Override
     public Message request(final Message msg, final long timeout) throws RequestTimeoutException, MQClientException,
@@ -601,10 +602,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @throws MQClientException if there is any client error.
      * @throws RemotingException if there is any network-tier error.
      * @throws InterruptedException if the thread is interrupted.
+     * @throws MQBrokerException if there is any broker error.
      */
     @Override
     public void request(final Message msg, final RequestCallback requestCallback, final long timeout)
-        throws MQClientException, RemotingException, InterruptedException, MQBrokerException, RequestTimeoutException {
+        throws MQClientException, RemotingException, InterruptedException, MQBrokerException {
         msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.request(msg, requestCallback, timeout);
     }
@@ -621,6 +623,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @throws RemotingException if there is any network-tier error.
      * @throws MQBrokerException if there is any broker error.
      * @throws InterruptedException if the thread is interrupted.
+     * @throws RequestTimeoutException if request timeout.
      */
     @Override
     public Message request(final Message msg, final MessageQueueSelector selector, final Object arg,
@@ -641,11 +644,12 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @throws MQClientException if there is any client error.
      * @throws RemotingException if there is any network-tier error.
      * @throws InterruptedException if the thread is interrupted.
+     * @throws MQBrokerException if there is any broker error.
      */
     @Override
     public void request(final Message msg, final MessageQueueSelector selector, final Object arg,
         final RequestCallback requestCallback, final long timeout) throws MQClientException, RemotingException,
-        InterruptedException {
+        InterruptedException, MQBrokerException {
         msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.request(msg, selector, arg, requestCallback, timeout);
     }
@@ -660,6 +664,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @throws RemotingException if there is any network-tier error.
      * @throws MQBrokerException if there is any broker error.
      * @throws InterruptedException if the thread is interrupted.
+     * @throws RequestTimeoutException if request timeout.
      */
     @Override
     public Message request(final Message msg, final MessageQueue mq, final long timeout)
@@ -678,10 +683,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @throws MQClientException if there is any client error.
      * @throws RemotingException if there is any network-tier error.
      * @throws InterruptedException if the thread is interrupted.
+     * @throws MQBrokerException if there is any broker error.
      */
     @Override
     public void request(final Message msg, final MessageQueue mq, final RequestCallback requestCallback, long timeout)
-        throws MQClientException, RemotingException, InterruptedException {
+        throws MQClientException, RemotingException, InterruptedException, MQBrokerException {
         msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.request(msg, mq, requestCallback, timeout);
     }
