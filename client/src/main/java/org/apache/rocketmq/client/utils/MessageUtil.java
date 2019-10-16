@@ -30,14 +30,14 @@ public class MessageUtil {
             Message replyMessage = new Message();
             String cluster = requestMessage.getProperty(MessageConst.PROPERTY_CLUSTER);
             String replyTo = requestMessage.getProperty(MessageConst.PROPERTY_MESSAGE_REPLY_TO);
-            String requestUniqId = requestMessage.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
+            String correlationId = requestMessage.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
             String ttl = requestMessage.getProperty(MessageConst.PROPERTY_MESSAGE_TTL);
             replyMessage.setBody(body);
             if (cluster != null) {
                 String replyTopic = MixAll.getReplyTopic(cluster);
                 replyMessage.setTopic(replyTopic);
                 MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_MESSAGE_TYPE, MixAll.REPLY_MESSAGE_FLAG);
-                MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_REQUEST_UNIQ_ID, requestUniqId);
+                MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_CORRELATION_ID, correlationId);
                 MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_MESSAGE_REPLY_TO, replyTo);
                 MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_MESSAGE_TTL, ttl);
 

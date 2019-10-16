@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.message.Message;
 
 public class RequestResponseFuture {
-    private final String requestUniqId;
+    private final String correlationId;
     private final RequestCallback requestCallback;
     private final long beginTimestamp = System.currentTimeMillis();
     private final Message requestMsg = null;
@@ -32,8 +32,8 @@ public class RequestResponseFuture {
     private volatile boolean sendRequestOk = true;
     private volatile Throwable cause = null;
 
-    public RequestResponseFuture(String requestUniqId, long timeoutMillis, RequestCallback requestCallback) {
-        this.requestUniqId = requestUniqId;
+    public RequestResponseFuture(String correlationId, long timeoutMillis, RequestCallback requestCallback) {
+        this.correlationId = correlationId;
         this.timeoutMillis = timeoutMillis;
         this.requestCallback = requestCallback;
     }
@@ -63,8 +63,8 @@ public class RequestResponseFuture {
         this.countDownLatch.countDown();
     }
 
-    public String getRequestUniqId() {
-        return requestUniqId;
+    public String getCorrelationId() {
+        return correlationId;
     }
 
     public long getTimeoutMillis() {

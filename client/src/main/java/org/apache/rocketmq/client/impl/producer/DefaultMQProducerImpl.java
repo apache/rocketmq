@@ -85,13 +85,12 @@ import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHe
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.apache.rocketmq.common.utils.RequestIdUtil;
+import org.apache.rocketmq.common.utils.CorrelationIdUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 
@@ -1341,11 +1340,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         long timeout) throws RequestTimeoutException, MQClientException, RemotingException, MQBrokerException, InterruptedException {
         long beginTimestamp = System.currentTimeMillis();
         prepareSendRequest(msg, timeout);
-        final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
+        final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
 
         try {
-            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, null);
-            RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
+            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, null);
+            RequestFutureTable.getRequestFutureTable().put(correlationId, requestResponseFuture);
 
             long cost = System.currentTimeMillis() - beginTimestamp;
             this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
@@ -1373,7 +1372,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             }
             return responseMessage;
         } finally {
-            RequestFutureTable.getRequestFutureTable().remove(requestUniqId);
+            RequestFutureTable.getRequestFutureTable().remove(correlationId);
         }
     }
 
@@ -1381,10 +1380,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         throws RemotingException, InterruptedException, MQClientException, MQBrokerException {
         long beginTimestamp = System.currentTimeMillis();
         prepareSendRequest(msg, timeout);
-        final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
+        final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
 
-        final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, requestCallback);
-        RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
+        final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, requestCallback);
+        RequestFutureTable.getRequestFutureTable().put(correlationId, requestResponseFuture);
 
         long cost = System.currentTimeMillis() - beginTimestamp;
         this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
@@ -1396,7 +1395,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             @Override
             public void onException(Throwable e) {
                 requestResponseFuture.setCause(e);
-                requestFail(requestUniqId);
+                requestFail(correlationId);
             }
         }, timeout - cost);
     }
@@ -1406,11 +1405,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         InterruptedException, RequestTimeoutException {
         long beginTimestamp = System.currentTimeMillis();
         prepareSendRequest(msg, timeout);
-        final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
+        final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
 
         try {
-            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, null);
-            RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
+            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, null);
+            RequestFutureTable.getRequestFutureTable().put(correlationId, requestResponseFuture);
 
             long cost = System.currentTimeMillis() - beginTimestamp;
             this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
@@ -1438,7 +1437,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             }
             return responseMessage;
         } finally {
-            RequestFutureTable.getRequestFutureTable().remove(requestUniqId);
+            RequestFutureTable.getRequestFutureTable().remove(correlationId);
         }
     }
 
@@ -1447,10 +1446,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         throws RemotingException, InterruptedException, MQClientException, MQBrokerException {
         long beginTimestamp = System.currentTimeMillis();
         prepareSendRequest(msg, timeout);
-        final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
+        final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
 
-        final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, requestCallback);
-        RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
+        final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, requestCallback);
+        RequestFutureTable.getRequestFutureTable().put(correlationId, requestResponseFuture);
 
         long cost = System.currentTimeMillis() - beginTimestamp;
         this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
@@ -1462,7 +1461,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             @Override
             public void onException(Throwable e) {
                 requestResponseFuture.setCause(e);
-                requestFail(requestUniqId);
+                requestFail(correlationId);
             }
         }, timeout - cost);
 
@@ -1472,11 +1471,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException, RequestTimeoutException {
         long beginTimestamp = System.currentTimeMillis();
         prepareSendRequest(msg, timeout);
-        final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
+        final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
 
         try {
-            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, null);
-            RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
+            final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, null);
+            RequestFutureTable.getRequestFutureTable().put(correlationId, requestResponseFuture);
 
             long cost = System.currentTimeMillis() - beginTimestamp;
             this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
@@ -1504,7 +1503,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             }
             return responseMessage;
         } finally {
-            RequestFutureTable.getRequestFutureTable().remove(requestUniqId);
+            RequestFutureTable.getRequestFutureTable().remove(correlationId);
         }
     }
 
@@ -1512,10 +1511,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         throws RemotingException, InterruptedException, MQClientException, MQBrokerException {
         long beginTimestamp = System.currentTimeMillis();
         prepareSendRequest(msg, timeout);
-        final String requestUniqId = msg.getProperty(MessageConst.PROPERTY_REQUEST_UNIQ_ID);
+        final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
 
-        final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(requestUniqId, timeout, requestCallback);
-        RequestFutureTable.getRequestFutureTable().put(requestUniqId, requestResponseFuture);
+        final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, requestCallback);
+        RequestFutureTable.getRequestFutureTable().put(correlationId, requestResponseFuture);
 
         long cost = System.currentTimeMillis() - beginTimestamp;
         this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
@@ -1527,13 +1526,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             @Override
             public void onException(Throwable e) {
                 requestResponseFuture.setCause(e);
-                requestFail(requestUniqId);
+                requestFail(correlationId);
             }
         }, null, timeout - cost);
     }
 
-    private void requestFail(final String requestUniqId) {
-        RequestResponseFuture responseFuture = RequestFutureTable.getRequestFutureTable().remove(requestUniqId);
+    private void requestFail(final String correlationId) {
+        RequestResponseFuture responseFuture = RequestFutureTable.getRequestFutureTable().remove(correlationId);
         if (responseFuture != null) {
             responseFuture.setSendReqeustOk(false);
             responseFuture.putResponseMessage(null);
@@ -1546,9 +1545,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     private void prepareSendRequest(final Message msg, long timeout) {
-        String requestUniqId = RequestIdUtil.createUniqueRequestId();
+        String correlationId = CorrelationIdUtil.createCorrelationId();
         String requestClientId = this.getmQClientFactory().getClientId();
-        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REQUEST_UNIQ_ID, requestUniqId);
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_CORRELATION_ID, correlationId);
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MESSAGE_REPLY_TO, requestClientId);
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MESSAGE_TTL, String.valueOf(timeout));
 

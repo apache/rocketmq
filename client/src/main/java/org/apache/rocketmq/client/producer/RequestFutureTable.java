@@ -45,7 +45,7 @@ public class RequestFutureTable {
             if (rep.isTimeout()) {
                 it.remove();
                 rfList.add(rep);
-                log.warn("remove timeout request, REQUEST_UNIQ_ID={}" + rep.getRequestUniqId());
+                log.warn("remove timeout request, CorrelationId={}" + rep.getCorrelationId());
             }
         }
 
