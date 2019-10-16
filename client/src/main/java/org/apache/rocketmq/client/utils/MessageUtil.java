@@ -29,7 +29,7 @@ public class MessageUtil {
         if (requestMessage != null) {
             Message replyMessage = new Message();
             String cluster = requestMessage.getProperty(MessageConst.PROPERTY_CLUSTER);
-            String replyTo = requestMessage.getProperty(MessageConst.PROPERTY_MESSAGE_REPLY_TO);
+            String replyTo = requestMessage.getProperty(MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT);
             String correlationId = requestMessage.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
             String ttl = requestMessage.getProperty(MessageConst.PROPERTY_MESSAGE_TTL);
             replyMessage.setBody(body);
@@ -38,7 +38,7 @@ public class MessageUtil {
                 replyMessage.setTopic(replyTopic);
                 MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_MESSAGE_TYPE, MixAll.REPLY_MESSAGE_FLAG);
                 MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_CORRELATION_ID, correlationId);
-                MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_MESSAGE_REPLY_TO, replyTo);
+                MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT, replyTo);
                 MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_MESSAGE_TTL, ttl);
 
                 return replyMessage;
@@ -47,5 +47,9 @@ public class MessageUtil {
             }
         }
         throw new MQClientException(ClientErrorCode.CREATE_REPLY_MESSAGE_EXCEPTION, "create reply message fail, requestMessage cannot be null.");
+    }
+
+    public static String getReplyToClient(final Message msg) {
+        return msg.getProperty(MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT);
     }
 }

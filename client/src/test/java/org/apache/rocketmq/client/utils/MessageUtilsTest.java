@@ -35,7 +35,7 @@ public class MessageUtilsTest {
     public void testCreateReplyMessage() throws MQClientException {
         Message msg = MessageUtil.createReplyMessage(createReplyMessage("clusterName"), new byte[] {'a'});
         assertThat(msg.getTopic()).isEqualTo("clusterName" + "_" + MixAll.REPLY_TOPIC_POSTFIX);
-        assertThat(msg.getProperty(MessageConst.PROPERTY_MESSAGE_REPLY_TO)).isEqualTo("127.0.0.1");
+        assertThat(msg.getProperty(MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT)).isEqualTo("127.0.0.1");
         assertThat(msg.getProperty(MessageConst.PROPERTY_MESSAGE_TTL)).isEqualTo("3000");
     }
 
@@ -59,10 +59,18 @@ public class MessageUtilsTest {
         }
     }
 
+    @Test
+    public void testGetReplyToClient() throws MQClientException {
+        Message msg = createReplyMessage("clusterName");
+        String replyToClient = MessageUtil.getReplyToClient(msg);
+        assertThat(replyToClient).isNotNull();
+        assertThat(replyToClient).isEqualTo("127.0.0.1");
+    }
+
     private Message createReplyMessage(String clusterName) {
         Message requestMessage = new Message();
         Map map = new HashMap<String, String>();
-        map.put(MessageConst.PROPERTY_MESSAGE_REPLY_TO, "127.0.0.1");
+        map.put(MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT, "127.0.0.1");
         map.put(MessageConst.PROPERTY_CLUSTER, clusterName);
         map.put(MessageConst.PROPERTY_MESSAGE_TTL, "3000");
         MessageAccessor.setProperties(requestMessage, map);
