@@ -275,6 +275,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         msgInner.setBody(body);
         msgInner.setFlag(requestHeader.getFlag());
+        MessageAccessor.setProperties(msgInner, MessageDecoder.string2messageProperties(requestHeader.getProperties()));
         msgInner.setPropertiesString(requestHeader.getProperties());
         msgInner.setBornTimestamp(requestHeader.getBornTimestamp());
         msgInner.setBornHost(ctx.channel().remoteAddress());
