@@ -32,7 +32,9 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 
 /**
- * Schedule service for pull consumer
+ * Schedule service for pull consumer.
+ * This Consumer will be removed in 2022, and a better implementation {@link
+ * DefaultLitePullConsumer} is recommend to use in the scenario of actively pulling messages.
  */
 public class MQPullConsumerScheduleService {
     private final InternalLogger log = ClientLogger.getLog();
@@ -157,7 +159,7 @@ public class MQPullConsumerScheduleService {
         }
     }
 
-    class PullTaskImpl implements Runnable {
+    public class PullTaskImpl implements Runnable {
         private final MessageQueue messageQueue;
         private volatile boolean cancelled = false;
 
