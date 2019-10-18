@@ -1180,7 +1180,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             throw new MQClientException("tranExecutor is null", null);
         }
 
-        // 事务消息屏蔽DelayTimeLevel参数
+        // ignore DelayTimeLevel parameter
         if(msg.getDelayTimeLevel() != 0) {
             MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
         }
