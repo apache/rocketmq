@@ -1188,6 +1188,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (null == localTransactionExecuter && null == transactionListener) {
             throw new MQClientException("tranExecutor is null", null);
         }
+
+        // ignore DelayTimeLevel parameter
+        if (msg.getDelayTimeLevel() != 0) {
+            MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
+        }
+
         Validators.checkMessage(msg, this.defaultMQProducer);
 
         SendResult sendResult = null;
