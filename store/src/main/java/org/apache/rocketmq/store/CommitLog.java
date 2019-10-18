@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -661,14 +660,14 @@ public class CommitLog {
         storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
 
-        CompletableFuture<Boolean> flushResultFuture = submitFlushRequest(result, putMessageResult, msg);
-        CompletableFuture<Boolean> replicaResultFuture = submitReplicaRequest(result, putMessageResult, msg);
-        return flushResultFuture.thenCombine(replicaResultFuture, (flushOK, replicaOK) -> {
-            if (!flushOK) {
+        CompletableFuture<PutMessageStatus> flushResultFuture = submitFlushRequest(result, putMessageResult, msg);
+        CompletableFuture<PutMessageStatus> replicaResultFuture = submitReplicaRequest(result, putMessageResult, msg);
+        return flushResultFuture.thenCombine(replicaResultFuture, (flushStatus, replicaStatus) -> {
+            if (flushStatus != PutMessageStatus.PUT_OK) {
                 putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_DISK_TIMEOUT);
             }
-            if (!replicaOK) {
-                putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
+            if (replicaStatus != PutMessageStatus.PUT_OK) {
+                putMessageResult.setPutMessageStatus(replicaStatus);
             }
             return putMessageResult;
         });
@@ -762,15 +761,15 @@ public class CommitLog {
         storeStatsService.getSinglePutMessageTopicTimesTotal(messageExtBatch.getTopic()).addAndGet(result.getMsgNum());
         storeStatsService.getSinglePutMessageTopicSizeTotal(messageExtBatch.getTopic()).addAndGet(result.getWroteBytes());
 
-        CompletableFuture<Boolean> flushOKFuture = submitFlushRequest(result, putMessageResult, messageExtBatch);
-        CompletableFuture<Boolean> replicaOKFuture = submitReplicaRequest(result, putMessageResult, messageExtBatch);
-        return flushOKFuture.thenCombine(replicaOKFuture, (flushOK, replicaOK) -> {
-            if (!flushOK) {
+        CompletableFuture<PutMessageStatus> flushOKFuture = submitFlushRequest(result, putMessageResult, messageExtBatch);
+        CompletableFuture<PutMessageStatus> replicaOKFuture = submitReplicaRequest(result, putMessageResult, messageExtBatch);
+        return flushOKFuture.thenCombine(replicaOKFuture, (flushStatus, replicaStatus) -> {
+            if (flushStatus != PutMessageStatus.PUT_OK) {
                 putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_DISK_TIMEOUT);
             }
 
-            if (!replicaOK) {
-                putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
+            if (replicaStatus != PutMessageStatus.PUT_OK) {
+                putMessageResult.setPutMessageStatus(replicaStatus);
             }
             return putMessageResult;
         });
@@ -900,7 +899,7 @@ public class CommitLog {
         return putMessageResult;
     }
 
-    public CompletableFuture<Boolean> submitFlushRequest(AppendMessageResult result, PutMessageResult putMessageResult,
+    public CompletableFuture<PutMessageStatus> submitFlushRequest(AppendMessageResult result, PutMessageResult putMessageResult,
                                                                   MessageExt messageExt) {
         // Synchronization flush
         if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
@@ -912,7 +911,7 @@ public class CommitLog {
                 return request.future();
             } else {
                 service.wakeup();
-                return CompletableFuture.completedFuture(true);
+                return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
             }
         }
         // Asynchronous flush
@@ -922,11 +921,11 @@ public class CommitLog {
             } else  {
                 commitLogService.wakeup();
             }
-            return CompletableFuture.completedFuture(true);
+            return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
         }
     }
 
-    public CompletableFuture<Boolean> submitReplicaRequest(AppendMessageResult result, PutMessageResult putMessageResult,
+    public CompletableFuture<PutMessageStatus> submitReplicaRequest(AppendMessageResult result, PutMessageResult putMessageResult,
                                                         MessageExt messageExt) {
         if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
             HAService service = this.defaultMessageStore.getHaService();
@@ -939,11 +938,11 @@ public class CommitLog {
                     return request.future();
                 }
                 else {
-                    return CompletableFuture.completedFuture(false);
+                    return CompletableFuture.completedFuture(PutMessageStatus.SLAVE_NOT_AVAILABLE);
                 }
             }
         }
-        return CompletableFuture.completedFuture(true);
+        return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
     }
 
 
@@ -954,15 +953,15 @@ public class CommitLog {
             if (messageExt.isWaitStoreMsgOK()) {
                 GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
                 service.putRequest(request);
-                CompletableFuture<Boolean> flushOkFuture = request.future();
-                boolean flushOK = false;
+                CompletableFuture<PutMessageStatus> flushOkFuture = request.future();
+                PutMessageStatus flushStatus = null;
                 try {
-                    flushOK = flushOkFuture.get(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout(),
+                    flushStatus = flushOkFuture.get(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout(),
                             TimeUnit.MILLISECONDS);
                 } catch (InterruptedException | ExecutionException | TimeoutException e) {
                     //flushOK=false;
                 }
-                if (!flushOK) {
+                if (flushStatus != PutMessageStatus.PUT_OK) {
                     log.error("do groupcommit, wait for flush failed, topic: " + messageExt.getTopic() + " tags: " + messageExt.getTags()
                         + " client address: " + messageExt.getBornHostString());
                     putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_DISK_TIMEOUT);
@@ -990,14 +989,13 @@ public class CommitLog {
                     GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
                     service.putRequest(request);
                     service.getWaitNotifyObject().wakeupAll();
-                    boolean flushOK = false;
+                    PutMessageStatus replicaStatus = null;
                     try {
-                        flushOK = request.future().get(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout(),
+                        replicaStatus = request.future().get(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout(),
                                 TimeUnit.MILLISECONDS);
                     } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                        //flushOK=false;
                     }
-                    if (!flushOK) {
+                    if (replicaStatus != PutMessageStatus.PUT_OK) {
                         log.error("do sync transfer other node, wait return, but failed, topic: " + messageExt.getTopic() + " tags: "
                             + messageExt.getTags() + " client address: " + messageExt.getBornHostNameString());
                         putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
@@ -1367,8 +1365,7 @@ public class CommitLog {
 
     public static class GroupCommitRequest {
         private final long nextOffset;
-        private final CountDownLatch countDownLatch = new CountDownLatch(1);
-        private CompletableFuture<Boolean> flushOk = new CompletableFuture<>();
+        private CompletableFuture<PutMessageStatus> flushOKFuture = new CompletableFuture<>();
         private final long startTimestamp = System.currentTimeMillis();
         private long timeoutMillis = Long.MAX_VALUE;
 
@@ -1388,23 +1385,15 @@ public class CommitLog {
 
         public void wakeupCustomer(final boolean flushOK) {
             long endTimestamp = System.currentTimeMillis();
-            this.flushOk.complete(flushOK && ((endTimestamp - this.startTimestamp) <= this.timeoutMillis));
-            this.countDownLatch.countDown();
+            PutMessageStatus result = (flushOK && ((endTimestamp - this.startTimestamp) <= this.timeoutMillis)) ?
+                    PutMessageStatus.PUT_OK : PutMessageStatus.FLUSH_SLAVE_TIMEOUT;
+            this.flushOKFuture.complete(result);
         }
 
-        public CompletableFuture<Boolean> future() {
-            return flushOk;
+        public CompletableFuture<PutMessageStatus> future() {
+            return flushOKFuture;
         }
 
-        public boolean waitForFlush(long timeout) {
-            try {
-                this.countDownLatch.await(timeout, TimeUnit.MILLISECONDS);
-                return flushOk.get();
-            } catch (InterruptedException | ExecutionException e) {
-                log.error("Interrupted", e);
-                return false;
-            }
-        }
     }
 
     /**

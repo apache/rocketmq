@@ -144,10 +144,12 @@ public class HATest {
 
         //shutdown slave, putMessage should return FLUSH_SLAVE_TIMEOUT
         slaveMessageStore.shutdown();
+        //wait to let master clean the slave's connection
+        Thread.sleep(masterMessageStoreConfig.getHaHousekeepingInterval() + 500);
         for (long i = 0; i < totalMsgs; i++) {
             CompletableFuture<PutMessageResult> putResultFuture = messageStore.asyncPutMessage(buildMessage());
             PutMessageResult result = putResultFuture.get();
-            assertEquals(PutMessageStatus.FLUSH_SLAVE_TIMEOUT, result.getPutMessageStatus());
+            assertEquals(PutMessageStatus.SLAVE_NOT_AVAILABLE, result.getPutMessageStatus());
         }
     }
 
