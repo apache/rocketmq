@@ -282,12 +282,9 @@ public class HAService {
                         boolean transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
                         long waitUntillWhen = HAService.this.defaultMessageStore.getSystemClock().now()
                             + HAService.this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout();
-                        while (HAService.this.defaultMessageStore.getSystemClock().now() < waitUntillWhen) {
+                        while (!transferOK && HAService.this.defaultMessageStore.getSystemClock().now() < waitUntillWhen) {
                             this.notifyTransferObject.waitForRunning(1000);
                             transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
-                            if (transferOK) {
-                                break;
-                            }
                         }
 
                         if (!transferOK) {
