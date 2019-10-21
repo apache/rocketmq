@@ -71,8 +71,7 @@ public class ReplyMessageProcessorTest {
     private MessageStore messageStore;
     @Mock
     private Channel channel;
-    @Mock
-    private TransactionalMessageService transactionMsgService;
+
     private String topic = "FooBar";
     private String group = "FooBarGroup";
     private ClientChannelInfo clientInfo;
