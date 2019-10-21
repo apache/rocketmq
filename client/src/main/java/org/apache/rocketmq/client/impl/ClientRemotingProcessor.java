@@ -83,7 +83,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
                 return this.consumeMessageDirectly(ctx, request);
 
             case RequestCode.PUSH_REPLY_MESSAGE_TO_CLIENT:
-                return this.receiveReplyMssage(ctx, request);
+                return this.receiveReplyMessage(ctx, request);
             default:
                 break;
         }
@@ -222,7 +222,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand receiveReplyMssage(ChannelHandlerContext ctx,
+    private RemotingCommand receiveReplyMessage(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
@@ -293,7 +293,9 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
                 requestResponseFuture.putResponseMessage(replyMsg);
             }
         } else {
-            log.warn(String.format("receive reply message, but not matched any request, CorrelationId: %s", correlationId));
+            String bornHost = replyMsg.getBornHostString();
+            log.warn(String.format("receive reply message, but not matched any request, CorrelationId: %s , reply from host: %s",
+                correlationId, bornHost));
         }
     }
 }
