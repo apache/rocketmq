@@ -90,8 +90,8 @@ public class ProducerManagerTest {
     @Test
     public void testGetGroupChannelTable() throws Exception {
         producerManager.registerProducer(group, clientInfo);
-        HashMap<Channel, ClientChannelInfo> oldChannelMap = producerManager.getGroupChannelTable().get(group);
+        HashMap<Channel, ClientChannelInfo> oldMap = producerManager.getGroupChannelTable().get(group);
         producerManager.unregisterProducer(group, clientInfo);
-        assertThat(oldChannelMap.size()).isNotEqualTo(0);
+        assertThat(oldMap.size()).isNotEqualTo(0);
     }
 }
