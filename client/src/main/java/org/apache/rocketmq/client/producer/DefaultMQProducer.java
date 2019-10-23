@@ -83,7 +83,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Number of queues to create per default topic.
      */
-    private volatile int defaultTopicQueueNums = 4; //每个topic keuy
+    private volatile int defaultTopicQueueNums = 4; //每个topic默认队列数
 
     /**
      * Timeout for sending messages.
@@ -119,7 +119,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Maximum allowed message size in bytes.
      */
-    private int maxMessageSize = 1024 * 1024 * 4; // 4M
+    private int maxMessageSize = 1024 * 1024 * 4; // 4M 最大允许4M消息
 
     /**
      * Default constructor.

@@ -146,7 +146,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.start(true);
     }
 
+    /**
+     * 生产者启动
+     * @param startFactory
+     * @throws MQClientException
+     */
     public void start(final boolean startFactory) throws MQClientException {
+
         //初次启动是 CREATE_JUST
         switch (this.serviceState) {
             case CREATE_JUST:

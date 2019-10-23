@@ -104,23 +104,23 @@ public class BrokerController {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final InternalLogger LOG_PROTECTION = InternalLoggerFactory.getLogger(LoggerName.PROTECTION_LOGGER_NAME);
     private static final InternalLogger LOG_WATER_MARK = InternalLoggerFactory.getLogger(LoggerName.WATER_MARK_LOGGER_NAME);
-    private final BrokerConfig brokerConfig;
-    private final NettyServerConfig nettyServerConfig;
-    private final NettyClientConfig nettyClientConfig;
-    private final MessageStoreConfig messageStoreConfig;
-    private final ConsumerOffsetManager consumerOffsetManager;
-    private final ConsumerManager consumerManager;
-    private final ConsumerFilterManager consumerFilterManager;
-    private final ProducerManager producerManager;
+    private final BrokerConfig brokerConfig; //broker相关配置
+    private final NettyServerConfig nettyServerConfig; //nettyServer
+    private final NettyClientConfig nettyClientConfig; //nettyClient
+    private final MessageStoreConfig messageStoreConfig;//消息存储配置
+    private final ConsumerOffsetManager consumerOffsetManager;//消息消费配置
+    private final ConsumerManager consumerManager;//消费者管理 topic和group的关系
+    private final ConsumerFilterManager consumerFilterManager;//消费者过滤管理
+    private final ProducerManager producerManager;//生产者管理 根据group获取Channel
     private final ClientHousekeepingService clientHousekeepingService;
-    private final PullMessageProcessor pullMessageProcessor;
-    private final PullRequestHoldService pullRequestHoldService;
-    private final MessageArrivingListener messageArrivingListener;
+    private final PullMessageProcessor pullMessageProcessor;//消息拉取线程处理
+    private final PullRequestHoldService pullRequestHoldService; //消息发送
+    private final MessageArrivingListener messageArrivingListener;//消息发送到messageStore 监听器
     private final Broker2Client broker2Client;
-    private final SubscriptionGroupManager subscriptionGroupManager;
-    private final ConsumerIdsChangeListener consumerIdsChangeListener;
-    private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
-    private final BrokerOuterAPI brokerOuterAPI;
+    private final SubscriptionGroupManager subscriptionGroupManager; //group订阅管理器
+    private final ConsumerIdsChangeListener consumerIdsChangeListener; //broker状态改变
+    private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();//消息负载管理器
+    private final BrokerOuterAPI brokerOuterAPI;//broker像nameserver注册的信息
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "BrokerControllerScheduledThread"));
     private final SlaveSynchronize slaveSynchronize;
