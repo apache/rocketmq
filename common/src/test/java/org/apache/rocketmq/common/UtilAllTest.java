@@ -98,6 +98,15 @@ public class UtilAllTest {
         assertThat(UtilAll.isBlank("Hello")).isFalse();
     }
 
+    @Test
+    public void testIPv6Check() {
+        byte[] nonInternalIp = UtilAll.string2bytes("24084004018081003FAA1DDE2B3F898A");
+        byte[] internalIp = UtilAll.string2bytes("FEC0000000000000000000000000FFFF");
+        assertThat(UtilAll.isInternalV6IP(nonInternalIp)).isFalse();
+        assertThat(UtilAll.isInternalV6IP(internalIp)).isTrue();
+        assertThat(UtilAll.ipToIPv6Str(nonInternalIp).toUpperCase()).isEqualTo("2408:4004:0180:8100:3FAA:1DDE:2B3F:898A");
+    }
+
     static class DemoConfig {
         private int demoWidth = 0;
         private int demoLength = 0;
