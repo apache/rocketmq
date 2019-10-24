@@ -18,7 +18,6 @@ package org.apache.rocketmq.client.impl;
 
 import io.netty.channel.ChannelHandlerContext;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
