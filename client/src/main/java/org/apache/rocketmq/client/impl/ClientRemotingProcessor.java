@@ -51,6 +51,7 @@ import org.apache.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -236,19 +237,11 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             msg.setStoreTimestamp(requestHeader.getStoreTimestamp());
 
             if (requestHeader.getBornHost() != null) {
-                String[] bornHostArr = requestHeader.getBornHost().split("/");
-                String bornHost/*ip:port*/ = bornHostArr[bornHostArr.length - 1];
-                String[] host = bornHost.split(":");
-                if (host.length == 2)
-                    msg.setBornHost(new InetSocketAddress(host[0], Integer.parseInt(host[1])));
+                msg.setBornHost(RemotingUtil.string2SocketAddress(requestHeader.getBornHost()));
             }
 
             if (requestHeader.getStoreHost() != null) {
-                String[] storeHostArr = requestHeader.getStoreHost().split("/");
-                String storeHost = storeHostArr[storeHostArr.length - 1];
-                String[] host = storeHost.split(":");
-                if (host.length == 2)
-                    msg.setStoreHost(new InetSocketAddress(host[0], Integer.parseInt(host[1])));
+                msg.setStoreHost(RemotingUtil.string2SocketAddress(requestHeader.getStoreHost()));
             }
 
             byte[] body = request.getBody();
