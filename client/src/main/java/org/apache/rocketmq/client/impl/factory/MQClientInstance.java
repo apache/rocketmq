@@ -82,23 +82,26 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-    public class MQClientInstance {
+/**
+ * MqClient实例
+ */
+public class MQClientInstance {
     private final static long LOCK_TIMEOUT_MILLIS = 3000;
     private final InternalLogger log = ClientLogger.getLog();
-    private final ClientConfig clientConfig;
-    private final int instanceIndex;
-    private final String clientId;
-    private final long bootTimestamp = System.currentTimeMillis();
+    private final ClientConfig clientConfig;//客户端配置
+     private final int instanceIndex; //index
+    private final String clientId;    //客户端
+    private final long bootTimestamp = System.currentTimeMillis();//client创建时间
     private final ConcurrentMap<String/* group */, MQProducerInner> producerTable = new ConcurrentHashMap<String, MQProducerInner>();  //使用当前MQClientInstance 的生产者
     private final ConcurrentMap<String/* group */, MQConsumerInner> consumerTable = new ConcurrentHashMap<String, MQConsumerInner>();  //消费者
     private final ConcurrentMap<String/* group */, MQAdminExtInner> adminExtTable = new ConcurrentHashMap<String, MQAdminExtInner>();                        // 管理职
-    private final NettyClientConfig nettyClientConfig;
-    private final MQClientAPIImpl mQClientAPIImpl;
+    private final NettyClientConfig nettyClientConfig;//netty客户端配置中心
+    private final MQClientAPIImpl mQClientAPIImpl;    // 发送消息具体的api诶
     private final MQAdminImpl mQAdminImpl;
-    private final ConcurrentMap<String/* Topic */, TopicRouteData> topicRouteTable = new ConcurrentHashMap<String, TopicRouteData>();   //当前客户端的实例信息
+    private final ConcurrentMap<String/* Topic */, TopicRouteData> topicRouteTable = new ConcurrentHashMap<String, TopicRouteData>();   //当前客户端的topic以及topic信息
     private final Lock lockNamesrv = new ReentrantLock();
     private final Lock lockHeartbeat = new ReentrantLock();
-    private final ConcurrentMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable =
+    private final ConcurrentMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable = //broker相关信息
         new ConcurrentHashMap<String, HashMap<Long, String>>();
     private final ConcurrentMap<String/* Broker Name */, HashMap<String/* address */, Integer>> brokerVersionTable =
         new ConcurrentHashMap<String, HashMap<String, Integer>>();
@@ -108,13 +111,13 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
             return new Thread(r, "MQClientFactoryScheduledThread");
         }
     });
-    private final ClientRemotingProcessor clientRemotingProcessor;
+    private final ClientRemotingProcessor clientRemotingProcessor; //netty 处理器
     private final PullMessageService pullMessageService; //消息拉取线程
-    private final RebalanceService rebalanceService;
-    private final DefaultMQProducer defaultMQProducer;
+    private final RebalanceService rebalanceService;     //消息负载service
+    private final DefaultMQProducer defaultMQProducer;   //发送消息的包装类
     private final ConsumerStatsManager consumerStatsManager;
     private final AtomicLong sendHeartbeatTimesTotal = new AtomicLong(0);
-    private ServiceState serviceState = ServiceState.CREATE_JUST;
+    private ServiceState serviceState = ServiceState.CREATE_JUST; //client z状态
     private DatagramSocket datagramSocket;
     private Random random = new Random();
 

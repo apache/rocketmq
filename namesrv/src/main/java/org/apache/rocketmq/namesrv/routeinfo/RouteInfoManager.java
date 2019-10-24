@@ -100,7 +100,7 @@ public class RouteInfoManager {
     }
 
     /**
-     * broker  注册事件 最终跑到这里
+     * broker topic注册事件 最终跑到这里
      * @param clusterName 集群名称
      * @param brokerAddr  broker ip
      * @param brokerName  broker  名称
@@ -159,7 +159,7 @@ public class RouteInfoManager {
                         ConcurrentMap<String, TopicConfig> tcTable = topicConfigWrapper.getTopicConfigTable(); //获取配置信息
                         if (tcTable != null) {
                             for (Map.Entry<String, TopicConfig> entry : tcTable.entrySet()) {
-                                //默认填充TopicConfig 内容信息
+                                //默认填充TopicConfig 内容信息 更新对垒信息
                                 this.createAndUpdateQueueData(brokerName, entry.getValue());
                             }
                         }
@@ -396,10 +396,10 @@ public class RouteInfoManager {
 
     //封装topic路由信息
     public TopicRouteData pickupTopicRouteData(final String topic) {
-        TopicRouteData topicRouteData = new TopicRouteData();
+        TopicRouteData topicRouteData = new TopicRouteData(); //初始化topic信息
         boolean foundQueueData = false;
         boolean foundBrokerData = false;
-        Set<String> brokerNameSet = new HashSet<String>();
+        Set<String> brokerNameSet = new HashSet<String>();//broker信息
         List<BrokerData> brokerDataList = new LinkedList<BrokerData>();
         topicRouteData.setBrokerDatas(brokerDataList);
 
@@ -409,7 +409,7 @@ public class RouteInfoManager {
         try {
             try {
                 this.lock.readLock().lockInterruptibly();
-                List<QueueData> queueDataList = this.topicQueueTable.get(topic);
+                List<QueueData> queueDataList = this.topicQueueTable.get(topic); //获取topic信息
                 if (queueDataList != null) {
                     topicRouteData.setQueueDatas(queueDataList);
                     foundQueueData = true;

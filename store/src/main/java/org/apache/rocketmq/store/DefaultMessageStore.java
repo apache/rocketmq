@@ -92,7 +92,7 @@ public class DefaultMessageStore implements MessageStore {
     private final TransientStorePool transientStorePool; //DataBuffer池 消息堆内存缓存
 
     private final RunningFlags runningFlags = new RunningFlags(); //存储服务状态
-    private final SystemClock systemClock = new SystemClock();    //系统锁
+    private final SystemClock systemClock = new SystemClock();    //系统时钟
 
     private final ScheduledExecutorService scheduledExecutorService =
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread"));
@@ -303,7 +303,12 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
     }
-    //消息存储
+
+    /**
+     * 发送消息存存
+     * @param msg Message instance to store
+     * @return
+     */
     public PutMessageResult putMessage(MessageExtBrokerInner msg) {
         if (this.shutdown) {  //判断message的状态
             log.warn("message store has shutdown, so putMessage is forbidden");
@@ -346,7 +351,7 @@ public class DefaultMessageStore implements MessageStore {
 
         long beginTime = this.getSystemClock().now(); //获取系统时间
         //开始消息存储
-        PutMessageResult result = this.commitLog.putMessage(msg);
+        PutMessageResult result = this.commitLog.putMessage(msg); //发送消息到commitlog
 
         long eclipseTime = this.getSystemClock().now() - beginTime;
         if (eclipseTime > 500) {

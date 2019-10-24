@@ -540,7 +540,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         long beginTimestampPrev = beginTimestampFirst;
         long endTimestamp = beginTimestampFirst;
         //寻找Topic路由信息
-        TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
+        TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());//获取topic路由信息
         if (topicPublishInfo != null && topicPublishInfo.ok()) {//生产者topic信息准备好 而且订阅该topic的队列不为null 开始发送message
             boolean callTimeout = false;  //超时标志
             MessageQueue mq = null;       //实际发送的队列

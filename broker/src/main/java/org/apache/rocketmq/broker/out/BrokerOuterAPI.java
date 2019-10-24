@@ -124,7 +124,7 @@ public class BrokerOuterAPI {
      * @param timeoutMills
      * @param compressed
      * @return
-     * 注册所有的broker
+     * 将topic注册所有的broker
      */
     public List<RegisterBrokerResult> registerBrokerAll(
         final String clusterName,  //集群名称

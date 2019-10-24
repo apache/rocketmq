@@ -85,6 +85,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 if (requestHeader.isBatch()) {
                     response = this.sendBatchMessage(ctx, request, mqtraceContext, requestHeader);
                 } else {
+                    //发送消息
                     response = this.sendMessage(ctx, request, mqtraceContext, requestHeader);
                 }
 

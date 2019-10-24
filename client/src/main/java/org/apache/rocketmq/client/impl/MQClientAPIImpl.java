@@ -251,7 +251,7 @@ public class MQClientAPIImpl {
         throw new MQClientException(response.getCode(), response.getRemark());
 
     }
-
+    //创建topic
     public void createTopic(final String addr, final String defaultTopic, final TopicConfig topicConfig,
         final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
@@ -302,7 +302,7 @@ public class MQClientAPIImpl {
         final long timeoutMillis,     //超时
         final CommunicationMode communicationMode, //发送模式
         final SendCallback sendCallback,   //回调函数
-        final TopicPublishInfo topicPublishInfo,  //生产者发送主信息
+        final TopicPublishInfo topicPublishInfo,  //Topic路由信息
         final MQClientInstance instance,          //instance 实例
         final int retryTimesWhenSendFailed,       //重试时间
         final SendMessageContext context,         //消息上下文

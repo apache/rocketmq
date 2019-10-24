@@ -525,7 +525,13 @@ public class CommitLog {
         return beginTimeInLock;
     }
 
+    /**
+     * 开始消息存储
+     * @param msg
+     * @return
+     */
     public PutMessageResult putMessage(final MessageExtBrokerInner msg) { //开始消息存储
+
         // Set the storage time
         msg.setStoreTimestamp(System.currentTimeMillis()); //存储的时间
         // Set the message body BODY CRC (consider the most appropriate setting
@@ -562,6 +568,7 @@ public class CommitLog {
         }
 
         long eclipseTimeInLock = 0;
+        //MapperFile 文件映射
         MappedFile unlockMappedFile = null;
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();//存储文件组织 与内存文件映射 获取当前可以写入的CommitLog 文件
 
