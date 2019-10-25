@@ -72,3 +72,4 @@ This software uses Apache Commons Crypto (https://commons.apache.org/proper/comm
 support authentication, and encryption and decryption of data sent across the network between
 services.
 @20191025 add exec pipeline
+@20191025 add docker pipeline
