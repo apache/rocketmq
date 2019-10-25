@@ -1,0 +1,11 @@
+---
+kind: pipeline
+type: docker
+name: default
+
+steps:
+- name: rocketm1
+  image: maven
+  commands:
+  - mvn clean build
+  - mvn -DskipTests package clean
