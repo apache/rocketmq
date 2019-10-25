@@ -4,8 +4,8 @@ type: docker
 name: default
 
 steps:
-- name: rocketm1
+- name: rocketmq
   image: maven
   commands:
-  - mvn clean build
+  - mvn clean compile
   - mvn -DskipTests package clean
