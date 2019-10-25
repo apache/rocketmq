@@ -1,11 +1,15 @@
----
 kind: pipeline
-type: docker
+type: exec
 name: default
 
 steps:
-- name: rocketmq
-  image: maven
+- name: build
   commands:
   - mvn clean compile
-  - mvn -DskipTests package clean
+  - mvn package clean
+
+trigger:
+  branch:
+  - master
+  event:
+  - push
