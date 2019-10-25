@@ -1,15 +1,11 @@
+---
 kind: pipeline
-type: exec
+type: docker
 name: default
 
 steps:
 - name: build
+  image: maven:3-jdk-8
   commands:
   - mvn clean compile
   - mvn package clean
-
-trigger:
-  branch:
-  - master
-  event:
-  - push
