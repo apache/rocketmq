@@ -1,7 +1,9 @@
 ---
 kind: pipeline
 type: docker
-name: package
+name: 
+- package
+- publish
 
 steps:
 - name: package
