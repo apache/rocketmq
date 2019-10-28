@@ -8,4 +8,3 @@ steps:
   image: maven:3-jdk-8
   commands:
   - mvn clean compile
-  - mvn package clean
