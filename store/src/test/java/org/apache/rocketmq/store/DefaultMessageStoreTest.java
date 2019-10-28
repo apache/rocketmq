@@ -97,8 +97,8 @@ public class DefaultMessageStoreTest {
 
     private MessageStore buildMessageStore() throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        messageStoreConfig.setMapedFileSizeCommitLog(1024 * 1024 * 10);
-        messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 1024 * 10);
+        messageStoreConfig.setMapedFileSizeCommitLog(1024 * 1024 * 10); //设置了commitlog文件大小为10m
+        messageStoreConfig.setMapedFileSizeConsumeQueue(100); //100个字节
         messageStoreConfig.setMaxHashSlotNum(10000);
         messageStoreConfig.setMaxIndexNum(100 * 100);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
@@ -108,18 +108,23 @@ public class DefaultMessageStoreTest {
 
     @Test
     public void testWriteAndRead() {
-        long totalMsgs = 10;
+        long totalMsgs = 3;
         QUEUE_TOTAL = 1;
         MessageBody = StoreMessage.getBytes();
         for (long i = 0; i < totalMsgs; i++) {
-            messageStore.putMessage(buildMessage());
+            messageStore.putMessage(buildMessage()); //queueId 0
         }
 
-        for (long i = 0; i < totalMsgs; i++) {
-            GetMessageResult result = messageStore.getMessage("GROUP_A", "TOPIC_A", 0, i, 1024 * 1024, null);
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+//        for (long i = 0; i < totalMsgs; i++) {
+            GetMessageResult result = messageStore.getMessage("GROUP_A", "FooBar", 0, 2, 1024 * 1024, null);
             assertThat(result).isNotNull();
             result.release();
-        }
+//        }
         verifyThatMasterIsFunctional(totalMsgs, messageStore);
     }
 

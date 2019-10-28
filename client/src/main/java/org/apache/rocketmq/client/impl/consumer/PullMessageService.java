@@ -77,7 +77,7 @@ public class PullMessageService extends ServiceThread {
     }
 
     private void pullMessage(final PullRequest pullRequest) {
-        final MQConsumerInner consumer = this.mQClientFactory.selectConsumer(pullRequest.getConsumerGroup());
+        final MQConsumerInner consumer = this.mQClientFactory.selectConsumer(pullRequest.getConsumerGroup()); //获取MQConsumerInner实例
         if (consumer != null) {
             DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumer;
             impl.pullMessage(pullRequest);
@@ -87,7 +87,7 @@ public class PullMessageService extends ServiceThread {
     }
 
     @Override
-    public void run() {
+    public void run() { //消息拉取入口 PullRequest什么时候放入，在ReBalanceService，以及每取完一次后会再次放入
         log.info(this.getServiceName() + " service started");
 
         while (!this.isStopped()) {

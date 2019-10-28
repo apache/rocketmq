@@ -27,7 +27,7 @@ import org.apache.rocketmq.remoting.RPCHook;
 
 public class MQClientManager {
     private final static InternalLogger log = ClientLogger.getLog();
-    private static MQClientManager instance = new MQClientManager();
+    private static MQClientManager instance = new MQClientManager(); //同一个JVM实例里只会有一个
     private AtomicInteger factoryIndexGenerator = new AtomicInteger();
     private ConcurrentMap<String/* clientId */, MQClientInstance> factoryTable =
         new ConcurrentHashMap<String, MQClientInstance>();
@@ -48,11 +48,11 @@ public class MQClientManager {
     public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
         //clientId默认为客户端IP+instanceName
         String clientId = clientConfig.buildMQClientId();
-        MQClientInstance instance = this.factoryTable.get(clientId);
+        MQClientInstance instance = this.factoryTable.get(clientId);//从缓存中取
         if (null == instance) {
             instance =
                 new MQClientInstance(clientConfig.cloneClientConfig(),
-                    this.factoryIndexGenerator.getAndIncrement(), clientId, rpcHook);
+                    this.factoryIndexGenerator.getAndIncrement()/*内存计数*/, clientId, rpcHook);
             MQClientInstance prev = this.factoryTable.putIfAbsent(clientId, instance);
             if (prev != null) {
                 instance = prev;

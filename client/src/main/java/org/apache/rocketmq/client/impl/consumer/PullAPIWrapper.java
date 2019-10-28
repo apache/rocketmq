@@ -71,17 +71,17 @@ public class PullAPIWrapper {
         final SubscriptionData subscriptionData) {
         PullResultExt pullResultExt = (PullResultExt) pullResult;
 
-        this.updatePullFromWhichNode(mq, pullResultExt.getSuggestWhichBrokerId());
+        this.updatePullFromWhichNode(mq, pullResultExt.getSuggestWhichBrokerId()); //缓存mq和broker的关系
         if (PullStatus.FOUND == pullResult.getPullStatus()) {
             ByteBuffer byteBuffer = ByteBuffer.wrap(pullResultExt.getMessageBinary());
-            List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
+            List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer); //解析
 
             List<MessageExt> msgListFilterAgain = msgList;
             if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()) {
-                msgListFilterAgain = new ArrayList<MessageExt>(msgList.size());
+                msgListFilterAgain = new ArrayList<MessageExt>(msgList.size()); //本地消息过滤
                 for (MessageExt msg : msgList) {
                     if (msg.getTags() != null) {
-                        if (subscriptionData.getTagsSet().contains(msg.getTags())) {
+                        if (subscriptionData.getTagsSet().contains(msg.getTags())) { //tag 过滤
                             msgListFilterAgain.add(msg);
                         }
                     }
@@ -155,12 +155,12 @@ public class PullAPIWrapper {
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         FindBrokerResult findBrokerResult =
             this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
-                this.recalculatePullFromWhichNode(mq), false);
+                this.recalculatePullFromWhichNode(mq), false); //从本地匹配获取broker地址
         if (null == findBrokerResult) {
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic()); //如果没有找到，则从NameServer获取并更新到本地
             findBrokerResult =
                 this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
-                    this.recalculatePullFromWhichNode(mq), false);
+                    this.recalculatePullFromWhichNode(mq), false); //再从本地获取
         }
 
         if (findBrokerResult != null) {
@@ -179,11 +179,11 @@ public class PullAPIWrapper {
             }
 
             PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
-            requestHeader.setConsumerGroup(this.consumerGroup);
-            requestHeader.setTopic(mq.getTopic());
-            requestHeader.setQueueId(mq.getQueueId());
-            requestHeader.setQueueOffset(offset);
-            requestHeader.setMaxMsgNums(maxNums);
+            requestHeader.setConsumerGroup(this.consumerGroup);// 消费组
+            requestHeader.setTopic(mq.getTopic()); //主题
+            requestHeader.setQueueId(mq.getQueueId()); //队列id
+            requestHeader.setQueueOffset(offset); //偏移量
+            requestHeader.setMaxMsgNums(maxNums); //最大消息数
             requestHeader.setSysFlag(sysFlagInner);
             requestHeader.setCommitOffset(commitOffset);
             requestHeader.setSuspendTimeoutMillis(brokerSuspendMaxTimeMillis);

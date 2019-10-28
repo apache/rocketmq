@@ -171,6 +171,7 @@ public class AllocateMappedFileService extends ServiceThread {
                 long beginTime = System.currentTimeMillis();
 
                 MappedFile mappedFile;
+                // 判断是否开启 isTransientStorePoolEnable ，如果开启则使用直接内存进行写入数据，最后从直接内存中 commit 到 FileChannel 中。
                 if (messageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
                     try {
                         mappedFile = ServiceLoader.load(MappedFile.class).iterator().next();
@@ -196,7 +197,7 @@ public class AllocateMappedFileService extends ServiceThread {
                     &&
                     this.messageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
                     mappedFile.warmMappedFile(this.messageStore.getMessageStoreConfig().getFlushDiskType(),
-                        this.messageStore.getMessageStoreConfig().getFlushLeastPagesWhenWarmMapedFile());
+                        this.messageStore.getMessageStoreConfig().getFlushLeastPagesWhenWarmMapedFile()); //文件预热
                 }
 
                 req.setMappedFile(mappedFile);

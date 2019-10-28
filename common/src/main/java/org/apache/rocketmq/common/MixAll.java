@@ -95,7 +95,7 @@ public class MixAll {
     public static final String CID_SYS_RMQ_TRANS = "CID_RMQ_SYS_TRANS";
 
     public static String getWSAddr() {
-        String wsDomainName = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);
+        String wsDomainName = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);//从系统变量中获取
         String wsDomainSubgroup = System.getProperty("rocketmq.namesrv.domain.subgroup", "nsaddr");
         String wsAddr = "http://" + wsDomainName + ":8080/rocketmq/" + wsDomainSubgroup;
         if (wsDomainName.indexOf(":") > 0) {

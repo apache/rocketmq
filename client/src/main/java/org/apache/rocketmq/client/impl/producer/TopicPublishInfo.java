@@ -71,7 +71,7 @@ public class TopicPublishInfo {
 
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
         if (lastBrokerName == null) {
-            return selectOneMessageQueue();
+            return selectOneMessageQueue(); //选择一个合适的messageQueue
         } else {
             int index = this.sendWhichQueue.getAndIncrement();
             for (int i = 0; i < this.messageQueueList.size(); i++) {

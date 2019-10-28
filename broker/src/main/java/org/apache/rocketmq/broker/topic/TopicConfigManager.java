@@ -72,9 +72,9 @@ public class TopicConfigManager extends ConfigManager {
                 TopicConfig topicConfig = new TopicConfig(topic);
                 this.systemTopicList.add(topic);
                 topicConfig.setReadQueueNums(this.brokerController.getBrokerConfig()
-                    .getDefaultTopicQueueNums());
+                    .getDefaultTopicQueueNums()); //默认为8
                 topicConfig.setWriteQueueNums(this.brokerController.getBrokerConfig()
-                    .getDefaultTopicQueueNums());
+                    .getDefaultTopicQueueNums()); //默认为8
                 int perm = PermName.PERM_INHERIT | PermName.PERM_READ | PermName.PERM_WRITE;
                 topicConfig.setPerm(perm);
                 this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
@@ -405,7 +405,7 @@ public class TopicConfigManager extends ConfigManager {
             if (topicConfigSerializeWrapper != null) {
                 this.topicConfigTable.putAll(topicConfigSerializeWrapper.getTopicConfigTable());
                 this.dataVersion.assignNewOne(topicConfigSerializeWrapper.getDataVersion());
-                this.printLoadDataWhenFirstBoot(topicConfigSerializeWrapper);
+                this.printLoadDataWhenFirstBoot(topicConfigSerializeWrapper);//打印
             }
         }
     }

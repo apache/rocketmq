@@ -154,10 +154,10 @@ public abstract class NettyRemotingAbstract {
         final RemotingCommand cmd = msg;
         if (cmd != null) {
             switch (cmd.getType()) {
-                case REQUEST_COMMAND:
+                case REQUEST_COMMAND://处理请求
                     processRequestCommand(ctx, cmd);
                     break;
-                case RESPONSE_COMMAND:
+                case RESPONSE_COMMAND: //处理响应
                     processResponseCommand(ctx, cmd);
                     break;
                 default:
@@ -276,16 +276,16 @@ public abstract class NettyRemotingAbstract {
      */
     public void processResponseCommand(ChannelHandlerContext ctx, RemotingCommand cmd) {
         final int opaque = cmd.getOpaque();
-        final ResponseFuture responseFuture = responseTable.get(opaque);
+        final ResponseFuture responseFuture = responseTable.get(opaque);//获取ResponseFuture
         if (responseFuture != null) {
             responseFuture.setResponseCommand(cmd);
 
             responseTable.remove(opaque);
 
-            if (responseFuture.getInvokeCallback() != null) {
+            if (responseFuture.getInvokeCallback() != null) { //处理异步
                 executeInvokeCallback(responseFuture);
             } else {
-                responseFuture.putResponse(cmd);
+                responseFuture.putResponse(cmd); //唤醒等待，同步请求的话会等待结果
                 responseFuture.release();
             }
         } else {
@@ -420,7 +420,7 @@ public abstract class NettyRemotingAbstract {
                 }
             });
 
-            RemotingCommand responseCommand = responseFuture.waitResponse(timeoutMillis);
+            RemotingCommand responseCommand = responseFuture.waitResponse(timeoutMillis);//等待响应
             if (null == responseCommand) {
                 if (responseFuture.isSendRequestOK()) {
                     throw new RemotingTimeoutException(RemotingHelper.parseSocketAddressAddr(addr), timeoutMillis,
@@ -441,9 +441,9 @@ public abstract class NettyRemotingAbstract {
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         long beginStartTime = System.currentTimeMillis();
         final int opaque = request.getOpaque();
-        boolean acquired = this.semaphoreAsync.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);
+        boolean acquired = this.semaphoreAsync.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);//限流，默认65535
         if (acquired) {
-            final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreAsync);
+            final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreAsync);//只允许被释放一次
             long costTime = System.currentTimeMillis() - beginStartTime;
             if (timeoutMillis < costTime) {
                 once.release();

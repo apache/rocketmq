@@ -31,7 +31,7 @@ public class MessageStoreConfig {
         + File.separator + "commitlog";
 
     // CommitLog file size,default is 1G
-    private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
+    private int mapedFileSizeCommitLog = 1024 * 1024 * 1024; //物理文件，默认大小为1G
     // ConsumeQueue file size,default is 30W
     private int mapedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     // enable consume queue ext
@@ -60,7 +60,7 @@ public class MessageStoreConfig {
 
     // Whether schedule flush,default is real-time
     @ImportantField
-    private boolean flushCommitLogTimed = false;
+    private boolean flushCommitLogTimed = false; //是否定时刷盘，默认实时
     // ConsumeQueue flush interval
     private int flushIntervalConsumeQueue = 1000;
     // Resource reclaim interval
@@ -95,7 +95,7 @@ public class MessageStoreConfig {
     // How many pages are to be flushed when flush ConsumeQueue
     private int flushConsumeQueueLeastPages = 2;
     private int flushCommitLogThoroughInterval = 1000 * 10;
-    private int commitCommitLogThoroughInterval = 200;
+    private int commitCommitLogThoroughInterval = 200; //提交数据间隔时间，200ms
     private int flushConsumeQueueThoroughInterval = 1000 * 60;
     @ImportantField
     private int maxTransferBytesOnMessageInMemory = 1024 * 256;

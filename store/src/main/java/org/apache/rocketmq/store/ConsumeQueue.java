@@ -375,9 +375,9 @@ public class ConsumeQueue {
         return this.minLogicOffset / CQ_STORE_UNIT_SIZE;
     }
 
-    public void putMessagePositionInfoWrapper(DispatchRequest request) {
+    public void putMessagePositionInfoWrapper(DispatchRequest request) { //追加到consumequeue
         final int maxRetries = 30;
-        boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable();
+        boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable(); //是否可写
         for (int i = 0; i < maxRetries && canWrite; i++) {
             long tagsCode = request.getTagsCode();
             if (isExtWriteEnable()) {
@@ -430,9 +430,9 @@ public class ConsumeQueue {
         this.byteBufferIndex.putInt(size);
         this.byteBufferIndex.putLong(tagsCode);
 
-        final long expectLogicOffset = cqOffset * CQ_STORE_UNIT_SIZE;
+        final long expectLogicOffset = cqOffset * CQ_STORE_UNIT_SIZE; //consumequeue中元素固定为20个字节
 
-        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(expectLogicOffset);
+        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(expectLogicOffset); //找到consumequeue文件
         if (mappedFile != null) {
 
             if (mappedFile.isFirstCreateInQueue() && cqOffset != 0 && mappedFile.getWrotePosition() == 0) {
@@ -485,8 +485,8 @@ public class ConsumeQueue {
     public SelectMappedBufferResult getIndexBuffer(final long startIndex) {
         int mappedFileSize = this.mappedFileSize;
         long offset = startIndex * CQ_STORE_UNIT_SIZE;
-        if (offset >= this.getMinLogicOffset()) {
-            MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset);
+        if (offset >= this.getMinLogicOffset()) { //如果大于等于最小物理偏移量
+            MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset); //consumequeue文件
             if (mappedFile != null) {
                 SelectMappedBufferResult result = mappedFile.selectMappedBuffer((int) (offset % mappedFileSize));
                 return result;

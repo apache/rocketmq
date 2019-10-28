@@ -88,7 +88,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     public NettyRemotingServer(final NettyServerConfig nettyServerConfig,
         final ChannelEventListener channelEventListener) {
-        super(nettyServerConfig.getServerOnewaySemaphoreValue(), nettyServerConfig.getServerAsyncSemaphoreValue());
+        super(nettyServerConfig.getServerOnewaySemaphoreValue(), nettyServerConfig.getServerAsyncSemaphoreValue()); //256
         this.serverBootstrap = new ServerBootstrap();
         this.nettyServerConfig = nettyServerConfig;
         this.channelEventListener = channelEventListener;
@@ -107,7 +107,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             }
         });
 
-        if (useEpoll()) {
+        if (useEpoll()) { //是否启用epoll
             this.eventLoopGroupBoss = new EpollEventLoopGroup(1, new ThreadFactory() {
                 private AtomicInteger threadIndex = new AtomicInteger(0);
 
@@ -238,7 +238,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     log.error("scanResponseTable exception", e);
                 }
             }
-        }, 1000 * 3, 1000);
+        }, 1000 * 3, 1000); //每隔1s，扫描responseTable，回调
     }
 
     @Override
@@ -400,7 +400,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
-            processMessageReceived(ctx, msg);
+            processMessageReceived(ctx, msg); //处理消息 重要
         }
     }
 

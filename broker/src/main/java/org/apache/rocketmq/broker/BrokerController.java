@@ -171,7 +171,7 @@ public class BrokerController {
         this.nettyClientConfig = nettyClientConfig;
         this.messageStoreConfig = messageStoreConfig;
         this.consumerOffsetManager = new ConsumerOffsetManager(this);
-        this.topicConfigManager = new TopicConfigManager(this);
+        this.topicConfigManager = new TopicConfigManager(this); //会注册一些默认的Topic
         this.pullMessageProcessor = new PullMessageProcessor(this);
         this.pullRequestHoldService = new PullRequestHoldService(this);
         this.messageArrivingListener = new NotifyMessageArrivingListener(this.pullRequestHoldService);
@@ -181,13 +181,13 @@ public class BrokerController {
         this.producerManager = new ProducerManager();
         this.clientHousekeepingService = new ClientHousekeepingService(this);
         this.broker2Client = new Broker2Client(this);
-        this.subscriptionGroupManager = new SubscriptionGroupManager(this);
+        this.subscriptionGroupManager = new SubscriptionGroupManager(this);//初始化一些默认订阅组
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
         this.filterServerManager = new FilterServerManager(this);
 
-        this.slaveSynchronize = new SlaveSynchronize(this);
+        this.slaveSynchronize = new SlaveSynchronize(this); //主从同步
 
-        this.sendThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getSendThreadPoolQueueCapacity());
+        this.sendThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getSendThreadPoolQueueCapacity());//默认10000
         this.pullThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getPullThreadPoolQueueCapacity());
         this.queryThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getQueryThreadPoolQueueCapacity());
         this.clientManagerThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getClientManagerThreadPoolQueueCapacity());
@@ -195,7 +195,7 @@ public class BrokerController {
         this.heartbeatThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getHeartbeatThreadPoolQueueCapacity());
         this.endTransactionThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getEndTransactionPoolQueueCapacity());
 
-        this.brokerStatsManager = new BrokerStatsManager(this.brokerConfig.getBrokerClusterName());
+        this.brokerStatsManager = new BrokerStatsManager(this.brokerConfig.getBrokerClusterName());//broker状态管理
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort()));
 
         this.brokerFastFailure = new BrokerFastFailure(this);
@@ -223,11 +223,11 @@ public class BrokerController {
     }
 
     public boolean initialize() throws CloneNotSupportedException {
-        boolean result = this.topicConfigManager.load();
+        boolean result = this.topicConfigManager.load();//加载topics.json配置文件
 
-        result = result && this.consumerOffsetManager.load();
-        result = result && this.subscriptionGroupManager.load();
-        result = result && this.consumerFilterManager.load();
+        result = result && this.consumerOffsetManager.load();//加载consumerOffset.json文件
+        result = result && this.subscriptionGroupManager.load(); //加载subscriptionGroup.json
+        result = result && this.consumerFilterManager.load();//consumerFilter.json
 
         if (result) {
             try {
@@ -258,7 +258,7 @@ public class BrokerController {
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
                 this.sendThreadPoolQueue,
-                new ThreadFactoryImpl("SendMessageThread_"));
+                new ThreadFactoryImpl("SendMessageThread_")); //默认1个线程
 
             this.pullMessageExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getPullMessageThreadPoolNums(),
@@ -266,7 +266,7 @@ public class BrokerController {
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
                 this.pullThreadPoolQueue,
-                new ThreadFactoryImpl("PullMessageThread_"));
+                new ThreadFactoryImpl("PullMessageThread_")); //默认24个线程
 
             this.queryMessageExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getQueryMessageThreadPoolNums(),
@@ -274,11 +274,11 @@ public class BrokerController {
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
                 this.queryThreadPoolQueue,
-                new ThreadFactoryImpl("QueryMessageThread_"));
+                new ThreadFactoryImpl("QueryMessageThread_")); //默认12个线程
 
             this.adminBrokerExecutor =
                 Executors.newFixedThreadPool(this.brokerConfig.getAdminBrokerThreadPoolNums(), new ThreadFactoryImpl(
-                    "AdminBrokerThread_"));
+                    "AdminBrokerThread_")); //默认16个线程
 
             this.clientManageExecutor = new ThreadPoolExecutor(
                 this.brokerConfig.getClientManageThreadPoolNums(),
@@ -286,7 +286,7 @@ public class BrokerController {
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
                 this.clientManagerThreadPoolQueue,
-                new ThreadFactoryImpl("ClientManageThread_"));
+                new ThreadFactoryImpl("ClientManageThread_")); //默认32个线程
 
             this.heartbeatExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getHeartbeatThreadPoolNums(),
@@ -294,7 +294,7 @@ public class BrokerController {
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
                 this.heartbeatThreadPoolQueue,
-                new ThreadFactoryImpl("HeartbeatThread_", true));
+                new ThreadFactoryImpl("HeartbeatThread_", true)); //默认4个线程
 
             this.endTransactionExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getEndTransactionThreadPoolNums(),
@@ -302,13 +302,13 @@ public class BrokerController {
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
                 this.endTransactionThreadPoolQueue,
-                new ThreadFactoryImpl("EndTransactionThread_"));
+                new ThreadFactoryImpl("EndTransactionThread_")); //默认16个线程
 
             this.consumerManageExecutor =
                 Executors.newFixedThreadPool(this.brokerConfig.getConsumerManageThreadPoolNums(), new ThreadFactoryImpl(
-                    "ConsumerManageThread_"));
+                    "ConsumerManageThread_")); //默认32个线程
 
-            this.registerProcessor();
+            this.registerProcessor(); //注册一些处理器，重要
 
             final long initialDelay = UtilAll.computNextMorningTimeMillis() - System.currentTimeMillis();
             final long period = 1000 * 60 * 60 * 24;
@@ -321,7 +321,7 @@ public class BrokerController {
                         log.error("schedule record error.", e);
                     }
                 }
-            }, initialDelay, period, TimeUnit.MILLISECONDS);
+            }, initialDelay, period, TimeUnit.MILLISECONDS); //每隔一天记录下，发送总消息和消费总消息
 
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
@@ -332,7 +332,7 @@ public class BrokerController {
                         log.error("schedule persist consumerOffset error.", e);
                     }
                 }
-            }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
+            }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetInterval(), TimeUnit.MILLISECONDS);//每隔10s，持久化消费进度
 
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
@@ -343,7 +343,7 @@ public class BrokerController {
                         log.error("schedule persist consumer filter error.", e);
                     }
                 }
-            }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
+            }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);//每隔10s，持久化消费过滤
 
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
@@ -354,7 +354,7 @@ public class BrokerController {
                         log.error("protectBroker error.", e);
                     }
                 }
-            }, 3, 3, TimeUnit.MINUTES);
+            }, 3, 3, TimeUnit.MINUTES); //每隔3分钟，检查下消费缓慢的group，太慢则禁用group
 
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
@@ -365,7 +365,7 @@ public class BrokerController {
                         log.error("printWaterMark error.", e);
                     }
                 }
-            }, 10, 1, TimeUnit.SECONDS);
+            }, 10, 1, TimeUnit.SECONDS); //每隔1秒钟打印一下水位，各队列容当前容量，延迟
 
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -377,10 +377,10 @@ public class BrokerController {
                         log.error("schedule dispatchBehindBytes error.", e);
                     }
                 }
-            }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
+            }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS); //每隔1分钟打印
 
             if (this.brokerConfig.getNamesrvAddr() != null) {
-                this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
+                this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr()); //更新nameSrv地址
                 log.info("Set user specified name server address: {}", this.brokerConfig.getNamesrvAddr());
             } else if (this.brokerConfig.isFetchNamesrvAddrByAddressServer()) {
                 this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -426,13 +426,13 @@ public class BrokerController {
                             log.error("schedule printMasterAndSlaveDiff error.", e);
                         }
                     }
-                }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
+                }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS); //每隔1分钟打印slave落后master的偏移量
             }
 
             if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
                 // Register a listener to reload SslContext
                 try {
-                    fileWatchService = new FileWatchService(
+                    fileWatchService = new FileWatchService(//监听文件变化
                         new String[] {
                             TlsSystemConfig.tlsServerCertPath,
                             TlsSystemConfig.tlsServerKeyPath,
@@ -616,7 +616,7 @@ public class BrokerController {
             while (it.hasNext()) {
                 final Map.Entry<String, MomentStatsItem> next = it.next();
                 final long fallBehindBytes = next.getValue().getValue().get();
-                if (fallBehindBytes > this.brokerConfig.getConsumerFallbehindThreshold()) {
+                if (fallBehindBytes > this.brokerConfig.getConsumerFallbehindThreshold()) { //16GB
                     final String[] split = next.getValue().getStatsKey().split("@");
                     final String group = split[2];
                     LOG_PROTECTION.info("[PROTECT_BROKER] the consumer[{}] consume slowly, {} bytes, disable it", group, fallBehindBytes);
@@ -824,23 +824,23 @@ public class BrokerController {
 
     public void start() throws Exception {
         if (this.messageStore != null) {
-            this.messageStore.start();
+            this.messageStore.start();//DefaultMessageStore
         }
 
         if (this.remotingServer != null) {
-            this.remotingServer.start();
+            this.remotingServer.start(); //启动服务
         }
 
         if (this.fastRemotingServer != null) {
-            this.fastRemotingServer.start();
+            this.fastRemotingServer.start(); //启动fast服务
         }
 
         if (this.fileWatchService != null) {
-            this.fileWatchService.start();
+            this.fileWatchService.start(); //文件监听服务
         }
 
         if (this.brokerOuterAPI != null) {
-            this.brokerOuterAPI.start();
+            this.brokerOuterAPI.start(); //启动客户端
         }
 
         if (this.pullRequestHoldService != null) {

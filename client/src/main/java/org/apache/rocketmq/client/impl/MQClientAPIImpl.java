@@ -200,7 +200,7 @@ public class MQClientAPIImpl {
 
     public String fetchNameServerAddr() {
         try {
-            String addrs = this.topAddressing.fetchNSAddr();
+            String addrs = this.topAddressing.fetchNSAddr();//通过http获取name server 地址，更新到本地缓存
             if (addrs != null) {
                 if (!addrs.equals(this.nameSrvAddr)) {
                     log.info("name server address changed, old=" + this.nameSrvAddr + ", new=" + addrs);
@@ -323,7 +323,7 @@ public class MQClientAPIImpl {
             case ONEWAY:
                 this.remotingClient.invokeOneway(addr, request, timeoutMillis);
                 return null;
-            case ASYNC:
+            case ASYNC: //异步
                 final AtomicInteger times = new AtomicInteger();
                 long costTimeAsync = System.currentTimeMillis() - beginStartTime;
                 if (timeoutMillis < costTimeAsync) {

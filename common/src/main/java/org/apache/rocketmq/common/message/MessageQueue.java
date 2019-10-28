@@ -100,19 +100,19 @@ public class MessageQueue implements Comparable<MessageQueue>, Serializable {
     @Override
     public int compareTo(MessageQueue o) {
         {
-            int result = this.topic.compareTo(o.topic);
+            int result = this.topic.compareTo(o.topic); //先比较Topic
             if (result != 0) {
                 return result;
             }
         }
 
         {
-            int result = this.brokerName.compareTo(o.brokerName);
+            int result = this.brokerName.compareTo(o.brokerName); //比较brokerName
             if (result != 0) {
                 return result;
             }
         }
 
-        return this.queueId - o.queueId;
+        return this.queueId - o.queueId; //比较queueId，小的在前
     }
 }

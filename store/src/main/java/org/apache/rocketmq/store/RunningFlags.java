@@ -17,7 +17,7 @@
 package org.apache.rocketmq.store;
 
 public class RunningFlags {
-
+    //00011111，用一个字节就能表示
     private static final int NOT_READABLE_BIT = 1;
 
     private static final int NOT_WRITEABLE_BIT = 1 << 1;
@@ -28,7 +28,7 @@ public class RunningFlags {
 
     private static final int DISK_FULL_BIT = 1 << 4;
 
-    private volatile int flagBits = 0;
+    private volatile int flagBits = 0; //用int是预留
 
     public RunningFlags() {
     }
@@ -125,7 +125,7 @@ public class RunningFlags {
     }
 
     public boolean getAndMakeDiskOK() {
-        boolean result = !((this.flagBits & DISK_FULL_BIT) == DISK_FULL_BIT);
+        boolean result = !((this.flagBits & DISK_FULL_BIT) == DISK_FULL_BIT); //对应位上为0
         this.flagBits &= ~DISK_FULL_BIT;
         return result;
     }

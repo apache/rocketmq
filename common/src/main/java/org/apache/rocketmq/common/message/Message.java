@@ -27,7 +27,7 @@ public class Message implements Serializable {
 
     private String topic;
     private int flag;
-    private Map<String, String> properties;
+    private Map<String, String> properties; //tag的实现
     private byte[] body;
     private String transactionId;
 

@@ -85,7 +85,7 @@ public class UtilAll {
 
     public static String offset2FileName(final long offset) {
         final NumberFormat nf = NumberFormat.getInstance();
-        nf.setMinimumIntegerDigits(20);
+        nf.setMinimumIntegerDigits(20); //整数部分最小20位
         nf.setMaximumFractionDigits(0);
         nf.setGroupingUsed(false);
         return nf.format(offset);
@@ -195,7 +195,7 @@ public class UtilAll {
             cal.get(Calendar.SECOND));
     }
 
-    public static double getDiskPartitionSpaceUsedPercent(final String path) {
+    public static double getDiskPartitionSpaceUsedPercent(final String path) { //计算磁盘空间使用率
         if (null == path || path.isEmpty())
             return -1;
 

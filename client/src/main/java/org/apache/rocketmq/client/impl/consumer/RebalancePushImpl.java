@@ -60,7 +60,7 @@ public class RebalancePushImpl extends RebalanceImpl {
 
         int currentQueueCount = this.processQueueTable.size();
         if (currentQueueCount != 0) {
-            int pullThresholdForTopic = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getPullThresholdForTopic();
+            int pullThresholdForTopic = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getPullThresholdForTopic(); //流控阈值
             if (pullThresholdForTopic != -1) {
                 int newVal = Math.max(1, pullThresholdForTopic / currentQueueCount);
                 log.info("The pullThresholdForQueue is changed from {} to {}",
@@ -83,10 +83,10 @@ public class RebalancePushImpl extends RebalanceImpl {
 
     @Override
     public boolean removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
-        this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
-        this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
+        this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq); //保存消费进度
+        this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq); //从本地缓存中移除
         if (this.defaultMQPushConsumerImpl.isConsumeOrderly()
-            && MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) {
+            && MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) { //如果是顺序消息、集群模式
             try {
                 if (pq.getLockConsume().tryLock(1000, TimeUnit.MILLISECONDS)) {
                     try {

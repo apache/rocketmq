@@ -208,7 +208,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     private PullResult pullSyncImpl(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums, boolean block,
         long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        this.makeSureStateOK();
+        this.makeSureStateOK(); //校验状态
 
         if (null == mq) {
             throw new MQClientException("mq is null", null);
@@ -222,11 +222,11 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             throw new MQClientException("maxNums <= 0", null);
         }
 
-        this.subscriptionAutomatically(mq.getTopic());
+        this.subscriptionAutomatically(mq.getTopic()); //自动订阅，本地subscriptionInner没有，就注册上
 
         int sysFlag = PullSysFlag.buildSysFlag(false, block, true, false);
 
-        long timeoutMillis = block ? this.defaultMQPullConsumer.getConsumerTimeoutMillisWhenSuspend() : timeout;
+        long timeoutMillis = block ? this.defaultMQPullConsumer.getConsumerTimeoutMillisWhenSuspend() : timeout; //30s
 
         boolean isTagType = ExpressionType.isTagType(subscriptionData.getExpressionType());
         PullResult pullResult = this.pullAPIWrapper.pullKernelImpl(

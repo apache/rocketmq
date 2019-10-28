@@ -85,12 +85,12 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 public class MQClientInstance {
     private final static long LOCK_TIMEOUT_MILLIS = 3000;
     private final InternalLogger log = ClientLogger.getLog();
-    private final ClientConfig clientConfig;
+    private final ClientConfig clientConfig;//主要是name server地址
     private final int instanceIndex;
     private final String clientId;
     private final long bootTimestamp = System.currentTimeMillis();
-    private final ConcurrentMap<String/* group */, MQProducerInner> producerTable = new ConcurrentHashMap<String, MQProducerInner>();
-    private final ConcurrentMap<String/* group */, MQConsumerInner> consumerTable = new ConcurrentHashMap<String, MQConsumerInner>();
+    private final ConcurrentMap<String/* group */, MQProducerInner> producerTable = new ConcurrentHashMap<String, MQProducerInner>();//生产者缓存
+    private final ConcurrentMap<String/* group */, MQConsumerInner> consumerTable = new ConcurrentHashMap<String, MQConsumerInner>(); //消费者缓存
     private final ConcurrentMap<String/* group */, MQAdminExtInner> adminExtTable = new ConcurrentHashMap<String, MQAdminExtInner>();
     private final NettyClientConfig nettyClientConfig;
     private final MQClientAPIImpl mQClientAPIImpl;
@@ -109,8 +109,8 @@ public class MQClientInstance {
         }
     });
     private final ClientRemotingProcessor clientRemotingProcessor;
-    private final PullMessageService pullMessageService;
-    private final RebalanceService rebalanceService;
+    private final PullMessageService pullMessageService; //拉取消息服务[C]
+    private final RebalanceService rebalanceService; //负载均衡服务[C]
     private final DefaultMQProducer defaultMQProducer;
     private final ConsumerStatsManager consumerStatsManager;
     private final AtomicLong sendHeartbeatTimesTotal = new AtomicLong(0);
@@ -232,13 +232,13 @@ public class MQClientInstance {
                         this.mQClientAPIImpl.fetchNameServerAddr();
                     }
                     // Start request-response channel
-                    this.mQClientAPIImpl.start();
+                    this.mQClientAPIImpl.start(); //启动netty客户端
                     // Start various schedule tasks
                     this.startScheduledTask();
                     // Start pull service
-                    this.pullMessageService.start();
+                    this.pullMessageService.start(); //启动拉消息服务
                     // Start rebalance service
-                    this.rebalanceService.start();
+                    this.rebalanceService.start(); //启动负载均衡服务
                     // Start push service
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
                     log.info("the client factory [{}] start OK", this.clientId);
@@ -268,7 +268,7 @@ public class MQClientInstance {
                         log.error("ScheduledTask fetchNameServerAddr exception", e);
                     }
                 }
-            }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
+            }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS); //如果本地namesrvAddr为null，则每隔2分钟更新一次namesrvAddr
         }
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -281,7 +281,7 @@ public class MQClientInstance {
                     log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", e);
                 }
             }
-        }, 10, this.clientConfig.getPollNameServerInterval(), TimeUnit.MILLISECONDS);
+        }, 10, this.clientConfig.getPollNameServerInterval(), TimeUnit.MILLISECONDS); //默认每隔30s更新一次路由信息
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -294,7 +294,7 @@ public class MQClientInstance {
                     log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
                 }
             }
-        }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
+        }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);//默认每隔30s清理掉本地缓存中的离线broker，发送心跳到所有broker
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -306,7 +306,7 @@ public class MQClientInstance {
                     log.error("ScheduledTask persistAllConsumerOffset exception", e);
                 }
             }
-        }, 1000 * 10, this.clientConfig.getPersistConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
+        }, 1000 * 10, this.clientConfig.getPersistConsumerOffsetInterval(), TimeUnit.MILLISECONDS);//每隔5s持久化一次消费者进度
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -318,7 +318,7 @@ public class MQClientInstance {
                     log.error("ScheduledTask adjustThreadPool exception", e);
                 }
             }
-        }, 1, 1, TimeUnit.MINUTES);
+        }, 1, 1, TimeUnit.MINUTES); //每隔1分钟自动调整线程池
     }
 
     public String getClientId() {
@@ -420,7 +420,7 @@ public class MQClientInstance {
                 return;
             }
 
-            for (SubscriptionData subscriptionData : subscriptionInner) {
+            for (SubscriptionData subscriptionData : subscriptionInner) { //关注的tag
                 if (ExpressionType.isTagType(subscriptionData.getExpressionType())) {
                     continue;
                 }

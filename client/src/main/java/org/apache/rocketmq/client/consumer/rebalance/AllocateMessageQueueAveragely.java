@@ -51,8 +51,20 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
             return result;
         }
 
-        int index = cidAll.indexOf(currentCID);
-        int mod = mqAll.size() % cidAll.size();
+        /**
+         * 场景1：mq:4 c:3 3台机子消费4个mq
+         * index:2
+         * mod:1
+         * averageSize:1
+         * startIndex:2+1=3
+         * range:1
+         *
+         *
+         * 场景2：mq:4 c:5 5台机子消费4个mq
+         */
+
+        int index = cidAll.indexOf(currentCID); // 找出下标
+        int mod = mqAll.size() % cidAll.size();//用messageQueue 和 消费者的数量 来计算
         int averageSize =
             mqAll.size() <= cidAll.size() ? 1 : (mod > 0 && index < mod ? mqAll.size() / cidAll.size()
                 + 1 : mqAll.size() / cidAll.size());
@@ -61,7 +73,7 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
         for (int i = 0; i < range; i++) {
             result.add(mqAll.get((startIndex + i) % mqAll.size()));
         }
-        return result;
+        return result; //如果是1个消费者，4个MessageQueue，则4个都消费
     }
 
     @Override

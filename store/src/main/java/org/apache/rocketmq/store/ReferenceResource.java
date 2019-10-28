@@ -22,10 +22,10 @@ public abstract class ReferenceResource {
     //引用次数
     protected final AtomicLong refCount = new AtomicLong(1);
     protected volatile boolean available = true;
-    protected volatile boolean cleanupOver = false;
+    protected volatile boolean cleanupOver = false; //引用是否清除干净
     private volatile long firstShutdownTimestamp = 0;
 
-    public synchronized boolean hold() {
+    public synchronized boolean hold() { //commit | flush | selectMappedBuffer | IndexFile.flush | IndexFile.selectPhyOffset
         if (this.isAvailable()) {
             if (this.refCount.getAndIncrement() > 0) {
                 return true;

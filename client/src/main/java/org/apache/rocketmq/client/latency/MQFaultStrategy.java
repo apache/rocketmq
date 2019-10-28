@@ -56,7 +56,7 @@ public class MQFaultStrategy {
     }
 
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
-        if (this.sendLatencyFaultEnable) { //启用Broker故障延迟机制
+        if (this.sendLatencyFaultEnable) { //启用Broker故障延迟机制，默认为false
             try {
                 //获取上一次获取的index，也就是说是用轮询的方式取有用队列
                 int index = tpInfo.getSendWhichQueue().getAndIncrement();

@@ -29,7 +29,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
-public class MappedFileQueue {
+public class MappedFileQueue { //一系列MappedFile
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
@@ -39,12 +39,12 @@ public class MappedFileQueue {
 
     private final int mappedFileSize;
 
-    private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
+    private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>(); //映射文件集合
 
     private final AllocateMappedFileService allocateMappedFileService;
 
-    private long flushedWhere = 0;
-    private long committedWhere = 0;
+    private long flushedWhere = 0; //刷盘点
+    private long committedWhere = 0; //提交点
 
     private volatile long storeTimestamp = 0;
 
@@ -90,7 +90,7 @@ public class MappedFileQueue {
         return (MappedFile) mfs[mfs.length - 1];
     }
 
-    private Object[] copyMappedFiles(final int reservedMappedFiles) {
+    private Object[]  copyMappedFiles(final int reservedMappedFiles) {
         Object[] mfs;
 
         if (this.mappedFiles.size() <= reservedMappedFiles) {
@@ -207,7 +207,7 @@ public class MappedFileQueue {
         if (createOffset != -1 && needCreate) {
             String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
             String nextNextFilePath = this.storePath + File.separator
-                + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
+                + UtilAll.offset2FileName(createOffset + this.mappedFileSize); //获取下一个文件的起始偏移量
             MappedFile mappedFile = null;
 
             if (this.allocateMappedFileService != null) {
@@ -226,7 +226,7 @@ public class MappedFileQueue {
                 if (this.mappedFiles.isEmpty()) {
                     mappedFile.setFirstCreateInQueue(true);
                 }
-                this.mappedFiles.add(mappedFile);
+                this.mappedFiles.add(mappedFile); //添加到队列
             }
 
             return mappedFile;
@@ -338,7 +338,7 @@ public class MappedFileQueue {
     public int deleteExpiredFileByTime(final long expiredTime,
         final int deleteFilesInterval,
         final long intervalForcibly,
-        final boolean cleanImmediately) {
+        final boolean cleanImmediately) { //清理文件，重要
         Object[] mfs = this.copyMappedFiles(0);
 
         if (null == mfs)
@@ -376,7 +376,7 @@ public class MappedFileQueue {
             }
         }
 
-        deleteExpiredFile(files);
+        deleteExpiredFile(files); //从队列中移除
 
         return deleteCount;
     }
@@ -444,7 +444,7 @@ public class MappedFileQueue {
 
     public boolean commit(final int commitLeastPages) {
         boolean result = true;
-        MappedFile mappedFile = this.findMappedFileByOffset(this.committedWhere, this.committedWhere == 0);
+        MappedFile mappedFile = this.findMappedFileByOffset(this.committedWhere, this.committedWhere == 0);//根据偏移量找到MappedFile
         if (mappedFile != null) {
             int offset = mappedFile.commit(commitLeastPages);
             long where = mappedFile.getFileFromOffset() + offset;
@@ -466,7 +466,7 @@ public class MappedFileQueue {
         try {
             MappedFile firstMappedFile = this.getFirstMappedFile();
             MappedFile lastMappedFile = this.getLastMappedFile();
-            if (firstMappedFile != null && lastMappedFile != null) {
+            if (firstMappedFile != null && lastMappedFile != null) { //只有一个文件的话指向同一个文件
                 if (offset < firstMappedFile.getFileFromOffset() || offset >= lastMappedFile.getFileFromOffset() + this.mappedFileSize) {
                     LOG_ERROR.warn("Offset not matched. Request offset: {}, firstOffset: {}, lastOffset: {}, mappedFileSize: {}, mappedFiles count: {}",
                         offset,
@@ -475,7 +475,8 @@ public class MappedFileQueue {
                         this.mappedFileSize,
                         this.mappedFiles.size());
                 } else {
-                    int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
+                    //假设是 0,2,4,6,8  取3的话结果是1
+                    int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));//计算下标
                     MappedFile targetFile = null;
                     try {
                         targetFile = this.mappedFiles.get(index);
@@ -483,11 +484,11 @@ public class MappedFileQueue {
                     }
 
                     if (targetFile != null && offset >= targetFile.getFileFromOffset()
-                        && offset < targetFile.getFileFromOffset() + this.mappedFileSize) {
+                        && offset < targetFile.getFileFromOffset() + this.mappedFileSize) { //先根据计算的下标获取
                         return targetFile;
                     }
 
-                    for (MappedFile tmpMappedFile : this.mappedFiles) {
+                    for (MappedFile tmpMappedFile : this.mappedFiles) { //没有获取到则遍历所有MappedFile，获取符合条件的
                         if (offset >= tmpMappedFile.getFileFromOffset()
                             && offset < tmpMappedFile.getFileFromOffset() + this.mappedFileSize) {
                             return tmpMappedFile;
@@ -522,7 +523,7 @@ public class MappedFileQueue {
         return mappedFileFirst;
     }
 
-    public MappedFile findMappedFileByOffset(final long offset) {
+    public MappedFile findMappedFileByOffset(final long offset) { //根据逻辑偏移量获取MappedFile
         return findMappedFileByOffset(offset, false);
     }
 

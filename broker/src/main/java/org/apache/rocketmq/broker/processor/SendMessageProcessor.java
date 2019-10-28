@@ -252,7 +252,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                                       RemotingCommand request,
                                       MessageExt msg, TopicConfig topicConfig) {
         String newTopic = requestHeader.getTopic();
-        if (null != newTopic && newTopic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+        if (null != newTopic && newTopic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {//Topic是"%RETRY%"开头的
             String groupName = newTopic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
             SubscriptionGroupConfig subscriptionGroupConfig =
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(groupName);
@@ -263,13 +263,13 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 return false;
             }
 
-            int maxReconsumeTimes = subscriptionGroupConfig.getRetryMaxTimes();
+            int maxReconsumeTimes = subscriptionGroupConfig.getRetryMaxTimes(); //获取最大重试次数，默认为16
             if (request.getVersion() >= MQVersion.Version.V3_4_9.ordinal()) {
                 maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
             }
             int reconsumeTimes = requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes();
-            if (reconsumeTimes >= maxReconsumeTimes) {
-                newTopic = MixAll.getDLQTopic(groupName);
+            if (reconsumeTimes >= maxReconsumeTimes) { //如果重新消费时间大于最大重新消费时间
+                newTopic = MixAll.getDLQTopic(groupName); //获取到topic %DLQ%
                 int queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
                 topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
                     DLQ_NUMS_PER_GROUP,
@@ -302,12 +302,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         response.setOpaque(request.getOpaque());
 
-        response.addExtField(MessageConst.PROPERTY_MSG_REGION, this.brokerController.getBrokerConfig().getRegionId());
+        response.addExtField(MessageConst.PROPERTY_MSG_REGION, this.brokerController.getBrokerConfig().getRegionId());//DefaultRegion
         response.addExtField(MessageConst.PROPERTY_TRACE_SWITCH, String.valueOf(this.brokerController.getBrokerConfig().isTraceOn()));
 
         log.debug("receive SendMessage request command, {}", request);
 
-        final long startTimstamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
+        final long startTimstamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();//默认为0
         if (this.brokerController.getMessageStore().now() < startTimstamp) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(String.format("broker unable to service, until %s", UtilAll.timeMillisToHumanString2(startTimstamp)));
@@ -315,7 +315,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
 
         response.setCode(-1);
-        super.msgCheck(ctx, requestHeader, response);
+        super.msgCheck(ctx, requestHeader, response);//校验
         if (response.getCode() != -1) {
             return response;
         }
@@ -333,7 +333,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgInner.setTopic(requestHeader.getTopic());
         msgInner.setQueueId(queueIdInt);
 
-        if (!handleRetryAndDLQ(requestHeader, response, request, msgInner, topicConfig)) {
+        if (!handleRetryAndDLQ(requestHeader, response, request, msgInner, topicConfig)) {//处理重试消息，对超过最大重试次数的消息，会将topic设为DLQ
             return response;
         }
 
