@@ -285,7 +285,7 @@ public class MappedFile extends ReferenceResource {
     public int flush(final int flushLeastPages) {
         if (this.isAbleToFlush(flushLeastPages)) {
             if (this.hold()) {
-                int value = getReadPosition(); //获取MapperFile的最大读指针
+                int value = getReadPosition(); //获取MapperFile的最大读指针 也就是commit 提交的指针
 
                 try {
                     //We only append data to fileChannel or mappedByteBuffer, never both.
@@ -308,13 +308,18 @@ public class MappedFile extends ReferenceResource {
         return this.getFlushedPosition();
     }
 
+    /**
+     *
+     * @param commitLeastPages pageCache的页数
+     * @return
+     */
     public int commit(final int commitLeastPages) {  //commit  内存映射文件提交
         if (writeBuffer == null) { //writeBuffer 为null 不需要提交
             //no need to commit data to file channel, so just regard wrotePosition as committedPosition.
             return this.wrotePosition.get(); //返回写指针
         }
         if (this.isAbleToCommit(commitLeastPages)) { //判断是否满足提交
-            if (this.hold()) {
+            if (this.hold()) { //hold函数 commitlog 引用计数
                 commit0(commitLeastPages); //将内存映射 bytebuffer 写入到FileChannel中
                 this.release();
             } else {
@@ -331,6 +336,7 @@ public class MappedFile extends ReferenceResource {
         return this.committedPosition.get();
     }
 
+    //正式提交
     protected void commit0(final int commitLeastPages) {//提交到FileChannel
         int writePos = this.wrotePosition.get(); //获取当前的写指针
         int lastCommittedPosition = this.committedPosition.get(); //获取上次commit到File中的 指针
@@ -344,7 +350,7 @@ public class MappedFile extends ReferenceResource {
                 ByteBuffer byteBuffer = writeBuffer.slice(); //slice方法
                 byteBuffer.position(lastCommittedPosition);
                 byteBuffer.limit(writePos);
-                this.fileChannel.position(lastCommittedPosition);
+                this.fileChannel.position(lastCommittedPosition);//设置fileChannel的position
                 this.fileChannel.write(byteBuffer); //写入文件channel
                 this.committedPosition.set(writePos);//设置当前提交指针为 文件的写指针
             } catch (Throwable e) {
@@ -368,19 +374,24 @@ public class MappedFile extends ReferenceResource {
         return write > flush;
     }
 
+    /**
+     * 判断是否满足被提交
+     * @param commitLeastPages
+     * @return
+     */
     protected boolean isAbleToCommit(final int commitLeastPages) {
-        int flush = this.committedPosition.get();
-        int write = this.wrotePosition.get();
+        int flush = this.committedPosition.get();//当前CommitLog提交的指针
+        int write = this.wrotePosition.get(); //当前文件的写指针
 
         if (this.isFull()) {
             return true;
         }
 
         if (commitLeastPages > 0) {
-            return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= commitLeastPages;
+            return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= commitLeastPages; //当前写 - 已经刷盘指针页数 >= commitLeastPages
         }
 
-        return write > flush;
+        return write > flush;//当前的写指针 > 刷盘指针
     }
 
     public int getFlushedPosition() {

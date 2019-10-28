@@ -678,7 +678,7 @@ public class CommitLog {
         // Asynchronous flush
         else { //异步刷盘
             if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {//是否开启TransientStorePool机制
-                flushCommitLogService.wakeup();//
+                flushCommitLogService.wakeup();//开启isTransientStorePoolEnable的话 直接落盘 不需要提交到commitLog
             } else {
                 commitLogService.wakeup();
             }
@@ -934,12 +934,12 @@ public class CommitLog {
         @Override
         public void run() {
             CommitLog.log.info(this.getServiceName() + " service started");
-            //
+            //异步刷盘
             while (!this.isStopped()) {
                 //
                 int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitIntervalCommitLog(); //CommitRealTimeService线程间隔时间 默认200ms
 
-                int commitDataLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogLeastPages();//一次提交的任务至少包含页数 默认4页
+                int commitDataLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogLeastPages();//一次提交的任务至少包含页数 默认4页 获取pageCach
 
                 int commitDataThoroughInterval =
                     CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogThoroughInterval(); //俩次真实提交额最大间隔，默认200ms
@@ -978,7 +978,7 @@ public class CommitLog {
     }
 
     //每500ms 将MappedByteBuffer追加到磁盘当中 刷盘线程工作机制
-    class FlushRealTimeService extends FlushCommitLogService {
+    class FlushRealTimeService extends FlushCommitLogService {//刷盘线程
         private long lastFlushTimestamp = 0;
         private long printTimes = 0;
 

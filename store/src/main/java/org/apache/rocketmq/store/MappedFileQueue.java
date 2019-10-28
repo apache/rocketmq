@@ -435,7 +435,7 @@ public class MappedFileQueue { //映射文件队列
     }
 
     //强制刷盘
-    public boolean flush(final int flushLeastPages) {
+    public boolean flush(final int flushLeastPages) {//刷盘
         boolean result = true;
         MappedFile mappedFile = this.findMappedFileByOffset(this.flushedWhere, this.flushedWhere == 0);
         if (mappedFile != null) {
@@ -452,11 +452,17 @@ public class MappedFileQueue { //映射文件队列
         return result;
     }
 
+    /**
+     *
+     * @param commitLeastPages pageCach的页数 每页的大小
+     * @return
+     */
     public boolean commit(final int commitLeastPages) {
         boolean result = true;
-        MappedFile mappedFile = this.findMappedFileByOffset(this.committedWhere, this.committedWhere == 0);
-        if (mappedFile != null) {
-            int offset = mappedFile.commit(commitLeastPages);
+        //committed提交指针，byteBuffer的写指针
+        MappedFile mappedFile = this.findMappedFileByOffset(this.committedWhere, this.committedWhere == 0);//找到上次提交所在的MappedFile
+        if (mappedFile != null) {//找到offset
+            int offset = mappedFile.commit(commitLeastPages);//开始提交
             long where = mappedFile.getFileFromOffset() + offset;
             result = where == this.committedWhere;
             this.committedWhere = where;
@@ -485,19 +491,19 @@ public class MappedFileQueue { //映射文件队列
                         this.mappedFileSize,
                         this.mappedFiles.size());
                 } else {
-                    int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
+                    int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize)); //根据mappedFileSize计算出当前offset所在的第几个MapperFile文件
                     MappedFile targetFile = null;
                     try {
-                        targetFile = this.mappedFiles.get(index);
+                        targetFile = this.mappedFiles.get(index);//找到offset所在的MappedFile
                     } catch (Exception ignored) {
                     }
 
                     if (targetFile != null && offset >= targetFile.getFileFromOffset()
-                        && offset < targetFile.getFileFromOffset() + this.mappedFileSize) {
+                        && offset < targetFile.getFileFromOffset() + this.mappedFileSize) { //正常情况下返回
                         return targetFile;
                     }
 
-                    for (MappedFile tmpMappedFile : this.mappedFiles) {
+                    for (MappedFile tmpMappedFile : this.mappedFiles) {   //未找到目标 开始遍历所有的
                         if (offset >= tmpMappedFile.getFileFromOffset()
                             && offset < tmpMappedFile.getFileFromOffset() + this.mappedFileSize) {
                             return tmpMappedFile;
