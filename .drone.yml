@@ -1,12 +1,10 @@
 ---
 kind: pipeline
 type: docker
-name: default
+name: package
 
 steps:
 - name: package
   image: maven:3-jdk-8
-  volumes:
-    - /data/drone:/root/.m2/repository:rw
   commands:
   - mvn -Prelease-all -DskipTests clean install -U
