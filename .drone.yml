@@ -6,12 +6,7 @@ name: default
 steps:
 - name: package
   image: maven:3-jdk-8
+  volumes:
+  - /data/drone/data/packages:/root/.m2/repository/org/apache/rocketmq/
   commands:
   - mvn -Prelease-all -DskipTests clean install -U
-- name: publish
-  image: plugins/github-release
-  settings:
-    api_key: 97e4ddb59cca07fec9b4
-    files: dist/*
-  when:
-    event: tag
