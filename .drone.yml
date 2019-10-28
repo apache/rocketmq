@@ -7,6 +7,6 @@ steps:
 - name: package
   image: maven:3-jdk-8
   volumes: 
-  - /data/drone/data/packages:/root/.m2/repository/org/apache/rocketmq/:rw
+    - /data/drone/data/packages:/root/.m2/repository/org/apache/rocketmq/:rw
   commands:
   - mvn -Prelease-all -DskipTests clean install -U
