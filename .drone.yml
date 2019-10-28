@@ -1,11 +1,11 @@
 ---
+workspace:
+  base: /root
+  path: ./packages
+
 pipeline:
   package:
     image: maven:3-jdk-8
-    volumes:
-    - name: packages
-      host:
-        path: /data/drone/data/packages
     commands:
     - mvn -Prelease-all -DskipTests clean install -U
     # pull: true
