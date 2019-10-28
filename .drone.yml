@@ -11,4 +11,4 @@ steps:
 - name: package
   image: maven:3-jdk-8
   commands:
-  - mvn -DskipTest clean package
+  - mvn -Prelease-all -DskipTests clean install -U
