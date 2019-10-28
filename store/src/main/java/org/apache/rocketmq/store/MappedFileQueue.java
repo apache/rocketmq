@@ -198,6 +198,7 @@ public class MappedFileQueue { //映射文件队列
 
     /**
      *
+     * 获取queue中最后一个mapperFile文件
      * @param startOffset 初始偏移量
      * @param needCreate  是否需要重新创建爱 true 是
      * @return
@@ -207,7 +208,7 @@ public class MappedFileQueue { //映射文件队列
         MappedFile mappedFileLast = getLastMappedFile(); //获取最后一个写入的Commitlog 文件
 
         if (mappedFileLast == null) {
-            createOffset = startOffset - (startOffset % this.mappedFileSize);
+            createOffset = startOffset - (startOffset % this.mappedFileSize); //偏移量
         }
 
         if (mappedFileLast != null && mappedFileLast.isFull()) {
@@ -433,6 +434,7 @@ public class MappedFileQueue { //映射文件队列
         return deleteCount;
     }
 
+    //强制刷盘
     public boolean flush(final int flushLeastPages) {
         boolean result = true;
         MappedFile mappedFile = this.findMappedFileByOffset(this.flushedWhere, this.flushedWhere == 0);

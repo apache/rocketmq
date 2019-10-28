@@ -63,7 +63,7 @@ public class MappedFile extends ReferenceResource {
     private String fileName; //文件名称
     private long fileFromOffset; //该文件的初始偏移量
     private File file;  //File 物理文件
-    private MappedByteBuffer mappedByteBuffer; // 物理文件映射buffer 内存
+    private MappedByteBuffer mappedByteBuffer; // 虚拟内存映射物理内存
     private volatile long storeTimestamp = 0; //文件最后一次写入时间
     private boolean firstCreateInQueue = false; //是否是Mapper的Queue中的第一个文件
 
@@ -150,7 +150,7 @@ public class MappedFile extends ReferenceResource {
         this.writeBuffer = transientStorePool.borrowBuffer();
         this.transientStorePool = transientStorePool;
     }
-
+    //初始话虚拟内存映射
     private void init(final String fileName, final int fileSize) throws IOException {
         this.fileName = fileName;//文件名
         this.fileSize = fileSize;//文件大小
@@ -199,7 +199,12 @@ public class MappedFile extends ReferenceResource {
         return appendMessagesInner(messageExtBatch, cb);
     }
 
-    //将消息追加到mappFile中
+    /**
+     * 将msg 拼接到commitlog中
+     * @param messageExt
+     * @param cb
+     * @return
+     */
     public AppendMessageResult appendMessagesInner(final MessageExt messageExt, final AppendMessageCallback cb) {
         assert messageExt != null;
         assert cb != null;
@@ -207,10 +212,15 @@ public class MappedFile extends ReferenceResource {
         int currentPos = this.wrotePosition.get(); //获取当前文件的写指针
 
         if (currentPos < this.fileSize) {   //小于当前文件的最大值
+            //创建一个新的buffer
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice(); //创建一个mapperfile的共享区ByteBuffer
             byteBuffer.position(currentPos); //设置currentPos 为当前指针
             AppendMessageResult result = null;
             if (messageExt instanceof MessageExtBrokerInner) { //区分是单个消息
+                /**
+                 * fileFromOffset mappfile的初始偏移量
+                 *
+                 */
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBrokerInner) messageExt);
             } else if (messageExt instanceof MessageExtBatch) {//批量消息
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBatch) messageExt);

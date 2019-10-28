@@ -23,7 +23,7 @@ public class AppendMessageResult {
     // Return code
     private AppendMessageStatus status; //消息追加结果
     // Where to start writing
-    private long wroteOffset; //消息的物理偏移量
+    private long wroteOffset; //写入的其实偏移量
     // Write Bytes
     private int wroteBytes; //写入消息的长度
     // Message ID
