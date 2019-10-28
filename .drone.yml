@@ -1,13 +1,9 @@
 ---
 kind: pipeline
 type: docker
-name: default
+name: package
 
 steps:
-- name: build
-  image: maven:3-jdk-8
-  commands:
-  - mvn clean compile
 - name: package
   image: maven:3-jdk-8
   commands:
