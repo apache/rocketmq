@@ -70,7 +70,7 @@ public class DefaultMessageStoreCleanFilesTest {
         String deleteWhen = "04";
         // the min value of diskMaxUsedSpaceRatio.
         int diskMaxUsedSpaceRatio = 1;
-        // used to ensure set diskfull flag
+        // used to  set disk-full flag
         double diskSpaceCleanForciblyRatio = 0.01D;
         initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
         // build and put 55 messages, exactly one message per CommitLog file.
@@ -92,7 +92,7 @@ public class DefaultMessageStoreCleanFilesTest {
         String deleteWhen = "04";
         // the min value of diskMaxUsedSpaceRatio.
         int diskMaxUsedSpaceRatio = 1;
-        //use to reset diskfull flag
+        //use to reset disk-full flag
         double diskSpaceCleanForciblyRatio = 0.999D;
         initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
         //set disk full
