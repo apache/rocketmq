@@ -1,14 +1,13 @@
----
-kind: pipeline
-type: docker
-name: package
+workspace:
+  base: /srv/drone-demo
+  path: .
 
-steps:
-- name: package
-  volumes:
-  - name: persist
-    host: 
-      path: /data/drone/data/packages
-  image: maven:3-jdk-8
-  commands:
-  - mvn -Prelease-all -DskipTests clean install -U
+pipeline:
+  package:
+    image: maven:3-jdk-8
+    commands:
+    - mvn -Prelease-all -DskipTests clean install -U
+    # pull: true
+    #environment:
+    #  - KEY=VALUE
+    #secrets: [key1, key2]
