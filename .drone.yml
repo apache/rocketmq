@@ -6,7 +6,7 @@ steps:
   - name: "build"
     image: maven:3-jdk-8
     commands:
-      - "mvn clean package"
+      - "mvn -Prelease-all -DskipTest clean install -U"
     depends_on: [ "clone" ]
   - name: "publish"
     image: plugins/docker
