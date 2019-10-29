@@ -77,3 +77,4 @@ services.
 @20191028
 @20191029 new test new server
 @20191029 branch releases
+@20191029 add private repo
