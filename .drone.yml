@@ -10,7 +10,7 @@ steps:
     depends_on: [ "clone" ]
   - name: "publish"
     image: plugins/docker
-    repo: chinaloryu/rocketmq
+    repo: http://hz.4yutech.com:7070/rocketmq
     registry: http://hz.4yutech.com:7070/rocketmq
     settings:
       username: "user1"
