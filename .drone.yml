@@ -1,25 +1,30 @@
 ---
 kind: "pipeline"
 name: "default"
-workspace:
 steps:
+  - name: "compile"
+    image: maven:3-jdk-8
+    commands:
+      - "mvn clean package"
+    depends_on: [ "clone" ]
   - name: "build"
     image: maven:3-jdk-8
     commands:
-      - "mvn -Prelease-all -DskipTest clean install -U"
-    depends_on: [ "clone" ]
+      - "mvn -Prelease-all -DskipTests clean install -U"
+    depends_on: [ "compile" ]
   - name: "publish"
     image: plugins/docker
-    repo: http://hz.4yutech.com:7070/rocketmq
-    registry: http://hz.4yutech.com:7070/rocketmq
-    secrets: [ username,password ]
-    commands:
-    - "echo ${username},${password},${DRONE_BUILD_NUMBER}"
+    repo: rocketmq
+
     settings:
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
       dockerfile: "Dockerfile"
       tags: "${DRONE_BUILD_NUMBER}"
-    depends_on: [ "build" ]
-    
+    depends_on: "build"
+
 trigger:
   branch:
   - release
