@@ -10,14 +10,15 @@ steps:
     depends_on: [ "clone" ]
   - name: "publish"
     image: plugins/docker
-    repo: http://hz.4yutech.com:7070/rocketmq
-    commands:
-    - echo $username,$password
-    - echo ${DRONE_BUILD_NUMBER}
+    repo: chinaloryu/rocketmq
     settings:
-      username: user1
-      password: Test@123456
-      #dockerfile: "Dockerfile"
+      username: "chinaloryu"
+      password: "2019#Test"
+        from_secret: "password"
+      dockerfile: "Dockerfile"
       tags: "${DRONE_BUILD_NUMBER}"
-    depends_on: [ "build" ]
-
+    depends_on: "build"
+    
+trigger:
+  branch:
+  - release
