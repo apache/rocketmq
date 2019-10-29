@@ -16,7 +16,7 @@ steps:
       password: "2019#Test"
       dockerfile: "Dockerfile"
       tags: "${DRONE_BUILD_NUMBER}"
-    depends_on: "build"
+    depends_on: [ "build" ]
     
 trigger:
   branch:
