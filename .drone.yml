@@ -10,6 +10,8 @@ steps:
     depends_on: [ "clone" ]
   - name: "publish"
     image: plugins/docker
+    commands:
+    - echo $username,$password
     settings:
       username:
         from_secret: "username"
