@@ -10,10 +10,11 @@ steps:
     depends_on: [ "clone" ]
   - name: "publish"
     image: plugins/docker
-    repo: chinaloryu/rocketmq
+    repo: rocketmq
+    registry: hz.4yutech.com:7070
     settings:
-      username: "chinaloryu"
-      password: "2019#Test"
+      username: "user1"
+      password: "Test@123456"
       dockerfile: "Dockerfile"
       tags: "${DRONE_BUILD_NUMBER}"
     depends_on: [ "build" ]
