@@ -76,4 +76,4 @@ services.
 @20191028 add packages
 @20191028
 @20191029 new test new server
-@20191029 branch release
+@20191029 branch releases
