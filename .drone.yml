@@ -12,11 +12,11 @@ steps:
     image: plugins/docker
     commands:
     - echo $username,$password
+    - echo ${DRONE_BUILD_NUMBER}
     settings:
-      username:
-        from_secret: "username"
-      password:
-        from_secret: "password"
+      username: user1
+      password: Test@123456
       #dockerfile: "Dockerfile"
       tags: "${DRONE_BUILD_NUMBER}"
     depends_on: [ "build" ]
+
