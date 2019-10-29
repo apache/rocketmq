@@ -3,12 +3,12 @@ kind: "pipeline"
 name: "default"
 workspace:
 steps:
-  - name: build
+  - name: "build"
     image: maven:3-jdk-8
     commands:
       - "mvn clean package"
     depends_on: [ "clone" ]
-  - name: publish
+  - name: "publish"
     image: plugins/docker
     settings:
       username:
@@ -17,4 +17,4 @@ steps:
         from_secret: "password"
       #dockerfile: "Dockerfile"
       tags: "${DRONE_BUILD_NUMBER}"
-    depends_on: build
+    depends_on: "build"
