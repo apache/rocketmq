@@ -1,13 +1,20 @@
 ---
-kind: pipeline
-type: docker
-name: package
-
+kind: "pipeline"
+name: "default"
+workspace:
 steps:
-- name: package
-  image: maven:3-jdk-8
-  commands:
-  - mvn -Prelease-all -DskipTests clean install -U
-trigger:
-  branch:
-  - release
+  - name: build
+    image: maven:3-jdk-8
+    commands:
+      - "mvn clean package"
+    depends_on: [ "clone" ]
+  - name: publish
+    image: plugins/docker
+    settings:
+      username:
+        from_secret: "username"
+      password:
+        from_secret: "password"
+      #dockerfile: "Dockerfile"
+      tags: "${DRONE_BUILD_NUMBER}"
+    depends_on: build
