@@ -12,13 +12,10 @@ steps:
     image: plugins/docker
     repo: http://hz.4yutech.com:7070/rocketmq
     registry: http://hz.4yutech.com:7070/rocketmq
+    secrets: [ username,password ]
     commands:
     - "echo ${username},${password},${DRONE_BUILD_NUMBER}"
     settings:
-      username: 
-        from_secret: "username"
-      password: 
-        from_secret: "password"
       dockerfile: "Dockerfile"
       tags: "${DRONE_BUILD_NUMBER}"
     depends_on: [ "build" ]
