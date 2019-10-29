@@ -1,9 +1,11 @@
-﻿1 基本样例
---------
+# 样例
+-----
+## 1 基本样例
+
 
 在基本样例中我们提供如下的功能场景：
 
-* 使用RocketMQ发送三种类型的消息：同步消息，异步消息和单向消息。其中前两种消息是可靠的，因为会有发送是否成功的应答。
+* 使用RocketMQ发送三种类型的消息：同步消息、异步消息和单向消息。其中前两种消息是可靠的，因为会有发送是否成功的应答。
 * 使用RocketMQ来消费接收到的消息。
 
 ### 1.1 加入依赖：
@@ -64,7 +66,11 @@ public class AsyncProducer {
     	// 启动Producer实例
         producer.start();
         producer.setRetryTimesWhenSendAsyncFailed(0);
-    	for (int i = 0; i < 100; i++) {
+	
+	int messageCount = 100;
+        // 根据消息数量实例化倒计时计算器
+	final CountDownLatch2 countDownLatch = new CountDownLatch2(messageCount);
+    	for (int i = 0; i < messageCount; i++) {
                 final int index = i;
             	// 创建消息，并指定Topic，Tag和消息体
                 Message msg = new Message("TopicTest",
@@ -85,6 +91,8 @@ public class AsyncProducer {
                     }
             	});
     	}
+	// 等待5s
+	countDownLatch.await(5, TimeUnit.SECONDS);
     	// 如果不再发送消息，关闭Producer实例。
     	producer.shutdown();
     }
@@ -450,7 +458,7 @@ public class ScheduledMessageProducer {
 您将会看到消息的消费比存储时间晚10秒。
 
 ### 3.4 延时消息的使用场景
-1. 比如电商里，提交了一个订单就可以发送一个延时消息，1h后去检查这个订单的状态，如果还是未付款就取消订单释放库存。
+比如电商里，提交了一个订单就可以发送一个延时消息，1h后去检查这个订单的状态，如果还是未付款就取消订单释放库存。
 
 ### 3.5 延时消息的使用限制
 
@@ -639,9 +647,9 @@ consumer.start();
 
 事务消息共有三种状态，提交状态、回滚状态、中间状态：
 
-1. TransactionStatus.CommitTransaction: 提交事务，它允许消费者消费此消息。
-2. TransactionStatus.RollbackTransaction: 回滚事务，它代表该消息将被删除，不允许被消费。
-3. TransactionStatus.Unknown: 中间状态，它代表需要检查消息队列来确定状态。
+- TransactionStatus.CommitTransaction: 提交事务，它允许消费者消费此消息。
+- TransactionStatus.RollbackTransaction: 回滚事务，它代表该消息将被删除，不允许被消费。
+- TransactionStatus.Unknown: 中间状态，它代表需要检查消息队列来确定状态。
 
 ### 6.1 发送事务消息样例
 

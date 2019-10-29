@@ -1,11 +1,12 @@
-# Example for ordered messages
+# Example for Ordered Messages
 
 RocketMQ provides ordered messages using FIFO order. All related messages need to be sent into the same message queue in an orderly manner.
 
 The following demonstrates ordered messages by ensuring order of create, pay, send and finish steps of sales order process.
 
 ## 1 produce ordered messages
-```
+
+```java
 package org.apache.rocketmq.example.order2
 
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -167,9 +168,9 @@ public class Producer {
 
 ```
 
-## 2.2 Consume ordered messages
+## 2 Consume ordered messages
 
-```
+```java
 
 package org.apache.rocketmq.example.order2;
 

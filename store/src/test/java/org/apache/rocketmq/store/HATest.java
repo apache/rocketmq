@@ -22,20 +22,19 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -90,7 +89,7 @@ public class HATest {
     }
 
     @Test
-    public void testHandleHA() throws Exception{
+    public void testHandleHA() {
         long totalMsgs = 10;
         QUEUE_TOTAL = 1;
         MessageBody = StoreMessage.getBytes();
@@ -98,7 +97,20 @@ public class HATest {
             messageStore.putMessage(buildMessage());
         }
 
-        Thread.sleep(1000L);//sleep 1000 ms
+        for (int i = 0; i < 100 && isCommitLogAvailable((DefaultMessageStore) messageStore); i++) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ignored) {
+            }
+        }
+
+        for (int i = 0; i < 100 && isCommitLogAvailable((DefaultMessageStore) slaveMessageStore); i++) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ignored) {
+            }
+        }
+
         for (long i = 0; i < totalMsgs; i++) {
             GetMessageResult result = slaveMessageStore.getMessage("GROUP_A", "FooBar", 0, i, 1024 * 1024, null);
             assertThat(result).isNotNull();
@@ -125,8 +137,8 @@ public class HATest {
     }
 
     private void buildMessageStoreConfig(MessageStoreConfig messageStoreConfig){
-        messageStoreConfig.setMapedFileSizeCommitLog(1024 * 1024 * 10);
-        messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 1024 * 10);
+        messageStoreConfig.setMappedFileSizeCommitLog(1024 * 1024 * 10);
+        messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 1024 * 10);
         messageStoreConfig.setMaxHashSlotNum(10000);
         messageStoreConfig.setMaxIndexNum(100 * 100);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
@@ -145,6 +157,22 @@ public class HATest {
         msg.setStoreHost(StoreHost);
         msg.setBornHost(BornHost);
         return msg;
+    }
+
+    private boolean isCommitLogAvailable(DefaultMessageStore store)  {
+        try {
+
+            Field serviceField = store.getClass().getDeclaredField("reputMessageService");
+            serviceField.setAccessible(true);
+            DefaultMessageStore.ReputMessageService reputService =
+                    (DefaultMessageStore.ReputMessageService) serviceField.get(store);
+
+            Method method = DefaultMessageStore.ReputMessageService.class.getDeclaredMethod("isCommitLogAvailable");
+            method.setAccessible(true);
+            return (boolean) method.invoke(reputService);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException |  NoSuchFieldException e ) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

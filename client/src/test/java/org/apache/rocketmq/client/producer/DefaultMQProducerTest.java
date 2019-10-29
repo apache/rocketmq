@@ -52,7 +52,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Spy;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.failBecauseExceptionWasNotThrown;
@@ -66,7 +68,7 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultMQProducerTest {
     @Spy
-    private MQClientInstance mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(new ClientConfig());
+    private MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
     @Mock
     private MQClientAPIImpl mQClientAPIImpl;
     @Mock
@@ -105,7 +107,22 @@ public class DefaultMQProducerTest {
             nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class))).thenCallRealMethod();
         when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
             nullable(SendCallback.class), nullable(TopicPublishInfo.class), nullable(MQClientInstance.class), anyInt(), nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class)))
-            .thenReturn(createSendResult(SendStatus.SEND_OK));
+            .thenAnswer(new Answer() {
+                @Override
+                public Object answer(InvocationOnMock invocation) throws Throwable {
+                    CommunicationMode mode = invocation.getArgument(5);
+                    switch (mode) {
+                        case SYNC:
+                            return createSendResult(SendStatus.SEND_OK);
+                        case ONEWAY:
+                        case ASYNC:
+                            SendCallback callback = invocation.getArgument(6);
+                            callback.onSuccess(createSendResult(SendStatus.SEND_OK));
+                            return null;
+                    }
+                    return null;
+                }
+            });
     }
 
     @After
@@ -168,6 +185,8 @@ public class DefaultMQProducerTest {
     @Test
     public void testSendMessageAsync_Success() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
+//        final AtomicInteger cc = new AtomicInteger(0);
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         producer.send(message, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
@@ -175,23 +194,27 @@ public class DefaultMQProducerTest {
                 assertThat(sendResult.getOffsetMsgId()).isEqualTo("123");
                 assertThat(sendResult.getQueueOffset()).isEqualTo(456L);
                 countDownLatch.countDown();
+//                cc.incrementAndGet();
             }
 
             @Override
             public void onException(Throwable e) {
-                countDownLatch.countDown();
             }
         });
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+//        assertThat(cc.get()).isEqualTo(1);
     }
+
     @Test
     public void testSendMessageAsync() throws RemotingException, MQClientException, InterruptedException {
         final AtomicInteger cc = new AtomicInteger(0);
         final CountDownLatch countDownLatch = new CountDownLatch(6);
 
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         SendCallback sendCallback = new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
+                countDownLatch.countDown();
             }
 
             @Override
@@ -211,36 +234,39 @@ public class DefaultMQProducerTest {
         Message message = new Message();
         message.setTopic("test");
         message.setBody("hello world".getBytes());
-        producer.send(new Message(),sendCallback);
-        producer.send(message,sendCallback,1000);
-        producer.send(message,new MessageQueue(),sendCallback);
-        producer.send(new Message(),new MessageQueue(),sendCallback,1000);
-        producer.send(new Message(),messageQueueSelector,null,sendCallback);
-        producer.send(message,messageQueueSelector,null,sendCallback,1000);
+        producer.send(new Message(), sendCallback);
+        producer.send(message, new MessageQueue(), sendCallback);
+        producer.send(new Message(), new MessageQueue(), sendCallback, 1000);
+        producer.send(new Message(), messageQueueSelector, null, sendCallback);
+        producer.send(message, messageQueueSelector, null, sendCallback, 1000);
+        //this message is send success
+        producer.send(message, sendCallback, 1000);
 
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
-        assertThat(cc.get()).isEqualTo(6);
+        assertThat(cc.get()).isEqualTo(5);
     }
 
     @Test
     public void testSendMessageAsync_BodyCompressed() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
-
+        final AtomicInteger cc = new AtomicInteger(0);
         final CountDownLatch countDownLatch = new CountDownLatch(1);
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         producer.send(bigMessage, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
                 assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
                 assertThat(sendResult.getOffsetMsgId()).isEqualTo("123");
                 assertThat(sendResult.getQueueOffset()).isEqualTo(456L);
+                cc.incrementAndGet();
                 countDownLatch.countDown();
             }
 
             @Override
             public void onException(Throwable e) {
-                countDownLatch.countDown();
             }
         });
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        assertThat(cc.get()).isEqualTo(1);
     }
 
     @Test
