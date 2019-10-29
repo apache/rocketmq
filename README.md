@@ -71,10 +71,3 @@ The following provides more details on the included cryptographic software:
 This software uses Apache Commons Crypto (https://commons.apache.org/proper/commons-crypto/) to
 support authentication, and encryption and decryption of data sent across the network between
 services.
-@20191025 add exec pipeline
-@20191025 add docker pipeline
-@20191028 add packages
-@20191028
-@20191029 new test new server
-@20191029 branch releases
-@20191029 add private repo
