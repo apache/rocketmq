@@ -95,6 +95,7 @@ public class ProcessQueueTest {
         ProcessQueue pq = new ProcessQueue();
         List<MessageExt> msgs=createMessageList(3001);
         pq.putMessage(msgs);
+        
         int ind=10;
         msgs.remove(ind);
         pq.removeMessage(msgs);
