@@ -17,7 +17,7 @@ steps:
     repo: chinaloryu/rocketmq
     commands:
       - "echo ${username},${password}"
-    settings:
+    environment:
       username: 
         from_secret: docker_username
       password: 
