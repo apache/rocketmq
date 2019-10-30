@@ -18,10 +18,10 @@ steps:
     commands:
       - "echo ${username},${password}"
     environment:
-      username: 
-        from_secret: username
-      password: 
-	from_secret: passwd
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
       # dockerfile: "Dockerfile"
       # tags: "${DRONE_BUILD_NUMBER}"
     depends_on: [ "build" ]
