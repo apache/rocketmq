@@ -71,4 +71,3 @@ The following provides more details on the included cryptographic software:
 This software uses Apache Commons Crypto (https://commons.apache.org/proper/commons-crypto/) to
 support authentication, and encryption and decryption of data sent across the network between
 services.
-@20191030
