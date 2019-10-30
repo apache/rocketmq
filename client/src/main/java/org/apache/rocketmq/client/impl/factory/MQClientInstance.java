@@ -274,7 +274,7 @@ public class MQClientInstance {
                 @Override
                 public void run() {
                     try {
-                        MQClientInstance.this.mQClientAPIImpl.fetchNameServerAddr();
+                        MQClientInstance.this.mQClientAPIImpl.fetchNameServerAddr(); //获取nameserver address
                     } catch (Exception e) {
                         log.error("ScheduledTask fetchNameServerAddr exception", e);
                     }
@@ -287,7 +287,7 @@ public class MQClientInstance {
             @Override
             public void run() {
                 try {
-                    MQClientInstance.this.updateTopicRouteInfoFromNameServer();
+                    MQClientInstance.this.updateTopicRouteInfoFromNameServer();//封信topic路由
                 } catch (Exception e) {
                     log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", e);
                 }
@@ -299,8 +299,8 @@ public class MQClientInstance {
             @Override
             public void run() {
                 try {
-                    MQClientInstance.this.cleanOfflineBroker();
-                    MQClientInstance.this.sendHeartbeatToAllBrokerWithLock();
+                    MQClientInstance.this.cleanOfflineBroker();  //清理下线的broker
+                    MQClientInstance.this.sendHeartbeatToAllBrokerWithLock(); //发送心跳信息
                 } catch (Exception e) {
                     log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
                 }
@@ -459,7 +459,7 @@ public class MQClientInstance {
         }
     }
 
-    public void sendHeartbeatToAllBrokerWithLock() {
+    public void sendHeartbeatToAllBrokerWithLock() {//消费者发送心跳消息
         if (this.lockHeartbeat.tryLock()) {
             try {
                 this.sendHeartbeatToAllBroker();
@@ -522,6 +522,9 @@ public class MQClientInstance {
         return false;
     }
 
+    /**
+     * 消费者心跳小城
+     */
     private void sendHeartbeatToAllBroker() {
         final HeartbeatData heartbeatData = this.prepareHeartbeatData();
         final boolean producerEmpty = heartbeatData.getProducerDataSet().isEmpty();
@@ -688,29 +691,33 @@ public class MQClientInstance {
         return false;
     }
 
+    /**
+     * 准备心跳数据
+     * @return
+     */
     private HeartbeatData prepareHeartbeatData() {
         HeartbeatData heartbeatData = new HeartbeatData();
 
         // clientID
-        heartbeatData.setClientID(this.clientId);
+        heartbeatData.setClientID(this.clientId);//设置 客户端Id
 
         // Consumer
         for (Map.Entry<String, MQConsumerInner> entry : this.consumerTable.entrySet()) {
             MQConsumerInner impl = entry.getValue();
             if (impl != null) {
-                ConsumerData consumerData = new ConsumerData();
-                consumerData.setGroupName(impl.groupName());
-                consumerData.setConsumeType(impl.consumeType());
-                consumerData.setMessageModel(impl.messageModel());
+                ConsumerData consumerData = new ConsumerData(); //封装
+                consumerData.setGroupName(impl.groupName());//group name
+                consumerData.setConsumeType(impl.consumeType()); //消费类型
+                consumerData.setMessageModel(impl.messageModel()); //广播还是几圈
                 consumerData.setConsumeFromWhere(impl.consumeFromWhere());
-                consumerData.getSubscriptionDataSet().addAll(impl.subscriptions());
+                consumerData.getSubscriptionDataSet().addAll(impl.subscriptions()); //获取该group下的订阅者关系
                 consumerData.setUnitMode(impl.isUnitMode());
 
                 heartbeatData.getConsumerDataSet().add(consumerData);
             }
         }
 
-        // Producer
+        // Producer 该client下的生产者
         for (Map.Entry<String/* group */, MQProducerInner> entry : this.producerTable.entrySet()) {
             MQProducerInner impl = entry.getValue();
             if (impl != null) {
@@ -869,6 +876,8 @@ public class MQClientInstance {
          * @param group 消费者所属组
          * @param consumer
          * @return
+         * 注册消费者
+         *
          */
     public boolean registerConsumer(final String group, final MQConsumerInner consumer) {
         if (null == group || null == consumer) {

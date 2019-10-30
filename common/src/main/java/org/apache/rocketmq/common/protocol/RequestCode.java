@@ -48,7 +48,7 @@ public class RequestCode {
 
     public static final int VIEW_MESSAGE_BY_ID = 33;
 
-    public static final int HEART_BEAT = 34;
+    public static final int HEART_BEAT = 34; //发送心跳
 
     public static final int UNREGISTER_CLIENT = 35;
 

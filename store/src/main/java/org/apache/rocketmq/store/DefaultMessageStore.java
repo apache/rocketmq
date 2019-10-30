@@ -1195,7 +1195,7 @@ public class DefaultMessageStore implements MessageStore {
             public void run() {
                 DefaultMessageStore.this.cleanFilesPeriodically();
             }
-        }, 1000 * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);
+        }, 1000 * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);//
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -1233,8 +1233,8 @@ public class DefaultMessageStore implements MessageStore {
         // }, 1, 1, TimeUnit.HOURS);
     }
 
-    private void cleanFilesPeriodically() {
-        this.cleanCommitLogService.run();
+    private void cleanFilesPeriodically() {//
+        this.cleanCommitLogService.run(); //清理过期的Commitlog文件
         this.cleanConsumeQueueService.run();
     }
 
@@ -1461,15 +1461,15 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    class CleanCommitLogService {
+    class CleanCommitLogService {//清理commitlog service
 
         private final static int MAX_MANUAL_DELETE_FILE_TIMES = 20;
         private final double diskSpaceWarningLevelRatio =
-            Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceWarningLevelRatio", "0.90"));
+            Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceWarningLevelRatio", "0.90")); //磁盘报警内存使用率
 
         private final double diskSpaceCleanForciblyRatio =
-            Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceCleanForciblyRatio", "0.85"));
-        private long lastRedeleteTimestamp = 0;
+            Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceCleanForciblyRatio", "0.85"));//强制清理commitlog的二村石永利
+        private long lastRedeleteTimestamp = 0;//最后一次清理时间
 
         private volatile int manualDeleteFileSeveralTimes = 0;
 
@@ -1482,7 +1482,7 @@ public class DefaultMessageStore implements MessageStore {
 
         public void run() {
             try {
-                this.deleteExpiredFiles();
+                this.deleteExpiredFiles();//删除超时文件
 
                 this.redeleteHangedFile();
             } catch (Throwable e) {
@@ -1492,19 +1492,23 @@ public class DefaultMessageStore implements MessageStore {
 
         private void deleteExpiredFiles() {
             int deleteCount = 0;
-            long fileReservedTime = DefaultMessageStore.this.getMessageStoreConfig().getFileReservedTime();
-            int deletePhysicFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteCommitLogFilesInterval();
-            int destroyMapedFileIntervalForcibly = DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
+            long fileReservedTime = DefaultMessageStore.this.getMessageStoreConfig().getFileReservedTime();//超过这个时间的文件都删除
+            int deletePhysicFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteCommitLogFilesInterval();//删除物理文件的时间间隔
+            int destroyMapedFileIntervalForcibly = DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();//强制删除mappedFIle时间间隔
 
+            //删除的前置条件
             boolean timeup = this.isTimeToDelete();
             boolean spacefull = this.isSpaceToDelete();
             boolean manualDelete = this.manualDeleteFileSeveralTimes > 0;
 
-            if (timeup || spacefull || manualDelete) {
 
+
+            if (timeup || spacefull || manualDelete) {
+                //符合条件的开始删除
                 if (manualDelete)
                     this.manualDeleteFileSeveralTimes--;
 
+                //
                 boolean cleanAtOnce = DefaultMessageStore.this.getMessageStoreConfig().isCleanFileForciblyEnable() && this.cleanImmediately;
 
                 log.info("begin to delete before {} hours file. timeup: {} spacefull: {} manualDeleteFileSeveralTimes: {} cleanAtOnce: {}",
@@ -1515,7 +1519,7 @@ public class DefaultMessageStore implements MessageStore {
                     cleanAtOnce);
 
                 fileReservedTime *= 60 * 60 * 1000;
-
+                //删除过期的File
                 deleteCount = DefaultMessageStore.this.commitLog.deleteExpiredFile(fileReservedTime, deletePhysicFilesInterval,
                     destroyMapedFileIntervalForcibly, cleanAtOnce);
                 if (deleteCount > 0) {
