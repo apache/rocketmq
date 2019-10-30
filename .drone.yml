@@ -12,16 +12,16 @@ steps:
     commands:
       - "mvn -Prelease-all -DskipTests clean install -U"
     depends_on: [ "compile" ]
-  - name: "publish"
-    image: plugins/docker
-    repo: rocketmq
-
-    settings:
-      username: "user1"
-      password: "Test@123456"
-      dockerfile: "Dockerfile"
-      tags: "${DRONE_BUILD_NUMBER}"
-    depends_on: [ "build" ]
+#   - name: "publish"
+#     image: plugins/docker
+#     repo: rocketmq
+# 
+#     settings:
+#       username: "user1"
+#       password: "Test@123456"
+#       dockerfile: "Dockerfile"
+#       tags: "${DRONE_BUILD_NUMBER}"
+#     depends_on: [ "build" ]
 
 trigger:
   branch:
