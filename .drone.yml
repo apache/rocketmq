@@ -17,10 +17,8 @@ steps:
     repo: rocketmq
 
     settings:
-      username:
-        from_secret: docker_username
-      password:
-        from_secret: docker_password
+      username: "user1"
+      password: "Test@123456"
       dockerfile: "Dockerfile"
       tags: "${DRONE_BUILD_NUMBER}"
     depends_on: [ "build" ]
