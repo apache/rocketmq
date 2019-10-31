@@ -141,6 +141,7 @@ public class TransactionalMessageBridge {
                         getMessageResult.getStatus(), topic, group, offset);
                     break;
                 case NO_MESSAGE_IN_QUEUE:
+                case OFFSET_OVERFLOW_ONE:
                     pullStatus = PullStatus.NO_NEW_MSG;
                     LOGGER.warn("No new message. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
                         getMessageResult.getStatus(), topic, group, offset);
@@ -149,7 +150,6 @@ public class TransactionalMessageBridge {
                 case NO_MATCHED_LOGIC_QUEUE:
                 case OFFSET_FOUND_NULL:
                 case OFFSET_OVERFLOW_BADLY:
-                case OFFSET_OVERFLOW_ONE:
                 case OFFSET_TOO_SMALL:
                     pullStatus = PullStatus.OFFSET_ILLEGAL;
                     LOGGER.warn("Offset illegal. GetMessageStatus={}, topic={}, groupId={}, requestOffset={}",
