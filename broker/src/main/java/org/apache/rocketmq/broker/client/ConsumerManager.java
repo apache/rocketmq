@@ -35,8 +35,8 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class ConsumerManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-    private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
-    private final ConcurrentMap<String/* Group */, ConsumerGroupInfo> consumerTable =
+    private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120; //超时时间
+    private final ConcurrentMap<String/* Group */, ConsumerGroupInfo> consumerTable =  //group和topic的订阅关系
         new ConcurrentHashMap<String, ConsumerGroupInfo>(1024);
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
 
@@ -95,11 +95,22 @@ public class ConsumerManager {
         }
     }
 
+    /**
+     *
+     * @param group                消费group
+     * @param clientChannelInfo    netty Channel
+     * @param consumeType          消费类型 集群广播
+     * @param messageModel         消息类型
+     * @param consumeFromWhere
+     * @param subList
+     * @param isNotifyConsumerIdsChangedEnable
+     * @return
+     */
     public boolean registerConsumer(final String group, final ClientChannelInfo clientChannelInfo,
         ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere,
         final Set<SubscriptionData> subList, boolean isNotifyConsumerIdsChangedEnable) {
 
-        ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
+        ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);//获取消费组信息
         if (null == consumerGroupInfo) {
             ConsumerGroupInfo tmp = new ConsumerGroupInfo(group, consumeType, messageModel, consumeFromWhere);
             ConsumerGroupInfo prev = this.consumerTable.putIfAbsent(group, tmp);
@@ -108,7 +119,9 @@ public class ConsumerManager {
 
         boolean r1 =
             consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel,
-                consumeFromWhere);
+                consumeFromWhere);//封信channel
+        // 更新订阅信息，订阅信息是按照消费组存放的，因此这步骤就会导致同一个消费组内的各个消费者客户端的订阅信息相互被覆盖
+        // 会相互覆盖
         boolean r2 = consumerGroupInfo.updateSubscription(subList);
 
         if (r1 || r2) {
@@ -116,7 +129,7 @@ public class ConsumerManager {
                 this.consumerIdsChangeListener.handle(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
             }
         }
-
+        //触发消息负载
         this.consumerIdsChangeListener.handle(ConsumerGroupEvent.REGISTER, group, subList);
 
         return r1 || r2;

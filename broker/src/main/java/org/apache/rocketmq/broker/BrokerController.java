@@ -861,6 +861,7 @@ public class BrokerController {
 
     /**
      * 发送心跳包 实现路由注册
+     * 同事注册topic到到
      * @param checkOrderConfig
      * @param oneway
      * @param forceRegister

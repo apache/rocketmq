@@ -221,6 +221,7 @@ public abstract class RebalanceImpl {
     public void doRebalance(final boolean isOrder) {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner(); //获取订阅信息
         if (subTable != null) {
+            //当前消费者实例的订阅的topic
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
                 final String topic = entry.getKey(); //key 是topic
                 try {
@@ -241,7 +242,11 @@ public abstract class RebalanceImpl {
     }
 
 
-
+    /**
+     * 消息负载的topic
+     * @param topic
+     * @param isOrder
+     */
     private void rebalanceByTopic(final String topic, final boolean isOrder) { //消息负载 topic
         switch (messageModel) {
             case BROADCASTING: { //广播的模式 暂时不分析

@@ -217,12 +217,21 @@ public class TopicConfigManager extends ConfigManager {
     }
 
     //创建 SendMessageBack Topic
+
+    /**
+     *
+     * @param topic                         主题
+     * @param clientDefaultTopicQueueNums   默认队列数
+     * @param perm                          权限
+     * @param topicSysFlag                  主题系统标志
+     * @return
+     */
     public TopicConfig createTopicInSendMessageBackMethod(
         final String topic,
         final int clientDefaultTopicQueueNums,
         final int perm,
         final int topicSysFlag) {
-        TopicConfig topicConfig = this.topicConfigTable.get(topic);
+        TopicConfig topicConfig = this.topicConfigTable.get(topic);//topic 存在直接返回
         if (topicConfig != null)
             return topicConfig;
 
@@ -242,7 +251,7 @@ public class TopicConfigManager extends ConfigManager {
                     topicConfig.setTopicSysFlag(topicSysFlag);
 
                     log.info("create new topic {}", topicConfig);
-                    this.topicConfigTable.put(topic, topicConfig);
+                    this.topicConfigTable.put(topic, topicConfig);//创建topic以及topic配置信息
                     createNew = true;
                     this.dataVersion.nextVersion();
                     this.persist();
@@ -254,6 +263,7 @@ public class TopicConfigManager extends ConfigManager {
             log.error("createTopicInSendMessageBackMethod exception", e);
         }
 
+        //重新注册到Broker
         if (createNew) {
             this.brokerController.registerBrokerAll(false, true,true);
         }

@@ -871,6 +871,7 @@ public class MQClientAPIImpl {
         this.remotingClient.invokeOneway(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr), request, timeoutMillis);
     }
 
+    //发送心跳数据
     public int sendHearbeat(
         final String addr,
         final HeartbeatData heartbeatData,

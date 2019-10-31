@@ -248,7 +248,7 @@ public class MQClientInstance {
                     // 消息拉取服务
                     this.pullMessageService.start();
                     //消息负载线程启动
-                    // Start rebalance service
+                    // Start rebalance service/
                     this.rebalanceService.start();
                     // Start push service
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
@@ -523,7 +523,7 @@ public class MQClientInstance {
     }
 
     /**
-     * 消费者心跳小城
+     * 消费者心跳线程
      */
     private void sendHeartbeatToAllBroker() {
         final HeartbeatData heartbeatData = this.prepareHeartbeatData();
@@ -708,7 +708,7 @@ public class MQClientInstance {
                 ConsumerData consumerData = new ConsumerData(); //封装
                 consumerData.setGroupName(impl.groupName());//group name
                 consumerData.setConsumeType(impl.consumeType()); //消费类型
-                consumerData.setMessageModel(impl.messageModel()); //广播还是几圈
+                consumerData.setMessageModel(impl.messageModel()); //广播还是集群
                 consumerData.setConsumeFromWhere(impl.consumeFromWhere());
                 consumerData.getSubscriptionDataSet().addAll(impl.subscriptions()); //获取该group下的订阅者关系
                 consumerData.setUnitMode(impl.isUnitMode());

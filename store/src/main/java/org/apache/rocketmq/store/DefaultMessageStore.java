@@ -81,6 +81,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private final AllocateMappedFileService allocateMappedFileService; //MappedFile分配线程 Rocketmq使用内存映射处理commitlog consumeQueue文件
 
+    //todo 消息分发逻辑
     private final ReputMessageService reputMessageService; //CommitLog 消息分发 ，根据commitLog文件构建ConsumeQueue，IndexFile 文件
 
     private final HAService haService; //存储HA机制

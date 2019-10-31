@@ -76,6 +76,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
      * @param ctx
      * @param request 命令
      * @return
+     * 处理
      */
     public RemotingCommand heartBeat(ChannelHandlerContext ctx, RemotingCommand request) {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
@@ -86,25 +87,30 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             request.getLanguage(),
             request.getVersion()
         );
-
+        //过去这个group下的所有消费者
         for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
+
+            //或者该group下的配置信息
             SubscriptionGroupConfig subscriptionGroupConfig =
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
                     data.getGroupName());
+
             boolean isNotifyConsumerIdsChangedEnable = true;
+
+
             if (null != subscriptionGroupConfig) {
                 isNotifyConsumerIdsChangedEnable = subscriptionGroupConfig.isNotifyConsumerIdsChangedEnable();
                 int topicSysFlag = 0;
                 if (data.isUnitMode()) {
                     topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
                 }
-                String newTopic = MixAll.getRetryTopic(data.getGroupName());
+                String newTopic = MixAll.getRetryTopic(data.getGroupName());//创建
                 this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
                     newTopic,
                     subscriptionGroupConfig.getRetryQueueNums(),
                     PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
             }
-
+            //注册消费者
             boolean changed = this.brokerController.getConsumerManager().registerConsumer(
                 data.getGroupName(),
                 clientChannelInfo,

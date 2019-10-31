@@ -622,7 +622,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     }
                     this.defaultMQPushConsumer.setOffsetStore(this.offsetStore);
                 }
-                this.offsetStore.load(); //获取消费存储进度
+                this.offsetStore.load(); //加载
 
                 if (this.getMessageListenerInner() instanceof MessageListenerOrderly) {  //顺序消费的Listener
                     this.consumeOrderly = true;
