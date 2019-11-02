@@ -45,7 +45,9 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
  */
 public abstract class RebalanceImpl {
     protected static final InternalLogger log = ClientLogger.getLog();
-    protected final ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
+
+    //messagequeue对应的处理这个messagequeu的处理队列
+    protected final ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<MessageQueue, ProcessQueue>(64); //
     protected final ConcurrentMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
         new ConcurrentHashMap<String, Set<MessageQueue>>();
     protected final ConcurrentMap<String /* topic */, SubscriptionData> subscriptionInner =  //topic 和订阅信息
@@ -217,7 +219,10 @@ public abstract class RebalanceImpl {
         }
     }
 
-    //消息负载 是否是顺讯消费
+    /**
+     * 消息负载
+     * @param isOrder
+     */
     public void doRebalance(final boolean isOrder) {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner(); //获取订阅信息
         if (subTable != null) {
@@ -326,7 +331,9 @@ public abstract class RebalanceImpl {
                     if (allocateResult != null) {
                         allocateResultSet.addAll(allocateResult);//消息经过负载后的选择的message queue
                     }
-                    //topic
+                    /**
+                     * 经过负载重新分配的队列 allocateResultSet
+                     */
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
                     if (changed) {
                         log.info(
@@ -362,7 +369,7 @@ public abstract class RebalanceImpl {
     /**
      * RocketMq 集群模式下 同一个消费Group内共同承担其订阅主题下的所有的messageQueue
      *          同一个消息的消费队列在同一时刻只能被消费组内一个消费组消费 一个消费者同一时刻 可以分配多个消费队列
-     * @param topic
+     * @param topic topic
      * @param mqSet
      * @param isOrder
      * @return
@@ -371,14 +378,14 @@ public abstract class RebalanceImpl {
         final boolean isOrder) {
         boolean changed = false;
 
-        Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();
+        Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();//获取该client
         while (it.hasNext()) {
             Entry<MessageQueue, ProcessQueue> next = it.next();
             MessageQueue mq = next.getKey();
             ProcessQueue pq = next.getValue();
 
             if (mq.getTopic().equals(topic)) {
-                if (!mqSet.contains(mq)) {
+                if (!mqSet.contains(mq)){
                     pq.setDropped(true);
                     if (this.removeUnnecessaryMessageQueue(mq, pq)) {
                         it.remove();
@@ -411,13 +418,14 @@ public abstract class RebalanceImpl {
         List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
         for (MessageQueue mq : mqSet) { //遍历mqSet
             if (!this.processQueueTable.containsKey(mq)) {//不包含
-                if (isOrder && !this.lock(mq)) { //分配到新的队列时 像Broker发起锁定该队列的请求
+                    if (isOrder && !this.lock(mq)) { //分配到新的队列时 像Broker发起锁定该队列的请求
                     log.warn("doRebalance, {}, add a new mq failed, {}, because lock failed", consumerGroup, mq);
                     continue;
                 }
 
                 this.removeDirtyOffset(mq); //将mq的消费进度移除
                 ProcessQueue pq = new ProcessQueue();
+                //获取messagequeue拉取的消费进度
                 long nextOffset = this.computePullFromWhere(mq);
                 if (nextOffset >= 0) {
                     ProcessQueue pre = this.processQueueTable.putIfAbsent(mq, pq);
@@ -438,7 +446,7 @@ public abstract class RebalanceImpl {
                 }
             }
         }
-
+        //处理分发
         this.dispatchPullRequest(pullRequestList);
 
         return changed;

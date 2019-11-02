@@ -39,7 +39,7 @@ public class RebalanceService extends ServiceThread {
 
         while (!this.isStopped()) {
             this.waitForRunning(waitInterval); //默认20s，使用CountDownLatch2休眠等待20s 每20s执行一次
-            this.mqClientFactory.doRebalance();
+            this.mqClientFactory.doRebalance(); //开始
         }
 
         log.info(this.getServiceName() + " service end");

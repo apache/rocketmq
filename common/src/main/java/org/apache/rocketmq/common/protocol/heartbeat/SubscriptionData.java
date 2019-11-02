@@ -26,6 +26,7 @@ import org.apache.rocketmq.common.filter.ExpressionType;
 import java.util.HashSet;
 import java.util.Set;
 
+//当前消费者的订阅信息
 public class SubscriptionData implements Comparable<SubscriptionData> {
     public final static String SUB_ALL = "*";  //消息过滤模式 默认全匹配
     private boolean classFilterMode = false;   //根据classMode 去过滤

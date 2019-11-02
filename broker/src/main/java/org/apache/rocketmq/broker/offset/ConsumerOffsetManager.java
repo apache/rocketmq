@@ -36,8 +36,13 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 public class ConsumerOffsetManager extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final String TOPIC_GROUP_SEPARATOR = "@";
-
-    private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
+    /**
+     * key  :topic@group
+     * value:ConcurrentMap
+     *       key:queueId
+     *       vlaue: offset 消费进度
+     */
+    private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =   //消费进度
         new ConcurrentHashMap<String, ConcurrentMap<Integer, Long>>(512);
 
     private transient BrokerController brokerController;

@@ -47,18 +47,25 @@ public class RebalancePushImpl extends RebalanceImpl {
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
     }
 
+    /**
+     *
+     * @param topic topic
+     * @param mqAll 该topic 所有的消费对垒
+     * @param mqDivided
+     */
     @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
         /**
          * When rebalance result changed, should update subscription's version to notify broker.
          * Fix: inconsistency subscription may lead to consumer miss messages.
          */
-        SubscriptionData subscriptionData = this.subscriptionInner.get(topic);
-        long newVersion = System.currentTimeMillis();
+        SubscriptionData subscriptionData = this.subscriptionInner.get(topic);//获取topic的订阅数据
+        long newVersion = System.currentTimeMillis();//
         log.info("{} Rebalance changed, also update version: {}, {}", topic, subscriptionData.getSubVersion(), newVersion);
+        //设置新的版本号
         subscriptionData.setSubVersion(newVersion);
 
-        int currentQueueCount = this.processQueueTable.size();
+        int currentQueueCount = this.processQueueTable.size();// message 对应 ProcessQueue
         if (currentQueueCount != 0) {
             int pullThresholdForTopic = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getPullThresholdForTopic();
             if (pullThresholdForTopic != -1) {
@@ -78,6 +85,7 @@ public class RebalancePushImpl extends RebalanceImpl {
         }
 
         // notify broker
+        //触发一次心跳
         this.getmQClientFactory().sendHeartbeatToAllBrokerWithLock();
     }
 
@@ -137,16 +145,21 @@ public class RebalancePushImpl extends RebalanceImpl {
         this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
     }
 
+    /**
+     *
+     * @param mq
+     * @return
+     */
     @Override
     public long computePullFromWhere(MessageQueue mq) {
         long result = -1;
-        final ConsumeFromWhere consumeFromWhere = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeFromWhere();
-        final OffsetStore offsetStore = this.defaultMQPushConsumerImpl.getOffsetStore();
+        final ConsumeFromWhere consumeFromWhere = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeFromWhere();//获取当前消费者的消费进度模式
+        final OffsetStore offsetStore = this.defaultMQPushConsumerImpl.getOffsetStore();//获取消息存储类
         switch (consumeFromWhere) {
             case CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST:
             case CONSUME_FROM_MIN_OFFSET:
             case CONSUME_FROM_MAX_OFFSET:
-            case CONSUME_FROM_LAST_OFFSET: {
+            case CONSUME_FROM_LAST_OFFSET: {//从mq的最后位置开始消费
                 long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
                 if (lastOffset >= 0) {
                     result = lastOffset;

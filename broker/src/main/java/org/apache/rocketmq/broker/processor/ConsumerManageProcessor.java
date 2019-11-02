@@ -54,7 +54,7 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
                 return this.getConsumerListByGroup(ctx, request);
             case RequestCode.UPDATE_CONSUMER_OFFSET:
                 return this.updateConsumerOffset(ctx, request);
-            case RequestCode.QUERY_CONSUMER_OFFSET:
+            case RequestCode.QUERY_CONSUMER_OFFSET:     //查询消费进度
                 return this.queryConsumerOffset(ctx, request);
             default:
                 break;
@@ -117,6 +117,13 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * 查询messagequeue的消费进度
+     * @param ctx
+     * @param request
+     * @return
+     * @throws RemotingCommandException
+     */
     private RemotingCommand queryConsumerOffset(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
         final RemotingCommand response =
@@ -126,7 +133,7 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         final QueryConsumerOffsetRequestHeader requestHeader =
             (QueryConsumerOffsetRequestHeader) request
                 .decodeCommandCustomHeader(QueryConsumerOffsetRequestHeader.class);
-
+        //获取grouo下的topic下的queueid的消费进度
         long offset =
             this.brokerController.getConsumerOffsetManager().queryOffset(
                 requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());

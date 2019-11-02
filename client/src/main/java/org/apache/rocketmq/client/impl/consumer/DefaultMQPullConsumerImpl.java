@@ -74,7 +74,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     private MQClientInstance mQClientFactory;
     private PullAPIWrapper pullAPIWrapper;
     private OffsetStore offsetStore;
-    private RebalanceImpl rebalanceImpl = new RebalancePullImpl(this);
+    private RebalanceImpl rebalanceImpl = new RebalancePullImpl(this); //一个消费者有自己的消息负载
 
     public DefaultMQPullConsumerImpl(final DefaultMQPullConsumer defaultMQPullConsumer, final RPCHook rpcHook) {
         this.defaultMQPullConsumer = defaultMQPullConsumer;

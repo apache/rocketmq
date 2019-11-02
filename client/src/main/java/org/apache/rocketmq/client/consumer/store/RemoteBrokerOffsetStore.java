@@ -73,12 +73,18 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         }
     }
 
+    /**
+     *
+     * @param mq  messagequeue
+     * @param type
+     * @return
+     */
     @Override
     public long readOffset(final MessageQueue mq, final ReadOffsetType type) {
         if (mq != null) {
             switch (type) {
                 case MEMORY_FIRST_THEN_STORE:
-                case READ_FROM_MEMORY: {
+                case READ_FROM_MEMORY: { //从内存读取
                     AtomicLong offset = this.offsetTable.get(mq);
                     if (offset != null) {
                         return offset.get();
@@ -88,7 +94,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                 }
                 case READ_FROM_STORE: {
                     try {
-                        long brokerOffset = this.fetchConsumeOffsetFromBroker(mq);
+                        long brokerOffset = this.fetchConsumeOffsetFromBroker(mq);//
                         AtomicLong offset = new AtomicLong(brokerOffset);
                         this.updateOffset(mq, offset.get(), false);
                         return brokerOffset;
@@ -227,10 +233,10 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
         }
     }
-
+    //从broker 获取mq的消费进度
     private long fetchConsumeOffsetFromBroker(MessageQueue mq) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException {
-        FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
+        FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());//根据brkerNanme获取broker
         if (null == findBrokerResult) {
 
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
@@ -239,11 +245,11 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
         if (findBrokerResult != null) {
             QueryConsumerOffsetRequestHeader requestHeader = new QueryConsumerOffsetRequestHeader();
-            requestHeader.setTopic(mq.getTopic());
-            requestHeader.setConsumerGroup(this.groupName);
-            requestHeader.setQueueId(mq.getQueueId());
+            requestHeader.setTopic(mq.getTopic()); //消费者topic
+            requestHeader.setConsumerGroup(this.groupName); //消费者group
+            requestHeader.setQueueId(mq.getQueueId());     //topic的队列Id
 
-            return this.mQClientFactory.getMQClientAPIImpl().queryConsumerOffset(
+            return this.mQClientFactory.getMQClientAPIImpl().queryConsumerOffset( //查询
                 findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
         } else {
             throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
