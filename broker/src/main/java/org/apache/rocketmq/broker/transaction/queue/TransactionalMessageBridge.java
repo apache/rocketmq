@@ -176,7 +176,9 @@ public class TransactionalMessageBridge {
             List<ByteBuffer> messageBufferList = getMessageResult.getMessageBufferList();
             for (ByteBuffer bb : messageBufferList) {
                 MessageExt msgExt = MessageDecoder.decode(bb);
-                foundList.add(msgExt);
+                if(msgExt != null){
+                    foundList.add(msgExt);
+                }
             }
 
         } finally {
