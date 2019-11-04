@@ -182,7 +182,7 @@ public class TransactionalMessageBridgeTest {
                 .getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), ArgumentMatchers.nullable(MessageFilter.class)))
                 .thenReturn(null);
         PullResult result = transactionBridge.getHalfMessage(0, 0, 1);
-        assertThat(result.getPullStatus()).isNull();
+        assertThat(result).isNull();
     }
 
     private GetMessageResult createGetMessageResult(GetMessageStatus status) {
