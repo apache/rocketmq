@@ -579,7 +579,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             }
 
             this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(brokerAddr, msg, consumerGroup, delayLevel, 3000,
-                this.defaultMQPullConsumer.getMaxReconsumeTimes());
+                    getMaxReconsumeTimes(msg));
         } catch (Exception e) {
             log.error("sendMessageBack Exception, " + this.defaultMQPullConsumer.getConsumerGroup(), e);
 
@@ -590,11 +590,22 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             MessageAccessor.setProperties(newMsg, msg.getProperties());
             MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
             MessageAccessor.setReconsumeTime(newMsg, String.valueOf(msg.getReconsumeTimes() + 1));
-            MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(this.defaultMQPullConsumer.getMaxReconsumeTimes()));
+            MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(getMaxReconsumeTimes(msg)));
             newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
             this.mQClientFactory.getDefaultMQProducer().send(newMsg);
         } finally {
             msg.setTopic(NamespaceUtil.withoutNamespace(msg.getTopic(), this.defaultMQPullConsumer.getNamespace()));
+        }
+    }
+
+    private int getMaxReconsumeTimes(MessageExt messageExt) {
+        if (messageExt.getMaxReConsumerTimes() >= 0) {
+            return messageExt.getMaxReConsumerTimes();
+        }
+        if (this.defaultMQPullConsumer.getMaxReconsumeTimes() == -1) {
+            return MixAll.DEFAULT_MAX_RECONSUME_TIMES;
+        } else {
+            return this.defaultMQPullConsumer.getMaxReconsumeTimes();
         }
     }
 

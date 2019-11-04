@@ -335,10 +335,12 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         return this.defaultMQPushConsumerImpl.getConsumerStatsManager();
     }
 
-    private int getMaxReconsumeTimes() {
-        // default reconsume times: Integer.MAX_VALUE
+    private int getMaxReconsumeTimes(MessageExt messageExt) {
+        if (messageExt.getMaxReConsumerTimes() >= 0) {
+            return messageExt.getMaxReConsumerTimes();
+        }
         if (this.defaultMQPushConsumer.getMaxReconsumeTimes() == -1) {
-            return Integer.MAX_VALUE;
+            return MixAll.DEFAULT_MAX_RECONSUME_TIMES;
         } else {
             return this.defaultMQPushConsumer.getMaxReconsumeTimes();
         }
@@ -348,7 +350,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         boolean suspend = false;
         if (msgs != null && !msgs.isEmpty()) {
             for (MessageExt msg : msgs) {
-                if (msg.getReconsumeTimes() >= getMaxReconsumeTimes()) {
+                if (msg.getReconsumeTimes() >= getMaxReconsumeTimes(msg)) {
                     MessageAccessor.setReconsumeTime(msg, String.valueOf(msg.getReconsumeTimes()));
                     if (!sendMessageBack(msg)) {
                         suspend = true;
@@ -373,7 +375,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             MessageAccessor.setProperties(newMsg, msg.getProperties());
             MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
             MessageAccessor.setReconsumeTime(newMsg, String.valueOf(msg.getReconsumeTimes()));
-            MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(getMaxReconsumeTimes()));
+            MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(getMaxReconsumeTimes(msg)));
             newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
 
             this.defaultMQPushConsumer.getDefaultMQPushConsumerImpl().getmQClientFactory().getDefaultMQProducer().send(newMsg);
