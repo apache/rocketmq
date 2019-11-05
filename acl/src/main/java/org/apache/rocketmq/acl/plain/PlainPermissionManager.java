@@ -273,8 +273,8 @@ public class PlainPermissionManager {
 
     public AclConfig getAllAclConfig() {
         AclConfig aclConfig = new AclConfig();
-        List<PlainAccessConfig> configs = new ArrayList<>();
-        List<String> whiteAddrs = new ArrayList<>();
+        List<PlainAccessConfig> configs = new ArrayList<PlainAccessConfig>();
+        List<String> whiteAddrs = new ArrayList<String>();
         JSONObject plainAclConfData = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
                 JSONObject.class);
         if (plainAclConfData == null || plainAclConfData.isEmpty()) {

@@ -50,12 +50,12 @@ public class AclUtilsTest {
 //        IPv6 test
         String ipv6Address = "1:ac41:9987::bb22:666:{1,2,3,4}";
         String[] ipv6AddressArray = AclUtils.getAddreeStrArray(ipv6Address, "{1,2,3,4}");
-        List<String> newIPv6AddressList = new ArrayList<>();
+        List<String> newIPv6AddressList = new ArrayList<String>();
         for (String a : ipv6AddressArray) {
             newIPv6AddressList.add(a);
         }
 
-        List<String> ipv6AddressList = new ArrayList<>();
+        List<String> ipv6AddressList = new ArrayList<String>();
         ipv6AddressList.add("1:ac41:9987::bb22:666:1");
         ipv6AddressList.add("1:ac41:9987::bb22:666:2");
         ipv6AddressList.add("1:ac41:9987::bb22:666:3");
