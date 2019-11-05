@@ -167,10 +167,7 @@ public class DefaultMQPullConsumerTest {
         final int maxReconsumeTimes = 12 ;
 
         MQClientAPIImpl mockMQClientAPIImpl = Mockito.mock(MQClientAPIImpl.class);
-        DefaultMQProducer mockDefaultMQProducer = Mockito.mock(DefaultMQProducer.class);
         when(mQClientFactory.getMQClientAPIImpl()).thenReturn(mockMQClientAPIImpl);
-        when(mQClientFactory.getDefaultMQProducer()).thenReturn(mockDefaultMQProducer);
-        when(mockDefaultMQProducer.send((Message) any())).thenThrow(new RuntimeException("error invoke"));
         Mockito.doAnswer(new Answer() {
             @Override
             public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
