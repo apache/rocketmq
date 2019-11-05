@@ -280,7 +280,9 @@ public class HAService {
                 if (!this.requestsRead.isEmpty()) {
                     for (CommitLog.GroupCommitRequest req : this.requestsRead) {
                         boolean transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
-                        for (int i = 0; !transferOK && i < 5; i++) {
+                        long waitUntilWhen = HAService.this.defaultMessageStore.getSystemClock().now()
+                            + HAService.this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout();
+                        while (!transferOK && HAService.this.defaultMessageStore.getSystemClock().now() < waitUntilWhen) {
                             this.notifyTransferObject.waitForRunning(1000);
                             transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
                         }
