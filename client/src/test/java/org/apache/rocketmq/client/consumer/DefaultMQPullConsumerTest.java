@@ -172,7 +172,7 @@ public class DefaultMQPullConsumerTest {
                 Assert.assertEquals(topic,msg.getTopic());
                 Assert.assertEquals(offset,msg.getCommitLogOffset());
                 Assert.assertEquals(msgId,msg.getMsgId());
-                Assert.assertEquals(maxReconsumeTimes,11);
+                Assert.assertEquals(maxReconsumeTimes,msg.getMaxReConsumerTimes());
                 return null;
             }
         }).when(mockMQClientAPIImpl).consumerSendMessageBack((String) any(),any(MessageExt.class), (String) any(),anyInt(),anyLong(),anyInt());
