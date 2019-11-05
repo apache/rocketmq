@@ -25,6 +25,7 @@ import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.MQClientManager;
+import org.apache.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl;
 import org.apache.rocketmq.client.impl.consumer.PullAPIWrapper;
 import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
@@ -53,8 +54,13 @@ import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultMQPullConsumerTest {
+    private ClientConfig clientConfig = new ClientConfig();
+    {
+        // change to pid , because we need share mQClientFactory
+        clientConfig.changeInstanceNameToPID();
+    }
     @Spy
-    private MQClientInstance mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(new ClientConfig());
+    private MQClientInstance mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(clientConfig);
     @Mock
     private MQClientAPIImpl mQClientAPIImpl;
     private DefaultMQPullConsumer pullConsumer;
@@ -75,6 +81,14 @@ public class DefaultMQPullConsumerTest {
         field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
         field.setAccessible(true);
         field.set(mQClientFactory, mQClientAPIImpl);
+
+        Field implField = DefaultMQPullConsumer.class.getDeclaredField("defaultMQPullConsumerImpl");
+        implField.setAccessible(true);
+        Object implObj = implField.get(pullConsumer);
+
+        Field mQClientFactoryFiled = DefaultMQPullConsumerImpl.class.getDeclaredField("mQClientFactory");
+        mQClientFactoryFiled.setAccessible(true);
+        mQClientFactoryFiled.set(implObj,mQClientFactory);
 
         when(mQClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
     }
@@ -117,14 +131,10 @@ public class DefaultMQPullConsumerTest {
         final String msgId = "id_89757";
         final int maxReconsumeTimes = 12 ;
 
-        MQClientInstance mockClientInstance = Mockito.mock(MQClientInstance.class);
         MQClientAPIImpl mockMQClientAPIImpl = Mockito.mock(MQClientAPIImpl.class);
         DefaultMQProducer mockDefaultMQProducer = Mockito.mock(DefaultMQProducer.class);
-        when(mockClientInstance.getMQClientAPIImpl()).thenReturn(mockMQClientAPIImpl);
-        when(mockClientInstance.getDefaultMQProducer()).thenReturn(mockDefaultMQProducer);
-        Field field = pullConsumer.getDefaultMQPullConsumerImpl().getClass().getDeclaredField("mQClientFactory");
-        field.setAccessible(true);
-        field.set(pullConsumer.getDefaultMQPullConsumerImpl(),mockClientInstance);
+        when(mQClientFactory.getMQClientAPIImpl()).thenReturn(mockMQClientAPIImpl);
+        when(mQClientFactory.getDefaultMQProducer()).thenReturn(mockDefaultMQProducer);
         Mockito.doThrow(new RuntimeException("send error")).when(mockMQClientAPIImpl).consumerSendMessageBack((String) any(),any(MessageExt.class), (String) any(),anyInt(),anyLong(),anyInt());
         doAnswer(new Answer() {
             @Override
@@ -156,15 +166,11 @@ public class DefaultMQPullConsumerTest {
         final String msgId = "id_89757";
         final int maxReconsumeTimes = 12 ;
 
-        MQClientInstance mockClientInstance = Mockito.mock(MQClientInstance.class);
         MQClientAPIImpl mockMQClientAPIImpl = Mockito.mock(MQClientAPIImpl.class);
         DefaultMQProducer mockDefaultMQProducer = Mockito.mock(DefaultMQProducer.class);
-        when(mockClientInstance.getMQClientAPIImpl()).thenReturn(mockMQClientAPIImpl);
-        when(mockClientInstance.getDefaultMQProducer()).thenReturn(mockDefaultMQProducer);
+        when(mQClientFactory.getMQClientAPIImpl()).thenReturn(mockMQClientAPIImpl);
+        when(mQClientFactory.getDefaultMQProducer()).thenReturn(mockDefaultMQProducer);
         when(mockDefaultMQProducer.send((Message) any())).thenThrow(new RuntimeException("error invoke"));
-        Field field = pullConsumer.getDefaultMQPullConsumerImpl().getClass().getDeclaredField("mQClientFactory");
-        field.setAccessible(true);
-        field.set(pullConsumer.getDefaultMQPullConsumerImpl(),mockClientInstance);
         Mockito.doAnswer(new Answer() {
             @Override
             public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
