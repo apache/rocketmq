@@ -36,13 +36,13 @@ public class DispatchRequest {
     private byte[] bitMap;
 
     public DispatchRequest(
-        final String topic,
-        final int queueId,
-        final long commitLogOffset,
-        final int msgSize,
+        final String topic, //topic
+        final int queueId,  //队列id
+        final long commitLogOffset,//commitlog中的偏移量
+        final int msgSize,         //消息大小
         final long tagsCode,
         final long storeTimestamp,
-        final long consumeQueueOffset,
+        final long consumeQueueOffset, //
         final String keys,
         final String uniqKey,
         final int sysFlag,

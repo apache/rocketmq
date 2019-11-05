@@ -39,11 +39,11 @@ public class IndexService {
      * Maximum times to attempt index file creation.
      */
     private static final int MAX_TRY_IDX_CREATE = 3;
-    private final DefaultMessageStore defaultMessageStore;
-    private final int hashSlotNum;
-    private final int indexNum;
-    private final String storePath;
-    private final ArrayList<IndexFile> indexFileList = new ArrayList<IndexFile>();
+    private final DefaultMessageStore defaultMessageStore; //消息存储实现类
+    private final int hashSlotNum;//hash槽的数量
+    private final int indexNum;   //index 单元文件的数量
+    private final String storePath;//index 文件的路径
+    private final ArrayList<IndexFile> indexFileList = new ArrayList<IndexFile>();//
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
     public IndexService(final DefaultMessageStore store) {
@@ -198,6 +198,10 @@ public class IndexService {
         return topic + "#" + key;
     }
 
+    /**
+     * 构建拼接IndexFIle文件
+     * @param req
+     */
     public void buildIndex(DispatchRequest req) {
         IndexFile indexFile = retryGetAndCreateIndexFile();
         if (indexFile != null) {

@@ -49,13 +49,14 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
+//
 public class PullAPIWrapper {
     private final InternalLogger log = ClientLogger.getLog();
-    private final MQClientInstance mQClientFactory;
-    private final String consumerGroup;
+    private final MQClientInstance mQClientFactory;// 客户端实例
+    private final String consumerGroup;            //消费者group
     private final boolean unitMode;
     private ConcurrentMap<MessageQueue, AtomicLong/* brokerId */> pullFromWhichNodeTable =
-        new ConcurrentHashMap<MessageQueue, AtomicLong>(32);
+        new ConcurrentHashMap<MessageQueue, AtomicLong>(32); //messagqueue 分布在什么Broker上
     private volatile boolean connectBrokerByUser = false;
     private volatile long defaultBrokerId = MixAll.MASTER_ID;
     private Random random = new Random(System.currentTimeMillis());
@@ -179,10 +180,10 @@ public class PullAPIWrapper {
         final long commitOffset, //当前messagetQueue的消费进度(内存中)
         final long brokerSuspendMaxTimeMillis, //消息拉取的过程中允许的broker挂起的时间
         final long timeoutMillis, //消息消费超时实时间
-        final CommunicationMode communicationMode, //消息的拉取的超时时间
+        final CommunicationMode communicationMode, //消费类型 同步异步
         final PullCallback pullCallback // 消息拉起后的回调函数
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        //找到broker
+        //根据messagequeue找到对应的topic 在找到topic分布的broker
         FindBrokerResult findBrokerResult =
             this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),  //找到 broker
                 this.recalculatePullFromWhichNode(mq), false);
@@ -218,9 +219,9 @@ public class PullAPIWrapper {
             requestHeader.setSysFlag(sysFlagInner);// 系统标志
             requestHeader.setCommitOffset(commitOffset); //commit 偏移量
             requestHeader.setSuspendTimeoutMillis(brokerSuspendMaxTimeMillis); //broker 挂起 maxTime
-            requestHeader.setSubscription(subExpression);
-            requestHeader.setSubVersion(subVersion);
-            requestHeader.setExpressionType(expressionType);
+            requestHeader.setSubscription(subExpression);//消息过滤
+            requestHeader.setSubVersion(subVersion);    //版本号
+            requestHeader.setExpressionType(expressionType);//过滤类型
 
             String brokerAddr = findBrokerResult.getBrokerAddr(); //获取broker 的addr
             if (PullSysFlag.hasClassFilterFlag(sysFlagInner)) { //过滤

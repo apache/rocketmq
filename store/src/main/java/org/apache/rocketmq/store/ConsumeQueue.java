@@ -375,8 +375,12 @@ public class ConsumeQueue {
         return this.minLogicOffset / CQ_STORE_UNIT_SIZE;
     }
 
+    /**
+     * commitlog消息分发策略 构建ConsumeQueue
+     * @param request
+     */
     public void putMessagePositionInfoWrapper(DispatchRequest request) {
-        final int maxRetries = 30;
+        final int maxRetries = 30;//重试次数30次
         boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable();
         for (int i = 0; i < maxRetries && canWrite; i++) {
             long tagsCode = request.getTagsCode();
@@ -394,6 +398,7 @@ public class ConsumeQueue {
                         topic, queueId, request.getCommitLogOffset());
                 }
             }
+            //处理方法
             boolean result = this.putMessagePositionInfo(request.getCommitLogOffset(),
                 request.getMsgSize(), tagsCode, request.getConsumeQueueOffset());
             if (result) {
@@ -417,6 +422,14 @@ public class ConsumeQueue {
         this.defaultMessageStore.getRunningFlags().makeLogicsQueueError();
     }
 
+    /**
+     *
+     * @param offset    commitLog的偏移量
+     * @param size      消息大小
+     * @param tagsCode  tag
+     * @param cqOffset  consumequeue的偏移量
+     * @return
+     */
     private boolean putMessagePositionInfo(final long offset, final int size, final long tagsCode,
         final long cqOffset) {
 
@@ -426,13 +439,13 @@ public class ConsumeQueue {
 
         this.byteBufferIndex.flip();
         this.byteBufferIndex.limit(CQ_STORE_UNIT_SIZE);
-        this.byteBufferIndex.putLong(offset);
-        this.byteBufferIndex.putInt(size);
+        this.byteBufferIndex.putLong(offset);//8字节的偏移量
+        this.byteBufferIndex.putInt(size);   // 4子节点消息大小
         this.byteBufferIndex.putLong(tagsCode);
 
-        final long expectLogicOffset = cqOffset * CQ_STORE_UNIT_SIZE;
+        final long expectLogicOffset = cqOffset * CQ_STORE_UNIT_SIZE;//* 每个单元的偏移量就是20
 
-        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(expectLogicOffset);
+        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(expectLogicOffset);//获取到MappedFile
         if (mappedFile != null) {
 
             if (mappedFile.isFirstCreateInQueue() && cqOffset != 0 && mappedFile.getWrotePosition() == 0) {
@@ -464,7 +477,7 @@ public class ConsumeQueue {
                     );
                 }
             }
-            this.maxPhysicOffset = offset;
+            this.maxPhysicOffset = offset;//物理偏移量
             return mappedFile.appendMessage(this.byteBufferIndex.array());
         }
         return false;

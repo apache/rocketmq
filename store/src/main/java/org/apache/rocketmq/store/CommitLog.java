@@ -144,11 +144,18 @@ public class CommitLog {
         return this.getData(offset, offset == 0);
     }
 
+    /**
+     *
+     * @param offset  start的偏移量
+     * @param returnFirstOnNotFound
+     * @return
+     */
     public SelectMappedBufferResult getData(final long offset, final boolean returnFirstOnNotFound) {
-        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
-        MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, returnFirstOnNotFound);
+
+        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();//commitlog 文件大小
+        MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, returnFirstOnNotFound);//根据偏移量查找
         if (mappedFile != null) {
-            int pos = (int) (offset % mappedFileSize);
+            int pos = (int) (offset % mappedFileSize);//取余获取到offset在mappedFile中的位置
             SelectMappedBufferResult result = mappedFile.selectMappedBuffer(pos);
             return result;
         }
@@ -235,10 +242,10 @@ public class CommitLog {
         final boolean readBody) {
         try {
             // 1 TOTAL SIZE
-            int totalSize = byteBuffer.getInt();
+            int totalSize = byteBuffer.getInt(); //消息的总大小
 
             // 2 MAGIC CODE
-            int magicCode = byteBuffer.getInt();
+            int magicCode = byteBuffer.getInt(); //魔数的大小
             switch (magicCode) {
                 case MESSAGE_MAGIC_CODE:
                     break;
@@ -249,36 +256,36 @@ public class CommitLog {
                     return new DispatchRequest(-1, false /* success */);
             }
 
-            byte[] bytesContent = new byte[totalSize];
+            byte[] bytesContent = new byte[totalSize];//生成数组
 
-            int bodyCRC = byteBuffer.getInt();
+            int bodyCRC = byteBuffer.getInt();   //消息体crc校验码
 
-            int queueId = byteBuffer.getInt();
+            int queueId = byteBuffer.getInt();   //获取队列Id
 
-            int flag = byteBuffer.getInt();
+            int flag = byteBuffer.getInt();      //获取Flag
 
-            long queueOffset = byteBuffer.getLong();
+            long queueOffset = byteBuffer.getLong(); //消息在该消息队列的偏移量
 
-            long physicOffset = byteBuffer.getLong();
+            long physicOffset = byteBuffer.getLong(); //消息在硬盘的物理偏移量
 
-            int sysFlag = byteBuffer.getInt();
+            int sysFlag = byteBuffer.getInt();        //系统flag
 
-            long bornTimeStamp = byteBuffer.getLong();
+            long bornTimeStamp = byteBuffer.getLong(); //时间戳
 
-            ByteBuffer byteBuffer1 = byteBuffer.get(bytesContent, 0, 8);
+            ByteBuffer byteBuffer1 = byteBuffer.get(bytesContent, 0, 8); //消息发送者的 ip 端口号
 
-            long storeTimestamp = byteBuffer.getLong();
+            long storeTimestamp = byteBuffer.getLong();  //获取刷盘额时间戳
 
-            ByteBuffer byteBuffer2 = byteBuffer.get(bytesContent, 0, 8);
+            ByteBuffer byteBuffer2 = byteBuffer.get(bytesContent, 0, 8);// Broker服务器IP + 端口号
 
-            int reconsumeTimes = byteBuffer.getInt();
+            int reconsumeTimes = byteBuffer.getInt();//重试次数
 
-            long preparedTransactionOffset = byteBuffer.getLong();
+            long preparedTransactionOffset = byteBuffer.getLong(); //事务消息的物理偏移量
 
-            int bodyLen = byteBuffer.getInt();
+            int bodyLen = byteBuffer.getInt();  //消息body体长度
             if (bodyLen > 0) {
                 if (readBody) {
-                    byteBuffer.get(bytesContent, 0, bodyLen);
+                    byteBuffer.get(bytesContent, 0, bodyLen); //
 
                     if (checkCRC) {
                         int crc = UtilAll.crc32(bytesContent, 0, bodyLen);
@@ -292,20 +299,20 @@ public class CommitLog {
                 }
             }
 
-            byte topicLen = byteBuffer.get();
-            byteBuffer.get(bytesContent, 0, topicLen);
-            String topic = new String(bytesContent, 0, topicLen, MessageDecoder.CHARSET_UTF8);
+            byte topicLen = byteBuffer.get(); //topic 主题长度
+            byteBuffer.get(bytesContent, 0, topicLen);//获取topic内容
+            String topic = new String(bytesContent, 0, topicLen, MessageDecoder.CHARSET_UTF8); //获取到主题
 
             long tagsCode = 0;
             String keys = "";
             String uniqKey = null;
 
-            short propertiesLength = byteBuffer.getShort();
+            short propertiesLength = byteBuffer.getShort();  //获取消息附加属性长度
             Map<String, String> propertiesMap = null;
-            if (propertiesLength > 0) {
-                byteBuffer.get(bytesContent, 0, propertiesLength);
-                String properties = new String(bytesContent, 0, propertiesLength, MessageDecoder.CHARSET_UTF8);
-                propertiesMap = MessageDecoder.string2messageProperties(properties);
+            if (propertiesLength > 0) { //如果消息存在附加属性
+                byteBuffer.get(bytesContent, 0, propertiesLength);//获取附加属
+                String properties = new String(bytesContent, 0, propertiesLength, MessageDecoder.CHARSET_UTF8); //获取属性字符串
+                propertiesMap = MessageDecoder.string2messageProperties(properties);//String转为
 
                 keys = propertiesMap.get(MessageConst.PROPERTY_KEYS);
 

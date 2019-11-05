@@ -35,7 +35,7 @@ import org.apache.rocketmq.store.MappedFile;
 public class IndexFile {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static int hashSlotSize = 4;   //哈希槽的长度
-    private static int indexSize = 20;
+    private static int indexSize = 20;     //
     private static int invalidIndex = 0;
     private final int hashSlotNum;
     private final int indexNum;

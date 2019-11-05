@@ -1097,6 +1097,12 @@ public class DefaultMessageStore implements MessageStore {
         return null;
     }
 
+    /**
+     * 根据
+     * @param topic    topic
+     * @param queueId  队列Id
+     * @return
+     */
     public ConsumeQueue findConsumeQueue(String topic, int queueId) {//
         ConcurrentMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);//通过topic 获取该topic 所有队列 ConsumeQueueMap  key 为queueId value 为ConsumeQueue
         if (null == map) { //找不到map new
@@ -1394,7 +1400,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public void putMessagePositionInfo(DispatchRequest dispatchRequest) {
-        ConsumeQueue cq = this.findConsumeQueue(dispatchRequest.getTopic(), dispatchRequest.getQueueId());
+        ConsumeQueue cq = this.findConsumeQueue(dispatchRequest.getTopic(), dispatchRequest.getQueueId());//根据队列Id找到ConsumeQueue
         cq.putMessagePositionInfoWrapper(dispatchRequest);
     }
 
@@ -1435,6 +1441,8 @@ public class DefaultMessageStore implements MessageStore {
         }, 6, TimeUnit.SECONDS);
     }
 
+
+    //构建追加ConsumeQueue文件
     class CommitLogDispatcherBuildConsumeQueue implements CommitLogDispatcher {
 
         @Override
@@ -1773,6 +1781,9 @@ public class DefaultMessageStore implements MessageStore {
             return this.reputFromOffset < DefaultMessageStore.this.commitLog.getMaxOffset();
         }
 
+        /**
+         * 当commitLogsize > reputFromOffset 可以执行reput
+         * */
         private void doReput() {
             for (boolean doNext = true; this.isCommitLogAvailable() && doNext; ) {
 
@@ -1780,19 +1791,25 @@ public class DefaultMessageStore implements MessageStore {
                     && this.reputFromOffset >= DefaultMessageStore.this.getConfirmOffset()) {
                     break;
                 }
-
-                SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
+                /**
+                 * 根据offset查询到在哪个MappedFile
+                 * 根据offset % mappedFisleSize 获取在 MappedFile 的start pos指针
+                 * result 是当前mappeFile pos --> limit 的ByteBuffer
+                 */
+                SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);//获取
                 if (result != null) {
                     try {
-                        this.reputFromOffset = result.getStartOffset();
+                        this.reputFromOffset = result.getStartOffset();// 获取startOffset的起始指针
 
                         for (int readSize = 0; readSize < result.getSize() && doNext; ) {
                             DispatchRequest dispatchRequest =
                                 DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false);
-                            int size = dispatchRequest.getMsgSize();
+                            //生成分发请求
+                            int size = dispatchRequest.getMsgSize();//
 
                             if (dispatchRequest.isSuccess()) {
                                 if (size > 0) {
+                                    //todo 重点
                                     DefaultMessageStore.this.doDispatch(dispatchRequest);
 
                                     if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()

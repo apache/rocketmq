@@ -104,7 +104,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private volatile ServiceState serviceState = ServiceState.CREATE_JUST;
     private MQClientInstance mQClientFactory;
     private PullAPIWrapper pullAPIWrapper;
-    private volatile boolean pause = false;
+    private volatile boolean pause = false;  //悬挂标志
     private boolean consumeOrderly = false;
     private MessageListener messageListenerInner;
     private OffsetStore offsetStore;
@@ -202,7 +202,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     //消息拉取的基本流程
     public void pullMessage(final PullRequest pullRequest) {
-        final ProcessQueue processQueue = pullRequest.getProcessQueue(); //获取ProcessQueue
+        final ProcessQueue processQueue = pullRequest.getProcessQueue(); //获取ProcessQueue ProcessQueue和messageQueue对应
         if (processQueue.isDropped()) {
             log.info("the pull request[{}] is dropped.", pullRequest.toString());
             return;
@@ -281,7 +281,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 return;
             }
         }
-        //拉取该主题的订阅消息
+        /**
+         * 拉取该主题的订阅信息
+         */
         final SubscriptionData subscriptionData = this.rebalanceImpl.getSubscriptionInner().get(pullRequest.getMessageQueue().getTopic());
         if (null == subscriptionData) { //如果为null  结束拉取 关于该队列的下次拉取 延迟 3s
             this.executePullRequestLater(pullRequest, PULL_TIME_DELAY_MILLS_WHEN_EXCEPTION);
