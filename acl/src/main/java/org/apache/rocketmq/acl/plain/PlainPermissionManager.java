@@ -49,9 +49,9 @@ public class PlainPermissionManager {
 
     private String fileName = System.getProperty("rocketmq.acl.plain.file", DEFAULT_PLAIN_ACL_FILE);
 
-    private  Map<String/** AccessKey **/, PlainAccessResource> plainAccessResourceMap = new HashMap<>();
+    private  Map<String/** AccessKey **/, PlainAccessResource> plainAccessResourceMap = new HashMap<String, PlainAccessResource>();
 
-    private  List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<>();
+    private  List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<RemoteAddressStrategy>();
 
     private RemoteAddressStrategyFactory remoteAddressStrategyFactory = new RemoteAddressStrategyFactory();
 
@@ -66,8 +66,8 @@ public class PlainPermissionManager {
 
     public void load() {
 
-        Map<String, PlainAccessResource> plainAccessResourceMap = new HashMap<>();
-        List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<>();
+        Map<String, PlainAccessResource> plainAccessResourceMap = new HashMap<String, PlainAccessResource>();
+        List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<RemoteAddressStrategy>();
 
         JSONObject plainAclConfData = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
             JSONObject.class);

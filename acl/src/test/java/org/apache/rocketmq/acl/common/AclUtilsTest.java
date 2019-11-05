@@ -35,12 +35,12 @@ public class AclUtilsTest {
     public void getAddreeStrArray() {
         String address = "1.1.1.{1,2,3,4}";
         String[] addressArray = AclUtils.getAddreeStrArray(address, "{1,2,3,4}");
-        List<String> newAddressList = new ArrayList<>();
+        List<String> newAddressList = new ArrayList<String>();
         for (String a : addressArray) {
             newAddressList.add(a);
         }
 
-        List<String> addressList = new ArrayList<>();
+        List<String> addressList = new ArrayList<String>();
         addressList.add("1.1.1.1");
         addressList.add("1.1.1.2");
         addressList.add("1.1.1.3");

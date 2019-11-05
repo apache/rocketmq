@@ -78,7 +78,7 @@ public class RemoteAddressStrategyFactory {
 
     public static class MultipleRemoteAddressStrategy implements RemoteAddressStrategy {
 
-        private final Set<String> multipleSet = new HashSet<>();
+        private final Set<String> multipleSet = new HashSet<String>();
 
         public MultipleRemoteAddressStrategy(String[] strArray) {
             for (String netaddress : strArray) {
