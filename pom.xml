@@ -412,7 +412,7 @@
                 </plugins>
             </build>
         </profile>
-        <profile>
+        <!--<profile>
             <id>release-sign-artifacts</id>
             <activation>
                 <property>
@@ -470,7 +470,7 @@
                     </plugin>
                 </plugins>
             </build>
-        </profile>
+        </profile>-->
         <profile>
             <id>it-test</id>
             <build>
