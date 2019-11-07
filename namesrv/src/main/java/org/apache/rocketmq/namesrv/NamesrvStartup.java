@@ -49,6 +49,7 @@ public class NamesrvStartup {
     public static NamesrvController main0(String[] args) {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
 
+        //System.getProperties("xxx")用来获取JVM中的系统属性
         if (null == System.getProperty(NettySystemConfig.COM_ROCKETMQ_REMOTING_SOCKET_SNDBUF_SIZE)) {
             NettySystemConfig.socketSndbufSize = 4096;
         }
@@ -123,6 +124,7 @@ public class NamesrvStartup {
                 System.exit(-3);
             }
 
+            //在JVM关闭前做一些执行操作
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 private volatile boolean hasShutdown = false;
                 private AtomicInteger shutdownTimes = new AtomicInteger(0);
@@ -151,6 +153,7 @@ public class NamesrvStartup {
             return controller;
         } catch (Throwable e) {
             e.printStackTrace();
+            //将当前的虚拟机结束
             System.exit(-1);
         }
 
