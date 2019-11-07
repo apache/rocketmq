@@ -120,6 +120,7 @@ public class PullRequestHoldService extends ServiceThread {
 
     /**
      *
+     * 消息入文件之后
      * @param topic    主题
      * @param queueId  队列Id
      * @param maxOffset 最大偏移量

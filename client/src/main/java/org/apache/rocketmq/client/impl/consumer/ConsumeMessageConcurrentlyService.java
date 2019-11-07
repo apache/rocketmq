@@ -198,7 +198,13 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     }
 
 
-    //消费组服务
+    /**
+     *
+     * @param msgs
+     * @param processQueue
+     * @param messageQueue
+     * @param dispatchToConsume
+     */
     @Override
     public void submitConsumeRequest(  //并发消费
         final List<MessageExt> msgs,
@@ -207,7 +213,12 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         final boolean dispatchToConsume) {
         final int consumeBatchSize = this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize();//最大消费数量
         if (msgs.size() <= consumeBatchSize) {
-            //封装线程
+            /**
+             * 封住消费Runnable
+             * masg: 拉取的消费信息
+             * processQueue: 消息处理
+             * messageQueue: 从这个messagequeue 拉取的信息
+             */
             ConsumeRequest consumeRequest = new ConsumeRequest(msgs, processQueue, messageQueue);
             try {
                 this.consumeExecutor.submit(consumeRequest);
@@ -259,6 +270,12 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         }
     }
 
+    /**
+     * 处理消费结果
+     * @param status
+     * @param context
+     * @param consumeRequest
+     */
     public void processConsumeResult(  //处理消息结果
         final ConsumeConcurrentlyStatus status,
         final ConsumeConcurrentlyContext context,
@@ -371,8 +388,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     }
 
     class ConsumeRequest implements Runnable { //并发消费
-        private final List<MessageExt> msgs;
-        private final ProcessQueue processQueue;
+        private final List<MessageExt> msgs;    //拉取的消息
+        private final ProcessQueue processQueue;// 对应
         private final MessageQueue messageQueue;
 
         public ConsumeRequest(List<MessageExt> msgs, ProcessQueue processQueue, MessageQueue messageQueue) {
@@ -395,7 +412,9 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 log.info("the message queue not be able to consume, because it's dropped. group={} {}", ConsumeMessageConcurrentlyService.this.consumerGroup, this.messageQueue);
                 return;
             }
-
+            /**
+             * 或者注册的listener
+             */
             MessageListenerConcurrently listener = ConsumeMessageConcurrentlyService.this.messageListener; //获取监听
             ConsumeConcurrentlyContext context = new ConsumeConcurrentlyContext(messageQueue);
             ConsumeConcurrentlyStatus status = null;
@@ -468,6 +487,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 .incConsumeRT(ConsumeMessageConcurrentlyService.this.consumerGroup, messageQueue.getTopic(), consumeRT);
 
             if (!processQueue.isDropped()) {
+                //处理结果 ack机制
                 ConsumeMessageConcurrentlyService.this.processConsumeResult(status, context, this);
             } else {
                 log.warn("processQueue is dropped without process consume result. messageQueue={}, msgs={}", messageQueue, msgs);

@@ -513,11 +513,12 @@ public class DefaultMessageStore implements MessageStore {
                         int i = 0;
                         final int maxFilterMessageCount = Math.max(16000, maxMsgNums * ConsumeQueue.CQ_STORE_UNIT_SIZE); // ConsumeQueue 的每次单元是20位
                         final boolean diskFallRecorded = this.messageStoreConfig.isDiskFallRecorded();
-                        ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
-                        for (; i < bufferConsumeQueue.getSize() && i < maxFilterMessageCount; i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
-                            long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
-                            int sizePy = bufferConsumeQueue.getByteBuffer().getInt();
-                            long tagsCode = bufferConsumeQueue.getByteBuffer().getLong();
+                        ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit(); //一个consumequeue的单元
+
+                        for (; i < bufferConsumeQueue.getSize() && i < maxFilterMessageCount; i += ConsumeQueue.CQ_STORE_UNIT_SIZE) { //这是一份
+                            long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();//物理内存的offset
+                            int sizePy = bufferConsumeQueue.getByteBuffer().getInt();    //物理内存的大小
+                            long tagsCode = bufferConsumeQueue.getByteBuffer().getLong();//tag标志
 
                             maxPhyOffsetPulling = offsetPy;
 
@@ -546,6 +547,8 @@ public class DefaultMessageStore implements MessageStore {
                                 }
                             }
 
+
+                            //判断消息锅炉
                             if (messageFilter != null
                                 && !messageFilter.isMatchedByConsumeQueue(isTagsCodeLegal ? tagsCode : null, extRet ? cqExtUnit : null)) {
                                 if (getResult.getBufferTotalSize() == 0) {
@@ -555,7 +558,9 @@ public class DefaultMessageStore implements MessageStore {
                                 continue;
                             }
 
+                            //从commitlog中查找具体的消息
                             SelectMappedBufferResult selectResult = this.commitLog.getMessage(offsetPy, sizePy);
+
                             if (null == selectResult) {
                                 if (getResult.getBufferTotalSize() == 0) {
                                     status = GetMessageStatus.MESSAGE_WAS_REMOVING;
@@ -575,7 +580,7 @@ public class DefaultMessageStore implements MessageStore {
                                 continue;
                             }
 
-                            this.storeStatsService.getGetMessageTransferedMsgCount().incrementAndGet();
+                            this.storeStatsService.getGetMessageTransferedMsgCount().incrementAndGet();//统计
                             getResult.addMessage(selectResult);
                             status = GetMessageStatus.FOUND;
                             nextPhyFileStartOffset = Long.MIN_VALUE;
@@ -617,8 +622,8 @@ public class DefaultMessageStore implements MessageStore {
         long eclipseTime = this.getSystemClock().now() - beginTime;
         this.storeStatsService.setGetMessageEntireTimeMax(eclipseTime);
 
-        getResult.setStatus(status);
-        getResult.setNextBeginOffset(nextBeginOffset);
+        getResult.setStatus(status); //消息拉取status
+        getResult.setNextBeginOffset(nextBeginOffset);//
         getResult.setMaxOffset(maxOffset);
         getResult.setMinOffset(minOffset);
         return getResult;
@@ -1811,7 +1816,7 @@ public class DefaultMessageStore implements MessageStore {
                                 if (size > 0) {
                                     //todo 重点
                                     DefaultMessageStore.this.doDispatch(dispatchRequest);
-
+                                    //conusmelog indexFile 文件已经生成
                                     if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()
                                         && DefaultMessageStore.this.brokerConfig.isLongPollingEnable()) {
                                         DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),

@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -149,6 +150,11 @@ public class HAConnection {
             return ReadSocketService.class.getSimpleName();
         }
 
+        /**
+         * 读事件处理器
+         *
+         * @return
+         */
         private boolean processReadEvent() {
             int readSizeZeroTimes = 0;
 
@@ -159,16 +165,16 @@ public class HAConnection {
 
             while (this.byteBufferRead.hasRemaining()) { // position < limit
                 try {
-                    int readSize = this.socketChannel.read(this.byteBufferRead);
+                    int readSize = this.socketChannel.read(this.byteBufferRead);//读取数据
                     if (readSize > 0) {
                         readSizeZeroTimes = 0;
                         this.lastReadTimestamp = HAConnection.this.haService.getDefaultMessageStore().getSystemClock().now();
                         if ((this.byteBufferRead.position() - this.processPostion) >= 8) { //读取的偏移量大于8 说明是一条拉取消息的请求
-                            int pos = this.byteBufferRead.position() - (this.byteBufferRead.position() % 8);
+                            int pos = this.byteBufferRead.position() - (this.byteBufferRead.position() % 8); //
                             long readOffset = this.byteBufferRead.getLong(pos - 8);
                             this.processPostion = pos;
 
-                            HAConnection.this.slaveAckOffset = readOffset;
+                            HAConnection.this.slaveAckOffset = readOffset; //这是client已经同步的offset
                             if (HAConnection.this.slaveRequestOffset < 0) {
                                 HAConnection.this.slaveRequestOffset = readOffset;
                                 log.info("slave[" + HAConnection.this.clientAddr + "] request offset " + readOffset);
@@ -229,9 +235,9 @@ public class HAConnection {
                         if (0 == HAConnection.this.slaveRequestOffset) {  //如果为0的话 从CommitLog的的最大偏移量
                             long masterOffset = HAConnection.this.haService.getDefaultMessageStore().getCommitLog().getMaxOffset(); //获取此时commitLog的最大偏移量
                             masterOffset =
-                                masterOffset
-                                    - (masterOffset % HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig()
-                                    .getMapedFileSizeCommitLog());
+                                    masterOffset
+                                            - (masterOffset % HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig()
+                                            .getMapedFileSizeCommitLog());
 
                             if (masterOffset < 0) {
                                 masterOffset = 0;
@@ -243,17 +249,17 @@ public class HAConnection {
                         }
 
                         log.info("master transfer data from " + this.nextTransferFromWhere + " to slave[" + HAConnection.this.clientAddr
-                            + "], and slave request " + HAConnection.this.slaveRequestOffset);
+                                + "], and slave request " + HAConnection.this.slaveRequestOffset);
                     }
 
                     if (this.lastWriteOver) { //判断上次请求是否全部写入客户端
 
                         long interval =
-                            HAConnection.this.haService.getDefaultMessageStore().getSystemClock().now() - this.lastWriteTimestamp;
+                                HAConnection.this.haService.getDefaultMessageStore().getSystemClock().now() - this.lastWriteTimestamp;
                         //当前系统时间 - 上次写入完成后的时间
 
                         if (interval > HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig()
-                            .getHaSendHeartbeatInterval()) {  //如果时间差 > 心跳时间
+                                .getHaSendHeartbeatInterval()) {  //如果时间差 > 心跳时间
 
                             // Build Header
                             this.byteBufferHeader.position(0);
@@ -273,7 +279,7 @@ public class HAConnection {
                     }
 
                     SelectMappedBufferResult selectResult =   //获取offset 对应的MapperByteBuffer 内存映射文件
-                        HAConnection.this.haService.getDefaultMessageStore().getCommitLogData(this.nextTransferFromWhere);
+                            HAConnection.this.haService.getDefaultMessageStore().getCommitLogData(this.nextTransferFromWhere);
                     if (selectResult != null) { //查到该内存文件
                         int size = selectResult.getSize(); //byteBuffer 的size 消息的size
                         if (size > HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig().getHaTransferBatchSize()) {

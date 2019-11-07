@@ -693,8 +693,15 @@ public class CommitLog {
         }
     }
 
+    /**
+     *
+     * @param result 拼接消息的result
+     * @param putMessageResult
+     * @param messageExt message 实体
+     */
     public void handleHA(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt) {
         if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
+            //获取HAService
             HAService service = this.defaultMessageStore.getHaService();
             if (messageExt.isWaitStoreMsgOK()) {
                 // Determine whether to wait

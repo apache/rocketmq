@@ -321,6 +321,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
                                 boolean dispatchToConsume = processQueue.putMessage(pullResult.getMsgFoundList()); //根据拉取结果采用不同的分配队列 放入到processQueue中
                                 //消息消费过程
+                                //消费国成
                                 DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest( //消费消息服务提交 判断是并发消费 还是顺序消费
                                     pullResult.getMsgFoundList(),
                                     processQueue,
@@ -346,7 +347,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                             //注意 pullBack函数 只负责将拉去到的消息放入到processQueue 并把processQueue 提交到consumeMessageService 消费消息的service中
                             break;
                         case NO_NEW_MSG: //没有拉起到新消息
-                            pullRequest.setNextOffset(pullResult.getNextBeginOffset()); //
+                            pullRequest.setNextOffset(pullResult.getNextBeginOffset()); //设置待拉取的偏移量为下次拉取的
 
                             DefaultMQPushConsumerImpl.this.correctTagsOffset(pullRequest); //矫正offset
 

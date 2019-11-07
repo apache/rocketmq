@@ -62,9 +62,9 @@ public class HAService {
     public HAService(final DefaultMessageStore defaultMessageStore) throws IOException {
         this.defaultMessageStore = defaultMessageStore;
         this.acceptSocketService =
-            new AcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
-        this.groupTransferService = new GroupTransferService();
-        this.haClient = new HAClient();
+            new AcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort()); //接收连接服务
+        this.groupTransferService = new GroupTransferService();//
+        this.haClient = new HAClient(); //HA的client
     }
 
     public void updateMasterAddress(final String newAddr) {
@@ -160,6 +160,7 @@ public class HAService {
 
     /**
      * Listens to slave connections to create {@link HAConnection}.
+     * 监听客户端连接类
      */
     class AcceptSocketService extends ServiceThread { //接收客户端连接
         private final SocketAddress socketAddressListen;  //Broker 服务监听套接字 本地Ip + port
@@ -318,7 +319,7 @@ public class HAService {
             while (!this.isStopped()) {
                 try {
                     this.waitForRunning(10);
-                    this.doWaitTransfer();
+                    this.doWaitTransfer();//处理HA请求
                 } catch (Exception e) {
                     log.warn(this.getServiceName() + " service has exception. ", e);
                 }

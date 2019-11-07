@@ -70,9 +70,9 @@ public class ConsumerFilterManager extends ConfigManager {
     }
 
     /**
-     * Build consumer filter data.Be care, bloom filter data is not included.
-     *
+     * Build consumer filter data.Be care, bloom filter data is not included
      * @return maybe null
+     * 构建 消费者过滤数据
      */
     public static ConsumerFilterData build(final String topic, final String consumerGroup,
         final String expression, final String type,
@@ -82,12 +82,12 @@ public class ConsumerFilterManager extends ConfigManager {
         }
 
         ConsumerFilterData consumerFilterData = new ConsumerFilterData();
-        consumerFilterData.setTopic(topic);
-        consumerFilterData.setConsumerGroup(consumerGroup);
+        consumerFilterData.setTopic(topic);          //设置topic
+        consumerFilterData.setConsumerGroup(consumerGroup);  //设置消费group
         consumerFilterData.setBornTime(System.currentTimeMillis());
         consumerFilterData.setDeadTime(0);
-        consumerFilterData.setExpression(expression);
-        consumerFilterData.setExpressionType(type);
+        consumerFilterData.setExpression(expression); //设置过滤表达式
+        consumerFilterData.setExpressionType(type);   //设置过滤类型
         consumerFilterData.setClientVersion(clientVersion);
         try {
             consumerFilterData.setCompiledExpression(

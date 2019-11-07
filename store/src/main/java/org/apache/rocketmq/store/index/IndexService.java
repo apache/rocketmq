@@ -199,17 +199,18 @@ public class IndexService {
     }
 
     /**
+     * 构建cousumequeue结束后
      * 构建拼接IndexFIle文件
      * @param req
      */
     public void buildIndex(DispatchRequest req) {
-        IndexFile indexFile = retryGetAndCreateIndexFile();
+        IndexFile indexFile = retryGetAndCreateIndexFile(); //获取IndexFile
         if (indexFile != null) {
-            long endPhyOffset = indexFile.getEndPhyOffset();
+            long endPhyOffset = indexFile.getEndPhyOffset();//上一次的物理内存偏移量
             DispatchRequest msg = req;
-            String topic = msg.getTopic();
-            String keys = msg.getKeys();
-            if (msg.getCommitLogOffset() < endPhyOffset) {
+            String topic = msg.getTopic(); //获取topic
+            String keys = msg.getKeys();   //获取 消息的keys
+            if (msg.getCommitLogOffset() < endPhyOffset) { //commitlog的偏移量 < 上一次的end 直接返回
                 return;
             }
 
@@ -223,7 +224,7 @@ public class IndexService {
                     return;
             }
 
-            if (req.getUniqKey() != null) {
+            if (req.getUniqKey() != null) { //属性中唯一的key不等null的话
                 indexFile = putKey(indexFile, msg, buildKey(topic, req.getUniqKey()));
                 if (indexFile == null) {
                     log.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
@@ -249,6 +250,13 @@ public class IndexService {
         }
     }
 
+    /**
+     *
+     * @param indexFile  indexFile
+     * @param msg        DispatchRequest 消息转发
+     * @param idxKey     topic#key
+     * @return
+     */
     private IndexFile putKey(IndexFile indexFile, DispatchRequest msg, String idxKey) {
         for (boolean ok = indexFile.putKey(idxKey, msg.getCommitLogOffset(), msg.getStoreTimestamp()); !ok; ) {
             log.warn("Index file [" + indexFile.getFileName() + "] is full, trying to create another one");

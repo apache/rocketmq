@@ -34,28 +34,30 @@ import org.apache.rocketmq.store.MappedFile;
  */
 public class IndexFile {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-    private static int hashSlotSize = 4;   //哈希槽的长度
-    private static int indexSize = 20;     //
-    private static int invalidIndex = 0;
-    private final int hashSlotNum;
-    private final int indexNum;
-    private final MappedFile mappedFile;
+    private static int hashSlotSize = 4;   //4字节的slot的size
+    private static int indexSize = 20;     //16
+    private static int invalidIndex = 0;   //合法的？？？？？
+    private final int hashSlotNum; // hash槽的数量 默认是5百万个
+    private final int indexNum;    // index的条目数 默认是2千万个
+    private final MappedFile mappedFile;  //内存文件映射
     private final FileChannel fileChannel;
-    private final MappedByteBuffer mappedByteBuffer;
-    private final IndexHeader indexHeader;
+    private final MappedByteBuffer mappedByteBuffer; //虚拟内存映射物理内存
+    private final IndexHeader indexHeader;    //索引头部文件
 
     public IndexFile(final String fileName, final int hashSlotNum, final int indexNum,
         final long endPhyOffset, final long endTimestamp) throws IOException {
-        int fileTotalSize =
-            IndexHeader.INDEX_HEADER_SIZE + (hashSlotNum * hashSlotSize) + (indexNum * indexSize);
+        /**
+         *40yte的header + 4byte * hash槽的数量  + index条目数 * index条目数的数量
+         */
+        int fileTotalSize =  IndexHeader.INDEX_HEADER_SIZE + (hashSlotNum * hashSlotSize) + (indexNum * indexSize);
         this.mappedFile = new MappedFile(fileName, fileTotalSize);
         this.fileChannel = this.mappedFile.getFileChannel();
         this.mappedByteBuffer = this.mappedFile.getMappedByteBuffer();
         this.hashSlotNum = hashSlotNum;
         this.indexNum = indexNum;
 
-        ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
-        this.indexHeader = new IndexHeader(byteBuffer);
+        ByteBuffer byteBuffer = this.mappedByteBuffer.slice(); //创建一个共享内存
+        this.indexHeader = new IndexHeader(byteBuffer);        //存放
 
         if (endPhyOffset > 0) {
             this.indexHeader.setBeginPhyOffset(endPhyOffset);
@@ -73,6 +75,7 @@ public class IndexFile {
     }
 
     public void load() {
+        //加载indexHeader
         this.indexHeader.load();
     }
 
@@ -94,12 +97,19 @@ public class IndexFile {
         return this.mappedFile.destroy(intervalForcibly);
     }
 
+    /**
+     *
+     * @param key             topic#key
+     * @param phyOffset       commitlog的偏移量
+     * @param storeTimestamp  消息存储的时间戳
+     * @return
+     */
     public boolean putKey(final String key, final long phyOffset, final long storeTimestamp) {
         if (this.indexHeader.getIndexCount() < this.indexNum) {
             int keyHash = indexKeyHashMethod(key); //根据key计算key的hashcode
             int slotPos = keyHash % this.hashSlotNum; //定位到hash槽的下标
             // hashcode对应的hash槽的物理地址 = 头部 + hash槽的下边 * hashSlotSize 每个hash槽的大小
-            int absSlotPos = IndexHeader.INDEX_HEADER_SIZE + slotPos * hashSlotSize;
+            int absSlotPos = IndexHeader.INDEX_HEADER_SIZE + slotPos * hashSlotSize; //定位到hash槽的指针
 
             FileLock fileLock = null;
 
@@ -110,6 +120,7 @@ public class IndexFile {
                 int slotValue = this.mappedByteBuffer.getInt(absSlotPos); //读取hash槽的数据
 
                 //slotValue 小于零 或者 > 当前文件的索引值 置为0
+                //如果存在hash冲突，获取这个slot存的前一个index的计数，如果没有则值为0
                 if (slotValue <= invalidIndex || slotValue > this.indexHeader.getIndexCount()) {
                     slotValue = invalidIndex;
                 }
@@ -131,23 +142,25 @@ public class IndexFile {
                 int absIndexPos =
                     IndexHeader.INDEX_HEADER_SIZE + this.hashSlotNum * hashSlotSize
                         + this.indexHeader.getIndexCount() * indexSize;
-
+                //构建一个index unit单元
                 this.mappedByteBuffer.putInt(absIndexPos, keyHash);//存放hashcode  4 字节
-                this.mappedByteBuffer.putLong(absIndexPos + 4, phyOffset); //存放消息对应的物理偏移量 8字节
+                this.mappedByteBuffer.putLong(absIndexPos + 4, phyOffset); //存放消息对应的物理偏移量  commitlog 8字节
                 this.mappedByteBuffer.putInt(absIndexPos + 4 + 8, (int) timeDiff);//存放与第一条消息的相差秒数 4字节
-                this.mappedByteBuffer.putInt(absIndexPos + 4 + 8 + 4, slotValue); //当前hash槽的值 为上一个条目的下标
-
+                this.mappedByteBuffer.putInt(absIndexPos + 4 + 8 + 4, slotValue); //当前hash槽的值 为上一个条目的下标   最新的总是在槽的第一个
+                //存放
                 this.mappedByteBuffer.putInt(absSlotPos, this.indexHeader.getIndexCount()); //将当前Index包含的条目数量存入hash槽中覆盖原来的数据
 
+                //如果是第一条消息，更新header中的起始offset和起始time
                 if (this.indexHeader.getIndexCount() <= 1) {
                     this.indexHeader.setBeginPhyOffset(phyOffset);
                     this.indexHeader.setBeginTimestamp(storeTimestamp);
                 }
 
+                //更新header中的计数
                 this.indexHeader.incHashSlotCount();
                 this.indexHeader.incIndexCount();
-                this.indexHeader.setEndPhyOffset(phyOffset);
-                this.indexHeader.setEndTimestamp(storeTimestamp);
+                this.indexHeader.setEndPhyOffset(phyOffset);//设置最后一个的偏移量
+                this.indexHeader.setEndTimestamp(storeTimestamp);//设置结尾时间
 
                 return true;
             } catch (Exception e) {
