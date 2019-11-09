@@ -70,7 +70,6 @@ public class MessageTest {
     public void putMaxReConsumeTimes(){
         Message message = new Message();
         message.setMaxReConsumerTimes(12);
-
         Assert.assertEquals(12 , message.getMaxReConsumerTimes());
     }
 }
