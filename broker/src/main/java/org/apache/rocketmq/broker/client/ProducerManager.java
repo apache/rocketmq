@@ -53,7 +53,15 @@ public class ProducerManager {
         try {
             if (this.groupChannelLock.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
-                    newGroupChannelTable.putAll(groupChannelTable);
+                    Iterator<Map.Entry<String, HashMap<Channel, ClientChannelInfo>>> iter = groupChannelTable.entrySet().iterator();
+                    while (iter.hasNext()) {
+                        Map.Entry<String, HashMap<Channel, ClientChannelInfo>> entry = iter.next();
+                        String key = entry.getKey();
+                        HashMap<Channel, ClientChannelInfo> val = entry.getValue();
+                        HashMap<Channel, ClientChannelInfo> tmp = new HashMap<Channel, ClientChannelInfo>();
+                        tmp.putAll(val);
+                        newGroupChannelTable.put(key, tmp);
+                    }
                 } finally {
                     groupChannelLock.unlock();
                 }
