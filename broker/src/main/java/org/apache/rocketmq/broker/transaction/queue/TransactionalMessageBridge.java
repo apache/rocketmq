@@ -131,6 +131,9 @@ public class TransactionalMessageBridge {
                     this.brokerController.getBrokerStatsManager().incGroupGetSize(group, topic,
                         getMessageResult.getBufferTotalSize());
                     this.brokerController.getBrokerStatsManager().incBrokerGetNums(getMessageResult.getMessageCount());
+                    if (foundList == null || foundList.size() == 0) {
+                        break;
+                    }
                     this.brokerController.getBrokerStatsManager().recordDiskFallBehindTime(group, topic, queueId,
                         this.brokerController.getMessageStore().now() - foundList.get(foundList.size() - 1)
                             .getStoreTimestamp());
@@ -175,8 +178,10 @@ public class TransactionalMessageBridge {
         try {
             List<ByteBuffer> messageBufferList = getMessageResult.getMessageBufferList();
             for (ByteBuffer bb : messageBufferList) {
-                MessageExt msgExt = MessageDecoder.decode(bb);
-                foundList.add(msgExt);
+                MessageExt msgExt = MessageDecoder.decode(bb, true, false);
+                if (msgExt != null) {
+                    foundList.add(msgExt);
+                }
             }
 
         } finally {
