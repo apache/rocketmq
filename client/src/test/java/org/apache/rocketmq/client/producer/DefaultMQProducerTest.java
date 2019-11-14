@@ -189,7 +189,7 @@ public class DefaultMQProducerTest {
     @Test
     public void testSendMessageAsync_Success() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-//        final AtomicInteger cc = new AtomicInteger(0);
+        final AtomicInteger cc = new AtomicInteger(0);
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         producer.send(message, new SendCallback() {
             @Override
@@ -198,15 +198,15 @@ public class DefaultMQProducerTest {
                 assertThat(sendResult.getOffsetMsgId()).isEqualTo("123");
                 assertThat(sendResult.getQueueOffset()).isEqualTo(456L);
                 countDownLatch.countDown();
-//                cc.incrementAndGet();
+                cc.incrementAndGet();
             }
 
             @Override
             public void onException(Throwable e) {
             }
         });
-        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
-//        assertThat(cc.get()).isEqualTo(1);
+        countDownLatch.await(8000L, TimeUnit.MILLISECONDS);
+        assertThat(cc.get()).isEqualTo(1);
     }
 
     @Test
