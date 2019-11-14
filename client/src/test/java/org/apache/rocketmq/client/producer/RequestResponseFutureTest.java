@@ -15,22 +15,31 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.common.message;
+package org.apache.rocketmq.client.producer;
 
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.common.message.Message;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class MessageClientIDSetterTest {
+public class RequestResponseFutureTest {
 
     @Test
-    public void testGetIPStrFromID() {
-        String ipv4HostMsgId = "C0A803CA00002A9F0000000000031367";
-        String ipv6HostMsgId = "24084004018081003FAA1DDE2B3F898A00002A9F0000000000000CA0";
-        String v4Ip = "192.168.3.202";
-        String v6Ip = "2408:4004:0180:8100:3faa:1dde:2b3f:898a";
-        assertThat(MessageClientIDSetter.getIPStrFromID(ipv4HostMsgId)).isEqualTo(v4Ip);
-        assertThat(MessageClientIDSetter.getIPStrFromID(ipv6HostMsgId)).isEqualTo(v6Ip);
+    public void testExecuteRequestCallback() throws Exception {
+        final AtomicInteger cc = new AtomicInteger(0);
+        RequestResponseFuture future = new RequestResponseFuture(UUID.randomUUID().toString(), 3 * 1000L, new RequestCallback() {
+            @Override public void onSuccess(Message message) {
+                cc.incrementAndGet();
+            }
+
+            @Override public void onException(Throwable e) {
+            }
+        });
+        future.setSendReqeustOk(true);
+        future.executeRequestCallback();
+        assertThat(cc.get()).isEqualTo(1);
     }
 
 }
