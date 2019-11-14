@@ -21,15 +21,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.exception.RequestTimeoutException;
 import org.apache.rocketmq.client.hook.SendMessageContext;
 import org.apache.rocketmq.client.hook.SendMessageHook;
 import org.apache.rocketmq.client.impl.CommunicationMode;
@@ -45,6 +48,7 @@ import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.junit.After;
 import org.junit.Before;
@@ -335,6 +339,101 @@ public class DefaultMQProducerTest {
             .getmQClientFactory().getMQClientAPIImpl().getRemotingClient();
 
         assertThat(remotingClient.getCallbackExecutor()).isEqualTo(customized);
+    }
+
+    @Test
+    public void testRequestMessage() throws RemotingException, RequestTimeoutException, MQClientException, InterruptedException, MQBrokerException {
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+        final AtomicBoolean finish = new AtomicBoolean(false);
+        new Thread(new Runnable() {
+            @Override public void run() {
+                ConcurrentHashMap<String, RequestResponseFuture> responseMap = RequestFutureTable.getRequestFutureTable();
+                assertThat(responseMap).isNotNull();
+                while (!finish.get()) {
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                    }
+                    for (Map.Entry<String, RequestResponseFuture> entry : responseMap.entrySet()) {
+                        RequestResponseFuture future = entry.getValue();
+                        future.putResponseMessage(message);
+                    }
+                }
+            }
+        }).start();
+        Message result = producer.request(message, 3 * 1000L);
+        finish.getAndSet(true);
+        assertThat(result.getTopic()).isEqualTo("FooBar");
+        assertThat(result.getBody()).isEqualTo(new byte[] {'a'});
+    }
+
+    @Test(expected = RequestTimeoutException.class)
+    public void testRequestMessage_RequestTimeoutException() throws RemotingException, RequestTimeoutException, MQClientException, InterruptedException, MQBrokerException {
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+        Message result = producer.request(message, 3 * 1000L);
+    }
+
+    @Test
+    public void testAsyncRequest_OnSuccess() throws Exception {
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        RequestCallback requestCallback = new RequestCallback() {
+            @Override public void onSuccess(Message message) {
+                assertThat(message.getTopic()).isEqualTo("FooBar");
+                assertThat(message.getBody()).isEqualTo(new byte[] {'a'});
+                assertThat(message.getFlag()).isEqualTo(1);
+                countDownLatch.countDown();
+            }
+
+            @Override public void onException(Throwable e) {
+            }
+        };
+        producer.request(message, requestCallback, 3 * 1000L);
+        ConcurrentHashMap<String, RequestResponseFuture> responseMap = RequestFutureTable.getRequestFutureTable();
+        assertThat(responseMap).isNotNull();
+        for (Map.Entry<String, RequestResponseFuture> entry : responseMap.entrySet()) {
+            RequestResponseFuture future = entry.getValue();
+            future.setSendReqeustOk(true);
+            message.setFlag(1);
+            future.getRequestCallback().onSuccess(message);
+        }
+        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+    }
+
+    @Test
+    public void testAsyncRequest_OnException() throws Exception {
+        final AtomicInteger cc = new AtomicInteger(0);
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        RequestCallback requestCallback = new RequestCallback() {
+            @Override public void onSuccess(Message message) {
+
+            }
+
+            @Override public void onException(Throwable e) {
+                cc.incrementAndGet();
+                countDownLatch.countDown();
+            }
+        };
+        MessageQueueSelector messageQueueSelector = new MessageQueueSelector() {
+            @Override
+            public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
+                return null;
+            }
+        };
+
+        try {
+            producer.request(message, requestCallback, 3 * 1000L);
+            failBecauseExceptionWasNotThrown(Exception.class);
+        } catch (Exception e) {
+            ConcurrentHashMap<String, RequestResponseFuture> responseMap = RequestFutureTable.getRequestFutureTable();
+            assertThat(responseMap).isNotNull();
+            for (Map.Entry<String, RequestResponseFuture> entry : responseMap.entrySet()) {
+                RequestResponseFuture future = entry.getValue();
+                future.getRequestCallback().onException(e);
+            }
+        }
+        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        assertThat(cc.get()).isEqualTo(1);
     }
 
     public static TopicRouteData createTopicRoute() {
