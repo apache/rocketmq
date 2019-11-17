@@ -86,13 +86,13 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
 
         switch (request.getCode()) {
-            case RequestCode.PUT_KV_CONFIG:
+            case RequestCode.PUT_KV_CONFIG: //更新 nameSr配置文件
                 return this.putKVConfig(ctx, request);
-            case RequestCode.GET_KV_CONFIG:
+            case RequestCode.GET_KV_CONFIG:    //获取kv配置
                 return this.getKVConfig(ctx, request);
-            case RequestCode.DELETE_KV_CONFIG:
+            case RequestCode.DELETE_KV_CONFIG:  //删除kv配置
                 return this.deleteKVConfig(ctx, request);
-            case RequestCode.QUERY_DATA_VERSION:
+            case RequestCode.QUERY_DATA_VERSION: //查询
                 return queryBrokerTopicConfig(ctx, request);
             case RequestCode.REGISTER_BROKER: //topic 注册到broker上
                 //Broker注册事件
@@ -106,7 +106,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 return this.unregisterBroker(ctx, request);
             case RequestCode.GET_ROUTEINTO_BY_TOPIC: //通过topic名称得到topic信息
                 return this.getRouteInfoByTopic(ctx, request);  // 发现路由信息
-            case RequestCode.GET_BROKER_CLUSTER_INFO:
+            case RequestCode.GET_BROKER_CLUSTER_INFO:     //获取broker所在集群信息
                 return this.getBrokerClusterInfo(ctx, request);
             case RequestCode.WIPE_WRITE_PERM_OF_BROKER:
                 return this.wipeWritePermOfBroker(ctx, request);

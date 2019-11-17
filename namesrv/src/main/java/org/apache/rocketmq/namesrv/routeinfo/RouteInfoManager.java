@@ -53,7 +53,7 @@ public class RouteInfoManager {
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;   // 所有的broker信息 brokerName 为key
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;  //broker集群信息，每个集群包含哪些Broker。 key节点信息
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;  // 当前存活的Broker,该信息不是实时的，NameServer每10S扫描一次所有的broker,根据心跳包的时间得知broker的状态，该机制也是导致当一个master Down掉后，消息生产者无法感知，可能继续向Down掉的Master发送消息，导致失败
-    private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable; //过滤?????
+    private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable; //消息过滤类
 
     public RouteInfoManager() {
         this.topicQueueTable = new HashMap<String, List<QueueData>>(1024);
@@ -83,7 +83,7 @@ public class RouteInfoManager {
         }
     }
 
-    public byte[] getAllTopicList() {
+    public byte[] getAllTopicList() { //获取nameSrv上注册的所有的topic
         TopicList topicList = new TopicList();
         try {
             try {
@@ -311,6 +311,7 @@ public class RouteInfoManager {
         return wipeTopicCnt;
     }
 
+    //注销broker
     public void unregisterBroker(
         final String clusterName,
         final String brokerAddr,

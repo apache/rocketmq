@@ -32,6 +32,8 @@ import java.util.concurrent.TimeUnit;
 
 public class TransactionProducer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
+
+        //事务listener
         TransactionListener transactionListener = new TransactionListenerImpl();
         TransactionMQProducer producer = new TransactionMQProducer("zhanglei");
         ExecutorService executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2000), new ThreadFactory() {
@@ -43,8 +45,8 @@ public class TransactionProducer {
             }
         });
 
-        producer.setExecutorService(executorService);
-        producer.setTransactionListener(transactionListener);
+        producer.setExecutorService(executorService);//设置业务执行线程池
+        producer.setTransactionListener(transactionListener);//设置监听的listener
         producer.start();
 
         String[] tags = new String[] {"TagA", "TagB", "TagC", "TagD", "TagE"};

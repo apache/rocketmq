@@ -84,6 +84,8 @@ public class NamesrvStartup {
         //x修改为本地启动
         namesrvConfig.setRocketmqHome("/Users/zhanglei/codeing/persional/rocketmq/distribution/");
         nettyServerConfig.setListenPort(9876);
+
+        // -c 启动 指定配置文件
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
@@ -99,7 +101,7 @@ public class NamesrvStartup {
                 in.close();
             }
         }
-
+        //-p 启动
         if (commandLine.hasOption('p')) {
             InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_CONSOLE_NAME);
             MixAll.printObjectProperties(console, namesrvConfig);

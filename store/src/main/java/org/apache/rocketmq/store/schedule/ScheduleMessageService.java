@@ -178,10 +178,10 @@ public class ScheduleMessageService extends ConfigManager {
     //装载delayLevelTable 延时级别
     public boolean parseDelayLevel() {
         HashMap<String, Long> timeUnitTable = new HashMap<String, Long>();
-        timeUnitTable.put("s", 1000L);
-        timeUnitTable.put("m", 1000L * 60);
-        timeUnitTable.put("h", 1000L * 60 * 60);
-        timeUnitTable.put("d", 1000L * 60 * 60 * 24);
+        timeUnitTable.put("s", 1000L);                 //毫秒
+        timeUnitTable.put("m", 1000L * 60);            //分钟
+        timeUnitTable.put("h", 1000L * 60 * 60);       //小时
+        timeUnitTable.put("d", 1000L * 60 * 60 * 24);  // 天数
 
         String levelString = this.defaultMessageStore.getMessageStoreConfig().getMessageDelayLevel();
         try {
@@ -250,7 +250,7 @@ public class ScheduleMessageService extends ConfigManager {
 
             //根据队列Id与主题信息查找消费队列
             ConsumeQueue cq =
-                ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(SCHEDULE_TOPIC,
+                ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(SCHEDULE_TOPIC,//延时队列的topic
                     delayLevel2QueueId(delayLevel));//获取到ConsumeQueue
 
             long failScheduleOffset = offset;

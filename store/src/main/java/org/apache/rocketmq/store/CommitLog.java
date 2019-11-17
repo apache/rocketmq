@@ -325,7 +325,7 @@ public class CommitLog {
 
                 // Timing message processing
                 {
-                    String t = propertiesMap.get(MessageConst.PROPERTY_DELAY_TIME_LEVEL);
+                    String t = propertiesMap.get(MessageConst.PROPERTY_DELAY_TIME_LEVEL);//判断消息的延时级别
                     if (ScheduleMessageService.SCHEDULE_TOPIC.equals(topic) && t != null) {
                         int delayLevel = Integer.parseInt(t);
 
@@ -554,10 +554,9 @@ public class CommitLog {
         int queueId = msg.getQueueId(); //获取队列ID
 
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag()); //判断消息的级别
-        if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
-            || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+        if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             // Delay Delivery
-            if (msg.getDelayTimeLevel() > 0) {   //重试机制
+            if (msg.getDelayTimeLevel() > 0) {   //延时消息
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
                     msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
                 }
