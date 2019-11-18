@@ -1268,6 +1268,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
 
         try {
+            //停止事务
             this.endTransaction(sendResult, localTransactionState, localException);
         } catch (Exception e) {
             log.warn("local transaction execute " + localTransactionState + ", but end broker transaction failed", e);
@@ -1292,6 +1293,16 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return send(msg, this.defaultMQProducer.getSendMsgTimeout());
     }
 
+    /**
+     *
+     * @param sendResult             发送结果
+     * @param localTransactionState  本第事务执行状态
+     * @param localException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     * @throws UnknownHostException
+     */
     public void endTransaction(
         final SendResult sendResult,
         final LocalTransactionState localTransactionState,
@@ -1302,11 +1313,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         } else {
             id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
         }
-        String transactionId = sendResult.getTransactionId();
+        String transactionId = sendResult.getTransactionId();//获取事务Id
         final String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(sendResult.getMessageQueue().getBrokerName());
         EndTransactionRequestHeader requestHeader = new EndTransactionRequestHeader();
-        requestHeader.setTransactionId(transactionId);
-        requestHeader.setCommitLogOffset(id.getOffset());
+        requestHeader.setTransactionId(transactionId);   //事务Id
+        requestHeader.setCommitLogOffset(id.getOffset());// commit
         switch (localTransactionState) {
             case COMMIT_MESSAGE:
                 requestHeader.setCommitOrRollback(MessageSysFlag.TRANSACTION_COMMIT_TYPE);

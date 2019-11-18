@@ -40,6 +40,7 @@ import org.apache.rocketmq.store.config.BrokerRole;
 
 /**
  * EndTransaction processor: process commit and rollback message
+ * 处理事务消息最终的commit or rollback
  */
 public class EndTransactionProcessor implements NettyRequestProcessor {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
@@ -121,7 +122,9 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     return null;
             }
         }
+        //上述打印日志
         OperationResult result = new OperationResult();
+        //事务提交
         if (MessageSysFlag.TRANSACTION_COMMIT_TYPE == requestHeader.getCommitOrRollback()) {
             result = this.brokerController.getTransactionalMessageService().commitMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
@@ -140,6 +143,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 }
                 return res;
             }
+            //事务回滚
         } else if (MessageSysFlag.TRANSACTION_ROLLBACK_TYPE == requestHeader.getCommitOrRollback()) {
             result = this.brokerController.getTransactionalMessageService().rollbackMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {

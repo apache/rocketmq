@@ -62,7 +62,7 @@ public class TransactionalMessageCheckService extends ServiceThread {
         log.info("Start transaction check service thread!");
         long checkInterval = brokerController.getBrokerConfig().getTransactionCheckInterval();
         while (!this.isStopped()) {
-            this.waitForRunning(checkInterval);
+            this.waitForRunning(checkInterval);//检测事务消息状态
         }
         log.info("End transaction check service thread!");
     }
