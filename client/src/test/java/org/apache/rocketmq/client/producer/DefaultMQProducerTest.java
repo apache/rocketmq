@@ -203,6 +203,8 @@ public class DefaultMQProducerTest {
 
             @Override
             public void onException(Throwable e) {
+                countDownLatch.countDown();
+                cc.incrementAndGet();
             }
         });
         countDownLatch.await(8000L, TimeUnit.MILLISECONDS);
