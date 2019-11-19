@@ -71,6 +71,11 @@ public class TransactionalMessageBridge {
 
     }
 
+    /**
+     * 查询messagequeue的消费进度
+     * @param mq
+     * @return
+     */
     public long fetchConsumeOffset(MessageQueue mq) {
         long offset = brokerController.getConsumerOffsetManager().queryOffset(TransactionalMessageUtil.buildConsumerGroup(),
             mq.getTopic(), mq.getQueueId());
@@ -108,17 +113,35 @@ public class TransactionalMessageBridge {
         return getMessage(group, topic, queueId, offset, nums, sub);
     }
 
+    /**
+     * 获取已经处理过的messager
+     * @param queueId
+     * @param offset
+     * @param nums
+     * @return
+     */
     public PullResult getOpMessage(int queueId, long offset, int nums) {
-        String group = TransactionalMessageUtil.buildConsumerGroup();
+        String group = TransactionalMessageUtil.buildConsumerGroup();//设group
         String topic = TransactionalMessageUtil.buildOpTopic();
-        SubscriptionData sub = new SubscriptionData(topic, "*");
+        SubscriptionData sub = new SubscriptionData(topic, "*");//订阅信息
         return getMessage(group, topic, queueId, offset, nums, sub);
     }
 
+    /**
+     *
+     * @param group
+     * @param topic
+     * @param queueId
+     * @param offset
+     * @param nums  数量
+     * @param sub 订阅信息
+     * @return
+     */
     private PullResult getMessage(String group, String topic, int queueId, long offset, int nums,
         SubscriptionData sub) {
         GetMessageResult getMessageResult = store.getMessage(group, topic, queueId, offset, nums, null);
 
+        //拉取消息
         if (getMessageResult != null) {
             PullStatus pullStatus = PullStatus.NO_NEW_MSG;
             List<MessageExt> foundList = null;
