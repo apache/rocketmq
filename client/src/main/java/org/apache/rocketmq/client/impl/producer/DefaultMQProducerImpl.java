@@ -286,6 +286,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return null;
     }
 
+
+    //检查事务状态
     @Override
     public void checkTransactionState(final String addr, final MessageExt msg,
         final CheckTransactionStateRequestHeader header) {
@@ -325,6 +327,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 }
             }
 
+            //处理事务检查的状态
             private void processTransactionState(
                 final LocalTransactionState localTransactionState,
                 final String producerGroup,

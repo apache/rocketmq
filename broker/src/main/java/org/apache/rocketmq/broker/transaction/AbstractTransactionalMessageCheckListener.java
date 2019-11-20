@@ -52,6 +52,8 @@ public abstract class AbstractTransactionalMessageCheckListener {
         this.brokerController = brokerController;
     }
 
+
+
     public void sendCheckMessage(MessageExt msgExt) throws Exception {
         CheckTransactionStateRequestHeader checkTransactionStateRequestHeader = new CheckTransactionStateRequestHeader();
         checkTransactionStateRequestHeader.setCommitLogOffset(msgExt.getCommitLogOffset());
@@ -63,7 +65,7 @@ public abstract class AbstractTransactionalMessageCheckListener {
         msgExt.setQueueId(Integer.parseInt(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_QUEUE_ID)));
         msgExt.setStoreSize(0);
         String groupId = msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
-        Channel channel = brokerController.getProducerManager().getAvaliableChannel(groupId);
+        Channel channel = brokerController.getProducerManager().getAvaliableChannel(groupId);//根据groupname 获取生产者的Channel
         if (channel != null) {
             brokerController.getBroker2Client().checkProducerTransactionState(groupId, channel, checkTransactionStateRequestHeader, msgExt);
         } else {

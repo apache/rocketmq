@@ -84,6 +84,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         return false;
     }
 
+    //检查本地事务
     public RemotingCommand checkTransactionState(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final CheckTransactionStateRequestHeader requestHeader =

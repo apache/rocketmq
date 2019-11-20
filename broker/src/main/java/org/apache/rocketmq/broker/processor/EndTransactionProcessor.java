@@ -50,6 +50,13 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         this.brokerController = brokerController;
     }
 
+    /**
+     * 处理事务请求
+     * @param ctx
+     * @param request
+     * @return
+     * @throws RemotingCommandException
+     */
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws
         RemotingCommandException {
@@ -126,6 +133,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         OperationResult result = new OperationResult();
         //事务提交
         if (MessageSysFlag.TRANSACTION_COMMIT_TYPE == requestHeader.getCommitOrRollback()) {
+            //提交事务
             result = this.brokerController.getTransactionalMessageService().commitMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
@@ -135,6 +143,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     msgInner.setQueueOffset(requestHeader.getTranStateTableOffset());
                     msgInner.setPreparedTransactionOffset(requestHeader.getCommitLogOffset());
                     msgInner.setStoreTimestamp(result.getPrepareMessage().getStoreTimestamp());
+                    //
                     RemotingCommand sendResult = sendFinalMessage(msgInner);
                     if (sendResult.getCode() == ResponseCode.SUCCESS) {
                         this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
@@ -147,7 +156,9 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         } else if (MessageSysFlag.TRANSACTION_ROLLBACK_TYPE == requestHeader.getCommitOrRollback()) {
             result = this.brokerController.getTransactionalMessageService().rollbackMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
+
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
+
                 if (res.getCode() == ResponseCode.SUCCESS) {
                     this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
                 }
@@ -219,6 +230,11 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         return msgInner;
     }
 
+    /**
+     * 发送最后的message
+     * @param msgInner
+     * @return
+     */
     private RemotingCommand sendFinalMessage(MessageExtBrokerInner msgInner) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);

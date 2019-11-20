@@ -215,7 +215,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         if (null != checkImmunityTimeStr) {
                             checkImmunityTime = getImmunityTime(checkImmunityTimeStr, transactionTimeout);
                             if (valueOfCurrentMinusBorn < checkImmunityTime) { //小于检测时间说明是正常的
-                                if (checkPrepareQueueOffset(removeMap, doneOpOffset, msgExt, checkImmunityTime)) {//
+                                if (checkPrepareQueueOffset(removeMap, doneOpOffset, msgExt, checkImmunityTime)) {//返回true 就跳过
                                     newOffset = i + 1;
                                     i++;
                                     continue;
@@ -228,7 +228,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                                 break;
                             }
                         }
-                        List<MessageExt> opMsg = pullResult.getMsgFoundList();
+                        List<MessageExt> opMsg = pullResult.getMsgFoundList();//
                         boolean isNeedCheck = (opMsg == null && valueOfCurrentMinusBorn > checkImmunityTime)
                             || (opMsg != null && (opMsg.get(opMsg.size() - 1).getBornTimestamp() - startTime > transactionTimeout))
                             || (valueOfCurrentMinusBorn <= -1);
@@ -237,6 +237,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             if (!putBackHalfMsgQueue(msgExt, i)) {
                                 continue;
                             }
+                            //todo 重点验证事务消息
                             listener.resolveHalfMsg(msgExt);
                         } else {
                             pullResult = fillOpRemoveMap(removeMap, opQueue, pullResult.getNextBeginOffset(), halfOffset, doneOpOffset);
@@ -334,10 +335,12 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
      * @param msgExt Half message
      * @param checkImmunityTime User defined time to avoid being detected early.
      * @return Return true if put success, otherwise return false.
+     * 返回true 就跳过 message
      */
     private boolean checkPrepareQueueOffset(HashMap<Long, Long> removeMap, List<Long> doneOpOffset, MessageExt msgExt,
         long checkImmunityTime) {
         if (System.currentTimeMillis() - msgExt.getBornTimestamp() < checkImmunityTime) {
+
             String prepareQueueOffsetStr = msgExt.getUserProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET);
             if (null == prepareQueueOffsetStr) {
                 return putImmunityMsgBackToHalfQueue(msgExt);
