@@ -45,6 +45,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
  */
 public abstract class RebalanceImpl {
     protected static final InternalLogger log = ClientLogger.getLog();
+    // 当前消费者负载的消息队列缓存表
     protected final ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
     protected final ConcurrentMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
         new ConcurrentHashMap<String, Set<MessageQueue>>();
@@ -220,13 +221,14 @@ public abstract class RebalanceImpl {
         }
     }
 
-    // 开始执行负载均衡
+    // 主要是遍历订阅信息对每个主题的队列进行重新负载
     public void doRebalance(final boolean isOrder) {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
                 final String topic = entry.getKey();
                 try {
+                    // 针对单个主题进行消息队列负载均衡。
                     this.rebalanceByTopic(topic, isOrder);
                 } catch (Throwable e) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -244,11 +246,12 @@ public abstract class RebalanceImpl {
     }
 
 
-    //重新分配
+    //重新分配，进行消息队列的负载均衡
     private void rebalanceByTopic(final String topic, final boolean isOrder) {
         switch (messageModel) {
             // 广播消费模式；
             case BROADCASTING: {
+                // 从主题订阅信息缓存表中获取主题的队列信息；
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
                 if (mqSet != null) {
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, mqSet, isOrder);
@@ -267,7 +270,9 @@ public abstract class RebalanceImpl {
             }
             // 集群消费模式
             case CLUSTERING: {
+                // 从主题订阅信息缓存表中获取主题的队列信息；
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
+                //
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
                 if (null == mqSet) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -283,9 +288,11 @@ public abstract class RebalanceImpl {
                     List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
                     mqAll.addAll(mqSet);
 
+                    // 保证同一个消费组内看到的视图保持一致。确保同一个消费队列不会被多个消费者分配
                     Collections.sort(mqAll);
                     Collections.sort(cidAll);
 
+                    // 分配策略
                     AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;
 
                     List<MessageQueue> allocateResult = null;
@@ -306,6 +313,7 @@ public abstract class RebalanceImpl {
                         allocateResultSet.addAll(allocateResult);
                     }
 
+                    // 对比消息队列是否发生变化
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
                     if (changed) {
                         log.info(
@@ -341,15 +349,19 @@ public abstract class RebalanceImpl {
         final boolean isOrder) {
         boolean changed = false;
 
+        // 遍历当前负载队列集合，如果队列不在新分配队列集合中，需要将该队列停止消费并保存消费进度
         Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<MessageQueue, ProcessQueue> next = it.next();
             MessageQueue mq = next.getKey();
             ProcessQueue pq = next.getValue();
 
+            //如果缓存表中的MessageQueue 不包含在mqSet 中，说明经过本次消息队列负载后，该mq 被分配给其他消费者，故需要暂停该消息队列消息的消费
             if (mq.getTopic().equals(topic)) {
                 if (!mqSet.contains(mq)) {
+                    //方法是将ProcessQueue 的状态设置为draped ＝ true，该ProcessQueue 中的消息将不会再被消费，
                     pq.setDropped(true);
+                    //调用removeUnnecessaryMessageQueue 方法判断是否将MessageQueue、ProcessQueue 缓存表中移除
                     if (this.removeUnnecessaryMessageQueue(mq, pq)) {
                         it.remove();
                         changed = true;

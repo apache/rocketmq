@@ -49,21 +49,22 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2; // 2分钟
+
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     // Topic 消息队列路由信息，消息发送时根据路由表进行负 载均衡 。
-    //QueueData 的集合 size 等于 Topic 对应的 Broker Master 的个数。
+    // QueueData 的集合 size 等于 Topic 对应的 Broker Master 的个数。
     private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
     //Broker 基础信息， 包含 brokerName、 所属集群名称 、 主备 Broker
     //地址。
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
-    // Broker 集群信息，存储集群中所有 Broker 名称 。
+    // Broker 集群信息，存储集群中所有Broker名称 。
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
-    //Broker 状态信息 。 NameServer 每次 收到心跳包时会 替换该信 息 。
+    //Broker 状态信息 。 NameServer 每次收到心跳包时会替换该信息 。
     //BrokerLiveInfo 中存储了 Broker 的实时状态。
-    private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+    private final HashMap<String/* brokerAddress */, BrokerLiveInfo> brokerLiveTable;
     //Broker上的 FilterServer列表，用于类模式消息过滤
     //Filter Server 是消息的过滤服务器，一个 Broker 可以对应多个 Filter Server。
-    private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
+    private final HashMap<String/* brokerAddress */, List<String>/* Filter Server */> filterServerTable;
 
     public RouteInfoManager() {
         // Topic 消息队列路由信息，消息发送时根据路由表进行负 载均衡 。
@@ -84,6 +85,7 @@ public class RouteInfoManager {
     public void deleteTopic(final String topic) {
         try {
             try {
+                //
                 this.lock.writeLock().lockInterruptibly();
                 this.topicQueueTable.remove(topic);
             } finally {
@@ -110,8 +112,8 @@ public class RouteInfoManager {
         return topicList.encode();
     }
 
-    //路由 注册需要加写锁 ，防止并发修改 RoutelnfoManager 中的路由 表 。
-    // Broker 所属 集群是否存在， 如果不存在，则创 建，然 后将 broker 名加入到集群中。
+    // 路由注册需要加写锁,防止并发修改 RouteInfoManager中的路由表 。
+    // Broker 所属集群是否存在,如果不存在,则创建，然后将broker加入到集群中。
     public RegisterBrokerResult registerBroker(
         final String clusterName,
         final String brokerAddr,

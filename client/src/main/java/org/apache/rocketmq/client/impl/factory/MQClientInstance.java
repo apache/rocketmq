@@ -85,14 +85,14 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-// MQClientinstance 是客户端各种类型的 Consumer 和 Producer 的底层类 。
+// MQClientInstance 是客户端各种类型的 Consumer 和 Producer 的底层类 。
 // 这个类首先从 NameServer 获取并保存各种配置信息，比如Topic的Route信息。
-// 同时 MQClientlnstance还会通过 MQClientAPIImpl类实现消息的收发，也就是从Broker获取消息或者发送消息到 Broker。
+// 同时 MQClientInstance还会通过 MQClientAPIImpl类实现消息的收发，也就是从Broker获取消息或者发送消息到 Broker。
 
 
-// 既然 MQClientinstance 实现的是底层通信功能和获取并保存元数据的功能，
-// 就没必要每个 Consumer或 Producer都创建一个对象，一个 MQClientlnstance 对象可以被多个 Consumer 或 Producer公用 。
-// RocketMQ 通过一个 工 厂类达 到共用 MQClientlnstance 的目的 。 MQClientlnstance 的创建如代码清单 11-12 所示 。
+// 既然 MQClientInstance 实现的是底层通信功能和获取并保存元数据的功能.
+// 就没必要每个Consumer或Producer都创建一个对象，一个MQClientInstance对象可以被多个Consumer或Producer共用 。
+// RocketMQ 通过一个工厂类达到共用MQClientInstance的目的。
 public class MQClientInstance {
     private final static long LOCK_TIMEOUT_MILLIS = 3000;
     private final InternalLogger log = ClientLogger.getLog();
@@ -123,6 +123,7 @@ public class MQClientInstance {
     });
     private final ClientRemotingProcessor clientRemotingProcessor;
     private final PullMessageService pullMessageService;
+    // 消息队列重新分布
     private final RebalanceService rebalanceService;
     private final DefaultMQProducer defaultMQProducer;
     private final ConsumerStatsManager consumerStatsManager;
@@ -990,6 +991,8 @@ public class MQClientInstance {
         this.rebalanceService.wakeup();
     }
 
+
+    // MQClientInstance 遍历已注册的消费者，对消费者执行doRebalance（）方法.
     public void doRebalance() {
         for (Map.Entry<String, MQConsumerInner> entry : this.consumerTable.entrySet()) {
             MQConsumerInner impl = entry.getValue();
@@ -1041,6 +1044,7 @@ public class MQClientInstance {
         return null;
     }
 
+    //
     public String findBrokerAddressInPublish(final String brokerName) {
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {

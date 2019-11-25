@@ -87,6 +87,8 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 
+
+//
 public class DefaultMQProducerImpl implements MQProducerInner {
     private final InternalLogger log = ClientLogger.getLog();
     private final Random random = new Random();
@@ -176,7 +178,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                 this.checkConfig();
 
-                // 检查produceGroup是否符合要求，改变生产者的instanceName为进程ID
+                // 检查 produceGroup是否符合要求，改变生产者的instanceName为进程ID
                 if (!this.defaultMQProducer.getProducerGroup().equals(MixAll.CLIENT_INNER_PRODUCER_GROUP)) {
                     this.defaultMQProducer.changeInstanceNameToPID();
                 }
@@ -687,14 +689,19 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
     }
 
-    private SendResult sendKernelImpl(final Message msg,
-                                      final MessageQueue mq,
-                                      final CommunicationMode communicationMode,
-                                      final SendCallback sendCallback,
-                                      final TopicPublishInfo topicPublishInfo,
-                                      final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+    // 消息发送 API 核心入口：
+    private SendResult sendKernelImpl(final Message msg, // 待发送消息
+                                      final MessageQueue mq, // 消息将发送到该消息队列中。
+                                      final CommunicationMode communicationMode, // 消息发送模式
+                                      final SendCallback sendCallback,// 异步消息回调函数
+                                      final TopicPublishInfo topicPublishInfo, // 主题路由信息
+                                      final long timeout // 消息发送超时时间
+    ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         long beginStartTime = System.currentTimeMillis();
+        // 根据 MessageQueue获取Broker的网络地址。
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
+        // 如果MQClientInstance 的brokerAddrTable 未缓存该Broker的信息，则从NameServer主动更新一下topic的路由信息。
+        // 如果路由更新后还是找不到Broker 信息，则抛出MQClientException，提示Broker 不存在。
         if (null == brokerAddr) {
             tryToFindTopicPublishInfo(mq.getTopic());
             brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());

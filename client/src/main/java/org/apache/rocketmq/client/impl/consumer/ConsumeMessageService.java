@@ -21,6 +21,9 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 
+
+// ConsumeMessageService负责消息的消费，它本身只是是一个接口，
+// 提供了两个子类，分别代表了顺序消费的消息处理和普通消息的消费处理。
 public interface ConsumeMessageService {
     void start();
 

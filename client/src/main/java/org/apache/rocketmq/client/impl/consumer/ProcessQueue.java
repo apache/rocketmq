@@ -37,16 +37,14 @@ import org.apache.rocketmq.common.protocol.body.ProcessQueueInfo;
 /**
  * Queue consumption snapshot
  */
-// RocketMQ 定义了一个快照类 ProcessQueue来解决这些问题，在 PushConsumer 运行的时候，
-// 每个 Message Queue 都会有 一个对应的 ProcessQueue 对象，保存 了这个 Message Queue 消息处理状态的快照；；
-
+// RocketMQ 定义了一个快照类ProcessQueue，在PushConsumer运行的时候，
+// 每个MessageQueue 都会有一个对应的ProcessQueue对象，保存了这个 Message Queue消息处理状态的快照；
 // ProcessQueue对象里主要的内容是一个 TreeMap和一个读写锁。
-// TreeMap 里以 Message Queue 的 Offset作为 Key，
-// 以消息内容的引用为 Value，
-// 保存了 所有从 MessageQueue 获取到但是还未被处理的消息，读写锁控制着多个线程 对 TreeMap 对象的并发访问 。
+// TreeMap里以 Message Queue的Offset作为Key，以消息内容的引用为Value，
+// 保存了所有从 MessageQueue 获取到但是还未被处理的消息，读写锁控制着多个线程对TreeMap对象的并发访问 。
 
-// 有了 ProcessQueue 对象，可以随时停止、启动消息的消费，同时也可用于 帮助 实 现顺 序消费消息 。
-// 顺序消息是通过 ConsumeMessageOrderlyService 类实 现的 ，主要流程和 ConsumeMessageConcurrentlyService类似 ，区别只是在对并
+// 有了 ProcessQueue 对象，可以随时停止、启动消息的消费，同时也可用于帮助实现顺序消费消息 。
+// 顺序消息是通过 ConsumeMessageOrderlyService 类实现的 ，主要流程和 ConsumeMessageConcurrentlyService类似
 public class ProcessQueue {
     public final static long REBALANCE_LOCK_MAX_LIVE_TIME =
         Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockMaxLiveTime", "30000"));

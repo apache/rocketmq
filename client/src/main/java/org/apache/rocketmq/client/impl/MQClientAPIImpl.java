@@ -297,6 +297,8 @@ public class MQClientAPIImpl {
         return sendMessage(addr, brokerName, msg, requestHeader, timeoutMillis, communicationMode, null, null, null, 0, context, producer);
     }
 
+
+    //发送消息
     public SendResult sendMessage(
         final String addr,
         final String brokerName,
@@ -633,6 +635,10 @@ public class MQClientAPIImpl {
         return this.processPullResponse(response);
     }
 
+
+
+    // 根据响应结果解码成PullResultExt 对象，此时只是从网络中读取消息列表到
+    // byte[] messageBinary 属性。
     private PullResult processPullResponse(
         final RemotingCommand response) throws MQBrokerException, RemotingCommandException {
         PullStatus pullStatus = PullStatus.NO_NEW_MSG;

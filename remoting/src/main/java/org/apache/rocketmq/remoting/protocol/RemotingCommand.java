@@ -144,19 +144,23 @@ public class RemotingCommand {
 
     // 消息的解码过程
     public static RemotingCommand decode(final ByteBuffer byteBuffer) {
-        int length = byteBuffer.limit();
-        int oriHeaderLen = byteBuffer.getInt();
-        int headerLength = getHeaderLength(oriHeaderLen);
 
-        byte[] headerData = new byte[headerLength];
-        byteBuffer.get(headerData);
+        int length = byteBuffer.limit(); // 获取 byteBuffer的总长度
+        // 拿到组合的头长度
+        int oriHeaderLen = byteBuffer.getInt();// 1.获取前4个字节，组装int类型，该长度为总长度 图中 length
+        // 开始反解 & 0xFFFFFF 拿到低24位
+        int headerLength = getHeaderLength(oriHeaderLen);// length & 0xFFFFFF 获取消息头的长度，与运算，编码时候的长度即为24位
+        // get()头文件
+        byte[] headerData = new byte[headerLength]; // 保存header data
+        byteBuffer.get(headerData);// 2.从缓冲区中读取headerLength个字节的数据，这个数据就是报文头部的数据
 
         RemotingCommand cmd = headerDecode(headerData, getProtocolType(oriHeaderLen));
 
-        int bodyLength = length - 4 - headerLength;
+        // get Body长度
+        int bodyLength = length - 4 - headerLength;// 报文体的数据，减去了第二、三部分的长度
         byte[] bodyData = null;
         if (bodyLength > 0) {
-            bodyData = new byte[bodyLength];
+            bodyData = new byte[bodyLength];// 获取消息体的数据
             byteBuffer.get(bodyData);
         }
         cmd.body = bodyData;
@@ -168,6 +172,8 @@ public class RemotingCommand {
         return length & 0xFFFFFF;
     }
 
+
+    // 对于头部数据 - header data 的解码，在 Remoting Command 中 headerDecode 方法处理
     private static RemotingCommand headerDecode(byte[] headerData, SerializeType type) {
         switch (type) {
             case JSON:
@@ -361,6 +367,7 @@ public class RemotingCommand {
         return result;
     }
 
+    // 对于头部数据 - header data 的编码，在 RemotingCommand 中 headerEncode 方法处理：
     private byte[] headerEncode() {
         this.makeCustomHeaderToNet();
         if (SerializeType.ROCKETMQ == serializeTypeCurrentRPC) {

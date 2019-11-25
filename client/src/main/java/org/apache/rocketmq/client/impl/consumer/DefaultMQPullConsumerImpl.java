@@ -373,6 +373,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         return result;
     }
 
+    // 遍历订阅信息对每个主题的队列进行重新负载
     @Override
     public void doRebalance() {
         if (this.rebalanceImpl != null) {

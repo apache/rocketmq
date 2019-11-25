@@ -301,16 +301,20 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         final long beginTimestamp = System.currentTimeMillis();
 
+        // 构建 pullCallback
         PullCallback pullCallback = new PullCallback() {
             @Override
             public void onSuccess(PullResult pullResult) {
                 if (pullResult != null) {
+                    // 调用pullAPIWrapper 的processPullResult 将消息字节数组解码成消息列表填充
+                    // msgFoundList ，井对消息进行消息过滤（ TAG ）模式
                     pullResult = DefaultMQPushConsumerImpl.this.pullAPIWrapper.processPullResult(pullRequest.getMessageQueue(), pullResult,
                         subscriptionData);
 
                     // 对返回消息结果做处理
                     switch (pullResult.getPullStatus()) {
                         case FOUND:
+                            // 本
                             long prevRequestOffset = pullRequest.getNextOffset();
                             pullRequest.setNextOffset(pullResult.getNextBeginOffset());
                             long pullRT = System.currentTimeMillis() - beginTimestamp;
@@ -318,6 +322,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                                 pullRequest.getMessageQueue().getTopic(), pullRT);
 
                             long firstMsgOffset = Long.MAX_VALUE;
+
+                            // 更新PullRequest 的下一次拉取偏移量，如果msgFou ndList 为空， 则立即将
+                            // PullReqeuest 放入到PullMessageService 的pullRequestQu巳U巳，以便PullMessag巳Serivce 能
+                            // 及时唤醒并再次执行消息拉取。
                             if (pullResult.getMsgFoundList() == null || pullResult.getMsgFoundList().isEmpty()) {
                                 DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                             } else {
@@ -327,12 +335,17 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                                     pullRequest.getMessageQueue().getTopic(), pullResult.getMsgFoundList().size());
 
                                 boolean dispatchToConsume = processQueue.putMessage(pullResult.getMsgFoundList());
+                                // 将拉取到的消息交给consumeMessageService代表的消费消息线程池处理
                                 DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest(
                                     pullResult.getMsgFoundList(),
                                     processQueue,
                                     pullRequest.getMessageQueue(),
                                     dispatchToConsume);
 
+                                // 将消息提交给消费者线程之后 PullCallBack将立即返回，可以说本次消息拉取
+                                // 顺利完成，然后根据pullInterval参数，如果pullInterval>O ，则等待pullInterval 毫秒后将
+                                // PullRequest 对象放入到PullMessageService的pullRequestQueue 中，该消息队列的下次拉
+                                // 取即将被激活，达到持续消息拉取,实现准实时拉取消息的效果。
                                 if (DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval() > 0) {
                                     DefaultMQPushConsumerImpl.this.executePullRequestLater(pullRequest,
                                         DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval());
@@ -351,13 +364,16 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                             }
 
                             break;
+                            // 没有新消息
                         case NO_NEW_MSG:
+                            // 直接使用服务器端校正的偏移量进行下一次消息的拉取
                             pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
                             DefaultMQPushConsumerImpl.this.correctTagsOffset(pullRequest);
 
                             DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                             break;
+                            // 没有匹配的消息
                         case NO_MATCHED_MSG:
                             pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
@@ -365,6 +381,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
                             DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                             break;
+                            // 直接使用服务器端校正的偏移量进行下一次消息的拉取
+                        // 偏移量非法
                         case OFFSET_ILLEGAL:
                             log.warn("the pull request offset illegal, {} {}",
                                 pullRequest.toString(), pullResult.toString());

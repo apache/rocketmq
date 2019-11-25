@@ -205,7 +205,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                                 new HandshakeHandler(TlsSystemConfig.tlsMode))
                             .addLast(defaultEventExecutorGroup,
                                 new NettyEncoder(),
-                                new NettyDecoder(),
+                                new NettyDecoder(),  // 处理粘包粘包问题
                                 new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
                                 new NettyConnectManageHandler(),
                                 new NettyServerHandler()

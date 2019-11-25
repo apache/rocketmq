@@ -26,8 +26,8 @@ public class Message implements Serializable {
     private static final long serialVersionUID = 8445773977080406428L;
 
     private String topic;
-    private int flag;
-    private Map<String, String> properties;
+    private int flag; // 消息flag
+    private Map<String, String> properties; // 属性
     private byte[] body;
     private String transactionId;
 
