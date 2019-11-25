@@ -16,7 +16,8 @@
  */
 package org.apache.rocketmq.store;
 
-
+import java.util.HashSet;
+import java.util.Set;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -33,38 +34,41 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
     private final MessageStoreConfig config;
 
     public MultiPathMappedFileQueue(MessageStoreConfig messageStoreConfig, int mappedFileSize,
-                                    AllocateMappedFileService allocateMappedFileService) {
+        AllocateMappedFileService allocateMappedFileService) {
         super(messageStoreConfig.getStorePathCommitLog(), mappedFileSize, allocateMappedFileService);
         this.config = messageStoreConfig;
     }
 
-
     @Override
     public boolean load() {
         List<File> files = new ArrayList<>();
-        String[]  commitLogStorePaths = getCommitLogStorePaths() ;
+        Set<String> loadPaths = new HashSet<>();
+        List<String> commitLogStorePaths = getCommitLogStorePaths();
         if (commitLogStorePaths != null) {
-            for (int i = 0;i < commitLogStorePaths.length;i++) {
-                File dir = new File(commitLogStorePaths[i]);
+            loadPaths.addAll(commitLogStorePaths);
+        }
+        List<String> readOnlyStorePaths = getReadOnlyStorePaths();
+        if (readOnlyStorePaths != null) {
+            loadPaths.addAll(readOnlyStorePaths);
+        }
+        if (loadPaths.size() > 0) {
+            for (String path : loadPaths) {
+                File dir = new File(path);
                 File[] ls = dir.listFiles();
                 if (ls != null) {
                     Collections.addAll(files, ls);
                 }
             }
         }
-
-        String[] readOnlyCommitLogStorePaths = getReadOnlyStorePaths();
-        if (readOnlyCommitLogStorePaths != null) {
-            for (int i = 0;i < readOnlyCommitLogStorePaths.length;i++) {
-                File dir = new File(readOnlyCommitLogStorePaths[i]);
-                File[] ls = dir.listFiles();
-                if (ls != null) {
-                    Collections.addAll(files, ls);
-                }
-            }
-        }
-
         return doLoad(files);
+    }
+
+    private List<String> getCommitLogStorePaths() {
+        return StoreUtil.getCommitLogStorePaths(config.getStorePathCommitLog());
+    }
+
+    private List<String> getReadOnlyStorePaths() {
+        return StoreUtil.getReadOnlyStorePaths(config.getReadOnlyCommitLogStorePaths());
     }
 
     @Override
@@ -75,18 +79,21 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
             return null;
         }
         String nextFilePath = pathList.get((int) (fileIdx % pathList.size())) + File.separator
-                + UtilAll.offset2FileName(createOffset);
+            + UtilAll.offset2FileName(createOffset);
         String nextNextFilePath = pathList.get((int) ((fileIdx + 1) % pathList.size())) + File.separator
-                + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
+            + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
         return doCreateMappedFile(nextFilePath, nextNextFilePath);
     }
 
-    private List<String> checkDiskSpaceAndReturnPaths() {
+    public List<String> checkDiskSpaceAndReturnPaths() {
         List<String> storePaths = new ArrayList<>();
-        String[] checkPaths = getCommitLogStorePaths();
+        List<String> checkPaths = getCommitLogStorePaths();
+        String readOnlyPathsStr = config.getReadOnlyCommitLogStorePaths();
         if (checkPaths != null) {
-            for (int i = 0;i < checkPaths.length;i++) {
-                String path = checkPaths[i];
+            for (String path : checkPaths) {
+                if (readOnlyPathsStr != null && readOnlyPathsStr.contains(path)) {
+                    continue;
+                }
                 try {
                     File file = new File(path);
                     MappedFile.ensureDirOK(file.getPath());
@@ -94,28 +101,12 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
                         storePaths.add(path);
                     }
                 } catch (Exception e) {
-                    log.error("Failed to load the store path{} ex{}",path,e.getMessage());
+                    log.error("Failed to load the store path{} ex{}", path, e.getMessage());
                 }
             }
         }
 
         return storePaths;
-    }
-
-    public String[] getCommitLogStorePaths() {
-        String[] storPaths = null;
-        if (!UtilAll.isBlank(config.getCommitLogStorePaths())) {
-            storPaths = config.getCommitLogStorePaths().trim().split(";") ;
-        }
-        return storPaths;
-    }
-
-    public String[] getReadOnlyStorePaths() {
-        String[] storPaths = null;
-        if (!UtilAll.isBlank(config.getReadOnlyCommitLogStorePaths())) {
-            storPaths = config.getReadOnlyCommitLogStorePaths().trim().split(";") ;
-        }
-        return storPaths;
     }
 
     @Override
@@ -125,20 +116,20 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
         }
         this.mappedFiles.clear();
         this.flushedWhere = 0;
-        String[] commitLogStorePaths = getCommitLogStorePaths();
+        List<String> commitLogStorePaths = getCommitLogStorePaths();
         if (commitLogStorePaths != null) {
-            for (int i = 0;i < commitLogStorePaths.length;i++) {
-                File file = new File(commitLogStorePaths[i]);
+            for (String path : commitLogStorePaths) {
+                File file = new File(path);
                 if (file.isDirectory()) {
                     file.delete();
                 }
             }
         }
 
-        String[] readOnlyCommitLogStorePaths = getReadOnlyStorePaths();
+        List<String> readOnlyCommitLogStorePaths = getReadOnlyStorePaths();
         if (readOnlyCommitLogStorePaths != null) {
-            for (int i = 0;i < readOnlyCommitLogStorePaths.length;i++) {
-                File file = new File(readOnlyCommitLogStorePaths[i]);
+            for (String path : readOnlyCommitLogStorePaths) {
+                File file = new File(path);
                 if (file.isDirectory()) {
                     file.delete();
                 }

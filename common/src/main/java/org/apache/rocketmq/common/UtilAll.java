@@ -222,6 +222,36 @@ public class UtilAll {
         return -1;
     }
 
+//    public static double getMaxDiskPartitionSpaceUsedPercent(final String paths) {
+//        if (null == paths || paths.isEmpty()) {
+//            return -1;
+//        }
+//
+//        String[] pathArr = paths.trim().split(";");
+//        try {
+//
+//            double maxUsedPercent = 0;
+//            for (int i = 0; i < pathArr.length; i++) {
+//                File file = new File(pathArr[i]);
+//                if (!file.exists()) {
+//                    continue;
+//                }
+//                long totalSpace = file.getTotalSpace();
+//                long freeSpace = file.getFreeSpace();
+//                double usedPercent = (totalSpace - freeSpace) / (double) totalSpace;
+//                if (usedPercent > maxUsedPercent) {
+//                    maxUsedPercent = usedPercent;
+//                }
+//            }
+//            return maxUsedPercent;
+//        } catch (Exception e) {
+//            return -1;
+//        }
+//    }
+
+
+
+
     public static int crc32(byte[] array) {
         if (array != null) {
             return crc32(array, 0, array.length);

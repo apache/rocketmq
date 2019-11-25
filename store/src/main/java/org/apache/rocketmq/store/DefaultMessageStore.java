@@ -420,7 +420,7 @@ public class DefaultMessageStore implements MessageStore {
         long diff = this.systemClock.now() - begin;
 
         return diff < 10000000
-                && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills();
+            && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills();
     }
 
     @Override
@@ -437,8 +437,8 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
-                                       final int maxMsgNums,
-                                       final MessageFilter messageFilter) {
+        final int maxMsgNums,
+        final MessageFilter messageFilter) {
         if (this.shutdown) {
             log.warn("message store has shutdown, so getMessage is forbidden");
             return null;
@@ -693,11 +693,7 @@ public class DefaultMessageStore implements MessageStore {
     public HashMap<String, String> getRuntimeInfo() {
         HashMap<String, String> result = this.storeStatsService.getRuntimeInfo();
 
-        if (DefaultMessageStore.this.getMessageStoreConfig().isMultiCommitLogPathEnable()) {
-            String storePathPhysics = DefaultMessageStore.this.getMessageStoreConfig().getCommitLogStorePaths();
-            double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysics);
-            result.put(RunningStats.commitLogDiskRatio.name(), String.valueOf(physicRatio));
-        } else {
+        {
             String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
             double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
             result.put(RunningStats.commitLogDiskRatio.name(), String.valueOf(physicRatio));
@@ -1540,13 +1536,7 @@ public class DefaultMessageStore implements MessageStore {
             cleanImmediately = false;
 
             {
-                String storePaths;
-                if (DefaultMessageStore.this.getMessageStoreConfig().isMultiCommitLogPathEnable()) {
-                    storePaths = DefaultMessageStore.this.getMessageStoreConfig().getCommitLogStorePaths();
-                } else {
-                    storePaths = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
-                }
-
+                String storePaths = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
                 double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePaths);
                 if (physicRatio > diskSpaceWarningLevelRatio) {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();

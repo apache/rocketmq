@@ -26,14 +26,10 @@ public class MessageStoreConfig {
     @ImportantField
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
 
-    //The directory in which the commitlog is kept
+    //The directory in which the commitlog is kept,can configure multipath,separated by ":"
     @ImportantField
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
         + File.separator + "commitlog";
-
-    private boolean multiCommitLogPathEnable = false;
-
-    private String commitLogStorePaths = null;
 
     private String readOnlyCommitLogStorePaths = null;
 
@@ -671,22 +667,6 @@ public class MessageStoreConfig {
 
     public void setCommitCommitLogThoroughInterval(final int commitCommitLogThoroughInterval) {
         this.commitCommitLogThoroughInterval = commitCommitLogThoroughInterval;
-    }
-
-    public boolean isMultiCommitLogPathEnable() {
-        return multiCommitLogPathEnable;
-    }
-
-    public void setMultiCommitLogPathEnable(boolean multiCommitLogPathEnable) {
-        this.multiCommitLogPathEnable = multiCommitLogPathEnable;
-    }
-
-    public String getCommitLogStorePaths() {
-        return commitLogStorePaths;
-    }
-
-    public void setCommitLogStorePaths(String commitLogStorePaths) {
-        this.commitLogStorePaths = commitLogStorePaths;
     }
 
     public String getReadOnlyCommitLogStorePaths() {
