@@ -18,7 +18,6 @@ package org.apache.rocketmq.client.consumer;
 
 import java.util.Collection;
 import java.util.List;
-
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -35,12 +34,12 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     private final DefaultLitePullConsumerImpl defaultLitePullConsumerImpl;
 
     /**
-     * Consumers belonging to the same consumer group share a group id. The consumers in a group then
-     * divides the topic as fairly amongst themselves as possible by establishing that each queue is only
-     * consumed by a single consumer from the group. If all consumers are from the same group, it functions
-     * as a traditional message queue. Each message would be consumed by one consumer of the group only.
-     * When multiple consumer groups exist, the flow of the data consumption model aligns with the traditional
-     * publish-subscribe model. The messages are broadcast to all consumer groups.
+     * Consumers belonging to the same consumer group share a group id. The consumers in a group then divides the topic
+     * as fairly amongst themselves as possible by establishing that each queue is only consumed by a single consumer
+     * from the group. If all consumers are from the same group, it functions as a traditional message queue. Each
+     * message would be consumed by one consumer of the group only. When multiple consumer groups exist, the flow of the
+     * data consumption model aligns with the traditional publish-subscribe model. The messages are broadcast to all
+     * consumer groups.
      */
     private String consumerGroup;
 
@@ -264,6 +263,21 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     @Override
     public Long committed(MessageQueue messageQueue) throws MQClientException {
         return this.defaultLitePullConsumerImpl.committed(messageQueue);
+    }
+
+    @Override
+    public void updateNameServerAddress(String nameServerAddress) {
+        this.defaultLitePullConsumerImpl.updateNameServerAddr(nameServerAddress);
+    }
+
+    @Override
+    public void seekToBegin(MessageQueue messageQueue) throws MQClientException {
+        this.defaultLitePullConsumerImpl.seekToBegin(messageQueue);
+    }
+
+    @Override
+    public void seekToEnd(MessageQueue messageQueue) throws MQClientException {
+        this.defaultLitePullConsumerImpl.seekToEnd(messageQueue);
     }
 
     @Override

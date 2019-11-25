@@ -172,4 +172,27 @@ public interface LitePullConsumer {
      */
     void registerTopicMessageQueueChangeListener(String topic,
         TopicMessageQueueChangeListener topicMessageQueueChangeListener) throws MQClientException;
+
+    /**
+     * Update name server addresses.
+     */
+    void updateNameServerAddress(String nameServerAddress);
+
+    /**
+     * Overrides the fetch offsets with the begin offset that the consumer will use on the next poll. If this API is
+     * invoked for the same message queue more than once, the latest offset will be used on the next poll(). Note that
+     * you may lose data if this API is arbitrarily used in the middle of consumption.
+     *
+     * @param messageQueue
+     */
+    void seekToBegin(MessageQueue messageQueue)throws MQClientException;
+
+    /**
+     * Overrides the fetch offsets with the end offset that the consumer will use on the next poll. If this API is
+     * invoked for the same message queue more than once, the latest offset will be used on the next poll(). Note that
+     * you may lose data if this API is arbitrarily used in the middle of consumption.
+     *
+     * @param messageQueue
+     */
+    void seekToEnd(MessageQueue messageQueue)throws MQClientException;
 }
