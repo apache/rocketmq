@@ -16,16 +16,16 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -35,13 +35,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
-import org.apache.rocketmq.client.consumer.TopicMessageQueueChangeListener;
-import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
+import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.TopicMessageQueueChangeListener;
 import org.apache.rocketmq.client.consumer.store.LocalFileOffsetStore;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
@@ -162,6 +161,10 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     private void checkServiceState() {
         if (this.serviceState != ServiceState.RUNNING)
             throw new IllegalStateException(NOT_RUNNING_EXCEPTION_MESSAGE);
+    }
+
+    public void updateNameServerAddr(String newAddresses) {
+        this.mQClientFactory.getMQClientAPIImpl().updateNameServerAddressList(newAddresses);
     }
 
     private synchronized void setSubscriptionType(SubscriptionType type) {
@@ -556,6 +559,16 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
+    public void seekToBegin(MessageQueue messageQueue) throws MQClientException {
+        long begin = minOffset(messageQueue);
+        this.seek(messageQueue, begin);
+    }
+
+    public void seekToEnd(MessageQueue messageQueue) throws MQClientException {
+        long begin = maxOffset(messageQueue);
+        this.seek(messageQueue, begin);
+    }
+
     private long maxOffset(MessageQueue messageQueue) throws MQClientException {
         checkServiceState();
         return this.mQClientFactory.getMQAdminImpl().maxOffset(messageQueue);
@@ -764,8 +777,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                         subscriptionData = FilterAPI.buildSubscriptionData(defaultLitePullConsumer.getConsumerGroup(),
                             topic, SubscriptionData.SUB_ALL);
                     }
-
                     PullResult pullResult = pull(messageQueue, subscriptionData, offset, nextPullBatchSize());
+
+
                     switch (pullResult.getPullStatus()) {
                         case FOUND:
                             final Object objLock = messageQueueLock.fetchLockObject(messageQueue);
