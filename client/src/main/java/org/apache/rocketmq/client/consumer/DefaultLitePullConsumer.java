@@ -27,6 +27,7 @@ import org.apache.rocketmq.client.impl.consumer.DefaultLitePullConsumerImpl;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
 
@@ -187,6 +188,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void start() throws MQClientException {
+        setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
         this.defaultLitePullConsumerImpl.start();
     }
 
@@ -410,5 +412,9 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setTopicMetadataCheckIntervalMillis(long topicMetadataCheckIntervalMillis) {
         this.topicMetadataCheckIntervalMillis = topicMetadataCheckIntervalMillis;
+    }
+
+    public void setConsumerGroup(String consumerGroup) {
+        this.consumerGroup = consumerGroup;
     }
 }
