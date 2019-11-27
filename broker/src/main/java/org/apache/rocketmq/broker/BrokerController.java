@@ -152,6 +152,7 @@ public class BrokerController {
     private ExecutorService heartbeatExecutor;
     private ExecutorService consumerManageExecutor;
     private ExecutorService endTransactionExecutor;
+    // 定期更新主 HA 服务器地址
     private boolean updateMasterHAServerAddrPeriodically = false;
     private BrokerStats brokerStats;
     private InetSocketAddress storeHost;
@@ -404,19 +405,27 @@ public class BrokerController {
                 }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
             }
 
+            // 是否启用了DLegerCommitLog自动容灾
             if (!messageStoreConfig.isEnableDLegerCommitLog()) {
+                // broker角色是 slave
                 if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
+                    // 更新 HA 主代理地址
+                    // HA主代理地址不为空，并且主代理地址长度大于等于6
                     if (this.messageStoreConfig.getHaMasterAddress() != null && this.messageStoreConfig.getHaMasterAddress().length() >= 6) {
                         this.messageStore.updateHaMasterAddress(this.messageStoreConfig.getHaMasterAddress());
+                        // 定期更新主代理HA服务器地址
                         this.updateMasterHAServerAddrPeriodically = false;
                     } else {
+                        // 定期更新主代理HA服务器地址
                         this.updateMasterHAServerAddrPeriodically = true;
                     }
                 } else {
+                    // broker 角色不是 slave，启动任务定时打印主从差异
                     this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                         @Override
                         public void run() {
                             try {
+                                log.info("》》》》》》》》》》》》》》》》》》》 定时任务 Start {} ms 打印一次 Master And Slave Diff", 1000 * 60);
                                 BrokerController.this.printMasterAndSlaveDiff();
                             } catch (Throwable e) {
                                 log.error("schedule printMasterAndSlaveDiff error.", e);
@@ -927,6 +936,12 @@ public class BrokerController {
         }
     }
 
+    /**
+     * 每隔30s注册自身到nameServer，告诉nameServer自身情况
+     * @param checkOrderConfig
+     * @param oneway
+     * @param topicConfigWrapper
+     */
     private void doRegisterBrokerAll(boolean checkOrderConfig, boolean oneway,
         TopicConfigSerializeWrapper topicConfigWrapper) {
         List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(

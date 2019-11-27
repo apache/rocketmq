@@ -54,15 +54,15 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
                     boolean succ = true;
                     log.info("Begin handling broker role change term={} role={} currStoreRole={}", term, role, messageStore.getMessageStoreConfig().getBrokerRole());
                     switch (role) {
-                        case CANDIDATE:
+                        case CANDIDATE: // 候选人
                             if (messageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
                                 brokerController.changeToSlave(dLedgerCommitLog.getId());
                             }
                             break;
-                        case FOLLOWER:
+                        case FOLLOWER: // 追随者
                             brokerController.changeToSlave(dLedgerCommitLog.getId());
                             break;
-                        case LEADER:
+                        case LEADER: // 领导者
                             while (true) {
                                 if (!dLegerServer.getMemberState().isLeader()) {
                                     succ = false;
