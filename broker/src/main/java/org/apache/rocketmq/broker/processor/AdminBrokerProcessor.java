@@ -648,8 +648,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                                                       RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        log.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>getProducerConnectionListAll");
-
         HashMap<String, HashMap<Channel, ClientChannelInfo>> groupChannelTable =
                 this.brokerController.getProducerManager().getGroupChannelTable();
 

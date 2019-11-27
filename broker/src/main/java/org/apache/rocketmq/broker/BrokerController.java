@@ -425,7 +425,6 @@ public class BrokerController {
                         @Override
                         public void run() {
                             try {
-                                log.info("》》》》》》》》》》》》》》》》》》》 定时任务 Start {} ms 打印一次 Master And Slave Diff", 1000 * 60);
                                 BrokerController.this.printMasterAndSlaveDiff();
                             } catch (Throwable e) {
                                 log.error("schedule printMasterAndSlaveDiff error.", e);
