@@ -547,8 +547,6 @@ public class UtilAll {
                             if (ipV6Check(ipByte)) {
                                 if (!isInternalV6IP(ip)) {
                                     return ipByte;
-                                } else if (internalIP == null) {
-                                    internalIP = ipByte;
                                 }
                             }
                         }
