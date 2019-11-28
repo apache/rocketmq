@@ -18,7 +18,9 @@ package org.apache.rocketmq.client.consumer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
+import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
@@ -30,9 +32,6 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
-import org.apache.rocketmq.client.trace.TraceDispatcher;
-import org.apache.rocketmq.client.trace.hook.ConsumeMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -42,6 +41,11 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.ons.open.trace.core.common.OnsTraceConstants;
+import org.apache.rocketmq.ons.open.trace.core.common.OnsTraceDispatcherType;
+import org.apache.rocketmq.ons.open.trace.core.dispatch.AsyncDispatcher;
+import org.apache.rocketmq.ons.open.trace.core.dispatch.impl.AsyncArrayDispatcher;
+import org.apache.rocketmq.ons.open.trace.core.hook.OnsConsumeMessageHookImpl;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
@@ -257,7 +261,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Interface of asynchronous transfer data
      */
-    private TraceDispatcher traceDispatcher = null;
+    private AsyncDispatcher traceDispatcher = null;
 
     /**
      * Default constructor.
@@ -381,20 +385,31 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
      */
     public DefaultMQPushConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook,
-        AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean enableMsgTrace, final String customizedTraceTopic) {
+        AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean enableMsgTrace,
+        final String customizedTraceTopic) {
         this.consumerGroup = consumerGroup;
         this.namespace = namespace;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
         if (enableMsgTrace) {
             try {
-                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(customizedTraceTopic, rpcHook);
-                dispatcher.setHostConsumer(this.getDefaultMQPushConsumerImpl());
-                traceDispatcher = dispatcher;
-                this.getDefaultMQPushConsumerImpl().registerConsumeMessageHook(
-                    new ConsumeMessageTraceHookImpl(traceDispatcher));
+                Properties tempProperties = new Properties();
+                tempProperties.put(OnsTraceConstants.MaxMsgSize, "128000");
+                tempProperties.put(OnsTraceConstants.AsyncBufferSize, "2048");
+                tempProperties.put(OnsTraceConstants.MaxBatchNum, "100");
+                tempProperties.put(OnsTraceConstants.NAMESRV_ADDR, this.getNamesrvAddr());
+                tempProperties.put(OnsTraceConstants.InstanceName, "PID_CLIENT_INNER_TRACE_CONSUMER");
+                tempProperties.put(OnsTraceConstants.TraceDispatcherType, OnsTraceDispatcherType.CONSUMER.name());
+                if (customizedTraceTopic != null) {
+                    tempProperties.put(OnsTraceConstants.CustomizedTraceTopic, customizedTraceTopic);
+                } else {
+                    tempProperties.put(OnsTraceConstants.CustomizedTraceTopic, MixAll.RMQ_SYS_TRACE_TOPIC);
+                }
+                this.traceDispatcher = new AsyncArrayDispatcher(tempProperties, rpcHook);
+                ((AsyncArrayDispatcher) traceDispatcher).setHostConsumer(this.getDefaultMQPushConsumerImpl());
+                this.getDefaultMQPushConsumerImpl().registerConsumeMessageHook(new OnsConsumeMessageHookImpl(traceDispatcher));
             } catch (Throwable e) {
-                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+                log.error("system mqtrace hook init failed ,maybe can't send msg trace data", e);
             }
         }
     }
@@ -693,7 +708,10 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.defaultMQPushConsumerImpl.start();
         if (null != traceDispatcher) {
             try {
-                traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
+                if (this.accessChannel == AccessChannel.CLOUD) {
+                    ((AsyncArrayDispatcher) this.traceDispatcher).setCustomizedTraceTopic(null);
+                }
+                traceDispatcher.start(this.getNamesrvAddr());
             } catch (MQClientException e) {
                 log.warn("trace dispatcher start failed ", e);
             }
@@ -886,7 +904,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.consumeTimeout = consumeTimeout;
     }
 
-    public TraceDispatcher getTraceDispatcher() {
+    public AsyncDispatcher getTraceDispatcher() {
         return traceDispatcher;
     }
 }

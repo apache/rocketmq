@@ -37,6 +37,7 @@ import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.ons.open.trace.core.dispatch.impl.AsyncArrayDispatcher;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.After;
 import org.junit.Before;
@@ -64,7 +65,7 @@ public class DefaultMQProducerWithTraceTest {
     @Mock
     private MQClientAPIImpl mQClientAPIImpl;
 
-    private AsyncTraceDispatcher asyncTraceDispatcher;
+    private AsyncArrayDispatcher asyncTraceDispatcher;
 
     private DefaultMQProducer producer;
     private DefaultMQProducer customTraceTopicproducer;
@@ -88,8 +89,8 @@ public class DefaultMQProducerWithTraceTest {
         normalProducer.setNamesrvAddr("127.0.0.1:9877");
         customTraceTopicproducer.setNamesrvAddr("127.0.0.1:9878");
         message = new Message(topic, new byte[] {'a', 'b', 'c'});
-        asyncTraceDispatcher = (AsyncTraceDispatcher) producer.getTraceDispatcher();
-        asyncTraceDispatcher.setTraceTopicName(customerTraceTopic);
+        asyncTraceDispatcher = (AsyncArrayDispatcher) producer.getTraceDispatcher();
+        asyncTraceDispatcher.setCustomizedTraceTopic(customerTraceTopic);
         asyncTraceDispatcher.getHostProducer();
         asyncTraceDispatcher.getHostConsumer();
         traceProducer = asyncTraceDispatcher.getTraceProducer();
