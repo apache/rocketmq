@@ -258,6 +258,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
                 tempProperties.put(OnsTraceConstants.CustomizedTraceTopic, MixAll.RMQ_SYS_TRACE_TOPIC);
             }
             this.traceDispatcher = new AsyncArrayDispatcher(tempProperties, rpcHook);
+
             ((AsyncArrayDispatcher) traceDispatcher).setHostProducer(this.defaultMQProducerImpl);
             this.defaultMQProducerImpl.registerSendMessageHook(new OnsClientSendMessageHookImpl(traceDispatcher));
         } catch (Throwable e) {
