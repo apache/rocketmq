@@ -103,6 +103,10 @@ public class Consumer {
         }, 10000, 10000);
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
+        if (commandLine.hasOption('n')) {
+            String ns = commandLine.getOptionValue('n');
+            consumer.setNamesrvAddr(ns);
+        }
         consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         if (filterType == null || expression == null) {
