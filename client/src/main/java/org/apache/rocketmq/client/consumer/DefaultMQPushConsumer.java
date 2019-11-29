@@ -18,7 +18,9 @@ package org.apache.rocketmq.client.consumer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
+import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
@@ -30,9 +32,6 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
-import org.apache.rocketmq.client.trace.TraceDispatcher;
-import org.apache.rocketmq.client.trace.hook.ConsumeMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -42,6 +41,11 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.ons.open.trace.core.common.OnsTraceConstants;
+import org.apache.rocketmq.ons.open.trace.core.common.OnsTraceDispatcherType;
+import org.apache.rocketmq.ons.open.trace.core.dispatch.AsyncDispatcher;
+import org.apache.rocketmq.ons.open.trace.core.dispatch.impl.AsyncArrayDispatcher;
+import org.apache.rocketmq.ons.open.trace.core.hook.OnsConsumeMessageHookImpl;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
@@ -100,17 +104,15 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * <ul>
      * <li>
      * <code>CONSUME_FROM_LAST_OFFSET</code>: consumer clients pick up where it stopped previously.
-     * If it were a newly booting up consumer client, according aging of the consumer group, there are two
-     * cases:
+     * If it were a newly booting up consumer client, according aging of the consumer group, there are two cases:
      * <ol>
      * <li>
-     * if the consumer group is created so recently that the earliest message being subscribed has yet
-     * expired, which means the consumer group represents a lately launched business, consuming will
-     * start from the very beginning;
+     * if the consumer group is created so recently that the earliest message being subscribed has yet expired, which
+     * means the consumer group represents a lately launched business, consuming will start from the very beginning;
      * </li>
      * <li>
-     * if the earliest message being subscribed has expired, consuming will start from the latest
-     * messages, meaning messages born prior to the booting timestamp would be ignored.
+     * if the earliest message being subscribed has expired, consuming will start from the latest messages, meaning
+     * messages born prior to the booting timestamp would be ignored.
      * </li>
      * </ol>
      * </li>
@@ -126,10 +128,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private ConsumeFromWhere consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET;
 
     /**
-     * Backtracking consumption time with second precision. Time format is
-     * 20131223171201<br>
-     * Implying Seventeen twelve and 01 seconds on December 23, 2013 year<br>
-     * Default backtracking consumption time Half an hour ago.
+     * Backtracking consumption time with second precision. Time format is 20131223171201<br> Implying Seventeen twelve
+     * and 01 seconds on December 23, 2013 year<br> Default backtracking consumption time Half an hour ago.
      */
     private String consumeTimestamp = UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - (1000 * 60 * 30));
 
@@ -174,8 +174,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private int consumeConcurrentlyMaxSpan = 2000;
 
     /**
-     * Flow control threshold on queue level, each message queue will cache at most 1000 messages by default,
-     * Consider the {@code pullBatchSize}, the instantaneous value may exceed the limit
+     * Flow control threshold on queue level, each message queue will cache at most 1000 messages by default, Consider
+     * the {@code pullBatchSize}, the instantaneous value may exceed the limit
      */
     private int pullThresholdForQueue = 1000;
 
@@ -191,8 +191,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Flow control threshold on topic level, default value is -1(Unlimited)
      * <p>
-     * The value of {@code pullThresholdForQueue} will be overwrote and calculated based on
-     * {@code pullThresholdForTopic} if it is't unlimited
+     * The value of {@code pullThresholdForQueue} will be overwrote and calculated based on {@code
+     * pullThresholdForTopic} if it is't unlimited
      * <p>
      * For example, if the value of pullThresholdForTopic is 1000 and 10 message queues are assigned to this consumer,
      * then pullThresholdForQueue will be set to 100
@@ -202,11 +202,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Limit the cached message size on topic level, default value is -1 MiB(Unlimited)
      * <p>
-     * The value of {@code pullThresholdSizeForQueue} will be overwrote and calculated based on
-     * {@code pullThresholdSizeForTopic} if it is't unlimited
+     * The value of {@code pullThresholdSizeForQueue} will be overwrote and calculated based on {@code
+     * pullThresholdSizeForTopic} if it is't unlimited
      * <p>
-     * For example, if the value of pullThresholdSizeForTopic is 1000 MiB and 10 message queues are
-     * assigned to this consumer, then pullThresholdSizeForQueue will be set to 100 MiB
+     * For example, if the value of pullThresholdSizeForTopic is 1000 MiB and 10 message queues are assigned to this
+     * consumer, then pullThresholdSizeForQueue will be set to 100 MiB
      */
     private int pullThresholdSizeForTopic = -1;
 
@@ -257,7 +257,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Interface of asynchronous transfer data
      */
-    private TraceDispatcher traceDispatcher = null;
+    private AsyncDispatcher traceDispatcher = null;
 
     /**
      * Default constructor.
@@ -284,7 +284,6 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     public DefaultMQPushConsumer(final String namespace, final String consumerGroup) {
         this(namespace, consumerGroup, null, new AllocateMessageQueueAveragely());
     }
-
 
     /**
      * Constructor specifying RPC hook.
@@ -349,52 +348,70 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      *
      * @param consumerGroup Consumer group.
      * @param enableMsgTrace Switch flag instance for message trace.
-     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
+     * trace topic name.
      */
-    public DefaultMQPushConsumer(final String consumerGroup, boolean enableMsgTrace, final String customizedTraceTopic) {
+    public DefaultMQPushConsumer(final String consumerGroup, boolean enableMsgTrace,
+        final String customizedTraceTopic) {
         this(null, consumerGroup, null, new AllocateMessageQueueAveragely(), enableMsgTrace, customizedTraceTopic);
     }
 
-
     /**
-     * Constructor specifying consumer group, RPC hook, message queue allocating algorithm, enabled msg trace flag and customized trace topic name.
+     * Constructor specifying consumer group, RPC hook, message queue allocating algorithm, enabled msg trace flag and
+     * customized trace topic name.
      *
      * @param consumerGroup Consume queue.
      * @param rpcHook RPC hook to execute before each remoting command.
      * @param allocateMessageQueueStrategy message queue allocating algorithm.
      * @param enableMsgTrace Switch flag instance for message trace.
-     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
+     * trace topic name.
      */
     public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook,
-        AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean enableMsgTrace, final String customizedTraceTopic) {
+        AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean enableMsgTrace,
+        final String customizedTraceTopic) {
         this(null, consumerGroup, rpcHook, allocateMessageQueueStrategy, enableMsgTrace, customizedTraceTopic);
     }
 
     /**
-     * Constructor specifying namespace, consumer group, RPC hook, message queue allocating algorithm, enabled msg trace flag and customized trace topic name.
+     * Constructor specifying namespace, consumer group, RPC hook, message queue allocating algorithm, enabled msg trace
+     * flag and customized trace topic name.
      *
      * @param namespace Namespace for this MQ Producer instance.
      * @param consumerGroup Consume queue.
      * @param rpcHook RPC hook to execute before each remoting command.
      * @param allocateMessageQueueStrategy message queue allocating algorithm.
      * @param enableMsgTrace Switch flag instance for message trace.
-     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
+     * trace topic name.
      */
     public DefaultMQPushConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook,
-        AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean enableMsgTrace, final String customizedTraceTopic) {
+        AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean enableMsgTrace,
+        final String customizedTraceTopic) {
         this.consumerGroup = consumerGroup;
         this.namespace = namespace;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
         if (enableMsgTrace) {
             try {
-                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(customizedTraceTopic, rpcHook);
-                dispatcher.setHostConsumer(this.getDefaultMQPushConsumerImpl());
-                traceDispatcher = dispatcher;
-                this.getDefaultMQPushConsumerImpl().registerConsumeMessageHook(
-                    new ConsumeMessageTraceHookImpl(traceDispatcher));
+                Properties tempProperties = new Properties();
+                tempProperties.put(OnsTraceConstants.MaxMsgSize, "128000");
+                tempProperties.put(OnsTraceConstants.AsyncBufferSize, "2048");
+                tempProperties.put(OnsTraceConstants.MaxBatchNum, "100");
+                tempProperties.put(OnsTraceConstants.NAMESRV_ADDR, this.getNamesrvAddr());
+                tempProperties.put(OnsTraceConstants.InstanceName, "PID_CLIENT_INNER_TRACE_CONSUMER");
+                tempProperties.put(OnsTraceConstants.TraceDispatcherType, OnsTraceDispatcherType.CONSUMER.name());
+                if (customizedTraceTopic != null) {
+                    tempProperties.put(OnsTraceConstants.CustomizedTraceTopic, customizedTraceTopic);
+                } else {
+                    tempProperties.put(OnsTraceConstants.CustomizedTraceTopic, MixAll.RMQ_SYS_TRACE_TOPIC);
+                }
+                this.traceDispatcher = new AsyncArrayDispatcher(tempProperties, rpcHook);
+
+                ((AsyncArrayDispatcher) traceDispatcher).setHostConsumer(this.getDefaultMQPushConsumerImpl());
+                this.getDefaultMQPushConsumerImpl().registerConsumeMessageHook(new OnsConsumeMessageHookImpl(traceDispatcher));
             } catch (Throwable e) {
-                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+                log.error("system mqtrace hook init failed ,maybe can't send msg trace data", e);
             }
         }
     }
@@ -693,7 +710,10 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.defaultMQPushConsumerImpl.start();
         if (null != traceDispatcher) {
             try {
-                traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
+                if (this.accessChannel == AccessChannel.CLOUD) {
+                    ((AsyncArrayDispatcher) this.traceDispatcher).setCustomizedTraceTopic(null);
+                }
+                traceDispatcher.start(this.getNamesrvAddr());
             } catch (MQClientException e) {
                 log.warn("trace dispatcher start failed ", e);
             }
@@ -744,8 +764,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Subscribe a topic to consuming subscription.
      *
      * @param topic topic to subscribe.
-     * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br>
-     * if null or * expression,meaning subscribe all
+     * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
+     * null or * expression,meaning subscribe all
      * @throws MQClientException if there is any client error.
      */
     @Override
@@ -886,7 +906,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.consumeTimeout = consumeTimeout;
     }
 
-    public TraceDispatcher getTraceDispatcher() {
+    public AsyncDispatcher getTraceDispatcher() {
         return traceDispatcher;
     }
 }
