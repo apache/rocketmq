@@ -38,6 +38,7 @@ public class ResponseFuture {
     private volatile RemotingCommand responseCommand;
     private volatile boolean sendRequestOK = true;
     private volatile Throwable cause;
+    private volatile boolean syncInvoke = true;
 
     public ResponseFuture(Channel channel, int opaque, long timeoutMillis, InvokeCallback invokeCallback,
         SemaphoreReleaseOnlyOnce once) {
@@ -119,6 +120,14 @@ public class ResponseFuture {
 
     public Channel getProcessChannel() {
         return processChannel;
+    }
+
+    public boolean isSyncInvoke() {
+        return syncInvoke;
+    }
+
+    public void setSyncInvoke(boolean syncInvoke) {
+        this.syncInvoke = syncInvoke;
     }
 
     @Override

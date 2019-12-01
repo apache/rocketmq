@@ -376,8 +376,10 @@ public abstract class NettyRemotingAbstract {
         while (it.hasNext()) {
             Entry<Integer, ResponseFuture> next = it.next();
             ResponseFuture rep = next.getValue();
-
-            if ((rep.getBeginTimestamp() + rep.getTimeoutMillis() + 1000) <= System.currentTimeMillis()) {
+            if (rep.isSyncInvoke()) {
+                continue;
+            }
+            if ((rep.getBeginTimestamp() + rep.getTimeoutMillis()) <= System.currentTimeMillis()) {
                 rep.release();
                 it.remove();
                 rfList.add(rep);
@@ -451,6 +453,7 @@ public abstract class NettyRemotingAbstract {
             }
 
             final ResponseFuture responseFuture = new ResponseFuture(channel, opaque, timeoutMillis - costTime, invokeCallback, once);
+            responseFuture.setSyncInvoke(false);
             this.responseTable.put(opaque, responseFuture);
             try {
                 channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
