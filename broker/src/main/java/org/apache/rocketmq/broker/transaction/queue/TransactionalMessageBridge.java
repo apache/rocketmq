@@ -293,7 +293,7 @@ public class TransactionalMessageBridge {
      * Use this function while transaction msg is committed or rollback write a flag 'd' to operation queue for the
      * msg's offset
      *
-     * @param messageExt Op message
+     * @param messageExt half message
      * @param messageQueue Op message queue
      * @return This method will always return true.
      */
