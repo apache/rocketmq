@@ -44,4 +44,6 @@ public class NameServerInstanceTest {
         }
         //maybe need to clean the file store. But we do not suggest deleting anything.
     }
+
+
 }
