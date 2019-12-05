@@ -1,7 +1,7 @@
 ﻿Apache RocketMQ开发者指南
 --------
 
-##### 这个开发者指南是帮忙您快速了解,并使用 Apache RocketMQ
+##### 这个开发者指南是帮助您快速了解,并使用 Apache RocketMQ
 
 ### 1. 概念和特性
 

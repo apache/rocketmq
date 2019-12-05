@@ -190,6 +190,36 @@ public class DefaultLitePullConsumerTest {
     }
 
     @Test
+    public void testSeek_SeekToBegin() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
+        when(mQAdminImpl.minOffset(any(MessageQueue.class))).thenReturn(0L);
+        when(mQAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(500L);
+        MessageQueue messageQueue = createMessageQueue();
+        litePullConsumer.assign(Collections.singletonList(messageQueue));
+        litePullConsumer.seekToBegin(messageQueue);
+        Field field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
+        field.setAccessible(true);
+        AssignedMessageQueue assignedMessageQueue = (AssignedMessageQueue) field.get(litePullConsumerImpl);
+        assertEquals(assignedMessageQueue.getSeekOffset(messageQueue), 0L);
+        litePullConsumer.shutdown();
+    }
+
+    @Test
+    public void testSeek_SeekToEnd() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
+        when(mQAdminImpl.minOffset(any(MessageQueue.class))).thenReturn(0L);
+        when(mQAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(500L);
+        MessageQueue messageQueue = createMessageQueue();
+        litePullConsumer.assign(Collections.singletonList(messageQueue));
+        litePullConsumer.seekToEnd(messageQueue);
+        Field field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
+        field.setAccessible(true);
+        AssignedMessageQueue assignedMessageQueue = (AssignedMessageQueue) field.get(litePullConsumerImpl);
+        assertEquals(assignedMessageQueue.getSeekOffset(messageQueue), 500L);
+        litePullConsumer.shutdown();
+    }
+
+    @Test
     public void testSeek_SeekOffsetIllegal() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
         when(mQAdminImpl.minOffset(any(MessageQueue.class))).thenReturn(0L);
