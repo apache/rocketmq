@@ -50,6 +50,7 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -65,6 +66,11 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
+/**
+ * This class will be removed in 2022, and a better implementation {@link DefaultLitePullConsumerImpl} is recommend to use
+ * in the scenario of actively pulling messages.
+ */
+@Deprecated
 public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     private final InternalLogger log = ClientLogger.getLog();
     private final DefaultMQPullConsumer defaultMQPullConsumer;
@@ -73,7 +79,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
     private final ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
     private volatile ServiceState serviceState = ServiceState.CREATE_JUST;
-    private MQClientInstance mQClientFactory;
+    protected MQClientInstance mQClientFactory;
     private PullAPIWrapper pullAPIWrapper;
     private OffsetStore offsetStore;
     private RebalanceImpl rebalanceImpl = new RebalancePullImpl(this);
@@ -93,13 +99,13 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
     public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
-        this.makeSureStateOK();
+        this.isRunning();
         this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, topicSysFlag);
     }
 
-    private void makeSureStateOK() throws MQClientException {
+    private void isRunning() throws MQClientException {
         if (this.serviceState != ServiceState.RUNNING) {
-            throw new MQClientException("The consumer service state not OK, "
+            throw new MQClientException("The consumer is not in running status, "
                 + this.serviceState
                 + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK),
                 null);
@@ -107,12 +113,12 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
     public long fetchConsumeOffset(MessageQueue mq, boolean fromStore) throws MQClientException {
-        this.makeSureStateOK();
+        this.isRunning();
         return this.offsetStore.readOffset(mq, fromStore ? ReadOffsetType.READ_FROM_STORE : ReadOffsetType.MEMORY_FIRST_THEN_STORE);
     }
 
     public Set<MessageQueue> fetchMessageQueuesInBalance(String topic) throws MQClientException {
-        this.makeSureStateOK();
+        this.isRunning();
         if (null == topic) {
             throw new IllegalArgumentException("topic is null");
         }
@@ -125,31 +131,47 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             }
         }
 
-        return mqResult;
+        return parseSubscribeMessageQueues(mqResult);
     }
 
     public List<MessageQueue> fetchPublishMessageQueues(String topic) throws MQClientException {
-        this.makeSureStateOK();
+        this.isRunning();
         return this.mQClientFactory.getMQAdminImpl().fetchPublishMessageQueues(topic);
     }
 
     public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
-        this.makeSureStateOK();
-        return this.mQClientFactory.getMQAdminImpl().fetchSubscribeMessageQueues(topic);
+        this.isRunning();
+        // check if has info in memory, otherwise invoke api.
+        Set<MessageQueue> result = this.rebalanceImpl.getTopicSubscribeInfoTable().get(topic);
+        if (null == result) {
+            result = this.mQClientFactory.getMQAdminImpl().fetchSubscribeMessageQueues(topic);
+        }
+
+        return parseSubscribeMessageQueues(result);
+    }
+
+    public Set<MessageQueue> parseSubscribeMessageQueues(Set<MessageQueue> queueSet) {
+        Set<MessageQueue> resultQueues = new HashSet<MessageQueue>();
+        for (MessageQueue messageQueue : queueSet) {
+            String userTopic = NamespaceUtil.withoutNamespace(messageQueue.getTopic(),
+                this.defaultMQPullConsumer.getNamespace());
+            resultQueues.add(new MessageQueue(userTopic, messageQueue.getBrokerName(), messageQueue.getQueueId()));
+        }
+        return resultQueues;
     }
 
     public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
-        this.makeSureStateOK();
+        this.isRunning();
         return this.mQClientFactory.getMQAdminImpl().earliestMsgStoreTime(mq);
     }
 
     public long maxOffset(MessageQueue mq) throws MQClientException {
-        this.makeSureStateOK();
+        this.isRunning();
         return this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
     }
 
     public long minOffset(MessageQueue mq) throws MQClientException {
-        this.makeSureStateOK();
+        this.isRunning();
         return this.mQClientFactory.getMQAdminImpl().minOffset(mq);
     }
 
@@ -208,7 +230,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     private PullResult pullSyncImpl(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums, boolean block,
         long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        this.makeSureStateOK();
+        this.isRunning();
 
         if (null == mq) {
             throw new MQClientException("mq is null", null);
@@ -244,9 +266,12 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             null
         );
         this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
+        //If namespace is not null , reset Topic without namespace.
+        this.resetTopic(pullResult.getMsgFoundList());
         if (!this.consumeMessageHookList.isEmpty()) {
             ConsumeMessageContext consumeMessageContext = null;
             consumeMessageContext = new ConsumeMessageContext();
+            consumeMessageContext.setNamespace(defaultMQPullConsumer.getNamespace());
             consumeMessageContext.setConsumerGroup(this.groupName());
             consumeMessageContext.setMq(mq);
             consumeMessageContext.setMsgList(pullResult.getMsgFoundList());
@@ -257,6 +282,20 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             this.executeHookAfter(consumeMessageContext);
         }
         return pullResult;
+    }
+
+    public void resetTopic(List<MessageExt> msgList) {
+        if (null == msgList || msgList.size() == 0) {
+            return;
+        }
+
+        //If namespace not null , reset Topic without namespace.
+        for (MessageExt messageExt : msgList) {
+            if (null != this.getDefaultMQPullConsumer().getNamespace()) {
+                messageExt.setTopic(NamespaceUtil.withoutNamespace(messageExt.getTopic(), this.defaultMQPullConsumer.getNamespace()));
+            }
+        }
+
     }
 
     public void subscriptionAutomatically(final String topic) {
@@ -349,7 +388,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     @Override
     public void persistConsumerOffset() {
         try {
-            this.makeSureStateOK();
+            this.isRunning();
             Set<MessageQueue> mqs = new HashSet<MessageQueue>();
             Set<MessageQueue> allocateMq = this.rebalanceImpl.getProcessQueueTable().keySet();
             mqs.addAll(allocateMq);
@@ -432,7 +471,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         final PullCallback pullCallback,
         final boolean block,
         final long timeout) throws MQClientException, RemotingException, InterruptedException {
-        this.makeSureStateOK();
+        this.isRunning();
 
         if (null == mq) {
             throw new MQClientException("mq is null", null);
@@ -474,8 +513,9 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
                     @Override
                     public void onSuccess(PullResult pullResult) {
-                        pullCallback
-                            .onSuccess(DefaultMQPullConsumerImpl.this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData));
+                        PullResult userPullResult = DefaultMQPullConsumerImpl.this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
+                        resetTopic(userPullResult.getMsgFoundList());
+                        pullCallback.onSuccess(userPullResult);
                     }
 
                     @Override
@@ -508,18 +548,18 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
         throws MQClientException, InterruptedException {
-        this.makeSureStateOK();
+        this.isRunning();
         return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
 
     public MessageExt queryMessageByUniqKey(String topic, String uniqKey)
         throws MQClientException, InterruptedException {
-        this.makeSureStateOK();
+        this.isRunning();
         return this.mQClientFactory.getMQAdminImpl().queryMessageByUniqKey(topic, uniqKey);
     }
 
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
-        this.makeSureStateOK();
+        this.isRunning();
         return this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
     }
 
@@ -558,6 +598,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(this.defaultMQPullConsumer.getMaxReconsumeTimes()));
             newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
             this.mQClientFactory.getDefaultMQProducer().send(newMsg);
+        } finally {
+            msg.setTopic(NamespaceUtil.withoutNamespace(msg.getTopic(), this.defaultMQPullConsumer.getNamespace()));
         }
     }
 
@@ -592,7 +634,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                     this.defaultMQPullConsumer.changeInstanceNameToPID();
                 }
 
-                this.mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQPullConsumer, this.rpcHook);
+                this.mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultMQPullConsumer, this.rpcHook);
 
                 this.rebalanceImpl.setConsumerGroup(this.defaultMQPullConsumer.getConsumerGroup());
                 this.rebalanceImpl.setMessageModel(this.defaultMQPullConsumer.getMessageModel());
@@ -711,13 +753,13 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
     public void updateConsumeOffset(MessageQueue mq, long offset) throws MQClientException {
-        this.makeSureStateOK();
+        this.isRunning();
         this.offsetStore.updateOffset(mq, offset, false);
     }
 
     public MessageExt viewMessage(String msgId)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        this.makeSureStateOK();
+        this.isRunning();
         return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
     }
 
