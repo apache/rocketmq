@@ -17,9 +17,8 @@
 
 package org.apache.rocketmq.common.message;
 
-import java.util.Calendar;
-import java.util.Date;
 import org.junit.Test;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class MessageClientIDSetterTest {

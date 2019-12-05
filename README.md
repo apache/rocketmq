@@ -8,10 +8,12 @@
 It offers a variety of features:
 
 * Pub/Sub messaging model
-* Scheduled message delivery
+* Financial grade transactional message
+* A variety of cross language clients, such as Java, C/C++, Python, Go
+* Pluggable transport protocols, such as TCP, SSL, AIO
+* Inbuilt message tracing capability, also support opentracing
+* Versatile big-data and streaming ecosytem integration
 * Message retroactivity by time or offset
-* Log hub for streaming
-* Big data integration
 * Reliable FIFO and strict ordered messaging in the same queue
 * Efficient pull&push consumption model
 * Million-level message accumulation capacity in a single queue
@@ -21,9 +23,7 @@ It offers a variety of features:
 * Various message filter mechanics such as SQL and Tag
 * Docker images for isolated testing and cloud isolated clusters
 * Feature-rich administrative dashboard for configuration, metrics and monitoring
-* Access control list
-* Message trace
-
+* Authentication and authorisation
 
 ----------
 

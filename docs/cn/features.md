@@ -16,7 +16,7 @@
 RocketMQ的消费者可以根据Tag进行消息过滤，也支持自定义属性过滤。消息过滤目前是在Broker端实现的，优点是减少了对于Consumer无用消息的网络传输，缺点是增加了Broker的负担、而且实现相对复杂。
 ## 4 消息可靠性
 RocketMQ支持消息的高可靠，影响消息可靠性的几种情况：
-1) Broker正常关闭
+1) Broker非正常关闭
 2) Broker异常Crash
 3) OS Crash
 4) 机器掉电，但是能立即恢复供电情况
