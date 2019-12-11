@@ -132,8 +132,7 @@ public abstract class ServiceThread implements Runnable {
             return;
         }
 
-        //entry to wait
-        waitPoint.reset();
+
 
         try {
             waitPoint.await(interval, TimeUnit.MILLISECONDS);
@@ -141,6 +140,8 @@ public abstract class ServiceThread implements Runnable {
             log.error("Interrupted", e);
         } finally {
             hasNotified.set(false);
+            //entry to wait
+            waitPoint.reset();
             this.onWaitEnd();
         }
     }
