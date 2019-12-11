@@ -41,7 +41,7 @@ public class TopicValidator {
 
         if (UtilAll.isBlank(topic)) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("The specified topic is blank");
+            response.setRemark("The specified topic is blank.");
             return false;
         }
 
