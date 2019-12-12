@@ -25,11 +25,11 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class TopicValidator {
 
-    public static final String VALID_PATTERN_STR = "^[%|a-zA-Z0-9_-]+$";
-    public static final Pattern PATTERN = Pattern.compile(VALID_PATTERN_STR);
-    public static final int CHARACTER_MAX_LENGTH = 255;
+    private static final String VALID_PATTERN_STR = "^[%|a-zA-Z0-9_-]+$";
+    private static final Pattern PATTERN = Pattern.compile(VALID_PATTERN_STR);
+    private static final int CHARACTER_MAX_LENGTH = 255;
 
-    public static boolean regularExpressionMatcher(String origin, Pattern pattern) {
+    private static boolean regularExpressionMatcher(String origin, Pattern pattern) {
         if (pattern == null) {
             return true;
         }
