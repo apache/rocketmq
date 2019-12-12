@@ -77,9 +77,6 @@ public class Validators {
         return matcher.matches();
     }
 
-    /**
-     * Validate message
-     */
     public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer)
         throws MQClientException {
         if (null == msg) {
@@ -103,9 +100,6 @@ public class Validators {
         }
     }
 
-    /**
-     * Validate topic
-     */
     public static void checkTopic(String topic) throws MQClientException {
         if (UtilAll.isBlank(topic)) {
             throw new MQClientException("The specified topic is blank", null);
@@ -127,4 +121,5 @@ public class Validators {
                 String.format("The topic[%s] is conflict with AUTO_CREATE_TOPIC_KEY_TOPIC.", topic), null);
         }
     }
+
 }

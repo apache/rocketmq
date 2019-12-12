@@ -580,7 +580,7 @@ public class UtilAll {
         }
     }
 
-    public static String List2String(List<String> list, String splitor) {
+    public static String list2String(List<String> list, String splitor) {
         if (list == null || list.size() == 0) {
             return null;
         }
@@ -595,7 +595,7 @@ public class UtilAll {
         return str.toString();
     }
 
-    public static List<String> String2List(String str, String splitor) {
+    public static List<String> string2List(String str, String splitor) {
         if (StringUtils.isEmpty(str)) {
             return null;
         }
