@@ -26,7 +26,7 @@ import org.apache.rocketmq.ons.api.Constants;
 
 public class OnsSessionCredentials extends SessionCredentials {
 
-    public static final String SignatureMethod = "SignatureMethod";
+    public static final String SIGNATURE_METHOD = "SignatureMethod";
 
     private String onsChannel;
 
@@ -61,16 +61,16 @@ public class OnsSessionCredentials extends SessionCredentials {
 
     }
 
-    public static String getSignatureMethod() {
-        return SignatureMethod;
-    }
-
     public String getOnsChannel() {
         return onsChannel;
     }
 
     public void setOnsChannel(String onsChannel) {
         this.onsChannel = onsChannel;
+    }
+
+    public String getSignatureMethod() {
+        return signatureMethod;
     }
 
     public void setSignatureMethod(String signatureMethod) {

@@ -235,6 +235,7 @@
                             <consoleOutput>true</consoleOutput>
                             <failsOnError>true</failsOnError>
                             <includeTestSourceDirectory>false</includeTestSourceDirectory>
+                            <excludes>org/apache/rocketmq/ons/api/*</excludes>
                         </configuration>
                         <goals>
                             <goal>check</goal>

@@ -49,7 +49,7 @@
             <useAllReactorProjects>true</useAllReactorProjects>
             <includes>
                 <include>org.apache.rocketmq:rocketmq-client</include>
-                <include>org.apache.rocketmq:rocketmq-openmessaging</include>
+                <include>org.apache.rocketmq:ons-client</include>
             </includes>
             <binaries>
                 <outputDirectory>./</outputDirectory>
