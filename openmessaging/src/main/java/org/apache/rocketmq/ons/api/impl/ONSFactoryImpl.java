@@ -14,13 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package io.openmessaging.rocketmq;
+package org.apache.rocketmq.ons.api.impl;
 
 import io.openmessaging.api.Consumer;
 import io.openmessaging.api.Message;
-import io.openmessaging.api.MessagingAccessPoint;
-import io.openmessaging.api.OMSBuiltinKeys;
+import io.openmessaging.api.OMS;
 import io.openmessaging.api.Producer;
 import io.openmessaging.api.PullConsumer;
 import io.openmessaging.api.batch.BatchConsumer;
@@ -34,8 +32,7 @@ import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.TransactionCheckListener;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.ons.api.Constants;
-import org.apache.rocketmq.ons.api.PropertyKeyConst;
-import org.apache.rocketmq.ons.api.impl.MQClientInfo;
+import org.apache.rocketmq.ons.api.ONSFactoryAPI;
 import org.apache.rocketmq.ons.api.impl.rocketmq.BatchConsumerImpl;
 import org.apache.rocketmq.ons.api.impl.rocketmq.ConsumerImpl;
 import org.apache.rocketmq.ons.api.impl.rocketmq.ONSUtil;
@@ -45,69 +42,39 @@ import org.apache.rocketmq.ons.api.impl.rocketmq.ProducerImpl;
 import org.apache.rocketmq.ons.api.impl.rocketmq.PullConsumerImpl;
 import org.apache.rocketmq.ons.api.impl.rocketmq.TransactionProducerImpl;
 
-public class MessagingAccessPointImpl implements MessagingAccessPoint {
-
-    private Properties attributes;
-
-    public MessagingAccessPointImpl(Properties attributes) {
-        this.attributes = attributes;
-    }
-
-    @Override
-    public String version() {
-        return MQClientInfo.currentVersion;
-    }
-
-    @Override public Properties attributes() {
-        return null;
-    }
-
-    private void injectNameServerAddress(Properties properties) {
-        if (properties.getProperty(PropertyKeyConst.NAMESRV_ADDR) == null) {
-            String nameServerAddress = this.attributes.getProperty(OMSBuiltinKeys.ACCESS_POINTS);
-            properties.put(PropertyKeyConst.NAMESRV_ADDR, nameServerAddress);
-        }
-    }
-
-    @Override public PullConsumer createPullConsumer(Properties properties) {
-        injectNameServerAddress(properties);
-        return new PullConsumerImpl(properties);
-    }
-
+/**
+ * Recommend to use {@link OMS} to create Producer or Consumer instance.
+ */
+@Deprecated
+public class ONSFactoryImpl implements ONSFactoryAPI {
     @Override
     public Producer createProducer(final Properties properties) {
-        injectNameServerAddress(properties);
         return new ProducerImpl(ONSUtil.extractProperties(properties));
     }
 
     @Override
     public Consumer createConsumer(final Properties properties) {
-        injectNameServerAddress(properties);
         return new ConsumerImpl(ONSUtil.extractProperties(properties));
     }
 
     @Override
     public BatchConsumer createBatchConsumer(final Properties properties) {
-        injectNameServerAddress(properties);
         return new BatchConsumerImpl(ONSUtil.extractProperties(properties));
     }
 
     @Override
     public OrderProducer createOrderProducer(final Properties properties) {
-        injectNameServerAddress(properties);
         return new OrderProducerImpl(ONSUtil.extractProperties(properties));
     }
 
     @Override
     public OrderConsumer createOrderedConsumer(final Properties properties) {
-        injectNameServerAddress(properties);
         return new OrderConsumerImpl(ONSUtil.extractProperties(properties));
     }
 
     @Override
     public TransactionProducer createTransactionProducer(Properties properties,
         final LocalTransactionChecker checker) {
-        injectNameServerAddress(properties);
         return new TransactionProducerImpl(ONSUtil.extractProperties(properties), new TransactionCheckListener() {
             @Override
             public LocalTransactionState checkLocalTransactionState(MessageExt msg) {
@@ -123,5 +90,10 @@ public class MessagingAccessPointImpl implements MessagingAccessPoint {
                 return LocalTransactionState.UNKNOW;
             }
         });
+    }
+
+    @Override
+    public PullConsumer createPullConsumer(Properties properties) {
+        return new PullConsumerImpl(properties);
     }
 }
