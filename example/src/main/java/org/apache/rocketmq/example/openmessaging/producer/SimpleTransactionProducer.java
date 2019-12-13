@@ -32,7 +32,7 @@ import org.apache.rocketmq.ons.api.exception.ONSClientException;
 public class SimpleTransactionProducer {
 
     public static void main(String[] args) {
-        MessagingAccessPoint messagingAccessPoint = OMS.getMessagingAccessPoint("oms:rocketmq://47.107.167.190:9876");
+        MessagingAccessPoint messagingAccessPoint = OMS.getMessagingAccessPoint("oms:rocketmq://127.0.0.1:9876");
 
         Properties tranProducerProperties = new Properties();
         tranProducerProperties.setProperty(PropertyKeyConst.GROUP_ID, MQConfig.GROUP_ID);

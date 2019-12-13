@@ -29,7 +29,7 @@ import org.apache.rocketmq.ons.api.PropertyKeyConst;
 public class SimpleOrderProducer {
 
     public static void main(String[] args) {
-        MessagingAccessPoint messagingAccessPoint = OMS.getMessagingAccessPoint("oms:rocketmq://47.107.167.190:9876");
+        MessagingAccessPoint messagingAccessPoint = OMS.getMessagingAccessPoint("oms:rocketmq://127.0.0.1:9876");
 
         Properties producerProperties = new Properties();
         producerProperties.setProperty(PropertyKeyConst.GROUP_ID, MQConfig.ORDER_GROUP_ID);
