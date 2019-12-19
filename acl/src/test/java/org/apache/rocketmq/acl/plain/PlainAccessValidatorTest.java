@@ -167,6 +167,20 @@ public class PlainAccessValidatorTest {
         queryMessageRequestHeader.setTopic("topicC");
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.QUERY_MESSAGE,queryMessageRequestHeader);
         aclClient.doBeforeRequest("", remotingCommand);
+        ByteBuffer buf = remotingCommand.encodeHeader();
+        buf.getInt();
+        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
+        buf.position(0);
+        PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.0.1:9876");
+        plainAccessValidator.validate(accessResource);
+    }
+
+    @Test
+    public void validateQueryMessageByKeyTest() {
+        QueryMessageRequestHeader queryMessageRequestHeader=new QueryMessageRequestHeader();
+        queryMessageRequestHeader.setTopic("topicC");
+        RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.QUERY_MESSAGE,queryMessageRequestHeader);
+        aclClient.doBeforeRequest("", remotingCommand);
         remotingCommand.addExtField("_UNIQUE_KEY_QUERY", "false");
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
@@ -175,6 +189,7 @@ public class PlainAccessValidatorTest {
         PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.1.1:9876");
         plainAccessValidator.validate(accessResource);
     }
+
 
     @Test
     public void validateHeartBeatTest() {
