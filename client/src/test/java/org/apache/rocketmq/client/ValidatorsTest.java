@@ -80,4 +80,47 @@ public class ValidatorsTest {
             assertThat(e).hasMessageStartingWith("The specified topic is longer than topic max length 255.");
         }
     }
+
+    @Test
+    public void testCheckGroup_Success() throws MQClientException {
+        Validators.checkGroup("Group");
+        Validators.checkGroup("%TEST%Group");
+        Validators.checkGroup("_%TEST%Group");
+        Validators.checkGroup("-%TEST%Group");
+        Validators.checkGroup("223-%TEST%Group");
+    }
+
+    @Test
+    public void testCheckGroup_BlankGroup() {
+        String blankGroup = "";
+        try {
+            Validators.checkGroup(blankGroup);
+            failBecauseExceptionWasNotThrown(MQClientException.class);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageStartingWith("the specified group is blank");
+        }
+    }
+
+    @Test
+    public void testCheckGroup_HasIllegalCharacters() {
+        String illegalGroup = "GROUP&*^";
+        try {
+            Validators.checkGroup(illegalGroup);
+            failBecauseExceptionWasNotThrown(MQClientException.class);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageStartingWith(String.format("the specified group[%s] contains illegal characters, allowing only %s", illegalGroup, Validators.VALID_PATTERN_STR));
+        }
+    }
+
+    @Test
+    public void testCheckGroup_TooLongGroup() {
+        String tooLongGroup = StringUtils.rightPad("TooLongGroup", Validators.CHARACTER_MAX_LENGTH + 1, "_");
+        assertThat(tooLongGroup.length()).isGreaterThan(Validators.CHARACTER_MAX_LENGTH);
+        try {
+            Validators.checkGroup(tooLongGroup);
+            failBecauseExceptionWasNotThrown(MQClientException.class);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageStartingWith("the specified group is longer than group max length 255.");
+        }
+    }
 }
