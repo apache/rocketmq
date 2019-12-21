@@ -440,13 +440,11 @@ public class UtilAll {
         return false;
     }
 
-    public static boolean isInternalV6IP(byte[] ip) {
-        if (ip.length != 16) {
-            throw new RuntimeException("illegal ipv6 bytes");
-        }
-
-        //FEC0:0000:0000:0000:0000:0000:0000:0000/10
-        if (ip[0] == (byte) 254 && ip[1] >= (byte) 192) {
+    public static boolean isInternalV6IP(InetAddress inetAddr) {
+        if (inetAddr.isAnyLocalAddress() // Wild card ipv6
+            || inetAddr.isLinkLocalAddress() // Single broadcast ipv6 address: fe80:xx:xx...
+            || inetAddr.isLoopbackAddress() //Loopback ipv6 address
+            || inetAddr.isSiteLocalAddress()) { // Site local ipv6 address: fec0:xx:xx...
             return true;
         }
         return false;
@@ -456,9 +454,6 @@ public class UtilAll {
         if (ip.length != 4) {
             throw new RuntimeException("illegal ipv4 bytes");
         }
-
-//        if (ip[0] == (byte)30 && ip[1] == (byte)10 && ip[2] == (byte)163 && ip[3] == (byte)120) {
-//        }
 
         if (ip[0] >= (byte) 1 && ip[0] <= (byte) 126) {
             if (ip[1] == (byte) 1 && ip[2] == (byte) 1 && ip[3] == (byte) 1) {
@@ -550,7 +545,7 @@ public class UtilAll {
                         byte[] ipByte = ip.getAddress();
                         if (ipByte.length == 16) {
                             if (ipV6Check(ipByte)) {
-                                if (!isInternalV6IP(ipByte)) {
+                                if (!isInternalV6IP(ip)) {
                                     return ipByte;
                                 } else if (internalIP == null) {
                                     internalIP = ipByte;
@@ -585,7 +580,7 @@ public class UtilAll {
         }
     }
 
-    public static String List2String(List<String> list, String splitor) {
+    public static String list2String(List<String> list, String splitor) {
         if (list == null || list.size() == 0) {
             return null;
         }
@@ -600,7 +595,7 @@ public class UtilAll {
         return str.toString();
     }
 
-    public static List<String> String2List(String str, String splitor) {
+    public static List<String> string2List(String str, String splitor) {
         if (StringUtils.isEmpty(str)) {
             return null;
         }
