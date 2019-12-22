@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.dledger;
 import io.openmessaging.storage.dledger.DLedgerConfig;
 import io.openmessaging.storage.dledger.DLedgerServer;
 import java.io.File;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -118,7 +119,7 @@ public class MessageStoreTestBase extends StoreTestBase {
         return defaultMessageStore;
     }
 
-    protected void doPutMessages(MessageStore messageStore, String topic, int queueId, int num, long beginLogicsOffset) {
+    protected void doPutMessages(MessageStore messageStore, String topic, int queueId, int num, long beginLogicsOffset) throws UnknownHostException {
         for (int i = 0; i < num; i++) {
             MessageExtBrokerInner msgInner = buildMessage();
             msgInner.setTopic(topic);
