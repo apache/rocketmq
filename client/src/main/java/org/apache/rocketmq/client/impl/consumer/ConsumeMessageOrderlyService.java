@@ -339,11 +339,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         if (messageExt.getMaxReConsumerTimes() >= 0) {
             return messageExt.getMaxReConsumerTimes();
         }
-        if (this.defaultMQPushConsumer.getMaxReconsumeTimes() == -1) {
-            return MixAll.DEFAULT_MAX_RECONSUME_TIMES;
-        } else {
-            return this.defaultMQPushConsumer.getMaxReconsumeTimes();
-        }
+        return this.defaultMQPushConsumer.getMaxReconsumeTimes();
     }
 
     private boolean checkReconsumeTimes(List<MessageExt> msgs) {

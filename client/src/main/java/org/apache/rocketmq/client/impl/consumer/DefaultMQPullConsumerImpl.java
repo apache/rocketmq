@@ -602,11 +602,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         if (messageExt.getMaxReConsumerTimes() >= 0) {
             return messageExt.getMaxReConsumerTimes();
         }
-        if (this.defaultMQPullConsumer.getMaxReconsumeTimes() == -1) {
-            return MixAll.DEFAULT_MAX_RECONSUME_TIMES;
-        } else {
-            return this.defaultMQPullConsumer.getMaxReconsumeTimes();
-        }
+        return this.defaultMQPullConsumer.getMaxReconsumeTimes();
     }
 
     public synchronized void shutdown() {
