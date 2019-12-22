@@ -60,7 +60,7 @@ public class DefaultMQPullConsumerTest {
         clientConfig.changeInstanceNameToPID();
     }
     @Spy
-    private MQClientInstance mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(clientConfig);
+    private MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(clientConfig);
     @Mock
     private MQClientAPIImpl mQClientAPIImpl;
     private DefaultMQPullConsumer pullConsumer;
