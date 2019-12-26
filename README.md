@@ -7,11 +7,12 @@
 
 It offers a variety of features:
 
-* Pub/Sub messaging model
+* Messageing patterns including publish/subscribe, request/reply and streaming
 * Financial grade transactional message
+* Built-in fault tolerance and high availability configuration options base on [DLedger](https://github.com/openmessaging/openmessaging-storage-dledger)
 * A variety of cross language clients, such as Java, C/C++, Python, Go
 * Pluggable transport protocols, such as TCP, SSL, AIO
-* Inbuilt message tracing capability, also support opentracing
+* Built-in message tracing capability, also support opentracing
 * Versatile big-data and streaming ecosytem integration
 * Message retroactivity by time or offset
 * Reliable FIFO and strict ordered messaging in the same queue
