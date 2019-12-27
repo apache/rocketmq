@@ -511,8 +511,7 @@ public class MQClientInstance {
     private boolean isBrokerAddrExistInTopicRouteTable(final String addr) {
         Iterator<Entry<String, TopicRouteData>> it = this.topicRouteTable.entrySet().iterator();
         while (it.hasNext()) {
-            TopicRouteData topicRouteData = it.next().getValue();
-            List<BrokerData> bds = topicRouteData.getBrokerDatas();
+            List<BrokerData> bds = it.next().getValue().getBrokerDatas();
             for (BrokerData bd : bds) {
                 if (bd.getBrokerAddrs() != null && bd.getBrokerAddrs().containsValue(addr)) {
                     return true;
