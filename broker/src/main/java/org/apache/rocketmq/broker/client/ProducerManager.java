@@ -224,7 +224,7 @@ public class ProducerManager {
             if (channel.isActive() && channel.isWritable()) {
                 return channel;
             }
-            index = (++index) % channelList.size();
+            index = (++ index) % channelList.size();
         } while (++ count < GET_AVALIABLE_CHANNEL_RETRY_COUNT);
 
         return null;
