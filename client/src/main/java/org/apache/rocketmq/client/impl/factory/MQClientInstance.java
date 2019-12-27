@@ -659,8 +659,7 @@ public class MQClientInstance {
                                 Set<MessageQueue> subscribeInfo = topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
                                 Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
                                 while (it.hasNext()) {
-                                    Entry<String, MQConsumerInner> entry = it.next();
-                                    MQConsumerInner impl = entry.getValue();
+                                    MQConsumerInner impl = it.next().getValue();
                                     if (impl != null) {
                                         impl.updateTopicSubscribeInfo(topic, subscribeInfo);
                                     }
