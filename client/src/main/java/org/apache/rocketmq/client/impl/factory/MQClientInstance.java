@@ -402,8 +402,7 @@ public class MQClientInstance {
 
                         Iterator<Entry<Long, String>> it = cloneAddrTable.entrySet().iterator();
                         while (it.hasNext()) {
-                            Entry<Long, String> ee = it.next();
-                            String addr = ee.getValue();
+                            String addr = it.next().getValue();
                             if (!this.isBrokerAddrExistInTopicRouteTable(addr)) {
                                 it.remove();
                                 log.info("the broker addr[{} {}] is offline, remove it", brokerName, addr);
@@ -666,7 +665,7 @@ public class MQClientInstance {
                                     }
                                 }
                             }
-                            log.info("topicRouteTable.put. Topic = {}, TopicRouteData[{}]", topic, cloneTopicRouteData);
+                            log.info("topicRouteTable.put Topic = {}, TopicRouteData[{}]", topic, cloneTopicRouteData);
                             this.topicRouteTable.put(topic, cloneTopicRouteData);
                             return true;
                         }
