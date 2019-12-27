@@ -677,9 +677,6 @@ public class MQClientInstance {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) && !topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
                         log.warn("updateTopicRouteInfoFromNameServer Exception", e);
                     }
-                    if (e.getResponseCode() == ResponseCode.TOPIC_NOT_EXIST && this.topicRouteTable.containsKey(topic)) {
-                        this.topicRouteTable.remove(topic);
-                    }
                 } catch (RemotingException e) {
                     log.error("updateTopicRouteInfoFromNameServer Exception", e);
                     throw new IllegalStateException(e);
