@@ -206,34 +206,27 @@ public class ProducerManager {
     }
 
     public Channel getAvaliableChannel(String groupId) {
-        HashMap<Channel, ClientChannelInfo> channelClientChannelInfoHashMap = groupChannelTable.get(groupId);
-        List<Channel> channelList = new ArrayList<Channel>();
-        if (channelClientChannelInfoHashMap != null) {
-            for (Channel channel : channelClientChannelInfoHashMap.keySet()) {
-                channelList.add(channel);
-            }
-            int size = channelList.size();
-            if (0 == size) {
-                log.warn("Channel list is empty. groupId={}", groupId);
-                return null;
-            }
+        Channel channel = null;
+        List<Channel> channelList = null;
 
-            int index = positiveAtomicCounter.incrementAndGet() % size;
-            Channel channel = channelList.get(index);
-            int count = 0;
-            boolean isOk = channel.isActive() && channel.isWritable();
-            while (count++ < GET_AVALIABLE_CHANNEL_RETRY_COUNT) {
-                if (isOk) {
-                    return channel;
-                }
-                index = (++index) % size;
-                channel = channelList.get(index);
-                isOk = channel.isActive() && channel.isWritable();
-            }
-        } else {
+        HashMap<Channel, ClientChannelInfo> channelClientChannelInfoHashMap = groupChannelTable.get(groupId);
+        if (null == channelClientChannelInfoHashMap || channelClientChannelInfoHashMap.isEmpty()) {
             log.warn("Check transaction failed, channel table is empty. groupId={}", groupId);
-            return null;
+            return channel;
         }
+
+        channelList = new ArrayList<Channel>(channelClientChannelInfoHashMap.keySet());
+
+        int index = positiveAtomicCounter.incrementAndGet() % channelList.size();
+        int count = 0;
+        do {
+            channel = channelList.get(index);
+            if (channel.isActive() && channel.isWritable()) {
+                return channel;
+            }
+            index = (++ index) % channelList.size();
+        } while (++ count < GET_AVALIABLE_CHANNEL_RETRY_COUNT);
+
         return null;
     }
 
