@@ -66,7 +66,6 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
-import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -395,11 +394,15 @@ public class MQClientInstance {
                     while (itBrokerTable.hasNext()) {
                         Entry<String, HashMap<Long, String>> entry = itBrokerTable.next();
                         String brokerName = entry.getKey();
-                        HashMap<Long, String> cloneAddrTable = new HashMap<Long, String>(entry.getValue());
+                        HashMap<Long, String> oneTable = entry.getValue();
+
+                        HashMap<Long, String> cloneAddrTable = new HashMap<Long, String>();
+                        cloneAddrTable.putAll(oneTable);
 
                         Iterator<Entry<Long, String>> it = cloneAddrTable.entrySet().iterator();
                         while (it.hasNext()) {
-                            String addr = it.next().getValue();
+                            Entry<Long, String> ee = it.next();
+                            String addr = ee.getValue();
                             if (!this.isBrokerAddrExistInTopicRouteTable(addr)) {
                                 it.remove();
                                 log.info("the broker addr[{} {}] is offline, remove it", brokerName, addr);
@@ -511,10 +514,14 @@ public class MQClientInstance {
     private boolean isBrokerAddrExistInTopicRouteTable(final String addr) {
         Iterator<Entry<String, TopicRouteData>> it = this.topicRouteTable.entrySet().iterator();
         while (it.hasNext()) {
-            List<BrokerData> bds = it.next().getValue().getBrokerDatas();
+            Entry<String, TopicRouteData> entry = it.next();
+            TopicRouteData topicRouteData = entry.getValue();
+            List<BrokerData> bds = topicRouteData.getBrokerDatas();
             for (BrokerData bd : bds) {
-                if (bd.getBrokerAddrs() != null && bd.getBrokerAddrs().containsValue(addr)) {
-                    return true;
+                if (bd.getBrokerAddrs() != null) {
+                    boolean exist = bd.getBrokerAddrs().containsValue(addr);
+                    if (exist)
+                        return true;
                 }
             }
         }
@@ -658,7 +665,7 @@ public class MQClientInstance {
                                     }
                                 }
                             }
-                            log.info("topicRouteTable.put Topic = {}, TopicRouteData[{}]", topic, cloneTopicRouteData);
+                            log.info("topicRouteTable.put. Topic = {}, TopicRouteData[{}]", topic, cloneTopicRouteData);
                             this.topicRouteTable.put(topic, cloneTopicRouteData);
                             return true;
                         }
@@ -668,9 +675,6 @@ public class MQClientInstance {
                 } catch (MQClientException e) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) && !topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
                         log.warn("updateTopicRouteInfoFromNameServer Exception", e);
-                    }
-                    if (e.getResponseCode() == ResponseCode.TOPIC_NOT_EXIST && this.topicRouteTable.containsKey(topic)) {
-                        this.topicRouteTable.remove(topic);
                     }
                 } catch (RemotingException e) {
                     log.error("updateTopicRouteInfoFromNameServer Exception", e);
