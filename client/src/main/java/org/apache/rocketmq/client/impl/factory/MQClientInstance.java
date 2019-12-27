@@ -514,10 +514,8 @@ public class MQClientInstance {
             TopicRouteData topicRouteData = it.next().getValue();
             List<BrokerData> bds = topicRouteData.getBrokerDatas();
             for (BrokerData bd : bds) {
-                if (bd.getBrokerAddrs() != null) {
-                    boolean exist = bd.getBrokerAddrs().containsValue(addr);
-                    if (exist)
-                        return true;
+                if (bd.getBrokerAddrs() != null && bd.getBrokerAddrs().containsValue(addr)) {
+                    return true;
                 }
             }
         }
