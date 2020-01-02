@@ -597,7 +597,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     public synchronized void commitSync() {
         try {
             for (MessageQueue messageQueue : assignedMessageQueue.messageQueues()) {
-                long consumerOffset = assignedMessageQueue.getConusmerOffset(messageQueue);
+                long consumerOffset = assignedMessageQueue.getConsumerOffset(messageQueue);
                 if (consumerOffset != -1) {
                     ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
                     long preConsumerOffset = this.getOffsetStore().readOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY);
@@ -618,7 +618,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     private synchronized void commitAll() {
         try {
             for (MessageQueue messageQueue : assignedMessageQueue.messageQueues()) {
-                long consumerOffset = assignedMessageQueue.getConusmerOffset(messageQueue);
+                long consumerOffset = assignedMessageQueue.getConsumerOffset(messageQueue);
                 if (consumerOffset != -1) {
                     ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
                     long preConsumerOffset = this.getOffsetStore().readOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY);
@@ -650,9 +650,10 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
-    private long fetchConsumeOffset(MessageQueue messageQueue, boolean fromStore) {
+    private long fetchConsumeOffset(MessageQueue messageQueue) {
         checkServiceState();
-        return this.offsetStore.readOffset(messageQueue, fromStore ? ReadOffsetType.READ_FROM_STORE : ReadOffsetType.MEMORY_FIRST_THEN_STORE);
+        long offset = this.rebalanceImpl.computePullFromWhere(messageQueue);
+        return offset;
     }
 
     public long committed(MessageQueue messageQueue) throws MQClientException {
@@ -685,10 +686,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         } else {
             offset = assignedMessageQueue.getPullOffset(messageQueue);
             if (offset == -1) {
-                offset = fetchConsumeOffset(messageQueue, false);
-                if (offset == -1 && defaultLitePullConsumer.getMessageModel() == MessageModel.BROADCASTING) {
-                    offset = 0;
-                }
+                offset = fetchConsumeOffset(messageQueue);
             }
         }
         return offset;
@@ -779,7 +777,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     }
                     PullResult pullResult = pull(messageQueue, subscriptionData, offset, nextPullBatchSize());
 
-
                     switch (pullResult.getPullStatus()) {
                         case FOUND:
                             final Object objLock = messageQueueLock.fetchLockObject(messageQueue);
@@ -850,7 +847,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             throw new MQClientException("maxNums <= 0", null);
         }
 
-        int sysFlag = PullSysFlag.buildSysFlag(false, block, true, false);
+        int sysFlag = PullSysFlag.buildSysFlag(false, block, true, false, true);
 
         long timeoutMillis = block ? this.defaultLitePullConsumer.getConsumerTimeoutMillisWhenSuspend() : timeout;
 
