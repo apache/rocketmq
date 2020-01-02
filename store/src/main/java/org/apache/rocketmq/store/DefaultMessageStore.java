@@ -19,6 +19,8 @@ package org.apache.rocketmq.store;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.net.Inet6Address;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileLock;
@@ -285,8 +287,6 @@ public class DefaultMessageStore implements MessageStore {
         this.shutdown = false;
     }
 
-
-
     public void shutdown() {
         if (!this.shutdown) {
             this.shutdown = true;
@@ -394,11 +394,11 @@ public class DefaultMessageStore implements MessageStore {
         long beginTime = this.getSystemClock().now();
         PutMessageResult result = this.commitLog.putMessage(msg);
 
-        long eclipseTime = this.getSystemClock().now() - beginTime;
-        if (eclipseTime > 500) {
-            log.warn("putMessage not in lock eclipse time(ms)={}, bodyLength={}", eclipseTime, msg.getBody().length);
+        long elapsedTime = this.getSystemClock().now() - beginTime;
+        if (elapsedTime > 500) {
+            log.warn("putMessage not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, msg.getBody().length);
         }
-        this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
+        this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
 
         if (null == result || !result.isOk()) {
             this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();
@@ -450,11 +450,11 @@ public class DefaultMessageStore implements MessageStore {
         long beginTime = this.getSystemClock().now();
         PutMessageResult result = this.commitLog.putMessages(messageExtBatch);
 
-        long eclipseTime = this.getSystemClock().now() - beginTime;
-        if (eclipseTime > 500) {
-            log.warn("not in lock eclipse time(ms)={}, bodyLength={}", eclipseTime, messageExtBatch.getBody().length);
+        long elapsedTime = this.getSystemClock().now() - beginTime;
+        if (elapsedTime > 500) {
+            log.warn("not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, messageExtBatch.getBody().length);
         }
-        this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
+        this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
 
         if (null == result || !result.isOk()) {
             this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();
@@ -469,7 +469,7 @@ public class DefaultMessageStore implements MessageStore {
         long diff = this.systemClock.now() - begin;
 
         return diff < 10000000
-                && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills();
+            && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills();
     }
 
     @Override
@@ -642,8 +642,8 @@ public class DefaultMessageStore implements MessageStore {
         } else {
             this.storeStatsService.getGetMessageTimesTotalMiss().incrementAndGet();
         }
-        long eclipseTime = this.getSystemClock().now() - beginTime;
-        this.storeStatsService.setGetMessageEntireTimeMax(eclipseTime);
+        long elapsedTime = this.getSystemClock().now() - beginTime;
+        this.storeStatsService.setGetMessageEntireTimeMax(elapsedTime);
 
         getResult.setStatus(status);
         getResult.setNextBeginOffset(nextBeginOffset);
@@ -1042,7 +1042,9 @@ public class DefaultMessageStore implements MessageStore {
                         int i = 0;
                         for (; i < bufferConsumeQueue.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
                             long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
-                            final ByteBuffer msgIdMemory = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);
+                            InetSocketAddress inetSocketAddress = (InetSocketAddress) storeHost;
+                            int msgIdLength = (inetSocketAddress.getAddress() instanceof Inet6Address) ? 16 + 4 + 8 : 4 + 4 + 8;
+                            final ByteBuffer msgIdMemory = ByteBuffer.allocate(msgIdLength);
                             String msgId =
                                 MessageDecoder.createMessageId(msgIdMemory, MessageExt.socketAddress2ByteBuffer(storeHost), offsetPy);
                             messageIds.put(msgId, nextOffset++);
@@ -1144,7 +1146,7 @@ public class DefaultMessageStore implements MessageStore {
                 topic,
                 queueId,
                 StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
-                this.getMessageStoreConfig().getMapedFileSizeConsumeQueue(),
+                this.getMessageStoreConfig().getMappedFileSizeConsumeQueue(),
                 this);
             ConsumeQueue oldLogic = map.putIfAbsent(queueId, newLogic);
             if (oldLogic != null) {
@@ -1309,7 +1311,7 @@ public class DefaultMessageStore implements MessageStore {
                             topic,
                             queueId,
                             StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
-                            this.getMessageStoreConfig().getMapedFileSizeConsumeQueue(),
+                            this.getMessageStoreConfig().getMappedFileSizeConsumeQueue(),
                             this);
                         this.putConsumeQueue(topic, queueId, logic);
                         if (!logic.load()) {
@@ -1445,7 +1447,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public int remainTransientStoreBufferNumbs() {
-        return this.transientStorePool.remainBufferNumbs();
+        return this.transientStorePool.availableBufferNums();
     }
 
     @Override
@@ -1864,10 +1866,14 @@ public class DefaultMessageStore implements MessageStore {
                                     this.reputFromOffset += size;
                                 } else {
                                     doNext = false;
-                                    log.error("[BUG]dispatch message to consume queue error, COMMITLOG OFFSET: {}",
-                                        this.reputFromOffset);
-
-                                    this.reputFromOffset += result.getSize() - readSize;
+                                    // If user open the dledger pattern or the broker is master node,
+                                    // it will not ignore the exception and fix the reputFromOffset variable
+                                    if (DefaultMessageStore.this.getMessageStoreConfig().isEnableDLegerCommitLog() ||
+                                        DefaultMessageStore.this.brokerConfig.getBrokerId() == MixAll.MASTER_ID) {
+                                        log.error("[BUG]dispatch message to consume queue error, COMMITLOG OFFSET: {}",
+                                            this.reputFromOffset);
+                                        this.reputFromOffset += result.getSize() - readSize;
+                                    }
                                 }
                             }
                         }
