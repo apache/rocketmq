@@ -24,7 +24,10 @@ import java.io.IOException;
  * Interface of asynchronous transfer data
  */
 public interface TraceDispatcher {
-
+    enum Type {
+        PRODUCE,
+        CONSUME
+    }
     /**
      * Initialize asynchronous transfer data module
      */
