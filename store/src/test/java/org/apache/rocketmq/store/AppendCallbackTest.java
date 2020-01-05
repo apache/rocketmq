@@ -64,6 +64,126 @@ public class AppendCallbackTest {
         UtilAll.deleteFile(new File(System.getProperty("user.home") + File.separator + "unitteststore"));
     }
 
+
+    @Test
+    public void testAppendMessageExtEndOfFile() throws Exception {
+        String topic = "test-topic";
+        int queue = 0;
+
+        MessageExtBrokerInner msg = new MessageExtBrokerInner();
+        msg.setBody("body".getBytes());
+        msg.setTopic(topic);
+        msg.setQueueId(queue);
+        msg.setBornHost(new InetSocketAddress("127.0.0.1", 123));
+        msg.setStoreHost(new InetSocketAddress("127.0.0.1", 124));
+        msg.setTags("abc");
+        msg.setBornTimestamp(System.currentTimeMillis());
+
+        ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
+        //encounter end of file when append half of the data
+        AppendMessageResult result = callback.doAppend(0, buff, 10, msg);
+        assertEquals(AppendMessageStatus.END_OF_FILE, result.getStatus());
+        assertEquals(0, result.getWroteOffset());
+        assertEquals(0, result.getLogicsOffset());
+        assertEquals(10, result.getWroteBytes());
+        assertEquals(10, buff.position()); //write blank size and magic value
+
+        assertTrue(result.getMsgId().length() > 0); //should have already constructed some message ids
+    }
+
+    @Test
+    public void testAppendMessageExtSuuc() throws Exception {
+        int i = 0;
+        int lastPosition = 0;
+        String topic = "test-topic";
+        int queue = 0;
+        ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
+        while (i<10) {
+            MessageExtBrokerInner msg = new MessageExtBrokerInner();
+            msg.setBody("body".getBytes());
+            msg.setTopic(topic);
+            msg.setQueueId(queue);
+            msg.setBornHost(new InetSocketAddress("127.0.0.1", 123));
+            msg.setStoreHost(new InetSocketAddress("127.0.0.1", 124));
+            msg.setTags("abc");
+            msg.setBornTimestamp(System.currentTimeMillis());
+
+            AppendMessageResult result = callback.doAppend(0, buff, 1000, msg);
+            assertEquals(AppendMessageStatus.PUT_OK, result.getStatus());
+            assertEquals(lastPosition, result.getWroteOffset());
+            assertEquals(i, result.getLogicsOffset());
+            assertEquals(buff.position()-lastPosition, result.getWroteBytes());
+            lastPosition = buff.position();
+            assertTrue(result.getMsgId().length() > 0); //should have already constructed some message ids
+            i++;
+        }
+    }
+
+
+    @Test
+    public void testAppendIPv6HostMessageExtEndOfFile() throws Exception {
+        String topic = "test-topic";
+        int queue = 0;
+
+        MessageExtBrokerInner msg = new MessageExtBrokerInner();
+        msg.setBody("body".getBytes());
+        msg.setTopic(topic);
+        msg.setQueueId(queue);
+        msg.setTags("abc");
+        msg.setBornTimestamp(System.currentTimeMillis());
+        msg.setSysFlag(0);
+        msg.setBornHostV6Flag();
+        msg.setStoreHostAddressV6Flag();
+        msg.setBornHost(new InetSocketAddress("1050:0000:0000:0000:0005:0600:300c:326b", 123));
+        msg.setStoreHost(new InetSocketAddress("::1", 124));
+
+        ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
+        //encounter end of file when append half of the data
+        AppendMessageResult result = callback.doAppend(0, buff, 10, msg);
+        assertEquals(AppendMessageStatus.END_OF_FILE, result.getStatus());
+        assertEquals(0, result.getWroteOffset());
+        assertEquals(0, result.getLogicsOffset());
+        assertEquals(10, result.getWroteBytes());
+        assertEquals(10, buff.position()); //write blank size and magic value
+
+        assertTrue(result.getMsgId().length() > 0); //should have already constructed some message ids
+    }
+
+    @Test
+    public void testAppendIPv6HostMessageExtSuuc() throws Exception {
+        int i = 0;
+        int lastPosition = 0;
+        String topic = "test-topic";
+        int queue = 0;
+        ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
+        while (i<10) {
+            MessageExtBrokerInner msg = new MessageExtBrokerInner();
+            msg.setBody("body".getBytes());
+            msg.setTopic(topic);
+            msg.setQueueId(queue);
+            msg.setTags("abc");
+            msg.setBornTimestamp(System.currentTimeMillis());
+            msg.setSysFlag(0);
+            msg.setBornHostV6Flag();
+            msg.setStoreHostAddressV6Flag();
+            msg.setBornHost(new InetSocketAddress("1050:0000:0000:0000:0005:0600:300c:326b", 123));
+            msg.setStoreHost(new InetSocketAddress("::1", 124));
+
+            AppendMessageResult result = callback.doAppend(0, buff, 1000, msg);
+            assertEquals(AppendMessageStatus.PUT_OK, result.getStatus());
+            assertEquals(lastPosition, result.getWroteOffset());
+            assertEquals(i, result.getLogicsOffset());
+            assertEquals(buff.position()-lastPosition, result.getWroteBytes());
+            lastPosition = buff.position();
+            assertTrue(result.getMsgId().length() > 0); //should have already constructed some message ids
+            i++;
+        }
+    }
+
+
+
+
+
     @Test
     public void testAppendMessageBatchEndOfFile() throws Exception {
         List<Message> messages = new ArrayList<>();
@@ -96,6 +216,7 @@ public class AppendCallbackTest {
 
         assertTrue(result.getMsgId().length() > 0); //should have already constructed some message ids
     }
+
 
     @Test
     public void testAppendIPv6HostMessageBatchEndOfFile() throws Exception {
