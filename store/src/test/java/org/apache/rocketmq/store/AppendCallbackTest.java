@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
@@ -62,6 +63,91 @@ public class AppendCallbackTest {
     @After
     public void destroy() {
         UtilAll.deleteFile(new File(System.getProperty("user.home") + File.separator + "unitteststore"));
+    }
+
+    @Test
+    public void testAppendMessageExtMaxMessageSize() throws Exception {
+        String topic = "test-queue";
+        int queue = 0;
+        StringBuilder sb = new StringBuilder();
+        int i = 0;
+        while(i++<20){
+            //每次是56的长度，共添加20次
+            sb.append("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        }
+
+        byte[] bytes = sb.toString().getBytes();
+        assertTrue(bytes.length>1024);
+        MessageExtBrokerInner messageExt = new MessageExtBrokerInner();
+        messageExt.setTopic(topic);
+        messageExt.setBody(bytes);
+        messageExt.setTags("test");
+        messageExt.setQueueId(queue);
+        messageExt.setBornHost(new InetSocketAddress("127.0.0.1", 123));
+        messageExt.setStoreHost(new InetSocketAddress("127.0.0.1", 124));
+        ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
+
+        AppendMessageResult result = callback.doAppend(0, buff, 10, messageExt);
+        assertEquals(AppendMessageStatus.MESSAGE_SIZE_EXCEEDED, result.getStatus());
+        assertEquals(0, result.getWroteOffset());
+        assertEquals(0, result.getLogicsOffset());
+        assertEquals(0, result.getWroteBytes());
+        assertEquals(0, buff.position()); //write blank size and magic value
+
+    }
+
+
+
+    @Test
+    public void testAppendMessageExtEndOfFile() throws Exception {
+        String topic = "test-queue";
+        int queue = 0;
+        MessageExtBrokerInner messageExt = new MessageExtBrokerInner();
+        messageExt.setTopic(topic);
+        messageExt.setBody("abc".getBytes());
+        messageExt.setTags("test");
+        messageExt.setQueueId(queue);
+        messageExt.setBornHost(new InetSocketAddress("127.0.0.1", 123));
+        messageExt.setStoreHost(new InetSocketAddress("127.0.0.1", 124));
+        ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
+
+        AppendMessageResult result = callback.doAppend(0, buff, 10, messageExt);
+        assertEquals(AppendMessageStatus.END_OF_FILE, result.getStatus());
+        assertEquals(0, result.getWroteOffset());
+        assertEquals(0, result.getLogicsOffset());
+        assertEquals(10, result.getWroteBytes());
+        assertEquals(10, buff.position()); //write blank size and magic value
+        assertTrue(result.getMsgId().length() > 0); //should have already constructed some message ids
+
+    }
+
+    @Test
+    public void testAppendMessageExtSucc() throws Exception {
+        String topic = "test-queue";
+        int queue = 0;
+        int i = 0;
+        ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
+        long lastPosition = 0;
+        while( i < 10){
+            MessageExtBrokerInner messageExt = new MessageExtBrokerInner();
+            messageExt.setTopic(topic);
+            String body = "abc"+i;
+            messageExt.setBody(body.getBytes());
+            messageExt.setTags("test");
+            messageExt.setQueueId(queue);
+            messageExt.setBornHost(new InetSocketAddress("127.0.0.1", 123));
+            messageExt.setStoreHost(new InetSocketAddress("127.0.0.1", 124));
+
+            AppendMessageResult result = callback.doAppend(0, buff, 1000, messageExt);
+            assertEquals(AppendMessageStatus.PUT_OK, result.getStatus());
+            assertEquals(buff.position() - lastPosition, result.getWroteBytes());
+            assertEquals(lastPosition, result.getWroteOffset());
+            assertTrue(result.getLogicsOffset()==i);
+            assertTrue(result.getMsgId().length() > 0); //should have already constructed some message ids
+            lastPosition = buff.position();
+            i++;
+        }
+
     }
 
     @Test
