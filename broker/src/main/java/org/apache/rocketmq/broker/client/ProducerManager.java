@@ -205,7 +205,7 @@ public class ProducerManager {
         }
     }
 
-    public Channel getAvaliableChannel(String groupId) {
+    public Channel getAvailableChannel(String groupId) {
         Channel channel = null;
         List<Channel> channelList = null;
 
