@@ -590,7 +590,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
-    public synchronized void commitSync() {
+    public synchronized void commitAll() {
         try {
             for (MessageQueue messageQueue : assignedMessageQueue.messageQueues()) {
                 long consumerOffset = assignedMessageQueue.getConsumerOffset(messageQueue);
@@ -599,28 +599,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     long preConsumerOffset = this.getOffsetStore().readOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY);
                     if (processQueue != null && !processQueue.isDropped() && consumerOffset != preConsumerOffset) {
                         updateConsumeOffset(messageQueue, consumerOffset);
-                        updateConsumeOffsetToBroker(messageQueue, consumerOffset, false);
-                    }
-                }
-            }
-            if (defaultLitePullConsumer.getMessageModel() == MessageModel.BROADCASTING) {
-                offsetStore.persistAll(assignedMessageQueue.messageQueues());
-            }
-        } catch (Exception e) {
-            log.error("An error occurred when update consume offset synchronously.", e);
-        }
-    }
-
-    private synchronized void commitAll() {
-        try {
-            for (MessageQueue messageQueue : assignedMessageQueue.messageQueues()) {
-                long consumerOffset = assignedMessageQueue.getConsumerOffset(messageQueue);
-                if (consumerOffset != -1) {
-                    ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
-                    long preConsumerOffset = this.getOffsetStore().readOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY);
-                    if (processQueue != null && !processQueue.isDropped() && consumerOffset != preConsumerOffset) {
-                        updateConsumeOffset(messageQueue, consumerOffset);
-                        updateConsumeOffsetToBroker(messageQueue, consumerOffset, true);
                     }
                 }
             }
@@ -927,8 +905,13 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         try {
             checkServiceState();
             Set<MessageQueue> mqs = new HashSet<MessageQueue>();
-            Set<MessageQueue> allocateMq = this.rebalanceImpl.getProcessQueueTable().keySet();
-            mqs.addAll(allocateMq);
+            if (this.subscriptionType == SubscriptionType.SUBSCRIBE) {
+                Set<MessageQueue> allocateMq = this.rebalanceImpl.getProcessQueueTable().keySet();
+                mqs.addAll(allocateMq);
+            } else if (this.subscriptionType == SubscriptionType.ASSIGN) {
+                Set<MessageQueue> assignedMessageQueue = this.assignedMessageQueue.getAssignedMessageQueue();
+                mqs.addAll(assignedMessageQueue);
+            }
             this.offsetStore.persistAll(mqs);
         } catch (Exception e) {
             log.error("group: " + this.defaultLitePullConsumer.getConsumerGroup() + " persistConsumerOffset exception", e);
