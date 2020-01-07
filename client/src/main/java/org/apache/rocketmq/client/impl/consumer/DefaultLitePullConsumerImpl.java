@@ -211,10 +211,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
-    private int nextPullBatchSize() {
-        return Math.min(this.defaultLitePullConsumer.getPullBatchSize(), consumeRequestCache.remainingCapacity());
-    }
-
     public synchronized void shutdown() {
         switch (this.serviceState) {
             case CREATE_JUST:
@@ -775,7 +771,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                         subscriptionData = FilterAPI.buildSubscriptionData(defaultLitePullConsumer.getConsumerGroup(),
                             topic, SubscriptionData.SUB_ALL);
                     }
-                    PullResult pullResult = pull(messageQueue, subscriptionData, offset, nextPullBatchSize());
+                    
+                    PullResult pullResult = pull(messageQueue, subscriptionData, offset, defaultLitePullConsumer.getPullBatchSize());
 
                     switch (pullResult.getPullStatus()) {
                         case FOUND:
