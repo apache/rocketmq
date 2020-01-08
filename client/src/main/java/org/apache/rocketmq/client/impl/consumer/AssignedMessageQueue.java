@@ -177,6 +177,10 @@ public class AssignedMessageQueue {
         }
     }
 
+    public Set<MessageQueue> getAssignedMessageQueues() {
+        return this.assignedMessageQueueState.keySet();
+    }
+
     private class MessageQueueState {
         private MessageQueue messageQueue;
         private ProcessQueue processQueue;
