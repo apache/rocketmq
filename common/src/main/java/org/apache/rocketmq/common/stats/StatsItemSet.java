@@ -173,6 +173,13 @@ public class StatsItemSet {
         return statsItem;
     }
 
+    public void delValue(final String statsKey) {
+        StatsItem statsItem = this.statsItemTable.get(statsKey);
+        if (null != statsItem) {
+            this.statsItemTable.remove(statsKey);
+        }
+    }
+
     public StatsSnapshot getStatsDataInMinute(final String statsKey) {
         StatsItem statsItem = this.statsItemTable.get(statsKey);
         if (null != statsItem) {

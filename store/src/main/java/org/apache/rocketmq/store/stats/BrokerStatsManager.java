@@ -129,13 +129,26 @@ public class BrokerStatsManager {
         this.statsTable.get(TOPIC_PUT_NUMS).addValue(topic, num, times);
     }
 
+    public void delPutNumsByTopic(final String topic) {
+        this.statsTable.get(TOPIC_PUT_NUMS).delValue(topic);
+    }
+
     public void incTopicPutSize(final String topic, final int size) {
         this.statsTable.get(TOPIC_PUT_SIZE).addValue(topic, size, 1);
+    }
+
+    public void delPutSizeByTopic(final String topic) {
+        this.statsTable.get(TOPIC_PUT_SIZE).delValue(topic);
     }
 
     public void incGroupGetNums(final String group, final String topic, final int incValue) {
         final String statsKey = buildStatsKey(topic, group);
         this.statsTable.get(GROUP_GET_NUMS).addValue(statsKey, incValue, 1);
+    }
+
+    public void delGetNumsByGroup(final String group, final String topic) {
+        final String statsKey = buildStatsKey(topic, group);
+        this.statsTable.get(GROUP_GET_NUMS).delValue(statsKey);
     }
 
     public String buildStatsKey(String topic, String group) {
@@ -151,9 +164,19 @@ public class BrokerStatsManager {
         this.statsTable.get(GROUP_GET_SIZE).addValue(statsKey, incValue, 1);
     }
 
+    public void delGetSizeByGroup(final String group, final String topic) {
+        final String statsKey = buildStatsKey(topic, group);
+        this.statsTable.get(GROUP_GET_SIZE).delValue(statsKey);
+    }
+
     public void incGroupGetLatency(final String group, final String topic, final int queueId, final int incValue) {
         final String statsKey = String.format("%d@%s@%s", queueId, topic, group);
         this.statsTable.get(GROUP_GET_LATENCY).addValue(statsKey, incValue, 1);
+    }
+
+    public void delGetLatencyByGroup(final String group, final String topic, final int queueId) {
+        final String statsKey = String.format("%d@%s@%s", queueId, topic, group);
+        this.statsTable.get(GROUP_GET_LATENCY).delValue(statsKey);
     }
 
     public void incBrokerPutNums() {
