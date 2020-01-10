@@ -1,7 +1,7 @@
 ﻿Apache RocketMQ开发者指南
 --------
 
-##### 这个开发者指南是帮忙您快速了解,并使用 Apache RocketMQ
+##### 这个开发者指南是帮助您快速了解,并使用 Apache RocketMQ
 
 ### 1. 概念和特性
 
@@ -19,7 +19,7 @@
 
 ### 3. 样例
 
-- [样例(Example)](RocketMQ_Example.md) ：介绍RocketMQ的常见用法，包括基本样例、顺序消息样例、延时消息样例、批量消息样例、过滤消息样例、事物消息样例等。
+- [样例(Example)](RocketMQ_Example.md) ：介绍RocketMQ的常见用法，包括基本样例、顺序消息样例、延时消息样例、批量消息样例、过滤消息样例、事务消息样例等。
 
 
 ### 4. 最佳实践
