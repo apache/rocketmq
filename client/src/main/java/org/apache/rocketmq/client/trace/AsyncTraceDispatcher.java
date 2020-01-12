@@ -42,10 +42,10 @@ import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 
@@ -92,13 +92,13 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         } else {
             this.traceTopicName = MixAll.RMQ_SYS_TRACE_TOPIC;
         }
-        this.traceExecutor = new ThreadPoolExecutor(//
-            10, //
-            20, //
-            1000 * 60, //
-            TimeUnit.MILLISECONDS, //
-            this.appenderQueue, //
-            new ThreadFactoryImpl("MQTraceSendThread_"));
+        this.traceExecutor = (ThreadPoolExecutor) ThreadUtils.newThreadPoolExecutor(
+                10,
+                20,
+                1000 * 60,
+                TimeUnit.MILLISECONDS,
+                this.appenderQueue,
+                "MQTraceSendThread");
         traceProducer = getAndCreateTraceProducer(rpcHook);
     }
 
