@@ -44,6 +44,35 @@ public class StatsItemSetTest {
         assertEquals(10, test_unit_moment().longValue());
     }
 
+    @Test
+    public void test_statsOfFirstStatisticsCycle() throws InterruptedException {
+        final StatsItemSet statsItemSet = new StatsItemSet("topicTest", scheduler, null);
+        executor = new ThreadPoolExecutor(10, 20, 10, TimeUnit.SECONDS,
+            new ArrayBlockingQueue<Runnable>(100), new ThreadFactoryImpl("testMultiThread"));
+        for (int i = 0; i < 10; i++) {
+            executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    statsItemSet.addValue("topicTest", 2, 1);
+                }
+            });
+        }
+        while (true) {
+            if (executor.getCompletedTaskCount() == 10) {
+                break;
+            }
+            Thread.sleep(1000);
+        }
+        // simulate schedule task execution
+        statsItemSet.getStatsItem("topicTest").samplingInSeconds();
+        statsItemSet.getStatsItem("topicTest").samplingInMinutes();
+        statsItemSet.getStatsItem("topicTest").samplingInHour();
+
+        assertEquals(20L, statsItemSet.getStatsDataInMinute("topicTest").getSum());
+        assertEquals(20L, statsItemSet.getStatsDataInHour("topicTest").getSum());
+        assertEquals(20L, statsItemSet.getStatsDataInDay("topicTest").getSum());
+    }
+
     private AtomicLong test_unit() throws InterruptedException {
         final StatsItemSet statsItemSet = new StatsItemSet("topicTest", scheduler, null);
         executor = new ThreadPoolExecutor(10, 20, 10, TimeUnit.SECONDS,
