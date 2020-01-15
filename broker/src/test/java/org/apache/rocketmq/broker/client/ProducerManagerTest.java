@@ -127,4 +127,9 @@ public class ProducerManagerTest {
         assertThat(c).isNull();
     }
 
+    @Test
+    public void testGetAvailableChannelWithNullGroupId() {
+        Channel c = producerManager.getAvailableChannel(null);
+        assertThat(c).isNull();
+    }
 }
