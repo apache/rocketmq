@@ -206,9 +206,12 @@ public class ProducerManager {
     }
 
     public Channel getAvailableChannel(String groupId) {
+        if (groupId == null) {
+            return null;
+        }
+
         Channel channel = null;
         List<Channel> channelList = null;
-
         HashMap<Channel, ClientChannelInfo> channelClientChannelInfoHashMap = groupChannelTable.get(groupId);
         if (null == channelClientChannelInfoHashMap || channelClientChannelInfoHashMap.isEmpty()) {
             log.warn("Check transaction failed, channel table is empty. groupId={}", groupId);
@@ -217,6 +220,7 @@ public class ProducerManager {
 
         channelList = new ArrayList<Channel>(channelClientChannelInfoHashMap.keySet());
 
+        Channel lastActiveChannel = null;
         int index = positiveAtomicCounter.incrementAndGet() % channelList.size();
         int count = 0;
         do {
@@ -224,10 +228,13 @@ public class ProducerManager {
             if (channel.isActive() && channel.isWritable()) {
                 return channel;
             }
+            if (channel.isActive()) {
+                lastActiveChannel = channel;
+            }
             index = (++ index) % channelList.size();
         } while (++ count < GET_AVALIABLE_CHANNEL_RETRY_COUNT);
 
-        return null;
+        return lastActiveChannel;
     }
 
     public Channel findChannel(String clientId) {
