@@ -48,6 +48,13 @@ public class ProducerManagerTest {
     }
 
     @Test
+    public void testFindChannel() {
+        producerManager.registerProducer(group, clientInfo);
+        Channel c = producerManager.findChannel("clientId");
+        assertThat(c).isSameAs(c);
+    }
+
+    @Test
     public void scanNotActiveChannel() throws Exception {
         producerManager.registerProducer(group, clientInfo);
         assertThat(producerManager.getGroupChannelTable().get(group).get(channel)).isNotNull();
@@ -132,4 +139,5 @@ public class ProducerManagerTest {
         Channel c = producerManager.getAvailableChannel(null);
         assertThat(c).isNull();
     }
+
 }
