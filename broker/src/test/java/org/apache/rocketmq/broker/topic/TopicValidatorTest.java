@@ -47,10 +47,10 @@ public class TopicValidatorTest {
         assertThat(response.getRemark()).contains("The specified topic is conflict with AUTO_CREATE_TOPIC_KEY_TOPIC.");
 
         clearResponse(response);
-        res = TopicValidator.validateTopic(generateString(255), response);
+        res = TopicValidator.validateTopic(generateString(128), response);
         assertThat(res).isFalse();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-        assertThat(response.getRemark()).contains("The specified topic is longer than topic max length 255.");
+        assertThat(response.getRemark()).contains("The specified topic is longer than topic max length.");
 
     }
 
