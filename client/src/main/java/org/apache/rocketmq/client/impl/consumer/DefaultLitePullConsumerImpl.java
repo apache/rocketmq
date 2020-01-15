@@ -561,8 +561,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     public void seekToEnd(MessageQueue messageQueue) throws MQClientException {
-        long begin = maxOffset(messageQueue);
-        this.seek(messageQueue, begin);
+        long end = maxOffset(messageQueue);
+        this.seek(messageQueue, end);
     }
 
     private long maxOffset(MessageQueue messageQueue) throws MQClientException {
