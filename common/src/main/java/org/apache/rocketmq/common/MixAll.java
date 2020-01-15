@@ -419,7 +419,7 @@ public class MixAll {
                 if (address.isLoopbackAddress()) {
                     continue;
                 }
-                //ip4 highter priority
+                //ip4 higher priority
                 if (address instanceof Inet6Address) {
                     candidatesHost.add(address.getHostAddress());
                     continue;

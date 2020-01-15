@@ -90,7 +90,7 @@ public class AssignedMessageQueue {
         }
     }
 
-    public long getConusmerOffset(MessageQueue messageQueue) {
+    public long getConsumerOffset(MessageQueue messageQueue) {
         MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
         if (messageQueueState != null) {
             return messageQueueState.getConsumeOffset();
@@ -175,6 +175,10 @@ public class AssignedMessageQueue {
                 }
             }
         }
+    }
+
+    public Set<MessageQueue> getAssignedMessageQueues() {
+        return this.assignedMessageQueueState.keySet();
     }
 
     private class MessageQueueState {

@@ -815,7 +815,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             (GetProducerConnectionListRequestHeader) request.decodeCommandCustomHeader(GetProducerConnectionListRequestHeader.class);
 
         ProducerConnection bodydata = new ProducerConnection();
-        HashMap<Channel, ClientChannelInfo> channelInfoHashMap =
+        Map<Channel, ClientChannelInfo> channelInfoHashMap =
             this.brokerController.getProducerManager().getGroupChannelTable().get(requestHeader.getProducerGroup());
         if (channelInfoHashMap != null) {
             Iterator<Map.Entry<Channel, ClientChannelInfo>> it = channelInfoHashMap.entrySet().iterator();
