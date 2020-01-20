@@ -280,7 +280,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             RequestFutureTable.getRequestFutureTable().remove(correlationId);
 
             if (requestResponseFuture.getRequestCallback() != null) {
-                requestResponseFuture.getRequestCallback().onSuccess(replyMsg);
+                requestResponseFuture.executeRequestCallback();
             } else {
                 requestResponseFuture.putResponseMessage(replyMsg);
             }
