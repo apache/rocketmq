@@ -269,7 +269,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void commitSync() {
-        this.defaultLitePullConsumerImpl.commitSync();
+        this.defaultLitePullConsumerImpl.commitAll();
     }
 
     @Override

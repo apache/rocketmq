@@ -27,7 +27,7 @@ public class TopicValidator {
 
     private static final String VALID_PATTERN_STR = "^[%|a-zA-Z0-9_-]+$";
     private static final Pattern PATTERN = Pattern.compile(VALID_PATTERN_STR);
-    private static final int CHARACTER_MAX_LENGTH = 255;
+    private static final int TOPIC_MAX_LENGTH = 127;
 
     private static boolean regularExpressionMatcher(String origin, Pattern pattern) {
         if (pattern == null) {
@@ -51,9 +51,9 @@ public class TopicValidator {
             return false;
         }
 
-        if (topic.length() > CHARACTER_MAX_LENGTH) {
+        if (topic.length() > TOPIC_MAX_LENGTH) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("The specified topic is longer than topic max length 255.");
+            response.setRemark("The specified topic is longer than topic max length.");
             return false;
         }
 
