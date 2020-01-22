@@ -103,18 +103,14 @@ public class MappedFileQueue {
 
     public void truncateDirtyFiles(long offset) {
         List<MappedFile> willRemoveFiles = new ArrayList<MappedFile>();
-
         for (MappedFile file : this.mappedFiles) {
-            long fileTailOffset = file.getFileFromOffset() + this.mappedFileSize;
-            if (fileTailOffset > offset) {
-                if (offset >= file.getFileFromOffset()) {
-                    file.setWrotePosition((int) (offset % this.mappedFileSize));
-                    file.setCommittedPosition((int) (offset % this.mappedFileSize));
-                    file.setFlushedPosition((int) (offset % this.mappedFileSize));
-                } else {
-                    file.destroy(1000);
-                    willRemoveFiles.add(file);
-                }
+            if (file.getFileFromOffset()<=offset&&offset<=(file.getFileFromOffset()+this.mappedFileSize)){
+                file.setWrotePosition((int) (offset % this.mappedFileSize));
+                file.setCommittedPosition((int) (offset % this.mappedFileSize));
+                file.setFlushedPosition((int) (offset % this.mappedFileSize));
+            }if (offset<file.getFileFromOffset()){
+                file.destroy(1000);
+                willRemoveFiles.add(file);
             }
         }
 
