@@ -33,7 +33,7 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 public class ProducerManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
-    private static final int GET_AVALIABLE_CHANNEL_RETRY_COUNT = 3;
+    private static final int GET_AVAILABLE_CHANNEL_RETRY_COUNT = 3;
     private final ConcurrentHashMap<String /* group name */, ConcurrentHashMap<Channel, ClientChannelInfo>> groupChannelTable =
         new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Channel> clientChannelTable = new ConcurrentHashMap<>();
@@ -158,7 +158,7 @@ public class ProducerManager {
                 lastActiveChannel = channel;
             }
             index = (++ index) % channelList.size();
-        } while (++ count < GET_AVALIABLE_CHANNEL_RETRY_COUNT);
+        } while (++ count < GET_AVAILABLE_CHANNEL_RETRY_COUNT);
 
         return lastActiveChannel;
     }
