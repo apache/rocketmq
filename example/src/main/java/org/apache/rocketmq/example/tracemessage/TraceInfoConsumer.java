@@ -50,7 +50,8 @@ public class TraceInfoConsumer {
                                     .append(tb.getTopic()).append(" ")
                                     .append(tb.getMsgId()).append(" ")
                                     .append(tb.getMsgType()).append(" ");
-                            System.out.println(sb.toString());
+                            sb.append("%n");
+                            System.out.printf(sb.toString());
                         }
                     }
                 }
