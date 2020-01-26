@@ -38,7 +38,7 @@ public class TraceInfoConsumer {
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
-                if (msgs.size() > 0) for(int i = 0; i < msgs.size(); i++) {
+                for(int i = 0; i < msgs.size(); i++) {
                     List<TraceContext> traceContexts = TraceDataEncoder.decoderFromTraceDataString(new String(msgs.get(i).getBody()));
                     for (TraceContext tc: traceContexts) {
                         for (TraceBean tb: tc.getTraceBeans()) {
@@ -54,7 +54,6 @@ public class TraceInfoConsumer {
                         }
                     }
                 }
-
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
