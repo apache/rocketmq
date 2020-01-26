@@ -30,15 +30,22 @@ import org.apache.rocketmq.common.message.MessageExt;
 
 import java.util.List;
 
+/**
+ * In this example we show you how to use message trace.
+ * When the enableMsgTrace flag of producer/consumer is true,
+ * trace data will be sent to RMQ_SYS_TRACE_TOPIC or customized topic(if provided),
+ * so we can get message trace data by subscribe the topic.
+ */
 public class TraceInfoConsumer {
-    public static void main(String[] args) throws InterruptedException, MQClientException {
+    public static void main(String[] args) throws MQClientException {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("C_TRACE");
-        // use the default message track trace topic name
+        // Use the default message trace topic
         consumer.subscribe(MixAll.RMQ_SYS_TRACE_TOPIC, "*");
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
                 for (int i = 0; i < msgs.size(); i++) {
+                    // Decode trace data
                     List<TraceContext> traceContexts = TraceDataEncoder.decoderFromTraceDataString(new String(msgs.get(i).getBody()));
                     for (TraceContext tc: traceContexts) {
                         for (TraceBean tb: tc.getTraceBeans()) {
