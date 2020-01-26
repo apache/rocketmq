@@ -40,8 +40,8 @@ public class TraceInfoConsumer {
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
                 for(int i = 0; i < msgs.size(); i++) {
                     List<TraceContext> traceContexts = TraceDataEncoder.decoderFromTraceDataString(new String(msgs.get(i).getBody()));
-                    for (TraceContext tc: traceContexts) {
-                        for (TraceBean tb: tc.getTraceBeans()) {
+                    for(TraceContext tc: traceContexts) {
+                        for(TraceBean tb: tc.getTraceBeans()) {
                             StringBuilder sb = new StringBuilder();
                             sb.append(tb.getClientHost()).append(" ")
                                     .append(tc.getGroupName()).append(" ")
