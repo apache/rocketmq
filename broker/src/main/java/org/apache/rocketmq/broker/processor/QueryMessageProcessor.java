@@ -80,7 +80,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         response.setOpaque(request.getOpaque());
 
         String isUniqueKey = request.getExtFields().get(MixAll.UNIQUE_MSG_QUERY_FLAG);
-        if (isUniqueKey != null && isUniqueKey.equals("true")) {
+        if ("true".equals(isUniqueKey)) {
             requestHeader.setMaxNum(this.brokerController.getMessageStoreConfig().getDefaultQueryMaxNum());
         }
 
