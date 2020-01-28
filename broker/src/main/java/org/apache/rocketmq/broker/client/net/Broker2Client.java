@@ -130,6 +130,7 @@ public class Broker2Client {
             if (null != queueList && !queueList.contains(i)) {
                 continue;
             }
+
             MessageQueue mq = new MessageQueue();
             mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
             mq.setTopic(topic);

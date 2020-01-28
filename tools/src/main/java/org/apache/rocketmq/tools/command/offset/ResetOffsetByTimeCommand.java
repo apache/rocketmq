@@ -50,6 +50,10 @@ public class ResetOffsetByTimeCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
+        opt = new Option("b", "broker", true, "broker address");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         opt = new Option("t", "topic", true, "set the topic");
         opt.setRequired(true);
         options.addOption(opt);
@@ -115,10 +119,19 @@ public class ResetOffsetByTimeCommand implements SubCommand {
                 queueStr = String.join(",", queues);
             }
 
+            String brokerAddr = null;
+            if (commandLine.hasOption("b")) {
+                brokerAddr = commandLine.getOptionValue("b").trim();
+            }
+
             defaultMQAdminExt.start();
             Map<MessageQueue, Long> offsetTable;
             try {
-                offsetTable = defaultMQAdminExt.resetOffsetByTimestamp(topic, queueStr, group, timestamp, force, isC);
+                if (null != brokerAddr) {
+                    offsetTable = defaultMQAdminExt.resetOffsetByTimestampInBroker(brokerAddr, topic, queueStr, group, timestamp, force, isC);
+                } else {
+                    offsetTable = defaultMQAdminExt.resetOffsetByTimestamp(topic, queueStr, group, timestamp, force, isC);
+                }
             } catch (MQClientException e) {
                 if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
                     ResetOffsetByTimeOldCommand.resetOffset(defaultMQAdminExt, group, topic, queueStr, timestamp, force, timeStampStr);
