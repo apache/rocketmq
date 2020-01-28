@@ -33,10 +33,10 @@ import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class ResetOffsetByTimeOldCommand implements SubCommand {
-    public static void resetOffset(DefaultMQAdminExt defaultMQAdminExt, String consumerGroup, String topic,
+    public static void resetOffset(DefaultMQAdminExt defaultMQAdminExt, String consumerGroup, String topic, String queueStr,
         long timestamp, boolean force,
         String timeStampStr) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        List<RollbackStats> rollbackStatsList = defaultMQAdminExt.resetOffsetByTimestampOld(consumerGroup, topic, timestamp, force);
+        List<RollbackStats> rollbackStatsList = defaultMQAdminExt.resetOffsetByTimestampOld(consumerGroup, topic, queueStr, timestamp, force);
         System.out.printf(
             "rollback consumer offset by specified consumerGroup[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]%n",
             consumerGroup, topic, force, timeStampStr, timestamp);
@@ -82,6 +82,10 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
+        opt = new Option("i", "queue", true, "set the queue, eg: 0,1");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         opt = new Option("s", "timestamp", true, "set the timestamp[currentTimeMillis|yyyy-MM-dd#HH:mm:ss:SSS]");
         opt.setRequired(true);
         options.addOption(opt);
@@ -119,7 +123,7 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
                 }
 
                 defaultMQAdminExt.start();
-                resetOffset(defaultMQAdminExt, consumerGroup, topic, timestamp, force, timeStampStr);
+                resetOffset(defaultMQAdminExt, consumerGroup, topic, null, timestamp, force, timeStampStr);
             }
 
         } catch (Exception e) {

@@ -442,7 +442,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public List<RollbackStats> resetOffsetByTimestampOld(String consumerGroup, String topic, long timestamp,
+    public List<RollbackStats> resetOffsetByTimestampOld(String consumerGroup, String topic, String queueStr, long timestamp,
         boolean force)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
@@ -458,11 +458,24 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             if (addr != null) {
                 ConsumeStats consumeStats = this.mqClientInstance.getMQClientAPIImpl().getConsumeStats(addr, consumerGroup, timeoutMillis);
 
+                List<Integer> queueList = null;
+                if (null != queueStr) {
+                    String[] split = queueStr.split(",");
+                    queueList = new ArrayList<>(split.length);
+                    for (int i = 0; i < split.length; i++) {
+                        queueList.add(Integer.parseInt(split[i]));
+                    }
+                }
+
                 boolean hasConsumed = false;
                 for (Map.Entry<MessageQueue, OffsetWrapper> entry : consumeStats.getOffsetTable().entrySet()) {
                     MessageQueue queue = entry.getKey();
                     OffsetWrapper offsetWrapper = entry.getValue();
                     if (topic.equals(queue.getTopic())) {
+                        if (null != queueList && !queueList.contains(queue.getQueueId())) {
+                            continue;
+                        }
+
                         hasConsumed = true;
                         RollbackStats rollbackStats = resetOffsetConsumeOffset(addr, consumerGroup, queue, offsetWrapper, timestamp, force);
                         rollbackStatsList.add(rollbackStats);
@@ -488,27 +501,27 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String group, long timestamp, boolean isForce)
+    public Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String queueStr, String group, long timestamp, boolean isForce)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        return resetOffsetByTimestamp(topic, group, timestamp, isForce, false);
+        return resetOffsetByTimestamp(topic, queueStr, group, timestamp, isForce, false);
     }
 
     @Override
-    public void resetOffsetNew(String consumerGroup, String topic,
+    public void resetOffsetNew(String consumerGroup, String topic, String queueStr,
         long timestamp) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException {
         try {
-            this.resetOffsetByTimestamp(topic, consumerGroup, timestamp, true);
+            this.resetOffsetByTimestamp(topic, queueStr, consumerGroup, timestamp, true);
         } catch (MQClientException e) {
             if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
-                this.resetOffsetByTimestampOld(consumerGroup, topic, timestamp, true);
+                this.resetOffsetByTimestampOld(consumerGroup, topic, null, timestamp, true);
                 return;
             }
             throw e;
         }
     }
 
-    public Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String group, long timestamp, boolean isForce,
+    public Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String queueStr, String group, long timestamp, boolean isForce,
         boolean isC)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
@@ -519,7 +532,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 String addr = brokerData.selectBrokerAddr();
                 if (addr != null) {
                     Map<MessageQueue, Long> offsetTable =
-                        this.mqClientInstance.getMQClientAPIImpl().invokeBrokerToResetOffset(addr, topic, group, timestamp, isForce,
+                        this.mqClientInstance.getMQClientAPIImpl().invokeBrokerToResetOffset(addr, topic, queueStr, group, timestamp, isForce,
                             timeoutMillis, isC);
                     if (offsetTable != null) {
                         allOffsetTable.putAll(offsetTable);

@@ -986,8 +986,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         RemotingCommand request) throws RemotingCommandException {
         final ResetOffsetRequestHeader requestHeader =
             (ResetOffsetRequestHeader) request.decodeCommandCustomHeader(ResetOffsetRequestHeader.class);
-        log.info("[reset-offset] reset offset started by {}. topic={}, group={}, timestamp={}, isForce={}",
-            RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getTopic(), requestHeader.getGroup(),
+        log.info("[reset-offset] reset offset started by {}. topic={}, queue={}, group={}, timestamp={}, isForce={}",
+            RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getTopic(), requestHeader.getQueue(), requestHeader.getGroup(),
             requestHeader.getTimestamp(), requestHeader.isForce());
         boolean isC = false;
         LanguageCode language = request.getLanguage();
@@ -996,7 +996,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 isC = true;
                 break;
         }
-        return this.brokerController.getBroker2Client().resetOffset(requestHeader.getTopic(), requestHeader.getGroup(),
+        return this.brokerController.getBroker2Client().resetOffset(requestHeader.getTopic(), requestHeader.getQueue(), requestHeader.getGroup(),
             requestHeader.getTimestamp(), requestHeader.isForce(), isC);
     }
 

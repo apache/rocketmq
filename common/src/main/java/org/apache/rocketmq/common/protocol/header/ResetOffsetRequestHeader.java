@@ -24,6 +24,7 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 public class ResetOffsetRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String topic;
+    private String queue;
     @CFNotNull
     private String group;
     @CFNotNull
@@ -37,6 +38,14 @@ public class ResetOffsetRequestHeader implements CommandCustomHeader {
 
     public void setTopic(String topic) {
         this.topic = topic;
+    }
+
+    public String getQueue() {
+        return queue;
+    }
+
+    public void setQueue(String queue) {
+        this.queue = queue;
     }
 
     public String getGroup() {
