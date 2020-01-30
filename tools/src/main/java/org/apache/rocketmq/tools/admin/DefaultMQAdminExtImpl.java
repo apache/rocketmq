@@ -463,7 +463,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                     String[] split = queueStr.split(",");
                     queueList = new ArrayList<>(split.length);
                     for (int i = 0; i < split.length; i++) {
-                        queueList.add(Integer.parseInt(split[i]));
+                        queueList.add(Integer.parseInt(split[i].trim()));
                     }
                 }
 

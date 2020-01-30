@@ -121,7 +121,7 @@ public class Broker2Client {
             String[] split = queueStr.split(",");
             queueList = new ArrayList<>(split.length);
             for (int i = 0; i < split.length; i++) {
-                queueList.add(Integer.parseInt(split[i]));
+                queueList.add(Integer.parseInt(split[i].trim()));
             }
         }
 
