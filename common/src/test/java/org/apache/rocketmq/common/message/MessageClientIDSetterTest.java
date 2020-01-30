@@ -24,6 +24,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class MessageClientIDSetterTest {
 
     @Test
+    public void testCreateUniqID() {
+        String uniqID = MessageClientIDSetter.createUniqID();
+        System.out.println(uniqID);
+    }
+
+    @Test
     public void testGetIPStrFromID() {
         String ipv4HostMsgId = "C0A803CA00002A9F0000000000031367";
         String ipv6HostMsgId = "24084004018081003FAA1DDE2B3F898A00002A9F0000000000000CA0";
