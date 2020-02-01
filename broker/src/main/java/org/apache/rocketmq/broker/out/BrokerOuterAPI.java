@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.broker.out;
 
-import com.google.common.collect.Lists;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
@@ -123,7 +122,7 @@ public class BrokerOuterAPI {
         final int timeoutMills,
         final boolean compressed) {
 
-        final List<RegisterBrokerResult> registerBrokerResultList = Lists.newArrayList();
+        final List<RegisterBrokerResult> registerBrokerResultList = new CopyOnWriteArrayList<>();
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
         if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
 
