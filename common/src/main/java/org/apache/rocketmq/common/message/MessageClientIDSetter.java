@@ -66,12 +66,12 @@ public class MessageClientIDSetter {
     public static Date getNearlyTimeFromID(String msgID) {
         ByteBuffer buf = ByteBuffer.allocate(8);
         byte[] bytes = UtilAll.string2bytes(msgID);
-        int ipLength = bytes.length == 28 ? 16 : 4;
+        int ipLength = bytes.length == 30 ? 16 : 4;
         buf.put((byte) 0);
         buf.put((byte) 0);
         buf.put((byte) 0);
         buf.put((byte) 0);
-        buf.put(bytes, ipLength + 2 + 4, 4);
+        buf.put(bytes, ipLength + 4 + 4, 4);
         buf.position(0);
         long spanMS = buf.getLong();
         Calendar cal = Calendar.getInstance();
@@ -101,7 +101,7 @@ public class MessageClientIDSetter {
 
     public static byte[] getIPFromID(String msgID) {
         byte[] bytes = UtilAll.string2bytes(msgID);
-        int ipLength = bytes.length == 28 ? 16 : 4;
+        int ipLength = bytes.length == 30 ? 16 : 4;
         byte[] result = new byte[ipLength];
         System.arraycopy(bytes, 0, result, 0, ipLength);
         return result;
