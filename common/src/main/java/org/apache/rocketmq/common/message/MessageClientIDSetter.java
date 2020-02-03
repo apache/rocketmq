@@ -37,13 +37,13 @@ public class MessageClientIDSetter {
         } catch (Exception e) {
             ip = createFakeIP();
         }
-        LEN = ip.length + 2 + 4 + 4 + 2;
-        ByteBuffer tempBuffer = ByteBuffer.allocate(ip.length + 2 + 4);
+        LEN = ip.length + 4 + 4 + 4 + 2;
+        ByteBuffer tempBuffer = ByteBuffer.allocate(ip.length + 4 + 4);
         tempBuffer.position(0);
         tempBuffer.put(ip);
         tempBuffer.position(ip.length);
         tempBuffer.putInt(UtilAll.getPid());
-        tempBuffer.position(ip.length + 2);
+        tempBuffer.position(ip.length + 4);
         tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode());
         FIX_STRING = UtilAll.bytes2string(tempBuffer.array());
         setStartTime(System.currentTimeMillis());
