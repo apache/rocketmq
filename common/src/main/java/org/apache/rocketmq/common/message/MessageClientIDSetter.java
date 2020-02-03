@@ -39,11 +39,8 @@ public class MessageClientIDSetter {
         }
         LEN = ip.length + 4 + 4 + 4 + 2;
         ByteBuffer tempBuffer = ByteBuffer.allocate(ip.length + 4 + 4);
-        tempBuffer.position(0);
         tempBuffer.put(ip);
-        tempBuffer.position(ip.length);
         tempBuffer.putInt(UtilAll.getPid());
-        tempBuffer.position(ip.length + 4);
         tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode());
         FIX_STRING = UtilAll.bytes2string(tempBuffer.array());
         setStartTime(System.currentTimeMillis());
@@ -107,6 +104,15 @@ public class MessageClientIDSetter {
         return result;
     }
 
+    public static int getPidFromID(String msgID) {
+        byte[] bytes = UtilAll.string2bytes(msgID);
+        int ipLength = bytes.length == 30 ? 16 : 4;
+        ByteBuffer wrap = ByteBuffer.wrap(bytes);
+        wrap.position(ipLength);
+        int pid = wrap.getInt();
+        return pid;
+    }
+
     public static String createUniqID() {
         StringBuilder sb = new StringBuilder(LEN * 2);
         sb.append(FIX_STRING);
@@ -120,7 +126,6 @@ public class MessageClientIDSetter {
         if (current >= nextStartTime) {
             setStartTime(current);
         }
-        buffer.position(0);
         buffer.putInt((int) (System.currentTimeMillis() - startTime));
         buffer.putShort((short) COUNTER.getAndIncrement());
         return buffer.array();
