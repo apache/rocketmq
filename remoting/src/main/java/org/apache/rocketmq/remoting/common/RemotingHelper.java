@@ -174,9 +174,7 @@ public class RemotingHelper {
         if (socketAddress != null) {
             final String addr = socketAddress.toString();
             int index = addr.lastIndexOf("/");
-            if (-1 != index) {
-                return addr.substring(index + 1);
-            }
+            return (index != -1) ? addr.substring(index + 1) : addr;
         }
         return "";
     }
