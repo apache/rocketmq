@@ -37,10 +37,10 @@ public class MessageClientIDSetter {
         } catch (Exception e) {
             ip = createFakeIP();
         }
-        LEN = ip.length + 4 + 4 + 4 + 2;
-        ByteBuffer tempBuffer = ByteBuffer.allocate(ip.length + 4 + 4);
+        LEN = ip.length + 2 + 4 + 4 + 2;
+        ByteBuffer tempBuffer = ByteBuffer.allocate(ip.length + 2 + 4);
         tempBuffer.put(ip);
-        tempBuffer.putInt(UtilAll.getPid());
+        tempBuffer.putShort(UtilAll.getPid());
         tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode());
         FIX_STRING = UtilAll.bytes2string(tempBuffer.array());
         setStartTime(System.currentTimeMillis());
@@ -63,12 +63,12 @@ public class MessageClientIDSetter {
     public static Date getNearlyTimeFromID(String msgID) {
         ByteBuffer buf = ByteBuffer.allocate(8);
         byte[] bytes = UtilAll.string2bytes(msgID);
-        int ipLength = bytes.length == 30 ? 16 : 4;
+        int ipLength = bytes.length == 28 ? 16 : 4;
         buf.put((byte) 0);
         buf.put((byte) 0);
         buf.put((byte) 0);
         buf.put((byte) 0);
-        buf.put(bytes, ipLength + 4 + 4, 4);
+        buf.put(bytes, ipLength + 2 + 4, 4);
         buf.position(0);
         long spanMS = buf.getLong();
         Calendar cal = Calendar.getInstance();
@@ -98,18 +98,18 @@ public class MessageClientIDSetter {
 
     public static byte[] getIPFromID(String msgID) {
         byte[] bytes = UtilAll.string2bytes(msgID);
-        int ipLength = bytes.length == 30 ? 16 : 4;
+        int ipLength = bytes.length == 28 ? 16 : 4;
         byte[] result = new byte[ipLength];
         System.arraycopy(bytes, 0, result, 0, ipLength);
         return result;
     }
 
-    public static int getPidFromID(String msgID) {
+    public static short getPidFromID(String msgID) {
         byte[] bytes = UtilAll.string2bytes(msgID);
-        int ipLength = bytes.length == 30 ? 16 : 4;
+        int ipLength = bytes.length == 28 ? 16 : 4;
         ByteBuffer wrap = ByteBuffer.wrap(bytes);
         wrap.position(ipLength);
-        int pid = wrap.getInt();
+        short pid = wrap.getShort();
         return pid;
     }
 
@@ -150,4 +150,3 @@ public class MessageClientIDSetter {
         return fakeIP;
     }
 }
-    
