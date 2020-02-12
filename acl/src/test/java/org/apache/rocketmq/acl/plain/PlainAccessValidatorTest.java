@@ -30,6 +30,7 @@ import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.common.AclConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.*;
@@ -180,6 +181,21 @@ public class PlainAccessValidatorTest {
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
         buf.position(0);
         PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.0.1:9876");
+        plainAccessValidator.validate(accessResource);
+    }
+
+    @Test
+    public void validateQueryMessageByKeyTest() {
+        QueryMessageRequestHeader queryMessageRequestHeader=new QueryMessageRequestHeader();
+        queryMessageRequestHeader.setTopic("topicC");
+        RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.QUERY_MESSAGE,queryMessageRequestHeader);
+        aclClient.doBeforeRequest("", remotingCommand);
+        remotingCommand.addExtField(MixAll.UNIQUE_MSG_QUERY_FLAG, "false");
+        ByteBuffer buf = remotingCommand.encodeHeader();
+        buf.getInt();
+        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
+        buf.position(0);
+        PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.1.1:9876");
         plainAccessValidator.validate(accessResource);
     }
 
