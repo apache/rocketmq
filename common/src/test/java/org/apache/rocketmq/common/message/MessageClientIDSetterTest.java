@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.common.message;
 
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.junit.Test;
 
@@ -38,10 +37,10 @@ public class MessageClientIDSetterTest {
 
     @Test
     public void testGetPidFromID() {
-        long pid = MixAll.getPID();
+        int pid = UtilAll.getPid();
 
         String uniqID = MessageClientIDSetter.createUniqID();
-        int pidFromID = MessageClientIDSetter.getPidFromID(uniqID);
+        short pidFromID = MessageClientIDSetter.getPidFromID(uniqID);
 
         assertThat(pid).isEqualTo(pidFromID);
     }

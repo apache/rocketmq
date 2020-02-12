@@ -106,11 +106,9 @@ public class MessageClientIDSetter {
 
     public static short getPidFromID(String msgID) {
         byte[] bytes = UtilAll.string2bytes(msgID);
-        int ipLength = bytes.length == 28 ? 16 : 4;
         ByteBuffer wrap = ByteBuffer.wrap(bytes);
-        wrap.position(ipLength);
-        short pid = wrap.getShort();
-        return pid;
+        wrap.position(bytes.length - 2 - 4 - 4 - 2);
+        return wrap.getShort();
     }
 
     public static String createUniqID() {
