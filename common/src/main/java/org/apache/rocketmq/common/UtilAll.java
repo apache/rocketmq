@@ -54,11 +54,11 @@ public class UtilAll {
     public static final String YYYYMMDDHHMMSS = "yyyyMMddHHmmss";
     final static char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
-    public static short getPid() {
+    public static int getPid() {
         RuntimeMXBean runtime = ManagementFactory.getRuntimeMXBean();
         String name = runtime.getName(); // format: "pid@hostname"
         try {
-            return Short.parseShort(name.substring(0, name.indexOf('@')));
+            return Integer.parseInt(name.substring(0, name.indexOf('@')));
         } catch (Exception e) {
             return -1;
         }

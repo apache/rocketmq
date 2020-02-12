@@ -78,7 +78,7 @@ public class UtilAllTest {
 
     @Test
     public void testGetPid() {
-        assertThat(UtilAll.getPid()).isGreaterThan((short)0);
+        assertThat(UtilAll.getPid()).isGreaterThan(0);
     }
 
     @Test
