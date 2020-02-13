@@ -73,6 +73,6 @@ public class PullResult {
     public String toString() {
         return "PullResult [pullStatus=" + pullStatus + ", nextBeginOffset=" + nextBeginOffset
             + ", minOffset=" + minOffset + ", maxOffset=" + maxOffset + ", msgFoundList="
-            + (msgFoundList == null ? 0 : msgFoundList.size()) + "]";
+            + (msgFoundList == null ? 0 : msgFoundList.size()) + ",brokerName=" + brokerName + "]";
     }
 }
