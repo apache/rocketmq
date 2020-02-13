@@ -25,7 +25,6 @@ public class PullResult {
     private final long minOffset;
     private final long maxOffset;
     private List<MessageExt> msgFoundList;
-    private String brokerName;
 
     public PullResult(PullStatus pullStatus, long nextBeginOffset, long minOffset, long maxOffset,
         List<MessageExt> msgFoundList) {
@@ -61,18 +60,10 @@ public class PullResult {
         this.msgFoundList = msgFoundList;
     }
 
-    public String getBrokerName() {
-        return brokerName;
-    }
-
-    public void setBrokerName(String brokerName) {
-        this.brokerName = brokerName;
-    }
-
     @Override
     public String toString() {
         return "PullResult [pullStatus=" + pullStatus + ", nextBeginOffset=" + nextBeginOffset
             + ", minOffset=" + minOffset + ", maxOffset=" + maxOffset + ", msgFoundList="
-            + (msgFoundList == null ? 0 : msgFoundList.size()) + ",brokerName=" + brokerName + "]";
+            + (msgFoundList == null ? 0 : msgFoundList.size()) + "]";
     }
 }
