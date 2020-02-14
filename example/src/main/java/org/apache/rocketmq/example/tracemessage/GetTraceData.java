@@ -53,7 +53,7 @@ public class GetTraceData {
             for (TraceContext tc: traceContexts) {
                 for (TraceBean tb: tc.getTraceBeans()) {
                     StringBuilder sb = new StringBuilder();
-                    sb.append(tb.getClientHost()).append(" ")
+                    sb.append(msgs.get(i).getBornHostString()).append(" ")
                             .append(tc.getGroupName()).append(" ")
                             .append(tc.getTimeStamp()).append(" ")
                             .append(tc.getTraceType()).append(" ")
