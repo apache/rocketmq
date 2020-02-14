@@ -236,11 +236,11 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             msg.setStoreTimestamp(requestHeader.getStoreTimestamp());
 
             if (requestHeader.getBornHost() != null) {
-                msg.setBornHost(RemotingUtil.string2SocketAddress(requestHeader.getBornHost()));
+                msg.setBornHostString(requestHeader.getBornHost());
             }
 
             if (requestHeader.getStoreHost() != null) {
-                msg.setStoreHost(RemotingUtil.string2SocketAddress(requestHeader.getStoreHost()));
+                msg.setStoreHostString(requestHeader.getStoreHost());
             }
 
             byte[] body = request.getBody();
