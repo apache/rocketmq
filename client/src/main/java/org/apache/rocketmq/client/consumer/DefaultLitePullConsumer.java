@@ -315,7 +315,9 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     public void setAutoCommitIntervalMillis(long autoCommitIntervalMillis) {
-        this.autoCommitIntervalMillis = autoCommitIntervalMillis;
+        if (autoCommitIntervalMillis >= 1000) {
+            this.autoCommitIntervalMillis = autoCommitIntervalMillis;
+        }
     }
 
     public int getPullBatchSize() {
