@@ -345,32 +345,30 @@ public class MappedFileQueue {
         int mfsLength = mfs.length - 1;
         int deleteCount = 0;
         List<MappedFile> files = new ArrayList<MappedFile>();
-        if (null != mfs) {
-            for (int i = 0; i < mfsLength; i++) {
-                MappedFile mappedFile = (MappedFile) mfs[i];
-                long liveMaxTimestamp = mappedFile.getLastModifiedTimestamp() + expiredTime;
-                if (System.currentTimeMillis() >= liveMaxTimestamp || cleanImmediately) {
-                    if (mappedFile.destroy(intervalForcibly)) {
-                        files.add(mappedFile);
-                        deleteCount++;
+        for (int i = 0; i < mfsLength; i++) {
+            MappedFile mappedFile = (MappedFile) mfs[i];
+            long liveMaxTimestamp = mappedFile.getLastModifiedTimestamp() + expiredTime;
+            if (System.currentTimeMillis() >= liveMaxTimestamp || cleanImmediately) {
+                if (mappedFile.destroy(intervalForcibly)) {
+                    files.add(mappedFile);
+                    deleteCount++;
 
-                        if (files.size() >= DELETE_FILES_BATCH_MAX) {
-                            break;
-                        }
-
-                        if (deleteFilesInterval > 0 && (i + 1) < mfsLength) {
-                            try {
-                                Thread.sleep(deleteFilesInterval);
-                            } catch (InterruptedException e) {
-                            }
-                        }
-                    } else {
+                    if (files.size() >= DELETE_FILES_BATCH_MAX) {
                         break;
                     }
+
+                    if (deleteFilesInterval > 0 && (i + 1) < mfsLength) {
+                        try {
+                            Thread.sleep(deleteFilesInterval);
+                        } catch (InterruptedException e) {
+                        }
+                    }
                 } else {
-                    //avoid deleting files in the middle
                     break;
                 }
+            } else {
+                //avoid deleting files in the middle
+                break;
             }
         }
 
