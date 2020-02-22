@@ -253,8 +253,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             case CREATE_JUST:
                 break;
             case RUNNING:
-                this.mQClientFactory.unregisterProducer(this.defaultMQProducer.getProducerGroup());
                 this.defaultAsyncSenderExecutor.shutdown();
+                try {
+                    this.defaultAsyncSenderExecutor.awaitTermination(this.defaultMQProducer.getAsyncSenderTerminateTimeout(), TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    log.info("the defaultAsyncSenderExecutor of [{}] is interrupted when shutdown", this.defaultMQProducer.getProducerGroup());
+                }
+                this.mQClientFactory.unregisterProducer(this.defaultMQProducer.getProducerGroup());
                 if (shutdownFactory) {
                     this.mQClientFactory.shutdown();
                 }
