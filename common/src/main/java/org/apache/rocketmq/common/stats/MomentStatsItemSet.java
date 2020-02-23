@@ -74,7 +74,7 @@ public class MomentStatsItemSet {
         statsItem.getValue().set(value);
     }
 
-    public void delValueByMidKey(final String statsKey, String separator) {
+    public void delValueByInfixKey(final String statsKey, String separator) {
         Iterator<Entry<String, MomentStatsItem>> it = this.statsItemTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, MomentStatsItem> next = it.next();
@@ -84,7 +84,7 @@ public class MomentStatsItemSet {
         }
     }
 
-    public void delValueByLastKey(final String statsKey, String separator) {
+    public void delValueBySuffixKey(final String statsKey, String separator) {
         Iterator<Entry<String, MomentStatsItem>> it = this.statsItemTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, MomentStatsItem> next = it.next();

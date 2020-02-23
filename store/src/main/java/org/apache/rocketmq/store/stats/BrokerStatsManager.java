@@ -124,21 +124,21 @@ public class BrokerStatsManager {
     public void onTopicDeleted(final String topic) {
         this.statsTable.get(TOPIC_PUT_NUMS).delValue(topic);
         this.statsTable.get(TOPIC_PUT_SIZE).delValue(topic);
-        this.statsTable.get(GROUP_GET_NUMS).delValueByFirstKey(topic, "@");
-        this.statsTable.get(GROUP_GET_SIZE).delValueByFirstKey(topic, "@");
-        this.statsTable.get(SNDBCK_PUT_NUMS).delValueByFirstKey(topic, "@");
-        this.statsTable.get(GROUP_GET_LATENCY).delValueByMidKey(topic, "@");
-        this.momentStatsItemSetFallSize.delValueByMidKey(topic, "@");
-        this.momentStatsItemSetFallTime.delValueByMidKey(topic, "@");
+        this.statsTable.get(GROUP_GET_NUMS).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(GROUP_GET_SIZE).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(SNDBCK_PUT_NUMS).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(GROUP_GET_LATENCY).delValueByInfixKey(topic, "@");
+        this.momentStatsItemSetFallSize.delValueByInfixKey(topic, "@");
+        this.momentStatsItemSetFallTime.delValueByInfixKey(topic, "@");
     }
 
     public void onGroupDeleted(final String group) {
-        this.statsTable.get(GROUP_GET_NUMS).delValueByLastKey(group, "@");
-        this.statsTable.get(GROUP_GET_SIZE).delValueByLastKey(group, "@");
-        this.statsTable.get(SNDBCK_PUT_NUMS).delValueByLastKey(group, "@");
-        this.statsTable.get(GROUP_GET_LATENCY).delValueByLastKey(group, "@");
-        this.momentStatsItemSetFallSize.delValueByLastKey(group, "@");
-        this.momentStatsItemSetFallTime.delValueByLastKey(group, "@");
+        this.statsTable.get(GROUP_GET_NUMS).delValueBySuffixKey(group, "@");
+        this.statsTable.get(GROUP_GET_SIZE).delValueBySuffixKey(group, "@");
+        this.statsTable.get(SNDBCK_PUT_NUMS).delValueBySuffixKey(group, "@");
+        this.statsTable.get(GROUP_GET_LATENCY).delValueBySuffixKey(group, "@");
+        this.momentStatsItemSetFallSize.delValueBySuffixKey(group, "@");
+        this.momentStatsItemSetFallTime.delValueBySuffixKey(group, "@");
     }
 
     public void incTopicPutNums(final String topic) {

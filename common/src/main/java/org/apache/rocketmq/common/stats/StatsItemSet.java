@@ -165,7 +165,7 @@ public class StatsItemSet {
         }
     }
 
-    public void delValueByFirstKey(final String statsKey, String separator) {
+    public void delValueByPrefixKey(final String statsKey, String separator) {
         Iterator<Entry<String, StatsItem>> it = this.statsItemTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, StatsItem> next = it.next();
@@ -175,7 +175,7 @@ public class StatsItemSet {
         }
     }
 
-    public void delValueByMidKey(final String statsKey, String separator) {
+    public void delValueByInfixKey(final String statsKey, String separator) {
         Iterator<Entry<String, StatsItem>> it = this.statsItemTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, StatsItem> next = it.next();
@@ -185,7 +185,7 @@ public class StatsItemSet {
         }
     }
 
-    public void delValueByLastKey(final String statsKey, String separator) {
+    public void delValueBySuffixKey(final String statsKey, String separator) {
         Iterator<Entry<String, StatsItem>> it = this.statsItemTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, StatsItem> next = it.next();
