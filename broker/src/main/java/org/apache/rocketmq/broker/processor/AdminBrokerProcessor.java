@@ -298,6 +298,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         this.brokerController.getTopicConfigManager().deleteTopicConfig(requestHeader.getTopic());
         this.brokerController.getMessageStore()
             .cleanUnusedTopic(this.brokerController.getTopicConfigManager().getTopicConfigTable().keySet());
+        this.brokerController.getBrokerStatsManager().onTopicDeleted(requestHeader.getTopic());
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
@@ -713,6 +714,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         log.info("deleteSubscriptionGroup called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         this.brokerController.getSubscriptionGroupManager().deleteSubscriptionGroupConfig(requestHeader.getGroupName());
+        this.brokerController.getBrokerStatsManager().onGroupDeleted(requestHeader.getGroupName());
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);

@@ -121,6 +121,26 @@ public class BrokerStatsManager {
         return null;
     }
 
+    public void onTopicDeleted(final String topic) {
+        this.statsTable.get(TOPIC_PUT_NUMS).delValue(topic);
+        this.statsTable.get(TOPIC_PUT_SIZE).delValue(topic);
+        this.statsTable.get(GROUP_GET_NUMS).delValueByFirstKey(topic, "@");
+        this.statsTable.get(GROUP_GET_SIZE).delValueByFirstKey(topic, "@");
+        this.statsTable.get(SNDBCK_PUT_NUMS).delValueByFirstKey(topic, "@");
+        this.statsTable.get(GROUP_GET_LATENCY).delValueByMidKey(topic, "@");
+        this.momentStatsItemSetFallSize.delValueByMidKey(topic, "@");
+        this.momentStatsItemSetFallTime.delValueByMidKey(topic, "@");
+    }
+
+    public void onGroupDeleted(final String group) {
+        this.statsTable.get(GROUP_GET_NUMS).delValueByLastKey(group, "@");
+        this.statsTable.get(GROUP_GET_SIZE).delValueByLastKey(group, "@");
+        this.statsTable.get(SNDBCK_PUT_NUMS).delValueByLastKey(group, "@");
+        this.statsTable.get(GROUP_GET_LATENCY).delValueByLastKey(group, "@");
+        this.momentStatsItemSetFallSize.delValueByLastKey(group, "@");
+        this.momentStatsItemSetFallTime.delValueByLastKey(group, "@");
+    }
+
     public void incTopicPutNums(final String topic) {
         this.statsTable.get(TOPIC_PUT_NUMS).addValue(topic, 1, 1);
     }
