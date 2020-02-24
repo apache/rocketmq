@@ -240,8 +240,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                     transactionalMessageBridge.updateConsumeOffset(opQueue, newOpOffset);
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Throwable e) {
             log.error("Check error", e);
         }
 
