@@ -59,7 +59,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.namesrv.TopAddressing;
+import org.apache.rocketmq.common.namesrv.TopAddressingImpl;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -174,16 +174,17 @@ public class MQClientAPIImpl {
     }
 
     private final RemotingClient remotingClient;
-    private final TopAddressing topAddressing;
+    private final TopAddressingImpl topAddressing;
     private final ClientRemotingProcessor clientRemotingProcessor;
-    private String nameSrvAddr = null;
+    private volatile String nameSrvAddr = null;
     private ClientConfig clientConfig;
 
     public MQClientAPIImpl(final NettyClientConfig nettyClientConfig,
         final ClientRemotingProcessor clientRemotingProcessor,
         RPCHook rpcHook, final ClientConfig clientConfig) {
         this.clientConfig = clientConfig;
-        topAddressing = new TopAddressing(MixAll.getWSAddr(), clientConfig.getUnitName());
+        this.topAddressing = new TopAddressingImpl(MixAll.getWSAddr(), clientConfig.getUnitName());
+        this.topAddressing.registerChangeCallBack(this::fetchNameServerAddr);
         this.remotingClient = new NettyRemotingClient(nettyClientConfig, null);
         this.clientRemotingProcessor = clientRemotingProcessor;
 
@@ -212,16 +213,21 @@ public class MQClientAPIImpl {
     public String fetchNameServerAddr() {
         try {
             String addrs = this.topAddressing.fetchNSAddr();
-            if (addrs != null) {
-                if (!addrs.equals(this.nameSrvAddr)) {
-                    log.info("name server address changed, old=" + this.nameSrvAddr + ", new=" + addrs);
-                    this.updateNameServerAddressList(addrs);
-                    this.nameSrvAddr = addrs;
-                    return nameSrvAddr;
-                }
-            }
+            return fetchNameServerAddr(addrs);
         } catch (Exception e) {
             log.error("fetchNameServerAddr Exception", e);
+        }
+        return nameSrvAddr;
+    }
+
+    public String fetchNameServerAddr(String addrs){
+        if (addrs != null) {
+            if (!addrs.equals(this.nameSrvAddr)) {
+                log.info("name server address changed, old=" + this.nameSrvAddr + ", new=" + addrs);
+                this.updateNameServerAddressList(addrs);
+                this.nameSrvAddr = addrs;
+                return nameSrvAddr;
+            }
         }
         return nameSrvAddr;
     }
@@ -302,8 +308,8 @@ public class MQClientAPIImpl {
         requestHeader.setDefaultGroupPerm(plainAccessConfig.getDefaultGroupPerm());
         requestHeader.setDefaultTopicPerm(plainAccessConfig.getDefaultTopicPerm());
         requestHeader.setWhiteRemoteAddress(plainAccessConfig.getWhiteRemoteAddress());
-        requestHeader.setTopicPerms(UtilAll.List2String(plainAccessConfig.getTopicPerms(),","));
-        requestHeader.setGroupPerms(UtilAll.List2String(plainAccessConfig.getGroupPerms(),","));
+        requestHeader.setTopicPerms(UtilAll.List2String(plainAccessConfig.getTopicPerms(), ","));
+        requestHeader.setGroupPerms(UtilAll.List2String(plainAccessConfig.getGroupPerms(), ","));
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_ACL_CONFIG, requestHeader);
 
@@ -342,7 +348,7 @@ public class MQClientAPIImpl {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
-    public void updateGlobalWhiteAddrsConfig(final String addr, final String globalWhiteAddrs,final long timeoutMillis)
+    public void updateGlobalWhiteAddrsConfig(final String addr, final String globalWhiteAddrs, final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
 
         UpdateGlobalWhiteAddrsConfigRequestHeader requestHeader = new UpdateGlobalWhiteAddrsConfigRequestHeader();
@@ -364,7 +370,8 @@ public class MQClientAPIImpl {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
-    public ClusterAclVersionInfo getBrokerClusterAclInfo(final String addr,final long timeoutMillis) throws RemotingCommandException, InterruptedException, RemotingTimeoutException,
+    public ClusterAclVersionInfo getBrokerClusterAclInfo(final String addr,
+        final long timeoutMillis) throws RemotingCommandException, InterruptedException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_CLUSTER_ACL_INFO, null);
 
@@ -387,7 +394,7 @@ public class MQClientAPIImpl {
         }
 
         throw new MQBrokerException(response.getCode(), response.getRemark());
-        
+
     }
 
     public SendResult sendMessage(
