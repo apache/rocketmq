@@ -1493,11 +1493,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             response.setRemark(String.format("%d@%s is not exist!", requestHeader.getQueueId(), requestHeader.getTopic()));
             return response;
         }
+        response.setCode(ResponseCode.SUCCESS);
 
         QueryConsumeQueueResponseBody body = new QueryConsumeQueueResponseBody();
-        response.setCode(ResponseCode.SUCCESS);
-        response.setBody(body.encode());
-
         body.setMaxQueueIndex(consumeQueue.getMaxOffsetInQueue());
         body.setMinQueueIndex(consumeQueue.getMinOffsetInQueue());
 
@@ -1556,7 +1554,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         } finally {
             result.release();
         }
-
+        response.setBody(body.encode());
         return response;
     }
 
