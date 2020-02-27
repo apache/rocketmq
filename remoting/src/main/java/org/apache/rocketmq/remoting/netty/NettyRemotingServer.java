@@ -373,7 +373,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 switch (tlsMode) {
                     case DISABLED:
                         ctx.close();
-                        log.warn("Clients intend to establish a SSL connection while this server is running in SSL disabled mode");
+                        log.warn("Clients intend to establish an SSL connection while this server is running in SSL disabled mode");
                         break;
                     case PERMISSIVE:
                     case ENFORCING:
@@ -384,7 +384,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                             log.info("Handlers prepended to channel pipeline to establish SSL connection");
                         } else {
                             ctx.close();
-                            log.error("Trying to establish a SSL connection but sslContext is null");
+                            log.error("Trying to establish an SSL connection but sslContext is null");
                         }
                         break;
 
