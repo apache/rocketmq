@@ -25,7 +25,7 @@ export   NAMESRV_ADDR=192.168.0.1:9876;192.168.0.2:9876
 ```
 - HTTP static server addressing(default)
 
-After client started, it will access a http static server address, as: <http://jmenv.tbsite.net:8080/rocketmq/nsaddr>, this URL return the following contents:
+After client started, it will access the http static server address, as: <http://jmenv.tbsite.net:8080/rocketmq/nsaddr>, this URL return the following contents:
 
 ```text
 192.168.0.1:9876;192.168.0.2:9876   

@@ -73,14 +73,19 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private String traceTopicName;
     private AtomicBoolean isStarted = new AtomicBoolean(false);
     private AccessChannel accessChannel = AccessChannel.LOCAL;
+    private String group;
+    private Type type;
 
-    public AsyncTraceDispatcher(String traceTopicName, RPCHook rpcHook) {
+    public AsyncTraceDispatcher(String group, Type type,String traceTopicName, RPCHook rpcHook) {
         // queueSize is greater than or equal to the n power of 2 of value
         this.queueSize = 2048;
         this.batchSize = 100;
         this.maxMsgSize = 128000;
         this.discardCount = new AtomicLong(0L);
         this.traceContextQueue = new ArrayBlockingQueue<TraceContext>(1024);
+        this.group = group;
+        this.type = type;
+
         this.appenderQueue = new ArrayBlockingQueue<Runnable>(queueSize);
         if (!UtilAll.isBlank(traceTopicName)) {
             this.traceTopicName = traceTopicName;
@@ -150,13 +155,17 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         DefaultMQProducer traceProducerInstance = this.traceProducer;
         if (traceProducerInstance == null) {
             traceProducerInstance = new DefaultMQProducer(rpcHook);
-            traceProducerInstance.setProducerGroup(TraceConstants.GROUP_NAME);
+            traceProducerInstance.setProducerGroup(genGroupNameForTrace());
             traceProducerInstance.setSendMsgTimeout(5000);
             traceProducerInstance.setVipChannelEnabled(false);
             // The max size of message is 128K
             traceProducerInstance.setMaxMessageSize(maxMsgSize - 10 * 1000);
         }
         return traceProducerInstance;
+    }
+
+    private String genGroupNameForTrace() {
+        return TraceConstants.GROUP_NAME_PREFIX + "-" + this.group + "-" + this.type ;
     }
 
     @Override
@@ -216,7 +225,11 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
 
     public void removeShutdownHook() {
         if (shutDownHook != null) {
-            Runtime.getRuntime().removeShutdownHook(shutDownHook);
+            try {
+                Runtime.getRuntime().removeShutdownHook(shutDownHook);
+            } catch (IllegalStateException e) {
+                // ignore - VM is already shutting down
+            }
         }
     }
 
