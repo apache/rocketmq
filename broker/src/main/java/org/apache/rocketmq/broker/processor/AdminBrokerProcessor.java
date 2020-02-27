@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.broker.BrokerController;
@@ -1025,8 +1026,15 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             groups.addAll(groupInOffset);
         }
 
+        HashSet<String> filteredGroups = new HashSet<String>();
+        for (String group : groups) {
+            if (this.brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().containsKey(group)) {
+                filteredGroups.add(group);
+            }
+        }
+
         GroupList groupList = new GroupList();
-        groupList.setGroupList(groups);
+        groupList.setGroupList(filteredGroups);
         byte[] body = groupList.encode();
 
         response.setBody(body);
