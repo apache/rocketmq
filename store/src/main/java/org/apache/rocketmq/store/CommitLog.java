@@ -23,8 +23,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -63,6 +66,7 @@ public class CommitLog {
     protected volatile long confirmOffset = -1L;
 
     private volatile long beginTimeInLock = 0;
+
     protected final PutMessageLock putMessageLock;
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
@@ -550,6 +554,228 @@ public class CommitLog {
         return beginTimeInLock;
     }
 
+    public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
+        // Set the storage time
+        msg.setStoreTimestamp(System.currentTimeMillis());
+        // Set the message body BODY CRC (consider the most appropriate setting
+        // on the client)
+        msg.setBodyCRC(UtilAll.crc32(msg.getBody()));
+        // Back to Results
+        AppendMessageResult result = null;
+
+        StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
+
+        String topic = msg.getTopic();
+        int queueId = msg.getQueueId();
+
+        final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
+        if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
+                || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+            // Delay Delivery
+            if (msg.getDelayTimeLevel() > 0) {
+                if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
+                    msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
+                }
+
+                topic = ScheduleMessageService.SCHEDULE_TOPIC;
+                queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
+
+                // Backup real topic, queueId
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
+                msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+
+                msg.setTopic(topic);
+                msg.setQueueId(queueId);
+            }
+        }
+
+        long elapsedTimeInLock = 0;
+        MappedFile unlockMappedFile = null;
+        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
+
+        putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
+        try {
+            long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
+            this.beginTimeInLock = beginLockTimestamp;
+
+            // Here settings are stored timestamp, in order to ensure an orderly
+            // global
+            msg.setStoreTimestamp(beginLockTimestamp);
+
+            if (null == mappedFile || mappedFile.isFull()) {
+                mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
+            }
+            if (null == mappedFile) {
+                log.error("create mapped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
+                beginTimeInLock = 0;
+                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null));
+            }
+
+            result = mappedFile.appendMessage(msg, this.appendMessageCallback);
+            switch (result.getStatus()) {
+                case PUT_OK:
+                    break;
+                case END_OF_FILE:
+                    unlockMappedFile = mappedFile;
+                    // Create a new file, re-write the message
+                    mappedFile = this.mappedFileQueue.getLastMappedFile(0);
+                    if (null == mappedFile) {
+                        // XXX: warn and notify me
+                        log.error("create mapped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
+                        beginTimeInLock = 0;
+                        return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result));
+                    }
+                    result = mappedFile.appendMessage(msg, this.appendMessageCallback);
+                    break;
+                case MESSAGE_SIZE_EXCEEDED:
+                case PROPERTIES_SIZE_EXCEEDED:
+                    beginTimeInLock = 0;
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result));
+                case UNKNOWN_ERROR:
+                    beginTimeInLock = 0;
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
+                default:
+                    beginTimeInLock = 0;
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
+            }
+
+            elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
+            beginTimeInLock = 0;
+        } finally {
+            putMessageLock.unlock();
+        }
+
+        if (elapsedTimeInLock > 500) {
+            log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", elapsedTimeInLock, msg.getBody().length, result);
+        }
+
+        if (null != unlockMappedFile && this.defaultMessageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
+            this.defaultMessageStore.unlockMappedFile(unlockMappedFile);
+        }
+
+        PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
+
+        // Statistics
+        storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
+        storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
+
+        CompletableFuture<PutMessageStatus> flushResultFuture = submitFlushRequest(result, putMessageResult, msg);
+        CompletableFuture<PutMessageStatus> replicaResultFuture = submitReplicaRequest(result, putMessageResult, msg);
+        return flushResultFuture.thenCombine(replicaResultFuture, (flushStatus, replicaStatus) -> {
+            if (flushStatus != PutMessageStatus.PUT_OK) {
+                putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_DISK_TIMEOUT);
+            }
+            if (replicaStatus != PutMessageStatus.PUT_OK) {
+                putMessageResult.setPutMessageStatus(replicaStatus);
+            }
+            return putMessageResult;
+        });
+    }
+
+    public CompletableFuture<PutMessageResult> asyncPutMessages(final MessageExtBatch messageExtBatch) {
+        messageExtBatch.setStoreTimestamp(System.currentTimeMillis());
+        AppendMessageResult result;
+
+        StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
+
+        final int tranType = MessageSysFlag.getTransactionValue(messageExtBatch.getSysFlag());
+
+        if (tranType != MessageSysFlag.TRANSACTION_NOT_TYPE) {
+            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
+        }
+        if (messageExtBatch.getDelayTimeLevel() > 0) {
+            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
+        }
+
+        long elapsedTimeInLock = 0;
+        MappedFile unlockMappedFile = null;
+        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
+
+        //fine-grained lock instead of the coarse-grained
+        MessageExtBatchEncoder batchEncoder = batchEncoderThreadLocal.get();
+
+        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
+
+        putMessageLock.lock();
+        try {
+            long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
+            this.beginTimeInLock = beginLockTimestamp;
+
+            // Here settings are stored timestamp, in order to ensure an orderly
+            // global
+            messageExtBatch.setStoreTimestamp(beginLockTimestamp);
+
+            if (null == mappedFile || mappedFile.isFull()) {
+                mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
+            }
+            if (null == mappedFile) {
+                log.error("Create mapped file1 error, topic: {} clientAddr: {}", messageExtBatch.getTopic(), messageExtBatch.getBornHostString());
+                beginTimeInLock = 0;
+                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null));
+            }
+
+            result = mappedFile.appendMessages(messageExtBatch, this.appendMessageCallback);
+            switch (result.getStatus()) {
+                case PUT_OK:
+                    break;
+                case END_OF_FILE:
+                    unlockMappedFile = mappedFile;
+                    // Create a new file, re-write the message
+                    mappedFile = this.mappedFileQueue.getLastMappedFile(0);
+                    if (null == mappedFile) {
+                        // XXX: warn and notify me
+                        log.error("Create mapped file2 error, topic: {} clientAddr: {}", messageExtBatch.getTopic(), messageExtBatch.getBornHostString());
+                        beginTimeInLock = 0;
+                        return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result));
+                    }
+                    result = mappedFile.appendMessages(messageExtBatch, this.appendMessageCallback);
+                    break;
+                case MESSAGE_SIZE_EXCEEDED:
+                case PROPERTIES_SIZE_EXCEEDED:
+                    beginTimeInLock = 0;
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result));
+                case UNKNOWN_ERROR:
+                default:
+                    beginTimeInLock = 0;
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
+            }
+
+            elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
+            beginTimeInLock = 0;
+        } finally {
+            putMessageLock.unlock();
+        }
+
+        if (elapsedTimeInLock > 500) {
+            log.warn("[NOTIFYME]putMessages in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", elapsedTimeInLock, messageExtBatch.getBody().length, result);
+        }
+
+        if (null != unlockMappedFile && this.defaultMessageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
+            this.defaultMessageStore.unlockMappedFile(unlockMappedFile);
+        }
+
+        PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
+
+        // Statistics
+        storeStatsService.getSinglePutMessageTopicTimesTotal(messageExtBatch.getTopic()).addAndGet(result.getMsgNum());
+        storeStatsService.getSinglePutMessageTopicSizeTotal(messageExtBatch.getTopic()).addAndGet(result.getWroteBytes());
+
+        CompletableFuture<PutMessageStatus> flushOKFuture = submitFlushRequest(result, putMessageResult, messageExtBatch);
+        CompletableFuture<PutMessageStatus> replicaOKFuture = submitReplicaRequest(result, putMessageResult, messageExtBatch);
+        return flushOKFuture.thenCombine(replicaOKFuture, (flushStatus, replicaStatus) -> {
+            if (flushStatus != PutMessageStatus.PUT_OK) {
+                putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_DISK_TIMEOUT);
+            }
+
+            if (replicaStatus != PutMessageStatus.PUT_OK) {
+                putMessageResult.setPutMessageStatus(replicaStatus);
+            }
+            return putMessageResult;
+        });
+
+    }
+
     public PutMessageResult putMessage(final MessageExtBrokerInner msg) {
         // Set the storage time
         msg.setStoreTimestamp(System.currentTimeMillis());
@@ -673,6 +899,53 @@ public class CommitLog {
         return putMessageResult;
     }
 
+    public CompletableFuture<PutMessageStatus> submitFlushRequest(AppendMessageResult result, PutMessageResult putMessageResult,
+                                                                  MessageExt messageExt) {
+        // Synchronization flush
+        if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
+            final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
+            if (messageExt.isWaitStoreMsgOK()) {
+                GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
+                        this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
+                service.putRequest(request);
+                return request.future();
+            } else {
+                service.wakeup();
+                return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
+            }
+        }
+        // Asynchronous flush
+        else {
+            if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+                flushCommitLogService.wakeup();
+            } else  {
+                commitLogService.wakeup();
+            }
+            return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
+        }
+    }
+
+    public CompletableFuture<PutMessageStatus> submitReplicaRequest(AppendMessageResult result, PutMessageResult putMessageResult,
+                                                        MessageExt messageExt) {
+        if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
+            HAService service = this.defaultMessageStore.getHaService();
+            if (messageExt.isWaitStoreMsgOK()) {
+                if (service.isSlaveOK(result.getWroteBytes() + result.getWroteOffset())) {
+                    GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
+                            this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
+                    service.putRequest(request);
+                    service.getWaitNotifyObject().wakeupAll();
+                    return request.future();
+                }
+                else {
+                    return CompletableFuture.completedFuture(PutMessageStatus.SLAVE_NOT_AVAILABLE);
+                }
+            }
+        }
+        return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
+    }
+
+
     public void handleDiskFlush(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt) {
         // Synchronization flush
         if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
@@ -680,8 +953,15 @@ public class CommitLog {
             if (messageExt.isWaitStoreMsgOK()) {
                 GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
                 service.putRequest(request);
-                boolean flushOK = request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
-                if (!flushOK) {
+                CompletableFuture<PutMessageStatus> flushOkFuture = request.future();
+                PutMessageStatus flushStatus = null;
+                try {
+                    flushStatus = flushOkFuture.get(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout(),
+                            TimeUnit.MILLISECONDS);
+                } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                    //flushOK=false;
+                }
+                if (flushStatus != PutMessageStatus.PUT_OK) {
                     log.error("do groupcommit, wait for flush failed, topic: " + messageExt.getTopic() + " tags: " + messageExt.getTags()
                         + " client address: " + messageExt.getBornHostString());
                     putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_DISK_TIMEOUT);
@@ -709,9 +989,13 @@ public class CommitLog {
                     GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
                     service.putRequest(request);
                     service.getWaitNotifyObject().wakeupAll();
-                    boolean flushOK =
-                        request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
-                    if (!flushOK) {
+                    PutMessageStatus replicaStatus = null;
+                    try {
+                        replicaStatus = request.future().get(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout(),
+                                TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                    }
+                    if (replicaStatus != PutMessageStatus.PUT_OK) {
                         log.error("do sync transfer other node, wait return, but failed, topic: " + messageExt.getTopic() + " tags: "
                             + messageExt.getTags() + " client address: " + messageExt.getBornHostNameString());
                         putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
@@ -1081,31 +1365,35 @@ public class CommitLog {
 
     public static class GroupCommitRequest {
         private final long nextOffset;
-        private final CountDownLatch countDownLatch = new CountDownLatch(1);
-        private volatile boolean flushOK = false;
+        private CompletableFuture<PutMessageStatus> flushOKFuture = new CompletableFuture<>();
+        private final long startTimestamp = System.currentTimeMillis();
+        private long timeoutMillis = Long.MAX_VALUE;
+
+        public GroupCommitRequest(long nextOffset, long timeoutMillis) {
+            this.nextOffset = nextOffset;
+            this.timeoutMillis = timeoutMillis;
+        }
 
         public GroupCommitRequest(long nextOffset) {
             this.nextOffset = nextOffset;
         }
+
 
         public long getNextOffset() {
             return nextOffset;
         }
 
         public void wakeupCustomer(final boolean flushOK) {
-            this.flushOK = flushOK;
-            this.countDownLatch.countDown();
+            long endTimestamp = System.currentTimeMillis();
+            PutMessageStatus result = (flushOK && ((endTimestamp - this.startTimestamp) <= this.timeoutMillis)) ?
+                    PutMessageStatus.PUT_OK : PutMessageStatus.FLUSH_SLAVE_TIMEOUT;
+            this.flushOKFuture.complete(result);
         }
 
-        public boolean waitForFlush(long timeout) {
-            try {
-                this.countDownLatch.await(timeout, TimeUnit.MILLISECONDS);
-                return this.flushOK;
-            } catch (InterruptedException e) {
-                log.error("Interrupted", e);
-                return false;
-            }
+        public CompletableFuture<PutMessageStatus> future() {
+            return flushOKFuture;
         }
+
     }
 
     /**
