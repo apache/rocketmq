@@ -18,15 +18,17 @@ package org.apache.rocketmq.client.consumer;
 
 import java.util.Collection;
 import java.util.List;
-
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultLitePullConsumerImpl;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
 
@@ -35,12 +37,12 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     private final DefaultLitePullConsumerImpl defaultLitePullConsumerImpl;
 
     /**
-     * Consumers belonging to the same consumer group share a group id. The consumers in a group then
-     * divides the topic as fairly amongst themselves as possible by establishing that each queue is only
-     * consumed by a single consumer from the group. If all consumers are from the same group, it functions
-     * as a traditional message queue. Each message would be consumed by one consumer of the group only.
-     * When multiple consumer groups exist, the flow of the data consumption model aligns with the traditional
-     * publish-subscribe model. The messages are broadcast to all consumer groups.
+     * Consumers belonging to the same consumer group share a group id. The consumers in a group then divides the topic
+     * as fairly amongst themselves as possible by establishing that each queue is only consumed by a single consumer
+     * from the group. If all consumers are from the same group, it functions as a traditional message queue. Each
+     * message would be consumed by one consumer of the group only. When multiple consumer groups exist, the flow of the
+     * data consumption model aligns with the traditional publish-subscribe model. The messages are broadcast to all
+     * consumer groups.
      */
     private String consumerGroup;
 
@@ -138,6 +140,14 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      */
     private long topicMetadataCheckIntervalMillis = 30 * 1000;
 
+    private ConsumeFromWhere consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET;
+
+    /**
+     * Backtracking consumption time with second precision. Time format is 20131223171201<br> Implying Seventeen twelve
+     * and 01 seconds on December 23, 2013 year<br> Default backtracking consumption time Half an hour ago.
+     */
+    private String consumeTimestamp = UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - (1000 * 60 * 30));
+
     /**
      * Default constructor.
      */
@@ -187,6 +197,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void start() throws MQClientException {
+        setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
         this.defaultLitePullConsumerImpl.start();
     }
 
@@ -258,12 +269,27 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void commitSync() {
-        this.defaultLitePullConsumerImpl.commitSync();
+        this.defaultLitePullConsumerImpl.commitAll();
     }
 
     @Override
     public Long committed(MessageQueue messageQueue) throws MQClientException {
         return this.defaultLitePullConsumerImpl.committed(messageQueue);
+    }
+
+    @Override
+    public void updateNameServerAddress(String nameServerAddress) {
+        this.defaultLitePullConsumerImpl.updateNameServerAddr(nameServerAddress);
+    }
+
+    @Override
+    public void seekToBegin(MessageQueue messageQueue) throws MQClientException {
+        this.defaultLitePullConsumerImpl.seekToBegin(messageQueue);
+    }
+
+    @Override
+    public void seekToEnd(MessageQueue messageQueue) throws MQClientException {
+        this.defaultLitePullConsumerImpl.seekToEnd(messageQueue);
     }
 
     @Override
@@ -410,5 +436,30 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setTopicMetadataCheckIntervalMillis(long topicMetadataCheckIntervalMillis) {
         this.topicMetadataCheckIntervalMillis = topicMetadataCheckIntervalMillis;
+    }
+
+    public void setConsumerGroup(String consumerGroup) {
+        this.consumerGroup = consumerGroup;
+    }
+
+    public ConsumeFromWhere getConsumeFromWhere() {
+        return consumeFromWhere;
+    }
+
+    public void setConsumeFromWhere(ConsumeFromWhere consumeFromWhere) {
+        if (consumeFromWhere != ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET
+            && consumeFromWhere != ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET
+            && consumeFromWhere != ConsumeFromWhere.CONSUME_FROM_TIMESTAMP) {
+            throw new RuntimeException("Invalid ConsumeFromWhere Value", null);
+        }
+        this.consumeFromWhere = consumeFromWhere;
+    }
+
+    public String getConsumeTimestamp() {
+        return consumeTimestamp;
+    }
+
+    public void setConsumeTimestamp(String consumeTimestamp) {
+        this.consumeTimestamp = consumeTimestamp;
     }
 }

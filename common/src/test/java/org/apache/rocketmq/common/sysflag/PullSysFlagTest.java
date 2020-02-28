@@ -14,41 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.trace;
+package org.apache.rocketmq.common.sysflag;
 
-import org.apache.rocketmq.client.AccessChannel;
-import org.apache.rocketmq.client.exception.MQClientException;
-import java.io.IOException;
+import org.junit.Test;
 
-/**
- * Interface of asynchronous transfer data
- */
-public interface TraceDispatcher {
-    enum Type {
-        PRODUCE,
-        CONSUME
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class PullSysFlagTest {
+
+    @Test
+    public void testLitePullFlag() {
+        int flag = PullSysFlag.buildSysFlag(false, false, false, false, true);
+        assertThat(PullSysFlag.hasLitePullFlag(flag)).isTrue();
     }
-    /**
-     * Initialize asynchronous transfer data module
-     */
-    void start(String nameSrvAddr, AccessChannel accessChannel) throws MQClientException;
 
-    /**
-     * Append the transfering data
-     * @param ctx data infomation
-     * @return
-     */
-    boolean append(Object ctx);
-
-    /**
-     * Write flush action
-     *
-     * @throws IOException
-     */
-    void flush() throws IOException;
-
-    /**
-     * Close the trace Hook
-     */
-    void shutdown();
+    @Test
+    public void testLitePullFlagFalse() {
+        int flag = PullSysFlag.buildSysFlag(false, false, false, false, false);
+        assertThat(PullSysFlag.hasLitePullFlag(flag)).isFalse();
+    }
 }

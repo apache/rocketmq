@@ -152,10 +152,6 @@ public class TopicConfigManager extends ConfigManager {
         return this.systemTopicList;
     }
 
-    public boolean isTopicCanSendMessage(final String topic) {
-        return !topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC);
-    }
-
     public TopicConfig selectTopicConfig(final String topic) {
         return this.topicConfigTable.get(topic);
     }
