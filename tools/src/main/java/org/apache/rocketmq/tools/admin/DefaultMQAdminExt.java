@@ -335,35 +335,29 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public List<RollbackStats> resetOffsetByTimestampOld(String consumerGroup, String topic, String queueStr, long timestamp,
+    public List<RollbackStats> resetOffsetByTimestampOld(String brokerAddr, String consumerGroup, String topic, String queueStr, long timestamp,
         boolean force)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        return defaultMQAdminExtImpl.resetOffsetByTimestampOld(consumerGroup, topic, queueStr, timestamp, force);
+        return defaultMQAdminExtImpl.resetOffsetByTimestampOld(brokerAddr, consumerGroup, topic, queueStr, timestamp, force);
     }
 
     @Override
-    public Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String queueStr, String group, long timestamp, boolean isForce)
+    public Map<MessageQueue, Long> resetOffsetByTimestamp(String brokerAddr, String topic, String queueStr, String group, long timestamp, boolean isForce)
         throws RemotingException, InterruptedException, MQClientException {
-        return resetOffsetByTimestamp(topic, queueStr, group, timestamp, isForce, false);
+        return resetOffsetByTimestamp(brokerAddr, topic, queueStr, group, timestamp, isForce, false);
     }
 
-    public Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String queueStr, String group, long timestamp, boolean isForce,
+    public Map<MessageQueue, Long> resetOffsetByTimestamp(String brokerAddr, String topic, String queueStr, String group, long timestamp, boolean isForce,
         boolean isC)
         throws RemotingException, InterruptedException, MQClientException {
-        return defaultMQAdminExtImpl.resetOffsetByTimestamp(topic, queueStr, group, timestamp, isForce, isC);
-    }
-
-    public Map<MessageQueue, Long> resetOffsetByTimestampInBroker(String brokerAddr, String topic, String queueStr, String group,
-        long timestamp, boolean isForce, boolean isC)
-        throws RemotingException, InterruptedException, MQClientException {
-        return defaultMQAdminExtImpl.resetOffsetByTimestampInBroker(brokerAddr, topic, queueStr, group, timestamp, isForce, isC);
+        return defaultMQAdminExtImpl.resetOffsetByTimestamp(brokerAddr, topic, queueStr, group, timestamp, isForce, isC);
     }
 
     @Override
-    public void resetOffsetNew(String consumerGroup, String topic, String queueStr,
+    public void resetOffsetNew(String brokerAddr, String consumerGroup, String topic, String queueStr,
         long timestamp) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException {
-        this.defaultMQAdminExtImpl.resetOffsetNew(consumerGroup, topic, queueStr, timestamp);
+        this.defaultMQAdminExtImpl.resetOffsetNew(brokerAddr, consumerGroup, topic, queueStr, timestamp);
     }
 
     @Override
