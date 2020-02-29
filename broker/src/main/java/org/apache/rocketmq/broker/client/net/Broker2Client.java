@@ -126,7 +126,7 @@ public class Broker2Client {
         }
 
         Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>();
-        for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
+        for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
             if (null != queueList && !queueList.contains(i)) {
                 continue;
             }
