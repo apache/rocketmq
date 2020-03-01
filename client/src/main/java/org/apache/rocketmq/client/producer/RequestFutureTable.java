@@ -32,10 +32,10 @@ import org.apache.rocketmq.logging.InternalLogger;
 public class RequestFutureTable {
     private static InternalLogger log = ClientLogger.getLog();
     private static ConcurrentHashMap<String, RequestResponseFuture> requestFutureTable = new ConcurrentHashMap<String, RequestResponseFuture>();
-    private static final Timer timer = new Timer("RequestHouseKeepingService", true);
+    private static final Timer CLEANER = new Timer("RequestHouseKeepingService", true);
 
     static {
-        timer.scheduleAtFixedRate(new TimerTask() {
+        CLEANER.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 try {
