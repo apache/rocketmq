@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageDecoder;
 import org.junit.After;
 
 public class StoreTestBase {
@@ -48,7 +49,6 @@ public class StoreTestBase {
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
         msg.setTopic("StoreTest");
         msg.setTags("TAG1");
-        msg.setKeys("Hello");
         msg.setBody(MessageBody);
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
         msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
@@ -56,6 +56,7 @@ public class StoreTestBase {
         msg.setBornTimestamp(System.currentTimeMillis());
         msg.setStoreHost(StoreHost);
         msg.setBornHost(BornHost);
+        msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
         return msg;
     }
 
