@@ -23,25 +23,26 @@ package org.apache.rocketmq.store.index;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
-import org.apache.rocketmq.store.StoreTestBase;
 import org.apache.rocketmq.store.StoreTestUtil;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Test;
-
+import static org.apache.rocketmq.store.StoreTestBase.deleteFile;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class IndexFileTest extends StoreTestBase {
+public class IndexFileTest {
     private final int HASH_SLOT_NUM = 100;
     private final int INDEX_NUM = 400;
 
@@ -85,17 +86,18 @@ public class IndexFileTest extends StoreTestBase {
 
     @Test
     public void testPutMessageAndBuildIndex() throws Exception {
-        StackTraceElement stackTraceElement = Thread.currentThread().getStackTrace()[1];
-        String fullName = stackTraceElement.getClassName() + "." + stackTraceElement.getMethodName();
         final int maxNum = 10;
-        final String storePath = "." + File.separator + "unit_test_store" + File.separator + fullName;
+        final String storePath = "." + File.separator + "unit_test_store";
         DefaultMessageStore messageStore = null;
         try {
             // Start MessageStore.
             MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
             messageStoreConfig.setStorePathRootDir(storePath);
             messageStoreConfig.setStorePathCommitLog(storePath + File.separator + "commitlog");
-
+            messageStoreConfig.setMappedFileSizeCommitLog(8 * 1024);
+            messageStoreConfig.setMappedFileSizeConsumeQueue(100 * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+            messageStoreConfig.setMaxHashSlotNum(HASH_SLOT_NUM);
+            messageStoreConfig.setMaxIndexNum(INDEX_NUM);
             messageStore = new DefaultMessageStore(messageStoreConfig,
                     new BrokerStatsManager("simpleTest"),
                     (String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) -> {},
@@ -104,7 +106,7 @@ public class IndexFileTest extends StoreTestBase {
             messageStore.start();
 
             // Put message and wait reput.
-            MessageExtBrokerInner msg = super.buildMessage();
+            MessageExtBrokerInner msg = buildMessage();
             List<Long> offsetList = new ArrayList<>(maxNum);
             for (int i = 0; i < maxNum; i++) {
                 PutMessageResult putMessageResult = messageStore.putMessage(msg);
@@ -134,4 +136,21 @@ public class IndexFileTest extends StoreTestBase {
             deleteFile(storePath);
         }
     }
+
+    private MessageExtBrokerInner buildMessage() {
+        MessageExtBrokerInner msg = new MessageExtBrokerInner();
+        msg.setTopic("StoreTest");
+        msg.setTags("TAG1");
+        msg.setBody(new byte[100]);
+        msg.setKeys(String.valueOf(System.currentTimeMillis()));
+        msg.setQueueId(0);
+        msg.setSysFlag(0);
+        msg.setBornTimestamp(System.currentTimeMillis());
+        InetSocketAddress bornHost = new InetSocketAddress("127.0.0.1", 8123);
+        msg.setStoreHost(bornHost);
+        msg.setBornHost(bornHost);
+        msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+        return msg;
+    }
+
 }
