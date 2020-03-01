@@ -14,41 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.trace;
 
-import org.apache.rocketmq.client.AccessChannel;
-import org.apache.rocketmq.client.exception.MQClientException;
-import java.io.IOException;
+package org.apache.rocketmq.remoting.netty;
 
-/**
- * Interface of asynchronous transfer data
- */
-public interface TraceDispatcher {
-    enum Type {
-        PRODUCE,
-        CONSUME
+import io.netty.channel.ChannelHandlerContext;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+
+public abstract class AsyncNettyRequestProcessor implements NettyRequestProcessor {
+
+    public void asyncProcessRequest(ChannelHandlerContext ctx, RemotingCommand request, RemotingResponseCallback responseCallback) throws Exception {
+        RemotingCommand response = processRequest(ctx, request);
+        responseCallback.callback(response);
     }
-    /**
-     * Initialize asynchronous transfer data module
-     */
-    void start(String nameSrvAddr, AccessChannel accessChannel) throws MQClientException;
-
-    /**
-     * Append the transfering data
-     * @param ctx data infomation
-     * @return
-     */
-    boolean append(Object ctx);
-
-    /**
-     * Write flush action
-     *
-     * @throws IOException
-     */
-    void flush() throws IOException;
-
-    /**
-     * Close the trace Hook
-     */
-    void shutdown();
 }

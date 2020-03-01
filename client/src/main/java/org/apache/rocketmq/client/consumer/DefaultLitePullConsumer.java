@@ -24,6 +24,8 @@ import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultLitePullConsumerImpl;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
@@ -93,6 +95,11 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     private int pullThreadNums = 20;
 
     /**
+     * Minimum commit offset interval time in milliseconds.
+     */
+    private static final long MIN_AUTOCOMMIT_INTERVAL_MILLIS = 1000;
+
+    /**
      * Maximum commit offset interval time in milliseconds.
      */
     private long autoCommitIntervalMillis = 5 * 1000;
@@ -137,6 +144,14 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * Interval time in in milliseconds for checking changes in topic metadata.
      */
     private long topicMetadataCheckIntervalMillis = 30 * 1000;
+
+    private ConsumeFromWhere consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET;
+
+    /**
+     * Backtracking consumption time with second precision. Time format is 20131223171201<br> Implying Seventeen twelve
+     * and 01 seconds on December 23, 2013 year<br> Default backtracking consumption time Half an hour ago.
+     */
+    private String consumeTimestamp = UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - (1000 * 60 * 30));
 
     /**
      * Default constructor.
@@ -259,7 +274,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void commitSync() {
-        this.defaultLitePullConsumerImpl.commitSync();
+        this.defaultLitePullConsumerImpl.commitAll();
     }
 
     @Override
@@ -305,7 +320,9 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     public void setAutoCommitIntervalMillis(long autoCommitIntervalMillis) {
-        this.autoCommitIntervalMillis = autoCommitIntervalMillis;
+        if (autoCommitIntervalMillis >= MIN_AUTOCOMMIT_INTERVAL_MILLIS) {
+            this.autoCommitIntervalMillis = autoCommitIntervalMillis;
+        }
     }
 
     public int getPullBatchSize() {
@@ -430,5 +447,26 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setConsumerGroup(String consumerGroup) {
         this.consumerGroup = consumerGroup;
+    }
+
+    public ConsumeFromWhere getConsumeFromWhere() {
+        return consumeFromWhere;
+    }
+
+    public void setConsumeFromWhere(ConsumeFromWhere consumeFromWhere) {
+        if (consumeFromWhere != ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET
+            && consumeFromWhere != ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET
+            && consumeFromWhere != ConsumeFromWhere.CONSUME_FROM_TIMESTAMP) {
+            throw new RuntimeException("Invalid ConsumeFromWhere Value", null);
+        }
+        this.consumeFromWhere = consumeFromWhere;
+    }
+
+    public String getConsumeTimestamp() {
+        return consumeTimestamp;
+    }
+
+    public void setConsumeTimestamp(String consumeTimestamp) {
+        this.consumeTimestamp = consumeTimestamp;
     }
 }
