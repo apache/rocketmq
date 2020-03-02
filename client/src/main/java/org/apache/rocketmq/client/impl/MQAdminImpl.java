@@ -381,42 +381,12 @@ public class MQAdminImpl {
                     for (MessageExt msgExt : qr.getMessageList()) {
                         if (isUniqKey) {
                             if (msgExt.getMsgId().equals(key)) {
-
-                                if (messageList.size() > 0) {
-
-                                    if (messageList.get(0).getStoreTimestamp() > msgExt.getStoreTimestamp()) {
-
-                                        messageList.clear();
-                                        messageList.add(msgExt);
-                                    }
-
-                                } else {
-
-                                    messageList.add(msgExt);
-                                }
+                                messageList.add(msgExt);
                             } else {
                                 log.warn("queryMessage by uniqKey, find message key not matched, maybe hash duplicate {}", msgExt.toString());
                             }
                         } else {
-                            String keys = msgExt.getKeys();
-                            if (keys != null) {
-                                boolean matched = false;
-                                String[] keyArray = keys.split(MessageConst.KEY_SEPARATOR);
-                                if (keyArray != null) {
-                                    for (String k : keyArray) {
-                                        if (key.equals(k)) {
-                                            matched = true;
-                                            break;
-                                        }
-                                    }
-                                }
-
-                                if (matched) {
-                                    messageList.add(msgExt);
-                                } else {
-                                    log.warn("queryMessage, find message key not matched, maybe hash duplicate {}", msgExt.toString());
-                                }
-                            }
+                            messageList.add(msgExt);
                         }
                     }
                 }
