@@ -419,7 +419,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerAclConfigResponseHeader.class);
 
-        final GetBrokerAclConfigResponseHeader responseHeader = (GetBrokerAclConfigResponseHeader)response.readCustomHeader();
+        final GetBrokerAclConfigResponseHeader responseHeader = (GetBrokerAclConfigResponseHeader) response.readCustomHeader();
 
         try {
             AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
@@ -428,7 +428,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             responseHeader.setBrokerAddr(this.brokerController.getBrokerAddr());
             responseHeader.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
             responseHeader.setClusterName(this.brokerController.getBrokerConfig().getBrokerClusterName());
-            
+
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
             return response;
@@ -1027,10 +1027,14 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         HashSet<String> filteredGroups = new HashSet<String>();
-        for (String group : groups) {
-            if (this.brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().containsKey(group)) {
-                filteredGroups.add(group);
+        if (requestHeader.isIgnoreDeteled()) {
+            for (String group : groups) {
+                if (this.brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().containsKey(group)) {
+                    filteredGroups.add(group);
+                }
             }
+        } else {
+            filteredGroups = groups;
         }
 
         GroupList groupList = new GroupList();
