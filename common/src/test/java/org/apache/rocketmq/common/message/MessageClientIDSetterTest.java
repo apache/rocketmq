@@ -40,7 +40,7 @@ public class MessageClientIDSetterTest {
         int pid = UtilAll.getPid();
 
         String uniqID = MessageClientIDSetter.createUniqID();
-        short pidFromID = MessageClientIDSetter.getPidFromID(uniqID);
+        int pidFromID = MessageClientIDSetter.getPidFromID(uniqID);
 
         assertThat(pid).isEqualTo(pidFromID);
     }

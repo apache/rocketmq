@@ -104,11 +104,11 @@ public class MessageClientIDSetter {
         return result;
     }
 
-    public static short getPidFromID(String msgID) {
+    public static int getPidFromID(String msgID) {
         byte[] bytes = UtilAll.string2bytes(msgID);
         ByteBuffer wrap = ByteBuffer.wrap(bytes);
-        wrap.position(bytes.length - 2 - 4 - 4 - 2);
-        return wrap.getShort();
+        int value = wrap.getShort(bytes.length - 2 - 4 - 4 - 2);
+        return value & 0x0000FFFF;
     }
 
     public static String createUniqID() {
