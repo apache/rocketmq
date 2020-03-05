@@ -52,15 +52,16 @@ public class TraceDataEncoder {
                 bean.setTags(line[6]);
                 bean.setKeys(line[7]);
                 bean.setStoreHost(line[8]);
-                bean.setBodyLength(Integer.parseInt(line[9]));
-                pubContext.setCostTime(Integer.parseInt(line[10]));
-                bean.setMsgType(MessageType.values()[Integer.parseInt(line[11])]);
+                bean.setClientHost(line[9]);
+                bean.setBodyLength(Integer.parseInt(line[10]));
+                pubContext.setCostTime(Integer.parseInt(line[11]));
+                bean.setMsgType(MessageType.values()[Integer.parseInt(line[12])]);
 
-                if (line.length == 13) {
-                    pubContext.setSuccess(Boolean.parseBoolean(line[12]));
-                } else if (line.length == 14) {
-                    bean.setOffsetMsgId(line[12]);
+                if (line.length == 14) {
                     pubContext.setSuccess(Boolean.parseBoolean(line[13]));
+                } else if (line.length == 15) {
+                    bean.setOffsetMsgId(line[13]);
+                    pubContext.setSuccess(Boolean.parseBoolean(line[14]));
                 }
                 pubContext.setTraceBeans(new ArrayList<TraceBean>(1));
                 pubContext.getTraceBeans().add(bean);
@@ -82,17 +83,20 @@ public class TraceDataEncoder {
             } else if (line[0].equals(TraceType.SubAfter.name())) {
                 TraceContext subAfterContext = new TraceContext();
                 subAfterContext.setTraceType(TraceType.SubAfter);
-                subAfterContext.setRequestId(line[1]);
+                subAfterContext.setRequestId(line[2]);
+                subAfterContext.setTimeStamp(Long.parseLong(line[1]));
                 TraceBean bean = new TraceBean();
-                bean.setMsgId(line[2]);
-                bean.setKeys(line[5]);
+                bean.setMsgId(line[3]);
+                bean.setClientHost(line[4]);
+                bean.setKeys(line[8]);
+                subAfterContext.setGroupName(line[5]);
                 subAfterContext.setTraceBeans(new ArrayList<TraceBean>(1));
                 subAfterContext.getTraceBeans().add(bean);
-                subAfterContext.setCostTime(Integer.parseInt(line[3]));
-                subAfterContext.setSuccess(Boolean.parseBoolean(line[4]));
-                if (line.length >= 7) {
+                subAfterContext.setCostTime(Integer.parseInt(line[6]));
+                subAfterContext.setSuccess(Boolean.parseBoolean(line[7]));
+                if (line.length >= 9) {
                     // add the context type
-                    subAfterContext.setContextCode(Integer.parseInt(line[6]));
+                    subAfterContext.setContextCode(Integer.parseInt(line[9]));
                 }
                 resList.add(subAfterContext);
             }
@@ -118,43 +122,47 @@ public class TraceDataEncoder {
                 TraceBean bean = ctx.getTraceBeans().get(0);
                 //append the content of context and traceBean to transferBean's TransData
                 sb.append(ctx.getTraceType()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(ctx.getTimeStamp()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(ctx.getRegionId()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(ctx.getGroupName()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(bean.getTopic()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(bean.getMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(bean.getTags()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(bean.getKeys()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(bean.getStoreHost()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(bean.getBodyLength()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(ctx.getCostTime()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(bean.getMsgType().ordinal()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(bean.getOffsetMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(ctx.isSuccess()).append(TraceConstants.FIELD_SPLITOR);
+                        .append(ctx.getTimeStamp()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(ctx.getRegionId()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(ctx.getGroupName()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(bean.getTopic()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(bean.getMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(bean.getTags()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(bean.getKeys()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(bean.getStoreHost()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(bean.getClientHost()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(bean.getBodyLength()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(ctx.getCostTime()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(bean.getMsgType().ordinal()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(bean.getOffsetMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(ctx.isSuccess()).append(TraceConstants.FIELD_SPLITOR);
             }
             break;
             case SubBefore: {
                 for (TraceBean bean : ctx.getTraceBeans()) {
                     sb.append(ctx.getTraceType()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(ctx.getTimeStamp()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(ctx.getRegionId()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(ctx.getGroupName()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(ctx.getRequestId()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(bean.getMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(bean.getRetryTimes()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(bean.getKeys()).append(TraceConstants.FIELD_SPLITOR);//
+                            .append(ctx.getTimeStamp()).append(TraceConstants.CONTENT_SPLITOR)//
+                            .append(ctx.getRegionId()).append(TraceConstants.CONTENT_SPLITOR)//
+                            .append(ctx.getGroupName()).append(TraceConstants.CONTENT_SPLITOR)//
+                            .append(ctx.getRequestId()).append(TraceConstants.CONTENT_SPLITOR)//
+                            .append(bean.getMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
+                            .append(bean.getRetryTimes()).append(TraceConstants.CONTENT_SPLITOR)//
+                            .append(bean.getKeys()).append(TraceConstants.FIELD_SPLITOR);//
                 }
             }
             break;
             case SubAfter: {
                 for (TraceBean bean : ctx.getTraceBeans()) {
                     sb.append(ctx.getTraceType()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(ctx.getRequestId()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(bean.getMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(ctx.getCostTime()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(ctx.isSuccess()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(bean.getKeys()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(ctx.getContextCode()).append(TraceConstants.FIELD_SPLITOR);
+                            .append(ctx.getTimeStamp()).append(TraceConstants.CONTENT_SPLITOR)//
+                            .append(ctx.getRequestId()).append(TraceConstants.CONTENT_SPLITOR)//
+                            .append(bean.getMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
+                            .append(bean.getClientHost()).append(TraceConstants.CONTENT_SPLITOR)//
+                            .append(ctx.getGroupName()).append(TraceConstants.CONTENT_SPLITOR)//
+                            .append(ctx.getCostTime()).append(TraceConstants.CONTENT_SPLITOR)//
+                            .append(ctx.isSuccess()).append(TraceConstants.CONTENT_SPLITOR)//
+                            .append(bean.getKeys()).append(TraceConstants.CONTENT_SPLITOR)//
+                            .append(ctx.getContextCode()).append(TraceConstants.FIELD_SPLITOR);
                 }
             }
             break;

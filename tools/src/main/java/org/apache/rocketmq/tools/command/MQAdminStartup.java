@@ -59,6 +59,7 @@ import org.apache.rocketmq.tools.command.message.QueryMsgByIdSubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByKeySubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByOffsetSubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByUniqueKeySubCommand;
+import org.apache.rocketmq.tools.command.message.QueryMsgTraceByIdSubCommand;
 import org.apache.rocketmq.tools.command.message.SendMessageCommand;
 import org.apache.rocketmq.tools.command.namesrv.DeleteKvConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.GetNamesrvConfigCommand;
@@ -164,6 +165,7 @@ public class MQAdminStartup {
         initCommand(new QueryMsgByKeySubCommand());
         initCommand(new QueryMsgByUniqueKeySubCommand());
         initCommand(new QueryMsgByOffsetSubCommand());
+        initCommand(new QueryMsgTraceByIdSubCommand());
 
         initCommand(new PrintMessageSubCommand());
         initCommand(new PrintMessageByQueueCommand());
