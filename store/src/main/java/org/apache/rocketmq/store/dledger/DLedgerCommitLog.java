@@ -369,9 +369,6 @@ public class DLedgerCommitLog extends CommitLog {
         // on the client)
         msg.setBodyCRC(UtilAll.crc32(msg.getBody()));
 
-        String topic = msg.getTopic();
-        int queueId = msg.getQueueId();
-
         //should be consistent with the old version
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
@@ -381,8 +378,8 @@ public class DLedgerCommitLog extends CommitLog {
                     msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
                 }
 
-                topic = ScheduleMessageService.SCHEDULE_TOPIC;
-                queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
+                String topic = ScheduleMessageService.SCHEDULE_TOPIC;
+                int queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
 
                 // Backup real topic, queueId
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
@@ -411,7 +408,6 @@ public class DLedgerCommitLog extends CommitLog {
         StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         String topic = msg.getTopic();
-
         setMessageInfo(msg,tranType);
 
         // Back to Results
@@ -425,14 +421,15 @@ public class DLedgerCommitLog extends CommitLog {
         try {
             beginTimeInDledgerLock = this.defaultMessageStore.getSystemClock().now();
             encodeResult = this.messageSerializer.serialize(msg);
-            queueOffset = topicQueueTable.get(encodeResult.queueOffsetKey);
+            queueOffset = getQueueOffsetByKey(encodeResult.queueOffsetKey, tranType);
+            encodeResult.setQueueOffsetKey(queueOffset);
             if (encodeResult.status != AppendMessageStatus.PUT_OK) {
                 return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.status));
             }
             AppendEntryRequest request = new AppendEntryRequest();
             request.setGroup(dLedgerConfig.getGroup());
             request.setRemoteId(dLedgerServer.getMemberState().getSelfId());
-            request.setBody(encodeResult.data);
+            request.setBody(encodeResult.getData());
             dledgerFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
             if (dledgerFuture.getPos() == -1) {
                 return new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR));
@@ -444,7 +441,7 @@ public class DLedgerCommitLog extends CommitLog {
 
             String msgId = MessageDecoder.createMessageId(buffer, msg.getStoreHostBytes(), wroteOffset);
             elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
-            appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.data.length, msgId, System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
+            appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.getData().length, msgId, System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
             switch (tranType) {
                 case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
                 case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
@@ -534,11 +531,11 @@ public class DLedgerCommitLog extends CommitLog {
         try {
             beginTimeInDledgerLock = this.defaultMessageStore.getSystemClock().now();
             queueOffset = topicQueueTable.get(encodeResult.queueOffsetKey);
-
+            encodeResult.setQueueOffsetKey(queueOffset);
             AppendEntryRequest request = new AppendEntryRequest();
             request.setGroup(dLedgerConfig.getGroup());
             request.setRemoteId(dLedgerServer.getMemberState().getSelfId());
-            request.setBody(encodeResult.data);
+            request.setBody(encodeResult.getData());
             dledgerFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
             if (dledgerFuture.getPos() == -1) {
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
@@ -550,7 +547,7 @@ public class DLedgerCommitLog extends CommitLog {
 
             String msgId = MessageDecoder.createMessageId(buffer, msg.getStoreHostBytes(), wroteOffset);
             elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
-            appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.data.length, msgId, System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
+            appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.getData().length, msgId, System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
             switch (tranType) {
                 case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
                 case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
@@ -672,15 +669,47 @@ public class DLedgerCommitLog extends CommitLog {
         return diff;
     }
 
+    private long getQueueOffsetByKey(String key, int tranType) {
+        Long queueOffset = DLedgerCommitLog.this.topicQueueTable.get(key);
+        if (null == queueOffset) {
+            queueOffset = 0L;
+            DLedgerCommitLog.this.topicQueueTable.put(key, queueOffset);
+        }
+
+        // Transaction messages that require special handling
+        switch (tranType) {
+            // Prepared and Rollback message is not consumed, will not enter the
+            // consumer queuec
+            case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
+            case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
+                queueOffset = 0L;
+                break;
+            case MessageSysFlag.TRANSACTION_NOT_TYPE:
+            case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
+            default:
+                break;
+        }
+        return queueOffset;
+    }
+
+
     class EncodeResult {
         private String queueOffsetKey;
-        private byte[] data;
+        private ByteBuffer data;
         private AppendMessageStatus status;
 
-        public EncodeResult(AppendMessageStatus status, byte[] data, String queueOffsetKey) {
+        public EncodeResult(AppendMessageStatus status, ByteBuffer data, String queueOffsetKey) {
             this.data = data;
             this.status = status;
             this.queueOffsetKey = queueOffsetKey;
+        }
+
+        public void setQueueOffsetKey(long offset) {
+            data.putLong(MessageDecoder.QUEUE_OFFSET_POSITION, offset);
+        }
+
+        public byte[] getData() {
+            return data.array();
         }
     }
 
@@ -701,6 +730,8 @@ public class DLedgerCommitLog extends CommitLog {
             // PHY OFFSET
             long wroteOffset = 0;
 
+            long queueOffset = 0;
+
             int sysflag = msgInner.getSysFlag();
 
             int bornHostLength = (sysflag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
@@ -709,27 +740,6 @@ public class DLedgerCommitLog extends CommitLog {
             ByteBuffer storeHostHolder = ByteBuffer.allocate(storeHostLength);
 
             String key = msgInner.getTopic() + "-" + msgInner.getQueueId();
-
-            Long queueOffset = DLedgerCommitLog.this.topicQueueTable.get(key);
-            if (null == queueOffset) {
-                queueOffset = 0L;
-                DLedgerCommitLog.this.topicQueueTable.put(key, queueOffset);
-            }
-
-            // Transaction messages that require special handling
-            final int tranType = MessageSysFlag.getTransactionValue(msgInner.getSysFlag());
-            switch (tranType) {
-                // Prepared and Rollback message is not consumed, will not enter the
-                // consumer queuec
-                case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
-                case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
-                    queueOffset = 0L;
-                    break;
-                case MessageSysFlag.TRANSACTION_NOT_TYPE:
-                case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
-                default:
-                    break;
-            }
 
             /**
              * Serialize message
@@ -805,7 +815,7 @@ public class DLedgerCommitLog extends CommitLog {
             if (propertiesLength > 0) {
                 msgStoreItemMemory.put(propertiesData);
             }
-            return new EncodeResult(AppendMessageStatus.PUT_OK, msgStoreItemMemory.array(), key);
+            return new EncodeResult(AppendMessageStatus.PUT_OK, msgStoreItemMemory, key);
         }
 
         private void resetByteBuffer(final ByteBuffer byteBuffer, final int limit) {
