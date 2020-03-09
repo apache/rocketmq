@@ -17,7 +17,6 @@
 package org.apache.rocketmq.tools.command.message;
 
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
