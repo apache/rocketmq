@@ -530,7 +530,7 @@ public class DLedgerCommitLog extends CommitLog {
         long queueOffset;
         try {
             beginTimeInDledgerLock = this.defaultMessageStore.getSystemClock().now();
-            queueOffset = topicQueueTable.get(encodeResult.queueOffsetKey);
+            queueOffset = getQueueOffsetByKey(encodeResult.queueOffsetKey, tranType);
             encodeResult.setQueueOffsetKey(queueOffset);
             AppendEntryRequest request = new AppendEntryRequest();
             request.setGroup(dLedgerConfig.getGroup());
