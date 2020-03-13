@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import com.alibaba.fastjson.JSON;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
 import java.io.UnsupportedEncodingException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -30,6 +27,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+import com.alibaba.fastjson.JSON;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.openmessaging.storage.dledger.MemberState;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.broker.BrokerController;
@@ -37,8 +38,8 @@ import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
-import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
 import org.apache.rocketmq.broker.topic.TopicValidator;
+import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
 import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -72,6 +73,7 @@ import org.apache.rocketmq.common.protocol.body.ProducerConnection;
 import org.apache.rocketmq.common.protocol.body.QueryConsumeQueueResponseBody;
 import org.apache.rocketmq.common.protocol.body.QueryConsumeTimeSpanBody;
 import org.apache.rocketmq.common.protocol.body.QueryCorrectionOffsetBody;
+import org.apache.rocketmq.common.protocol.body.QueryMemberStateResponseBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
@@ -127,6 +129,7 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -136,6 +139,7 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
 
 public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -233,6 +237,8 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 return resumeCheckHalfMessage(ctx, request);
             case RequestCode.GET_BROKER_CLUSTER_ACL_CONFIG:
                 return getBrokerClusterAclConfig(ctx, request);
+            case RequestCode.QUERY_MEMBER_STATE:
+                return queryMemberState();
             default:
                 break;
         }
@@ -1615,5 +1621,28 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         inner.setMsgId(msgExt.getMsgId());
         inner.setWaitStoreMsgOK(false);
         return inner;
+    }
+
+    private RemotingCommand queryMemberState() {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        DefaultMessageStore messageStore = (DefaultMessageStore) this.brokerController.getMessageStore();
+        if (!(messageStore.getCommitLog() instanceof DLedgerCommitLog)) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("dledger is disable");
+            return response;
+        }
+
+        DLedgerCommitLog commitLog = (DLedgerCommitLog) messageStore.getCommitLog();
+        MemberState memberState = commitLog.getdLedgerServer().getMemberState();
+        QueryMemberStateResponseBody body = new QueryMemberStateResponseBody();
+        body.setGroup(memberState.getGroup());
+        body.setCurrTerm(memberState.currTerm());
+        body.setLeaderId(memberState.getLeaderId());
+        body.setSelfId(memberState.getSelfId());
+        body.setPeerMap(memberState.getPeerMap());
+        response.setBody(body.encode());
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
     }
 }

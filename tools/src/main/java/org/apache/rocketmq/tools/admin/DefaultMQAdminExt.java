@@ -45,6 +45,7 @@ import org.apache.rocketmq.common.protocol.body.GroupList;
 import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.ProducerConnection;
 import org.apache.rocketmq.common.protocol.body.QueryConsumeQueueResponseBody;
+import org.apache.rocketmq.common.protocol.body.QueryMemberStateResponseBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
@@ -555,5 +556,10 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
             String msgId)
             throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         return this.defaultMQAdminExtImpl.resumeCheckHalfMessage(topic, msgId);
+    }
+
+    @Override
+    public QueryMemberStateResponseBody queryMemberState(String addr) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        return this.defaultMQAdminExtImpl.queryMemberState(addr);
     }
 }

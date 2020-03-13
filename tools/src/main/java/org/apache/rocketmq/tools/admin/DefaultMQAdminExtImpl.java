@@ -50,6 +50,7 @@ import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
+import org.apache.rocketmq.common.protocol.body.QueryMemberStateResponseBody;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -1050,5 +1051,10 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             MessageClientExt msgClient = (MessageClientExt) msg;
             return this.mqClientInstance.getMQClientAPIImpl().resumeCheckHalfMessage(RemotingUtil.socketAddress2String(msg.getStoreHost()), msgClient.getOffsetMsgId(), timeoutMillis);
         }
+    }
+
+    @Override
+    public QueryMemberStateResponseBody queryMemberState(String addr) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        return this.mqClientInstance.getMQClientAPIImpl().queryMemberState(addr, timeoutMillis);
     }
 }

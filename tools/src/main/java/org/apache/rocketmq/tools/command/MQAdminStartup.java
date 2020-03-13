@@ -40,6 +40,7 @@ import org.apache.rocketmq.tools.command.broker.BrokerStatusSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanUnusedTopicCommand;
 import org.apache.rocketmq.tools.command.broker.GetBrokerConfigCommand;
+import org.apache.rocketmq.tools.command.broker.QueryMemberStateCommand;
 import org.apache.rocketmq.tools.command.broker.SendMsgStatusCommand;
 import org.apache.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
 import org.apache.rocketmq.tools.command.cluster.CLusterSendMsgRTCommand;
@@ -211,6 +212,8 @@ public class MQAdminStartup {
         initCommand(new ClusterAclConfigVersionListSubCommand());
         initCommand(new UpdateGlobalWhiteAddrSubCommand());
         initCommand(new GetAccessConfigSubCommand());
+
+        initCommand(new QueryMemberStateCommand());
     }
 
     private static void initLogback() throws JoranException {
