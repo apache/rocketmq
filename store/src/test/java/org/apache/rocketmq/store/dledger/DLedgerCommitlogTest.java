@@ -23,6 +23,8 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -150,6 +152,48 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             msgInner.setTopic(topic);
             msgInner.setQueueId(0);
             PutMessageResult putMessageResult = messageStore.putMessage(msgInner);
+            results.add(putMessageResult);
+            Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
+            Assert.assertEquals(i, putMessageResult.getAppendMessageResult().getLogicsOffset());
+        }
+        Thread.sleep(100);
+        Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
+        Assert.assertEquals(10, messageStore.getMaxOffsetInQueue(topic, 0));
+        Assert.assertEquals(0, messageStore.dispatchBehindBytes());
+        GetMessageResult getMessageResult =  messageStore.getMessage("group", topic, 0, 0, 32, null);
+        Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
+
+        Assert.assertEquals(10, getMessageResult.getMessageBufferList().size());
+        Assert.assertEquals(10, getMessageResult.getMessageMapedList().size());
+
+        for (int i = 0; i < results.size(); i++) {
+            ByteBuffer buffer = getMessageResult.getMessageBufferList().get(i);
+            MessageExt messageExt = MessageDecoder.decode(buffer);
+            Assert.assertEquals(i, messageExt.getQueueOffset());
+            Assert.assertEquals(results.get(i).getAppendMessageResult().getMsgId(), messageExt.getMsgId());
+            Assert.assertEquals(results.get(i).getAppendMessageResult().getWroteOffset(), messageExt.getCommitLogOffset());
+        }
+        messageStore.destroy();
+        messageStore.shutdown();
+    }
+
+    @Test
+    public void testAsyncPutAndGetMessage() throws Exception {
+        String base =  createBaseDir();
+        String peers = String.format("n0-localhost:%d", nextPort());
+        String group = UUID.randomUUID().toString();
+        DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
+        Thread.sleep(1000);
+        String topic = UUID.randomUUID().toString();
+
+        List<PutMessageResult> results = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            MessageExtBrokerInner msgInner =
+                i < 5 ? buildMessage() : buildIPv6HostMessage();
+            msgInner.setTopic(topic);
+            msgInner.setQueueId(0);
+            CompletableFuture<PutMessageResult> futureResult = messageStore.asyncPutMessage(msgInner);
+            PutMessageResult putMessageResult = futureResult.get(3000, TimeUnit.MILLISECONDS);
             results.add(putMessageResult);
             Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
             Assert.assertEquals(i, putMessageResult.getAppendMessageResult().getLogicsOffset());
