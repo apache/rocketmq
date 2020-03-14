@@ -133,7 +133,7 @@ public class MessageStoreConfig {
     private boolean warmMapedFileEnable = false;
     private boolean offsetCheckInSlave = false;
     private boolean debugLockEnable = false;
-    private boolean duplicationEnable = true;
+    private boolean duplicationEnable = false;
     private boolean diskFallRecorded = true;
     private long osPageCacheBusyTimeOutMills = 1000;
     private int defaultQueryMaxNum = 32;
