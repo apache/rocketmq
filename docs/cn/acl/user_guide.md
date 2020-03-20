@@ -152,6 +152,18 @@ sh mqadmin clusterAclConfigVersion -n 192.168.1.2:9876 -c DefaultCluster
 | c | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
 | b | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
 
+### 7.5 查询集群/Broker的ACL配置文件全部内容
+该命令的示例如下：
+
+sh mqadmin getAccessConfigSubCommand -n 192.168.1.2:9876 -c DefaultCluster
+
+说明：如果指定的是集群名称，则会在集群中各个broker节点执行该命令；否则会在单个broker节点执行该命令。
+
+| 参数 | 取值 | 含义 |
+| --- | --- | --- |
+| n | eg:192.168.1.2:9876 | namesrv地址(必填) |
+| c | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
+| b | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
 
 **特别注意**开启Acl鉴权认证后导致Master/Slave和Dledger模式下Broker同步数据异常的问题，
 在社区[4.5.1]版本中已经修复，具体的PR链接为：https://github.com/apache/rocketmq/pull/1149；

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.text.NumberFormat;
@@ -39,6 +40,7 @@ import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -438,13 +440,20 @@ public class UtilAll {
         return false;
     }
 
+    public static boolean isInternalV6IP(InetAddress inetAddr) {
+        if (inetAddr.isAnyLocalAddress() // Wild card ipv6
+            || inetAddr.isLinkLocalAddress() // Single broadcast ipv6 address: fe80:xx:xx...
+            || inetAddr.isLoopbackAddress() //Loopback ipv6 address
+            || inetAddr.isSiteLocalAddress()) { // Site local ipv6 address: fec0:xx:xx...
+            return true;
+        }
+        return false;
+    }
+
     private static boolean ipCheck(byte[] ip) {
         if (ip.length != 4) {
             throw new RuntimeException("illegal ipv4 bytes");
         }
-
-//        if (ip[0] == (byte)30 && ip[1] == (byte)10 && ip[2] == (byte)163 && ip[3] == (byte)120) {
-//        }
 
         if (ip[0] >= (byte) 1 && ip[0] <= (byte) 126) {
             if (ip[1] == (byte) 1 && ip[2] == (byte) 1 && ip[3] == (byte) 1) {
@@ -474,6 +483,15 @@ public class UtilAll {
         return false;
     }
 
+    private static boolean ipV6Check(byte[] ip) {
+        if (ip.length != 16) {
+            throw new RuntimeException("illegal ipv6 bytes");
+        }
+
+        InetAddressValidator validator = InetAddressValidator.getInstance();
+        return validator.isValidInet6Address(ipToIPv6Str(ip));
+    }
+
     public static String ipToIPv4Str(byte[] ip) {
         if (ip.length != 4) {
             return null;
@@ -481,6 +499,25 @@ public class UtilAll {
         return new StringBuilder().append(ip[0] & 0xFF).append(".").append(
             ip[1] & 0xFF).append(".").append(ip[2] & 0xFF)
             .append(".").append(ip[3] & 0xFF).toString();
+    }
+
+    public static String ipToIPv6Str(byte[] ip) {
+        if (ip.length != 16) {
+            return null;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < ip.length; i++) {
+            String hex = Integer.toHexString(ip[i] & 0xFF);
+            if (hex.length() < 2) {
+                sb.append(0);
+            }
+            sb.append(hex);
+            if (i % 2 == 1 && i < ip.length - 1) {
+                sb.append(":");
+            }
+        }
+        return sb.toString();
     }
 
     public static byte[] getIP() {
@@ -501,6 +538,15 @@ public class UtilAll {
                                     return ipByte;
                                 } else if (internalIP == null) {
                                     internalIP = ipByte;
+                                }
+                            }
+                        }
+                    } else if (ip != null && ip instanceof Inet6Address) {
+                        byte[] ipByte = ip.getAddress();
+                        if (ipByte.length == 16) {
+                            if (ipV6Check(ipByte)) {
+                                if (!isInternalV6IP(ip)) {
+                                    return ipByte;
                                 }
                             }
                         }
@@ -532,12 +578,12 @@ public class UtilAll {
         }
     }
 
-    public static String List2String(List<String> list,String splitor) {
+    public static String list2String(List<String> list, String splitor) {
         if (list == null || list.size() == 0) {
             return null;
         }
         StringBuffer str = new StringBuffer();
-        for (int i = 0;i < list.size();i++) {
+        for (int i = 0; i < list.size(); i++) {
             str.append(list.get(i));
             if (i == list.size() - 1) {
                 continue;
@@ -547,7 +593,7 @@ public class UtilAll {
         return str.toString();
     }
 
-    public static List<String> String2List(String str,String splitor) {
+    public static List<String> string2List(String str, String splitor) {
         if (StringUtils.isEmpty(str)) {
             return null;
         }
