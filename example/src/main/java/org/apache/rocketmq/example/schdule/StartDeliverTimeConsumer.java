@@ -38,7 +38,7 @@ public class StartDeliverTimeConsumer {
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                 ConsumeConcurrentlyContext context) {
                 for (MessageExt msg : msgs) {
-                    System.out.println(new Date().toString() + " : " + new Date(Long.parseLong(new String(msg.getBody()))).toString());
+                    System.err.println(new Date().toString() + " : " + new Date(Long.parseLong(new String(msg.getBody()))).toString());
                 }
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
