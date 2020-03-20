@@ -46,9 +46,9 @@ public class StartDeliverTimeHook implements CheckForbiddenHook, FilterMessageHo
                 long delayTimeMillis = Long.parseLong(startDeliverTimeMillis) - System.currentTimeMillis();
                 int level = MessageUtil.calcDelayTimeLevel(delayTimeMillis, context.getBrokerAddr(), context.getProducer().getmQClientFactory().getMQClientAPIImpl());
                 if(level > 0) {
-                    MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_CONSUME_START_TIMESTAMP);
-                }else {
                     msg.setDelayTimeLevel(level);
+                }else {
+                    MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_CONSUME_START_TIMESTAMP);
                 }
             }
         }
