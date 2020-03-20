@@ -215,7 +215,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgInner.setBornHost(msgExt.getBornHost());
         msgInner.setStoreHost(msgExt.getStoreHost());
         int reconsumeTimes = msgExt.getReconsumeTimes() + 1;
-        if(msgExt.getStartDeliverTime() > System.currentTimeMillis()) {
+        if (msgExt.getStartDeliverTime() > System.currentTimeMillis()) {
             reconsumeTimes = 0;
             log.debug("StartDeliverTime message : {}", msgExt);
         }
@@ -224,7 +224,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         String originMsgId = MessageAccessor.getOriginMessageId(msgExt);
         MessageAccessor.setOriginMessageId(msgInner, UtilAll.isBlank(originMsgId) ? msgExt.getMsgId() : originMsgId);
         CompletableFuture<PutMessageResult> putMessageResult = this.brokerController.getMessageStore().asyncPutMessage(msgInner);
-        return putMessageResult.thenApply((r) -> {
+        return putMessageResult.thenApply(r -> {
             if (r != null) {
                 switch (r.getPutMessageStatus()) {
                     case PUT_OK:
@@ -312,7 +312,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                                                                             SendMessageContext sendMessageContext,
                                                                             ChannelHandlerContext ctx,
                                                                             int queueIdInt) {
-        return putMessageResult.thenApply((r) ->
+        return putMessageResult.thenApply(r ->
             handlePutMessageResult(r, response, request, msgInner, responseHeader, sendMessageContext, ctx, queueIdInt)
         );
     }

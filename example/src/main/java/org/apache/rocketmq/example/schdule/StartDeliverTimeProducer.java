@@ -12,7 +12,7 @@ public class StartDeliverTimeProducer {
         DefaultMQProducer producer = new DefaultMQProducer("StartDeliverTimeProducer");
         producer.setNamesrvAddr("localhost:9876");
         producer.start();
-        for(int i = 0; i < 100; i++) {
+        for (int i = 0; i < 1000; i++) {
             long startDeliverTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(10L + ThreadLocalRandom.current().nextLong(10L));
             Message msg = new Message("TopicTest", (startDeliverTime + "").getBytes());
             msg.setStartDeliverTime(startDeliverTime);
