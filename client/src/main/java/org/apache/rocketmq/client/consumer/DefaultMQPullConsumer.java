@@ -24,7 +24,6 @@ import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAverage
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.hook.FilterMessageHook;
 import org.apache.rocketmq.client.hook.impl.StartDeliverTimeHook;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl;
 import org.apache.rocketmq.common.MixAll;

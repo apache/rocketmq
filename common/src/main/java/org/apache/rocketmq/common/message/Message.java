@@ -151,7 +151,7 @@ public class Message implements Serializable {
     
     public long getStartDeliverTime() {
         String t = this.getProperty(MessageConst.PROPERTY_CONSUME_START_TIMESTAMP);
-        if(t != null) {
+        if (t != null) {
             return Long.parseLong(t);
         }
         

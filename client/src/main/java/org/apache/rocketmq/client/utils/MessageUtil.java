@@ -34,7 +34,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 
 public class MessageUtil {
     
-    private static ConcurrentHashMap<String, TreeMap<Long, Integer>> BROKER_DELAY_LEVEL_TABLE = new ConcurrentHashMap<String, TreeMap<Long,Integer>>();
+    private static ConcurrentHashMap<String, TreeMap<Long, Integer>> brokerDelayLevelTable = new ConcurrentHashMap<String, TreeMap<Long,Integer>>();
     
     public static Message createReplyMessage(final Message requestMessage, final byte[] body) throws MQClientException {
         if (requestMessage != null) {
@@ -65,12 +65,12 @@ public class MessageUtil {
     }
     
     public static int calcDelayTimeLevel(long delayTimeMillis, String brokerAddr, MQClientAPIImpl admin) throws MQClientException {
-        if(delayTimeMillis > 0L) {
-            BROKER_DELAY_LEVEL_TABLE.putIfAbsent(brokerAddr, new TreeMap<Long, Integer>());
-            TreeMap<Long, Integer> delayLevelTable = BROKER_DELAY_LEVEL_TABLE.get(brokerAddr);
-            if(delayLevelTable.isEmpty()) {
+        if (delayTimeMillis > 0L) {
+            brokerDelayLevelTable.putIfAbsent(brokerAddr, new TreeMap<Long, Integer>());
+            TreeMap<Long, Integer> delayLevelTable = brokerDelayLevelTable.get(brokerAddr);
+            if (delayLevelTable.isEmpty()) {
                 synchronized (delayLevelTable) {
-                    if(delayLevelTable.isEmpty()) {
+                    if (delayLevelTable.isEmpty()) {
                         Properties brokerConfig = null;
                         try {
                             brokerConfig = admin.getBrokerConfig(brokerAddr, 3000L);
@@ -97,7 +97,7 @@ public class MessageUtil {
                 }
             }
             Entry<Long, Integer> entry = delayLevelTable.floorEntry(delayTimeMillis);
-            if(entry != null) {
+            if (entry != null) {
                 return entry.getValue();
             }
         }
