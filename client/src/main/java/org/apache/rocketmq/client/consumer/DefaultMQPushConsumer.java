@@ -28,6 +28,7 @@ import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAverage
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.hook.impl.StartDeliverTimeHook;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
@@ -690,6 +691,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Override
     public void start() throws MQClientException {
         setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
+        StartDeliverTimeHook startDeliverTimeHook = new StartDeliverTimeHook();
+        startDeliverTimeHook.setConsumer(this);
+        this.defaultMQPushConsumerImpl.registerFilterMessageHook(startDeliverTimeHook);
         this.defaultMQPushConsumerImpl.start();
         if (null != traceDispatcher) {
             try {

@@ -214,7 +214,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgInner.setBornTimestamp(msgExt.getBornTimestamp());
         msgInner.setBornHost(msgExt.getBornHost());
         msgInner.setStoreHost(msgExt.getStoreHost());
-        msgInner.setReconsumeTimes(msgExt.getReconsumeTimes() + 1);
+        int reconsumeTimes = msgExt.getReconsumeTimes() + 1;
+        if(msgExt.getStartDeliverTime() > System.currentTimeMillis()) {
+            reconsumeTimes = 0;
+            log.debug("StartDeliverTime message : {}", msgExt);
+        }
+        msgInner.setReconsumeTimes(reconsumeTimes);
 
         String originMsgId = MessageAccessor.getOriginMessageId(msgExt);
         MessageAccessor.setOriginMessageId(msgInner, UtilAll.isBlank(originMsgId) ? msgExt.getMsgId() : originMsgId);
