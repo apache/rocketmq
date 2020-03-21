@@ -431,7 +431,8 @@ public class DefaultMessageStore implements MessageStore {
                 int level = this.getScheduleMessageService().calcDelayTimeLevel(delayMillis);
                 msg.setDelayTimeLevel(level);
             } catch (Throwable e) {
-                
+                log.warn("putMessage message process consumeStartTimeStamp fail, val : " + consumeStartTimeStamp);
+                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
             }
         }
         long beginTime = this.getSystemClock().now();
