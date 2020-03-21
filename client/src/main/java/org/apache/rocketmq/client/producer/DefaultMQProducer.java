@@ -25,6 +25,7 @@ import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.exception.RequestTimeoutException;
+import org.apache.rocketmq.client.hook.impl.StartDeliverTimeHook;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
@@ -268,6 +269,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void start() throws MQClientException {
         this.setProducerGroup(withNamespace(this.producerGroup));
+        StartDeliverTimeHook startDeliverTimeHook = new StartDeliverTimeHook();
+        this.defaultMQProducerImpl.registerCheckForbiddenHook(startDeliverTimeHook);
         this.defaultMQProducerImpl.start();
         if (null != traceDispatcher) {
             try {

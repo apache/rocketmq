@@ -101,7 +101,6 @@ public class StartDeliverTimeHook implements CheckForbiddenHook, FilterMessageHo
                     }
                 }
             }
-            
         }
     }
 

@@ -89,6 +89,8 @@ public class MessageUtil {
                                 delayLevelTable.put(TimeUnit.MINUTES.toMillis(delayTime), level);
                             } else if ("h".equals(delayUnit)) {
                                 delayLevelTable.put(TimeUnit.HOURS.toMillis(delayTime), level);
+                            } else if ("d".equals(delayUnit)) {
+                                delayLevelTable.put(TimeUnit.DAYS.toMillis(delayTime), level);
                             } else {
                                 throw new IllegalArgumentException();
                             }

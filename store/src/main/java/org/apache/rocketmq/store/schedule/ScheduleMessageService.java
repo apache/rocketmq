@@ -19,10 +19,12 @@ package org.apache.rocketmq.store.schedule;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.MixAll;
@@ -53,9 +55,11 @@ public class ScheduleMessageService extends ConfigManager {
     private static final long DELAY_FOR_A_WHILE = 100L;
     private static final long DELAY_FOR_A_PERIOD = 10000L;
 
-    private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
+    private final ConcurrentMap<Integer /* level */, Long /* delay timeMillis */> delayLevelTable =
         new ConcurrentHashMap<Integer, Long>(32);
-
+    private final ConcurrentSkipListMap<Long /* delay timeMillis */, Integer /* level */> reverseDelayLevelTable = 
+        new ConcurrentSkipListMap<Long, Integer>();
+    
     private final ConcurrentMap<Integer /* level */, Long/* offset */> offsetTable =
         new ConcurrentHashMap<Integer, Long>(32);
     private final DefaultMessageStore defaultMessageStore;
@@ -212,6 +216,7 @@ public class ScheduleMessageService extends ConfigManager {
                 long num = Long.parseLong(value.substring(0, value.length() - 1));
                 long delayTimeMillis = tu * num;
                 this.delayLevelTable.put(level, delayTimeMillis);
+                this.reverseDelayLevelTable.put(delayTimeMillis, level);
             }
         } catch (Exception e) {
             log.error("parseDelayLevel exception", e);
@@ -259,7 +264,13 @@ public class ScheduleMessageService extends ConfigManager {
 
             return result;
         }
-
+        private int calcDelayTimeLevel(long delayMillis) {
+            Entry<Long, Integer> entry = reverseDelayLevelTable.floorEntry(delayMillis);
+            if(entry != null) {
+                return entry.getValue();
+            }
+            return 0;
+        }
         public void executeOnTimeup() {
             ConsumeQueue cq =
                 ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(SCHEDULE_TOPIC,
@@ -310,6 +321,13 @@ public class ScheduleMessageService extends ConfigManager {
                                             log.error("[BUG] the real topic of schedule msg is {}, discard the msg. msg={}",
                                                     msgInner.getTopic(), msgInner);
                                             continue;
+                                        }
+                                        long delayMillis = msgExt.getStartDeliverTime() - System.currentTimeMillis();
+                                        if(delayMillis > 0) {
+                                           int level = calcDelayTimeLevel(delayMillis);
+                                           if(level > 0) {
+                                               msgInner.setDelayTimeLevel(level);
+                                           }
                                         }
                                         PutMessageResult putMessageResult =
                                             ScheduleMessageService.this.writeMessageStore
