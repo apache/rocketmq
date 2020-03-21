@@ -226,7 +226,15 @@ public class ScheduleMessageService extends ConfigManager {
 
         return true;
     }
-
+    
+    public int calcDelayTimeLevel(long delayMillis) {
+        Entry<Long, Integer> entry = reverseDelayLevelTable.floorEntry(delayMillis);
+        if (entry != null) {
+            return entry.getValue();
+        }
+        return 0;
+    }
+    
     class DeliverDelayedMessageTimerTask extends TimerTask {
         private final int delayLevel;
         private final long offset;
@@ -263,13 +271,6 @@ public class ScheduleMessageService extends ConfigManager {
             }
 
             return result;
-        }
-        private int calcDelayTimeLevel(long delayMillis) {
-            Entry<Long, Integer> entry = reverseDelayLevelTable.floorEntry(delayMillis);
-            if (entry != null) {
-                return entry.getValue();
-            }
-            return 0;
         }
         public void executeOnTimeup() {
             ConsumeQueue cq =

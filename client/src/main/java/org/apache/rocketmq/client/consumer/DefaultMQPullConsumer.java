@@ -24,7 +24,6 @@ import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAverage
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.hook.impl.StartDeliverTimeHook;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -294,9 +293,6 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     @Override
     public void start() throws MQClientException {
         this.setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
-        StartDeliverTimeHook startDeliverTimeHook = new StartDeliverTimeHook();
-        startDeliverTimeHook.setConsumer(this);
-        this.defaultMQPullConsumerImpl.registerFilterMessageHook(startDeliverTimeHook);
         this.defaultMQPullConsumerImpl.start();
     }
     
