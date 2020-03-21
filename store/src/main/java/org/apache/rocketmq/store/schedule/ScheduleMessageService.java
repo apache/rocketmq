@@ -266,7 +266,7 @@ public class ScheduleMessageService extends ConfigManager {
         }
         private int calcDelayTimeLevel(long delayMillis) {
             Entry<Long, Integer> entry = reverseDelayLevelTable.floorEntry(delayMillis);
-            if(entry != null) {
+            if (entry != null) {
                 return entry.getValue();
             }
             return 0;
@@ -323,11 +323,11 @@ public class ScheduleMessageService extends ConfigManager {
                                             continue;
                                         }
                                         long delayMillis = msgExt.getStartDeliverTime() - System.currentTimeMillis();
-                                        if(delayMillis > 0) {
-                                           int level = calcDelayTimeLevel(delayMillis);
-                                           if(level > 0) {
-                                               msgInner.setDelayTimeLevel(level);
-                                           }
+                                        if (delayMillis > 0) {
+                                            int level = calcDelayTimeLevel(delayMillis);
+                                            if (level > 0) {
+                                                msgInner.setDelayTimeLevel(level);
+                                            }
                                         }
                                         PutMessageResult putMessageResult =
                                             ScheduleMessageService.this.writeMessageStore
