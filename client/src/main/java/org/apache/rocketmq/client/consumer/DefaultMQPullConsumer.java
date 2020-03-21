@@ -295,7 +295,6 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         this.setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
         this.defaultMQPullConsumerImpl.start();
     }
-    
 
     @Override
     public void shutdown() {

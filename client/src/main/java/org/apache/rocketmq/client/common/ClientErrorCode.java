@@ -25,5 +25,4 @@ public class ClientErrorCode {
     public static final int NOT_FOUND_TOPIC_EXCEPTION = 10005;
     public static final int REQUEST_TIMEOUT_EXCEPTION = 10006;
     public static final int CREATE_REPLY_MESSAGE_EXCEPTION = 10007;
-    public static final int GET_BROKER_CONFIG_EXCEPTION = 10008;
 }

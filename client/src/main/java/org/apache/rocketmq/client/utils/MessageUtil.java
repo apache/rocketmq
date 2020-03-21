@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.client.utils;
 
-import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.rocketmq.client.common.ClientErrorCode;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -29,8 +27,6 @@ import org.apache.rocketmq.common.message.MessageConst;
 
 
 public class MessageUtil {
-    
-    private static ConcurrentHashMap<String, TreeMap<Long, Integer>> brokerDelayLevelTable = new ConcurrentHashMap<String, TreeMap<Long,Integer>>();
     
     public static Message createReplyMessage(final Message requestMessage, final byte[] body) throws MQClientException {
         if (requestMessage != null) {
