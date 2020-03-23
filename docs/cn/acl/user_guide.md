@@ -82,5 +82,88 @@ RocketMQ的权限控制存储的默认实现是基于yml配置文件。用户可
 (2)如果ACL与高可用部署(多副本Dledger架构)同时启用，由于出现节点宕机时，Dledger Group组内会自动选主，那么就需要将Dledger Group组
 内所有Broker节点的plain_acl.yml配置文件的白名单设置所有Broker节点的ip地址。
 
-**特别注意**在[4.5.0]版本中即使使用上面所述的白名单也无法解决开启ACL的问题，解决该问题的[PR链接](https://github.com/apache/rocketmq/pull/1149)
+## 7. ACL mqadmin配置管理命令
 
+### 7.1 更新ACL配置文件中“account”的属性值
+
+该命令的示例如下：
+
+sh mqadmin updateAclConfig -n 192.168.1.2:9876 -b 192.168.12.134:10911 -a RocketMQ -s 1234567809123 
+-t topicA=DENY,topicD=SUB -g groupD=DENY,groupB=SUB
+
+说明：如果不存在则会在ACL Config YAML配置文件中创建；若存在，则会更新对应的“accounts”的属性值;
+如果指定的是集群名称，则会在集群中各个broker节点执行该命令；否则会在单个broker节点执行该命令。
+
+| 参数 | 取值 | 含义 |
+| --- | --- | --- |
+| n | eg:192.168.1.2:9876 | namesrv地址(必填) |
+| c | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
+| b | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
+| a | eg:RocketMQ | Access Key值(必填) |
+| s | eg:1234567809123 | Secret Key值(可选) |
+| m | eg:true | 是否管理员账户(可选) |
+| w | eg:192.168.0.* | whiteRemoteAddress,用户IP白名单(可选) |
+| i | eg:DENY;PUB;SUB;PUB\|SUB | defaultTopicPerm,默认Topic权限(可选) |
+| u | eg:DENY;PUB;SUB;PUB\|SUB | defaultGroupPerm,默认ConsumerGroup权限(可选) |
+| t | eg:topicA=DENY,topicD=SUB | topicPerms,各个Topic的权限(可选) |
+| g | eg:groupD=DENY,groupB=SUB | groupPerms,各个ConsumerGroup的权限(可选) |
+
+### 7.2 删除ACL配置文件里面的对应“account”
+该命令的示例如下：
+
+sh mqadmin deleteAccessConfig -n 192.168.1.2:9876 -c DefaultCluster -a RocketMQ
+
+说明：如果指定的是集群名称，则会在集群中各个broker节点执行该命令；否则会在单个broker节点执行该命令。
+其中，参数"a"为Access Key的值，用以标识唯一账户id，因此该命令的参数中指定账户id即可。
+
+| 参数 | 取值 | 含义 |
+| --- | --- | --- |
+| n | eg:192.168.1.2:9876 | namesrv地址(必填) |
+| c | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
+| b | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
+| a | eg:RocketMQ | Access Key的值(必填) |
+
+
+### 7.3 更新ACL配置文件里面中的全局白名单
+该命令的示例如下：
+
+sh mqadmin updateGlobalWhiteAddr -n 192.168.1.2:9876 -b 192.168.12.134:10911 -g 10.10.154.1,10.10.154.2
+
+说明：如果指定的是集群名称，则会在集群中各个broker节点执行该命令；否则会在单个broker节点执行该命令。
+其中，参数"g"为全局IP白名的值，用以更新ACL配置文件中的“globalWhiteRemoteAddresses”字段的属性值。
+
+| 参数 | 取值 | 含义 |
+| --- | --- | --- |
+| n | eg:192.168.1.2:9876 | namesrv地址(必填) |
+| c | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
+| b | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
+| g | eg:10.10.154.1,10.10.154.2 | 全局IP白名单(必填) |
+
+### 7.4 查询集群/Broker的ACL配置文件版本信息
+该命令的示例如下：
+
+sh mqadmin clusterAclConfigVersion -n 192.168.1.2:9876 -c DefaultCluster
+
+说明：如果指定的是集群名称，则会在集群中各个broker节点执行该命令；否则会在单个broker节点执行该命令。
+
+| 参数 | 取值 | 含义 |
+| --- | --- | --- |
+| n | eg:192.168.1.2:9876 | namesrv地址(必填) |
+| c | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
+| b | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
+
+### 7.5 查询集群/Broker的ACL配置文件全部内容
+该命令的示例如下：
+
+sh mqadmin getAccessConfigSubCommand -n 192.168.1.2:9876 -c DefaultCluster
+
+说明：如果指定的是集群名称，则会在集群中各个broker节点执行该命令；否则会在单个broker节点执行该命令。
+
+| 参数 | 取值 | 含义 |
+| --- | --- | --- |
+| n | eg:192.168.1.2:9876 | namesrv地址(必填) |
+| c | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
+| b | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
+
+**特别注意**开启Acl鉴权认证后导致Master/Slave和Dledger模式下Broker同步数据异常的问题，
+在社区[4.5.1]版本中已经修复，具体的PR链接为：https://github.com/apache/rocketmq/pull/1149；

@@ -24,6 +24,7 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -40,7 +41,6 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -76,8 +76,8 @@ public class DefaultMessageStoreTest {
         MessageBody = StoreMessage.getBytes();
 
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        messageStoreConfig.setMapedFileSizeCommitLog(1024 * 8);
-        messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 4);
+        messageStoreConfig.setMappedFileSizeCommitLog(1024 * 8);
+        messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 4);
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
         MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig());
@@ -106,8 +106,8 @@ public class DefaultMessageStoreTest {
 
     private MessageStore buildMessageStore() throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        messageStoreConfig.setMapedFileSizeCommitLog(1024 * 1024 * 10);
-        messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 1024 * 10);
+        messageStoreConfig.setMappedFileSizeCommitLog(1024 * 1024 * 10);
+        messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 1024 * 10);
         messageStoreConfig.setMaxHashSlotNum(10000);
         messageStoreConfig.setMaxIndexNum(100 * 100);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
@@ -117,11 +117,17 @@ public class DefaultMessageStoreTest {
 
     @Test
     public void testWriteAndRead() {
-        long totalMsgs = 10;
+        long ipv4HostMsgs = 10;
+        long ipv6HostMsgs = 10;
+        long totalMsgs = ipv4HostMsgs + ipv6HostMsgs;
         QUEUE_TOTAL = 1;
         MessageBody = StoreMessage.getBytes();
-        for (long i = 0; i < totalMsgs; i++) {
+        for (long i = 0; i < ipv4HostMsgs; i++) {
             messageStore.putMessage(buildMessage());
+        }
+
+        for (long i = 0; i < ipv6HostMsgs; i++) {
+            messageStore.putMessage(buildIPv6HostMessage());
         }
 
         StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
@@ -135,7 +141,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void should_look_message_successfully_when_offset_is_first() {
+    public void testLookMessageByOffset_OffsetIsFirst() {
         final int totalCount = 10;
         int queueId = new Random().nextInt(10);
         String topic = "FooBar";
@@ -151,7 +157,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void should_look_message_successfully_when_offset_is_last() {
+    public void testLookMessageByOffset_OffsetIsLast() {
         final int totalCount = 10;
         int queueId = new Random().nextInt(10);
         String topic = "FooBar";
@@ -165,7 +171,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void should_look_message_failed_and_return_null_when_offset_is_out_of_bound() {
+    public void testLookMessageByOffset_OffsetIsOutOfBound() {
         final int totalCount = 10;
         int queueId = new Random().nextInt(10);
         String topic = "FooBar";
@@ -178,7 +184,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void should_get_consume_queue_offset_successfully_when_incomming_by_timestamp() throws InterruptedException {
+    public void testGetOffsetInQueueByTime() {
         final int totalCount = 10;
         int queueId = 0;
         String topic = "FooBar";
@@ -197,7 +203,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void should_get_consume_queue_offset_successfully_when_timestamp_is_skewing() throws InterruptedException {
+    public void testGetOffsetInQueueByTime_TimestampIsSkewing() {
         final int totalCount = 10;
         int queueId = 0;
         String topic = "FooBar";
@@ -222,7 +228,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void should_get_min_of_max_consume_queue_offset_when_timestamp_s_skewing_is_large() throws InterruptedException {
+    public void testGetOffsetInQueueByTime_TimestampSkewingIsLarge() {
         final int totalCount = 10;
         int queueId = 0;
         String topic = "FooBar";
@@ -248,7 +254,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void should_return_zero_when_consume_queue_not_found() throws InterruptedException {
+    public void testGetOffsetInQueueByTime_ConsumeQueueNotFound1() {
         final int totalCount = 10;
         int queueId = 0;
         int wrongQueueId = 1;
@@ -264,7 +270,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void should_return_negative_one_when_invoke_getMessageStoreTimeStamp_if_consume_queue_not_found() throws InterruptedException {
+    public void testGetOffsetInQueueByTime_ConsumeQueueNotFound2() {
         final int totalCount = 10;
         int queueId = 0;
         int wrongQueueId = 1;
@@ -279,7 +285,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void should_return_negative_one_when_invoke_getMessageStoreTimeStamp_if_consumeQueueOffset_not_exist() throws InterruptedException {
+    public void testGetOffsetInQueueByTime_ConsumeQueueOffsetNotExist() {
         final int totalCount = 10;
         int queueId = 0;
         int wrongQueueId = 1;
@@ -294,9 +300,8 @@ public class DefaultMessageStoreTest {
         assertThat(messageStoreTimeStamp).isEqualTo(-1);
     }
 
-
     @Test
-    public void should_get_message_store_timestamp_successfully_when_incomming_by_topic_queueId_and_consumeQueueOffset() throws InterruptedException {
+    public void testGetMessageStoreTimeStamp() {
         final int totalCount = 10;
         int queueId = 0;
         String topic = "FooBar";
@@ -305,7 +310,7 @@ public class DefaultMessageStoreTest {
         StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
 
         ConsumeQueue consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
-        int minOffsetInQueue = (int)consumeQueue.getMinOffsetInQueue();
+        int minOffsetInQueue = (int) consumeQueue.getMinOffsetInQueue();
         for (int i = minOffsetInQueue; i < consumeQueue.getMaxOffsetInQueue(); i++) {
             long messageStoreTimeStamp = messageStore.getMessageStoreTimeStamp(topic, queueId, i);
             assertThat(messageStoreTimeStamp).isEqualTo(appendMessageResults[i].getStoreTimestamp());
@@ -313,14 +318,14 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void should_return_negative_one_when_invoke_getStoreTime_if_incomming_param_is_null() {
+    public void testGetStoreTime_ParamIsNull() {
         long storeTime = getStoreTime(null);
 
         assertThat(storeTime).isEqualTo(-1);
     }
 
     @Test
-    public void should_get_store_time_successfully_when_invoke_getStoreTime_if_everything_is_ok() throws InterruptedException {
+    public void testGetStoreTime_EverythingIsOk() {
         final int totalCount = 10;
         int queueId = 0;
         String topic = "FooBar";
@@ -338,7 +343,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void should_return_negative_one_when_invoke_getStoreTime_if_phyOffset_is_less_than_commitLog_s_minOffset() {
+    public void testGetStoreTime_PhyOffsetIsLessThanCommitLogMinOffset() {
         long phyOffset = -10;
         int size = 138;
         ByteBuffer byteBuffer = ByteBuffer.allocate(100);
@@ -355,7 +360,7 @@ public class DefaultMessageStoreTest {
     }
 
     private DefaultMessageStore getDefaultMessageStore() {
-        return (DefaultMessageStore)this.messageStore;
+        return (DefaultMessageStore) this.messageStore;
     }
 
     private AppendMessageResult[] putMessages(int totalCount, String topic, int queueId) {
@@ -366,7 +371,9 @@ public class DefaultMessageStoreTest {
         AppendMessageResult[] appendMessageResultArray = new AppendMessageResult[totalCount];
         for (int i = 0; i < totalCount; i++) {
             String messageBody = buildMessageBodyByOffset(StoreMessage, i);
-            MessageExtBrokerInner msgInner = buildMessage(messageBody.getBytes(), topic);
+
+            MessageExtBrokerInner msgInner =
+                i < totalCount / 2 ? buildMessage(messageBody.getBytes(), topic) : buildIPv6HostMessage(messageBody.getBytes(), topic);
             msgInner.setQueueId(queueId);
             PutMessageResult result = messageStore.putMessage(msgInner);
             appendMessageResultArray[i] = result.getAppendMessageResult();
@@ -375,7 +382,7 @@ public class DefaultMessageStoreTest {
                 try {
                     Thread.sleep(10);
                 } catch (InterruptedException e) {
-                    throw  new RuntimeException("Thread sleep ERROR");
+                    throw new RuntimeException("Thread sleep ERROR");
                 }
             }
         }
@@ -398,7 +405,7 @@ public class DefaultMessageStoreTest {
         try {
             Method getStoreTime = getDefaultMessageStore().getClass().getDeclaredMethod("getStoreTime", SelectMappedBufferResult.class);
             getStoreTime.setAccessible(true);
-            return (long)getStoreTime.invoke(getDefaultMessageStore(), result);
+            return (long) getStoreTime.invoke(getDefaultMessageStore(), result);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
@@ -419,8 +426,41 @@ public class DefaultMessageStoreTest {
         return msg;
     }
 
+    private MessageExtBrokerInner buildIPv6HostMessage(byte[] messageBody, String topic) {
+        MessageExtBrokerInner msg = new MessageExtBrokerInner();
+        msg.setTopic(topic);
+        msg.setTags("TAG1");
+        msg.setKeys("Hello");
+        msg.setBody(messageBody);
+        msg.setMsgId("24084004018081003FAA1DDE2B3F898A00002A9F0000000000000CA0");
+        msg.setKeys(String.valueOf(System.currentTimeMillis()));
+        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+        msg.setSysFlag(0);
+        msg.setBornHostV6Flag();
+        msg.setStoreHostAddressV6Flag();
+        msg.setBornTimestamp(System.currentTimeMillis());
+        try {
+            msg.setBornHost(new InetSocketAddress(InetAddress.getByName("1050:0000:0000:0000:0005:0600:300c:326b"), 0));
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            assertThat(Boolean.FALSE).isTrue();
+        }
+
+        try {
+            msg.setStoreHost(new InetSocketAddress(InetAddress.getByName("::1"), 0));
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            assertThat(Boolean.FALSE).isTrue();
+        }
+        return msg;
+    }
+
     private MessageExtBrokerInner buildMessage() {
         return buildMessage(MessageBody, "FooBar");
+    }
+
+    private MessageExtBrokerInner buildIPv6HostMessage() {
+        return buildIPv6HostMessage(MessageBody, "FooBar");
     }
 
     private void verifyThatMasterIsFunctional(long totalMsgs, MessageStore master) {
@@ -478,7 +518,7 @@ public class DefaultMessageStoreTest {
             messageStore.putMessage(messageExtBrokerInner);
         }
 
-       // Thread.sleep(100);//wait for build consumer queue
+        // Thread.sleep(100);//wait for build consumer queue
         StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
 
         long maxPhyOffset = messageStore.getMaxPhyOffset();
@@ -588,7 +628,7 @@ public class DefaultMessageStoreTest {
     private class MyMessageArrivingListener implements MessageArrivingListener {
         @Override
         public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
-                             byte[] filterBitMap, Map<String, String> properties) {
+            byte[] filterBitMap, Map<String, String> properties) {
         }
     }
 }

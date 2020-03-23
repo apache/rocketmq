@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.dledger;
 import io.openmessaging.storage.dledger.DLedgerConfig;
 import io.openmessaging.storage.dledger.DLedgerServer;
 import java.io.File;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -43,8 +44,8 @@ public class MessageStoreTestBase extends StoreTestBase {
         System.setProperty("dledger.disk.ratio.clean", "0.95");
         baseDirs.add(base);
         MessageStoreConfig storeConfig = new MessageStoreConfig();
-        storeConfig.setMapedFileSizeCommitLog(1024 * 100);
-        storeConfig.setMapedFileSizeConsumeQueue(1024);
+        storeConfig.setMappedFileSizeCommitLog(1024 * 100);
+        storeConfig.setMappedFileSizeConsumeQueue(1024);
         storeConfig.setMaxHashSlotNum(100);
         storeConfig.setMaxIndexNum(100 * 10);
         storeConfig.setStorePathRootDir(base);
@@ -98,8 +99,8 @@ public class MessageStoreTestBase extends StoreTestBase {
     protected DefaultMessageStore createMessageStore(String base, boolean createAbort) throws Exception {
         baseDirs.add(base);
         MessageStoreConfig storeConfig = new MessageStoreConfig();
-        storeConfig.setMapedFileSizeCommitLog(1024 * 100);
-        storeConfig.setMapedFileSizeConsumeQueue(1024);
+        storeConfig.setMappedFileSizeCommitLog(1024 * 100);
+        storeConfig.setMappedFileSizeConsumeQueue(1024);
         storeConfig.setMaxHashSlotNum(100);
         storeConfig.setMaxIndexNum(100 * 10);
         storeConfig.setStorePathRootDir(base);
@@ -118,7 +119,7 @@ public class MessageStoreTestBase extends StoreTestBase {
         return defaultMessageStore;
     }
 
-    protected void doPutMessages(MessageStore messageStore, String topic, int queueId, int num, long beginLogicsOffset) {
+    protected void doPutMessages(MessageStore messageStore, String topic, int queueId, int num, long beginLogicsOffset) throws UnknownHostException {
         for (int i = 0; i < num; i++) {
             MessageExtBrokerInner msgInner = buildMessage();
             msgInner.setTopic(topic);
