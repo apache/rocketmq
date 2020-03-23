@@ -419,26 +419,25 @@ public class RouteInfoManager {
 
     public void scanNotActiveBroker() {
         Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, BrokerLiveInfo> next = it.next();
-            long last = next.getValue().getLastUpdateTimestamp();
-            if ((last + BROKER_CHANNEL_EXPIRED_TIME) < System.currentTimeMillis()) {
-                RemotingUtil.closeChannel(next.getValue().getChannel());
-                try {
-                    try {
-                        this.lock.writeLock().lockInterruptibly();
+        try{
+            try {
+                this.lock.writeLock().lockInterruptibly();
+                while (it.hasNext()) {
+                    Entry<String, BrokerLiveInfo> next = it.next();
+                    long last = next.getValue().getLastUpdateTimestamp();
+                    if ((last + BROKER_CHANNEL_EXPIRED_TIME) < System.currentTimeMillis()) {
+                        RemotingUtil.closeChannel(next.getValue().getChannel());
                         it.remove();
                         log.warn("The broker channel expired, {} {}ms", next.getKey(), BROKER_CHANNEL_EXPIRED_TIME);
                         this.onChannelDestroy(next.getKey(), next.getValue().getChannel());
-                    } catch (Exception e) {
-                        log.error("Delete Not Active Broker Exception", e);
-                    } finally {
-                        this.lock.writeLock().unlock();
                     }
-                } catch (Exception e) {
-                    log.error("Delete Not Active Broker Exception", e);
                 }
+            }finally {
+                this.lock.writeLock().unlock();
             }
+
+        } catch (Exception e){
+            log.error("scanNotActiveBroker Exception", e);
         }
     }
 
