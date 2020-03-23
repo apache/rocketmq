@@ -419,7 +419,7 @@ public class RouteInfoManager {
 
     public void scanNotActiveBroker() {
         Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();
-        try{
+        try {
             try {
                 this.lock.writeLock().lockInterruptibly();
                 while (it.hasNext()) {
@@ -432,11 +432,11 @@ public class RouteInfoManager {
                         this.onChannelDestroy(next.getKey(), next.getValue().getChannel());
                     }
                 }
-            }finally {
+            } finally {
                 this.lock.writeLock().unlock();
             }
 
-        } catch (Exception e){
+        } catch (Exception e) {
             log.error("scanNotActiveBroker Exception", e);
         }
     }
