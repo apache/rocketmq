@@ -121,6 +121,13 @@ public class ScheduleMessageServiceTest {
         assertThat(level).isEqualTo(delayLevel - 1);
     }
     
+    @Test
+    public void startDeliverTimeTest() throws Exception {
+        MessageExtBrokerInner msg = buildMessage();
+        msg.setStartDeliverTime(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(20L));
+        PutMessageResult result = messageStore.putMessage(msg);
+        assertThat(result.isOk()).isTrue();
+    }
     
     @Test
     public void deliverDelayedMessageTimerTaskTest() throws Exception {
