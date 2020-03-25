@@ -328,6 +328,9 @@ public class ScheduleMessageService extends ConfigManager {
                                             int level = calcDelayTimeLevel(delayMillis);
                                             if (level > 0) {
                                                 msgInner.setDelayTimeLevel(level);
+                                            } else {
+                                                // Delay is allowed, not advance
+                                                msgInner.setDelayTimeLevel(reverseDelayLevelTable.firstEntry().getValue());
                                             }
                                         }
                                         PutMessageResult putMessageResult =
