@@ -30,7 +30,7 @@ public class SessionCredentials {
     public static final String SECURITY_TOKEN = "SecurityToken";
 
     public static final String KEY_FILE = System.getProperty("rocketmq.client.keyFile",
-        System.getProperty("user.home") + File.separator + "key");
+        System.getProperty("user.home") + File.separator + "omskey");
 
     private String accessKey;
     private String secretKey;
