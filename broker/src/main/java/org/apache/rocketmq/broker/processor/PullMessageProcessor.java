@@ -105,6 +105,13 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
             return response;
         }
 
+        if (!this.brokerController.getBrokerConfig().isSlaveReadEnable() &&
+            this.brokerController.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
+            response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
+            responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
+            return response;
+        }
+
         SubscriptionGroupConfig subscriptionGroupConfig =
             this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(requestHeader.getConsumerGroup());
         if (null == subscriptionGroupConfig) {
@@ -248,18 +255,6 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                 responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getWhichBrokerWhenConsumeSlowly());
             } else {
                 responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
-            }
-
-            switch (this.brokerController.getMessageStoreConfig().getBrokerRole()) {
-                case ASYNC_MASTER:
-                case SYNC_MASTER:
-                    break;
-                case SLAVE:
-                    if (!this.brokerController.getBrokerConfig().isSlaveReadEnable()) {
-                        response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
-                        responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
-                    }
-                    break;
             }
 
             if (this.brokerController.getBrokerConfig().isSlaveReadEnable()) {
