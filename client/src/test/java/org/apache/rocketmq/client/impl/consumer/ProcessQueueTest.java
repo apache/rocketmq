@@ -38,7 +38,7 @@ public class ProcessQueueTest {
 
         assertThat(pq.getMsgCount().get()).isEqualTo(100);
 
-        pq.takeMessags(10);
+        pq.takeMessages(10);
         pq.commit();
 
         assertThat(pq.getMsgCount().get()).isEqualTo(90);
@@ -55,7 +55,7 @@ public class ProcessQueueTest {
 
         assertThat(pq.getMsgSize().get()).isEqualTo(100 * 123);
 
-        pq.takeMessags(10);
+        pq.takeMessages(10);
         pq.commit();
 
         assertThat(pq.getMsgSize().get()).isEqualTo(90 * 123);
@@ -74,17 +74,17 @@ public class ProcessQueueTest {
 
         assertThat(processQueueInfo.getCachedMsgSizeInMiB()).isEqualTo(12);
 
-        pq.takeMessags(10000);
+        pq.takeMessages(10000);
         pq.commit();
         pq.fillProcessQueueInfo(processQueueInfo);
         assertThat(processQueueInfo.getCachedMsgSizeInMiB()).isEqualTo(10);
 
-        pq.takeMessags(10000);
+        pq.takeMessages(10000);
         pq.commit();
         pq.fillProcessQueueInfo(processQueueInfo);
         assertThat(processQueueInfo.getCachedMsgSizeInMiB()).isEqualTo(9);
 
-        pq.takeMessags(80000);
+        pq.takeMessages(80000);
         pq.commit();
         pq.fillProcessQueueInfo(processQueueInfo);
         assertThat(processQueueInfo.getCachedMsgSizeInMiB()).isEqualTo(0);
