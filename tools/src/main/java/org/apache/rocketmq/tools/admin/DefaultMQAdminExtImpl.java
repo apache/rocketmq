@@ -1065,15 +1065,15 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
      * @return true: all is java instances, false: not sure
      */
     public boolean isAllInstancesInGroupJava(String group) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        ConsumerConnection connection =  this.examineConsumerConnectionInfo(group);;
-        boolean isJava = false;
-
-        if (connection == null || connection.getConnectionSet().isEmpty()) {
-            return isJava;
+        ConsumerConnection connection =  this.examineConsumerConnectionInfo(group);
+        if (connection.getConnectionSet().isEmpty()) {
+            return false;
         }
+        boolean isJava = false;
         for (Connection con : connection.getConnectionSet()) {
             if (LanguageCode.JAVA == con.getLanguage()) {
-                isJava = true;//if >=2 languages used in instances, it can't be judged
+                //if >=2 languages used in instances, it can't be judged
+                isJava = true;
                 break;
             }
         }
