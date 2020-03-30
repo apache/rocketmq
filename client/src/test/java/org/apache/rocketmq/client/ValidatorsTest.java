@@ -73,11 +73,15 @@ public class ValidatorsTest {
     public void testCheckName_TooLongTopic() {
         String tooLongName = StringUtils.rightPad("TooLongName", Validators.CHARACTER_MAX_LENGTH + 1, "_");
         assertThat(tooLongName.length()).isGreaterThan(Validators.CHARACTER_MAX_LENGTH);
+    public void testCheckTopic_TooLongTopic() {
+        String tooLongTopic = StringUtils.rightPad("TooLongTopic", Validators.TOPIC_MAX_LENGTH + 1, "_");
+        assertThat(tooLongTopic.length()).isGreaterThan(Validators.TOPIC_MAX_LENGTH);
         try {
             Validators.checkName(tooLongName);
             failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
             assertThat(e).hasMessageStartingWith(String.format("The specified %s is longer than topic max length %s.",tooLongName,Validators.CHARACTER_MAX_LENGTH));
+            assertThat(e).hasMessageStartingWith("The specified topic is longer than topic max length");
         }
     }
 }

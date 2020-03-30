@@ -33,6 +33,7 @@ public class Validators {
     public static final String VALID_PATTERN_STR = "^[%|a-zA-Z0-9_-]+$";
     public static final Pattern PATTERN = Pattern.compile(VALID_PATTERN_STR);
     public static final int CHARACTER_MAX_LENGTH = 255;
+    public static final int TOPIC_MAX_LENGTH = 127;
 
     /**
      * @return The resulting {@code String}
@@ -77,9 +78,6 @@ public class Validators {
         return matcher.matches();
     }
 
-    /**
-     * Validate message
-     */
     public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer)
         throws MQClientException {
         if (null == msg) {
@@ -103,12 +101,17 @@ public class Validators {
         }
     }
 
+
     /**
      * Validate checkName (topic and GroupName)
      */
     public static void checkName(String name) throws MQClientException {
         if (UtilAll.isBlank(name)) {
             throw new MQClientException("The specified name is blank", null);
+
+    public static void checkTopic(String topic) throws MQClientException {
+        if (UtilAll.isBlank(topic)) {
+            throw new MQClientException("The specified topic is blank", null);
         }
 
         if (!regularExpressionMatcher(name, PATTERN)) {
@@ -117,9 +120,13 @@ public class Validators {
                 VALID_PATTERN_STR), null);
         }
 
+
         if (name.length() > CHARACTER_MAX_LENGTH) {
             throw new MQClientException(
                     String.format("The specified %s is longer than topic max length %s.",name,CHARACTER_MAX_LENGTH), null);
+        if (topic.length() > TOPIC_MAX_LENGTH) {
+            throw new MQClientException(
+                String.format("The specified topic is longer than topic max length %d.", TOPIC_MAX_LENGTH), null);
         }
 
         //whether the same with system reserved keyword only Topic

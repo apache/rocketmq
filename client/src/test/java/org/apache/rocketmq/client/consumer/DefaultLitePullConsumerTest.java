@@ -41,6 +41,7 @@ import org.apache.rocketmq.client.impl.consumer.RebalanceImpl;
 import org.apache.rocketmq.client.impl.consumer.RebalanceService;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -186,6 +187,36 @@ public class DefaultLitePullConsumerTest {
         field.setAccessible(true);
         AssignedMessageQueue assignedMessageQueue = (AssignedMessageQueue) field.get(litePullConsumerImpl);
         assertEquals(assignedMessageQueue.getSeekOffset(messageQueue), offset);
+        litePullConsumer.shutdown();
+    }
+
+    @Test
+    public void testSeek_SeekToBegin() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
+        when(mQAdminImpl.minOffset(any(MessageQueue.class))).thenReturn(0L);
+        when(mQAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(500L);
+        MessageQueue messageQueue = createMessageQueue();
+        litePullConsumer.assign(Collections.singletonList(messageQueue));
+        litePullConsumer.seekToBegin(messageQueue);
+        Field field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
+        field.setAccessible(true);
+        AssignedMessageQueue assignedMessageQueue = (AssignedMessageQueue) field.get(litePullConsumerImpl);
+        assertEquals(assignedMessageQueue.getSeekOffset(messageQueue), 0L);
+        litePullConsumer.shutdown();
+    }
+
+    @Test
+    public void testSeek_SeekToEnd() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
+        when(mQAdminImpl.minOffset(any(MessageQueue.class))).thenReturn(0L);
+        when(mQAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(500L);
+        MessageQueue messageQueue = createMessageQueue();
+        litePullConsumer.assign(Collections.singletonList(messageQueue));
+        litePullConsumer.seekToEnd(messageQueue);
+        Field field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
+        field.setAccessible(true);
+        AssignedMessageQueue assignedMessageQueue = (AssignedMessageQueue) field.get(litePullConsumerImpl);
+        assertEquals(assignedMessageQueue.getSeekOffset(messageQueue), 500L);
         litePullConsumer.shutdown();
     }
 
@@ -387,6 +418,50 @@ public class DefaultLitePullConsumerTest {
             litePullConsumer.shutdown();
         }
 
+    }
+
+    @Test
+    public void testComputePullFromWhereReturnedNotFound() throws Exception{
+        DefaultLitePullConsumer defaultLitePullConsumer = createStartLitePullConsumer();
+        defaultLitePullConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        MessageQueue messageQueue = createMessageQueue();
+        when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
+        long offset = rebalanceImpl.computePullFromWhere(messageQueue);
+        assertThat(offset).isEqualTo(0);
+    }
+
+    @Test
+    public void testComputePullFromWhereReturned() throws Exception{
+        DefaultLitePullConsumer defaultLitePullConsumer = createStartLitePullConsumer();
+        defaultLitePullConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        MessageQueue messageQueue = createMessageQueue();
+        when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(100L);
+        long offset = rebalanceImpl.computePullFromWhere(messageQueue);
+        assertThat(offset).isEqualTo(100);
+    }
+
+
+    @Test
+    public void testComputePullFromLast() throws Exception{
+        DefaultLitePullConsumer defaultLitePullConsumer = createStartLitePullConsumer();
+        defaultLitePullConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        MessageQueue messageQueue = createMessageQueue();
+        when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
+        when(mQClientFactory.getMQAdminImpl().maxOffset(any(MessageQueue.class))).thenReturn(100L);
+        long offset = rebalanceImpl.computePullFromWhere(messageQueue);
+        assertThat(offset).isEqualTo(100);
+    }
+
+    @Test
+    public void testComputePullByTimeStamp() throws Exception{
+        DefaultLitePullConsumer defaultLitePullConsumer = createStartLitePullConsumer();
+        defaultLitePullConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
+        defaultLitePullConsumer.setConsumeTimestamp("20191024171201");
+        MessageQueue messageQueue = createMessageQueue();
+        when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
+        when(mQClientFactory.getMQAdminImpl().searchOffset(any(MessageQueue.class),anyLong())).thenReturn(100L);
+        long offset = rebalanceImpl.computePullFromWhere(messageQueue);
+        assertThat(offset).isEqualTo(100);
     }
 
     private void initDefaultLitePullConsumer(DefaultLitePullConsumer litePullConsumer) throws Exception {
