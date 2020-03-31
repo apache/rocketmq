@@ -181,17 +181,17 @@ public class OMSUtil {
         }
         String accessKey = properties.getProperty(OMSBuiltinKeys.ACCESS_KEY);
         if (!StringUtils.isBlank(accessKey)) {
-            newPro.setProperty(PropertyKeyConst.AccessKey, accessKey);
+            newPro.setProperty(PropertyKeyConst.ACCESS_KEY, accessKey);
         }
 
         String secretKey = properties.getProperty(OMSBuiltinKeys.SECRET_KEY);
         if (!StringUtils.isBlank(secretKey)) {
-            newPro.setProperty(PropertyKeyConst.SecretKey, secretKey);
+            newPro.setProperty(PropertyKeyConst.SECRET_KEY, secretKey);
         }
 
         String securityToken = properties.getProperty(OMSBuiltinKeys.SECURITY_TOKEN);
         if (!StringUtils.isBlank(securityToken)) {
-            newPro.setProperty(PropertyKeyConst.SecurityToken, securityToken);
+            newPro.setProperty(PropertyKeyConst.SECURITY_TOKEN, securityToken);
         }
 
         String endpoint = properties.getProperty(OMSBuiltinKeys.ENDPOINT);

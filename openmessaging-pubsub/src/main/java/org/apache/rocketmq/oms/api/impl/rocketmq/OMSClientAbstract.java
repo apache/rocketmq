@@ -107,7 +107,7 @@ public abstract class OMSClientAbstract implements LifeCycle, Credentials {
         String nsAddrs = null;
 
         {
-            String property = this.properties.getProperty(PropertyKeyConst.ONSAddr);
+            String property = this.properties.getProperty(PropertyKeyConst.ONS_ADDR);
             if (property != null) {
                 nsAddrs = new TopAddressing(property).fetchNSAddr();
                 if (nsAddrs != null) {

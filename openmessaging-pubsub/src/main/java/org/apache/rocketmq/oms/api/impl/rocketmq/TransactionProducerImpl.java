@@ -52,30 +52,38 @@ public class TransactionProducerImpl extends OMSClientAbstract implements Transa
         if (StringUtils.isEmpty(producerGroup)) {
             producerGroup = "__ONS_PRODUCER_DEFAULT_GROUP";
         }
-        transactionMQProducer =
-            new TransactionMQProducer(this.getNamespace(), producerGroup, new AclClientRPCHook(sessionCredentials));
 
-        boolean isVipChannelEnabled = Boolean.parseBoolean(properties.getProperty(PropertyKeyConst.isVipChannelEnabled, "false"));
+        String aclEnable = properties.getProperty(PropertyKeyConst.ACL_ENABLE);
+        if (!UtilAll.isBlank(aclEnable) && (!Boolean.parseBoolean(aclEnable))) {
+            transactionMQProducer =
+                new TransactionMQProducer(this.getNamespace(), producerGroup, new AclClientRPCHook(sessionCredentials));
+        } else {
+            transactionMQProducer =
+                new TransactionMQProducer(this.getNamespace(), producerGroup);
+        }
+
+        boolean isVipChannelEnabled = Boolean.parseBoolean(properties.getProperty(PropertyKeyConst.VIP_CHANNEL_ENABLED, "false"));
         transactionMQProducer.setVipChannelEnabled(isVipChannelEnabled);
         if (properties.containsKey(PropertyKeyConst.LANGUAGE_IDENTIFIER)) {
             int language = Integer.valueOf(properties.get(PropertyKeyConst.LANGUAGE_IDENTIFIER).toString());
             byte languageByte = (byte) language;
             this.transactionMQProducer.setLanguage(LanguageCode.valueOf(languageByte));
         }
-        String instanceName = properties.getProperty(PropertyKeyConst.InstanceName, this.buildIntanceName());
+        String instanceName = properties.getProperty(PropertyKeyConst.INSTANCE_NAME, this.buildIntanceName());
         this.transactionMQProducer.setInstanceName(instanceName);
 
-//        boolean addExtendUniqInfo = Boolean.parseBoolean(properties.getProperty(PropertyKeyConst.EXACTLYONCE_DELIVERY, "false"));
-//        transactionMQProducer.setAddExtendUniqInfo(addExtendUniqInfo);
-
         transactionMQProducer.setTransactionCheckListener(transactionCheckListener);
-        String msgTraceSwitch = properties.getProperty(PropertyKeyConst.MsgTraceSwitch);
+        String msgTraceSwitch = properties.getProperty(PropertyKeyConst.MSG_TRACE_SWITCH);
         if (!UtilAll.isBlank(msgTraceSwitch) && (!Boolean.parseBoolean(msgTraceSwitch))) {
             LOGGER.info("MQ Client Disable the Trace Hook!");
         } else {
             try {
                 String traceTopicName = properties.getProperty(PropertyKeyConst.TRACE_TOPIC_NAME);
-                this.traceDispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.CONSUME, traceTopicName, new AclClientRPCHook(sessionCredentials));
+                if (!UtilAll.isBlank(aclEnable) && (!Boolean.parseBoolean(aclEnable))) {
+                    this.traceDispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, traceTopicName, new AclClientRPCHook(sessionCredentials));
+                } else {
+                    this.traceDispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, traceTopicName, null);
+                }
                 ((AsyncTraceDispatcher) this.traceDispatcher).setNameServer(this.getNameServerAddr());
                 ((AsyncTraceDispatcher) this.traceDispatcher).setHostProducer(transactionMQProducer.getDefaultMQProducerImpl());
                 String accessChannelConfig = properties.getProperty(PropertyKeyConst.ACCESS_CHANNEL);

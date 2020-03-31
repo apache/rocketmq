@@ -37,10 +37,10 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.oms.api.impl.util.ClientLoggerUtil;
 import org.apache.rocketmq.oms.api.Constants;
 import org.apache.rocketmq.oms.api.PropertyKeyConst;
 import org.apache.rocketmq.oms.api.PropertyValueConst;
+import org.apache.rocketmq.oms.api.impl.util.ClientLoggerUtil;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
 public class PullConsumerImpl extends OMSClientAbstract implements PullConsumer {
@@ -62,11 +62,16 @@ public class PullConsumerImpl extends OMSClientAbstract implements PullConsumer 
         if (StringUtils.isEmpty(consumerGroup)) {
             throw new OMSRuntimeException("Unable to get GROUP_ID property");
         }
+        String aclEnable = properties.getProperty(PropertyKeyConst.ACL_ENABLE);
+        if (!UtilAll.isBlank(aclEnable) && (!Boolean.parseBoolean(aclEnable))) {
+            this.litePullConsumer =
+                new DefaultLitePullConsumer(this.getNamespace(), consumerGroup, new AclClientRPCHook(sessionCredentials));
+        } else {
+            this.litePullConsumer = new DefaultLitePullConsumer(consumerGroup);
+            this.litePullConsumer.setNamespace(this.getNamespace());
+        }
 
-        this.litePullConsumer =
-            new DefaultLitePullConsumer(this.getNamespace(), consumerGroup, new AclClientRPCHook(sessionCredentials));
-
-        String messageModel = properties.getProperty(PropertyKeyConst.MessageModel, PropertyValueConst.CLUSTERING);
+        String messageModel = properties.getProperty(PropertyKeyConst.MESSAGE_MODEL, PropertyValueConst.CLUSTERING);
         this.litePullConsumer.setMessageModel(MessageModel.valueOf(messageModel));
 
         String maxBatchMessageCount = properties.getProperty(PropertyKeyConst.MAX_BATCH_MESSAGE_COUNT);
@@ -74,30 +79,30 @@ public class PullConsumerImpl extends OMSClientAbstract implements PullConsumer 
             this.litePullConsumer.setPullBatchSize(Integer.valueOf(maxBatchMessageCount));
         }
 
-        boolean isVipChannelEnabled = Boolean.parseBoolean(properties.getProperty(PropertyKeyConst.isVipChannelEnabled, "false"));
+        boolean isVipChannelEnabled = Boolean.parseBoolean(properties.getProperty(PropertyKeyConst.VIP_CHANNEL_ENABLED, "false"));
         this.litePullConsumer.setVipChannelEnabled(isVipChannelEnabled);
         if (properties.containsKey(PropertyKeyConst.LANGUAGE_IDENTIFIER)) {
             int language = Integer.valueOf(properties.get(PropertyKeyConst.LANGUAGE_IDENTIFIER).toString());
             byte languageByte = (byte) language;
             this.litePullConsumer.setLanguage(LanguageCode.valueOf(languageByte));
         }
-        String instanceName = properties.getProperty(PropertyKeyConst.InstanceName, this.buildIntanceName());
+        String instanceName = properties.getProperty(PropertyKeyConst.INSTANCE_NAME, this.buildIntanceName());
         this.litePullConsumer.setInstanceName(instanceName);
         this.litePullConsumer.setNamesrvAddr(this.getNameServerAddr());
 
-        String consumeThreadNums = properties.getProperty(PropertyKeyConst.ConsumeThreadNums);
+        String consumeThreadNums = properties.getProperty(PropertyKeyConst.CONSUME_THREAD_NUMS);
         if (!UtilAll.isBlank(consumeThreadNums)) {
             this.litePullConsumer.setPullThreadNums(Integer.valueOf(consumeThreadNums));
         }
 
-        String configuredCachedMessageAmount = properties.getProperty(PropertyKeyConst.MaxCachedMessageAmount);
+        String configuredCachedMessageAmount = properties.getProperty(PropertyKeyConst.MAX_CACHED_MESSAGE_AMOUNT);
         if (!UtilAll.isBlank(configuredCachedMessageAmount)) {
             maxCachedMessageAmount = Math.min(MAX_CACHED_MESSAGE_AMOUNT, Integer.valueOf(configuredCachedMessageAmount));
             maxCachedMessageAmount = Math.max(MIN_CACHED_MESSAGE_AMOUNT, maxCachedMessageAmount);
             this.litePullConsumer.setPullThresholdForAll(maxCachedMessageAmount);
         }
 
-        String configuredCachedMessageSizeInMiB = properties.getProperty(PropertyKeyConst.MaxCachedMessageSizeInMiB);
+        String configuredCachedMessageSizeInMiB = properties.getProperty(PropertyKeyConst.MAX_CACHED_MESSAGE_SIZE_IN_MB);
         if (!UtilAll.isBlank(configuredCachedMessageSizeInMiB)) {
             maxCachedMessageSizeInMiB = Math.min(MAX_CACHED_MESSAGE_SIZE_IN_MIB, Integer.valueOf(configuredCachedMessageSizeInMiB));
             maxCachedMessageSizeInMiB = Math.max(MIN_CACHED_MESSAGE_SIZE_IN_MIB, maxCachedMessageSizeInMiB);

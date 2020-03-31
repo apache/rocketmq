@@ -42,10 +42,10 @@ public class ConsumerImpl extends OMSConsumerAbstract implements Consumer {
 
     public ConsumerImpl(final Properties properties) {
         super(properties);
-        boolean postSubscriptionWhenPull = Boolean.parseBoolean(properties.getProperty(PropertyKeyConst.PostSubscriptionWhenPull, "false"));
+        boolean postSubscriptionWhenPull = Boolean.parseBoolean(properties.getProperty(PropertyKeyConst.POST_SUBSCRIPTION_WHEN_PULL, "false"));
         this.defaultMQPushConsumer.setPostSubscriptionWhenPull(postSubscriptionWhenPull);
 
-        String messageModel = properties.getProperty(PropertyKeyConst.MessageModel, PropertyValueConst.CLUSTERING);
+        String messageModel = properties.getProperty(PropertyKeyConst.MESSAGE_MODEL, PropertyValueConst.CLUSTERING);
         this.defaultMQPushConsumer.setMessageModel(MessageModel.valueOf(messageModel));
     }
 

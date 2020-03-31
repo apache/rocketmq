@@ -17,11 +17,9 @@
 
 package org.apache.rocketmq.oms.api.impl.rocketmq;
 
-
 import io.openmessaging.api.Action;
 import io.openmessaging.api.ConsumeContext;
 import io.openmessaging.api.Message;
-
 import io.openmessaging.api.batch.BatchConsumer;
 import io.openmessaging.api.batch.BatchMessageListener;
 import io.openmessaging.api.exception.OMSRuntimeException;
@@ -30,9 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
-
-import javax.annotation.Generated;
-
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
@@ -51,13 +46,13 @@ public class BatchConsumerImpl extends OMSConsumerAbstract implements BatchConsu
     public BatchConsumerImpl(final Properties properties) {
         super(properties);
 
-        boolean postSubscriptionWhenPull = Boolean.parseBoolean(properties.getProperty(PropertyKeyConst.PostSubscriptionWhenPull, "false"));
+        boolean postSubscriptionWhenPull = Boolean.parseBoolean(properties.getProperty(PropertyKeyConst.POST_SUBSCRIPTION_WHEN_PULL, "false"));
         this.defaultMQPushConsumer.setPostSubscriptionWhenPull(postSubscriptionWhenPull);
 
-        String messageModel = properties.getProperty(PropertyKeyConst.MessageModel, PropertyValueConst.CLUSTERING);
+        String messageModel = properties.getProperty(PropertyKeyConst.MESSAGE_MODEL, PropertyValueConst.CLUSTERING);
         this.defaultMQPushConsumer.setMessageModel(MessageModel.valueOf(messageModel));
 
-        String consumeBatchSize = properties.getProperty(PropertyKeyConst.ConsumeMessageBatchMaxSize);
+        String consumeBatchSize = properties.getProperty(PropertyKeyConst.CONSUME_MESSAGE_BATCH_MAX_SIZE);
         if (!UtilAll.isBlank(consumeBatchSize)) {
             int batchSize = Math.min(MAX_BATCH_SIZE, Integer.valueOf(consumeBatchSize));
             batchSize = Math.max(MIN_BATCH_SIZE, batchSize);

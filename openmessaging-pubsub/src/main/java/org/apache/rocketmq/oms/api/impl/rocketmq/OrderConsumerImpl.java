@@ -41,7 +41,7 @@ public class OrderConsumerImpl extends OMSConsumerAbstract implements OrderConsu
 
     public OrderConsumerImpl(final Properties properties) {
         super(properties);
-        String suspendTimeMillis = properties.getProperty(PropertyKeyConst.SuspendTimeMillis);
+        String suspendTimeMillis = properties.getProperty(PropertyKeyConst.SUSPEND_TIME_MILLIS);
         if (!UtilAll.isBlank(suspendTimeMillis)) {
             try {
                 this.defaultMQPushConsumer.setSuspendCurrentQueueTimeMillis(Long.parseLong(suspendTimeMillis));

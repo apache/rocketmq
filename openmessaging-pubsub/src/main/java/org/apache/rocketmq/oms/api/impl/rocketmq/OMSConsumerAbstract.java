@@ -54,10 +54,15 @@ public class OMSConsumerAbstract extends OMSClientAbstract {
             throw new OMSRuntimeException("ConsumerId property is null");
         }
 
-        this.defaultMQPushConsumer =
-            new DefaultMQPushConsumer(this.getNamespace(), consumerGroup, new AclClientRPCHook(sessionCredentials));
+        String aclEnable = properties.getProperty(PropertyKeyConst.ACL_ENABLE);
+        if (!UtilAll.isBlank(aclEnable) && (!Boolean.parseBoolean(aclEnable))) {
+            this.defaultMQPushConsumer =
+                new DefaultMQPushConsumer(this.getNamespace(), consumerGroup, new AclClientRPCHook(sessionCredentials));
+        } else {
+            this.defaultMQPushConsumer = new DefaultMQPushConsumer(this.getNamespace(), consumerGroup);
+        }
 
-        String maxReconsumeTimes = properties.getProperty(PropertyKeyConst.MaxReconsumeTimes);
+        String maxReconsumeTimes = properties.getProperty(PropertyKeyConst.MAX_RECONSUME_TIMES);
         if (!UtilAll.isBlank(maxReconsumeTimes)) {
             try {
                 this.defaultMQPushConsumer.setMaxReconsumeTimes(Integer.parseInt(maxReconsumeTimes));
@@ -70,7 +75,7 @@ public class OMSConsumerAbstract extends OMSClientAbstract {
             this.defaultMQPushConsumer.setPullBatchSize(Integer.valueOf(maxBatchMessageCount));
         }
 
-        String consumeTimeout = properties.getProperty(PropertyKeyConst.ConsumeTimeout);
+        String consumeTimeout = properties.getProperty(PropertyKeyConst.CONSUME_TIMEOUT);
         if (!UtilAll.isBlank(consumeTimeout)) {
             try {
                 this.defaultMQPushConsumer.setConsumeTimeout(Integer.parseInt(consumeTimeout));
@@ -78,24 +83,24 @@ public class OMSConsumerAbstract extends OMSClientAbstract {
             }
         }
 
-        boolean isVipChannelEnabled = Boolean.parseBoolean(properties.getProperty(PropertyKeyConst.isVipChannelEnabled, "false"));
+        boolean isVipChannelEnabled = Boolean.parseBoolean(properties.getProperty(PropertyKeyConst.VIP_CHANNEL_ENABLED, "false"));
         this.defaultMQPushConsumer.setVipChannelEnabled(isVipChannelEnabled);
         if (properties.containsKey(PropertyKeyConst.LANGUAGE_IDENTIFIER)) {
             int language = Integer.valueOf(properties.get(PropertyKeyConst.LANGUAGE_IDENTIFIER).toString());
             byte languageByte = (byte) language;
             this.defaultMQPushConsumer.setLanguage(LanguageCode.valueOf(languageByte));
         }
-        String instanceName = properties.getProperty(PropertyKeyConst.InstanceName, this.buildIntanceName());
+        String instanceName = properties.getProperty(PropertyKeyConst.INSTANCE_NAME, this.buildIntanceName());
         this.defaultMQPushConsumer.setInstanceName(instanceName);
         this.defaultMQPushConsumer.setNamesrvAddr(this.getNameServerAddr());
 
-        String consumeThreadNums = properties.getProperty(PropertyKeyConst.ConsumeThreadNums);
+        String consumeThreadNums = properties.getProperty(PropertyKeyConst.CONSUME_THREAD_NUMS);
         if (!UtilAll.isBlank(consumeThreadNums)) {
             this.defaultMQPushConsumer.setConsumeThreadMin(Integer.valueOf(consumeThreadNums));
             this.defaultMQPushConsumer.setConsumeThreadMax(Integer.valueOf(consumeThreadNums));
         }
 
-        String configuredCachedMessageAmount = properties.getProperty(PropertyKeyConst.MaxCachedMessageAmount);
+        String configuredCachedMessageAmount = properties.getProperty(PropertyKeyConst.MAX_CACHED_MESSAGE_AMOUNT);
         if (!UtilAll.isBlank(configuredCachedMessageAmount)) {
             maxCachedMessageAmount = Math.min(MAX_CACHED_MESSAGE_AMOUNT, Integer.valueOf(configuredCachedMessageAmount));
             maxCachedMessageAmount = Math.max(MIN_CACHED_MESSAGE_AMOUNT, maxCachedMessageAmount);
@@ -103,21 +108,25 @@ public class OMSConsumerAbstract extends OMSClientAbstract {
 
         }
 
-        String configuredCachedMessageSizeInMiB = properties.getProperty(PropertyKeyConst.MaxCachedMessageSizeInMiB);
+        String configuredCachedMessageSizeInMiB = properties.getProperty(PropertyKeyConst.MAX_CACHED_MESSAGE_SIZE_IN_MB);
         if (!UtilAll.isBlank(configuredCachedMessageSizeInMiB)) {
             maxCachedMessageSizeInMiB = Math.min(MAX_CACHED_MESSAGE_SIZE_IN_MIB, Integer.valueOf(configuredCachedMessageSizeInMiB));
             maxCachedMessageSizeInMiB = Math.max(MIN_CACHED_MESSAGE_SIZE_IN_MIB, maxCachedMessageSizeInMiB);
             this.defaultMQPushConsumer.setPullThresholdSizeForTopic(maxCachedMessageSizeInMiB);
         }
 
-        String msgTraceSwitch = properties.getProperty(PropertyKeyConst.MsgTraceSwitch);
+        String msgTraceSwitch = properties.getProperty(PropertyKeyConst.MSG_TRACE_SWITCH);
 
         if (!UtilAll.isBlank(msgTraceSwitch) && (!Boolean.parseBoolean(msgTraceSwitch))) {
             LOGGER.info("MQ Client Disable the Trace Hook!");
         } else {
             try {
                 String traceTopicName = properties.getProperty(PropertyKeyConst.TRACE_TOPIC_NAME);
-                this.traceDispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, traceTopicName, new AclClientRPCHook(sessionCredentials));
+                if (!UtilAll.isBlank(aclEnable) && (!Boolean.parseBoolean(aclEnable))) {
+                    this.traceDispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, traceTopicName, new AclClientRPCHook(sessionCredentials));
+                } else {
+                    this.traceDispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, traceTopicName, null);
+                }
                 ((AsyncTraceDispatcher) this.traceDispatcher).setNameServer(this.getNameServerAddr());
                 ((AsyncTraceDispatcher) this.traceDispatcher).setHostConsumer(defaultMQPushConsumer.getDefaultMQPushConsumerImpl());
                 String accessChannelConfig = properties.getProperty(PropertyKeyConst.ACCESS_CHANNEL);

@@ -20,56 +20,47 @@ import io.openmessaging.api.OMSBuiltinKeys;
 
 public class PropertyKeyConst implements OMSBuiltinKeys {
 
-    public static final String MessageModel = "MessageModel";
+    public static final String MESSAGE_MODEL = "MessageModel";
 
     public static final String GROUP_ID = "GROUP_ID";
 
-    public static final String AccessKey = "AccessKey";
+    public static final String ACCESS_KEY = "AccessKey";
 
-    public static final String SecretKey = "SecretKey";
+    public static final String SECRET_KEY = "SecretKey";
 
-    public static final String SecurityToken = "SecurityToken";
+    public static final String SECURITY_TOKEN = "SecurityToken";
 
-    public static final String SendMsgTimeoutMillis = "SendMsgTimeoutMillis";
+    public static final String SEND_MSG_TIMEOUT_MILLIS = "SendMsgTimeoutMillis";
 
-    @Deprecated
-    public static final String ONSAddr = "ONSAddr";
+    public static final String ONS_ADDR = "ONSAddr";
 
-    @Deprecated
     public static final String NAMESRV_ADDR = "NAMESRV_ADDR";
 
-    public static final String ConsumeThreadNums = "ConsumeThreadNums";
+    public static final String CONSUME_THREAD_NUMS = "ConsumeThreadNums";
 
-    public static final String OnsChannel = "OnsChannel";
+    public static final String MQ_TYPE = "MQType";
 
-    public static final String MQType = "MQType";
+    public static final String VIP_CHANNEL_ENABLED = "isVipChannelEnabled";
 
-    public static final String isVipChannelEnabled = "isVipChannelEnabled";
+    public static final String SUSPEND_TIME_MILLIS = "suspendTimeMillis";
 
-    public static final String SuspendTimeMillis = "suspendTimeMillis";
+    public static final String MAX_RECONSUME_TIMES = "maxReconsumeTimes";
 
-    public static final String MaxReconsumeTimes = "maxReconsumeTimes";
+    public static final String CONSUME_TIMEOUT = "consumeTimeout";
 
-    public static final String ConsumeTimeout = "consumeTimeout";
+    public static final String CHECK_IMMUNITY_TIME_IN_SECONDS = "CheckImmunityTimeInSeconds";
 
-    public static final String CheckImmunityTimeInSeconds = "CheckImmunityTimeInSeconds";
+    public static final String POST_SUBSCRIPTION_WHEN_PULL = "PostSubscriptionWhenPull";
 
-    public static final String PostSubscriptionWhenPull = "PostSubscriptionWhenPull";
+    public static final String CONSUME_MESSAGE_BATCH_MAX_SIZE = "ConsumeMessageBatchMaxSize";
 
-    public static final String ConsumeMessageBatchMaxSize = "ConsumeMessageBatchMaxSize";
+    public static final String MAX_CACHED_MESSAGE_AMOUNT = "maxCachedMessageAmount";
 
-    public static final String MaxCachedMessageAmount = "maxCachedMessageAmount";
+    public static final String MAX_CACHED_MESSAGE_SIZE_IN_MB = "maxCachedMessageSizeInMiB";
 
-    public static final String MaxCachedMessageSizeInMiB = "maxCachedMessageSizeInMiB";
-
-    public static final String InstanceName = "InstanceName";
-
-    @Deprecated
-    public static final String EXACTLYONCE_DELIVERY = "exactlyOnceDelivery";
+    public static final String INSTANCE_NAME = "InstanceName";
 
     public static final String QOS = "qos";
-
-    public static final String EXACTLYONCE_RM_REFRESHINTERVAL = "exactlyOnceRmRefreshInterval";
 
     public static final String MAX_BATCH_MESSAGE_COUNT = "maxBatchMessageCount";
 
@@ -77,12 +68,14 @@ public class PropertyKeyConst implements OMSBuiltinKeys {
 
     public static final String LANGUAGE_IDENTIFIER = "languageIdentifier";
 
-    public static final String MsgTraceSwitch = "msgTraceSwitch";
+    public static final String MSG_TRACE_SWITCH = "msgTraceSwitch";
 
     public static final String AUTO_COMMIT = "autoCommit";
 
     public static final String ACCESS_CHANNEL = "accessChannel";
 
     public static final String TRACE_TOPIC_NAME = "traceTopicName";
+
+    public static final String ACL_ENABLE = "aclEnable";
 
 }

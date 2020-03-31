@@ -55,17 +55,21 @@ public class ProducerImpl extends OMSClientAbstract implements Producer {
         if (StringUtils.isEmpty(producerGroup)) {
             producerGroup = "__OMS_PRODUCER_DEFAULT_GROUP";
         }
-
-        this.defaultMQProducer =
-            new DefaultMQProducer(this.getNamespace(), producerGroup, new AclClientRPCHook(sessionCredentials));
+        String aclEnable = properties.getProperty(PropertyKeyConst.ACL_ENABLE);
+        if (!UtilAll.isBlank(aclEnable) && (!Boolean.parseBoolean(aclEnable))) {
+            this.defaultMQProducer =
+                new DefaultMQProducer(this.getNamespace(), producerGroup, new AclClientRPCHook(sessionCredentials));
+        } else {
+            this.defaultMQProducer = new DefaultMQProducer(this.getNamespace(), producerGroup);
+        }
 
         this.defaultMQProducer.setProducerGroup(producerGroup);
 
-        boolean isVipChannelEnabled = Boolean.parseBoolean(properties.getProperty(PropertyKeyConst.isVipChannelEnabled, "false"));
+        boolean isVipChannelEnabled = Boolean.parseBoolean(properties.getProperty(PropertyKeyConst.VIP_CHANNEL_ENABLED, "false"));
         this.defaultMQProducer.setVipChannelEnabled(isVipChannelEnabled);
 
-        if (properties.containsKey(PropertyKeyConst.SendMsgTimeoutMillis)) {
-            this.defaultMQProducer.setSendMsgTimeout(Integer.valueOf(properties.get(PropertyKeyConst.SendMsgTimeoutMillis).toString()));
+        if (properties.containsKey(PropertyKeyConst.SEND_MSG_TIMEOUT_MILLIS)) {
+            this.defaultMQProducer.setSendMsgTimeout(Integer.valueOf(properties.get(PropertyKeyConst.SEND_MSG_TIMEOUT_MILLIS).toString()));
         } else {
             this.defaultMQProducer.setSendMsgTimeout(5000);
         }
@@ -75,18 +79,23 @@ public class ProducerImpl extends OMSClientAbstract implements Producer {
             byte languageByte = (byte) language;
             this.defaultMQProducer.setLanguage(LanguageCode.valueOf(languageByte));
         }
-        String instanceName = properties.getProperty(PropertyKeyConst.InstanceName, this.buildIntanceName());
+        String instanceName = properties.getProperty(PropertyKeyConst.INSTANCE_NAME, this.buildIntanceName());
         this.defaultMQProducer.setInstanceName(instanceName);
         this.defaultMQProducer.setNamesrvAddr(this.getNameServerAddr());
         this.defaultMQProducer.setMaxMessageSize(1024 * 1024 * 4);
-        String msgTraceSwitch = properties.getProperty(PropertyKeyConst.MsgTraceSwitch);
+        String msgTraceSwitch = properties.getProperty(PropertyKeyConst.MSG_TRACE_SWITCH);
         if (!UtilAll.isBlank(msgTraceSwitch) && (!Boolean.parseBoolean(msgTraceSwitch))) {
             LOGGER.info("MQ Client Disable the Trace Hook!");
         } else {
             try {
 
                 String traceTopicName = properties.getProperty(PropertyKeyConst.TRACE_TOPIC_NAME);
-                this.traceDispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.CONSUME, traceTopicName, new AclClientRPCHook(sessionCredentials));
+                if (!UtilAll.isBlank(aclEnable) && (!Boolean.parseBoolean(aclEnable))) {
+                    this.traceDispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, traceTopicName, new AclClientRPCHook(sessionCredentials));
+                } else {
+                    this.traceDispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, traceTopicName, null);
+                }
+
                 ((AsyncTraceDispatcher) this.traceDispatcher).setNameServer(this.getNameServerAddr());
                 ((AsyncTraceDispatcher) this.traceDispatcher).setHostProducer(defaultMQProducer.getDefaultMQProducerImpl());
                 String accessChannelConfig = properties.getProperty(PropertyKeyConst.ACCESS_CHANNEL);
@@ -234,7 +243,7 @@ public class ProducerImpl extends OMSClientAbstract implements Producer {
                         FAQ.errorMessage(String.format("Topic does not exist, Topic=%s, msgId=%s", topic, msgId), FAQ.TOPIC_ROUTE_NOT_EXIST));
                 } else if (ResponseCode.MESSAGE_ILLEGAL == excep.getResponseCode()) {
                     return new OMSRuntimeException(
-                        FAQ.errorMessage(String.format("ONS Client check message exception, Topic=%s, msgId=%s", topic, msgId),
+                        FAQ.errorMessage(String.format("OMS Client check message exception, Topic=%s, msgId=%s", topic, msgId),
                             FAQ.CLIENT_CHECK_MSG_EXCEPTION));
                 }
             }
