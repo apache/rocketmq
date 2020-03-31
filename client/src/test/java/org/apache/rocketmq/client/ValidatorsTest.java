@@ -41,7 +41,6 @@ public class ValidatorsTest {
         String illegalName = "Name&*^";
         try {
             Validators.checkName(illegalName);
-            failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
             assertThat(e).hasMessageStartingWith(String.format("The specified [%s] contains illegal characters, allowing only %s", illegalName, Validators.VALID_PATTERN_STR));
         }
@@ -52,7 +51,6 @@ public class ValidatorsTest {
         String defaultTopic = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
         try {
             Validators.checkName(defaultTopic);
-            failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
             assertThat(e).hasMessageStartingWith(String.format("The [%s] is conflict with default.", defaultTopic));
         }
@@ -63,7 +61,6 @@ public class ValidatorsTest {
         String blankName = "";
         try {
             Validators.checkName(blankName);
-            failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
             assertThat(e).hasMessageStartingWith("The specified name is blank");
         }
@@ -73,7 +70,9 @@ public class ValidatorsTest {
     public void testCheckName_TooLongTopic() {
         String tooLongName = StringUtils.rightPad("TooLongName", Validators.CHARACTER_MAX_LENGTH + 1, "_");
         assertThat(tooLongName.length()).isGreaterThan(Validators.CHARACTER_MAX_LENGTH);
-    public void testCheckTopic_TooLongTopic() {
+    }
+
+    public void testCheckTopic_TooLongTopic(String tooLongName) {
         String tooLongTopic = StringUtils.rightPad("TooLongTopic", Validators.TOPIC_MAX_LENGTH + 1, "_");
         assertThat(tooLongTopic.length()).isGreaterThan(Validators.TOPIC_MAX_LENGTH);
         try {

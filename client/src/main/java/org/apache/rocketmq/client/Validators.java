@@ -16,7 +16,6 @@
  */
 
 package org.apache.rocketmq.client;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -84,9 +83,12 @@ public class Validators {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message is null");
         }
         // topic
-        Validators.checkName(msg.getTopic());
-
+        checkName(msg.getTopic());
         // body
+        checkBody(msg, defaultMQProducer);
+    }
+
+    private static void checkBody(Message msg, DefaultMQProducer defaultMQProducer) throws MQClientException {
         if (null == msg.getBody()) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body is null");
         }
@@ -108,31 +110,25 @@ public class Validators {
     public static void checkName(String name) throws MQClientException {
         if (UtilAll.isBlank(name)) {
             throw new MQClientException("The specified name is blank", null);
+        }
+        if (name.length() > CHARACTER_MAX_LENGTH) {
+                throw new MQClientException(
+                        String.format("The specified %s is longer than {} max length %s.", name, CHARACTER_MAX_LENGTH), null);
+        }
+    }
 
     public static void checkTopic(String topic) throws MQClientException {
         if (UtilAll.isBlank(topic)) {
             throw new MQClientException("The specified topic is blank", null);
         }
-
-        if (!regularExpressionMatcher(name, PATTERN)) {
-            throw new MQClientException(String.format(
-                "The specified [%s] contains illegal characters, allowing only %s", name,
-                VALID_PATTERN_STR), null);
-        }
-
-
-        if (name.length() > CHARACTER_MAX_LENGTH) {
-            throw new MQClientException(
-                    String.format("The specified %s is longer than topic max length %s.",name,CHARACTER_MAX_LENGTH), null);
         if (topic.length() > TOPIC_MAX_LENGTH) {
             throw new MQClientException(
-                String.format("The specified topic is longer than topic max length %d.", TOPIC_MAX_LENGTH), null);
+                String.format("The specified topic is longer than topic {} max length %d.", topic, TOPIC_MAX_LENGTH), null);
         }
-
         //whether the same with system reserved keyword only Topic
-        if (name.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
+        if (topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
             throw new MQClientException(
-                String.format("The [%s] is conflict with default.", name), null);
+                String.format("The [%s] is conflict with default.", topic), null);
         }
     }
 
