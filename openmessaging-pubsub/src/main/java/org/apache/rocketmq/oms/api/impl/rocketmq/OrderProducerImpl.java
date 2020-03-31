@@ -49,7 +49,7 @@ public class OrderProducerImpl extends OMSClientAbstract implements OrderProduce
         }
 
         String aclEnable = properties.getProperty(PropertyKeyConst.ACL_ENABLE);
-        if (!UtilAll.isBlank(aclEnable) && (!Boolean.parseBoolean(aclEnable))) {
+        if (!UtilAll.isBlank(aclEnable) && (Boolean.parseBoolean(aclEnable))) {
             this.defaultMQProducer =
                 new DefaultMQProducer(this.getNamespace(), producerGroup, new AclClientRPCHook(sessionCredentials));
         } else {
@@ -78,7 +78,7 @@ public class OrderProducerImpl extends OMSClientAbstract implements OrderProduce
         } else {
             try {
                 String traceTopicName = properties.getProperty(PropertyKeyConst.TRACE_TOPIC_NAME);
-                if (!UtilAll.isBlank(aclEnable) && (!Boolean.parseBoolean(aclEnable))) {
+                if (!UtilAll.isBlank(aclEnable) && (Boolean.parseBoolean(aclEnable))) {
                     this.traceDispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, traceTopicName, new AclClientRPCHook(sessionCredentials));
                 } else {
                     this.traceDispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, traceTopicName, null);

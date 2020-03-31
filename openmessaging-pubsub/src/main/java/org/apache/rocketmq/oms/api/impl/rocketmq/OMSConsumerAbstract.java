@@ -55,7 +55,7 @@ public class OMSConsumerAbstract extends OMSClientAbstract {
         }
 
         String aclEnable = properties.getProperty(PropertyKeyConst.ACL_ENABLE);
-        if (!UtilAll.isBlank(aclEnable) && (!Boolean.parseBoolean(aclEnable))) {
+        if (!UtilAll.isBlank(aclEnable) && (Boolean.parseBoolean(aclEnable))) {
             this.defaultMQPushConsumer =
                 new DefaultMQPushConsumer(this.getNamespace(), consumerGroup, new AclClientRPCHook(sessionCredentials));
         } else {
@@ -122,7 +122,7 @@ public class OMSConsumerAbstract extends OMSClientAbstract {
         } else {
             try {
                 String traceTopicName = properties.getProperty(PropertyKeyConst.TRACE_TOPIC_NAME);
-                if (!UtilAll.isBlank(aclEnable) && (!Boolean.parseBoolean(aclEnable))) {
+                if (!UtilAll.isBlank(aclEnable) && (Boolean.parseBoolean(aclEnable))) {
                     this.traceDispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, traceTopicName, new AclClientRPCHook(sessionCredentials));
                 } else {
                     this.traceDispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, traceTopicName, null);

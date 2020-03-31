@@ -63,7 +63,7 @@ public class PullConsumerImpl extends OMSClientAbstract implements PullConsumer 
             throw new OMSRuntimeException("Unable to get GROUP_ID property");
         }
         String aclEnable = properties.getProperty(PropertyKeyConst.ACL_ENABLE);
-        if (!UtilAll.isBlank(aclEnable) && (!Boolean.parseBoolean(aclEnable))) {
+        if (!UtilAll.isBlank(aclEnable) && (Boolean.parseBoolean(aclEnable))) {
             this.litePullConsumer =
                 new DefaultLitePullConsumer(this.getNamespace(), consumerGroup, new AclClientRPCHook(sessionCredentials));
         } else {
