@@ -87,7 +87,7 @@ public class TransactionProducerImpl extends OMSClientAbstract implements Transa
                 ((AsyncTraceDispatcher) this.traceDispatcher).setNameServer(this.getNameServerAddr());
                 ((AsyncTraceDispatcher) this.traceDispatcher).setHostProducer(transactionMQProducer.getDefaultMQProducerImpl());
                 String accessChannelConfig = properties.getProperty(PropertyKeyConst.ACCESS_CHANNEL);
-                if (StringUtils.isBlank(accessChannelConfig)) {
+                if (!StringUtils.isBlank(accessChannelConfig)) {
                     AccessChannel accessChannel = AccessChannel.valueOf(accessChannelConfig);
                     ((AsyncTraceDispatcher) this.traceDispatcher).setAccessChannel(accessChannel);
                 }

@@ -160,8 +160,9 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         this.registerShutDownHook();
     }
 
-    @Override public void start() throws MQClientException {
-
+    @Override
+    public void start() throws MQClientException {
+        start(this.nameServer, this.accessChannel);
     }
 
     private DefaultMQProducer getAndCreateTraceProducer(RPCHook rpcHook) {

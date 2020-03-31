@@ -87,7 +87,7 @@ public class OrderProducerImpl extends OMSClientAbstract implements OrderProduce
                 ((AsyncTraceDispatcher) this.traceDispatcher).setNameServer(this.getNameServerAddr());
                 ((AsyncTraceDispatcher) this.traceDispatcher).setHostProducer(defaultMQProducer.getDefaultMQProducerImpl());
                 String accessChannelConfig = properties.getProperty(PropertyKeyConst.ACCESS_CHANNEL);
-                if (StringUtils.isBlank(accessChannelConfig)) {
+                if (!StringUtils.isBlank(accessChannelConfig)) {
                     AccessChannel accessChannel = AccessChannel.valueOf(accessChannelConfig);
                     ((AsyncTraceDispatcher) this.traceDispatcher).setAccessChannel(accessChannel);
                 }
