@@ -78,6 +78,8 @@ public class RequestCode {
 
     public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG = 53;
 
+    public static final int GET_BROKER_CLUSTER_ACL_CONFIG = 54;
+
     public static final int PUT_KV_CONFIG = 100;
 
     public static final int GET_KV_CONFIG = 101;
@@ -87,7 +89,7 @@ public class RequestCode {
     public static final int REGISTER_BROKER = 103;
 
     public static final int UNREGISTER_BROKER = 104;
-    public static final int GET_ROUTEINTO_BY_TOPIC = 105;
+    public static final int GET_ROUTEINFO_BY_TOPIC = 105;
 
     public static final int GET_BROKER_CLUSTER_INFO = 106;
     public static final int UPDATE_AND_CREATE_SUBSCRIPTIONGROUP = 200;
@@ -180,4 +182,10 @@ public class RequestCode {
      * resume logic of checking half messages that have been put in TRANS_CHECK_MAXTIME_TOPIC before
      */
     public static final int RESUME_CHECK_HALF_MESSAGE = 323;
+
+    public static final int SEND_REPLY_MESSAGE = 324;
+
+    public static final int SEND_REPLY_MESSAGE_V2 = 325;
+
+    public static final int PUSH_REPLY_MESSAGE_TO_CLIENT = 326;
 }

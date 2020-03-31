@@ -152,6 +152,9 @@ public class StatsItem {
 
     public void samplingInSeconds() {
         synchronized (this.csListMinute) {
+            if (this.csListMinute.size() == 0) {
+                this.csListMinute.add(new CallSnapshot(System.currentTimeMillis() - 10 * 1000, 0, 0));
+            }
             this.csListMinute.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
                 .get()));
             if (this.csListMinute.size() > 7) {
@@ -162,6 +165,9 @@ public class StatsItem {
 
     public void samplingInMinutes() {
         synchronized (this.csListHour) {
+            if (this.csListHour.size() == 0) {
+                this.csListHour.add(new CallSnapshot(System.currentTimeMillis() - 10 * 60 * 1000, 0, 0));
+            }
             this.csListHour.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
                 .get()));
             if (this.csListHour.size() > 7) {
@@ -172,6 +178,9 @@ public class StatsItem {
 
     public void samplingInHour() {
         synchronized (this.csListDay) {
+            if (this.csListDay.size() == 0) {
+                this.csListDay.add(new CallSnapshot(System.currentTimeMillis() - 1 * 60 * 60 * 1000, 0, 0));
+            }
             this.csListDay.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
                 .get()));
             if (this.csListDay.size() > 25) {

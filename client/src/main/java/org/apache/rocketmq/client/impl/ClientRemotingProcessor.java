@@ -16,16 +16,19 @@
  */
 package org.apache.rocketmq.client.impl;
 
+import io.netty.channel.ChannelHandlerContext;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
-
-import io.netty.channel.ChannelHandlerContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.MQProducerInner;
 import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.client.producer.RequestFutureTable;
+import org.apache.rocketmq.client.producer.RequestResponseFuture;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -42,15 +45,18 @@ import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRe
 import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerStatusRequestHeader;
 import org.apache.rocketmq.common.protocol.header.NotifyConsumerIdsChangedRequestHeader;
+import org.apache.rocketmq.common.protocol.header.ReplyMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.netty.AsyncNettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-
-public class ClientRemotingProcessor implements NettyRequestProcessor {
+public class ClientRemotingProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
     private final InternalLogger log = ClientLogger.getLog();
     private final MQClientInstance mqClientFactory;
 
@@ -76,6 +82,9 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
 
             case RequestCode.CONSUME_MESSAGE_DIRECTLY:
                 return this.consumeMessageDirectly(ctx, request);
+
+            case RequestCode.PUSH_REPLY_MESSAGE_TO_CLIENT:
+                return this.receiveReplyMessage(ctx, request);
             default:
                 break;
         }
@@ -212,5 +221,74 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         }
 
         return response;
+    }
+
+    private RemotingCommand receiveReplyMessage(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        long receiveTime = System.currentTimeMillis();
+        ReplyMessageRequestHeader requestHeader = (ReplyMessageRequestHeader) request.decodeCommandCustomHeader(ReplyMessageRequestHeader.class);
+
+        try {
+            MessageExt msg = new MessageExt();
+            msg.setTopic(requestHeader.getTopic());
+            msg.setQueueId(requestHeader.getQueueId());
+            msg.setStoreTimestamp(requestHeader.getStoreTimestamp());
+
+            if (requestHeader.getBornHost() != null) {
+                msg.setBornHost(RemotingUtil.string2SocketAddress(requestHeader.getBornHost()));
+            }
+
+            if (requestHeader.getStoreHost() != null) {
+                msg.setStoreHost(RemotingUtil.string2SocketAddress(requestHeader.getStoreHost()));
+            }
+
+            byte[] body = request.getBody();
+            if ((requestHeader.getSysFlag() & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG) {
+                try {
+                    body = UtilAll.uncompress(body);
+                } catch (IOException e) {
+                    log.warn("err when uncompress constant", e);
+                }
+            }
+            msg.setBody(body);
+            msg.setFlag(requestHeader.getFlag());
+            MessageAccessor.setProperties(msg, MessageDecoder.string2messageProperties(requestHeader.getProperties()));
+            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REPLY_MESSAGE_ARRIVE_TIME, String.valueOf(receiveTime));
+            msg.setBornTimestamp(requestHeader.getBornTimestamp());
+            msg.setReconsumeTimes(requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes());
+            log.debug("receive reply message :{}", msg);
+
+            processReplyMessage(msg);
+
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+        } catch (Exception e) {
+            log.warn("unknown err when receiveReplyMsg", e);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("process reply message fail");
+        }
+        return response;
+    }
+
+    private void processReplyMessage(MessageExt replyMsg) {
+        final String correlationId = replyMsg.getUserProperty(MessageConst.PROPERTY_CORRELATION_ID);
+        final RequestResponseFuture requestResponseFuture = RequestFutureTable.getRequestFutureTable().get(correlationId);
+        if (requestResponseFuture != null) {
+            requestResponseFuture.putResponseMessage(replyMsg);
+
+            RequestFutureTable.getRequestFutureTable().remove(correlationId);
+
+            if (requestResponseFuture.getRequestCallback() != null) {
+                requestResponseFuture.getRequestCallback().onSuccess(replyMsg);
+            } else {
+                requestResponseFuture.putResponseMessage(replyMsg);
+            }
+        } else {
+            String bornHost = replyMsg.getBornHostString();
+            log.warn(String.format("receive reply message, but not matched any request, CorrelationId: %s , reply from host: %s",
+                correlationId, bornHost));
+        }
     }
 }
