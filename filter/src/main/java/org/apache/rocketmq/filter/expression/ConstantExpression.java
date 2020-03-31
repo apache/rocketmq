@@ -30,21 +30,6 @@ package org.apache.rocketmq.filter.expression;
  */
 public class ConstantExpression implements Expression {
 
-    static class BooleanConstantExpression extends ConstantExpression implements BooleanExpression {
-        public BooleanConstantExpression(Object value) {
-            super(value);
-        }
-
-        public boolean matches(EvaluationContext context) throws Exception {
-            Object object = evaluate(context);
-            return object != null && object == Boolean.TRUE;
-        }
-    }
-
-    public static final BooleanConstantExpression NULL = new BooleanConstantExpression(null);
-    public static final BooleanConstantExpression TRUE = new BooleanConstantExpression(Boolean.TRUE);
-    public static final BooleanConstantExpression FALSE = new BooleanConstantExpression(Boolean.FALSE);
-
     private Object value;
 
     public ConstantExpression(Object value) {
