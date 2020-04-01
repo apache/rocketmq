@@ -112,7 +112,7 @@ public class Validators {
             throw new MQClientException("The specified name is blank", null);
         }
         if (name.length() > CHARACTER_MAX_LENGTH) {
-                throw new MQClientException(
+            throw new MQClientException(
                         String.format("The specified %s is longer than {} max length %s.", name, CHARACTER_MAX_LENGTH), null);
         }
     }
