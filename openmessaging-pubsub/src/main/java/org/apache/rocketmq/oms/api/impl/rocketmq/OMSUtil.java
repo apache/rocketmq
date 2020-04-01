@@ -17,12 +17,13 @@
 
 package org.apache.rocketmq.oms.api.impl.rocketmq;
 
-
 import io.openmessaging.api.Message;
 import io.openmessaging.api.MessageAccessor;
 import io.openmessaging.api.OMSBuiltinKeys;
+import io.openmessaging.api.TopicPartition;
 import io.openmessaging.api.exception.OMSRuntimeException;
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -32,6 +33,8 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.oms.api.Constants;
 import org.apache.rocketmq.oms.api.PropertyKeyConst;
 
 public class OMSUtil {
@@ -136,6 +139,11 @@ public class OMSUtil {
         if (msgRMQ.getBody() != null) {
             message.setBody(msgRMQ.getBody());
         }
+        if (((MessageExt) msgRMQ).getBrokerName() != null) {
+            String partition = getPartition(((MessageExt) msgRMQ).getBrokerName(), ((MessageExt) msgRMQ).getQueueId());
+            MessageAccessor.putSystemProperties(message, Message.SystemPropKey.PARTITION, partition);
+        }
+        MessageAccessor.putSystemProperties(message, Message.SystemPropKey.CONSUMEOFFSET, String.valueOf(((MessageExt) msgRMQ).getQueueOffset()));
 
         message.setReconsumeTimes(((MessageExt) msgRMQ).getReconsumeTimes());
         message.setBornTimestamp(((MessageExt) msgRMQ).getBornTimestamp());
@@ -158,6 +166,45 @@ public class OMSUtil {
         }
 
         return message;
+    }
+
+    public static Set<TopicPartition> convertToTopicPartitions(Collection<MessageQueue> messageQueues) {
+        Set<TopicPartition> topicPartitions = new HashSet<>();
+        for (MessageQueue messageQueue : messageQueues) {
+            TopicPartition topicPartition = convertToTopicPartition(messageQueue);
+            topicPartitions.add(topicPartition);
+        }
+        return topicPartitions;
+    }
+
+    public static Set<MessageQueue> convertToMessageQueues(Collection<TopicPartition> topicPartitions) {
+        Set<MessageQueue> messageQueues = new HashSet<>();
+        for (TopicPartition topicPartition : topicPartitions) {
+            messageQueues.add(convertToMessageQueue(topicPartition));
+        }
+        return messageQueues;
+    }
+
+    public static String getPartition(String brokerName, int queueId) {
+        return brokerName + Constants.TOPIC_PARTITION_SEPARATOR + queueId;
+    }
+
+    public static TopicPartition convertToTopicPartition(MessageQueue messageQueue) {
+        String topic = messageQueue.getTopic();
+        String partition = getPartition(messageQueue.getBrokerName(), messageQueue.getQueueId());
+        TopicPartition topicPartition = new TopicPartition(topic, partition);
+        return topicPartition;
+    }
+
+    public static MessageQueue convertToMessageQueue(TopicPartition topicPartition) {
+        String topic = topicPartition.getTopic();
+        String[] tmp = topicPartition.getPartition().split(Constants.TOPIC_PARTITION_SEPARATOR);
+        if (tmp.length != 2) {
+            throw new OMSRuntimeException("Failed to get message queue");
+        }
+        String brokerName = tmp[0];
+        int queueId = Integer.valueOf(tmp[1]);
+        return new MessageQueue(topic, brokerName, queueId);
     }
 
     public static Properties extractProperties(final Properties properties) {

@@ -119,48 +119,14 @@ public class PullConsumerImpl extends OMSClientAbstract implements PullConsumer 
         this.litePullConsumer.updateNameServerAddress(nameServerAddresses);
     }
 
-    private Set<TopicPartition> convertToTopicPartitions(Collection<MessageQueue> messageQueues) {
-        Set<TopicPartition> topicPartitions = new HashSet<>();
-        for (MessageQueue messageQueue : messageQueues) {
-            TopicPartition topicPartition = convertToTopicPartition(messageQueue);
-            topicPartitions.add(topicPartition);
-        }
-        return topicPartitions;
-    }
 
-    private Set<MessageQueue> convertToMessageQueues(Collection<TopicPartition> topicPartitions) {
-        Set<MessageQueue> messageQueues = new HashSet<>();
-        for (TopicPartition topicPartition : topicPartitions) {
-            messageQueues.add(convertToMessageQueue(topicPartition));
-        }
-        return messageQueues;
-    }
-
-    private TopicPartition convertToTopicPartition(MessageQueue messageQueue) {
-        String topic = messageQueue.getTopic();
-        String partition = messageQueue.getBrokerName() + Constants.TOPIC_PARTITION_SEPARATOR + messageQueue.getQueueId();
-        TopicPartition topicPartition = new TopicPartition(topic, partition);
-        return topicPartition;
-    }
-
-    private MessageQueue convertToMessageQueue(TopicPartition topicPartition) {
-        String topic = topicPartition.getTopic();
-        String[] tmp = topicPartition.getPartition().split(Constants.TOPIC_PARTITION_SEPARATOR);
-        if (tmp.length != 2) {
-            LOGGER.warn("Failed to get message queue from TopicPartition: {}", topicPartition);
-            throw new OMSRuntimeException("Failed to get message queue");
-        }
-        String brokerName = tmp[0];
-        int queueId = Integer.valueOf(tmp[1]);
-        return new MessageQueue(topic, brokerName, queueId);
-    }
 
     @Override public Set<TopicPartition> topicPartitions(String topic) {
         try {
             Collection<MessageQueue> messageQueues = litePullConsumer.fetchMessageQueues(topic);
             Set<TopicPartition> topicPartitions = new HashSet<>();
             for (MessageQueue messageQueue : messageQueues) {
-                topicPartitions.add(convertToTopicPartition(messageQueue));
+                topicPartitions.add(OMSUtil.convertToTopicPartition(messageQueue));
             }
             return topicPartitions;
         } catch (MQClientException ex) {
@@ -171,7 +137,7 @@ public class PullConsumerImpl extends OMSClientAbstract implements PullConsumer 
     @Override public void assign(Collection<TopicPartition> topicPartitions) {
         Set<MessageQueue> messageQueues = new HashSet<>();
         for (TopicPartition topicPartition : topicPartitions) {
-            messageQueues.add(convertToMessageQueue(topicPartition));
+            messageQueues.add(OMSUtil.convertToMessageQueue(topicPartition));
         }
         this.litePullConsumer.assign(messageQueues);
     }
@@ -179,7 +145,7 @@ public class PullConsumerImpl extends OMSClientAbstract implements PullConsumer 
     @Override public void registerTopicPartitionChangedListener(String topic, TopicPartitionChangeListener callback) {
         TopicMessageQueueChangeListener listener = new TopicMessageQueueChangeListener() {
             @Override public void onChanged(String topic, Set<MessageQueue> messageQueues) {
-                callback.onChanged(convertToTopicPartitions(messageQueues));
+                callback.onChanged(OMSUtil.convertToTopicPartitions(messageQueues));
             }
         };
         try {
@@ -207,7 +173,7 @@ public class PullConsumerImpl extends OMSClientAbstract implements PullConsumer 
     }
 
     @Override public void seek(TopicPartition topicPartition, long offset) {
-        MessageQueue messageQueue = convertToMessageQueue(topicPartition);
+        MessageQueue messageQueue = OMSUtil.convertToMessageQueue(topicPartition);
         try {
             litePullConsumer.seek(messageQueue, offset);
         } catch (MQClientException ex) {
@@ -218,7 +184,7 @@ public class PullConsumerImpl extends OMSClientAbstract implements PullConsumer 
 
     @Override public void seekToBeginning(TopicPartition topicPartition) {
         try {
-            this.litePullConsumer.seekToBegin(convertToMessageQueue(topicPartition));
+            this.litePullConsumer.seekToBegin(OMSUtil.convertToMessageQueue(topicPartition));
         } catch (MQClientException ex) {
             LOGGER.warn("Topic partition: {} seek to beginning error", topicPartition, ex);
             throw new OMSRuntimeException("Seek offset to beginning failed");
@@ -227,7 +193,7 @@ public class PullConsumerImpl extends OMSClientAbstract implements PullConsumer 
 
     @Override public void seekToEnd(TopicPartition topicPartition) {
         try {
-            this.litePullConsumer.seekToEnd(convertToMessageQueue(topicPartition));
+            this.litePullConsumer.seekToEnd(OMSUtil.convertToMessageQueue(topicPartition));
         } catch (MQClientException ex) {
             LOGGER.warn("Topic partition: {} seek to end error", topicPartition, ex);
             throw new OMSRuntimeException("Seek offset to end failed");
@@ -236,16 +202,16 @@ public class PullConsumerImpl extends OMSClientAbstract implements PullConsumer 
     }
 
     @Override public void pause(Collection<TopicPartition> topicPartitions) {
-        this.litePullConsumer.pause(convertToMessageQueues(topicPartitions));
+        this.litePullConsumer.pause(OMSUtil.convertToMessageQueues(topicPartitions));
     }
 
     @Override public void resume(Collection<TopicPartition> topicPartitions) {
-        this.litePullConsumer.resume(convertToMessageQueues(topicPartitions));
+        this.litePullConsumer.resume(OMSUtil.convertToMessageQueues(topicPartitions));
     }
 
     @Override public Long offsetForTimestamp(TopicPartition topicPartition, Long timestamp) {
         try {
-            return litePullConsumer.offsetForTimestamp(convertToMessageQueue(topicPartition), timestamp);
+            return litePullConsumer.offsetForTimestamp(OMSUtil.convertToMessageQueue(topicPartition), timestamp);
         } catch (MQClientException ex) {
             LOGGER.warn("Get offset for topic partition:{} with timestamp:{} error", topicPartition, timestamp, ex);
             throw new OMSRuntimeException("Failed to get offset");
@@ -254,7 +220,7 @@ public class PullConsumerImpl extends OMSClientAbstract implements PullConsumer 
 
     @Override public Long committed(TopicPartition topicPartition) {
         try {
-            return litePullConsumer.committed(convertToMessageQueue(topicPartition));
+            return litePullConsumer.committed(OMSUtil.convertToMessageQueue(topicPartition));
         } catch (MQClientException ex) {
             LOGGER.warn("Get committed offset for topic partition: {} error", topicPartition, ex);
             throw new OMSRuntimeException("Failed to get committed offset");
