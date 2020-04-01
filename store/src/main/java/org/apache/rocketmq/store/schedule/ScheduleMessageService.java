@@ -222,6 +222,30 @@ public class ScheduleMessageService extends ConfigManager {
         return true;
     }
 
+    /*decision which rocketMQ level can by mapped with delayTimeLevel */
+    public int setMsgTimeLevel(MessageExtBrokerInner msg, int delayTimeLevel) {
+        long delayTimeMillis = delayTimeLevel * 1000l;
+
+        Long minimumMultiple = Long.MAX_VALUE;
+        Integer maxLevel = 0;
+        for (Integer level : delayLevelTable.keySet()) {
+            long multiple = (delayTimeMillis / delayLevelTable.get(level));
+            if (multiple != 0) {
+                if ((multiple < minimumMultiple)) ;
+                {
+                    minimumMultiple = multiple;
+                    maxLevel = level;
+                }
+            }
+        }
+        log.info("delayTime seconds : {} , mapped rocketMQ delayTime level : {}", delayTimeLevel, maxLevel);
+        Integer remainTimeSescond = Long.valueOf((delayTimeMillis - delayLevelTable.get(maxLevel)) / 1000).intValue();
+
+        msg.setDelayTimeLevel(maxLevel);
+        msg.putUserProperty("DEFINED_DELAY_TIME",remainTimeSescond.toString());
+        return maxLevel;
+    }
+
     class DeliverDelayedMessageTimerTask extends TimerTask {
         private final int delayLevel;
         private final long offset;

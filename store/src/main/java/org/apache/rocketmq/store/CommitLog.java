@@ -19,10 +19,7 @@ package org.apache.rocketmq.store;
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -569,12 +566,23 @@ public class CommitLog {
         int queueId = msg.getQueueId();
 
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
+
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
                 || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             // Delay Delivery
-            if (msg.getDelayTimeLevel() > 0) {
-                if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
-                    msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
+            // gey my defined delay time
+            String define_delay_time = msg.getProperty("DEFINED_DELAY_TIME");
+            if(Objects.isNull(define_delay_time)) {
+                define_delay_time = "0";
+            }
+            Integer delay_time = Integer.valueOf(define_delay_time);
+            if (msg.getDelayTimeLevel() > 0 || delay_time > 0) {
+                if(delay_time > 0){
+                    msg.putUserProperty("DEFINED_DELAY_TIME", String.valueOf(delay_time));
+                    this.defaultMessageStore.getScheduleMessageService().setMsgTimeLevel(msg, delay_time);
+                } else {
+                    msg.putUserProperty("DEFINED_DELAY_TIME", String.valueOf(msg.getDelayTimeLevel()));
+                    this.defaultMessageStore.getScheduleMessageService().setMsgTimeLevel(msg, msg.getDelayTimeLevel());
                 }
 
                 topic = ScheduleMessageService.SCHEDULE_TOPIC;
@@ -794,9 +802,20 @@ public class CommitLog {
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             // Delay Delivery
-            if (msg.getDelayTimeLevel() > 0) {
-                if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
-                    msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
+            // get my defined delay time,
+            String define_delay_time = msg.getProperty("DEFINED_DELAY_TIME");
+            if(Objects.isNull(define_delay_time)) {
+                define_delay_time = "0";
+            }
+            Integer delay_time = Integer.valueOf(define_delay_time);
+
+            if (msg.getDelayTimeLevel() > 0 || delay_time > 0) {
+                if(delay_time > 0){
+                    msg.putUserProperty("DEFINED_DELAY_TIME", String.valueOf(delay_time));
+                    this.defaultMessageStore.getScheduleMessageService().setMsgTimeLevel(msg, delay_time);
+                } else {
+                    msg.putUserProperty("DEFINED_DELAY_TIME", String.valueOf(msg.getDelayTimeLevel()));
+                    this.defaultMessageStore.getScheduleMessageService().setMsgTimeLevel(msg, msg.getDelayTimeLevel());
                 }
 
                 topic = ScheduleMessageService.SCHEDULE_TOPIC;
