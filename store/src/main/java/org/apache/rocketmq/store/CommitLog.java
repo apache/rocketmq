@@ -803,16 +803,16 @@ public class CommitLog {
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             // Delay Delivery
             // get my defined delay time,
-            String define_delay_time = msg.getProperty("DEFINED_DELAY_TIME");
-            if(Objects.isNull(define_delay_time)) {
-                define_delay_time = "0";
+            String defineDelayTime = msg.getProperty("DEFINED_DELAY_TIME");
+            if(Objects.isNull(defineDelayTime)) {
+                defineDelayTime = "0";
             }
-            Integer delay_time = Integer.valueOf(define_delay_time);
+            Integer delayTime = Integer.valueOf(defineDelayTime);
 
-            if (msg.getDelayTimeLevel() > 0 || delay_time > 0) {
-                if(delay_time > 0){
-                    msg.putUserProperty("DEFINED_DELAY_TIME", String.valueOf(delay_time));
-                    this.defaultMessageStore.getScheduleMessageService().setMsgTimeLevel(msg, delay_time);
+            if (msg.getDelayTimeLevel() > 0 || delayTime > 0) {
+                if(delayTime > 0) {
+                    msg.putUserProperty("DEFINED_DELAY_TIME", String.valueOf(delayTime));
+                    this.defaultMessageStore.getScheduleMessageService().setMsgTimeLevel(msg, delayTime);
                 } else {
                     msg.putUserProperty("DEFINED_DELAY_TIME", String.valueOf(msg.getDelayTimeLevel()));
                     this.defaultMessageStore.getScheduleMessageService().setMsgTimeLevel(msg, msg.getDelayTimeLevel());

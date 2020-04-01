@@ -231,8 +231,7 @@ public class ScheduleMessageService extends ConfigManager {
         for (Integer level : delayLevelTable.keySet()) {
             long multiple = (delayTimeMillis / delayLevelTable.get(level));
             if (multiple != 0) {
-                if ((multiple < minimumMultiple)) ;
-                {
+                if ((multiple < minimumMultiple)) {
                     minimumMultiple = multiple;
                     maxLevel = level;
                 }
