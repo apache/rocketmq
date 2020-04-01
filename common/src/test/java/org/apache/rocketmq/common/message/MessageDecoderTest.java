@@ -246,7 +246,7 @@ public class MessageDecoderTest {
 
         assertThat("abc").isEqualTo(decodedMsg.getTopic());
     }
-  
+
     public void testNullValueProperty() throws Exception {
         MessageExt msg = new MessageExt();
         msg.setBody("x".getBytes());
@@ -259,6 +259,10 @@ public class MessageDecoderTest {
             byte[] encode = MessageDecoder.encode(msg, false);
             MessageExt decode = MessageDecoder.decode(ByteBuffer.wrap(encode));
             assertThat(decode.getProperty(key)).isNull();
+        } catch (Exception e) {
+            e.printStackTrace();
+            assertThat(Boolean.FALSE).isTrue();
         }
     }
+
 }
