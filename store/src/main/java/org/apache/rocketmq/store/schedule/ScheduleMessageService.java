@@ -16,7 +16,12 @@
  */
 package org.apache.rocketmq.store.schedule;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -218,7 +223,13 @@ public class ScheduleMessageService extends ConfigManager {
         return true;
     }
 
-    /*decision which rocketMQ level can by mapped with delayTimeLevel */
+    /**
+     * decision which rocketMQ level can by mapped with delayTimeLevel
+     * Custom delay levels are achieved by repeatedly entering delay queues
+     * @param msg
+     * @param customDelayTimeSeconds
+     * @return
+     */
     public int resetMsgDelayTimeLevel(MessageExtBrokerInner msg, int customDelayTimeSeconds) {
 
         String expectedDeliverTimeStr = msg.getProperty("EXPECTED_DELIVER_TIME");
@@ -260,6 +271,12 @@ public class ScheduleMessageService extends ConfigManager {
         return rocketmqDelayTimeLevel;
     }
 
+    /**
+     * To correct the delay time, messages in and out of the queue many times will cause errors in time due to various factors.
+     * Use the expected execution time minus the current time to correct for the remaining latency
+     * @param customDeliverTime expected execution time
+     * @return remaining latency
+     */
     private int correctDelayTime(int customDeliverTime) {
         int now = Long.valueOf(System.currentTimeMillis() / 1000).intValue();
         if (customDeliverTime < now) {
@@ -268,6 +285,14 @@ public class ScheduleMessageService extends ConfigManager {
         return customDeliverTime - now;
     }
 
+    /**
+     * Calculate an expected time by the custom delay time set by the message.
+     * Expected time = now + delayTime
+     * This method is invoked only when a deferred message is first processed
+     * @param msg
+     * @param customDelayTimeSeconds
+     * @return Expected time
+     */
     public int computeDeliverTime(MessageExtBrokerInner msg, int customDelayTimeSeconds) {
         int now = Long.valueOf(System.currentTimeMillis() / 1000).intValue();
         int customDeliverTime = now + customDelayTimeSeconds;
