@@ -575,19 +575,17 @@ public class CommitLog {
                 || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             // Delay Delivery
             // gey my defined delay time
-            String defineDelayTime = msg.getProperty("DEFINED_DELAY_TIME");
-            if (Objects.isNull(defineDelayTime)) {
-                defineDelayTime = "0";
+            String customDelayTimeSeconds = msg.getProperty("CUSTOM_DELAY_TIME_SECONDS");
+            if (Objects.isNull(customDelayTimeSeconds)) {
+                customDelayTimeSeconds = "0";
             }
-            Integer delayTime = Integer.valueOf(defineDelayTime);
+            Integer customDelayTime = Integer.valueOf(customDelayTimeSeconds);
 
-            if (msg.getDelayTimeLevel() > 0 || delayTime > 0) {
-                if (delayTime > 0) {
-                    msg.putUserProperty("DEFINED_DELAY_TIME", String.valueOf(delayTime));
-                    this.defaultMessageStore.getScheduleMessageService().setMsgTimeLevel(msg, delayTime);
+            if (msg.getDelayTimeLevel() > 0 || customDelayTime > 0) {
+                if (customDelayTime > 0) {
+                    this.defaultMessageStore.getScheduleMessageService().resetMsgDelayTimeLevel(msg, customDelayTime);
                 } else {
-                    msg.putUserProperty("DEFINED_DELAY_TIME", String.valueOf(msg.getDelayTimeLevel()));
-                    this.defaultMessageStore.getScheduleMessageService().setMsgTimeLevel(msg, msg.getDelayTimeLevel());
+                    this.defaultMessageStore.getScheduleMessageService().resetMsgDelayTimeLevel(msg, msg.getDelayTimeLevel());
                 }
 
                 topic = ScheduleMessageService.SCHEDULE_TOPIC;
@@ -808,19 +806,17 @@ public class CommitLog {
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             // Delay Delivery
             // get my defined delay time,
-            String defineDelayTime = msg.getProperty("DEFINED_DELAY_TIME");
-            if (Objects.isNull(defineDelayTime)) {
-                defineDelayTime = "0";
+            String customDelayTimeSeconds = msg.getProperty("CUSTOM_DELAY_TIME_SECONDS");
+            if (Objects.isNull(customDelayTimeSeconds)) {
+                customDelayTimeSeconds = "0";
             }
-            Integer delayTime = Integer.valueOf(defineDelayTime);
+            Integer customDelayTime = Integer.valueOf(customDelayTimeSeconds);
 
-            if (msg.getDelayTimeLevel() > 0 || delayTime > 0) {
-                if (delayTime > 0) {
-                    msg.putUserProperty("DEFINED_DELAY_TIME", String.valueOf(delayTime));
-                    this.defaultMessageStore.getScheduleMessageService().setMsgTimeLevel(msg, delayTime);
+            if (msg.getDelayTimeLevel() > 0 || customDelayTime > 0) {
+                if (customDelayTime > 0) {
+                    this.defaultMessageStore.getScheduleMessageService().resetMsgDelayTimeLevel(msg, customDelayTime);
                 } else {
-                    msg.putUserProperty("DEFINED_DELAY_TIME", String.valueOf(msg.getDelayTimeLevel()));
-                    this.defaultMessageStore.getScheduleMessageService().setMsgTimeLevel(msg, msg.getDelayTimeLevel());
+                    this.defaultMessageStore.getScheduleMessageService().resetMsgDelayTimeLevel(msg, msg.getDelayTimeLevel());
                 }
 
                 topic = ScheduleMessageService.SCHEDULE_TOPIC;
