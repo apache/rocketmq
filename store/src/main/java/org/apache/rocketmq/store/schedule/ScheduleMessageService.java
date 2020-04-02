@@ -227,7 +227,8 @@ public class ScheduleMessageService extends ConfigManager {
         long delayTimeMillis = delayTimeLevel * 1000L;
 
         Long minimumMultiple = Long.MAX_VALUE;
-        Integer maxLevel = 0;
+        //The first choice is to use the minimum level to get the message out as quickly as possible
+        Integer maxLevel = 1;
         for (Integer level : delayLevelTable.keySet()) {
             long multiple = delayTimeMillis / delayLevelTable.get(level);
             if (multiple != 0) {
@@ -238,7 +239,8 @@ public class ScheduleMessageService extends ConfigManager {
             }
         }
         log.info("delayTime seconds : {} , mapped rocketMQ delayTime level : {}", delayTimeLevel, maxLevel);
-        Integer remainTimeSescond = Long.valueOf((delayTimeMillis - delayLevelTable.get(maxLevel)) / 1000).intValue();
+        long a = (delayTimeMillis - delayLevelTable.get(maxLevel)) / 1000;
+        Integer remainTimeSescond = Long.valueOf(a).intValue();
 
         msg.setDelayTimeLevel(maxLevel);
         msg.putUserProperty("DEFINED_DELAY_TIME",remainTimeSescond.toString());
