@@ -279,7 +279,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public Long committed(MessageQueue messageQueue) throws MQClientException {
-        return this.defaultLitePullConsumerImpl.committed(messageQueue);
+        return this.defaultLitePullConsumerImpl.committed(queueWithNamespace(messageQueue));
     }
 
     @Override
@@ -289,12 +289,12 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void seekToBegin(MessageQueue messageQueue) throws MQClientException {
-        this.defaultLitePullConsumerImpl.seekToBegin(messageQueue);
+        this.defaultLitePullConsumerImpl.seekToBegin(queueWithNamespace(messageQueue));
     }
 
     @Override
     public void seekToEnd(MessageQueue messageQueue) throws MQClientException {
-        this.defaultLitePullConsumerImpl.seekToEnd(messageQueue);
+        this.defaultLitePullConsumerImpl.seekToEnd(queueWithNamespace(messageQueue));
     }
 
     @Override

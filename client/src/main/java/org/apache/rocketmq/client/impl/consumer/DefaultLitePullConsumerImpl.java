@@ -631,7 +631,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     public long committed(MessageQueue messageQueue) throws MQClientException {
         checkServiceState();
-        long offset = this.offsetStore.readOffset(messageQueue, ReadOffsetType.READ_FROM_STORE);
+        long offset = this.offsetStore.readOffset(messageQueue, ReadOffsetType.MEMORY_FIRST_THEN_STORE);
         if (offset == -2)
             throw new MQClientException("Fetch consume offset from broker exception", null);
         return offset;
