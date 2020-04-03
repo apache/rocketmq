@@ -246,4 +246,23 @@ public class MessageDecoderTest {
 
         assertThat("abc").isEqualTo(decodedMsg.getTopic());
     }
+
+    public void testNullValueProperty() throws Exception {
+        MessageExt msg = new MessageExt();
+        msg.setBody("x".getBytes());
+        msg.setTopic("x");
+        msg.setBornHost(new InetSocketAddress("127.0.0.1", 9000));
+        msg.setStoreHost(new InetSocketAddress("127.0.0.1", 9000));
+        String key = "NullValueKey";
+        msg.putProperty(key, null);
+        try {
+            byte[] encode = MessageDecoder.encode(msg, false);
+            MessageExt decode = MessageDecoder.decode(ByteBuffer.wrap(encode));
+            assertThat(decode.getProperty(key)).isNull();
+        } catch (Exception e) {
+            e.printStackTrace();
+            assertThat(Boolean.FALSE).isTrue();
+        }
+    }
+
 }
