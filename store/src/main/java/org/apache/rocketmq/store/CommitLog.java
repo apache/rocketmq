@@ -665,8 +665,6 @@ public class CommitLog {
         return flushResultFuture.thenCombine(replicaResultFuture, (flushStatus, replicaStatus) -> {
             if (flushStatus != PutMessageStatus.PUT_OK) {
                 putMessageResult.setPutMessageStatus(flushStatus);
-                log.error("do groupcommit, wait for flush failed, topic: {} tags: {} client address: {}",
-                        msg.getTopic(),  msg.getTags(), msg.getBornHostString());
             }
             if (replicaStatus != PutMessageStatus.PUT_OK) {
                 putMessageResult.setPutMessageStatus(replicaStatus);
@@ -772,8 +770,6 @@ public class CommitLog {
         return flushOKFuture.thenCombine(replicaOKFuture, (flushStatus, replicaStatus) -> {
             if (flushStatus != PutMessageStatus.PUT_OK) {
                 putMessageResult.setPutMessageStatus(flushStatus);
-                log.error("do groupcommit, wait for flush failed, topic: {} tags: {} client address: {}",
-                        messageExtBatch.getTopic(),  messageExtBatch.getTags(), messageExtBatch.getBornHostString());
             }
             if (replicaStatus != PutMessageStatus.PUT_OK) {
                 putMessageResult.setPutMessageStatus(replicaStatus);
