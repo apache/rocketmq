@@ -311,9 +311,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                                                                             SendMessageContext sendMessageContext,
                                                                             ChannelHandlerContext ctx,
                                                                             int queueIdInt) {
-        return putMessageResult.thenApply((r) ->
+        return putMessageResult.thenApplyAsync((r) ->
             handlePutMessageResult(r, response, request, msgInner, responseHeader, sendMessageContext, ctx, queueIdInt)
-        );
+        ,ctx.executor());
     }
 
     private boolean handleRetryAndDLQ(SendMessageRequestHeader requestHeader, RemotingCommand response,
