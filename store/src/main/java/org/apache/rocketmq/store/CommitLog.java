@@ -1429,13 +1429,10 @@ public class CommitLog {
                     for (GroupCommitRequest req : this.requestsRead) {
                         // There may be a message in the next file, so a maximum of
                         // two times the flush
-                        boolean flushOK = false;
+                        boolean flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() >= req.getNextOffset();
                         for (int i = 0; i < 2 && !flushOK; i++) {
+                            CommitLog.this.mappedFileQueue.flush(0);
                             flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() >= req.getNextOffset();
-
-                            if (!flushOK) {
-                                CommitLog.this.mappedFileQueue.flush(0);
-                            }
                         }
 
                         req.wakeupCustomer(flushOK);
