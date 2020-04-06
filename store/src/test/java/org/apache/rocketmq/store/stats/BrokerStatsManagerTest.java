@@ -22,14 +22,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.rocketmq.store.stats.BrokerStatsManager.GROUP_GET_FALL_SIZE;
-import static org.apache.rocketmq.store.stats.BrokerStatsManager.GROUP_GET_FALL_TIME;
-import static org.apache.rocketmq.store.stats.BrokerStatsManager.GROUP_GET_LATENCY;
-import static org.apache.rocketmq.store.stats.BrokerStatsManager.GROUP_GET_NUMS;
-import static org.apache.rocketmq.store.stats.BrokerStatsManager.GROUP_GET_SIZE;
-import static org.apache.rocketmq.store.stats.BrokerStatsManager.SNDBCK_PUT_NUMS;
-import static org.apache.rocketmq.store.stats.BrokerStatsManager.TOPIC_PUT_NUMS;
-import static org.apache.rocketmq.store.stats.BrokerStatsManager.TOPIC_PUT_SIZE;
+import static org.apache.rocketmq.store.stats.BrokerStatsManager.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class BrokerStatsManagerTest {
@@ -87,6 +80,12 @@ public class BrokerStatsManagerTest {
         brokerStatsManager.incGroupGetLatency(GROUP_NAME, TOPIC, 1, 1);
         String statsKey = String.format("%d@%s@%s", 1, TOPIC, GROUP_NAME);
         assertThat(brokerStatsManager.getStatsItem(GROUP_GET_LATENCY, statsKey).getValue().doubleValue()).isEqualTo(1L);
+    }
+
+    @Test
+    public void testIncBrokerPutNums() {
+        brokerStatsManager.incBrokerPutNums();
+        assertThat(brokerStatsManager.getStatsItem(BROKER_PUT_NUMS, "DefaultCluster").getValue().doubleValue()).isEqualTo(1L);
     }
 
     @Test
