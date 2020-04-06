@@ -966,7 +966,9 @@ public class DefaultMessageStore implements MessageStore {
                     this.commitLog.removeQueueFromTopicQueueTable(cq.getTopic(), cq.getQueueId());
                 }
                 it.remove();
-                this.brokerStatsManager.onTopicDeleted(topic);
+                if (this.brokerConfig.isAutoDeleteUnusedStats()) {
+                    this.brokerStatsManager.onTopicDeleted(topic);
+                }
 
                 log.info("cleanUnusedTopic: {},topic destroyed", topic);
             }
