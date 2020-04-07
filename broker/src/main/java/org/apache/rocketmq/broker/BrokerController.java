@@ -1032,10 +1032,6 @@ public class BrokerController {
         return sendThreadPoolQueue;
     }
 
-    public ExecutorService getSendMessageExecutor() {
-        return sendMessageExecutor;
-    }
-
     public FilterServerManager getFilterServerManager() {
         return filterServerManager;
     }
