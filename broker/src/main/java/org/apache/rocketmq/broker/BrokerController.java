@@ -1240,6 +1240,10 @@ public class BrokerController {
         }
     }
 
+    public void setSendMessageExecutor(ExecutorService sendMessageExecutor) {
+        this.sendMessageExecutor = sendMessageExecutor;
+    }
+
     public ExecutorService getSendMessageExecutor() {
         return sendMessageExecutor;
     }
