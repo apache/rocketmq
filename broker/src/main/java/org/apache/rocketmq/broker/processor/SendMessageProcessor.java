@@ -79,10 +79,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
     @Override
     public void asyncProcessRequest(ChannelHandlerContext ctx, RemotingCommand request, RemotingResponseCallback responseCallback) throws Exception {
-        CompletableFuture<RemotingCommand> rCmdFuture = asyncProcessRequest(ctx, request);
-        if (null != rCmdFuture) {
-            rCmdFuture.thenAcceptAsync(responseCallback::callback, this.brokerController.getSendMessageExecutor());
-        }
+        asyncProcessRequest(ctx, request).thenAccept(responseCallback::callback);
     }
 
     public CompletableFuture<RemotingCommand> asyncProcessRequest(ChannelHandlerContext ctx,
@@ -314,14 +311,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                                                                             SendMessageContext sendMessageContext,
                                                                             ChannelHandlerContext ctx,
                                                                             int queueIdInt) {
-        putMessageResult.thenAcceptAsync(result -> {
-            RemotingCommand remotingCommand =
-                    handlePutMessageResult(result, response, request, msgInner, responseHeader, sendMessageContext, ctx, queueIdInt);
-            if (remotingCommand != null) {
-                doResponse(ctx, request, remotingCommand);
-            }
-        }, this.brokerController.getSendMessageExecutor());
-        return null;
+        return putMessageResult.thenApplyAsync(result ->
+                handlePutMessageResult(result, response, request, msgInner, responseHeader, sendMessageContext, ctx, queueIdInt),
+                this.brokerController.getSendMessageExecutor());
     }
 
     private boolean handleRetryAndDLQ(SendMessageRequestHeader requestHeader, RemotingCommand response,
