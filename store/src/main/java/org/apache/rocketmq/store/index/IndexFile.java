@@ -133,7 +133,7 @@ public class IndexFile {
                     this.indexHeader.setBeginPhyOffset(phyOffset);
                     this.indexHeader.setBeginTimestamp(storeTimestamp);
                 }
-                if(slotValue == 0) {
+                if (slotValue == 0) {
                     this.indexHeader.incHashSlotCount();
                 }
                 this.indexHeader.incIndexCount();
