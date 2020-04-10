@@ -64,18 +64,37 @@ choose_gc_log_directory()
 
 choose_gc_log_directory
 
-JAVA_OPT="${JAVA_OPT} -server -Xms8g -Xmx8g -Xmn4g"
-JAVA_OPT="${JAVA_OPT} -XX:+UseG1GC -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -XX:SoftRefLRUPolicyMSPerMB=0"
-JAVA_OPT="${JAVA_OPT} -verbose:gc -Xloggc:${GC_LOG_DIR}/rmq_broker_gc_%p_%t.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintAdaptiveSizePolicy"
-JAVA_OPT="${JAVA_OPT} -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=30m"
-JAVA_OPT="${JAVA_OPT} -XX:-OmitStackTraceInFastThrow"
-JAVA_OPT="${JAVA_OPT} -XX:+AlwaysPreTouch"
-JAVA_OPT="${JAVA_OPT} -XX:MaxDirectMemorySize=15g"
-JAVA_OPT="${JAVA_OPT} -XX:-UseLargePages -XX:-UseBiasedLocking"
-JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${JAVA_HOME}/jre/lib/ext:${BASE_DIR}/lib"
-#JAVA_OPT="${JAVA_OPT} -Xdebug -Xrunjdwp:transport=dt_socket,address=9555,server=y,suspend=n"
-JAVA_OPT="${JAVA_OPT} ${JAVA_OPT_EXT}"
-JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
+version=$($JAVA -version 2>&1 | awk -F '"' '/version/ {print $2}')
+version=${version%.*.*}
+if [[ "$version" -eq 11 ]]; then
+        JAVA_OPT="${JAVA_OPT} --add-exports java.base/jdk.internal.ref=ALL-UNNAMED -server -Xms8g -Xmx8g -Xmn4g"
+        JAVA_OPT="${JAVA_OPT} -XX:+UseG1GC -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -XX:SoftRefLRUPolicyMSPerMB=0"
+        JAVA_OPT="${JAVA_OPT} -verbose:gc -Xlog:gc*=info,safepoint=info:file=${GC_LOG_DIR}/rmq_broker_gc_%p_%t.log:utctime,level,tags:filecount=5,filesize=30M"
+        JAVA_OPT="${JAVA_OPT} -XX:-OmitStackTraceInFastThrow"
+        JAVA_OPT="${JAVA_OPT} -XX:+AlwaysPreTouch"
+        JAVA_OPT="${JAVA_OPT} -XX:MaxDirectMemorySize=15g"
+        JAVA_OPT="${JAVA_OPT} -XX:-UseLargePages -XX:-UseBiasedLocking"
+        JAVA_OPT="${JAVA_OPT} --class-path=${JAVA_HOME}/jre/lib/ext/*:${BASE_DIR}/lib/*:${CLASSPATH}"
+        #JAVA_OPT="${JAVA_OPT} -Xdebug -Xrunjdwp:transport=dt_socket,address=9555,server=y,suspend=n"
+        JAVA_OPT="${JAVA_OPT} ${JAVA_OPT_EXT}"
+else
+        JAVA_OPT="${JAVA_OPT} -server -Xms8g -Xmx8g -Xmn4g"
+        JAVA_OPT="${JAVA_OPT} -XX:+UseG1GC -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -XX:SoftRefLRUPolicyMSPerMB=0"
+        JAVA_OPT="${JAVA_OPT} -verbose:gc -Xloggc:${GC_LOG_DIR}/rmq_broker_gc_%p_%t.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintAdaptiveSizePolicy"
+        JAVA_OPT="${JAVA_OPT} -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=30m"
+        JAVA_OPT="${JAVA_OPT} -XX:-OmitStackTraceInFastThrow"
+        JAVA_OPT="${JAVA_OPT} -XX:+AlwaysPreTouch"
+        JAVA_OPT="${JAVA_OPT} -XX:MaxDirectMemorySize=15g"
+        JAVA_OPT="${JAVA_OPT} -XX:-UseLargePages -XX:-UseBiasedLocking"
+        JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${JAVA_HOME}/jre/lib/ext:${BASE_DIR}/lib"
+        #JAVA_OPT="${JAVA_OPT} -Xdebug -Xrunjdwp:transport=dt_socket,address=9555,server=y,suspend=n"
+        JAVA_OPT="${JAVA_OPT} ${JAVA_OPT_EXT}"
+        JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
+fi
+
+
+
+
 
 numactl --interleave=all pwd > /dev/null 2>&1
 if [ $? -eq 0 ]
