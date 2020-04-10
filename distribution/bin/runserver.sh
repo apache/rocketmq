@@ -69,14 +69,13 @@ version=$($JAVA -version 2>&1 | awk -F '"' '/version/ {print $2}')
 version=${version%.*.*}
 if [[ "$version" -eq 11 ]]; then
         JAVA_OPT="${JAVA_OPT} -server -Xms4g -Xmx4g -Xmn2g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m"
-        JAVA_OPT="${JAVA_OPT} -XX:+UseConcMarkSweepGC -XX:+UseCMSCompactAtFullCollection -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:SoftRefLRUPolicyMSPerMB=0 -XX:+CMSClassUnloadingEnabled -XX:SurvivorRatio=8  -XX:-UseParNewGC"
+        JAVA_OPT="${JAVA_OPT} -XX:SurvivorRatio=8"
         JAVA_OPT="${JAVA_OPT} -verbose:gc -Xlog:gc*=info,safepoint=info:file=${GC_LOG_DIR}/rmq_srv_gc.log:utctime,level,tags:filecount=5,filesize=30M"
         JAVA_OPT="${JAVA_OPT} -XX:-OmitStackTraceInFastThrow"
         JAVA_OPT="${JAVA_OPT}  -XX:-UseLargePages"
-        JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${JAVA_HOME}/jre/lib/ext:${BASE_DIR}/lib"
+        JAVA_OPT="${JAVA_OPT} --class-path=${JAVA_HOME}/jre/lib/ext/*:${BASE_DIR}/lib/*:${CLASSPATH}"
         #JAVA_OPT="${JAVA_OPT} -Xdebug -Xrunjdwp:transport=dt_socket,address=9555,server=y,suspend=n"
         JAVA_OPT="${JAVA_OPT} ${JAVA_OPT_EXT}"
-        JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
 else
         JAVA_OPT="${JAVA_OPT} -server -Xms4g -Xmx4g -Xmn2g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m"
         JAVA_OPT="${JAVA_OPT} -XX:+UseConcMarkSweepGC -XX:+UseCMSCompactAtFullCollection -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:SoftRefLRUPolicyMSPerMB=0 -XX:+CMSClassUnloadingEnabled -XX:SurvivorRatio=8  -XX:-UseParNewGC"
