@@ -69,7 +69,7 @@ version=${version%.*.*}
 if [[ "$version" -eq 11 ]]; then
         JAVA_OPT="${JAVA_OPT} --add-exports java.base/jdk.internal.ref=ALL-UNNAMED -server -Xms8g -Xmx8g -Xmn4g"
         JAVA_OPT="${JAVA_OPT} -XX:+UseG1GC -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -XX:SoftRefLRUPolicyMSPerMB=0"
-        JAVA_OPT="${JAVA_OPT} -verbose:gc -Xlog:gc*=info,safepoint=info:file=${GC_LOG_DIR}/rmq_broker_gc_%p_%t.log:utctime,level,tags:filecount=5,filesize=30M"
+        JAVA_OPT="${JAVA_OPT} -verbose:gc -Xlog:gc*=info,safepoint=info:file=${GC_LOG_DIR}/rmq_broker_gc.log:utctime,level,tags:filecount=5,filesize=30M"
         JAVA_OPT="${JAVA_OPT} -XX:-OmitStackTraceInFastThrow"
         JAVA_OPT="${JAVA_OPT} -XX:+AlwaysPreTouch"
         JAVA_OPT="${JAVA_OPT} -XX:MaxDirectMemorySize=15g"
