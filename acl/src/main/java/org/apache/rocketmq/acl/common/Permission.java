@@ -60,13 +60,13 @@ public class Permission {
             return Permission.DENY;
         }
         String permTrimString = permString.trim();
-        if(permTrimString.equals("PUB")) {
+        if (permTrimString.equals("PUB")) {
             return Permission.PUB;
         } else if (permTrimString.equals("SUB")) {
             return Permission.SUB;
         } else if (permTrimString.equals("PUB|SUB")) {
             return Permission.PUB | Permission.SUB;
-        } else if (permTrimString.equals("SUB|PUB")){
+        } else if (permTrimString.equals("SUB|PUB")) {
             return Permission.PUB | Permission.SUB;
         } else if (permTrimString.equals("DENY")) {
             return Permission.DENY;
