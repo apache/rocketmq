@@ -37,6 +37,9 @@ public class QueryMessageTransfer extends AbstractReferenceCounted implements Fi
     public QueryMessageTransfer(ByteBuffer byteBufferHeader, QueryMessageResult queryMessageResult) {
         this.byteBufferHeader = byteBufferHeader;
         this.queryMessageResult = queryMessageResult;
+        for (SelectMappedBufferResult r: queryMessageResult.getMessageMapedList()) {
+            r.setStartOffset(r.getStartOffset() - r.getMappedFile().getFileFromOffset());
+        }
     }
 
     @Override

@@ -37,6 +37,9 @@ public class ManyMessageTransfer extends AbstractReferenceCounted implements Fil
     public ManyMessageTransfer(ByteBuffer byteBufferHeader, GetMessageResult getMessageResult) {
         this.byteBufferHeader = byteBufferHeader;
         this.getMessageResult = getMessageResult;
+        for (SelectMappedBufferResult r: getMessageResult.getMessageMapedList()) {
+            r.setStartOffset(r.getStartOffset() - r.getMappedFile().getFileFromOffset());
+        }
     }
 
     @Override
