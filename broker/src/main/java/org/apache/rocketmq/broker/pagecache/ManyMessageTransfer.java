@@ -74,9 +74,11 @@ public class ManyMessageTransfer extends AbstractReferenceCounted implements Fil
                     continue;
                 }
                 long written = r.getMappedFile().getFileChannel().transferTo(r.getStartOffset(), r.getSize(), target);
-                r.setStartOffset(r.getStartOffset() + written);
-                r.setSize(r.getSize() - (int)written);
-                transferred += written;
+                if (written > 0) {
+                    r.setStartOffset(r.getStartOffset() + written);
+                    r.setSize(r.getSize() - (int)written);
+                    transferred += written;
+                }
             }
 
             return transferred;

@@ -62,7 +62,6 @@ public class QueryMessageTransfer extends AbstractReferenceCounted implements Fi
         return byteBufferHeader.limit() + this.queryMessageResult.getBufferTotalSize();
     }
 
-    int i = 0;
     @Override
     public long transferTo(WritableByteChannel target, long position) throws IOException {
         if (this.byteBufferHeader.hasRemaining()) {
@@ -75,9 +74,11 @@ public class QueryMessageTransfer extends AbstractReferenceCounted implements Fi
                     continue;
                 }
                 long written = r.getMappedFile().getFileChannel().transferTo(r.getStartOffset(), r.getSize(), target);
-                r.setStartOffset(r.getStartOffset() + written);
-                r.setSize(r.getSize() - (int)written);
-                transferred += written;
+                if (written > 0) {
+                    r.setStartOffset(r.getStartOffset() + written);
+                    r.setSize(r.getSize() - (int)written);
+                    transferred += written;
+                }
             }
 
             return transferred;
