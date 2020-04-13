@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.util.List;
 import org.apache.rocketmq.store.QueryMessageResult;
+import org.apache.rocketmq.store.SelectMappedBufferResult;
 
 public class QueryMessageTransfer extends AbstractReferenceCounted implements FileRegion {
     private final ByteBuffer byteBufferHeader;
@@ -58,22 +59,26 @@ public class QueryMessageTransfer extends AbstractReferenceCounted implements Fi
         return byteBufferHeader.limit() + this.queryMessageResult.getBufferTotalSize();
     }
 
+    int i = 0;
     @Override
     public long transferTo(WritableByteChannel target, long position) throws IOException {
         if (this.byteBufferHeader.hasRemaining()) {
             transferred += target.write(this.byteBufferHeader);
             return transferred;
         } else {
-            List<ByteBuffer> messageBufferList = this.queryMessageResult.getMessageBufferList();
-            for (ByteBuffer bb : messageBufferList) {
-                if (bb.hasRemaining()) {
-                    transferred += target.write(bb);
-                    return transferred;
+            List<SelectMappedBufferResult> messageMapedList = this.queryMessageResult.getMessageMapedList();
+            for (SelectMappedBufferResult r: messageMapedList) {
+                if (r.getSize() <= 0) {
+                    continue;
                 }
+                long written = r.getMappedFile().getFileChannel().transferTo(r.getStartOffset(), r.getSize(), target);
+                r.setStartOffset(r.getStartOffset() + written);
+                r.setSize(r.getSize() - (int)written);
+                transferred += written;
             }
-        }
 
-        return 0;
+            return transferred;
+        }
     }
 
     public void close() {
