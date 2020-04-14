@@ -494,13 +494,15 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
         try {
             List<ByteBuffer> messageBufferList = getMessageResult.getMessageBufferList();
             for (ByteBuffer bb : messageBufferList) {
-
                 byteBuffer.put(bb);
-                int sysFlag = bb.getInt(MessageDecoder.SYSFLAG_POSITION);
-//                bornhost has the IPv4 ip if the MessageSysFlag.BORNHOST_V6_FLAG bit of sysFlag is 0
-//                IPv4 host = ip(4 byte) + port(4 byte); IPv6 host = ip(16 byte) + port(4 byte)
-                int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
-                int msgStoreTimePos = 4 // 1 TOTALSIZE
+            }
+
+            ByteBuffer lastMsgBuffer = messageBufferList.get(messageBufferList.size() - 1);
+            int sysFlag = lastMsgBuffer.getInt(MessageDecoder.SYSFLAG_POSITION);
+            // bornhost has the IPv4 ip if the MessageSysFlag.BORNHOST_V6_FLAG bit of sysFlag is 0
+            // IPv4 host = ip(4 byte) + port(4 byte); IPv6 host = ip(16 byte) + port(4 byte)
+            int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
+            int msgStoreTimePos = 4 // 1 TOTALSIZE
                     + 4 // 2 MAGICCODE
                     + 4 // 3 BODYCRC
                     + 4 // 4 QUEUEID
@@ -510,8 +512,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                     + 4 // 8 SYSFLAG
                     + 8 // 9 BORNTIMESTAMP
                     + bornhostLength; // 10 BORNHOST
-                storeTimestamp = bb.getLong(msgStoreTimePos);
-            }
+            storeTimestamp = lastMsgBuffer.getLong(msgStoreTimePos);
         } finally {
             getMessageResult.release();
         }
