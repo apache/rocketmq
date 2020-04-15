@@ -1356,12 +1356,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
-                    requestResponseFuture.setSendReqeustOk(true);
+                    requestResponseFuture.setSendRequestOk(true);
                 }
 
                 @Override
                 public void onException(Throwable e) {
-                    requestResponseFuture.setSendReqeustOk(false);
+                    requestResponseFuture.setSendRequestOk(false);
                     requestResponseFuture.putResponseMessage(null);
                     requestResponseFuture.setCause(e);
                 }
@@ -1395,7 +1395,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
-                requestResponseFuture.setSendReqeustOk(true);
+                requestResponseFuture.setSendRequestOk(true);
             }
 
             @Override
@@ -1421,12 +1421,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
-                    requestResponseFuture.setSendReqeustOk(true);
+                    requestResponseFuture.setSendRequestOk(true);
                 }
 
                 @Override
                 public void onException(Throwable e) {
-                    requestResponseFuture.setSendReqeustOk(false);
+                    requestResponseFuture.setSendRequestOk(false);
                     requestResponseFuture.putResponseMessage(null);
                     requestResponseFuture.setCause(e);
                 }
@@ -1461,7 +1461,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
-                requestResponseFuture.setSendReqeustOk(true);
+                requestResponseFuture.setSendRequestOk(true);
             }
 
             @Override
@@ -1487,12 +1487,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
                 @Override
                 public void onSuccess(SendResult sendResult) {
-                    requestResponseFuture.setSendReqeustOk(true);
+                    requestResponseFuture.setSendRequestOk(true);
                 }
 
                 @Override
                 public void onException(Throwable e) {
-                    requestResponseFuture.setSendReqeustOk(false);
+                    requestResponseFuture.setSendRequestOk(false);
                     requestResponseFuture.putResponseMessage(null);
                     requestResponseFuture.setCause(e);
                 }
@@ -1526,7 +1526,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
-                requestResponseFuture.setSendReqeustOk(true);
+                requestResponseFuture.setSendRequestOk(true);
             }
 
             @Override
@@ -1540,7 +1540,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private void requestFail(final String correlationId) {
         RequestResponseFuture responseFuture = RequestFutureTable.getRequestFutureTable().remove(correlationId);
         if (responseFuture != null) {
-            responseFuture.setSendReqeustOk(false);
+            responseFuture.setSendRequestOk(false);
             responseFuture.putResponseMessage(null);
             try {
                 responseFuture.executeRequestCallback();
