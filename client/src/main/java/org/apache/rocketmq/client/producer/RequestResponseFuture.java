@@ -103,8 +103,8 @@ public class RequestResponseFuture {
         return sendRequestOk;
     }
 
-    public void setSendReqeustOk(boolean sendReqeustOk) {
-        this.sendRequestOk = sendReqeustOk;
+    public void setSendRequestOk(boolean sendRequestOk) {
+        this.sendRequestOk = sendRequestOk;
     }
 
     public Message getRequestMsg() {
