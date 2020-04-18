@@ -77,10 +77,9 @@ public class MQFaultStrategy {
                     if (notBestBroker != null) {
                         mq.setBrokerName(notBestBroker);
                         mq.setQueueId(tpInfo.getSendWhichQueue().getAndIncrement() % writeQueueNums);
+                        latencyFaultTolerance.remove(notBestBroker);
                     }
                     return mq;
-                } else {
-                    latencyFaultTolerance.remove(notBestBroker);
                 }
             } catch (Exception e) {
                 log.error("Error occurred when selecting message queue", e);
