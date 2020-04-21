@@ -695,6 +695,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             (GetTopicStatsInfoRequestHeader) request.decodeCommandCustomHeader(GetTopicStatsInfoRequestHeader.class);
 
         final String topic = requestHeader.getTopic();
+        final boolean realOffset = requestHeader.getRealOffset();
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
         if (null == topicConfig) {
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
@@ -710,7 +711,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             mq.setQueueId(i);
 
             TopicOffset topicOffset = new TopicOffset();
-            long min = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, i);
+            long min = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, i, realOffset);
             if (min < 0)
                 min = 0;
 
