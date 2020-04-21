@@ -145,7 +145,8 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
         List<PutMessageResult> results = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            MessageExtBrokerInner msgInner =  buildMessage();
+            MessageExtBrokerInner msgInner =
+                i < 5 ? buildMessage() : buildIPv6HostMessage();
             msgInner.setTopic(topic);
             msgInner.setQueueId(0);
             PutMessageResult putMessageResult = messageStore.putMessage(msgInner);
@@ -183,6 +184,40 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
         String topic = UUID.randomUUID().toString();
         MessageExtBrokerInner msgInner =  buildMessage();
+        msgInner.setTopic(topic);
+        msgInner.setQueueId(0);
+        PutMessageResult putMessageResult = leaderStore.putMessage(msgInner);
+        Assert.assertEquals(PutMessageStatus.OS_PAGECACHE_BUSY, putMessageResult.getPutMessageStatus());
+
+        Thread.sleep(1000);
+
+        Assert.assertEquals(0, leaderStore.getCommitLog().getMaxOffset());
+        Assert.assertEquals(0, leaderStore.getMaxOffsetInQueue(topic, 0));
+
+
+        DefaultMessageStore followerStore = createDledgerMessageStore(createBaseDir(), group,"n1", peers, "n0", false, 0);
+        Thread.sleep(2000);
+
+        Assert.assertEquals(1, leaderStore.getMaxOffsetInQueue(topic, 0));
+        Assert.assertEquals(1, followerStore.getMaxOffsetInQueue(topic, 0));
+        Assert.assertTrue(leaderStore.getCommitLog().getMaxOffset() > 0);
+
+
+        leaderStore.destroy();
+        followerStore.destroy();
+
+        leaderStore.shutdown();
+        followerStore.shutdown();
+    }
+
+    @Test
+    public void testIPv6HostMsgCommittedPos() throws Exception {
+        String peers = String.format("n0-localhost:%d;n1-localhost:%d", nextPort(), nextPort());
+        String group = UUID.randomUUID().toString();
+        DefaultMessageStore leaderStore = createDledgerMessageStore(createBaseDir(), group,"n0", peers, "n0", false, 0);
+
+        String topic = UUID.randomUUID().toString();
+        MessageExtBrokerInner msgInner =  buildIPv6HostMessage();
         msgInner.setTopic(topic);
         msgInner.setQueueId(0);
         PutMessageResult putMessageResult = leaderStore.putMessage(msgInner);
