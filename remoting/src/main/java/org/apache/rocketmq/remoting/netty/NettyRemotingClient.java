@@ -105,7 +105,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         this.nettyClientConfig = nettyClientConfig;
         this.channelEventListener = channelEventListener;
 
-        int publicThreadNums = nettyClientConfig.getClientCallbackExecutorThreads();
+        int publicThreadNums = nettyClientConfig.getClientCallbackExecutorThreads(); //cpu核数
         if (publicThreadNums <= 0) {
             publicThreadNums = 4;
         }
@@ -626,7 +626,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
-            processMessageReceived(ctx, msg);
+            processMessageReceived(ctx, msg); //客户端接收到数据
         }
     }
 

@@ -164,8 +164,8 @@ public class IndexService {
             this.readWriteLock.readLock().lock();
             if (!this.indexFileList.isEmpty()) {
                 for (int i = this.indexFileList.size(); i > 0; i--) {
-                    IndexFile f = this.indexFileList.get(i - 1);
-                    boolean lastFile = i == this.indexFileList.size();
+                    IndexFile f = this.indexFileList.get(i - 1); //最后 有一个文件
+                    boolean lastFile = i == this.indexFileList.size(); //是不是最后一个文件
                     if (lastFile) {
                         indexLastUpdateTimestamp = f.getEndTimestamp();
                         indexLastUpdatePhyoffset = f.getEndPhyOffset();

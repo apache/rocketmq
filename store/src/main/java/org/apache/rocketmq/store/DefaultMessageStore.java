@@ -216,7 +216,7 @@ public class DefaultMessageStore implements MessageStore {
 
         lockFile.getChannel().write(ByteBuffer.wrap("lock".getBytes()));
         lockFile.getChannel().force(true);
-
+        //启动一些启动
         this.flushConsumeQueueService.start(); //刷新ConsumeQueue
         this.commitLog.start();
         this.storeStatsService.start();
@@ -232,7 +232,7 @@ public class DefaultMessageStore implements MessageStore {
         }
         this.reputMessageService.start();
 
-        this.haService.start();
+        this.haService.start(); //主从同步服务
 
         this.createTempFile(); //abort文件
         this.addScheduleTask();
@@ -1245,7 +1245,7 @@ public class DefaultMessageStore implements MessageStore {
         File[] fileTopicList = dirLogic.listFiles();
         if (fileTopicList != null) {
 
-            for (File fileTopic : fileTopicList) {
+            for (File fileTopic : fileTopicList) { //dir->topic(dir)->queueId(file)
                 String topic = fileTopic.getName();
 
                 File[] fileQueueIdList = fileTopic.listFiles();
@@ -1634,7 +1634,7 @@ public class DefaultMessageStore implements MessageStore {
                     }
                 }
 
-                DefaultMessageStore.this.indexService.deleteExpiredFile(minOffset);
+                DefaultMessageStore.this.indexService.deleteExpiredFile(minOffset); //索引文件删除
             }
         }
 

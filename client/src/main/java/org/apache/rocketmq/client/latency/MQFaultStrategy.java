@@ -60,7 +60,7 @@ public class MQFaultStrategy {
             try {
                 //获取上一次获取的index，也就是说是用轮询的方式取有用队列
                 int index = tpInfo.getSendWhichQueue().getAndIncrement();
-                for (int i = 0; i < tpInfo.getMessageQueueList().size(); i++) {
+                for (int i = 0; i < tpInfo.getMessageQueueList().size(); i++) { //遍历mq
                     int pos = Math.abs(index++) % tpInfo.getMessageQueueList().size();
                     if (pos < 0)
                         pos = 0;

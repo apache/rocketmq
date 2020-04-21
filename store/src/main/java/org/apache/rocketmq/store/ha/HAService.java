@@ -106,7 +106,7 @@ public class HAService {
     // }
 
     public void start() throws Exception {
-        this.acceptSocketService.beginAccept();
+        this.acceptSocketService.beginAccept(); //启动一个监听服务
         this.acceptSocketService.start();
         this.groupTransferService.start();
         this.haClient.start();
@@ -202,20 +202,20 @@ public class HAService {
 
             while (!this.isStopped()) {
                 try {
-                    this.selector.select(1000);
+                    this.selector.select(1000); //接收请求
                     Set<SelectionKey> selected = this.selector.selectedKeys();
 
                     if (selected != null) {
                         for (SelectionKey k : selected) {
-                            if ((k.readyOps() & SelectionKey.OP_ACCEPT) != 0) {
-                                SocketChannel sc = ((ServerSocketChannel) k.channel()).accept();
+                            if ((k.readyOps() & SelectionKey.OP_ACCEPT) != 0) { //有请求进来
+                                SocketChannel sc = ((ServerSocketChannel) k.channel()).accept(); //获取对应客户端的socket
 
                                 if (sc != null) {
                                     HAService.log.info("HAService receive new connection, "
                                         + sc.socket().getRemoteSocketAddress());
 
                                     try {
-                                        HAConnection conn = new HAConnection(HAService.this, sc);
+                                        HAConnection conn = new HAConnection(HAService.this, sc); //包装成HAConnection
                                         conn.start();
                                         HAService.this.addConnection(conn);
                                     } catch (Exception e) {
@@ -548,10 +548,10 @@ public class HAService {
 
             while (!this.isStopped()) {
                 try {
-                    if (this.connectMaster()) {
+                    if (this.connectMaster()) { //连接master
 
                         if (this.isTimeToReportOffset()) {
-                            boolean result = this.reportSlaveMaxOffset(this.currentReportedOffset);
+                            boolean result = this.reportSlaveMaxOffset(this.currentReportedOffset); // 报告slave最大的offset
                             if (!result) {
                                 this.closeMaster();
                             }

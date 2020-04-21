@@ -178,8 +178,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
         }
 
+        //核心：死信队列处理流程
         if (msgExt.getReconsumeTimes() >= maxReconsumeTimes
             || delayLevel < 0) {
+            //替换成死信队列的Topic+consumeGroup
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
             queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
 
@@ -357,7 +359,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                         + "] sending transaction message is forbidden");
                 return response;
             }
-            putMessageResult = this.brokerController.getTransactionalMessageService().prepareMessage(msgInner);
+            putMessageResult = this.brokerController.getTransactionalMessageService().prepareMessage(msgInner); //事务消息预处理
         } else {
             putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
         }

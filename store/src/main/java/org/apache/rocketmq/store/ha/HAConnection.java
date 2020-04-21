@@ -33,8 +33,8 @@ public class HAConnection {
     private final HAService haService;
     private final SocketChannel socketChannel;
     private final String clientAddr;
-    private WriteSocketService writeSocketService;
-    private ReadSocketService readSocketService;
+    private WriteSocketService writeSocketService; //写服务
+    private ReadSocketService readSocketService; //读服务
 
     private volatile long slaveRequestOffset = -1;
     private volatile long slaveAckOffset = -1;
@@ -82,7 +82,7 @@ public class HAConnection {
         private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024;
         private final Selector selector;
         private final SocketChannel socketChannel;
-        private final ByteBuffer byteBufferRead = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE);
+        private final ByteBuffer byteBufferRead = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE); //默认1M
         private int processPostion = 0;
         private volatile long lastReadTimestamp = System.currentTimeMillis();
 
@@ -148,12 +148,12 @@ public class HAConnection {
         private boolean processReadEvent() {
             int readSizeZeroTimes = 0;
 
-            if (!this.byteBufferRead.hasRemaining()) {
-                this.byteBufferRead.flip();
-                this.processPostion = 0;
+            if (!this.byteBufferRead.hasRemaining()) { //没有空余
+                this.byteBufferRead.flip(); //转换为读状态
+                this.processPostion = 0; // 初始化processPostion
             }
 
-            while (this.byteBufferRead.hasRemaining()) {
+            while (this.byteBufferRead.hasRemaining()) { //缓存空余
                 try {
                     int readSize = this.socketChannel.read(this.byteBufferRead);
                     if (readSize > 0) {
@@ -170,7 +170,7 @@ public class HAConnection {
                                 log.info("slave[" + HAConnection.this.clientAddr + "] request offset " + readOffset);
                             }
 
-                            HAConnection.this.haService.notifyTransferSome(HAConnection.this.slaveAckOffset);
+                            HAConnection.this.haService.notifyTransferSome(HAConnection.this.slaveAckOffset);  // 通知Transfer
                         }
                     } else if (readSize == 0) {
                         if (++readSizeZeroTimes >= 3) {

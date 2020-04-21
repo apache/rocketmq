@@ -68,10 +68,10 @@ public class PullRequestHoldService extends ServiceThread {
         log.info("{} service started", this.getServiceName());
         while (!this.isStopped()) {
             try {
-                if (this.brokerController.getBrokerConfig().isLongPollingEnable()) {
-                    this.waitForRunning(5 * 1000);
+                if (this.brokerController.getBrokerConfig().isLongPollingEnable()) { //允许长轮询
+                    this.waitForRunning(5 * 1000); //等待5s
                 } else {
-                    this.waitForRunning(this.brokerController.getBrokerConfig().getShortPollingTimeMills());
+                    this.waitForRunning(this.brokerController.getBrokerConfig().getShortPollingTimeMills()); //等待1s
                 }
 
                 long beginLockTimestamp = this.systemClock.now();
@@ -99,7 +99,7 @@ public class PullRequestHoldService extends ServiceThread {
             if (2 == kArray.length) {
                 String topic = kArray[0];
                 int queueId = Integer.parseInt(kArray[1]);
-                final long offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
+                final long offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId); //找到最大的逻辑偏移量
                 try {
                     this.notifyMessageArriving(topic, queueId, offset);
                 } catch (Throwable e) {
