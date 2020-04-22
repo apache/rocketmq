@@ -680,6 +680,7 @@ public class DefaultMessageStore implements MessageStore {
                         return consumeQueueOffset;
                     }
                 }
+                return consumeQueueOffset;
             } else {
                 return consumeQueueOffset;
             }
