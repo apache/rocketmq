@@ -85,7 +85,7 @@ public class TopicStatusSubCommand implements SubCommand {
             for (MessageQueue mq : mqList) {
                 TopicOffset topicOffset = topicStatsTable.getOffsetTable().get(mq);
 
-                total += topicOffset.getMaxOffset()-topicOffset.getMinOffset();
+                total += topicOffset.getMaxOffset() - topicOffset.getMinOffset();
 
                 String humanTimestamp = "";
                 if (topicOffset.getLastUpdateTimestamp() > 0) {
@@ -99,7 +99,7 @@ public class TopicStatusSubCommand implements SubCommand {
                     topicOffset.getMaxOffset(),
                     humanTimestamp
                 );
-                if(topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)){
+                if (topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
                     System.out.printf("Total: %d%n", total);
                 }
             }

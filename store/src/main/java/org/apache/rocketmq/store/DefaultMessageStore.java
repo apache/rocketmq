@@ -672,15 +672,15 @@ public class DefaultMessageStore implements MessageStore {
             long consumeQueueOffset = logic.getMinOffsetInQueue();
             MessageExt msgExt = null;
             long commitLogOffset = 0L;
-            if(realOffset){
-                for( ;consumeQueueOffset < getMaxOffsetInQueue(topic,queueId); consumeQueueOffset++){
+            if (realOffset) {
+                for (;consumeQueueOffset <= getMaxOffsetInQueue(topic,queueId);consumeQueueOffset++) {
                     commitLogOffset = getCommitLogOffsetInQueue(topic, queueId, consumeQueueOffset);
                     msgExt = lookMessageByOffset(commitLogOffset);
-                    if(null != msgExt){
+                    if (null != msgExt) {
                         return consumeQueueOffset;
                     }
                 }
-            }else {
+            } else {
                 return consumeQueueOffset;
             }
         }
