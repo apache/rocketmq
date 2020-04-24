@@ -853,7 +853,6 @@ public class MQClientInstance {
                     this.scheduledExecutorService.shutdown();
                     this.mQClientAPIImpl.shutdown();
                     this.rebalanceService.shutdown();
-                    this.defaultMQProducer.shutdown();
 
                     if (this.datagramSocket != null) {
                         this.datagramSocket.close();
