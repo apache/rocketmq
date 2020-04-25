@@ -220,9 +220,11 @@ public class AclUtils {
             }
         }
 
+        StringBuilder tempAddSb = new StringBuilder();
         for (int i = 0; i < strArray.length; i++) {
             if (strArray[i].length() < 4) {
-                strArray[i] = "0000".substring(0, 4 - strArray[i].length()) + strArray[i];
+                strArray[i] = tempAddSb.append("0000".substring(0, 4 - strArray[i].length())).append(strArray[i]).toString();
+                tempAddSb.setLength(0);
             }
         }
 
