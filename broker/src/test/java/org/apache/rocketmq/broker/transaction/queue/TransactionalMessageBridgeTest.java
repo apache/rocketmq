@@ -47,6 +47,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -85,6 +86,14 @@ public class TransactionalMessageBridgeTest {
             (PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         PutMessageResult result = transactionBridge.putHalfMessage(createMessageBrokerInner());
         assertThat(result.getPutMessageStatus()).isEqualTo(PutMessageStatus.PUT_OK);
+    }
+
+    @Test
+    public void testAsyncPutHalfMessage() throws Exception {
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
+                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
+        CompletableFuture<PutMessageResult> result = transactionBridge.asyncPutHalfMessage(createMessageBrokerInner());
+        assertThat(result.get().getPutMessageStatus()).isEqualTo(PutMessageStatus.PUT_OK);
     }
 
     @Test
@@ -165,6 +174,24 @@ public class TransactionalMessageBridgeTest {
         when(messageStore.lookMessageByOffset(anyLong())).thenReturn(new MessageExt());
         MessageExt messageExt = transactionBridge.lookMessageByOffset(123);
         assertThat(messageExt).isNotNull();
+    }
+
+    @Test
+    public void testGetHalfMessageStatusFound() {
+        when(messageStore
+                .getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), ArgumentMatchers.nullable(MessageFilter.class)))
+                .thenReturn(createGetMessageResult(GetMessageStatus.FOUND));
+        PullResult result = transactionBridge.getHalfMessage(0, 0, 1);
+        assertThat(result.getPullStatus()).isEqualTo(PullStatus.FOUND);
+    }
+
+    @Test
+    public void testGetHalfMessageNull() {
+        when(messageStore
+                .getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), ArgumentMatchers.nullable(MessageFilter.class)))
+                .thenReturn(null);
+        PullResult result = transactionBridge.getHalfMessage(0, 0, 1);
+        assertThat(result).isNull();
     }
 
     private GetMessageResult createGetMessageResult(GetMessageStatus status) {

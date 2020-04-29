@@ -19,6 +19,8 @@ package org.apache.rocketmq.store;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.net.Inet6Address;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileLock;
@@ -29,6 +31,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
@@ -285,8 +288,6 @@ public class DefaultMessageStore implements MessageStore {
         this.shutdown = false;
     }
 
-
-
     public void shutdown() {
         if (!this.shutdown) {
             this.shutdown = true;
@@ -351,54 +352,143 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    public PutMessageResult putMessage(MessageExtBrokerInner msg) {
+    private PutMessageStatus checkMessage(MessageExtBrokerInner msg) {
+        if (msg.getTopic().length() > Byte.MAX_VALUE) {
+            log.warn("putMessage message topic length too long " + msg.getTopic().length());
+            return PutMessageStatus.MESSAGE_ILLEGAL;
+        }
+
+        if (msg.getPropertiesString() != null && msg.getPropertiesString().length() > Short.MAX_VALUE) {
+            log.warn("putMessage message properties length too long " + msg.getPropertiesString().length());
+            return PutMessageStatus.MESSAGE_ILLEGAL;
+        }
+        return PutMessageStatus.PUT_OK;
+    }
+
+    private PutMessageStatus checkMessages(MessageExtBatch messageExtBatch) {
+        if (messageExtBatch.getTopic().length() > Byte.MAX_VALUE) {
+            log.warn("putMessage message topic length too long " + messageExtBatch.getTopic().length());
+            return PutMessageStatus.MESSAGE_ILLEGAL;
+        }
+
+        if (messageExtBatch.getBody().length > messageStoreConfig.getMaxMessageSize()) {
+            log.warn("PutMessages body length too long " + messageExtBatch.getBody().length);
+            return PutMessageStatus.MESSAGE_ILLEGAL;
+        }
+
+        return PutMessageStatus.PUT_OK;
+    }
+
+    private PutMessageStatus checkStoreStatus() {
         if (this.shutdown) {
             log.warn("message store has shutdown, so putMessage is forbidden");
-            return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
+            return PutMessageStatus.SERVICE_NOT_AVAILABLE;
         }
 
         if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
-                log.warn("message store is slave mode, so putMessage is forbidden ");
+                log.warn("message store has shutdown, so putMessage is forbidden");
             }
-
-            return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
+            return PutMessageStatus.SERVICE_NOT_AVAILABLE;
         }
 
         if (!this.runningFlags.isWriteable()) {
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
-                log.warn("message store is not writeable, so putMessage is forbidden " + this.runningFlags.getFlagBits());
+                log.warn("message store has shutdown, so putMessage is forbidden");
             }
-
-            return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
+            return PutMessageStatus.SERVICE_NOT_AVAILABLE;
         } else {
             this.printTimes.set(0);
         }
 
-        if (msg.getTopic().length() > Byte.MAX_VALUE) {
-            log.warn("putMessage message topic length too long " + msg.getTopic().length());
-            return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
-        }
-
-        if (msg.getPropertiesString() != null && msg.getPropertiesString().length() > Short.MAX_VALUE) {
-            log.warn("putMessage message properties length too long " + msg.getPropertiesString().length());
-            return new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, null);
-        }
-
         if (this.isOSPageCacheBusy()) {
-            return new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, null);
+            return PutMessageStatus.OS_PAGECACHE_BUSY;
+        }
+        return PutMessageStatus.PUT_OK;
+    }
+
+    @Override
+    public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
+        PutMessageStatus checkStoreStatus = this.checkStoreStatus();
+        if (checkStoreStatus != PutMessageStatus.PUT_OK) {
+            return CompletableFuture.completedFuture(new PutMessageResult(checkStoreStatus, null));
+        }
+
+        PutMessageStatus msgCheckStatus = this.checkMessage(msg);
+        if (msgCheckStatus == PutMessageStatus.MESSAGE_ILLEGAL) {
+            return CompletableFuture.completedFuture(new PutMessageResult(msgCheckStatus, null));
+        }
+
+        long beginTime = this.getSystemClock().now();
+        CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);
+
+        putResultFuture.thenAccept((result) -> {
+            long elapsedTime = this.getSystemClock().now() - beginTime;
+            if (elapsedTime > 500) {
+                log.warn("putMessage not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, msg.getBody().length);
+            }
+            this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
+
+            if (null == result || !result.isOk()) {
+                this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();
+            }
+        });
+
+        return putResultFuture;
+    }
+
+    public CompletableFuture<PutMessageResult> asyncPutMessages(MessageExtBatch messageExtBatch) {
+        PutMessageStatus checkStoreStatus = this.checkStoreStatus();
+        if (checkStoreStatus != PutMessageStatus.PUT_OK) {
+            return CompletableFuture.completedFuture(new PutMessageResult(checkStoreStatus, null));
+        }
+
+        PutMessageStatus msgCheckStatus = this.checkMessages(messageExtBatch);
+        if (msgCheckStatus == PutMessageStatus.MESSAGE_ILLEGAL) {
+            return CompletableFuture.completedFuture(new PutMessageResult(msgCheckStatus, null));
+        }
+
+        long beginTime = this.getSystemClock().now();
+        CompletableFuture<PutMessageResult> resultFuture = this.commitLog.asyncPutMessages(messageExtBatch);
+
+        resultFuture.thenAccept((result) -> {
+            long elapsedTime = this.getSystemClock().now() - beginTime;
+            if (elapsedTime > 500) {
+                log.warn("not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, messageExtBatch.getBody().length);
+            }
+
+            this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
+
+            if (null == result || !result.isOk()) {
+                this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();
+            }
+        });
+
+        return resultFuture;
+    }
+
+    @Override
+    public PutMessageResult putMessage(MessageExtBrokerInner msg) {
+        PutMessageStatus checkStoreStatus = this.checkStoreStatus();
+        if (checkStoreStatus != PutMessageStatus.PUT_OK) {
+            return new PutMessageResult(checkStoreStatus, null);
+        }
+
+        PutMessageStatus msgCheckStatus = this.checkMessage(msg);
+        if (msgCheckStatus == PutMessageStatus.MESSAGE_ILLEGAL) {
+            return new PutMessageResult(msgCheckStatus, null);
         }
 
         long beginTime = this.getSystemClock().now();
         PutMessageResult result = this.commitLog.putMessage(msg);
-
-        long eclipseTime = this.getSystemClock().now() - beginTime;
-        if (eclipseTime > 500) {
-            log.warn("putMessage not in lock eclipse time(ms)={}, bodyLength={}", eclipseTime, msg.getBody().length);
+        long elapsedTime = this.getSystemClock().now() - beginTime;
+        if (elapsedTime > 500) {
+            log.warn("not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, msg.getBody().length);
         }
-        this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
+
+        this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
 
         if (null == result || !result.isOk()) {
             this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();
@@ -407,54 +497,26 @@ public class DefaultMessageStore implements MessageStore {
         return result;
     }
 
+    @Override
     public PutMessageResult putMessages(MessageExtBatch messageExtBatch) {
-        if (this.shutdown) {
-            log.warn("DefaultMessageStore has shutdown, so putMessages is forbidden");
-            return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
+        PutMessageStatus checkStoreStatus = this.checkStoreStatus();
+        if (checkStoreStatus != PutMessageStatus.PUT_OK) {
+            return new PutMessageResult(checkStoreStatus, null);
         }
 
-        if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
-            long value = this.printTimes.getAndIncrement();
-            if ((value % 50000) == 0) {
-                log.warn("DefaultMessageStore is in slave mode, so putMessages is forbidden ");
-            }
-
-            return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
-        }
-
-        if (!this.runningFlags.isWriteable()) {
-            long value = this.printTimes.getAndIncrement();
-            if ((value % 50000) == 0) {
-                log.warn("DefaultMessageStore is not writable, so putMessages is forbidden " + this.runningFlags.getFlagBits());
-            }
-
-            return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
-        } else {
-            this.printTimes.set(0);
-        }
-
-        if (messageExtBatch.getTopic().length() > Byte.MAX_VALUE) {
-            log.warn("PutMessages topic length too long " + messageExtBatch.getTopic().length());
-            return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
-        }
-
-        if (messageExtBatch.getBody().length > messageStoreConfig.getMaxMessageSize()) {
-            log.warn("PutMessages body length too long " + messageExtBatch.getBody().length);
-            return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
-        }
-
-        if (this.isOSPageCacheBusy()) {
-            return new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, null);
+        PutMessageStatus msgCheckStatus = this.checkMessages(messageExtBatch);
+        if (msgCheckStatus == PutMessageStatus.MESSAGE_ILLEGAL) {
+            return new PutMessageResult(msgCheckStatus, null);
         }
 
         long beginTime = this.getSystemClock().now();
         PutMessageResult result = this.commitLog.putMessages(messageExtBatch);
-
-        long eclipseTime = this.getSystemClock().now() - beginTime;
-        if (eclipseTime > 500) {
-            log.warn("not in lock eclipse time(ms)={}, bodyLength={}", eclipseTime, messageExtBatch.getBody().length);
+        long elapsedTime = this.getSystemClock().now() - beginTime;
+        if (elapsedTime > 500) {
+            log.warn("not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, messageExtBatch.getBody().length);
         }
-        this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
+
+        this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
 
         if (null == result || !result.isOk()) {
             this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();
@@ -469,7 +531,7 @@ public class DefaultMessageStore implements MessageStore {
         long diff = this.systemClock.now() - begin;
 
         return diff < 10000000
-                && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills();
+            && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills();
     }
 
     @Override
@@ -642,8 +704,8 @@ public class DefaultMessageStore implements MessageStore {
         } else {
             this.storeStatsService.getGetMessageTimesTotalMiss().incrementAndGet();
         }
-        long eclipseTime = this.getSystemClock().now() - beginTime;
-        this.storeStatsService.setGetMessageEntireTimeMax(eclipseTime);
+        long elapsedTime = this.getSystemClock().now() - beginTime;
+        this.storeStatsService.setGetMessageEntireTimeMax(elapsedTime);
 
         getResult.setStatus(status);
         getResult.setNextBeginOffset(nextBeginOffset);
@@ -1042,7 +1104,9 @@ public class DefaultMessageStore implements MessageStore {
                         int i = 0;
                         for (; i < bufferConsumeQueue.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
                             long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
-                            final ByteBuffer msgIdMemory = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);
+                            InetSocketAddress inetSocketAddress = (InetSocketAddress) storeHost;
+                            int msgIdLength = (inetSocketAddress.getAddress() instanceof Inet6Address) ? 16 + 4 + 8 : 4 + 4 + 8;
+                            final ByteBuffer msgIdMemory = ByteBuffer.allocate(msgIdLength);
                             String msgId =
                                 MessageDecoder.createMessageId(msgIdMemory, MessageExt.socketAddress2ByteBuffer(storeHost), offsetPy);
                             messageIds.put(msgId, nextOffset++);
@@ -1144,7 +1208,7 @@ public class DefaultMessageStore implements MessageStore {
                 topic,
                 queueId,
                 StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
-                this.getMessageStoreConfig().getMapedFileSizeConsumeQueue(),
+                this.getMessageStoreConfig().getMappedFileSizeConsumeQueue(),
                 this);
             ConsumeQueue oldLogic = map.putIfAbsent(queueId, newLogic);
             if (oldLogic != null) {
@@ -1309,7 +1373,7 @@ public class DefaultMessageStore implements MessageStore {
                             topic,
                             queueId,
                             StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
-                            this.getMessageStoreConfig().getMapedFileSizeConsumeQueue(),
+                            this.getMessageStoreConfig().getMappedFileSizeConsumeQueue(),
                             this);
                         this.putConsumeQueue(topic, queueId, logic);
                         if (!logic.load()) {
@@ -1445,7 +1509,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public int remainTransientStoreBufferNumbs() {
-        return this.transientStorePool.remainBufferNumbs();
+        return this.transientStorePool.availableBufferNums();
     }
 
     @Override

@@ -61,6 +61,7 @@ public class BrokerConfig {
      */
     private int sendMessageThreadPoolNums = 1; //16 + Runtime.getRuntime().availableProcessors() * 4;
     private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
+    private int processReplyMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int queryMessageThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors();
 
     private int adminBrokerThreadPoolNums = 16;
@@ -83,6 +84,7 @@ public class BrokerConfig {
     private boolean fetchNamesrvAddrByAddressServer = false;
     private int sendThreadPoolQueueCapacity = 10000;
     private int pullThreadPoolQueueCapacity = 100000;
+    private int replyThreadPoolQueueCapacity = 10000;
     private int queryThreadPoolQueueCapacity = 20000;
     private int clientManagerThreadPoolQueueCapacity = 1000000;
     private int consumerManagerThreadPoolQueueCapacity = 1000000;
@@ -179,6 +181,8 @@ public class BrokerConfig {
      */
     @ImportantField
     private boolean aclEnable = false;
+
+    private boolean storeReplyMessageEnable = true;
 
     public static String localHostName() {
         try {
@@ -374,6 +378,14 @@ public class BrokerConfig {
         this.pullMessageThreadPoolNums = pullMessageThreadPoolNums;
     }
 
+    public int getProcessReplyMessageThreadPoolNums() {
+        return processReplyMessageThreadPoolNums;
+    }
+
+    public void setProcessReplyMessageThreadPoolNums(int processReplyMessageThreadPoolNums) {
+        this.processReplyMessageThreadPoolNums = processReplyMessageThreadPoolNums;
+    }
+
     public int getQueryMessageThreadPoolNums() {
         return queryMessageThreadPoolNums;
     }
@@ -468,6 +480,14 @@ public class BrokerConfig {
 
     public void setPullThreadPoolQueueCapacity(int pullThreadPoolQueueCapacity) {
         this.pullThreadPoolQueueCapacity = pullThreadPoolQueueCapacity;
+    }
+
+    public int getReplyThreadPoolQueueCapacity() {
+        return replyThreadPoolQueueCapacity;
+    }
+
+    public void setReplyThreadPoolQueueCapacity(int replyThreadPoolQueueCapacity) {
+        this.replyThreadPoolQueueCapacity = replyThreadPoolQueueCapacity;
     }
 
     public int getQueryThreadPoolQueueCapacity() {
@@ -749,7 +769,7 @@ public class BrokerConfig {
     public void setMsgTraceTopicName(String msgTraceTopicName) {
         this.msgTraceTopicName = msgTraceTopicName;
     }
-    
+
     public boolean isTraceTopicEnable() {
         return traceTopicEnable;
     }
@@ -764,5 +784,13 @@ public class BrokerConfig {
 
     public void setAclEnable(boolean aclEnable) {
         this.aclEnable = aclEnable;
+    }
+
+    public boolean isStoreReplyMessageEnable() {
+        return storeReplyMessageEnable;
+    }
+
+    public void setStoreReplyMessageEnable(boolean storeReplyMessageEnable) {
+        this.storeReplyMessageEnable = storeReplyMessageEnable;
     }
 }

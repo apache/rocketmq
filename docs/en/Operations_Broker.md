@@ -16,7 +16,7 @@ ASYNC_FLUSH is recommended, for SYNC_FLUSH is expensive and will cause too much 
 | brokerId             | 0                              | broker id, 0 means master, positive integers mean slave                                                 |
 | storePathCommitLog                      | $HOME/store/commitlog/                              | file path for commit log                                                 |
 | storePathConsumerQueue                   | $HOME/store/consumequeue/                              | file path for consume queue                                              |
-| mapedFileSizeCommitLog     | 1024 * 1024 * 1024(1G) | mapped file size for commit log                                        |​ 
+| mappedFileSizeCommitLog     | 1024 * 1024 * 1024(1G) | mapped file size for commit log                                        |​ 
 | deleteWhen     | 04 | When to delete the commitlog which is out of the reserve time                                        |​ 
 | fileReserverdTime     | 72 | The number of hours to keep a commitlog before deleting it                                        |​ 
 | brokerRole     | ASYNC_MASTER | SYNC_MASTER/ASYNC_MASTER/SLAVE                                        |​ 

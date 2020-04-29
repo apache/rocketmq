@@ -424,7 +424,7 @@ Before introducing the mqadmin management tool, the following points need to be 
   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>Clear write permissions for broker from nameServer</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>Declare the address of the broker and format as ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>Declare the BrokerName</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
@@ -1053,7 +1053,7 @@ Before introducing the mqadmin management tool, the following points need to be 
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td rowspan=3 height=119 class=xl69 width=87 style='border-bottom:1.0pt
-  height:89.0pt;border-top:none;width:65pt'>consumerConnec tion</td>
+  height:89.0pt;border-top:none;width:65pt'>consumerConnection</td>
   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>Query the network connection of consumer</td>
   <td class=xl67 width=87 style='width:65pt'>-g</td>
@@ -1069,7 +1069,7 @@ Before introducing the mqadmin management tool, the following points need to be 
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td rowspan=4 height=142 class=xl69 width=87 style='border-bottom:1.0pt
-  height:106.0pt;border-top:none;width:65pt'>producerConnec tion</td>
+  height:106.0pt;border-top:none;width:65pt'>producerConnection</td>
   <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>Query the network connection of producer</td>
   <td class=xl67 width=87 style='width:65pt'>-g</td>
