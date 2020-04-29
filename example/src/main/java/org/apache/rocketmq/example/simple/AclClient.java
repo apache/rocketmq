@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
@@ -141,7 +142,7 @@ public class AclClient {
     }
 
     private static void printBody(List<MessageExt> msg) {
-        if (msg == null || msg.size() == 0)
+        if (CollectionUtils.isEmpty(msg))
             return;
         for (MessageExt m : msg) {
             if (m != null) {

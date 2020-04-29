@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
@@ -285,7 +287,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
     public void resetTopic(List<MessageExt> msgList) {
-        if (null == msgList || msgList.size() == 0) {
+        if (CollectionUtils.isEmpty(msgList)) {
             return;
         }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.transaction.queue;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.OperationResult;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
@@ -129,7 +130,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         try {
             String topic = MixAll.RMQ_SYS_TRANS_HALF_TOPIC;
             Set<MessageQueue> msgQueues = transactionalMessageBridge.fetchMessageQueues(topic);
-            if (msgQueues == null || msgQueues.size() == 0) {
+            if (CollectionUtils.isEmpty(msgQueues)) {
                 log.warn("The queue of topic is empty :" + topic);
                 return;
             }

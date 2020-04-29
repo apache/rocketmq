@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.transaction.queue;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
@@ -132,7 +133,7 @@ public class TransactionalMessageBridge {
                     this.brokerController.getBrokerStatsManager().incGroupGetSize(group, topic,
                         getMessageResult.getBufferTotalSize());
                     this.brokerController.getBrokerStatsManager().incBrokerGetNums(getMessageResult.getMessageCount());
-                    if (foundList == null || foundList.size() == 0) {
+                    if (CollectionUtils.isEmpty(foundList)) {
                         break;
                     }
                     this.brokerController.getBrokerStatsManager().recordDiskFallBehindTime(group, topic, queueId,

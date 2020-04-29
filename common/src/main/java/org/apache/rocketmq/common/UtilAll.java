@@ -39,6 +39,8 @@ import java.util.Map;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
+
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -579,7 +581,7 @@ public class UtilAll {
     }
 
     public static String list2String(List<String> list, String splitor) {
-        if (list == null || list.size() == 0) {
+        if (CollectionUtils.isEmpty(list)) {
             return null;
         }
         StringBuffer str = new StringBuffer();
