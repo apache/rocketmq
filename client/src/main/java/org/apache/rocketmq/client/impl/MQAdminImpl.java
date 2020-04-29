@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -278,7 +279,7 @@ public class MQAdminImpl {
 
         QueryResult qr = this.queryMessage(topic, uniqKey, 32,
             MessageClientIDSetter.getNearlyTimeFromID(uniqKey).getTime() - 1000, Long.MAX_VALUE, true);
-        if (qr != null && qr.getMessageList() != null && qr.getMessageList().size() > 0) {
+        if (qr != null && CollectionUtils.isNotEmpty(qr.getMessageList())) {
             return qr.getMessageList().get(0);
         } else {
             return null;

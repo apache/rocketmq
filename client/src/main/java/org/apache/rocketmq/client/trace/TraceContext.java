@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.trace;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 
 import java.util.List;
@@ -126,7 +127,7 @@ public class TraceContext implements Comparable<TraceContext> {
         StringBuilder sb = new StringBuilder(1024);
         sb.append(traceType).append("_").append(groupName)
             .append("_").append(regionId).append("_").append(isSuccess).append("_");
-        if (traceBeans != null && traceBeans.size() > 0) {
+        if (CollectionUtils.isNotEmpty(traceBeans)) {
             for (TraceBean bean : traceBeans) {
                 sb.append(bean.getMsgId() + "_" + bean.getTopic() + "_");
             }

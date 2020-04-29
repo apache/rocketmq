@@ -24,6 +24,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.DataVersion;
@@ -125,7 +127,7 @@ public class BrokerOuterAPI {
 
         final List<RegisterBrokerResult> registerBrokerResultList = Lists.newArrayList();
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
-        if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
+        if (CollectionUtils.isNotEmpty(nameServerAddressList)) {
 
             final RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
             requestHeader.setBrokerAddr(brokerAddr);
@@ -267,7 +269,7 @@ public class BrokerOuterAPI {
         final int timeoutMills) {
         final List<Boolean> changedList = new CopyOnWriteArrayList<>();
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
-        if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
+        if (CollectionUtils.isNotEmpty(nameServerAddressList)) {
             final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
             for (final String namesrvAddr : nameServerAddressList) {
                 brokerOuterExecutor.execute(new Runnable() {

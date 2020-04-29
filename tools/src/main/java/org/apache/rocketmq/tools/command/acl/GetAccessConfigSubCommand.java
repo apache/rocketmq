@@ -20,6 +20,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.AclConfig;
@@ -105,7 +106,7 @@ public class GetAccessConfigSubCommand implements SubCommand {
         System.out.printf("%-20s: %s\n", "globalWhiteRemoteAddresses", globalWhiteAddrs.toString());
         System.out.printf("\n");
         System.out.printf("accounts:\n");
-        if (configs != null && configs.size() > 0) {
+        if (CollectionUtils.isNotEmpty(configs)) {
             for (PlainAccessConfig config : configs) {
                 Field[] fields = config.getClass().getDeclaredFields();
                 for (Field field : fields) {

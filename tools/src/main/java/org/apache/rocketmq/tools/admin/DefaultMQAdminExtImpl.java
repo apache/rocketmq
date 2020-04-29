@@ -29,6 +29,8 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
+
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
@@ -569,7 +571,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         MQBrokerException, InterruptedException, MQClientException {
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
         List<BrokerData> brokerDatas = topicRouteData.getBrokerDatas();
-        if (brokerDatas != null && brokerDatas.size() > 0) {
+        if (CollectionUtils.isNotEmpty(brokerDatas)) {
             String addr = brokerDatas.get(0).selectBrokerAddr();
             if (addr != null) {
                 return this.mqClientInstance.getMQClientAPIImpl().invokeBrokerToGetConsumerStatus(addr, topic, group, clientAddr,

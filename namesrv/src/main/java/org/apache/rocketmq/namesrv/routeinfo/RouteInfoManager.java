@@ -28,6 +28,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -683,7 +685,7 @@ public class RouteInfoManager {
                     Entry<String, List<QueueData>> topicEntry = topicTableIt.next();
                     String topic = topicEntry.getKey();
                     List<QueueData> queueDatas = topicEntry.getValue();
-                    if (queueDatas != null && queueDatas.size() > 0
+                    if (CollectionUtils.isNotEmpty(queueDatas)
                         && TopicSysFlag.hasUnitFlag(queueDatas.get(0).getTopicSynFlag())) {
                         topicList.getTopicList().add(topic);
                     }
@@ -709,7 +711,7 @@ public class RouteInfoManager {
                     Entry<String, List<QueueData>> topicEntry = topicTableIt.next();
                     String topic = topicEntry.getKey();
                     List<QueueData> queueDatas = topicEntry.getValue();
-                    if (queueDatas != null && queueDatas.size() > 0
+                    if (CollectionUtils.isNotEmpty(queueDatas)
                         && TopicSysFlag.hasUnitSubFlag(queueDatas.get(0).getTopicSynFlag())) {
                         topicList.getTopicList().add(topic);
                     }
@@ -735,7 +737,7 @@ public class RouteInfoManager {
                     Entry<String, List<QueueData>> topicEntry = topicTableIt.next();
                     String topic = topicEntry.getKey();
                     List<QueueData> queueDatas = topicEntry.getValue();
-                    if (queueDatas != null && queueDatas.size() > 0
+                    if (CollectionUtils.isNotEmpty(queueDatas)
                         && !TopicSysFlag.hasUnitFlag(queueDatas.get(0).getTopicSynFlag())
                         && TopicSysFlag.hasUnitSubFlag(queueDatas.get(0).getTopicSynFlag())) {
                         topicList.getTopicList().add(topic);

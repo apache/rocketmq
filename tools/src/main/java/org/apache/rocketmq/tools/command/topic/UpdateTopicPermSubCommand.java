@@ -23,6 +23,7 @@ import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
@@ -89,7 +90,7 @@ public class UpdateTopicPermSubCommand implements SubCommand {
             TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
             assert topicRouteData != null;
             List<QueueData> queueDatas = topicRouteData.getQueueDatas();
-            assert queueDatas != null && queueDatas.size() > 0;
+            assert CollectionUtils.isNotEmpty(queueDatas);
             QueueData queueData = queueDatas.get(0);
             topicConfig.setTopicName(topic);
             topicConfig.setWriteQueueNums(queueData.getWriteQueueNums());
@@ -126,7 +127,7 @@ public class UpdateTopicPermSubCommand implements SubCommand {
 
                 if (brokerName != null) {
                     List<QueueData> queueDataList = topicRouteData.getQueueDatas();
-                    assert queueDataList != null && queueDataList.size() > 0;
+                    assert CollectionUtils.isNotEmpty(queueDataList);
                     int oldPerm = 0;
                     for (QueueData data : queueDataList) {
                         if (brokerName.equals(data.getBrokerName())) {
