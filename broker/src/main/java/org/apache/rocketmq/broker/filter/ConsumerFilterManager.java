@@ -47,7 +47,7 @@ public class ConsumerFilterManager extends ConfigManager {
     private static final long MS_24_HOUR = 24 * 3600 * 1000;
 
     private ConcurrentMap<String/*Topic*/, FilterDataMapByTopic>
-        filterDataByTopic = new ConcurrentHashMap<String/*consumer group*/, FilterDataMapByTopic>(256);
+        filterDataByTopic = new ConcurrentHashMap<String/*Topic*/, FilterDataMapByTopic>(256);
 
     private transient BrokerController brokerController;
     private transient BloomFilter bloomFilter;
