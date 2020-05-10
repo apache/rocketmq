@@ -124,7 +124,6 @@ public class MessageExt extends Message {
                 return inetSocketAddress.getAddress().getHostAddress();
             }
         } catch (Exception e) {
-
         }
 
         return null;
