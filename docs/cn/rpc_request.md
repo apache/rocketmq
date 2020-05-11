@@ -1,12 +1,12 @@
 # “Request-Reply”特性
 ---
 
-##使用场景
+## 1 使用场景
 随着服务规模的扩大，单机服务无法满足性能和容量的要求，此时需要将服务拆分为更小粒度的服务或者部署多个服务实例构成集群来提供服务。在分布式场景下，RPC是最常用的联机调用的方式。
 
 在构建分布式应用时，有些领域，例如金融服务领域，常常使用消息队列来构建服务总线，实现联机调用的目的。消息队列的主要场景是解耦、削峰填谷，在联机调用的场景下，需要将服务的调用抽象成基于消息的交互，并增强同步调用的这种交互逻辑。为了更好地支持消息队列在联机调用场景下的应用，rocketmq-4.7.0推出了“Request-Reply”特性来支持RPC调用。
 
-##设计思路
+## 2 设计思路
 在rocketmq中，整个同步调用主要包括两个过程：
 
 （1）请求方生成消息，发送给响应方，并等待响应方回包；
@@ -43,11 +43,11 @@ RequestResponseFuture中，利用correlationId来标识一个请求。如下图�
 
 Producer收到响应消息后，根据消息中的唯一标识符，从RequestResponseFuture的map中找到对应的RequestResponseFuture结构，设置响应消息，同时计数器减一，解除等待状态，使请求方收到响应消息。
 
-##使用方法
+## 3 使用方法
 
 同步调用的示例在example文件夹的rpc目录下。
 
-###Producer
+### 3.1 Producer
 ```
 Message msg = new Message(topic,
                 "",
@@ -60,7 +60,7 @@ Message msg = new Message(topic,
 ```
 调用接口替换为request即可。
 
-###Consumer
+### 3.2 Consumer
 需要启动一个producer，同时在覆写consumeMessage方法的时候，自定义响应消息并发送。
 
 ```
@@ -86,7 +86,7 @@ Message msg = new Message(topic,
             }
 ```
 
-##接口参数
+## 4 接口参数
 * public Message request(Message msg,long timeout)
 msg：待发送的消息
 timeout：同步调用超时时间
