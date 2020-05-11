@@ -35,8 +35,10 @@ RequestResponseFuture中，利用correlationId来标识一个请求。如下图�
 ![](image/producer_send_request.png)
 
 * consumer消费消息后，如何准确回包
+
 （1）producer在发送消息的时候，会给每条消息生成唯一的标识符，同时还带上了producer的clientId。当consumer收到并消费消息后，从消息中取出消息的标识符correlationId和producer的标识符clientId，放入响应消息，用来确定此响应消息是哪条请求消息的回包，以及此响应消息应该发给哪个producer。同时响应消息中设置了消息的类型以及响应消息的topic，然后consumer将消息发给broker，如下图所示。
 ![](image/consumer_reply.png)
+
 （2）broker收到响应消息后，需要将消息发回给指定的producer。Broker如何知道发回给哪个producer？因为消息中包含了producer的标识符clientId，在ProducerManager中，维护了标识符和channel信息的对应关系，通过这个对应关系，就能把回包发给对应的producer。
 
 响应消息发送和一般的消息发送流程区别在于，响应消息不需要producer拉取，而是由broker直接推给producer。同时选择broker的策略也有变化：请求消息从哪个broker发过来，响应消息也发到对应的broker上。
@@ -88,29 +90,50 @@ Message msg = new Message(topic,
 
 ## 4 接口参数
 * public Message request(Message msg,long timeout)
+
 msg：待发送的消息
+
 timeout：同步调用超时时间
 * public void request(Message msg, final RequestCallback requestCallback, long timeout)
+
 msg：待发送的消息
+
 requestCallback：回调函数
+
 timeout：同步调用超时时间
 * public Message request(final Message msg, final MessageQueueSelector selector, final Object arg,final long timeout)
+
 msg：待发送的消息
+
 selector：消息队列选择器
+
 arg：消息队列选择器需要的参数
+
 timeout：同步调用超时时间
 * public void request(final Message msg, final MessageQueueSelector selector, final Object arg,final RequestCallback requestCallback, final long timeout)
+
 msg：待发送的消息
+
 selector：消息队列选择器
+
 arg：消息队列选择器需要的参数
+
 requestCallback：回调函数
+
 timeout：同步调用超时时间
 *	public Message request(final Message msg, final MessageQueue mq, final long timeout)
+
 msg：待发送的消息
+
 mq：目标消息队列
+
 timeout：同步调用超时时间
 *	public void request(final Message msg, final MessageQueue mq, final RequestCallback requestCallback, long timeout)
+
 msg：待发送的消息
+
 mq：目标消息队列
+
 requestCallback：回调函数
+
 timeout：同步调用超时时间
