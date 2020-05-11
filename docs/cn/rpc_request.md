@@ -35,7 +35,7 @@ public class RequestResponseFuture {
 RequestResponseFuture中，利用correlationId来标识一个请求。如下图所示，Producer发送request时创建一个RequestResponseFuture，以correlationId为key，RequestResponseFuture为value存入map，同时请求中带上RequestResponseFuture中的correlationId，收到回包后根据correlationId拿到对应的RequestResponseFuture，并设置回包内容。
 ![](image/producer_send_request.png)
 
-###2.2 consumer消费消息后，如何准确回包
+### 2.2 consumer消费消息后，如何准确回包
 
 （1）producer在发送消息的时候，会给每条消息生成唯一的标识符，同时还带上了producer的clientId。当consumer收到并消费消息后，从消息中取出消息的标识符correlationId和producer的标识符clientId，放入响应消息，用来确定此响应消息是哪条请求消息的回包，以及此响应消息应该发给哪个producer。同时响应消息中设置了消息的类型以及响应消息的topic，然后consumer将消息发给broker，如下图所示。
 ![](image/consumer_reply.png)
