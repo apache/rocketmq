@@ -15,7 +15,8 @@
 
 整个过程实质上是两个消息收发过程的组合。所以这里最关键的问题是如何将异步的消息收发过程构建成一个同步的过程。其中主要有两个问题需要解决：
 
-* 请求方如何同步等待回包
+### 2.1 请求方如何同步等待回包
+
 这个问题的解决方案中，一个关键的数据结构是RequestResponseFuture。
 
 ```
@@ -34,7 +35,7 @@ public class RequestResponseFuture {
 RequestResponseFuture中，利用correlationId来标识一个请求。如下图所示，Producer发送request时创建一个RequestResponseFuture，以correlationId为key，RequestResponseFuture为value存入map，同时请求中带上RequestResponseFuture中的correlationId，收到回包后根据correlationId拿到对应的RequestResponseFuture，并设置回包内容。
 ![](image/producer_send_request.png)
 
-* consumer消费消息后，如何准确回包
+###2.2 consumer消费消息后，如何准确回包
 
 （1）producer在发送消息的时候，会给每条消息生成唯一的标识符，同时还带上了producer的clientId。当consumer收到并消费消息后，从消息中取出消息的标识符correlationId和producer的标识符clientId，放入响应消息，用来确定此响应消息是哪条请求消息的回包，以及此响应消息应该发给哪个producer。同时响应消息中设置了消息的类型以及响应消息的topic，然后consumer将消息发给broker，如下图所示。
 ![](image/consumer_reply.png)
@@ -89,19 +90,19 @@ Message msg = new Message(topic,
 ```
 
 ## 4 接口参数
-* public Message request(Message msg,long timeout)
+### 4.1 public Message request(Message msg,long timeout)
 
 msg：待发送的消息
 
 timeout：同步调用超时时间
-* public void request(Message msg, final RequestCallback requestCallback, long timeout)
+### 4.2 public void request(Message msg, final RequestCallback requestCallback, long timeout)
 
 msg：待发送的消息
 
 requestCallback：回调函数
 
 timeout：同步调用超时时间
-* public Message request(final Message msg, final MessageQueueSelector selector, final Object arg,final long timeout)
+### 4.3 public Message request(final Message msg, final MessageQueueSelector selector, final Object arg,final long timeout)
 
 msg：待发送的消息
 
@@ -110,7 +111,7 @@ selector：消息队列选择器
 arg：消息队列选择器需要的参数
 
 timeout：同步调用超时时间
-* public void request(final Message msg, final MessageQueueSelector selector, final Object arg,final RequestCallback requestCallback, final long timeout)
+### 4.4 public void request(final Message msg, final MessageQueueSelector selector, final Object arg,final RequestCallback requestCallback, final long timeout)
 
 msg：待发送的消息
 
@@ -121,14 +122,14 @@ arg：消息队列选择器需要的参数
 requestCallback：回调函数
 
 timeout：同步调用超时时间
-*	public Message request(final Message msg, final MessageQueue mq, final long timeout)
+### 4.5	public Message request(final Message msg, final MessageQueue mq, final long timeout)
 
 msg：待发送的消息
 
 mq：目标消息队列
 
 timeout：同步调用超时时间
-*	public void request(final Message msg, final MessageQueue mq, final RequestCallback requestCallback, long timeout)
+### 4.6	public void request(final Message msg, final MessageQueue mq, final RequestCallback requestCallback, long timeout)
 
 msg：待发送的消息
 
