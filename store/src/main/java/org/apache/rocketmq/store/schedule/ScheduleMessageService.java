@@ -48,7 +48,6 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
 public class ScheduleMessageService extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    public static final String SCHEDULE_TOPIC = "SCHEDULE_TOPIC_XXXX";
     private static final long FIRST_DELAY_TIME = 1000L;
     private static final long DELAY_FOR_A_WHILE = 100L;
     private static final long DELAY_FOR_A_PERIOD = 10000L;
@@ -91,7 +90,7 @@ public class ScheduleMessageService extends ConfigManager {
             Map.Entry<Integer, Long> next = it.next();
             int queueId = delayLevel2QueueId(next.getKey());
             long delayOffset = next.getValue();
-            long maxOffset = this.defaultMessageStore.getMaxOffsetInQueue(SCHEDULE_TOPIC, queueId);
+            long maxOffset = this.defaultMessageStore.getMaxOffsetInQueue(MixAll.SCHEDULE_TOPIC, queueId);
             String value = String.format("%d,%d", delayOffset, maxOffset);
             String key = String.format("%s_%d", RunningStats.scheduleMessageOffset.name(), next.getKey());
             stats.put(key, value);
@@ -262,7 +261,7 @@ public class ScheduleMessageService extends ConfigManager {
 
         public void executeOnTimeup() {
             ConsumeQueue cq =
-                ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(SCHEDULE_TOPIC,
+                ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(MixAll.SCHEDULE_TOPIC,
                     delayLevel2QueueId(delayLevel));
 
             long failScheduleOffset = offset;

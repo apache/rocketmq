@@ -16,12 +16,12 @@
  */
 package org.apache.rocketmq.broker.topic;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class TopicValidator {
 
@@ -54,13 +54,6 @@ public class TopicValidator {
         if (topic.length() > TOPIC_MAX_LENGTH) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("The specified topic is longer than topic max length.");
-            return false;
-        }
-
-        //whether the same with system reserved keyword
-        if (topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("The specified topic is conflict with AUTO_CREATE_TOPIC_KEY_TOPIC.");
             return false;
         }
 

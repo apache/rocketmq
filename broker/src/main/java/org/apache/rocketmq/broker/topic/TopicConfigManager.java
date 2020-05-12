@@ -125,6 +125,14 @@ public class TopicConfigManager extends ConfigManager {
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
+            String topic = MixAll.SCHEDULE_TOPIC;
+            TopicConfig topicConfig = new TopicConfig(topic);
+            this.systemTopicList.add(topic);
+            topicConfig.setReadQueueNums(18);
+            topicConfig.setWriteQueueNums(18);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+        }
+        {
             if (this.brokerController.getBrokerConfig().isTraceTopicEnable()) {
                 String topic = this.brokerController.getBrokerConfig().getMsgTraceTopicName();
                 TopicConfig topicConfig = new TopicConfig(topic);

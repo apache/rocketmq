@@ -16,7 +16,6 @@
  */ 
 package org.apache.rocketmq.broker.topic;
 
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.Test;
@@ -39,12 +38,6 @@ public class TopicValidatorTest {
         assertThat(res).isFalse();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
         assertThat(response.getRemark()).contains("The specified topic contains illegal characters");
-
-        clearResponse(response);
-        res = TopicValidator.validateTopic(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC, response);
-        assertThat(res).isFalse();
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-        assertThat(response.getRemark()).contains("The specified topic is conflict with AUTO_CREATE_TOPIC_KEY_TOPIC.");
 
         clearResponse(response);
         res = TopicValidator.validateTopic(generateString(128), response);
