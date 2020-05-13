@@ -586,7 +586,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 this.rebalanceImpl.setConsumerGroup(this.defaultMQPushConsumer.getConsumerGroup());
                 this.rebalanceImpl.setMessageModel(this.defaultMQPushConsumer.getMessageModel());
                 this.rebalanceImpl.setAllocateMessageQueueStrategy(this.defaultMQPushConsumer.getAllocateMessageQueueStrategy());
-                this.rebalanceImpl.setmQClientFactory(this.mQClientFactory);
+                this.rebalanceImpl.setMqClientFactory(this.mQClientFactory);
 
                 this.pullAPIWrapper = new PullAPIWrapper(
                     mQClientFactory,
@@ -1088,11 +1088,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         return info;
     }
 
-    public MQClientInstance getmQClientFactory() {
+    public MQClientInstance getMqClientFactory() {
         return mQClientFactory;
     }
 
-    public void setmQClientFactory(MQClientInstance mQClientFactory) {
+    public void setMqClientFactory(MQClientInstance mQClientFactory) {
         this.mQClientFactory = mQClientFactory;
     }
 

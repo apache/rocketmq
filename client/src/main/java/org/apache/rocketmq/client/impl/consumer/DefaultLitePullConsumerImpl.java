@@ -287,7 +287,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         this.rebalanceImpl.setConsumerGroup(this.defaultLitePullConsumer.getConsumerGroup());
         this.rebalanceImpl.setMessageModel(this.defaultLitePullConsumer.getMessageModel());
         this.rebalanceImpl.setAllocateMessageQueueStrategy(this.defaultLitePullConsumer.getAllocateMessageQueueStrategy());
-        this.rebalanceImpl.setmQClientFactory(this.mQClientFactory);
+        this.rebalanceImpl.setMqClientFactory(this.mQClientFactory);
     }
 
     private void initPullAPIWrapper() {
