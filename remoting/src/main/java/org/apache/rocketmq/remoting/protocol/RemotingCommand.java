@@ -82,6 +82,10 @@ public class RemotingCommand {
 
     private transient byte[] body;
 
+    private int bodyLength = 0;
+
+    private int headLength = 0;
+
     protected RemotingCommand() {
     }
 
@@ -152,12 +156,15 @@ public class RemotingCommand {
         RemotingCommand cmd = headerDecode(headerData, getProtocolType(oriHeaderLen));
 
         int bodyLength = length - 4 - headerLength;
+
         byte[] bodyData = null;
         if (bodyLength > 0) {
             bodyData = new byte[bodyLength];
             byteBuffer.get(bodyData);
         }
         cmd.body = bodyData;
+        cmd.headLength = headerLength;
+        cmd.bodyLength = bodyLength;
 
         return cmd;
     }
@@ -426,6 +433,10 @@ public class RemotingCommand {
 
         result.flip();
 
+        this.headLength = headerData.length;
+
+        this.bodyLength = bodyLength;
+
         return result;
     }
 
@@ -518,6 +529,14 @@ public class RemotingCommand {
     public void setExtFields(HashMap<String, String> extFields) {
         this.extFields = extFields;
     }
+
+    public static String getSerializeTypeProperty() {
+        return SERIALIZE_TYPE_PROPERTY;
+    }
+
+    public int getBodyLength() { return bodyLength; }
+
+    public int getHeadLength() { return headLength; }
 
     public void addExtField(String key, String value) {
         if (null == extFields) {
