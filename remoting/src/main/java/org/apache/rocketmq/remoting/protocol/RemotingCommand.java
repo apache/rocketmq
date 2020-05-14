@@ -530,10 +530,6 @@ public class RemotingCommand {
         this.extFields = extFields;
     }
 
-    public static String getSerializeTypeProperty() {
-        return SERIALIZE_TYPE_PROPERTY;
-    }
-
     public int getBodyLength() { return bodyLength; }
 
     public int getHeadLength() { return headLength; }
