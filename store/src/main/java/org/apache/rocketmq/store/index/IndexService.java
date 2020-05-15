@@ -326,6 +326,7 @@ public class IndexService {
                     indexFile =
                             new IndexFile(fileName, this.hashSlotNum, this.indexNum, lastUpdateEndPhyOffset,
                                     lastUpdateIndexTimestamp);
+
                     this.indexFileList.add(indexFile);
                 }
 
