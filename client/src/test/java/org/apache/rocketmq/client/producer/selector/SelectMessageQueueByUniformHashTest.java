@@ -25,13 +25,13 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.junit.Test;
 
-public class SelectMessageQueueByHashTest {
+public class SelectMessageQueueByUniformHashTest {
 
     private String topic = "FooBar";
 
     @Test
     public void testSelect() throws Exception {
-        SelectMessageQueueByHash selector = new SelectMessageQueueByHash();
+        SelectMessageQueueByUniformHash selector = new SelectMessageQueueByUniformHash();
         Message message = new Message(topic, new byte[] {});
         List<MessageQueue> messageQueues = new ArrayList<MessageQueue>();
         String orderId = "123";
