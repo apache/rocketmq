@@ -173,6 +173,12 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
             return response;
         }
 
+        if (MixAll.SCHEDULE_TOPIC.equals(requestHeader.getTopic())) {
+            response.setCode(ResponseCode.NO_PERMISSION);
+            response.setRemark("sending message to topic[" + requestHeader.getTopic() + "] is forbidden");
+            return response;
+        }
+
         if (!TopicValidator.validateTopic(requestHeader.getTopic(), response)) {
             return response;
         }
