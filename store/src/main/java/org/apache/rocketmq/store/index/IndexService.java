@@ -313,14 +313,22 @@ public class IndexService {
 
         if (indexFile == null) {
             try {
-                String fileName =
-                    this.storePath + File.separator
-                        + UtilAll.timeMillisToHumanString(System.currentTimeMillis());
-                indexFile =
-                    new IndexFile(fileName, this.hashSlotNum, this.indexNum, lastUpdateEndPhyOffset,
-                        lastUpdateIndexTimestamp);
                 this.readWriteLock.writeLock().lock();
-                this.indexFileList.add(indexFile);
+
+                IndexFile tmp = null;
+                if (!this.indexFileList.isEmpty()) {
+                    tmp = this.indexFileList.get(this.indexFileList.size() - 1);
+                }
+                if (null == tmp || tmp.isWriteFull()) {
+                    String fileName =
+                            this.storePath + File.separator
+                                    + UtilAll.timeMillisToHumanString(System.currentTimeMillis());
+                    indexFile =
+                            new IndexFile(fileName, this.hashSlotNum, this.indexNum, lastUpdateEndPhyOffset,
+                                    lastUpdateIndexTimestamp);
+                    this.indexFileList.add(indexFile);
+                }
+
             } catch (Exception e) {
                 log.error("getLastIndexFile exception ", e);
             } finally {
