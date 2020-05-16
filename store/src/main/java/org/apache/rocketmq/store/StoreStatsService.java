@@ -398,7 +398,7 @@ public class StoreStatsService extends ServiceThread {
 
         } catch (Exception e) {
 
-        }finally {
+        } finally {
             this.lockSampling.unlock();
         }
 
