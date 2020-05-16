@@ -319,15 +319,16 @@ public class IndexService {
                 if (!this.indexFileList.isEmpty()) {
                     tmp = this.indexFileList.get(this.indexFileList.size() - 1);
                 }
+
                 if (null == tmp || tmp.isWriteFull()) {
                     String fileName =
                             this.storePath + File.separator
                                     + UtilAll.timeMillisToHumanString(System.currentTimeMillis());
-                    indexFile =
+                    IndexFile newIndexFile =
                             new IndexFile(fileName, this.hashSlotNum, this.indexNum, lastUpdateEndPhyOffset,
                                     lastUpdateIndexTimestamp);
 
-                    this.indexFileList.add(indexFile);
+                    this.indexFileList.add(newIndexFile);
                 }
 
             } catch (Exception e) {
@@ -336,7 +337,7 @@ public class IndexService {
                 this.readWriteLock.writeLock().unlock();
             }
 
-            if (indexFile != null) {
+            if (prevIndexFile != null) {
                 final IndexFile flushThisFile = prevIndexFile;
                 Thread flushThread = new Thread(new Runnable() {
                     @Override
