@@ -324,11 +324,11 @@ public class IndexService {
                     String fileName =
                             this.storePath + File.separator
                                     + UtilAll.timeMillisToHumanString(System.currentTimeMillis());
-                    IndexFile newIndexFile =
+                    indexFile =
                             new IndexFile(fileName, this.hashSlotNum, this.indexNum, lastUpdateEndPhyOffset,
                                     lastUpdateIndexTimestamp);
 
-                    this.indexFileList.add(newIndexFile);
+                    this.indexFileList.add(indexFile);
                 }
 
             } catch (Exception e) {
@@ -337,7 +337,7 @@ public class IndexService {
                 this.readWriteLock.writeLock().unlock();
             }
 
-            if (prevIndexFile != null) {
+            if (indexFile != null) {
                 final IndexFile flushThisFile = prevIndexFile;
                 Thread flushThread = new Thread(new Runnable() {
                     @Override
