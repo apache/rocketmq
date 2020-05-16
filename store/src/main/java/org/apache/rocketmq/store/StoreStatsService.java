@@ -317,10 +317,12 @@ public class StoreStatsService extends ServiceThread {
         try {
             CallSnapshot last = this.putTimesList.getLast();
 
-            if (this.putTimesList.size() > time) {
+            if (this.putTimesList.size() > time && null != last) {
                 CallSnapshot lastBefore = this.putTimesList.get(this.putTimesList.size() - (time + 1));
                 result += CallSnapshot.getTPS(lastBefore, last);
             }
+
+        } catch (Exception e) {
 
         } finally {
             this.lockSampling.unlock();
@@ -339,6 +341,8 @@ public class StoreStatsService extends ServiceThread {
                     this.getTimesFoundList.get(this.getTimesFoundList.size() - (time + 1));
                 result += CallSnapshot.getTPS(lastBefore, last);
             }
+        } catch (Exception e) {
+
         } finally {
             this.lockSampling.unlock();
         }
@@ -357,6 +361,8 @@ public class StoreStatsService extends ServiceThread {
                     this.getTimesMissList.get(this.getTimesMissList.size() - (time + 1));
                 result += CallSnapshot.getTPS(lastBefore, last);
             }
+
+        } catch (Exception e) {
 
         } finally {
             this.lockSampling.unlock();
@@ -389,7 +395,9 @@ public class StoreStatsService extends ServiceThread {
                 }
             }
 
-        } finally {
+        } catch (Exception e) {
+
+        }finally {
             this.lockSampling.unlock();
         }
 
@@ -407,6 +415,8 @@ public class StoreStatsService extends ServiceThread {
                     this.transferedMsgCountList.get(this.transferedMsgCountList.size() - (time + 1));
                 result += CallSnapshot.getTPS(lastBefore, last);
             }
+
+        } catch (Exception e) {
 
         } finally {
             this.lockSampling.unlock();
