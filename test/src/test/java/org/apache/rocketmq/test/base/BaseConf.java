@@ -19,12 +19,17 @@ package org.apache.rocketmq.test.base;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.client.producer.TransactionListener;
+import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.namesrv.NamesrvController;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.test.client.rmq.RMQAsyncSendProducer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
+import org.apache.rocketmq.test.client.rmq.RMQTransactionalProducer;
 import org.apache.rocketmq.test.clientinterface.AbstractMQConsumer;
 import org.apache.rocketmq.test.clientinterface.AbstractMQProducer;
 import org.apache.rocketmq.test.factory.ConsumerFactory;
@@ -33,13 +38,13 @@ import org.apache.rocketmq.test.util.MQAdmin;
 import org.apache.rocketmq.test.util.MQRandomUtils;
 
 public class BaseConf {
-    protected static String nsAddr;
+    public static String nsAddr;
     protected static String broker1Name;
     protected static String broker2Name;
     protected static String clusterName;
     protected static int brokerNum;
     protected static int waitTime = 5;
-    protected static int consumeTime = 5 * 60 * 1000;
+    protected static int consumeTime = 2 * 60 * 1000;
     protected static NamesrvController namesrvController;
     protected static BrokerController brokerController1;
     protected static BrokerController brokerController2;
@@ -48,6 +53,7 @@ public class BaseConf {
     private static Logger log = Logger.getLogger(BaseConf.class);
 
     static {
+    	System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
         namesrvController = IntegrationTestBase.createAndStartNamesrv();
         nsAddr = "127.0.0.1:" + namesrvController.getNettyServerConfig().getListenPort();
         brokerController1 = IntegrationTestBase.createAndStartBroker(nsAddr);
@@ -85,6 +91,15 @@ public class BaseConf {
 
     public static RMQNormalProducer getProducer(String nsAddr, String topic, boolean useTLS) {
         RMQNormalProducer producer = new RMQNormalProducer(nsAddr, topic, useTLS);
+        if (debug) {
+            producer.setDebug();
+        }
+        mqClients.add(producer);
+        return producer;
+    }
+
+    public static RMQTransactionalProducer getTransactionalProducer(String nsAddr, String topic, TransactionListener transactionListener) {
+        RMQTransactionalProducer producer = new RMQTransactionalProducer(nsAddr, topic, false, transactionListener);
         if (debug) {
             producer.setDebug();
         }

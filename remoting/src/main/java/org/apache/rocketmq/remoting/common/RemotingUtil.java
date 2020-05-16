@@ -31,13 +31,13 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class RemotingUtil {
     public static final String OS_NAME = System.getProperty("os.name");
 
-    private static final Logger log = LoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
     private static boolean isLinuxPlatform = false;
     private static boolean isWindowsPlatform = false;
 
@@ -144,8 +144,10 @@ public class RemotingUtil {
     }
 
     public static SocketAddress string2SocketAddress(final String addr) {
-        String[] s = addr.split(":");
-        InetSocketAddress isa = new InetSocketAddress(s[0], Integer.parseInt(s[1]));
+        int split = addr.lastIndexOf(":");
+        String host = addr.substring(0, split);
+        String port = addr.substring(split + 1);
+        InetSocketAddress isa = new InetSocketAddress(host, Integer.parseInt(port));
         return isa;
     }
 
