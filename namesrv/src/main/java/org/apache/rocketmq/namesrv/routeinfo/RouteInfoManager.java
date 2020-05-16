@@ -185,7 +185,7 @@ public class RouteInfoManager {
                     }
                 }
 
-                this.refreshClusterAndBrokerAddrList(clusterName, brokerName, brokerId, brokerAddr);
+                this.refreshClusterAndBrokerAddrTable(clusterName, brokerName, brokerId, brokerAddr);
             } finally {
                 this.lock.writeLock().unlock();
             }
@@ -196,7 +196,7 @@ public class RouteInfoManager {
         return result;
     }
 
-    private void refreshClusterAndBrokerAddrList(String clusterName, String brokerName, Long brokerId, String brokerAddr) {
+    private void refreshClusterAndBrokerAddrTable(String clusterName, String brokerName, Long brokerId, String brokerAddr) {
         Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
 
         Iterator<Entry<String, BrokerData>> it = this.brokerAddrTable.entrySet().iterator();
