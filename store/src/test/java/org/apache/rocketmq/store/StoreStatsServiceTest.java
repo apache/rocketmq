@@ -26,7 +26,6 @@ import static org.junit.Assert.*;
 
 public class StoreStatsServiceTest {
 
-  public class StoreStatsServiceTest {
     @Test
     public void StoreStatsServiceStringFromat() throws Exception {
 
