@@ -90,19 +90,22 @@ Message msg = new Message(topic,
 ```
 
 ## 4 接口参数
-### 4.1 public Message request(Message msg,long timeout)
+
+4.1 public Message request(Message msg,long timeout)
 
 msg：待发送的消息
 
 timeout：同步调用超时时间
-### 4.2 public void request(Message msg, final RequestCallback requestCallback, long timeout)
+
+4.2 public void request(Message msg, final RequestCallback requestCallback, long timeout)
 
 msg：待发送的消息
 
 requestCallback：回调函数
 
 timeout：同步调用超时时间
-### 4.3 public Message request(final Message msg, final MessageQueueSelector selector, final Object arg,final long timeout)
+
+4.3 public Message request(final Message msg, final MessageQueueSelector selector, final Object arg,final long timeout)
 
 msg：待发送的消息
 
@@ -111,7 +114,8 @@ selector：消息队列选择器
 arg：消息队列选择器需要的参数
 
 timeout：同步调用超时时间
-### 4.4 public void request(final Message msg, final MessageQueueSelector selector, final Object arg,final RequestCallback requestCallback, final long timeout)
+
+4.4 public void request(final Message msg, final MessageQueueSelector selector, final Object arg,final RequestCallback requestCallback, final long timeout)
 
 msg：待发送的消息
 
@@ -122,14 +126,16 @@ arg：消息队列选择器需要的参数
 requestCallback：回调函数
 
 timeout：同步调用超时时间
-### 4.5	public Message request(final Message msg, final MessageQueue mq, final long timeout)
+
+4.5	public Message request(final Message msg, final MessageQueue mq, final long timeout)
 
 msg：待发送的消息
 
 mq：目标消息队列
 
 timeout：同步调用超时时间
-### 4.6	public void request(final Message msg, final MessageQueue mq, final RequestCallback requestCallback, long timeout)
+
+4.6	public void request(final Message msg, final MessageQueue mq, final RequestCallback requestCallback, long timeout)
 
 msg：待发送的消息
 
