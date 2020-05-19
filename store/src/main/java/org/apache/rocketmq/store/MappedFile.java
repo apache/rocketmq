@@ -42,27 +42,69 @@ import org.apache.rocketmq.store.util.LibC;
 import sun.nio.ch.DirectBuffer;
 
 public class MappedFile extends ReferenceResource {
+    /**
+     * osPageSize 4k
+     */
     public static final int OS_PAGE_SIZE = 1024 * 4;
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
+    /**
+     * 类变量，所有MappedFile 实例已使用字节总数
+     */
     private static final AtomicLong TOTAL_MAPPED_VIRTUAL_MEMORY = new AtomicLong(0);
 
+    /**
+     * MappedFile 个数
+     */
     private static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0);
+    /**
+     * 当前MappedFile对象当前写指针
+     */
     protected final AtomicInteger wrotePosition = new AtomicInteger(0);
-    //ADD BY ChenYang
+    /**
+     * 当前提交的指针
+     */
     protected final AtomicInteger committedPosition = new AtomicInteger(0);
+    /**
+     * 当前刷到磁盘的指针
+     */
     private final AtomicInteger flushedPosition = new AtomicInteger(0);
+    /**
+     * 文件总大小
+     */
     protected int fileSize;
+    /**
+     * 文件通道
+     */
     protected FileChannel fileChannel;
     /**
      * Message will put to here first, and then reput to FileChannel if writeBuffer is not null.
+     * 如果开启了transientStorePoolEnable，消息会写入堆外内存，然后提交到 PageCache 并最终刷写到磁盘
      */
     protected ByteBuffer writeBuffer = null;
+    /**
+     * ByteBuffer的缓冲池，堆外内存，transientStorePoolEnable 为 true 时生效
+     */
     protected TransientStorePool transientStorePool = null;
+    /**
+     * 文件名称
+     */
     private String fileName;
+    /**
+     * 文件序号
+     */
     private long fileFromOffset;
+    /**
+     * 文件对象
+     */
     private File file;
+    /**
+     * 对应操作系统的PageCache
+     */
     private MappedByteBuffer mappedByteBuffer;
+    /**
+     * 最后一次存储时间戳
+     */
     private volatile long storeTimestamp = 0;
     private boolean firstCreateInQueue = false;
 
@@ -198,17 +240,26 @@ public class MappedFile extends ReferenceResource {
         return appendMessagesInner(messageExtBatch, cb);
     }
 
+    /**
+     * 消息写入
+     * @param messageExt 消息体
+     * @param cb 用于将消息写入到mappedByteBuffer
+     * @return
+     */
     public AppendMessageResult appendMessagesInner(final MessageExt messageExt, final AppendMessageCallback cb) {
         assert messageExt != null;
         assert cb != null;
 
+        // 获取当前写入位置
         int currentPos = this.wrotePosition.get();
 
         if (currentPos < this.fileSize) {
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
             AppendMessageResult result = null;
+            // 根据消息类型，是批量消息还是单个消息，进入相应的处理
             if (messageExt instanceof MessageExtBrokerInner) {
+                // 消息写入实现
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBrokerInner) messageExt);
             } else if (messageExt instanceof MessageExtBatch) {
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBatch) messageExt);
