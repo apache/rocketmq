@@ -364,7 +364,7 @@ public class RemotingCommand {
 
         this.headLength = headerData.length;
 
-        this.bodyLength = body==null?0:body.length;
+        this.bodyLength = body == null ? 0 : body.length;
 
         return result;
     }
