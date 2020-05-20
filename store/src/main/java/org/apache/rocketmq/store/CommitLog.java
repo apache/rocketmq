@@ -1407,9 +1407,7 @@ public class CommitLog {
             synchronized (this.requestsWrite) {
                 this.requestsWrite.add(request);
             }
-            if (hasNotified.compareAndSet(false, true)) {
-                waitPoint.countDown(); // notify
-            }
+            this.wakeup();
         }
 
         private void swapRequests() {
