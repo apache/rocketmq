@@ -638,13 +638,21 @@ public class CommitLog {
         return putMessageResult;
     }
 
+    /**
+     * 刷盘机制
+     * @param result 消息写入到MappedFile的结果
+     * @param putMessageResult 消息刷盘后的结果
+     * @param messageExt 消息
+     */
     public void handleDiskFlush(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt) {
-        // Synchronization flush
+        // Synchronization flush 同步刷盘
         if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
+            // 启动一个线程
             final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
             if (messageExt.isWaitStoreMsgOK()) {
                 GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
                 service.putRequest(request);
+                // 线程wait  超时时间5s 类似于 Future 模式
                 boolean flushOK = request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
                 if (!flushOK) {
                     log.error("do groupcommit, wait for flush failed, topic: " + messageExt.getTopic() + " tags: " + messageExt.getTags()
@@ -655,8 +663,9 @@ public class CommitLog {
                 service.wakeup();
             }
         }
-        // Asynchronous flush
+        // Asynchronous flush 异步刷盘
         else {
+            // 是否开启堆外内存缓存池  默认为false
             if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
                 flushCommitLogService.wakeup();
             } else {
@@ -1064,7 +1073,13 @@ public class CommitLog {
      * GroupCommit Service
      */
     class GroupCommitService extends FlushCommitLogService {
+        /**
+         * 写队列  用于向该线程添加刷盘任务
+         */
         private volatile List<GroupCommitRequest> requestsWrite = new ArrayList<GroupCommitRequest>();
+        /**
+         * 读队列 主要用于执行特定的刷盘任务
+         */
         private volatile List<GroupCommitRequest> requestsRead = new ArrayList<GroupCommitRequest>();
 
         public synchronized void putRequest(final GroupCommitRequest request) {
