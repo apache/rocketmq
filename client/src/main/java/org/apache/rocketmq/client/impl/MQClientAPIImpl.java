@@ -662,7 +662,6 @@ public class MQClientAPIImpl {
                 break;
             }
             default: {
-                assert false;
                 throw new MQBrokerException(response.getCode(), response.getRemark());
             }
         }
