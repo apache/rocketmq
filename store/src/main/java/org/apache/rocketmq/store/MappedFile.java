@@ -58,7 +58,7 @@ public class MappedFile extends ReferenceResource {
      */
     private static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0);
     /**
-     * 当前MappedFile对象当前写指针
+     * 当前MappedFile对象当前写指针（当前待写入位置）
      */
     protected final AtomicInteger wrotePosition = new AtomicInteger(0);
     /**
@@ -66,7 +66,7 @@ public class MappedFile extends ReferenceResource {
      */
     protected final AtomicInteger committedPosition = new AtomicInteger(0);
     /**
-     * 当前刷到磁盘的指针
+     * 当前刷到磁盘的指针  committedPosition <= flushedPosition
      */
     private final AtomicInteger flushedPosition = new AtomicInteger(0);
     /**
@@ -254,6 +254,7 @@ public class MappedFile extends ReferenceResource {
         int currentPos = this.wrotePosition.get();
 
         if (currentPos < this.fileSize) {
+            // 如果是把消息写入到堆外内存池用writeBuffer   否则用mappedByteBuffer 直接写到pageCache
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
             AppendMessageResult result = null;
@@ -328,6 +329,7 @@ public class MappedFile extends ReferenceResource {
 
                 try {
                     //We only append data to fileChannel or mappedByteBuffer, never both.
+                    // 调用 FileChannel 或 MappedByteBuffer 的force 方法
                     if (writeBuffer != null || this.fileChannel.position() != 0) {
                         this.fileChannel.force(false);
                     } else {

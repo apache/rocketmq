@@ -35,15 +35,33 @@ public class MappedFileQueue {
 
     private static final int DELETE_FILES_BATCH_MAX = 10;
 
+    /**
+     * 文件存储路径
+     */
     private final String storePath;
 
+    /**
+     * 单个MappedFile文件长度
+     */
     private final int mappedFileSize;
 
+    /**
+     * mappedFile集合
+     */
     private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
 
+    /**
+     * 创建 MappedFileServic
+     */
     private final AllocateMappedFileService allocateMappedFileService;
 
+    /**
+     * 刷盘位置
+     */
     private long flushedWhere = 0;
+    /**
+     * commit（已提交）位置
+     */
     private long committedWhere = 0;
 
     private volatile long storeTimestamp = 0;
@@ -144,11 +162,15 @@ public class MappedFileQueue {
         }
     }
 
+    /**
+     * 服务器启动的时候将commitLog下的文件地址load到内存
+     * @return
+     */
     public boolean load() {
         File dir = new File(this.storePath);
         File[] files = dir.listFiles();
         if (files != null) {
-            // ascending order
+            // ascending order 升序创建
             Arrays.sort(files);
             for (File file : files) {
 
@@ -422,14 +444,22 @@ public class MappedFileQueue {
         return deleteCount;
     }
 
+    /**
+     * 刷盘的具体实现
+     * @param flushLeastPages
+     * @return
+     */
     public boolean flush(final int flushLeastPages) {
         boolean result = true;
+        // 根据上次刷新的位置，得到当前的 MappedFile 对象
         MappedFile mappedFile = this.findMappedFileByOffset(this.flushedWhere, this.flushedWhere == 0);
         if (mappedFile != null) {
             long tmpTimeStamp = mappedFile.getStoreTimestamp();
+            //执行 MappedFile 的 flush 方法
             int offset = mappedFile.flush(flushLeastPages);
             long where = mappedFile.getFileFromOffset() + offset;
             result = where == this.flushedWhere;
+            // 更新上次刷新的位置
             this.flushedWhere = where;
             if (0 == flushLeastPages) {
                 this.storeTimestamp = tmpTimeStamp;
@@ -454,7 +484,7 @@ public class MappedFileQueue {
 
     /**
      * Finds a mapped file by offset.
-     *
+     * 根据上次刷盘的位置，得到当前的 MappedFile 对象
      * @param offset Offset.
      * @param returnFirstOnNotFound If the mapped file is not found, then return the first one.
      * @return Mapped file or null (when not found and returnFirstOnNotFound is <code>false</code>).
