@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common.message;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -118,25 +119,22 @@ public class MessageExt extends Message {
     }
 
     public String getBornHostString() {
-        try {
-            if (this.bornHost != null) {
-                InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;
-                return inetSocketAddress.getAddress().getHostAddress();
-            }
-        } catch (Exception e) {
+
+        if (null != this.bornHost) {
+            InetAddress inetAddress = ((InetSocketAddress) this.bornHost).getAddress();
+
+            return null != inetAddress ? inetAddress.getHostAddress() : null;
         }
 
         return null;
     }
 
     public String getBornHostNameString() {
-        try {
-            if (this.bornHost != null) {
-                InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;
-                return inetSocketAddress.getAddress().getHostName();
-            }
-        } catch (Exception e) {
-            return null;
+
+        if (null != this.bornHost) {
+            InetAddress inetAddress = ((InetSocketAddress) this.bornHost).getAddress();
+
+            return null != inetAddress ? inetAddress.getHostName() : null;
         }
 
         return null;
