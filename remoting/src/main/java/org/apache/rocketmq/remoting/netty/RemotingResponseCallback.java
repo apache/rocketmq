@@ -14,22 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.consumer.listener;
 
-import java.util.List;
-import org.apache.rocketmq.common.message.MessageExt;
+package org.apache.rocketmq.remoting.netty;
 
-/**
- * A MessageListenerOrderly object is used to receive messages orderly. One queue by one thread
- */
-public interface MessageListenerOrderly extends MessageListener {
-    /**
-     * It is not recommend to throw exception,rather than returning ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT
-     * if consumption failure
-     *
-     * @param msgs msgs.size() >= 1<br> DefaultMQPushConsumer.consumeMessageBatchMaxSize=1,you can modify here
-     * @return The consume status
-     */
-    ConsumeOrderlyStatus consumeMessage(final List<MessageExt> msgs,
-        final ConsumeOrderlyContext context);
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+
+public interface RemotingResponseCallback {
+    void callback(RemotingCommand response);
 }

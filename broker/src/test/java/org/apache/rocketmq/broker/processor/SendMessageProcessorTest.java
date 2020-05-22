@@ -56,6 +56,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -93,13 +94,15 @@ public class SendMessageProcessorTest {
 
     @Test
     public void testProcessRequest() throws RemotingCommandException {
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
+                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
         assertPutResult(ResponseCode.SUCCESS);
     }
 
     @Test
     public void testProcessRequest_WithHook() throws RemotingCommandException {
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
+                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
         List<SendMessageHook> sendMessageHookList = new ArrayList<>();
         final SendMessageContext[] sendMessageContext = new SendMessageContext[1];
         SendMessageHook sendMessageHook = new SendMessageHook() {
@@ -129,55 +132,64 @@ public class SendMessageProcessorTest {
 
     @Test
     public void testProcessRequest_FlushTimeOut() throws RemotingCommandException {
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.FLUSH_DISK_TIMEOUT, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
+                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.FLUSH_DISK_TIMEOUT, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.FLUSH_DISK_TIMEOUT);
     }
 
     @Test
     public void testProcessRequest_MessageIllegal() throws RemotingCommandException {
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
+                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.MESSAGE_ILLEGAL);
     }
 
     @Test
     public void testProcessRequest_CreateMappedFileFailed() throws RemotingCommandException {
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
+                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.SYSTEM_ERROR);
     }
 
     @Test
     public void testProcessRequest_FlushSlaveTimeout() throws RemotingCommandException {
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.FLUSH_SLAVE_TIMEOUT, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
+                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.FLUSH_SLAVE_TIMEOUT, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.FLUSH_SLAVE_TIMEOUT);
     }
 
     @Test
     public void testProcessRequest_PageCacheBusy() throws RemotingCommandException {
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
+                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.SYSTEM_ERROR);
     }
 
     @Test
     public void testProcessRequest_PropertiesTooLong() throws RemotingCommandException {
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
+                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.MESSAGE_ILLEGAL);
     }
 
     @Test
     public void testProcessRequest_ServiceNotAvailable() throws RemotingCommandException {
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
+                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.SERVICE_NOT_AVAILABLE);
     }
 
     @Test
     public void testProcessRequest_SlaveNotAvailable() throws RemotingCommandException {
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.SLAVE_NOT_AVAILABLE, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
+                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.SLAVE_NOT_AVAILABLE, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.SLAVE_NOT_AVAILABLE);
     }
 
     @Test
     public void testProcessRequest_WithMsgBack() throws RemotingCommandException {
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
+                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
         final RemotingCommand request = createSendMsgBackCommand(RequestCode.CONSUMER_SEND_MSG_BACK);
 
         sendMessageProcessor = new SendMessageProcessor(brokerController);
@@ -189,7 +201,8 @@ public class SendMessageProcessorTest {
     @Test
     public void testProcessRequest_Transaction() throws RemotingCommandException {
         brokerController.setTransactionalMessageService(transactionMsgService);
-        when(brokerController.getTransactionalMessageService().prepareMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        when(brokerController.getTransactionalMessageService().asyncPrepareMessage(any(MessageExtBrokerInner.class)))
+                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
         RemotingCommand request = createSendTransactionMsgCommand(RequestCode.SEND_MESSAGE);
         final RemotingCommand[] response = new RemotingCommand[1];
         doAnswer(new Answer() {

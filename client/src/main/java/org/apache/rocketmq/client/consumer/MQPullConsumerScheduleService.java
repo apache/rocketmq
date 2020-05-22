@@ -27,6 +27,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -95,7 +96,7 @@ public class MQPullConsumerScheduleService {
     }
 
     public void registerPullTaskCallback(final String topic, final PullTaskCallback callback) {
-        this.callbackTable.put(topic, callback);
+        this.callbackTable.put(NamespaceUtil.wrapNamespace(this.defaultMQPullConsumer.getNamespace(), topic), callback);
         this.defaultMQPullConsumer.registerMessageQueueListener(topic, null);
     }
 
