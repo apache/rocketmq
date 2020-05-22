@@ -21,18 +21,26 @@ import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 
 public class MessageStoreConfig {
-    //The root directory in which the log data is kept
+    /**
+     * Broker的存储根目录，默认为 $Broker_Home/store
+     */
     @ImportantField
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
 
-    //The directory in which the commitlog is kept
+    /**
+     * 设置commitlog的存储目录，默认为$Broker_Home/store/commitlog
+     */
     @ImportantField
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
         + File.separator + "commitlog";
 
-    // CommitLog file size,default is 1G
+    /**
+     *  commitLog目录下的mappedFile文件的大小，默认为1G
+     */
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
-    // ConsumeQueue file size,default is 30W
+    /**
+     * ConsumeQueue 文件大小  默认30w * ConsumeQueue.CQ_STORE_UNIT_SIZE。
+     */
     private int mapedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     // enable consume queue ext
     private boolean enableConsumeQueueExt = false;
@@ -41,6 +49,11 @@ public class MessageStoreConfig {
     // Bit count of filter bit map.
     // this will be set by pipe of calculate filter bit map.
     private int bitMapLengthConsumeQueueExt = 64;
+
+    /**
+     * 刷写 CommitLog 的间隔时间，RocketMQ 后台会启动一个线程，将消息刷写到磁盘，
+     * 这个也就是该线程每次运行后等待的时间，默认为500毫秒。flush 操作，调用文件通道的force()方法
+     */
 
     // CommitLog flush interval
     // flush data to disk
